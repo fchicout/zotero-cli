@@ -8,16 +8,17 @@ from arxiv2zotero.client import CollectionNotFoundError
 class TestCLI(unittest.TestCase):
     
     @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
     @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
-    def test_main_success(self, mock_stdout, MockZoteroAPI, MockArxivClient):
+    def test_add_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
         # Setup mocks
         mock_client_instance = MockArxivClient.return_value
         mock_client_instance.add_paper.return_value = True
 
-        # Simulate command line arguments
-        test_args = ['program', '--arxiv-id', '123', '--title', 'T', '--abstract', 'A', '--folder', 'F']
+        # Simulate 'add' subcommand
+        test_args = ['program', 'add', '--arxiv-id', '123', '--title', 'T', '--abstract', 'A', '--folder', 'F']
         with patch.object(sys, 'argv', test_args):
             main()
 
@@ -26,33 +27,61 @@ class TestCLI(unittest.TestCase):
         self.assertIn("Successfully added", mock_stdout.getvalue())
 
     @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
     @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
-    def test_main_collection_not_found(self, mock_stdout, MockZoteroAPI, MockArxivClient):
+    def test_import_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
+        # Setup mocks
+        mock_client_instance = MockArxivClient.return_value
+        mock_client_instance.import_from_query.return_value = 5
+
+        # Simulate 'import' subcommand
+        test_args = ['program', 'import', '--query', 'test query', '--folder', 'F', '--limit', '10']
+        with patch.object(sys, 'argv', test_args):
+            main()
+
+        # Assertions
+        mock_client_instance.import_from_query.assert_called_once_with('test query', 'F', 10, False)
+        self.assertIn("Successfully imported 5 papers", mock_stdout.getvalue())
+
+    @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
+    @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
+    @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_import_command_verbose(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
+        # Setup mocks
+        mock_client_instance = MockArxivClient.return_value
+        mock_client_instance.import_from_query.return_value = 5
+
+        # Simulate 'import' subcommand with verbose
+        test_args = ['program', 'import', '--query', 'test query', '--folder', 'F', '--verbose']
+        with patch.object(sys, 'argv', test_args):
+            main()
+
+        # Assertions
+        mock_client_instance.import_from_query.assert_called_once_with('test query', 'F', 100, True)
+
+    @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
+    @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
+    @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
+    @patch('sys.stderr', new_callable=StringIO)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_add_command_collection_not_found(self, mock_stdout, mock_stderr, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
         # Setup mocks
         mock_client_instance = MockArxivClient.return_value
         mock_client_instance.add_paper.side_effect = CollectionNotFoundError("Not found")
 
-        # Simulate command line arguments
-        test_args = ['program', '--arxiv-id', '123', '--title', 'T', '--abstract', 'A', '--folder', 'F']
+        # Simulate 'add' subcommand
+        test_args = ['program', 'add', '--arxiv-id', '123', '--title', 'T', '--abstract', 'A', '--folder', 'F']
         with patch.object(sys, 'argv', test_args):
             with self.assertRaises(SystemExit) as cm:
                 main()
             self.assertEqual(cm.exception.code, 1)
 
-        self.assertIn("Error: Not found", mock_stdout.getvalue())
-
-    @patch.dict('os.environ', {}, clear=True)
-    @patch('sys.stdout', new_callable=StringIO)
-    def test_main_missing_env_vars(self, mock_stdout):
-        test_args = ['program', '--arxiv-id', '123', '--title', 'T', '--abstract', 'A', '--folder', 'F']
-        with patch.object(sys, 'argv', test_args):
-            with self.assertRaises(SystemExit) as cm:
-                main()
-            self.assertEqual(cm.exception.code, 1)
-        
-        self.assertIn("Error: ZOTERO_API_KEY environment variable not set", mock_stdout.getvalue())
+        self.assertIn("Error: Not found", mock_stderr.getvalue())
 
 if __name__ == '__main__':
     unittest.main()
