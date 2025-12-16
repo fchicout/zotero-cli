@@ -3,9 +3,9 @@ import os
 import sys
 import re
 
-from arxiv2zotero.infra.zotero_api import ZoteroAPIClient
-from arxiv2zotero.infra.arxiv_lib import ArxivLibGateway
-from arxiv2zotero.client import Arxiv2ZoteroClient, CollectionNotFoundError
+from paper2zotero.infra.zotero_api import ZoteroAPIClient
+from paper2zotero.infra.arxiv_lib import ArxivLibGateway
+from paper2zotero.client import Arxiv2ZoteroClient, CollectionNotFoundError
 
 def get_common_clients():
     """Helper to get Zotero and Arxiv clients from environment variables."""

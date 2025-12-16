@@ -1,7 +1,0 @@
-pyproject.toml
-src/arxiv2zotero/__init__.py
-src/arxiv2zotero.egg-info/PKG-INFO
-src/arxiv2zotero.egg-info/SOURCES.txt
-src/arxiv2zotero.egg-info/dependency_links.txt
-src/arxiv2zotero.egg-info/requires.txt
-src/arxiv2zotero.egg-info/top_level.txt

@@ -1,10 +1,11 @@
 Metadata-Version: 2.4
-Name: arxiv2zotero
+Name: paper2zotero
 Version: 0.1.0
-Summary: A tool to add arXiv query results to Zotero
+Summary: A tool to add papers from various sources (arXiv, BibTeX) to Zotero
 Author-email: Fábio Chicout <fchicout@gmail.com>
 Requires-Python: >=3.8
 Requires-Dist: requests
 Requires-Dist: beautifulsoup4
 Requires-Dist: feedparser
 Requires-Dist: bibtexparser
+Requires-Dist: arxiv

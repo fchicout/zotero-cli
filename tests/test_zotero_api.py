@@ -1,8 +1,8 @@
 import unittest
 import requests
 from unittest.mock import Mock, patch
-from arxiv2zotero.infra.zotero_api import ZoteroAPIClient
-from arxiv2zotero.core.models import ArxivPaper
+from paper2zotero.infra.zotero_api import ZoteroAPIClient
+from paper2zotero.core.models import ArxivPaper
 
 class TestZoteroAPIClient(unittest.TestCase):
     def setUp(self):

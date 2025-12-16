@@ -1,9 +1,9 @@
 import unittest
 from io import StringIO
 from unittest.mock import Mock, patch, MagicMock
-from arxiv2zotero.client import Arxiv2ZoteroClient, CollectionNotFoundError
-from arxiv2zotero.core.interfaces import ZoteroGateway, ArxivGateway
-from arxiv2zotero.core.models import ArxivPaper
+from paper2zotero.client import Arxiv2ZoteroClient, CollectionNotFoundError
+from paper2zotero.core.interfaces import ZoteroGateway, ArxivGateway
+from paper2zotero.core.models import ArxivPaper
 
 class TestArxiv2ZoteroClient(unittest.TestCase):
     def setUp(self):

@@ -2,8 +2,8 @@ import requests
 import re
 from typing import Optional
 
-from arxiv2zotero.core.interfaces import ZoteroGateway
-from arxiv2zotero.core.models import ArxivPaper
+from paper2zotero.core.interfaces import ZoteroGateway
+from paper2zotero.core.models import ArxivPaper
 
 class ZoteroAPIClient(ZoteroGateway):
     API_VERSION = '3'

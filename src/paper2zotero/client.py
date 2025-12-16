@@ -1,6 +1,6 @@
 from typing import Optional
-from arxiv2zotero.core.interfaces import ZoteroGateway, ArxivGateway
-from arxiv2zotero.core.models import ArxivPaper
+from paper2zotero.core.interfaces import ZoteroGateway, ArxivGateway
+from paper2zotero.core.models import ArxivPaper
 
 class CollectionNotFoundError(Exception):
     """Raised when the specified Zotero collection cannot be found."""

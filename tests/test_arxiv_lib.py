@@ -1,12 +1,12 @@
 import unittest
 from unittest.mock import Mock, patch, MagicMock
-from arxiv2zotero.infra.arxiv_lib import ArxivLibGateway
-from arxiv2zotero.core.models import ArxivPaper
+from paper2zotero.infra.arxiv_lib import ArxivLibGateway
+from paper2zotero.core.models import ArxivPaper
 import arxiv
 
 class TestArxivLibGateway(unittest.TestCase):
-    @patch('arxiv2zotero.infra.arxiv_lib.arxiv.Client')
-    @patch('arxiv2zotero.infra.arxiv_lib.arxiv.Search')
+    @patch('paper2zotero.infra.arxiv_lib.arxiv.Client')
+    @patch('paper2zotero.infra.arxiv_lib.arxiv.Search')
     def test_search_returns_papers(self, MockSearch, MockClient):
         # Setup mocks
         mock_client_instance = MockClient.return_value

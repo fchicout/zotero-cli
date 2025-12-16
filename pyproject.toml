@@ -1,7 +1,7 @@
 [project]
-name = "arxiv2zotero"
+name = "paper2zotero"
 version = "0.1.0"
-description = "A tool to add arXiv query results to Zotero"
+description = "A tool to add papers from various sources (arXiv, BibTeX) to Zotero"
 authors = [{name = "Fábio Chicout", email = "fchicout@gmail.com"}]
 requires-python = ">=3.8"
 dependencies = [

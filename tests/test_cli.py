@@ -2,14 +2,14 @@ import unittest
 from unittest.mock import patch, MagicMock, mock_open
 from io import StringIO
 import sys
-from arxiv2zotero.cli.main import main
-from arxiv2zotero.client import CollectionNotFoundError
+from paper2zotero.cli.main import main
+from paper2zotero.client import CollectionNotFoundError
 
 class TestCLI(unittest.TestCase):
     
-    @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
-    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
-    @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
+    @patch('paper2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('paper2zotero.cli.main.ArxivLibGateway')
+    @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
     def test_add_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
@@ -26,9 +26,9 @@ class TestCLI(unittest.TestCase):
         mock_client_instance.add_paper.assert_called_once_with('123', 'A', 'T', 'F')
         self.assertIn("Successfully added", mock_stdout.getvalue())
 
-    @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
-    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
-    @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
+    @patch('paper2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('paper2zotero.cli.main.ArxivLibGateway')
+    @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
     def test_import_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
@@ -45,9 +45,9 @@ class TestCLI(unittest.TestCase):
         mock_client_instance.import_from_query.assert_called_once_with('test query', 'F', 10, False)
         self.assertIn("Successfully imported 5 papers", mock_stdout.getvalue())
 
-    @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
-    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
-    @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
+    @patch('paper2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('paper2zotero.cli.main.ArxivLibGateway')
+    @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
     def test_import_command_verbose(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
@@ -63,9 +63,9 @@ class TestCLI(unittest.TestCase):
         # Assertions
         mock_client_instance.import_from_query.assert_called_once_with('test query', 'F', 100, True)
 
-    @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
-    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
-    @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
+    @patch('paper2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('paper2zotero.cli.main.ArxivLibGateway')
+    @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stderr', new_callable=StringIO)
     @patch('sys.stdout', new_callable=StringIO)
@@ -83,9 +83,9 @@ class TestCLI(unittest.TestCase):
 
         self.assertIn("Error: Not found", mock_stderr.getvalue())
 
-    @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
-    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
-    @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
+    @patch('paper2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('paper2zotero.cli.main.ArxivLibGateway')
+    @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     def test_import_command_file_input(self, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
         # Setup mocks
@@ -101,9 +101,9 @@ class TestCLI(unittest.TestCase):
         
         mock_client_instance.import_from_query.assert_called_once_with('query from file', 'F', 100, False)
 
-    @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
-    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
-    @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
+    @patch('paper2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('paper2zotero.cli.main.ArxivLibGateway')
+    @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     def test_import_command_pipe_input(self, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
         # Setup mocks
@@ -119,9 +119,9 @@ class TestCLI(unittest.TestCase):
         
         mock_client_instance.import_from_query.assert_called_once_with('query from pipe', 'F', 100, False)
 
-    @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
-    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
-    @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
+    @patch('paper2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('paper2zotero.cli.main.ArxivLibGateway')
+    @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stderr', new_callable=StringIO)
     def test_import_command_no_query(self, mock_stderr, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
