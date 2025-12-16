@@ -4,7 +4,7 @@
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-**paper2zotero** is a robust command-line utility designed to streamline the import of research papers into [Zotero](https://www.zotero.org/). It supports fetching papers directly from **arXiv**, importing from **BibTeX** and **RIS** files, and managing Zotero collections.
+**paper2zotero** is a robust command-line utility designed to streamline the import of research papers into [Zotero](https://www.zotero.org/). It supports fetching papers directly from **arXiv**, importing from **BibTeX** and **RIS** files, importing from **Springer** and **IEEE** CSV exports, and managing Zotero collections.
 
 It automatically handles collection creation and populates rich metadata including authors, abstracts, DOIs, and publication dates.
 
@@ -12,6 +12,7 @@ It automatically handles collection creation and populates rich metadata includi
 
 *   **arXiv Integration**: Search and bulk import papers directly from arXiv queries.
 *   **BibTeX & RIS Support**: Import bibliographic data from standard file formats.
+*   **CSV Support**: Import from Springer and IEEE CSV exports.
 *   **Zotero Management**: Automatically creates collections (folders) if they don't exist.
 *   **Maintenance**: Utility to remove attachments (PDFs/snapshots) to save storage space.
 *   **Flexible Input**: Accepts queries via command arguments, files, or standard input (pipes).
@@ -83,7 +84,7 @@ echo "generative AI" | paper2zotero import --folder "GenAI" --limit 10
 ```
 
 ### 3. Import from BibTeX
-Import references from a `.bib` file (e.g., exported from Google Scholar, IEEE, ScienceDirect).
+Import references from a `.bib` file (e.g., exported from Google Scholar, ScienceDirect).
 
 ```bash
 paper2zotero bibtex --file references.bib --folder "Literature Review" --verbose
@@ -96,7 +97,21 @@ Import references from a `.ris` file.
 paper2zotero ris --file citations.ris --folder "Research 2025"
 ```
 
-### 5. Remove Attachments
+### 5. Import from Springer CSV
+Import references from a Springer Search Results CSV export.
+
+```bash
+paper2zotero springer-csv --file SearchResults.csv --folder "Springer Papers"
+```
+
+### 6. Import from IEEE CSV
+Import references from an IEEE Xplore CSV export.
+
+```bash
+paper2zotero ieee-csv --file export2025.csv --folder "IEEE Papers"
+```
+
+### 7. Remove Attachments
 Remove all child items (PDFs, snapshots) from items in a specific folder to clean up storage.
 
 ```bash
