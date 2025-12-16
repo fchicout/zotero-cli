@@ -1,0 +1,119 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+          pip install pyinstaller
+
+      - name: Build Binary with PyInstaller
+        run: |
+          pyinstaller --onefile --name paper2zotero --clean src/paper2zotero/cli/main.py
+
+      - name: Install FPM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby ruby-dev rubygems build-essential
+          sudo gem install --no-document fpm
+
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create DEB Package
+        run: |
+          mkdir -p dist/deb/usr/bin
+          cp dist/paper2zotero dist/deb/usr/bin/
+          fpm -s dir -t deb -n paper2zotero -v ${{ steps.get_version.outputs.VERSION }} \
+            --prefix / \
+            -C dist/deb \
+            --description "A tool to add papers from various sources (arXiv, BibTeX) to Zotero" \
+            --maintainer "Fabio Chicout <fchicout@gmail.com>" \
+            --url "https://github.com/fchicout/paper2zotero" \
+            usr/bin/paper2zotero
+          mv paper2zotero_*.deb paper2zotero-linux-amd64.deb
+
+      - name: Create RPM Package
+        run: |
+          fpm -s dir -t rpm -n paper2zotero -v ${{ steps.get_version.outputs.VERSION }} \
+            --prefix / \
+            -C dist/deb \
+            --description "A tool to add papers from various sources (arXiv, BibTeX) to Zotero" \
+            --maintainer "Fabio Chicout <fchicout@gmail.com>" \
+            --url "https://github.com/fchicout/paper2zotero" \
+            usr/bin/paper2zotero
+          mv paper2zotero-*.rpm paper2zotero-linux-amd64.rpm
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-artifacts
+          path: |
+            dist/paper2zotero
+            paper2zotero-linux-amd64.deb
+            paper2zotero-linux-amd64.rpm
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+          pip install pyinstaller
+
+      - name: Build Binary with PyInstaller
+        run: |
+          pyinstaller --onefile --name paper2zotero --clean src/paper2zotero/cli/main.py
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-artifacts
+          path: dist/paper2zotero.exe
+
+  release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: linux-artifacts
+      
+      - uses: actions/download-artifact@v3
+        with:
+          name: windows-artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            paper2zotero
+            paper2zotero-linux-amd64.deb
+            paper2zotero-linux-amd64.rpm
+            paper2zotero.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
