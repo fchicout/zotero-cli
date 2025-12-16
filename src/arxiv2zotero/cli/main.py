@@ -28,7 +28,7 @@ def get_common_clients():
         sys.exit(1)
 
     zotero_gateway = ZoteroAPIClient(api_key, group_id)
-    arxiv_gateway = ArxivLibGateway() # ArxivGateway is now implemented
+    arxiv_gateway = ArxivLibGateway()
     return Arxiv2ZoteroClient(zotero_gateway, arxiv_gateway)
 
 def add_command(args):
@@ -51,9 +51,27 @@ def add_command(args):
 def import_command(args):
     """Handles the 'import' subcommand."""
     client = get_common_clients()
+    
+    query = None
+    if args.query:
+        query = args.query
+    elif args.file:
+        try:
+            with open(args.file, 'r') as f:
+                query = f.read().strip()
+        except FileNotFoundError:
+            print(f"Error: Query file '{args.file}' not found.", file=sys.stderr)
+            sys.exit(1)
+    elif not sys.stdin.isatty(): # Check if stdin is being piped
+        query = sys.stdin.read().strip()
+    
+    if not query:
+        print("Error: No query provided. Use --query, --file, or pipe input.", file=sys.stderr)
+        sys.exit(1)
+
     try:
         imported_count = client.import_from_query(
-            args.query, args.folder, args.limit, args.verbose
+            query, args.folder, args.limit, args.verbose
         )
         print(f"Successfully imported {imported_count} papers to '{args.folder}'.")
     except CollectionNotFoundError as e:
@@ -78,7 +96,12 @@ def main():
 
     # Add 'import' subcommand
     import_parser = subparsers.add_parser("import", help="Import multiple arXiv papers via search query to Zotero.")
-    import_parser.add_argument("--query", required=True, help="The arXiv search query string.")
+    
+    # Mutually exclusive group for query input
+    query_group = import_parser.add_mutually_exclusive_group(required=False)
+    query_group.add_argument("--query", help="The arXiv search query string.")
+    query_group.add_argument("--file", help="Path to a file containing the arXiv search query string.")
+
     import_parser.add_argument("--limit", type=int, default=100, help="Maximum number of papers to import. Default: 100.")
     import_parser.add_argument("--folder", required=True, help="The Zotero collection (folder) name.")
     import_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
