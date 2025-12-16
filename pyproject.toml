@@ -9,7 +9,8 @@ dependencies = [
     "beautifulsoup4",
     "feedparser",
     "bibtexparser",
-    "arxiv"
+    "arxiv",
+    "rispy"
 ]
 [build-system]
 requires = ["setuptools>=61.0"]

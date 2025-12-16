@@ -64,3 +64,11 @@ class BibtexGateway(ABC):
         Parses a BibTeX file and returns an iterator of ResearchPaper objects.
         """
         pass
+
+class RisGateway(ABC):
+    @abstractmethod
+    def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
+        """
+        Parses a RIS file and returns an iterator of ResearchPaper objects.
+        """
+        pass

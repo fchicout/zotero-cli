@@ -1,5 +1,5 @@
 from typing import Optional
-from paper2zotero.core.interfaces import ZoteroGateway, ArxivGateway
+from paper2zotero.core.interfaces import ZoteroGateway, ArxivGateway, BibtexGateway, RisGateway
 from paper2zotero.core.models import ResearchPaper
 
 class CollectionNotFoundError(Exception):
@@ -7,9 +7,11 @@ class CollectionNotFoundError(Exception):
     pass
 
 class PaperImporterClient:
-    def __init__(self, zotero_gateway: ZoteroGateway, arxiv_gateway: Optional[ArxivGateway] = None):
+    def __init__(self, zotero_gateway: ZoteroGateway, arxiv_gateway: Optional[ArxivGateway] = None, bibtex_gateway: Optional[BibtexGateway] = None, ris_gateway: Optional[RisGateway] = None):
         self.zotero_gateway = zotero_gateway
         self.arxiv_gateway = arxiv_gateway
+        self.bibtex_gateway = bibtex_gateway
+        self.ris_gateway = ris_gateway
 
     def _get_or_create_collection(self, folder_name: str) -> str:
         """Helper to get a collection ID or create it if missing."""
@@ -52,6 +54,64 @@ class PaperImporterClient:
             print(f"Searching arXiv for: '{query}' (limit: {limit})...")
         
         papers = self.arxiv_gateway.search(query, limit)
+        
+        success_count = 0
+        for paper in papers:
+            if verbose:
+                print(f"Adding: {paper.title}...")
+            
+            if self.zotero_gateway.create_item(paper, collection_id):
+                success_count += 1
+            elif verbose:
+                print(f"Failed to add: {paper.title}")
+                
+        return success_count
+
+    def import_from_bibtex(self, file_path: str, folder_name: str, verbose: bool = False) -> int:
+        """
+        Parses a BibTeX file and imports entries into Zotero.
+        Returns the number of successfully imported items.
+        """
+        if not self.bibtex_gateway:
+            raise ValueError("BibtexGateway not provided.")
+
+        # 1. Resolve or Create Collection ID
+        collection_id = self._get_or_create_collection(folder_name)
+
+        # 2. Parse BibTeX
+        if verbose:
+            print(f"Parsing BibTeX file: '{file_path}'...")
+        
+        papers = self.bibtex_gateway.parse_file(file_path)
+        
+        success_count = 0
+        for paper in papers:
+            if verbose:
+                print(f"Adding: {paper.title}...")
+            
+            if self.zotero_gateway.create_item(paper, collection_id):
+                success_count += 1
+            elif verbose:
+                print(f"Failed to add: {paper.title}")
+                
+        return success_count
+
+    def import_from_ris(self, file_path: str, folder_name: str, verbose: bool = False) -> int:
+        """
+        Parses a RIS file and imports entries into Zotero.
+        Returns the number of successfully imported items.
+        """
+        if not self.ris_gateway:
+            raise ValueError("RisGateway not provided.")
+
+        # 1. Resolve or Create Collection ID
+        collection_id = self._get_or_create_collection(folder_name)
+
+        # 2. Parse RIS
+        if verbose:
+            print(f"Parsing RIS file: '{file_path}'...")
+        
+        papers = self.ris_gateway.parse_file(file_path)
         
         success_count = 0
         for paper in papers:

@@ -13,8 +13,10 @@ src/paper2zotero/core/interfaces.py
 src/paper2zotero/core/models.py
 src/paper2zotero/infra/__init__.py
 src/paper2zotero/infra/arxiv_lib.py
+src/paper2zotero/infra/bibtex_lib.py
 src/paper2zotero/infra/zotero_api.py
 tests/test_arxiv_lib.py
+tests/test_bibtex_lib.py
 tests/test_cli.py
 tests/test_client.py
 tests/test_zotero_api.py

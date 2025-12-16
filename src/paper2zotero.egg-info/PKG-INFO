@@ -9,3 +9,4 @@ Requires-Dist: beautifulsoup4
 Requires-Dist: feedparser
 Requires-Dist: bibtexparser
 Requires-Dist: arxiv
+Requires-Dist: rispy

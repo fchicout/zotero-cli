@@ -5,6 +5,8 @@ import re
 
 from paper2zotero.infra.zotero_api import ZoteroAPIClient
 from paper2zotero.infra.arxiv_lib import ArxivLibGateway
+from paper2zotero.infra.bibtex_lib import BibtexLibGateway
+from paper2zotero.infra.ris_lib import RisLibGateway
 from paper2zotero.client import PaperImporterClient, CollectionNotFoundError
 
 def get_common_clients():
@@ -29,7 +31,9 @@ def get_common_clients():
 
     zotero_gateway = ZoteroAPIClient(api_key, group_id)
     arxiv_gateway = ArxivLibGateway()
-    return PaperImporterClient(zotero_gateway, arxiv_gateway)
+    bibtex_gateway = BibtexLibGateway()
+    ris_gateway = RisLibGateway()
+    return PaperImporterClient(zotero_gateway, arxiv_gateway, bibtex_gateway, ris_gateway)
 
 def add_command(args):
     """Handles the 'add' subcommand."""
@@ -81,6 +85,38 @@ def import_command(args):
         print(f"An unexpected error occurred: {e}", file=sys.stderr)
         sys.exit(1)
 
+def bibtex_command(args):
+    """Handles the 'bibtex' subcommand."""
+    client = get_common_clients()
+    try:
+        imported_count = client.import_from_bibtex(args.file, args.folder, args.verbose)
+        print(f"Successfully imported {imported_count} papers from '{args.file}' to '{args.folder}'.")
+    except FileNotFoundError:
+        print(f"Error: BibTeX file '{args.file}' not found.", file=sys.stderr)
+        sys.exit(1)
+    except CollectionNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        sys.exit(1)
+
+def ris_command(args):
+    """Handles the 'ris' subcommand."""
+    client = get_common_clients()
+    try:
+        imported_count = client.import_from_ris(args.file, args.folder, args.verbose)
+        print(f"Successfully imported {imported_count} papers from '{args.file}' to '{args.folder}'.")
+    except FileNotFoundError:
+        print(f"Error: RIS file '{args.file}' not found.", file=sys.stderr)
+        sys.exit(1)
+    except CollectionNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        sys.exit(1)
+
 def remove_attachments_command(args):
     """Handles the 'remove-attachments' subcommand."""
     client = get_common_clients()
@@ -95,7 +131,7 @@ def remove_attachments_command(args):
         sys.exit(1)
 
 def main():
-    parser = argparse.ArgumentParser(description="arXiv to Zotero CLI tool.")
+    parser = argparse.ArgumentParser(description="Paper to Zotero CLI tool.")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # Add 'add' subcommand
@@ -118,6 +154,20 @@ def main():
     import_parser.add_argument("--folder", required=True, help="The Zotero collection (folder) name.")
     import_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
     import_parser.set_defaults(func=import_command)
+
+    # Add 'bibtex' subcommand
+    bibtex_parser = subparsers.add_parser("bibtex", help="Import papers from a BibTeX file to Zotero.")
+    bibtex_parser.add_argument("--file", required=True, help="Path to the BibTeX (.bib) file.")
+    bibtex_parser.add_argument("--folder", required=True, help="The Zotero collection (folder) name.")
+    bibtex_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
+    bibtex_parser.set_defaults(func=bibtex_command)
+
+    # Add 'ris' subcommand
+    ris_parser = subparsers.add_parser("ris", help="Import papers from a RIS (.ris) file to Zotero.")
+    ris_parser.add_argument("--file", required=True, help="Path to the RIS (.ris) file.")
+    ris_parser.add_argument("--folder", required=True, help="The Zotero collection (folder) name.")
+    ris_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
+    ris_parser.set_defaults(func=ris_command)
 
     # Add 'remove-attachments' subcommand
     remove_parser = subparsers.add_parser("remove-attachments", help="Remove all attachments from items in a folder.")
