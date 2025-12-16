@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions: 
+  contents: write
+
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -99,21 +102,28 @@ jobs:
     needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v4
         with:
           name: linux-artifacts
-      
-      - uses: actions/download-artifact@v4
+          path: assets
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
         with:
           name: windows-artifacts
+          path: assets
+
+      - name: List assets
+        run: ls -R assets
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            paper2zotero
-            paper2zotero-linux-amd64.deb
-            paper2zotero-linux-amd64.rpm
-            paper2zotero.exe
+            assets/paper2zotero
+            assets/paper2zotero-linux-amd64.deb
+            assets/*.rpm
+            assets/paper2zotero.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
