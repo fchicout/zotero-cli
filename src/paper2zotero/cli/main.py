@@ -7,6 +7,8 @@ from paper2zotero.infra.zotero_api import ZoteroAPIClient
 from paper2zotero.infra.arxiv_lib import ArxivLibGateway
 from paper2zotero.infra.bibtex_lib import BibtexLibGateway
 from paper2zotero.infra.ris_lib import RisLibGateway
+from paper2zotero.infra.springer_csv_lib import SpringerCsvLibGateway
+from paper2zotero.infra.ieee_csv_lib import IeeeCsvLibGateway
 from paper2zotero.client import PaperImporterClient, CollectionNotFoundError
 
 def get_common_clients():
@@ -33,7 +35,9 @@ def get_common_clients():
     arxiv_gateway = ArxivLibGateway()
     bibtex_gateway = BibtexLibGateway()
     ris_gateway = RisLibGateway()
-    return PaperImporterClient(zotero_gateway, arxiv_gateway, bibtex_gateway, ris_gateway)
+    springer_csv_gateway = SpringerCsvLibGateway()
+    ieee_csv_gateway = IeeeCsvLibGateway()
+    return PaperImporterClient(zotero_gateway, arxiv_gateway, bibtex_gateway, ris_gateway, springer_csv_gateway, ieee_csv_gateway)
 
 def add_command(args):
     """Handles the 'add' subcommand."""
@@ -117,6 +121,38 @@ def ris_command(args):
         print(f"An unexpected error occurred: {e}", file=sys.stderr)
         sys.exit(1)
 
+def springer_csv_command(args):
+    """Handles the 'springer-csv' subcommand."""
+    client = get_common_clients()
+    try:
+        imported_count = client.import_from_springer_csv(args.file, args.folder, args.verbose)
+        print(f"Successfully imported {imported_count} papers from '{args.file}' to '{args.folder}'.")
+    except FileNotFoundError:
+        print(f"Error: Springer CSV file '{args.file}' not found.", file=sys.stderr)
+        sys.exit(1)
+    except CollectionNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        sys.exit(1)
+
+def ieee_csv_command(args):
+    """Handles the 'ieee-csv' subcommand."""
+    client = get_common_clients()
+    try:
+        imported_count = client.import_from_ieee_csv(args.file, args.folder, args.verbose)
+        print(f"Successfully imported {imported_count} papers from '{args.file}' to '{args.folder}'.")
+    except FileNotFoundError:
+        print(f"Error: IEEE CSV file '{args.file}' not found.", file=sys.stderr)
+        sys.exit(1)
+    except CollectionNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        sys.exit(1)
+
 def remove_attachments_command(args):
     """Handles the 'remove-attachments' subcommand."""
     client = get_common_clients()
@@ -168,6 +204,20 @@ def main():
     ris_parser.add_argument("--folder", required=True, help="The Zotero collection (folder) name.")
     ris_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
     ris_parser.set_defaults(func=ris_command)
+
+    # Add 'springer-csv' subcommand
+    springer_csv_parser = subparsers.add_parser("springer-csv", help="Import papers from a Springer CSV file to Zotero.")
+    springer_csv_parser.add_argument("--file", required=True, help="Path to the Springer CSV (.csv) file.")
+    springer_csv_parser.add_argument("--folder", required=True, help="The Zotero collection (folder) name.")
+    springer_csv_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
+    springer_csv_parser.set_defaults(func=springer_csv_command)
+
+    # Add 'ieee-csv' subcommand
+    ieee_csv_parser = subparsers.add_parser("ieee-csv", help="Import papers from an IEEE CSV file to Zotero.")
+    ieee_csv_parser.add_argument("--file", required=True, help="Path to the IEEE CSV (.csv) file.")
+    ieee_csv_parser.add_argument("--folder", required=True, help="The Zotero collection (folder) name.")
+    ieee_csv_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
+    ieee_csv_parser.set_defaults(func=ieee_csv_command)
 
     # Add 'remove-attachments' subcommand
     remove_parser = subparsers.add_parser("remove-attachments", help="Remove all attachments from items in a folder.")

@@ -1,5 +1,5 @@
 from typing import Optional
-from paper2zotero.core.interfaces import ZoteroGateway, ArxivGateway, BibtexGateway, RisGateway
+from paper2zotero.core.interfaces import ZoteroGateway, ArxivGateway, BibtexGateway, RisGateway, SpringerCsvGateway, IeeeCsvGateway
 from paper2zotero.core.models import ResearchPaper
 
 class CollectionNotFoundError(Exception):
@@ -7,11 +7,13 @@ class CollectionNotFoundError(Exception):
     pass
 
 class PaperImporterClient:
-    def __init__(self, zotero_gateway: ZoteroGateway, arxiv_gateway: Optional[ArxivGateway] = None, bibtex_gateway: Optional[BibtexGateway] = None, ris_gateway: Optional[RisGateway] = None):
+    def __init__(self, zotero_gateway: ZoteroGateway, arxiv_gateway: Optional[ArxivGateway] = None, bibtex_gateway: Optional[BibtexGateway] = None, ris_gateway: Optional[RisGateway] = None, springer_csv_gateway: Optional[SpringerCsvGateway] = None, ieee_csv_gateway: Optional[IeeeCsvGateway] = None):
         self.zotero_gateway = zotero_gateway
         self.arxiv_gateway = arxiv_gateway
         self.bibtex_gateway = bibtex_gateway
         self.ris_gateway = ris_gateway
+        self.springer_csv_gateway = springer_csv_gateway
+        self.ieee_csv_gateway = ieee_csv_gateway
 
     def _get_or_create_collection(self, folder_name: str) -> str:
         """Helper to get a collection ID or create it if missing."""
@@ -112,6 +114,64 @@ class PaperImporterClient:
             print(f"Parsing RIS file: '{file_path}'...")
         
         papers = self.ris_gateway.parse_file(file_path)
+        
+        success_count = 0
+        for paper in papers:
+            if verbose:
+                print(f"Adding: {paper.title}...")
+            
+            if self.zotero_gateway.create_item(paper, collection_id):
+                success_count += 1
+            elif verbose:
+                print(f"Failed to add: {paper.title}")
+                
+        return success_count
+
+    def import_from_springer_csv(self, file_path: str, folder_name: str, verbose: bool = False) -> int:
+        """
+        Parses a Springer CSV file and imports entries into Zotero.
+        Returns the number of successfully imported items.
+        """
+        if not self.springer_csv_gateway:
+            raise ValueError("SpringerCsvGateway not provided.")
+
+        # 1. Resolve or Create Collection ID
+        collection_id = self._get_or_create_collection(folder_name)
+
+        # 2. Parse CSV
+        if verbose:
+            print(f"Parsing Springer CSV file: '{file_path}'...")
+        
+        papers = self.springer_csv_gateway.parse_file(file_path)
+        
+        success_count = 0
+        for paper in papers:
+            if verbose:
+                print(f"Adding: {paper.title}...")
+            
+            if self.zotero_gateway.create_item(paper, collection_id):
+                success_count += 1
+            elif verbose:
+                print(f"Failed to add: {paper.title}")
+                
+        return success_count
+        
+    def import_from_ieee_csv(self, file_path: str, folder_name: str, verbose: bool = False) -> int:
+        """
+        Parses an IEEE CSV file and imports entries into Zotero.
+        Returns the number of successfully imported items.
+        """
+        if not self.ieee_csv_gateway:
+            raise ValueError("IeeeCsvGateway not provided.")
+
+        # 1. Resolve or Create Collection ID
+        collection_id = self._get_or_create_collection(folder_name)
+
+        # 2. Parse CSV
+        if verbose:
+            print(f"Parsing IEEE CSV file: '{file_path}'...")
+        
+        papers = self.ieee_csv_gateway.parse_file(file_path)
         
         success_count = 0
         for paper in papers:
