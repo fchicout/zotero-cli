@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, mock_open
 from io import StringIO
 import sys
 from arxiv2zotero.cli.main import main
@@ -82,6 +82,58 @@ class TestCLI(unittest.TestCase):
             self.assertEqual(cm.exception.code, 1)
 
         self.assertIn("Error: Not found", mock_stderr.getvalue())
+
+    @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
+    @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
+    @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
+    def test_import_command_file_input(self, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
+        # Setup mocks
+        mock_client_instance = MockArxivClient.return_value
+        mock_client_instance.import_from_query.return_value = 1
+
+        # Simulate file input
+        file_content = "query from file"
+        with patch('builtins.open', mock_open(read_data=file_content)):
+            test_args = ['program', 'import', '--file', 'query.txt', '--folder', 'F']
+            with patch.object(sys, 'argv', test_args):
+                main()
+        
+        mock_client_instance.import_from_query.assert_called_once_with('query from file', 'F', 100, False)
+
+    @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
+    @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
+    @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
+    def test_import_command_pipe_input(self, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
+        # Setup mocks
+        mock_client_instance = MockArxivClient.return_value
+        mock_client_instance.import_from_query.return_value = 1
+
+        # Simulate pipe input
+        test_args = ['program', 'import', '--folder', 'F']
+        with patch.object(sys, 'argv', test_args):
+            with patch('sys.stdin', StringIO('query from pipe')):
+                with patch('sys.stdin.isatty', return_value=False):
+                    main()
+        
+        mock_client_instance.import_from_query.assert_called_once_with('query from pipe', 'F', 100, False)
+
+    @patch('arxiv2zotero.cli.main.Arxiv2ZoteroClient')
+    @patch('arxiv2zotero.cli.main.ArxivLibGateway')
+    @patch('arxiv2zotero.cli.main.ZoteroAPIClient')
+    @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
+    @patch('sys.stderr', new_callable=StringIO)
+    def test_import_command_no_query(self, mock_stderr, MockZoteroAPI, MockArxivLibGateway, MockArxivClient):
+        # Simulate missing query
+        test_args = ['program', 'import', '--folder', 'F']
+        with patch.object(sys, 'argv', test_args):
+            with patch('sys.stdin.isatty', return_value=True): # No pipe
+                with self.assertRaises(SystemExit) as cm:
+                    main()
+                self.assertEqual(cm.exception.code, 1)
+        
+        self.assertIn("Error: No query provided", mock_stderr.getvalue())
 
 if __name__ == '__main__':
     unittest.main()
