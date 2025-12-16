@@ -18,8 +18,21 @@ class ZoteroAPIClient(ZoteroGateway):
         }
 
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
-        # Placeholder for implementation
-        pass
+        url = f"{self.BASE_URL}/groups/{self.group_id}/collections"
+        try:
+            # Fetch all collections (might need pagination for large libraries, but standard limit is usually enough for top-level)
+            response = requests.get(url, headers=self.headers, params={'limit': 100})
+            response.raise_for_status()
+            collections = response.json()
+            
+            for collection in collections:
+                if collection['data']['name'] == name:
+                    return collection['key']
+            
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching collections: {e}")
+            return None
 
     def create_item(self, paper: ArxivPaper, collection_id: str) -> bool:
         # Placeholder for implementation
