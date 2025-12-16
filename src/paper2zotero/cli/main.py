@@ -5,7 +5,7 @@ import re
 
 from paper2zotero.infra.zotero_api import ZoteroAPIClient
 from paper2zotero.infra.arxiv_lib import ArxivLibGateway
-from paper2zotero.client import Arxiv2ZoteroClient, CollectionNotFoundError
+from paper2zotero.client import PaperImporterClient, CollectionNotFoundError
 
 def get_common_clients():
     """Helper to get Zotero and Arxiv clients from environment variables."""
@@ -29,7 +29,7 @@ def get_common_clients():
 
     zotero_gateway = ZoteroAPIClient(api_key, group_id)
     arxiv_gateway = ArxivLibGateway()
-    return Arxiv2ZoteroClient(zotero_gateway, arxiv_gateway)
+    return PaperImporterClient(zotero_gateway, arxiv_gateway)
 
 def add_command(args):
     """Handles the 'add' subcommand."""
@@ -81,6 +81,18 @@ def import_command(args):
         print(f"An unexpected error occurred: {e}", file=sys.stderr)
         sys.exit(1)
 
+def remove_attachments_command(args):
+    """Handles the 'remove-attachments' subcommand."""
+    client = get_common_clients()
+    try:
+        count = client.remove_attachments_from_folder(args.folder, args.verbose)
+        print(f"Successfully deleted {count} attachments from '{args.folder}'.")
+    except CollectionNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        sys.exit(1)
 
 def main():
     parser = argparse.ArgumentParser(description="arXiv to Zotero CLI tool.")
@@ -106,6 +118,12 @@ def main():
     import_parser.add_argument("--folder", required=True, help="The Zotero collection (folder) name.")
     import_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
     import_parser.set_defaults(func=import_command)
+
+    # Add 'remove-attachments' subcommand
+    remove_parser = subparsers.add_parser("remove-attachments", help="Remove all attachments from items in a folder.")
+    remove_parser.add_argument("--folder", required=True, help="The Zotero collection (folder) name.")
+    remove_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
+    remove_parser.set_defaults(func=remove_attachments_command)
 
     args = parser.parse_args()
 

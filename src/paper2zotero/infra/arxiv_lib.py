@@ -1,10 +1,10 @@
 import arxiv
 from typing import Iterator
 from paper2zotero.core.interfaces import ArxivGateway
-from paper2zotero.core.models import ArxivPaper
+from paper2zotero.core.models import ResearchPaper
 
 class ArxivLibGateway(ArxivGateway):
-    def search(self, query: str, limit: int = 100) -> Iterator[ArxivPaper]:
+    def search(self, query: str, limit: int = 100) -> Iterator[ResearchPaper]:
         """
         Searches arXiv using the `arxiv` python library.
         """
@@ -16,15 +16,19 @@ class ArxivLibGateway(ArxivGateway):
         )
 
         # Use the arxiv Client to execute the search
-        # (Client handles pagination automatically behind the scenes)
         client = arxiv.Client()
         
         results = client.results(search)
 
         for result in results:
             # Map external library object to our internal Domain Model
-            yield ArxivPaper(
-                arxiv_id=result.get_short_id(), # Extract short ID like "2301.00001v1"
+            yield ResearchPaper(
+                arxiv_id=result.get_short_id(), 
                 title=result.title,
-                abstract=result.summary
+                abstract=result.summary,
+                authors=[a.name for a in result.authors],
+                year=str(result.published.year) if result.published else None,
+                doi=result.doi,
+                url=result.pdf_url,
+                publication=result.journal_ref
             )
