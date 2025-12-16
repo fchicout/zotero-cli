@@ -8,11 +8,12 @@ from paper2zotero.client import CollectionNotFoundError
 class TestCLI(unittest.TestCase):
     
     @patch('paper2zotero.cli.main.PaperImporterClient')
+    @patch('paper2zotero.cli.main.BibtexLibGateway')
     @patch('paper2zotero.cli.main.ArxivLibGateway')
     @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
-    def test_add_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockPaperClient):
+    def test_add_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockPaperClient):
         # Setup mocks
         mock_client_instance = MockPaperClient.return_value
         mock_client_instance.add_paper.return_value = True
@@ -27,11 +28,12 @@ class TestCLI(unittest.TestCase):
         self.assertIn("Successfully added", mock_stdout.getvalue())
 
     @patch('paper2zotero.cli.main.PaperImporterClient')
+    @patch('paper2zotero.cli.main.BibtexLibGateway')
     @patch('paper2zotero.cli.main.ArxivLibGateway')
     @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
-    def test_import_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockPaperClient):
+    def test_import_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockPaperClient):
         # Setup mocks
         mock_client_instance = MockPaperClient.return_value
         mock_client_instance.import_from_query.return_value = 5
@@ -46,30 +48,53 @@ class TestCLI(unittest.TestCase):
         self.assertIn("Successfully imported 5 papers", mock_stdout.getvalue())
 
     @patch('paper2zotero.cli.main.PaperImporterClient')
+    @patch('paper2zotero.cli.main.BibtexLibGateway')
     @patch('paper2zotero.cli.main.ArxivLibGateway')
     @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
-    def test_import_command_verbose(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockPaperClient):
+    def test_bibtex_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockPaperClient):
         # Setup mocks
         mock_client_instance = MockPaperClient.return_value
-        mock_client_instance.import_from_query.return_value = 5
+        mock_client_instance.import_from_bibtex.return_value = 3
 
-        # Simulate 'import' subcommand with verbose
-        test_args = ['program', 'import', '--query', 'test query', '--folder', 'F', '--verbose']
+        # Simulate 'bibtex' subcommand
+        test_args = ['program', 'bibtex', '--file', 'papers.bib', '--folder', 'F']
         with patch.object(sys, 'argv', test_args):
             main()
 
         # Assertions
-        mock_client_instance.import_from_query.assert_called_once_with('test query', 'F', 100, True)
+        mock_client_instance.import_from_bibtex.assert_called_once_with('papers.bib', 'F', False)
+        self.assertIn("Successfully imported 3 papers", mock_stdout.getvalue())
 
     @patch('paper2zotero.cli.main.PaperImporterClient')
+    @patch('paper2zotero.cli.main.BibtexLibGateway')
+    @patch('paper2zotero.cli.main.ArxivLibGateway')
+    @patch('paper2zotero.cli.main.ZoteroAPIClient')
+    @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_remove_attachments_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockPaperClient):
+        # Setup mocks
+        mock_client_instance = MockPaperClient.return_value
+        mock_client_instance.remove_attachments_from_folder.return_value = 10
+
+        # Simulate 'remove-attachments' subcommand
+        test_args = ['program', 'remove-attachments', '--folder', 'F']
+        with patch.object(sys, 'argv', test_args):
+            main()
+
+        # Assertions
+        mock_client_instance.remove_attachments_from_folder.assert_called_once_with('F', False)
+        self.assertIn("Successfully deleted 10 attachments", mock_stdout.getvalue())
+
+    @patch('paper2zotero.cli.main.PaperImporterClient')
+    @patch('paper2zotero.cli.main.BibtexLibGateway')
     @patch('paper2zotero.cli.main.ArxivLibGateway')
     @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stderr', new_callable=StringIO)
     @patch('sys.stdout', new_callable=StringIO)
-    def test_add_command_collection_not_found(self, mock_stdout, mock_stderr, MockZoteroAPI, MockArxivLibGateway, MockPaperClient):
+    def test_add_command_collection_not_found(self, mock_stdout, mock_stderr, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockPaperClient):
         # Setup mocks
         mock_client_instance = MockPaperClient.return_value
         mock_client_instance.add_paper.side_effect = CollectionNotFoundError("Not found")
@@ -84,10 +109,12 @@ class TestCLI(unittest.TestCase):
         self.assertIn("Error: Not found", mock_stderr.getvalue())
 
     @patch('paper2zotero.cli.main.PaperImporterClient')
+    @patch('paper2zotero.cli.main.BibtexLibGateway')
     @patch('paper2zotero.cli.main.ArxivLibGateway')
     @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
-    def test_import_command_file_input(self, MockZoteroAPI, MockArxivLibGateway, MockPaperClient):
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_import_command_file_input(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockPaperClient):
         # Setup mocks
         mock_client_instance = MockPaperClient.return_value
         mock_client_instance.import_from_query.return_value = 1
@@ -102,10 +129,12 @@ class TestCLI(unittest.TestCase):
         mock_client_instance.import_from_query.assert_called_once_with('query from file', 'F', 100, False)
 
     @patch('paper2zotero.cli.main.PaperImporterClient')
+    @patch('paper2zotero.cli.main.BibtexLibGateway')
     @patch('paper2zotero.cli.main.ArxivLibGateway')
     @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
-    def test_import_command_pipe_input(self, MockZoteroAPI, MockArxivLibGateway, MockPaperClient):
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_import_command_pipe_input(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockPaperClient):
         # Setup mocks
         mock_client_instance = MockPaperClient.return_value
         mock_client_instance.import_from_query.return_value = 1
@@ -120,11 +149,12 @@ class TestCLI(unittest.TestCase):
         mock_client_instance.import_from_query.assert_called_once_with('query from pipe', 'F', 100, False)
 
     @patch('paper2zotero.cli.main.PaperImporterClient')
+    @patch('paper2zotero.cli.main.BibtexLibGateway')
     @patch('paper2zotero.cli.main.ArxivLibGateway')
     @patch('paper2zotero.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stderr', new_callable=StringIO)
-    def test_import_command_no_query(self, mock_stderr, MockZoteroAPI, MockArxivLibGateway, MockPaperClient):
+    def test_import_command_no_query(self, mock_stderr, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockPaperClient):
         # Simulate missing query
         test_args = ['program', 'import', '--folder', 'F']
         with patch.object(sys, 'argv', test_args):
