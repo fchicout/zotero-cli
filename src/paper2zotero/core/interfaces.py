@@ -72,3 +72,19 @@ class RisGateway(ABC):
         Parses a RIS file and returns an iterator of ResearchPaper objects.
         """
         pass
+
+class SpringerCsvGateway(ABC):
+    @abstractmethod
+    def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
+        """
+        Parses a Springer CSV file and returns an iterator of ResearchPaper objects.
+        """
+        pass
+
+class IeeeCsvGateway(ABC):
+    @abstractmethod
+    def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
+        """
+        Parses an IEEE CSV file and returns an iterator of ResearchPaper objects.
+        """
+        pass
