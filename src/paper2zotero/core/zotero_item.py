@@ -8,6 +8,7 @@ class ZoteroItem:
     version: int
     item_type: str
     collections: List[str] = field(default_factory=list)
+    tags: List[str] = field(default_factory=list)
     title: Optional[str] = None
     abstract: Optional[str] = None
     doi: Optional[str] = None
@@ -33,6 +34,8 @@ class ZoteroItem:
             if url_match:
                 arxiv_id = url_match.group(1)
 
+        tags = [t.get('tag') for t in data.get('tags', []) if 'tag' in t]
+
         return cls(
             key=raw_item['key'],
             version=data.get('version', 0),
@@ -43,6 +46,7 @@ class ZoteroItem:
             arxiv_id=arxiv_id,
             url=data.get('url'),
             collections=data.get('collections', []),
+            tags=tags,
             has_pdf=False # Default, actual check done by service
         )
 
