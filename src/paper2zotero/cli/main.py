@@ -12,6 +12,7 @@ from paper2zotero.infra.ieee_csv_lib import IeeeCsvLibGateway
 from paper2zotero.client import PaperImporterClient, CollectionNotFoundError
 from paper2zotero.core.services.collection_service import CollectionService
 from paper2zotero.core.services.audit_service import CollectionAuditor # Import CollectionAuditor
+from paper2zotero.core.services.duplicate_service import DuplicateFinder # Import DuplicateFinder
 
 def get_zotero_gateway():
     """Helper to get Zotero client from environment variables."""
@@ -84,6 +85,24 @@ def audit_command(args):
                 print(f"    - {item.title} (Key: {item.key})")
     else:
         sys.exit(1)
+
+def duplicates_command(args):
+    """Handles the 'duplicates' subcommand."""
+    gateway = get_zotero_gateway()
+    finder = DuplicateFinder(gateway)
+    
+    collection_names = [name.strip() for name in args.collections.split(',')]
+    duplicate_groups = finder.find_duplicates(collection_names)
+
+    if duplicate_groups:
+        print(f"Found {len(duplicate_groups)} duplicate groups across collections: {', '.join(collection_names)}")
+        for i, group in enumerate(duplicate_groups):
+            print(f"\nGroup {i+1}: {group.identifier_key}")
+            for item in group.items:
+                title_display = item.title if item.title else "(No Title)"
+                print(f"  - Key: {item.key}, Title: '{title_display}', DOI: {item.doi if item.doi else 'N/A'}, ArXiv ID: {item.arxiv_id if item.arxiv_id else 'N/A'}")
+    else:
+        print(f"No duplicate items found across collections: {', '.join(collection_names)}")
 
 def add_command(args):
     """Handles the 'add' subcommand."""
@@ -282,6 +301,11 @@ def main():
     audit_parser = subparsers.add_parser("audit", help="Audit a Zotero collection for completeness.")
     audit_parser.add_argument("--collection", required=True, help="The Zotero collection (folder) name to audit.")
     audit_parser.set_defaults(func=audit_command)
+
+    # Add 'duplicates' subcommand
+    duplicates_parser = subparsers.add_parser("duplicates", help="Find duplicate papers across specified collections.")
+    duplicates_parser.add_argument("--collections", required=True, help="Comma-separated list of Zotero collection names.")
+    duplicates_parser.set_defaults(func=duplicates_command)
 
     args = parser.parse_args()
 

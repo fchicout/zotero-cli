@@ -133,6 +133,13 @@ Audit a Zotero collection for completeness (presence of ID, title, abstract, and
 paper2zotero audit --collection "My Research"
 ```
 
+### 10. Find Duplicates
+Find duplicate papers (by DOI or normalized title) across multiple Zotero collections.
+
+```bash
+paper2zotero duplicates --collections "Reading List, My Research, Archive"
+```
+
 ## Development
 
 ```bash
