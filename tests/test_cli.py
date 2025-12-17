@@ -4,6 +4,7 @@ from io import StringIO
 import sys
 from paper2zotero.cli.main import main
 from paper2zotero.client import CollectionNotFoundError
+from paper2zotero.core.interfaces import MetadataProvider # Updated import if needed by mocks
 
 class TestCLI(unittest.TestCase):
     
