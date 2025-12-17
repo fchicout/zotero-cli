@@ -4,6 +4,7 @@ from typing import Optional, Iterator, Dict, Any, List
 
 from paper2zotero.core.interfaces import ZoteroGateway
 from paper2zotero.core.models import ResearchPaper
+from paper2zotero.core.zotero_item import ZoteroItem
 
 class ZoteroAPIClient(ZoteroGateway):
     API_VERSION = '3'
@@ -103,7 +104,7 @@ class ZoteroAPIClient(ZoteroGateway):
                 print(f"Response content: {e.response.text}")
             return False
 
-    def get_items_in_collection(self, collection_id: str) -> Iterator[Dict[str, Any]]:
+    def get_items_in_collection(self, collection_id: str) -> Iterator[ZoteroItem]:
         url = f"{self.BASE_URL}/groups/{self.group_id}/collections/{collection_id}/items"
         limit = 100
         start = 0
@@ -118,7 +119,7 @@ class ZoteroAPIClient(ZoteroGateway):
                     break
                     
                 for item in items:
-                    yield item
+                    yield ZoteroItem.from_raw_zotero_item(item)
                 
                 start += len(items)
                 if len(items) < limit:
