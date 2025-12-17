@@ -13,27 +13,30 @@ class ZoteroAPIClient(ZoteroGateway):
     def __init__(self, api_key: str, group_id: str):
         self.api_key = api_key
         self.group_id = group_id
-        self.headers = {
+        self.session = requests.Session()
+        self.session.headers.update({
             'Zotero-API-Version': self.API_VERSION,
             'Zotero-API-Key': self.api_key
-        }
+        })
+        self.headers = self.session.headers
 
-    def get_collection_id_by_name(self, name: str) -> Optional[str]:
+    def get_all_collections(self) -> List[Dict[str, Any]]:
         url = f"{self.BASE_URL}/groups/{self.group_id}/collections"
         try:
-            # Fetch all collections (might need pagination for large libraries, but standard limit is usually enough for top-level)
-            response = requests.get(url, headers=self.headers, params={'limit': 100})
+            # Fetch all collections (pagination might be needed for very large libraries)
+            response = self.session.get(url, params={'limit': 100})
             response.raise_for_status()
-            collections = response.json()
-            
-            for collection in collections:
-                if collection['data']['name'] == name:
-                    return collection['key']
-            
-            return None
+            return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Error fetching collections: {e}")
-            return None
+            return []
+
+    def get_collection_id_by_name(self, name: str) -> Optional[str]:
+        collections = self.get_all_collections()
+        for collection in collections:
+            if collection['data']['name'] == name:
+                return collection['key']
+        return None
 
     def create_collection(self, name: str) -> Optional[str]:
         url = f"{self.BASE_URL}/groups/{self.group_id}/collections"
@@ -42,7 +45,7 @@ class ZoteroAPIClient(ZoteroGateway):
         }]
         
         try:
-            response = requests.post(url, headers=self.headers, json=payload)
+            response = self.session.post(url, json=payload)
             response.raise_for_status()
             data = response.json()
             if 'successful' in data and data['successful']:
@@ -95,7 +98,7 @@ class ZoteroAPIClient(ZoteroGateway):
         payload = [item_payload]
 
         try:
-            response = requests.post(url, headers=self.headers, json=payload)
+            response = self.session.post(url, json=payload)
             response.raise_for_status()
             return True
         except requests.exceptions.RequestException as e:
@@ -111,7 +114,7 @@ class ZoteroAPIClient(ZoteroGateway):
         
         while True:
             try:
-                response = requests.get(url, headers=self.headers, params={'limit': limit, 'start': start})
+                response = self.session.get(url, params={'limit': limit, 'start': start})
                 response.raise_for_status()
                 items = response.json()
                 
@@ -131,7 +134,7 @@ class ZoteroAPIClient(ZoteroGateway):
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
         url = f"{self.BASE_URL}/groups/{self.group_id}/items/{item_key}/children"
         try:
-            response = requests.get(url, headers=self.headers)
+            response = self.session.get(url)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -140,11 +143,11 @@ class ZoteroAPIClient(ZoteroGateway):
 
     def delete_item(self, item_key: str, version: int) -> bool:
         url = f"{self.BASE_URL}/groups/{self.group_id}/items/{item_key}"
-        headers = self.headers.copy()
+        headers = self.session.headers.copy()
         headers['If-Match'] = str(version)
         
         try:
-            response = requests.delete(url, headers=headers)
+            response = self.session.delete(url, headers=headers)
             response.raise_for_status()
             return True
         except requests.exceptions.RequestException as e:
@@ -153,7 +156,7 @@ class ZoteroAPIClient(ZoteroGateway):
 
     def update_item_collections(self, item_key: str, version: int, collections: List[str]) -> bool:
         url = f"{self.BASE_URL}/groups/{self.group_id}/items/{item_key}"
-        headers = self.headers.copy()
+        headers = self.session.headers.copy()
         headers['If-Match'] = str(version)
         
         payload = {
@@ -161,7 +164,7 @@ class ZoteroAPIClient(ZoteroGateway):
         }
         
         try:
-            response = requests.patch(url, headers=headers, json=payload)
+            response = self.session.patch(url, headers=headers, json=payload)
             response.raise_for_status()
             return True
         except requests.exceptions.RequestException as e:
