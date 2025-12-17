@@ -15,9 +15,10 @@ from paper2zotero.core.services.audit_service import CollectionAuditor # Import 
 from paper2zotero.core.services.duplicate_service import DuplicateFinder
 from paper2zotero.infra.crossref_api import CrossRefAPIClient
 from paper2zotero.infra.semantic_scholar_api import SemanticScholarAPIClient 
-from paper2zotero.infra.unpaywall_api import UnpaywallAPIClient # Import UnpaywallAPIClient
+from paper2zotero.infra.unpaywall_api import UnpaywallAPIClient 
 from paper2zotero.core.services.graph_service import CitationGraphService
 from paper2zotero.core.services.metadata_aggregator import MetadataAggregatorService 
+from paper2zotero.core.services.tag_service import TagService # Import TagService
 
 def get_zotero_gateway():
     """Helper to get Zotero client from environment variables."""
@@ -126,6 +127,55 @@ def graph_command(args):
     collection_names = [name.strip() for name in args.collections.split(',')]
     dot_string = graph_service.build_graph(collection_names)
     print(dot_string)
+
+def tag_command(args):
+    """Handles the 'tag' subcommand."""
+    gateway = get_zotero_gateway()
+    service = TagService(gateway)
+
+    if args.tag_action == 'list':
+        tags = service.list_tags()
+        print(f"Found {len(tags)} tags:")
+        for tag in tags:
+            print(f"  - {tag}")
+
+    elif args.tag_action == 'rename':
+        if not args.old or not args.new:
+            print("Error: --old and --new arguments are required for rename.")
+            sys.exit(1)
+        count = service.rename_tag(args.old, args.new)
+        print(f"Renamed tag '{args.old}' to '{args.new}' on {count} items.")
+
+    elif args.tag_action == 'delete':
+        if not args.tag:
+            print("Error: --tag argument is required for delete.")
+            sys.exit(1)
+        count = service.delete_tag(args.tag)
+        print(f"Deleted tag '{args.tag}' from {count} items.")
+
+    elif args.tag_action in ['add', 'remove']:
+        if not args.item or not args.tags:
+            print("Error: --item and --tags arguments are required for add/remove.")
+            sys.exit(1)
+        
+        item = gateway.get_item(args.item)
+        if not item:
+            print(f"Item '{args.item}' not found.")
+            sys.exit(1)
+
+        tags_list = [t.strip() for t in args.tags.split(',')]
+        
+        if args.tag_action == 'add':
+            success = service.add_tags_to_item(item.key, item, tags_list)
+            action = "added to"
+        else:
+            success = service.remove_tags_from_item(item.key, item, tags_list)
+            action = "removed from"
+
+        if success:
+            print(f"Successfully {action} item '{args.item}'.")
+        else:
+            print(f"Failed to update tags for item '{args.item}'.")
 
 def add_command(args):
     """Handles the 'add' subcommand."""
@@ -350,6 +400,34 @@ def main():
     graph_parser = subparsers.add_parser("graph", help="Generate a citation graph in DOT format.")
     graph_parser.add_argument("--collections", required=True, help="Comma-separated list of Zotero collection names to build the graph from.")
     graph_parser.set_defaults(func=graph_command)
+
+    # Add 'tag' subcommand
+    tag_parser = subparsers.add_parser("tag", help="Manage Zotero tags.")
+    tag_subparsers = tag_parser.add_subparsers(dest="tag_action", help="Tag actions")
+
+    # tag list
+    tag_list_parser = tag_subparsers.add_parser("list", help="List all tags.")
+    
+    # tag rename
+    tag_rename_parser = tag_subparsers.add_parser("rename", help="Rename a tag library-wide.")
+    tag_rename_parser.add_argument("--old", required=True, help="Old tag name.")
+    tag_rename_parser.add_argument("--new", required=True, help="New tag name.")
+
+    # tag delete
+    tag_delete_parser = tag_subparsers.add_parser("delete", help="Delete a tag library-wide.")
+    tag_delete_parser.add_argument("--tag", required=True, help="Tag name to delete.")
+
+    # tag add
+    tag_add_parser = tag_subparsers.add_parser("add", help="Add tags to an item.")
+    tag_add_parser.add_argument("--item", required=True, help="Item Key.")
+    tag_add_parser.add_argument("--tags", required=True, help="Comma-separated tags.")
+
+    # tag remove
+    tag_remove_parser = tag_subparsers.add_parser("remove", help="Remove tags from an item.")
+    tag_remove_parser.add_argument("--item", required=True, help="Item Key.")
+    tag_remove_parser.add_argument("--tags", required=True, help="Comma-separated tags.")
+
+    tag_parser.set_defaults(func=tag_command)
 
     args = parser.parse_args()
 
