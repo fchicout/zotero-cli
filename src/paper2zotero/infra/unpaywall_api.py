@@ -1,11 +1,14 @@
 import requests
+import os
 from typing import Optional
 from paper2zotero.core.interfaces import MetadataProvider
 from paper2zotero.core.models import ResearchPaper
 
 class UnpaywallAPIClient(MetadataProvider):
     BASE_URL = "https://api.unpaywall.org/v2/"
-    EMAIL = "unpaywall_client@paper2zotero.com" # Unpaywall requires an email
+    
+    def __init__(self):
+        self.email = os.environ.get("UNPAYWALL_EMAIL", "unpaywall_client@paper2zotero.com")
 
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:
         """
