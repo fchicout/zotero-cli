@@ -1,5 +1,7 @@
 import requests
 import re
+import os
+import hashlib
 from typing import Optional, Iterator, Dict, Any, List
 
 from paper2zotero.core.interfaces import ZoteroGateway
@@ -75,6 +77,82 @@ class ZoteroAPIClient(ZoteroGateway):
         except requests.exceptions.RequestException as e:
             print(f"Error fetching item {item_key}: {e}")
             return None
+
+    def upload_attachment(self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf") -> bool:
+        try:
+            filename = os.path.basename(file_path)
+            # Calculate MD5 and mtime
+            mtime = int(os.path.getmtime(file_path) * 1000)
+            md5_hash = hashlib.md5()
+            with open(file_path, "rb") as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    md5_hash.update(chunk)
+            md5 = md5_hash.hexdigest()
+
+            # 1. Create Attachment Item
+            payload = [{
+                "itemType": "attachment",
+                "linkMode": "imported_file",
+                "parentItem": parent_item_key,
+                "title": filename,
+                "contentType": mime_type
+            }]
+            create_url = f"{self.BASE_URL}/groups/{self.group_id}/items"
+            response = self.session.post(create_url, json=payload)
+            response.raise_for_status()
+            res_data = response.json()
+            if 'successful' not in res_data or not res_data['successful']:
+                return False
+            
+            attachment_key = list(res_data['successful'].keys())[0]
+
+            # 2. Authorization
+            auth_url = f"{self.BASE_URL}/groups/{self.group_id}/items/{attachment_key}/file"
+            headers = self.session.headers.copy()
+            headers['If-None-Match'] = '*'
+            headers['Content-Type'] = 'application/x-www-form-urlencoded'
+            
+            data = {
+                "md5": md5,
+                "filename": filename,
+                "mtime": mtime,
+                "contentType": mime_type,
+                "params": "1"
+            }
+            
+            auth_res = self.session.post(auth_url, headers=headers, data=data)
+            
+            # If 304 Not Modified, it implies we provided If-Match and it matched, but here we used If-None-Match.
+            # Zotero API returns 200 OK with exists=1 if file exists.
+            auth_res.raise_for_status()
+            auth_data = auth_res.json()
+
+            if auth_data.get('exists') == 1:
+                return True
+
+            # 3. Upload
+            upload_url = auth_data['url']
+            upload_params = auth_data.get('params', {})
+            upload_key = auth_data.get('uploadKey')
+            
+            with open(file_path, 'rb') as f:
+                # Use bare requests to avoid Zotero headers on S3/upload URL
+                # Verify if 'prefix' and 'suffix' are needed? 
+                # Docs say: "Construct a POST request... containing the properties of the params object"
+                # requests.post(url, data=params, files={'file': f}) does exactly this.
+                upload_res = requests.post(upload_url, data=upload_params, files={'file': f})
+                upload_res.raise_for_status()
+
+            # 4. Register
+            register_data = {"upload": upload_key}
+            reg_res = self.session.post(auth_url, headers=headers, data=register_data)
+            reg_res.raise_for_status()
+            
+            return True
+
+        except Exception as e:
+            print(f"Error uploading attachment: {e}")
+            return False
 
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
         collections = self.get_all_collections()
