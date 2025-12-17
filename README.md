@@ -159,6 +159,34 @@ paper2zotero graph --collections "AI, Machine Learning" > citation_graph.dot
 dot -Tsvg citation_graph.dot -o citation_graph.svg
 ```
 
+### 13. Tag Management
+Manage tags within your Zotero library.
+
+**List all tags:**
+```bash
+paper2zotero tag list
+```
+
+**Rename a tag:**
+```bash
+paper2zotero tag rename --old "AI" --new "Artificial Intelligence"
+```
+
+**Delete a tag:**
+```bash
+paper2zotero tag delete --tag "obsolete_tag"
+```
+
+**Add tags to an item:**
+```bash
+paper2zotero tag add --item "ITEMKEY123" --tags "important, to_read"
+```
+
+**Remove tags from an item:**
+```bash
+paper2zotero tag remove --item "ITEMKEY123" --tags "to_read"
+```
+
 ## Changelog
 
 ### v0.2.0 (December 16, 2025)
