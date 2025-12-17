@@ -12,9 +12,11 @@ from paper2zotero.infra.ieee_csv_lib import IeeeCsvLibGateway
 from paper2zotero.client import PaperImporterClient, CollectionNotFoundError
 from paper2zotero.core.services.collection_service import CollectionService
 from paper2zotero.core.services.audit_service import CollectionAuditor # Import CollectionAuditor
-from paper2zotero.core.services.duplicate_service import DuplicateFinder # Import DuplicateFinder
-from paper2zotero.infra.crossref_api import CrossRefAPIClient # Import CrossRefAPIClient
-from paper2zotero.core.services.graph_service import CitationGraphService # Import CitationGraphService
+from paper2zotero.core.services.duplicate_service import DuplicateFinder
+from paper2zotero.infra.crossref_api import CrossRefAPIClient
+from paper2zotero.infra.semantic_scholar_api import SemanticScholarAPIClient # Import SemanticScholarAPIClient
+from paper2zotero.core.services.graph_service import CitationGraphService
+from paper2zotero.core.services.metadata_aggregator import MetadataAggregatorService # Import MetadataAggregatorService
 
 def get_zotero_gateway():
     """Helper to get Zotero client from environment variables."""
@@ -109,12 +111,19 @@ def duplicates_command(args):
 def graph_command(args):
     """Handles the 'graph' subcommand."""
     zotero_gateway = get_zotero_gateway()
-    citation_gateway = CrossRefAPIClient() # Use CrossRef as citation source
-    graph_service = CitationGraphService(zotero_gateway, citation_gateway)
+    
+    # Instantiate providers
+    crossref_provider = CrossRefAPIClient()
+    semantic_scholar_provider = SemanticScholarAPIClient()
+    
+    # Create aggregator
+    metadata_aggregator = MetadataAggregatorService([semantic_scholar_provider, crossref_provider])
+    
+    graph_service = CitationGraphService(zotero_gateway, metadata_aggregator)
 
     collection_names = [name.strip() for name in args.collections.split(',')]
     dot_string = graph_service.build_graph(collection_names)
-    print(dot_string) # Output DOT string to stdout
+    print(dot_string)
 
 def add_command(args):
     """Handles the 'add' subcommand."""
@@ -243,9 +252,25 @@ def remove_attachments_command(args):
         print(f"An unexpected error occurred: {e}", file=sys.stderr)
         sys.exit(1)
 
+def list_collections_command(args):
+    """Handles the 'list-collections' subcommand."""
+    gateway = get_zotero_gateway()
+    collections = gateway.get_all_collections()
+    if collections:
+        print(f"Found {len(collections)} collections:")
+        for col in collections:
+            num_items = col.get('meta', {}).get('numItems', '?')
+            print(f"  - {col['data']['name']} (Key: {col['key']}, Items: {num_items})")
+    else:
+        print("No collections found or error occurred.")
+
 def main():
     parser = argparse.ArgumentParser(description="Paper to Zotero CLI tool.")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # Add 'list-collections' subcommand
+    list_collections_parser = subparsers.add_parser("list-collections", help="List all Zotero collections.")
+    list_collections_parser.set_defaults(func=list_collections_command)
 
     # Add 'add' subcommand
     add_parser = subparsers.add_parser("add", help="Add a single arXiv paper to Zotero.")
