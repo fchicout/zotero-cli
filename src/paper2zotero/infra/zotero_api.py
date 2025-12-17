@@ -66,6 +66,16 @@ class ZoteroAPIClient(ZoteroGateway):
                 print(f"Error fetching items by tag '{tag}': {e}")
                 break
 
+    def get_item(self, item_key: str) -> Optional[ZoteroItem]:
+        url = f"{self.BASE_URL}/groups/{self.group_id}/items/{item_key}"
+        try:
+            response = self.session.get(url)
+            response.raise_for_status()
+            return ZoteroItem.from_raw_zotero_item(response.json())
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching item {item_key}: {e}")
+            return None
+
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
         collections = self.get_all_collections()
         for collection in collections:
