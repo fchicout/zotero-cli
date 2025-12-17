@@ -61,6 +61,20 @@ class ZoteroGateway(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_tags(self) -> List[str]:
+        """
+        Retrieves all unique tags in the library.
+        """
+        pass
+
+    @abstractmethod
+    def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
+        """
+        Retrieves all items with a specific tag.
+        """
+        pass
+
 class ArxivGateway(ABC):
     @abstractmethod
     def search(self, query: str, limit: int = 100) -> Iterator[ResearchPaper]:
