@@ -14,9 +14,10 @@ from paper2zotero.core.services.collection_service import CollectionService
 from paper2zotero.core.services.audit_service import CollectionAuditor # Import CollectionAuditor
 from paper2zotero.core.services.duplicate_service import DuplicateFinder
 from paper2zotero.infra.crossref_api import CrossRefAPIClient
-from paper2zotero.infra.semantic_scholar_api import SemanticScholarAPIClient # Import SemanticScholarAPIClient
+from paper2zotero.infra.semantic_scholar_api import SemanticScholarAPIClient 
+from paper2zotero.infra.unpaywall_api import UnpaywallAPIClient # Import UnpaywallAPIClient
 from paper2zotero.core.services.graph_service import CitationGraphService
-from paper2zotero.core.services.metadata_aggregator import MetadataAggregatorService # Import MetadataAggregatorService
+from paper2zotero.core.services.metadata_aggregator import MetadataAggregatorService 
 
 def get_zotero_gateway():
     """Helper to get Zotero client from environment variables."""
@@ -115,9 +116,10 @@ def graph_command(args):
     # Instantiate providers
     crossref_provider = CrossRefAPIClient()
     semantic_scholar_provider = SemanticScholarAPIClient()
+    unpaywall_provider = UnpaywallAPIClient()
     
     # Create aggregator
-    metadata_aggregator = MetadataAggregatorService([semantic_scholar_provider, crossref_provider])
+    metadata_aggregator = MetadataAggregatorService([semantic_scholar_provider, crossref_provider, unpaywall_provider])
     
     graph_service = CitationGraphService(zotero_gateway, metadata_aggregator)
 
