@@ -13,6 +13,13 @@ class ZoteroGateway(ABC):
         pass
 
     @abstractmethod
+    def get_all_collections(self) -> List[Dict[str, Any]]:
+        """
+        Retrieves all collections in the library.
+        """
+        pass
+
+    @abstractmethod
     def create_collection(self, name: str) -> Optional[str]:
         """
         Creates a new Zotero collection with the given name.
@@ -99,11 +106,11 @@ class IeeeCsvGateway(ABC):
         """
         pass
 
-class CitationGateway(ABC):
+class MetadataProvider(ABC):
     @abstractmethod
-    def get_references_by_doi(self, doi: str) -> List[str]:
+    def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:
         """
-        Retrieves a list of DOIs of papers referenced by the given DOI.
-        Returns an empty list if no references or DOI not found.
+        Retrieves full paper metadata (including references) for the given identifier (DOI).
+        Returns a ResearchPaper object if found, otherwise None.
         """
         pass
