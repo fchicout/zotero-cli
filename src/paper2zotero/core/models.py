@@ -11,3 +11,5 @@ class ResearchPaper:
     year: Optional[str] = None
     doi: Optional[str] = None
     url: Optional[str] = None
+    references: List[str] = field(default_factory=list)
+    citation_count: Optional[int] = None
