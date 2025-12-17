@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import Mock, MagicMock
 from paper2zotero.core.interfaces import ZoteroGateway
 from paper2zotero.core.services.collection_service import CollectionService
+from paper2zotero.core.zotero_item import ZoteroItem # Import ZoteroItem
 
 class TestCollectionService(unittest.TestCase):
     def setUp(self):
@@ -13,8 +14,8 @@ class TestCollectionService(unittest.TestCase):
             lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
 
     def test_move_item_success_doi(self):
-        # Mock Item
-        item = {
+        # Mock Item - now converted to ZoteroItem
+        raw_item = {
             'key': 'ITEM1',
             'data': {
                 'version': 1,
@@ -22,6 +23,7 @@ class TestCollectionService(unittest.TestCase):
                 'collections': ['ID_SRC', 'ID_OTHER']
             }
         }
+        item = ZoteroItem.from_raw_zotero_item(raw_item)
         self.mock_gateway.get_items_in_collection.return_value = iter([item])
         self.mock_gateway.update_item_collections.return_value = True
 
@@ -43,8 +45,8 @@ class TestCollectionService(unittest.TestCase):
         self.mock_gateway.update_item_collections.assert_not_called()
 
     def test_move_item_success_arxiv(self):
-         # Mock Item with arXiv in Extra
-        item = {
+         # Mock Item with arXiv in Extra - now converted to ZoteroItem
+        raw_item = {
             'key': 'ITEM2',
             'data': {
                 'version': 5,
@@ -52,6 +54,7 @@ class TestCollectionService(unittest.TestCase):
                 'collections': ['ID_SRC']
             }
         }
+        item = ZoteroItem.from_raw_zotero_item(raw_item)
         self.mock_gateway.get_items_in_collection.return_value = iter([item])
         self.mock_gateway.update_item_collections.return_value = True
 

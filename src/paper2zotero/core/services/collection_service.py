@@ -1,6 +1,7 @@
 from typing import Optional, List, Set
 import re
 from paper2zotero.core.interfaces import ZoteroGateway
+from paper2zotero.core.zotero_item import ZoteroItem
 
 class CollectionService:
     def __init__(self, gateway: ZoteroGateway):
@@ -29,36 +30,27 @@ class CollectionService:
         print(f"Item with identifier '{identifier}' not found in '{source_col_name}'.")
         return False
 
-    def _is_match(self, item: dict, identifier: str) -> bool:
-        data = item.get('data', {})
+    def _is_match(self, item: ZoteroItem, identifier: str) -> bool:
         
         # Check DOI
-        if 'DOI' in data and data['DOI']:
-            if self._normalize_id(data['DOI']) == self._normalize_id(identifier):
+        if item.doi:
+            if self._normalize_id(item.doi) == self._normalize_id(identifier):
                 return True
         
-        # Check Extra for arXiv ID
-        extra = data.get('extra', '')
-        if extra:
-            match = re.search(r'arXiv:\s*([\d\.]+)', extra, re.IGNORECASE)
-            if match and match.group(1) == identifier:
+        # Check arXiv ID
+        if item.arxiv_id:
+            if self._normalize_id(item.arxiv_id) == self._normalize_id(identifier):
                 return True
-
-        # Check URL for arXiv ID
-        url = data.get('url', '')
-        if url and 'arxiv.org' in url and identifier in url:
-            return True
 
         return False
 
     def _normalize_id(self, identifier: str) -> str:
         return identifier.strip().lower()
 
-    def _perform_move(self, item: dict, source_id: str, dest_id: str) -> bool:
-        key = item['key']
-        data = item.get('data', {})
-        version = data.get('version', 0)
-        current_cols = set(data.get('collections', []))
+    def _perform_move(self, item: ZoteroItem, source_id: str, dest_id: str) -> bool:
+        key = item.key
+        version = item.version
+        current_cols = set(item.collections)
         
         if dest_id in current_cols and source_id not in current_cols:
             print(f"Item is already in '{dest_id}' and not in '{source_id}'.")
