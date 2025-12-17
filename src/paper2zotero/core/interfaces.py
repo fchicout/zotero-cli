@@ -98,3 +98,12 @@ class IeeeCsvGateway(ABC):
         Parses an IEEE CSV file and returns an iterator of ResearchPaper objects.
         """
         pass
+
+class CitationGateway(ABC):
+    @abstractmethod
+    def get_references_by_doi(self, doi: str) -> List[str]:
+        """
+        Retrieves a list of DOIs of papers referenced by the given DOI.
+        Returns an empty list if no references or DOI not found.
+        """
+        pass
