@@ -187,6 +187,13 @@ paper2zotero tag add --item "ITEMKEY123" --tags "important, to_read"
 paper2zotero tag remove --item "ITEMKEY123" --tags "to_read"
 ```
 
+### 14. PDF Attachment (Auto)
+Automatically find (via Unpaywall) and attach PDFs to items in a collection that are missing them.
+
+```bash
+paper2zotero attach-pdf --collection "My Reading List"
+```
+
 ## Changelog
 
 ### v0.2.0 (December 16, 2025)

@@ -18,7 +18,8 @@ from paper2zotero.infra.semantic_scholar_api import SemanticScholarAPIClient
 from paper2zotero.infra.unpaywall_api import UnpaywallAPIClient 
 from paper2zotero.core.services.graph_service import CitationGraphService
 from paper2zotero.core.services.metadata_aggregator import MetadataAggregatorService 
-from paper2zotero.core.services.tag_service import TagService # Import TagService
+from paper2zotero.core.services.tag_service import TagService
+from paper2zotero.core.services.attachment_service import AttachmentService # Import AttachmentService
 
 def get_zotero_gateway():
     """Helper to get Zotero client from environment variables."""
@@ -176,6 +177,21 @@ def tag_command(args):
             print(f"Successfully {action} item '{args.item}'.")
         else:
             print(f"Failed to update tags for item '{args.item}'.")
+
+def attach_pdf_command(args):
+    """Handles the 'attach-pdf' subcommand."""
+    zotero_gateway = get_zotero_gateway()
+    
+    # Providers
+    crossref = CrossRefAPIClient()
+    s2 = SemanticScholarAPIClient()
+    unpaywall = UnpaywallAPIClient()
+    aggregator = MetadataAggregatorService([s2, crossref, unpaywall])
+    
+    service = AttachmentService(zotero_gateway, aggregator)
+    
+    count = service.attach_pdfs_to_collection(args.collection)
+    print(f"Attached {count} PDFs to items in '{args.collection}'.")
 
 def add_command(args):
     """Handles the 'add' subcommand."""
@@ -428,6 +444,11 @@ def main():
     tag_remove_parser.add_argument("--tags", required=True, help="Comma-separated tags.")
 
     tag_parser.set_defaults(func=tag_command)
+
+    # Add 'attach-pdf' subcommand
+    attach_pdf_parser = subparsers.add_parser("attach-pdf", help="Find and attach PDFs to items in a collection.")
+    attach_pdf_parser.add_argument("--collection", required=True, help="The Zotero collection name.")
+    attach_pdf_parser.set_defaults(func=attach_pdf_command)
 
     args = parser.parse_args()
 
