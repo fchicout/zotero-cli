@@ -9,6 +9,39 @@
 
 It automatically handles collection creation and populates rich metadata including authors, abstracts, DOIs, and publication dates.
 
+## Project Structure
+
+This repository contains two complementary tools for working with bibliographic data:
+
+1. **paper2zotero** (`src/paper2zotero/`) - Full-featured Zotero integration for importing papers from multiple sources
+2. **CSV to BibTeX Converter** (`custom/`) - Standalone tool for converting Springer CSV exports to clean BibTeX format
+
+The CSV converter was built to address a specific need: Springer exports often have concatenated author names that need fixing before import. While paper2zotero can import Springer CSVs directly to Zotero, the custom converter provides a preprocessing step to generate clean BibTeX files that can be used anywhere.
+
+```
+csv2bib/
+├── src/paper2zotero/       # Zotero integration tools
+│   ├── cli/               # Command-line interface
+│   ├── core/              # Core models and interfaces
+│   └── infra/             # arXiv, BibTeX, RIS, CSV libraries
+├── tests/                  # Tests for paper2zotero
+│
+├── custom/                 # CSV to BibTeX converter (standalone)
+│   ├── core/              # Business logic (converters, fixers)
+│   ├── cli/               # Command-line interface
+│   ├── web/               # Web interface (Flask)
+│   └── utils/             # File handling utilities
+├── tests_custom/          # Tests for custom tools
+│
+└── data/
+    ├── input/            # Place your CSV files here
+    └── output/           # Generated BibTeX files
+```
+
+**Use paper2zotero when:** You want to import papers directly into Zotero from arXiv, BibTeX, RIS, or CSV sources.
+
+**Use the CSV converter when:** You need clean BibTeX files from Springer CSVs, with properly formatted author names, for use in LaTeX or other tools.
+
 ## Features
 
 *   **arXiv Integration**: Search and bulk import papers directly from arXiv queries.
@@ -128,6 +161,94 @@ pip install -e .
 # Run tests
 python -m unittest discover tests
 ```
+
+---
+
+## CSV to BibTeX Converter (Custom Tools)
+
+This repository also includes a standalone CSV to BibTeX converter with advanced author name fixing capabilities, built with clean architecture principles.
+
+**Documentation:** See [custom/README.md](custom/README.md) and [custom/QUICK_START.md](custom/QUICK_START.md)
+
+### Features
+
+*   **Springer CSV Support**: Convert Springer search results directly to BibTeX format
+*   **Automatic Author Fixing**: Separates concatenated author names (e.g., "JohnSmithMaryJones" → "John Smith and Mary Jones")
+*   **Compound Name Protection**: Preserves names like McDonald, O'Brien, MacArthur correctly
+*   **Dual Interface**: Command-line and web-based interfaces
+*   **File Splitting**: Automatically splits large files (49 entries per file for Zotero compatibility)
+*   **Comprehensive Testing**: Property-based testing with Hypothesis
+
+### Quick Start
+
+**Web Interface (Recommended):**
+```bash
+python -m custom.web.app
+# Open: http://127.0.0.1:5000
+```
+
+**Command-Line Interface:**
+```bash
+# Basic conversion
+python -m custom.cli.main --input data/input/SearchResults.csv
+
+# With automatic author fixing (RECOMMENDED)
+python -m custom.cli.main --input data/input/SearchResults.csv --fix-authors
+```
+
+**View help:**
+```bash
+python -m custom.cli.main --help
+```
+
+**Web Interface:**
+```bash
+# Start the web server
+python -m custom.web.app
+
+# Open browser to http://localhost:5000
+# Upload CSV, download fixed BibTeX files
+```
+
+### Example
+
+**Input (Springer CSV):**
+```csv
+Item Title,Authors,Publication Year,...
+"Machine Learning Applications",JohnSmithMaryJones,2023,...
+```
+
+**Output (BibTeX with fixed authors):**
+```bibtex
+@article{Smith_2023_Machine,
+  title = {Machine Learning Applications},
+  author = {John Smith and Mary Jones},
+  year = {2023},
+  ...
+}
+```
+
+### Testing
+
+```bash
+# Run all tests
+pytest tests_custom/
+
+# Run specific test categories
+pytest -m unit        # Unit tests only
+pytest -m property    # Property-based tests
+pytest -m web         # Web interface tests
+
+# Run with coverage
+pytest tests_custom/ --cov=custom --cov-report=html
+```
+
+### Documentation
+
+*   [Architecture Guide](docs/ARCHITECTURE.md) - Detailed project structure and design principles
+*   [Custom Components](docs/CUSTOM_COMPONENTS.md) - Component documentation
+
+---
 
 ## License
 

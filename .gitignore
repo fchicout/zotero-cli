@@ -1,3 +1,68 @@
+# Python
 .venv/
+venv/
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Testing cache and artifacts
+.hypothesis/
+.pytest_cache/
+test_output/
+*.coverage
+.coverage
+htmlcov/
+
+# Internal testing documentation (development process)
+tests_custom/INTEGRATION_VALIDATION.md
+tests_custom/SETUP_SUMMARY.md
+tests_custom/TESTING_INFRASTRUCTURE.md
+
+# Internal development documentation (too detailed for public)
+docs/CUSTOM_COMPONENTS.md
+
+# Data files
+data/input/*.csv
+data/input/*.xls
+data/input/*.xlsx
+data/temp/*
+!data/temp/.gitkeep
+data/output/*.bib
+!data/output/.gitkeep
+
+# Configuration files with credentials
+setup_env.ps1
+setup_env.local.ps1
+scripts/automation/configure_zotero.ps1
+scripts/automation/configure_zotero.local.ps1
+.env
+.env.local
+config.local.json
+zotero_config.json
+
+# IDE and personal files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.code-workspace
+.kiro/
+
+# Legacy/development scripts and docs (using refactored custom/ instead)
+scripts/
+convert.py
+PROJECT_STRUCTURE.md
+WORKFLOW.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Auto-generated files
+src/paper2zotero.egg-info/SOURCES.txt

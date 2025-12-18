@@ -1,3 +1,5 @@
+LICENSE
+README.md
 pyproject.toml
 src/paper2zotero/__init__.py
 src/paper2zotero/client.py
@@ -14,9 +16,15 @@ src/paper2zotero/core/models.py
 src/paper2zotero/infra/__init__.py
 src/paper2zotero/infra/arxiv_lib.py
 src/paper2zotero/infra/bibtex_lib.py
+src/paper2zotero/infra/ieee_csv_lib.py
+src/paper2zotero/infra/ris_lib.py
+src/paper2zotero/infra/springer_csv_lib.py
 src/paper2zotero/infra/zotero_api.py
 tests/test_arxiv_lib.py
 tests/test_bibtex_lib.py
 tests/test_cli.py
 tests/test_client.py
+tests/test_ieee_csv_lib.py
+tests/test_ris_lib.py
+tests/test_springer_csv_lib.py
 tests/test_zotero_api.py

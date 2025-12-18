@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - CSV to BibTeX Converter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CSV to BibTeX Converter</h1>
+            <p class="subtitle">Convert Springer CSV files to properly formatted BibTeX entries</p>
+        </header>
+
+        <main>
+            <div class="error-section" style="display: block;">
+                <div class="error-icon">⚠️</div>
+                <h2>An Error Occurred</h2>
+                <p class="error-message">{{ error_message }}</p>
+                
+                {% if error_details %}
+                <div class="error-details">
+                    <h3>Details:</h3>
+                    <ul>
+                        {% for detail in error_details %}
+                        <li>{{ detail }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Go Back</a>
+            </div>
+
+            <div class="info-section">
+                <h2>Common Issues</h2>
+                <ul class="steps-list">
+                    <li>
+                        <strong>File too large:</strong> Maximum file size is 16MB
+                    </li>
+                    <li>
+                        <strong>Invalid format:</strong> Only CSV files are accepted
+                    </li>
+                    <li>
+                        <strong>Empty file:</strong> Please ensure your CSV file contains data
+                    </li>
+                    <li>
+                        <strong>Corrupted file:</strong> Try re-exporting your CSV from the source
+                    </li>
+                </ul>
+            </div>
+        </main>
+
+        <footer>
+            <p>CSV to BibTeX Converter | Custom Tool for Springer Search Results</p>
+        </footer>
+    </div>
+</body>
+</html>
