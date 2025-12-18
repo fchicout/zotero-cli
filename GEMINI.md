@@ -46,7 +46,7 @@ A CLI tool to import research papers into Zotero from various sources (arXiv, Bi
 *   **Infrastructure:** Implemented `upload_attachment` in `ZoteroAPIClient` (handling Zotero's 3-step upload protocol).
 *   **Service:** Created `AttachmentService` to identify missing PDFs, fetch URLs via Unpaywall, download, and upload to Zotero.
 *   **CLI:** Added `attach-pdf` command.
-*   **Status:** Implementation complete and registered in CLI.
+*   **Verification:** Unit tests for `AttachmentService` created and passed. All associated files are now correctly tracked by Git.
 
 ### Security Incident & Remediation
 *   **Incident:** API keys were accidentally committed to `setup_env.sh` and pushed.
@@ -58,7 +58,7 @@ A CLI tool to import research papers into Zotero from various sources (arXiv, Bi
 
 ## Current State
 *   **Version:** `v0.2.0+` (Feature-rich).
-*   **Tests:** Unit tests cover all services and infrastructure (mocked). CI/CD is passing.
+*   **Tests:** Unit tests cover all services and infrastructure (mocked). CI/CD should now be passing with the latest fixes.
 *   **Documentation:** `README.md` updated with all new commands and Changelog.
 
 ## Next Steps / Pending
