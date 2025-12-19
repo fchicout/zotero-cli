@@ -17,21 +17,24 @@ test_output/
 htmlcov/
 
 # Internal testing documentation (development process)
-tests_custom/INTEGRATION_VALIDATION.md
-tests_custom/SETUP_SUMMARY.md
-tests_custom/TESTING_INFRASTRUCTURE.md
-
-# Internal development documentation (too detailed for public)
-docs/CUSTOM_COMPONENTS.md
+bibtools/tests/INTEGRATION_VALIDATION.md
+bibtools/tests/SETUP_SUMMARY.md
+bibtools/tests/TESTING_INFRASTRUCTURE.md
 
 # Data files
-data/input/*.csv
-data/input/*.xls
-data/input/*.xlsx
-data/temp/*
-!data/temp/.gitkeep
-data/output/*.bib
-!data/output/.gitkeep
+bibtools/data/input/*.csv
+bibtools/data/input/*.xls
+bibtools/data/input/*.xlsx
+bibtools/data/temp/*
+!bibtools/data/temp/.gitkeep
+bibtools/data/output/*
+!bibtools/data/output/.gitkeep
+
+# Old folders (can be removed after migration)
+data/
+tests_custom/
+custom/
+academic-ref-toolkit-utilities/
 
 # Configuration files with credentials
 setup_env.ps1
@@ -51,11 +54,14 @@ zotero_config.json
 *.code-workspace
 .kiro/
 
-# Legacy/development scripts and docs (using refactored custom/ instead)
+# Legacy/development scripts and docs
 scripts/
 convert.py
 PROJECT_STRUCTURE.md
 WORKFLOW.md
+check_all_types.py
+check_reclassification.py
+find_collection.py
 
 # OS
 .DS_Store

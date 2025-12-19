@@ -1,0 +1,92 @@
+[project]
+name = "bibtools"
+version = "1.0.0"
+description = "Bibliographic tools for academic reference management: CSV conversion, article extraction, and Zotero maintenance"
+authors = [
+    {name = "Evelin Limeira"}
+]
+requires-python = ">=3.8"
+readme = "README.md"
+license = {text = "MIT"}
+
+# Core dependencies (minimal - uses mostly stdlib)
+dependencies = []
+
+[project.optional-dependencies]
+# Web interface dependencies
+web = [
+    "flask>=2.3.0",
+]
+
+# Zotero utilities dependencies
+zotero = [
+    "requests>=2.28.0",
+]
+
+# Development and testing dependencies
+dev = [
+    "pytest>=7.0.0",
+    "hypothesis>=6.0.0",
+    "bibtexparser>=1.4.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+]
+
+# All optional dependencies combined
+all = [
+    "flask>=2.3.0",
+    "requests>=2.28.0",
+    "pytest>=7.0.0",
+    "hypothesis>=6.0.0",
+    "bibtexparser>=1.4.0",
+]
+
+[project.scripts]
+# CSV to BibTeX converter
+csv2bib = "bibtools.cli.main:main"
+# Article extractor
+extract-articles = "bibtools.cli.extract_articles:main"
+# Zotero utilities
+update-zotero-dois = "bibtools.cli.update_zotero_dois:main"
+reclassify-zotero-items = "bibtools.cli.reclassify_zotero_items:main"
+# Web interface
+bibtools-web = "bibtools.web.app:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bibtools*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.pytest.ini_options]
+# Test discovery patterns
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Test paths
+testpaths = ["tests"]
+
+# Output options
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings"
+]
+
+# Markers for categorizing tests
+markers = [
+    "unit: Unit tests for individual components",
+    "integration: Integration tests for component interactions",
+    "property: Property-based tests using Hypothesis",
+    "web: Tests for web interface",
+    "cli: Tests for command-line interface",
+    "slow: Tests that take longer to run"
+]

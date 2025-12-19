@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic CSV Tools</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1a202c;
+        }
+
+        .landing-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .landing-header {
+            text-align: center;
+            margin-bottom: 64px;
+            padding-top: 40px;
+        }
+
+        .landing-header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+
+        .landing-header .subtitle {
+            font-size: 1.125rem;
+            color: rgba(255, 255, 255, 0.9);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        /* Tools Grid */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+            gap: 32px;
+            margin-bottom: 48px;
+        }
+
+        /* Tool Cards */
+        .tool-card {
+            background: white;
+            border-radius: 20px;
+            padding: 48px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transform: scaleX(0);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tool-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
+        }
+
+        .tool-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .tool-card.converter::before {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .tool-card.extractor::before {
+            background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        /* Icon Container */
+        .icon-container {
+            width: 72px;
+            height: 72px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            font-size: 2rem;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tool-card.converter .icon-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .tool-card.extractor .icon-container {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .tool-card:hover .icon-container {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .tool-card h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 12px;
+            letter-spacing: -0.01em;
+        }
+
+        .tool-card .description {
+            color: #4a5568;
+            line-height: 1.7;
+            margin-bottom: 28px;
+            font-size: 1rem;
+        }
+
+        /* Features List */
+        .tool-card .features {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 32px 0;
+            flex-grow: 1;
+        }
+
+        .tool-card .features li {
+            padding: 10px 0;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            font-size: 0.9375rem;
+            line-height: 1.5;
+        }
+
+        .tool-card .features li::before {
+            content: "✓";
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-weight: 700;
+            margin-right: 12px;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+
+        .tool-card.converter .features li::before {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .tool-card.extractor .features li::before {
+            background: rgba(240, 147, 251, 0.1);
+            color: #f5576c;
+        }
+
+        /* CTA Button */
+        .tool-card .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .tool-card.converter .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .tool-card.extractor .btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .tool-card .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .tool-card .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Info Banner */
+        .info-banner {
+            background: white;
+            border-radius: 16px;
+            padding: 32px 40px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-banner h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a202c;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-banner p {
+            color: #4a5568;
+            line-height: 1.7;
+            font-size: 0.9375rem;
+        }
+
+        .info-banner strong {
+            color: #1a202c;
+            font-weight: 600;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 48px 20px 32px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 64px;
+        }
+
+        footer p {
+            margin-bottom: 8px;
+            font-size: 0.9375rem;
+        }
+
+        footer a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s ease;
+        }
+
+        footer a:hover {
+            opacity: 0.8;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .tools-grid {
+                grid-template-columns: 1fr;
+                max-width: 600px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .landing-header h1 {
+                font-size: 2.25rem;
+            }
+
+            .landing-header .subtitle {
+                font-size: 1rem;
+            }
+
+            .tool-card {
+                padding: 32px 24px;
+            }
+
+            .tool-card h2 {
+                font-size: 1.5rem;
+            }
+
+            .info-banner {
+                padding: 24px;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .landing-header {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .tool-card {
+            animation: fadeInUp 0.6s ease-out;
+            animation-fill-mode: both;
+        }
+
+        .tool-card:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .tool-card:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .info-banner {
+            animation: fadeInUp 0.6s ease-out;
+            animation-delay: 0.3s;
+            animation-fill-mode: both;
+        }
+    </style>
+</head>
+<body>
+    <div class="landing-container">
+        <header class="landing-header">
+            <h1>Academic CSV Processing Tools</h1>
+            <p class="subtitle">Choose the tool that fits your workflow - convert to BibTeX or extract for systematic reviews</p>
+        </header>
+
+        <div class="tools-grid">
+            <!-- CSV to BibTeX Converter -->
+            <a href="/converter" class="tool-card converter">
+                
+                <h2>CSV to BibTeX Converter</h2>
+                <p class="description">
+                    Convert Springer CSV exports to properly formatted BibTeX files with automatic author name fixing.
+                </p>
+                <ul class="features">
+                    <li>Fixes concatenated author names</li>
+                    <li>Generates unique BibTeX keys</li>
+                    <li>Splits large files (49 entries each)</li>
+                    <li>Perfect for Zotero & LaTeX</li>
+                </ul>
+                <span class="btn">Start Converting →</span>
+            </a>
+
+            <!-- Article Extraction Tool -->
+            <a href="/extract-articles" class="tool-card extractor">
+                
+                <h2>Article Extraction Tool</h2>
+                <p class="description">
+                    Extract DOI, Title, and Abstract from academic CSV files to create Excel spreadsheets for systematic review screening.
+                </p>
+                <ul class="features">
+                    <li>Extracts essential fields only</li>
+                    <li>Generates Excel spreadsheets</li>
+                    <li>Handles missing data gracefully</li>
+                    <li>Perfect for systematic reviews</li>
+                </ul>
+                <span class="btn">Start Extracting →</span>
+            </a>
+        </div>
+
+        <div class="info-banner">
+            <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 16 16 12 12 8"></polyline>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+                Quick & Easy
+            </h3>
+            <p>
+                Both tools work the same way: upload your CSV file, click the button, and download your results. 
+                No installation required - everything runs in your browser!
+            </p>
+        </div>
+
+        <div class="info-banner">
+            <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Not sure which tool to use?
+            </h3>
+            <p>
+                <strong>Use the Converter</strong> if you need BibTeX files for reference managers (Zotero, Mendeley) or LaTeX documents.<br>
+                <strong>Use the Extractor</strong> if you're conducting a systematic review and need to screen articles in Excel or Google Sheets.
+            </p>
+        </div>
+
+        <footer>
+            <p>Academic CSV Processing Tools | Part of the paper2zotero project</p>
+            <p>
+                <a href="https://github.com/fchicout/paper2zotero">View on GitHub</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

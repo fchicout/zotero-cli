@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Article Extractor - CSV to Excel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Article Data Extractor</h1>
+            <p class="subtitle">Extract DOI, Title, and Abstract from CSV files for systematic review screening</p>
+        </header>
+
+        <main>
+            <div class="upload-section">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="file-input-wrapper">
+                        <label for="csv_file" class="file-label">
+                            <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <span id="fileLabel">Choose CSV file or drag and drop</span>
+                        </label>
+                        <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="extractBtn">
+                        Extract to Excel
+                    </button>
+                </form>
+
+                <div id="progressSection" class="progress-section" style="display: none;">
+                    <div class="spinner"></div>
+                    <p class="progress-text">Extracting article data...</p>
+                </div>
+
+                <div id="errorSection" class="error-section" style="display: none;">
+                    <div class="error-icon">⚠️</div>
+                    <h3 class="error-title" id="errorTitle">Error</h3>
+                    <p class="error-message" id="errorMessage"></p>
+                    <div class="error-details" id="errorDetails" style="display: none;">
+                        <details>
+                            <summary>Show details</summary>
+                            <pre id="errorDetailsText"></pre>
+                        </details>
+                    </div>
+                    <button class="btn btn-secondary" onclick="resetForm()">Try Again</button>
+                </div>
+
+                <div id="resultsSection" class="results-section" style="display: none;">
+                    <div class="results-header">
+                        <div class="success-icon">✓</div>
+                        <h2>Extraction Complete!</h2>
+                        <p class="result-info">
+                            Processed <strong id="recordCount">0</strong> records
+                        </p>
+                        <button class="btn btn-secondary btn-convert-another" onclick="resetForm()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: middle;">
+                                <polyline points="1 4 1 10 7 10"></polyline>
+                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                            </svg>
+                            Extract Another File
+                        </button>
+                    </div>
+                    
+                    <div class="download-section">
+                        <a id="downloadLink" href="#" class="btn btn-primary btn-download" download>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: middle;">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Download Excel File
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2>How it works</h2>
+                <ol class="steps-list">
+                    <li>
+                        <strong>Upload</strong> your academic CSV file (Springer, IEEE, etc.)
+                    </li>
+                    <li>
+                        <strong>Extract</strong> DOI, Title, and Abstract columns
+                    </li>
+                    <li>
+                        <strong>Generate</strong> Excel spreadsheet for screening
+                    </li>
+                    <li>
+                        <strong>Download</strong> and import into Excel or Google Sheets
+                    </li>
+                </ol>
+
+                <div class="note">
+                    <strong>Note:</strong> Your CSV file must contain columns named "DOI", "Title", and "Abstract Note". 
+                    Files larger than 50MB cannot be processed.
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Article Data Extractor | Tool for Systematic Review Screening</p>
+        </footer>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('csv_file');
+        const fileLabel = document.getElementById('fileLabel');
+        const uploadSection = document.querySelector('.upload-section');
+        const progressSection = document.getElementById('progressSection');
+        const errorSection = document.getElementById('errorSection');
+        const resultsSection = document.getElementById('resultsSection');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // File input change handler
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                fileLabel.textContent = e.target.files[0].name;
+            }
+        });
+
+        // Drag and drop handlers
+        const fileInputWrapper = document.querySelector('.file-input-wrapper');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileInputWrapper.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileInputWrapper.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileInputWrapper.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            fileInputWrapper.classList.add('highlight');
+        }
+
+        function unhighlight(e) {
+            fileInputWrapper.classList.remove('highlight');
+        }
+
+        fileInputWrapper.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            if (files.length > 0) {
+                fileLabel.textContent = files[0].name;
+            }
+        }
+
+        // Form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Hide all sections
+            form.style.display = 'none';
+            errorSection.style.display = 'none';
+            resultsSection.style.display = 'none';
+            progressSection.style.display = 'block';
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('/extract-articles', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Show results
+                    progressSection.style.display = 'none';
+                    resultsSection.style.display = 'block';
+                    
+                    document.getElementById('recordCount').textContent = data.records_count;
+                    
+                    const downloadLink = document.getElementById('downloadLink');
+                    downloadLink.href = data.download_url;
+                    downloadLink.download = data.filename;
+                } else {
+                    // Show error with details
+                    showError(
+                        data.error || 'An error occurred during extraction',
+                        data.details || null
+                    );
+                }
+            } catch (error) {
+                showError(
+                    'Network Error',
+                    'Could not connect to the server. Please check your internet connection and try again.\n\nTechnical details: ' + error.message
+                );
+            }
+        });
+
+        function showError(title, details) {
+            progressSection.style.display = 'none';
+            errorSection.style.display = 'block';
+            
+            // Set error title
+            document.getElementById('errorTitle').textContent = title;
+            
+            // Set main error message
+            if (details) {
+                // If we have details, show a brief message and expandable details
+                const lines = details.split('\n');
+                const briefMessage = lines[0];
+                errorMessage.textContent = briefMessage;
+                
+                // Show details section if there's more than one line
+                if (lines.length > 1 || details.length > 100) {
+                    document.getElementById('errorDetails').style.display = 'block';
+                    document.getElementById('errorDetailsText').textContent = details;
+                } else {
+                    document.getElementById('errorDetails').style.display = 'none';
+                }
+            } else {
+                errorMessage.textContent = title;
+                document.getElementById('errorDetails').style.display = 'none';
+            }
+        }
+
+        function resetForm() {
+            form.reset();
+            fileLabel.textContent = 'Choose CSV file or drag and drop';
+            form.style.display = 'block';
+            errorSection.style.display = 'none';
+            resultsSection.style.display = 'none';
+            progressSection.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

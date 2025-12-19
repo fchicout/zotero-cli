@@ -1,55 +1,94 @@
-# paper2zotero
+# Academic Reference Toolkit
 
-![Build Status](https://github.com/fchicout/paper2zotero/actions/workflows/release.yml/badge.svg)
-![Tests](https://github.com/fchicout/paper2zotero/actions/workflows/tests.yml/badge.svg)
+![Build Status](https://github.com/fchicout/academic-ref-toolkit/actions/workflows/release.yml/badge.svg)
+![Tests](https://github.com/fchicout/academic-ref-toolkit/actions/workflows/tests.yml/badge.svg)
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-**paper2zotero** is a robust command-line utility designed to streamline the import of research papers into [Zotero](https://www.zotero.org/). It supports fetching papers directly from **arXiv**, importing from **BibTeX** and **RIS** files, importing from **Springer** and **IEEE** CSV exports, and managing Zotero collections.
+> **Fork Notice:** This repository extends the original [paper2zotero](https://github.com/ORIGINAL_AUTHOR/paper2zotero) project with additional utilities for academic reference management.
 
-It automatically handles collection creation and populates rich metadata including authors, abstracts, DOIs, and publication dates.
+## About This Fork
+
+This fork adds custom utilities to the original paper2zotero tool:
+
+**Original Project (paper2zotero):**
+- Zotero integration for importing papers from arXiv, BibTeX, RIS, and CSV
+- Created by [ORIGINAL_AUTHOR_NAME]
+- Located in `src/paper2zotero/`
+
+**My Contributions (`bibtools/` folder):**
+- **CSV to BibTeX Converter** - Fix concatenated author names in Springer exports
+- **Article Extractor** - Extract DOI, Title, and Abstract for systematic review screening
+- **Zotero DOI Updater** - Fix missing DOIs in your Zotero library
+- **Zotero Item Reclassifier** - Correct item types (e.g., preprint → journal article)
+
+These utilities were built to solve real-world problems I encountered during my research workflow.
 
 ## Project Structure
 
-This repository contains two complementary tools for working with bibliographic data:
-
-1. **paper2zotero** (`src/paper2zotero/`) - Full-featured Zotero integration for importing papers from multiple sources
-2. **CSV to BibTeX Converter** (`custom/`) - Standalone tool for converting Springer CSV exports to clean BibTeX format
-
-The CSV converter was built to address a specific need: Springer exports often have concatenated author names that need fixing before import. While paper2zotero can import Springer CSVs directly to Zotero, the custom converter provides a preprocessing step to generate clean BibTeX files that can be used anywhere.
+```
+academic-ref-toolkit/
+├── src/paper2zotero/       # Original project (upstream)
+│   ├── cli/
+│   ├── core/
+│   └── infra/
+├── tests/                  # Tests for paper2zotero
+│
+└── bibtools/               # MY WORK - All my utilities
+    ├── core/               # Business logic
+    │   ├── csv_converter.py             # CSV to BibTeX conversion
+    │   ├── author_fixer.py              # Author name fixing
+    │   ├── article_extractor.py         # Article extraction
+    │   ├── zotero_doi_updater.py        # DOI updater
+    │   └── zotero_item_reclassifier.py  # Item type fixer
+    ├── cli/                # Command-line interfaces
+    ├── web/                # Web interface (Flask)
+    ├── utils/              # File handling utilities
+    ├── tests/              # My tests
+    ├── data/               # My data folders
+    ├── docs/               # My documentation
+    ├── pyproject.toml      # My package config
+    └── README.md           # My utilities README
+```
 
 ```
-csv2bib/
-├── src/paper2zotero/       # Zotero integration tools
+academic-ref-toolkit/
+├── src/paper2zotero/       # Main Zotero integration tool
 │   ├── cli/               # Command-line interface
 │   ├── core/              # Core models and interfaces
 │   └── infra/             # arXiv, BibTeX, RIS, CSV libraries
 ├── tests/                  # Tests for paper2zotero
 │
-├── custom/                 # CSV to BibTeX converter (standalone)
-│   ├── core/              # Business logic (converters, fixers)
-│   ├── cli/               # Command-line interface
+├── custom/                 # Optional utilities (standalone)
+│   ├── core/              # Business logic
+│   │   ├── csv_converter.py          # CSV to BibTeX conversion
+│   │   ├── author_fixer.py           # Author name fixing
+│   │   ├── article_extractor.py      # Article extraction
+│   │   ├── zotero_doi_updater.py     # DOI updater
+│   │   └── zotero_item_reclassifier.py # Item type fixer
+│   ├── cli/               # Command-line interfaces
 │   ├── web/               # Web interface (Flask)
 │   └── utils/             # File handling utilities
-├── tests_custom/          # Tests for custom tools
+├── tests_custom/          # Tests for custom utilities
 │
 └── data/
     ├── input/            # Place your CSV files here
     └── output/           # Generated BibTeX files
 ```
 
-**Use paper2zotero when:** You want to import papers directly into Zotero from arXiv, BibTeX, RIS, or CSV sources.
+---
 
-**Use the CSV converter when:** You need clean BibTeX files from Springer CSVs, with properly formatted author names, for use in LaTeX or other tools.
+## Original paper2zotero Features
 
-## Features
+For documentation on the original paper2zotero tool, see below. For my custom utilities, jump to [Custom Utilities](#custom-utilities).
 
-*   **arXiv Integration**: Search and bulk import papers directly from arXiv queries.
-*   **BibTeX & RIS Support**: Import bibliographic data from standard file formats.
-*   **CSV Support**: Import from Springer and IEEE CSV exports.
-*   **Zotero Management**: Automatically creates collections (folders) if they don't exist.
-*   **Maintenance**: Utility to remove attachments (PDFs/snapshots) to save storage space.
-*   **Flexible Input**: Accepts queries via command arguments, files, or standard input (pipes).
+**Features:**
+*   **arXiv Integration**: Search and bulk import papers directly from arXiv queries
+*   **BibTeX & RIS Support**: Import bibliographic data from standard file formats
+*   **CSV Support**: Import from Springer and IEEE CSV exports
+*   **Zotero Management**: Automatically creates collections (folders) if they don't exist
+*   **Maintenance**: Utility to remove attachments (PDFs/snapshots) to save storage space
+*   **Flexible Input**: Accepts queries via command arguments, files, or standard input (pipes)
 
 ## Installation
 
@@ -164,50 +203,101 @@ python -m unittest discover tests
 
 ---
 
-## CSV to BibTeX Converter (Custom Tools)
+## Custom Utilities (bibtools)
 
-This repository also includes a standalone CSV to BibTeX converter with advanced author name fixing capabilities, built with clean architecture principles.
+**This is my work** - The `bibtools/` folder contains standalone tools I built for advanced workflows. These are independent from the original paper2zotero code and can be used separately.
 
-**Documentation:** See [custom/README.md](custom/README.md) and [custom/QUICK_START.md](custom/QUICK_START.md)
+**Documentation:** 
+- [Quick Start (5 min)](bibtools/docs/QUICK_START.md) - Get started quickly
+- [User Guide](bibtools/docs/USER_GUIDE.md) - Comprehensive usage guide
+- [Technical Docs](bibtools/docs/CUSTOM_COMPONENTS.md) - Architecture and API reference
+- [Full README](bibtools/README.md) - Complete utilities documentation
 
-### Features
+### 1. CSV to BibTeX Converter
 
-*   **Springer CSV Support**: Convert Springer search results directly to BibTeX format
-*   **Automatic Author Fixing**: Separates concatenated author names (e.g., "JohnSmithMaryJones" → "John Smith and Mary Jones")
-*   **Compound Name Protection**: Preserves names like McDonald, O'Brien, MacArthur correctly
-*   **Dual Interface**: Command-line and web-based interfaces
-*   **File Splitting**: Automatically splits large files (49 entries per file for Zotero compatibility)
-*   **Comprehensive Testing**: Property-based testing with Hypothesis
+Convert Springer CSV exports to clean BibTeX format with automatic author name fixing.
 
-### Quick Start
+**Features:**
+*   Automatic author name separation (e.g., "JohnSmithMaryJones" → "John Smith and Mary Jones")
+*   Compound name protection (McDonald, O'Brien, MacArthur)
+*   File splitting for Zotero compatibility (49 entries per file)
+*   Dual interface: CLI and web
 
-**Web Interface (Recommended):**
+### 2. Article Extraction Tool
+
+Extract DOI, Title, and Abstract from academic CSV files for systematic review screening.
+
+**Features:**
+*   Excel output ready for Google Sheets or Excel
+*   DOI extraction from Extra field when DOI field is empty
+*   Missing field handling
+*   Dual interface: CLI and web
+
+### 3. Zotero DOI Updater
+
+Update missing DOIs in your Zotero library by extracting them from the Extra field.
+
+**Features:**
+*   Connects to user or group libraries
+*   Dry-run mode to preview changes
+*   Batch processing with progress tracking
+*   Preserves existing Extra field content
+
+### 4. Zotero Item Reclassifier
+
+Correct item types in your Zotero library (e.g., preprint → journal article).
+
+**Features:**
+*   Flexible reclassification rules
+*   Dry-run mode to preview changes
+*   Batch processing with detailed logging
+*   Preserves all item metadata
+
+### Quick Start - Optional Utilities
+
+**Prerequisites for Zotero tools:**
 ```bash
-python -m custom.web.app
+export ZOTERO_API_KEY="your_api_key"
+export ZOTERO_LIBRARY_ID="12345"
+export ZOTERO_LIBRARY_TYPE="group"  # or "user"
+```
+
+**CSV to BibTeX Converter:**
+```bash
+# Web interface
+python -m bibtools.web.app
 # Open: http://127.0.0.1:5000
+
+# CLI with author fixing (recommended)
+python -m bibtools.cli.main --input bibtools/data/input/SearchResults.csv --fix-authors
 ```
 
-**Command-Line Interface:**
+**Article Extraction:**
 ```bash
-# Basic conversion
-python -m custom.cli.main --input data/input/SearchResults.csv
+# Web interface
+python -m bibtools.web.app
+# Open: http://127.0.0.1:5000/extract-articles
 
-# With automatic author fixing (RECOMMENDED)
-python -m custom.cli.main --input data/input/SearchResults.csv --fix-authors
+# CLI
+python -m bibtools.cli.extract_articles --input bibtools/data/input/articles.csv --output results/screening.xlsx
 ```
 
-**View help:**
+**Zotero DOI Updater:**
 ```bash
-python -m custom.cli.main --help
+# Dry run (preview changes)
+python -m bibtools.cli.update_zotero_dois --dry-run
+
+# Update DOIs
+python -m bibtools.cli.update_zotero_dois
 ```
 
-**Web Interface:**
+**Zotero Item Reclassifier:**
 ```bash
-# Start the web server
-python -m custom.web.app
+# Dry run (preview changes)
+python -m bibtools.cli.reclassify_zotero_items --from-type preprint --to-type journalArticle --dry-run
 
-# Open browser to http://localhost:5000
-# Upload CSV, download fixed BibTeX files
+# Reclassify items
+python -m bibtools.cli.reclassify_zotero_items --from-type preprint --to-type journalArticle
 ```
 
 ### Example
@@ -232,7 +322,7 @@ Item Title,Authors,Publication Year,...
 
 ```bash
 # Run all tests
-pytest tests_custom/
+pytest bibtools/tests/
 
 # Run specific test categories
 pytest -m unit        # Unit tests only
@@ -240,13 +330,35 @@ pytest -m property    # Property-based tests
 pytest -m web         # Web interface tests
 
 # Run with coverage
-pytest tests_custom/ --cov=custom --cov-report=html
+pytest bibtools/tests/ --cov=bibtools --cov-report=html
 ```
 
 ### Documentation
 
-*   [Architecture Guide](docs/ARCHITECTURE.md) - Detailed project structure and design principles
-*   [Custom Components](docs/CUSTOM_COMPONENTS.md) - Component documentation
+*   [Architecture Guide](bibtools/docs/ARCHITECTURE.md) - Detailed project structure and design principles
+*   [Custom Components](bibtools/docs/CUSTOM_COMPONENTS.md) - Component documentation
+
+---
+
+## Attribution
+
+**Original paper2zotero project:**
+- Author: [ORIGINAL_AUTHOR_NAME]
+- Repository: [ORIGINAL_REPO_URL]
+- License: MIT
+
+**Custom utilities (`bibtools/` folder):**
+- Author: Evelin Limeira
+- License: MIT
+
+Both components are licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Contributing
+
+Contributions to bibtools are welcome! Please:
+1. Focus contributions on the `bibtools/` folder
+2. For issues with paper2zotero core functionality, please refer to the original repository
+3. Open issues or pull requests for bugs or enhancements to bibtools
 
 ---
 
