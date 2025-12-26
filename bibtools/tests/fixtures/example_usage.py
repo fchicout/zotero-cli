@@ -19,7 +19,7 @@ def example_csv_conversion():
     
     # Setup paths
     csv_file = Path("tests_custom/fixtures/sample_springer.csv")
-    output_dir = Path("data/output")
+    output_dir = Path("bibtools/data/output")
     output_dir.mkdir(exist_ok=True, parents=True)
     
     # Convert CSV to BibTeX
@@ -82,7 +82,7 @@ def example_with_problematic_authors():
   journal = {Test Journal}
 }"""
     
-    test_file = Path("data/temp/test_problematic.bib")
+    test_file = Path("bibtools/data/temp/test_problematic.bib")
     test_file.parent.mkdir(exist_ok=True, parents=True)
     test_file.write_text(test_content, encoding='utf-8')
     

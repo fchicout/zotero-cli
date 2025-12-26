@@ -35,7 +35,7 @@ python -m bibtools.web.app
 
 3. **Click** "Convert to BibTeX"
 
-4. **Download** the generated files (with `_fixed` suffix)
+4. **Download** the generated files
 
 ### Features
 
@@ -57,7 +57,7 @@ Press `Ctrl+C` in the terminal
 ### Basic syntax
 
 ```bash
-python -m bibtools.cli.main --input FILE.csv [--output-dir DIRECTORY] [--fix-authors]
+python -m bibtools.cli.main convert --input FILE.csv [--output-dir DIRECTORY] [--output-name NAME] [--no-split]
 ```
 
 ### Practical examples
@@ -65,39 +65,54 @@ python -m bibtools.cli.main --input FILE.csv [--output-dir DIRECTORY] [--fix-aut
 #### 1. Basic conversion (without author fixing)
 
 ```bash
-python -m bibtools.cli.main --input data/input/SearchResults.csv
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv
 ```
 
-#### 2. Conversion with author fixing (RECOMMENDED)
+#### 2. Basic conversion (split files)
 
 ```bash
-python -m bibtools.cli.main --input data/input/SearchResults.csv --fix-authors
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv
 ```
 
-#### 3. Specify output directory
+#### 3. Create a single file (no splitting)
 
 ```bash
-python -m bibtools.cli.main --input data/input/SearchResults.csv --output-dir my_bibtex --fix-authors
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --no-split
 ```
 
-#### 4. Process file from another location
+#### 4. Specify output directory
 
 ```bash
-python -m bibtools.cli.main --input C:\Downloads\papers.csv --output-dir C:\Documents\bibtex --fix-authors
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --output-dir my_bibtex
 ```
+
+#### 5. Custom output name
+
+```bash
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --output-name "my_results"
+```
+
+#### 6. Process file from another location
+
+```bash
+python -m bibtools.cli.main convert --input C:\Downloads\papers.csv --output-dir C:\Documents\bibtex
+```
+
+**Note:** Author names are automatically fixed during conversion (concatenated names are separated).
 
 ### Available arguments
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `--input` | ✅ Yes | - | Path to input CSV file |
-| `--output-dir` | ❌ No | `data/output` | Directory to save BibTeX files |
-| `--fix-authors` | ❌ No | `False` | Enable automatic author name fixing |
+| `--output-dir` | ❌ No | `bibtools/data/output` | Directory to save BibTeX files |
+| `--output-name` | ❌ No | Input filename | Base name for output files |
+| `--no-split` | ❌ No | `False` | Create a single file instead of splitting |
 
 ### View help
 
 ```bash
-python -m bibtools.cli.main --help
+python -m bibtools.cli.main convert --help
 ```
 
 ---
@@ -108,19 +123,21 @@ python -m bibtools.cli.main --help
 
 Place your CSV files in:
 ```
-data/input/
+bibtools/data/input/
 ```
 
 ### Output
 
 BibTeX files are generated in:
 ```
-data/output/
+bibtools/data/output/
 ```
 
 **Generated file types:**
-- `springer_results_raw_part1.bib` - Version without fixing
-- `springer_results_raw_part1_fixed.bib` - Version with fixed authors
+- `springer_results_raw_part1.bib` - Split files (49 entries each)
+- `springer_results_raw_part2.bib` - Split files continued
+- `springer_results_raw.bib` - Single file (with `--no-split`)
+- `my_results.bib` - Custom name (with `--output-name "my_results"`)
 
 ---
 
@@ -130,13 +147,10 @@ data/output/
 - Reads the CSV file exported from Springer
 - Converts each entry to BibTeX format
 - Generates unique keys (format: `LastName_Year_TitleWord`)
-- Splits into files of 49 entries (Zotero compatible)
-
-### Step 2: Author Fixing (with `--fix-authors`)
-- Detects concatenated names: `JohnSmithMaryJones`
-- Separates correctly: `John Smith and Mary Jones`
+- **Automatically fixes concatenated author names** (e.g., `JohnSmithMaryJones` → `John Smith and Mary Jones`)
 - Preserves compound names: `McDonald`, `O'Brien`, `MacArthur`
-- Keeps hyphens: `Jiun-Yi Yang`
+- By default, splits into files of 49 entries (Zotero compatible)
+- With `--no-split`, creates a single file with all entries
 
 ---
 
@@ -179,8 +193,8 @@ Item Title,Authors,Publication Year
 
 ```bash
 # Process all CSVs in a folder
-for file in data/input/*.csv; do
-    python -m bibtools.cli.main --input "$file" --fix-authors
+for file in bibtools/data/input/*.csv; do
+    python -m bibtools.cli.main convert --input "$file"
 done
 ```
 
@@ -200,7 +214,7 @@ Check if the file path is correct:
 dir data\input\SearchResults.csv
 
 # Linux/Mac
-ls data/input/SearchResults.csv
+ls bibtools/data/input/SearchResults.csv
 ```
 
 ### "Permission denied"
@@ -226,12 +240,12 @@ For more details, see:
 ## Recommended Workflow
 
 1. **Export** your Springer results as CSV
-2. **Place** the file in `data/input/`
+2. **Place** the file in `bibtools/data/input/`
 3. **Run** the converter:
    ```bash
-   python -m bibtools.cli.main --input data/input/SearchResults.csv --fix-authors
+   python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --fix-authors
    ```
-4. **Find** the files in `data/output/` (use the ones with `_fixed` suffix)
+4. **Find** the files in `bibtools/data/output/` (use the ones with `_fixed` suffix)
 5. **Import** into Zotero or your reference manager
 
 ---
@@ -297,8 +311,8 @@ python -m bibtools.cli.extract_articles
 ```
 
 Default paths:
-- Input: `data/input/z_raw_springer.csv`
-- Output: `data/output/screening_data.xlsx`
+- Input: `bibtools/data/input/z_raw_springer.csv`
+- Output: `bibtools/data/output/screening_data.xlsx`
 
 ##### 2. Custom input file
 
@@ -309,7 +323,7 @@ python -m bibtools.cli.extract_articles --input data/input/my_articles.csv
 ##### 3. Custom input and output
 
 ```bash
-python -m bibtools.cli.extract_articles --input data/input/articles.csv --output results/screening.xlsx
+python -m bibtools.cli.extract_articles --input bibtools/data/input/articles.csv --output bibtools/data/output/screening.xlsx
 ```
 
 ##### 4. Process file from another location
@@ -322,8 +336,8 @@ python -m bibtools.cli.extract_articles --input C:\Downloads\papers.csv --output
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `--input` or `-i` | ❌ No | `data/input/z_raw_springer.csv` | Path to input CSV file |
-| `--output` or `-o` | ❌ No | `data/output/screening_data.xlsx` | Path for output Excel file |
+| `--input` or `-i` | ❌ No | `bibtools/data/input/z_raw_springer.csv` | Path to input CSV file |
+| `--output` or `-o` | ❌ No | `bibtools/data/output/screening_data.xlsx` | Path for output Excel file |
 
 #### View help
 
@@ -389,8 +403,8 @@ DOI,Title,Abstract Note,Publication Title,Authors,URL,Publication Year
 
 ```bash
 # Process all CSVs in a folder
-for file in data/input/*.csv; do
-    python -m bibtools.cli.extract_articles --input "$file" --output "data/output/$(basename "$file" .csv)_screening.xlsx"
+for file in bibtools/data/input/*.csv; do
+    python -m bibtools.cli.extract_articles --input "$file" --output "bibtools/data/output/$(basename "$file" .csv)_screening.xlsx"
 done
 ```
 
@@ -405,7 +419,7 @@ Check if the file path is correct:
 dir data\input\z_raw_springer.csv
 
 # Linux/Mac
-ls data/input/z_raw_springer.csv
+ls bibtools/data/input/z_raw_springer.csv
 ```
 
 #### "Missing required columns"
@@ -430,9 +444,9 @@ Run with appropriate permissions or choose another output directory.
 2. **Place** the file in `data/input/`
 3. **Run** the extractor:
    ```bash
-   python -m bibtools.cli.extract_articles --input data/input/SearchResults.csv
+   python -m bibtools.cli.extract_articles --input bibtools/data/input/SearchResults.csv
    ```
-4. **Find** the Excel file in `data/output/`
+4. **Find** the Excel file in `bibtools/data/output/`
 5. **Open** in Excel or Google Sheets for screening
 6. **Add** additional columns for your screening criteria (Include/Exclude, Notes, etc.)
 

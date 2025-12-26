@@ -28,8 +28,8 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE  # 50MB max file size
 
 # Get the project root directory (2 levels up from this file)
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-app.config['UPLOAD_FOLDER'] = PROJECT_ROOT / 'data' / 'temp'
-app.config['OUTPUT_FOLDER'] = PROJECT_ROOT / 'data' / 'output'
+app.config['UPLOAD_FOLDER'] = PROJECT_ROOT / 'bibtools' / 'data' / 'temp'
+app.config['OUTPUT_FOLDER'] = PROJECT_ROOT / 'bibtools' / 'data' / 'output'
 
 # Ensure directories exist
 app.config['UPLOAD_FOLDER'].mkdir(parents=True, exist_ok=True)

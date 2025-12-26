@@ -22,16 +22,14 @@ bibtools/tests/SETUP_SUMMARY.md
 bibtools/tests/TESTING_INFRASTRUCTURE.md
 
 # Data files
-bibtools/data/input/*.csv
-bibtools/data/input/*.xls
-bibtools/data/input/*.xlsx
+bibtools/data/input/*
+!bibtools/data/input/.gitkeep
 bibtools/data/temp/*
 !bibtools/data/temp/.gitkeep
 bibtools/data/output/*
 !bibtools/data/output/.gitkeep
 
 # Old folders (can be removed after migration)
-data/
 tests_custom/
 custom/
 academic-ref-toolkit-utilities/

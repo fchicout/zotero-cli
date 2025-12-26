@@ -50,7 +50,7 @@ class TestCLIArgumentParsing:
                 assert call_args[0] == Path(str(test_csv))
     
     def test_default_output_dir(self, tmp_path):
-        """Test that --output-dir defaults to 'data/output'."""
+        """Test that --output-dir defaults to 'bibtools/data/output'."""
         # Create a temporary CSV file
         test_csv = tmp_path / "test.csv"
         test_csv.write_text("Item Title,Authors,Publication Year\n", encoding='utf-8')
@@ -68,7 +68,7 @@ class TestCLIArgumentParsing:
                 
                 # Verify default output directory
                 call_args = mock_execute.call_args[0]
-                assert call_args[1] == Path('data/output')
+                assert call_args[1] == Path('bibtools/data/output')
     
     def test_custom_output_dir(self, tmp_path):
         """Test that --output-dir can be customized."""

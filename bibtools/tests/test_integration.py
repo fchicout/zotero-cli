@@ -111,7 +111,7 @@ class TestCLIIntegration:
             [
                 sys.executable, "-m", "custom.cli.main",
                 "--input", "nonexistent.csv",
-                "--output-dir", "data/output"
+                "--output-dir", "bibtools/data/output"
             ],
             capture_output=True,
             text=True

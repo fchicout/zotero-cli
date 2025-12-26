@@ -63,13 +63,16 @@ def setup_convert_parser(subparsers):
         epilog="""
 Examples:
   # Basic conversion
-  python -m bibtools.cli.main convert --input data/input/SearchResults.csv
+  python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv
   
   # Conversion with author fixing
-  python -m bibtools.cli.main convert --input data/input/SearchResults.csv --fix-authors
+  python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --fix-authors
+  
+  # Create a single file without splitting
+  python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --no-split
   
   # Custom output directory
-  python -m bibtools.cli.main convert --input data/input/SearchResults.csv --output-dir output/bibtex
+  python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --output-dir output/bibtex
         """
     )
     
@@ -85,14 +88,27 @@ Examples:
     parser.add_argument(
         '--output-dir',
         type=str,
-        default='data/output',
-        help='Output directory for BibTeX files (default: data/output)'
+        default='bibtools/data/output',
+        help='Output directory for BibTeX files (default: bibtools/data/output)'
     )
     
     parser.add_argument(
         '--fix-authors',
         action='store_true',
-        help='Apply author name fixing to separate concatenated names'
+        help='[DEPRECATED] Author names are now fixed automatically during conversion'
+    )
+    
+    parser.add_argument(
+        '--no-split',
+        action='store_true',
+        help='Create a single BibTeX file instead of splitting into multiple files'
+    )
+    
+    parser.add_argument(
+        '--output-name',
+        type=str,
+        default='springer_results_raw',
+        help='Base name for output BibTeX file(s) (default: springer_results_raw)'
     )
 
 
@@ -111,10 +127,10 @@ Examples:
   python -m bibtools.cli.main extract-articles
   
   # Custom input file
-  python -m bibtools.cli.main extract-articles --input data/input/my_articles.csv
+  python -m bibtools.cli.main extract-articles --input bibtools/data/input/my_articles.csv
   
   # Custom input and output
-  python -m bibtools.cli.main extract-articles --input data/input/articles.csv --output results/screening.xlsx
+  python -m bibtools.cli.main extract-articles --input bibtools/data/input/articles.csv --output bibtools/data/output/screening.xlsx
         """
     )
     
@@ -122,15 +138,15 @@ Examples:
     parser.add_argument(
         '--input', '-i',
         type=str,
-        default='data/input/z_raw_springer.csv',
-        help='Input CSV file path (default: data/input/z_raw_springer.csv)'
+        default='bibtools/data/input/z_raw_springer.csv',
+        help='Input CSV file path (default: bibtools/data/input/z_raw_springer.csv)'
     )
     
     parser.add_argument(
         '--output', '-o',
         type=str,
-        default='data/output/screening_data.xlsx',
-        help='Output Excel file path (default: data/output/screening_data.xlsx)'
+        default='bibtools/data/output/screening_data.xlsx',
+        help='Output Excel file path (default: bibtools/data/output/screening_data.xlsx)'
     )
 
 
@@ -159,7 +175,7 @@ def handle_convert_command(args):
         return 1
     
     # Execute conversion pipeline
-    return execute_pipeline(input_path, output_dir, args.fix_authors)
+    return execute_pipeline(input_path, output_dir, args.fix_authors, args.no_split, args.output_name)
 
 
 def handle_extract_command(args):
@@ -183,7 +199,9 @@ def handle_extract_command(args):
 def execute_pipeline(
     input_path: Path,
     output_dir: Path,
-    fix_authors: bool
+    fix_authors: bool,
+    no_split: bool = False,
+    output_name: str = 'springer_results_raw'
 ) -> int:
     """Execute the conversion pipeline with progress reporting.
     
@@ -191,6 +209,8 @@ def execute_pipeline(
         input_path: Path to input CSV file
         output_dir: Directory for output files
         fix_authors: Whether to apply author fixing
+        no_split: Whether to create a single file instead of splitting
+        output_name: Base name for output BibTeX file(s)
         
     Returns:
         Exit code (0 for success, 1 for failure)
@@ -199,15 +219,19 @@ def execute_pipeline(
     print(f"=" * 60)
     print(f"Input file: {input_path}")
     print(f"Output directory: {output_dir}")
-    print(f"Author fixing: {'enabled' if fix_authors else 'disabled'}")
+    print(f"File splitting: {'disabled (single file)' if no_split else 'enabled (49 entries per file)'}")
+    print(f"Note: Author names are automatically fixed during conversion")
     print()
     
     # Step 1: CSV to BibTeX conversion (Requirement 2.1)
     print("Step 1: Converting CSV to BibTeX...")
-    converter = CSVConverter()
+    
+    # Create converter with appropriate settings
+    entries_per_file = None if no_split else 49
+    converter = CSVConverter(entries_per_file=entries_per_file)
     
     try:
-        result = converter.convert(input_path, output_dir, output_base_name="springer_results_raw")
+        result = converter.convert(input_path, output_dir, output_base_name=output_name)
     except Exception as e:
         print(f"Error during conversion: {e}", file=sys.stderr)
         return 1
@@ -278,13 +302,7 @@ def execute_pipeline(
     # Success summary
     print("=" * 60)
     print("Conversion completed successfully!")
-    
-    if fix_authors:
-        print(f"\nFinal output files are in: {output_dir}")
-        print("Look for files with '_fixed' suffix for the corrected versions.")
-    else:
-        print(f"\nOutput files are in: {output_dir}")
-        print("Tip: Use --fix-authors to automatically fix concatenated author names.")
+    print(f"\nOutput files are in: {output_dir}")
     
     return 0
 

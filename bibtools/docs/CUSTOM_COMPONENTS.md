@@ -119,27 +119,24 @@ This will:
 2. Convert it to BibTeX format
 3. Save output files to `data/output/` with names like `springer_results_raw_part1.bib`
 
-#### Conversion with Author Fixing
-
-To automatically fix concatenated author names, add the `--fix-authors` flag:
-
-```bash
-python -m bibtools.cli.main --input data/input/SearchResults.csv --fix-authors
-```
-
-This will:
-1. Convert CSV to BibTeX (raw files)
-2. Fix concatenated author names
-3. Save fixed files with `_fixed` suffix: `springer_results_raw_part1_fixed.bib`
+**Note:** Author names are automatically fixed during conversion (concatenated names are separated).
 
 #### Custom Output Directory
 
 Specify a custom output directory:
 
 ```bash
-python -m bibtools.cli.main --input data/input/SearchResults.csv \
-                          --output-dir output/bibtex \
-                          --fix-authors
+python -m bibtools.cli.main convert --input data/input/SearchResults.csv \
+                          --output-dir output/bibtex
+```
+
+#### Custom Output Name
+
+Specify a custom output name:
+
+```bash
+python -m bibtools.cli.main convert --input data/input/SearchResults.csv \
+                          --output-name "my_results"
 ```
 
 #### CSV to BibTeX CLI Arguments
@@ -148,7 +145,8 @@ python -m bibtools.cli.main --input data/input/SearchResults.csv \
 |----------|----------|---------|-------------|
 | `--input` | Yes | - | Path to input Springer CSV file |
 | `--output-dir` | No | `data/output` | Directory for output BibTeX files |
-| `--fix-authors` | No | `False` | Enable automatic author name fixing |
+| `--output-name` | No | Input filename | Base name for output files |
+| `--no-split` | No | `False` | Create single file instead of splitting |
 
 #### CLI Output Example
 
@@ -157,7 +155,8 @@ CSV to BibTeX Converter
 ============================================================
 Input file: data/input/SearchResults.csv
 Output directory: data/output
-Author fixing: enabled
+File splitting: enabled (49 entries per file)
+Note: Author names are automatically fixed during conversion
 
 Step 1: Converting CSV to BibTeX...
 ✓ Converted 150 entries

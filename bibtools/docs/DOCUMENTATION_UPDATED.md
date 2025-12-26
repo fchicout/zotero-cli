@@ -62,7 +62,7 @@ bibtools/docs/
 python -m bibtools.web.app
 
 # CLI
-python -m bibtools.cli.main --input bibtools/data/input/SearchResults.csv --fix-authors
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv
 ```
 
 ### Article Extractor

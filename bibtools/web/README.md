@@ -39,4 +39,4 @@ python -m flask --app bibtools.web.app run --port 5001
 ```
 
 **Permission errors:**
-Ensure write access to `data/temp/` and `data/output/`
+Ensure write access to `bibtools/data/temp/` and `bibtools/data/output/`

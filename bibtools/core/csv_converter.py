@@ -12,6 +12,7 @@ from unicodedata import normalize
 
 from bibtools.core.models import BibTeXEntry, ConversionResult
 from bibtools.utils.file_handler import FileHandler
+from bibtools.core.author_fixer import AuthorFixer
 
 
 class CSVConverter:
@@ -32,8 +33,10 @@ class CSVConverter:
         Args:
             entries_per_file: Maximum number of BibTeX entries per output file.
                              Files are split to avoid memory issues with large datasets.
+                             Set to None or 0 to disable splitting and create a single file.
         """
-        self.entries_per_file = entries_per_file
+        self.entries_per_file = entries_per_file if entries_per_file else None
+        self.author_fixer = AuthorFixer()
     
     def convert(self, csv_path: Path, output_dir: Path, output_base_name: str = None) -> ConversionResult:
         """Convert CSV file to BibTeX files.
@@ -120,6 +123,11 @@ class CSVConverter:
         # Extract and clean data
         title = self._clean_text(row.get('Item Title', ''))
         authors = row.get('Authors', '').strip()
+        
+        # Fix concatenated author names
+        if authors:
+            authors = self.author_fixer.fix_author_string(authors)
+        
         year = row.get('Publication Year', '').strip()
         doi = row.get('Item DOI', '').strip()
         url = row.get('URL', '').strip()
@@ -365,8 +373,8 @@ class CSVConverter:
         """Write BibTeX entries to one or more output files.
         
         Splits entries across multiple files if needed to maintain the
-        entries_per_file limit. Files are named with part numbers when
-        multiple files are created (Requirement 2.2, 7.4).
+        entries_per_file limit. If entries_per_file is None, creates a single
+        file with all entries (Requirement 2.2, 7.4).
         
         Args:
             entries: List of BibTeXEntry objects to write
@@ -377,6 +385,22 @@ class CSVConverter:
             List of Path objects for created files
         """
         total_entries = len(entries)
+        
+        # If no splitting is requested, create a single file
+        if self.entries_per_file is None:
+            output_file = output_dir / f"{base_name}.bib"
+            
+            # Format all entries as BibTeX strings
+            bibtex_content = "\n\n".join(
+                self._format_entry(entry) for entry in entries
+            )
+            
+            # Write to file using FileHandler (Requirement 7.3)
+            FileHandler.write_bibtex(output_file, bibtex_content)
+            
+            return [output_file]
+        
+        # Otherwise, split into multiple files
         num_files = (total_entries + self.entries_per_file - 1) // self.entries_per_file
         
         output_files = []

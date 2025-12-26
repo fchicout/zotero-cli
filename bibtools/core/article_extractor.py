@@ -13,8 +13,8 @@ from openpyxl import Workbook
 
 
 # Default paths configuration
-DEFAULT_INPUT_PATH = "data/input/z_raw_springer.csv"
-DEFAULT_OUTPUT_PATH = "data/output/screening_data.xlsx"
+DEFAULT_INPUT_PATH = "bibtools/data/input/z_raw_springer.csv"
+DEFAULT_OUTPUT_PATH = "bibtools/data/output/screening_data.xlsx"
 
 # Web interface configuration (imported from security module)
 UPLOAD_FOLDER = "bibtools/web/static/uploads"

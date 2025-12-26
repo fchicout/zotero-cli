@@ -89,7 +89,7 @@ Extracts DOI, Title, and Abstract from academic CSV files for systematic review 
 
 **CSV to BibTeX Converter** (`bibtools/cli/main.py`):
 ```bash
-python -m bibtools.cli.main --input data/input/SearchResults.csv --output-dir data/output --fix-authors
+python -m bibtools.cli.main convert --input data/input/SearchResults.csv --output-dir data/output
 ```
 
 **Article Extraction Tool** (`bibtools/cli/extract_articles.py`):
@@ -117,7 +117,7 @@ python -m bibtools.web.app
 1. Place your Springer CSV file in `data/input/`
 2. Run the converter:
    ```bash
-   python -m bibtools.cli.main --input data/input/SearchResults.csv --fix-authors
+   python -m bibtools.cli.main convert --input data/input/SearchResults.csv
    ```
 3. Find generated BibTeX files in `data/output/`
 

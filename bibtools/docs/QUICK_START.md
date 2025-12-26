@@ -33,10 +33,16 @@ Upload your CSV file, click convert/extract, and download the results!
 Convert Springer CSV to BibTeX with automatic author name fixing:
 
 ```bash
-python -m bibtools.cli.main --input data/input/SearchResults.csv --fix-authors
+# Default: Split into multiple files (49 entries each)
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv
+
+# Create a single file with all entries
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --no-split
 ```
 
-**Output**: BibTeX files in `data/output/` with `_fixed` suffix
+**Note:** Author names are automatically fixed during conversion.
+
+**Output**: BibTeX files in `bibtools/data/output/` with `_fixed` suffix
 
 ### Article Extraction Tool
 
@@ -55,7 +61,7 @@ python -m bibtools.cli.extract_articles --input data/input/articles.csv
 ### CSV to BibTeX Converter
 - Converts Springer CSV → BibTeX format
 - Fixes concatenated author names (e.g., "JohnSmithMaryJones" → "John Smith and Mary Jones")
-- Splits large files (49 entries per file)
+- Option to split large files (49 entries per file) or create a single file
 - Perfect for importing into Zotero or LaTeX
 
 ### Article Extraction Tool
@@ -70,17 +76,20 @@ python -m bibtools.cli.extract_articles --input data/input/articles.csv
 ### For Bibliography Management
 ```bash
 # 1. Export CSV from Springer
-# 2. Convert to BibTeX
-python -m bibtools.cli.main --input data/input/SearchResults.csv --fix-authors
+# 2. Convert to BibTeX (split files for Zotero)
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv
 
-# 3. Import the *_fixed.bib files into Zotero
+# OR: Create a single file
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --no-split
+
+# 3. Import the .bib files into Zotero
 ```
 
 ### For Systematic Reviews
 ```bash
 # 1. Export CSV from Springer
 # 2. Extract articles
-python -m bibtools.cli.extract_articles --input data/input/SearchResults.csv
+python -m bibtools.cli.extract_articles --input bibtools/data/input/SearchResults.csv
 
 # 3. Open screening_data.xlsx in Excel/Google Sheets
 # 4. Add your screening columns (Include/Exclude, Notes, etc.)

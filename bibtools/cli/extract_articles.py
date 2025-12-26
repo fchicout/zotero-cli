@@ -37,10 +37,10 @@ Examples:
   python -m bibtools.cli.extract_articles
   
   # Custom input file
-  python -m bibtools.cli.extract_articles --input data/input/my_articles.csv
+  python -m bibtools.cli.extract_articles --input bibtools/data/input/my_articles.csv
   
   # Custom input and output
-  python -m bibtools.cli.extract_articles --input data/input/articles.csv --output results/screening.xlsx
+  python -m bibtools.cli.extract_articles --input bibtools/data/input/articles.csv --output bibtools/data/output/screening.xlsx
   
   # Show help
   python -m bibtools.cli.extract_articles --help

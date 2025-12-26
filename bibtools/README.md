@@ -31,8 +31,17 @@ python -m bibtools.web.app
 
 **Command Line:**
 ```bash
-python -m bibtools.cli.main --input data/input/SearchResults.csv --fix-authors
+# Default: Split into multiple files (49 entries each) - recommended for Zotero
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv
+
+# Create a single file with all entries
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --no-split
+
+# Custom output name
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --output-name "my_results"
 ```
+
+**Note:** Author names are automatically fixed during conversion (concatenated names are separated).
 
 ### Article Extraction Tool
 
@@ -44,7 +53,7 @@ python -m bibtools.web.app
 
 **Command Line:**
 ```bash
-python -m bibtools.cli.extract_articles --input data/input/articles.csv --output results/screening.xlsx
+python -m bibtools.cli.extract_articles --input bibtools/data/input/articles.csv --output bibtools/data/output/screening.xlsx
 ```
 
 ### Zotero DOI Updater
@@ -305,13 +314,15 @@ Item Title,Authors,Publication Year
 
 **Output (BibTeX):**
 ```bibtex
-@article{Smith_2024_AI,
+@article{Smith_2024_Security,
   title = {AI Security},
   author = {John Smith and Mary Jones},
   year = {2024},
   publisher = {Springer}
 }
 ```
+
+**Note:** Concatenated author names are automatically separated during conversion.
 
 ### Article Extraction Tool
 

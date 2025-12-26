@@ -269,7 +269,10 @@ python -m bibtools.web.app
 # Open: http://127.0.0.1:5000
 
 # CLI with author fixing (recommended)
-python -m bibtools.cli.main --input bibtools/data/input/SearchResults.csv --fix-authors
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --fix-authors
+
+# CLI - Create single file without splitting
+python -m bibtools.cli.main convert --input bibtools/data/input/SearchResults.csv --no-split --fix-authors
 ```
 
 **Article Extraction:**
@@ -279,7 +282,7 @@ python -m bibtools.web.app
 # Open: http://127.0.0.1:5000/extract-articles
 
 # CLI
-python -m bibtools.cli.extract_articles --input bibtools/data/input/articles.csv --output results/screening.xlsx
+python -m bibtools.cli.extract_articles --input bibtools/data/input/articles.csv --output bibtools/data/output/screening.xlsx
 ```
 
 **Zotero DOI Updater:**
