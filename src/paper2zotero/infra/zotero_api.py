@@ -21,6 +21,12 @@ class ZoteroAPIClient(ZoteroGateway):
             'Zotero-API-Key': self.api_key
         })
         self.headers = self.session.headers
+        self.last_library_version = 0
+
+    def _update_library_version(self, response: requests.Response):
+        version = response.headers.get('Last-Modified-Version')
+        if version:
+            self.last_library_version = int(version)
 
     def get_all_collections(self) -> List[Dict[str, Any]]:
         url = f"{self.BASE_URL}/groups/{self.group_id}/collections"
@@ -28,6 +34,7 @@ class ZoteroAPIClient(ZoteroGateway):
             # Fetch all collections (pagination might be needed for very large libraries)
             response = self.session.get(url, params={'limit': 100})
             response.raise_for_status()
+            self._update_library_version(response)
             return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Error fetching collections: {e}")
@@ -53,6 +60,7 @@ class ZoteroAPIClient(ZoteroGateway):
             try:
                 response = self.session.get(url, params={'limit': limit, 'start': start, 'tag': tag})
                 response.raise_for_status()
+                self._update_library_version(response)
                 items = response.json()
                 
                 if not items:
@@ -73,6 +81,7 @@ class ZoteroAPIClient(ZoteroGateway):
         try:
             response = self.session.get(url)
             response.raise_for_status()
+            self._update_library_version(response)
             return ZoteroItem.from_raw_zotero_item(response.json())
         except requests.exceptions.RequestException as e:
             print(f"Error fetching item {item_key}: {e}")
@@ -237,9 +246,13 @@ class ZoteroAPIClient(ZoteroGateway):
         
         while True:
             try:
+                print(f"DEBUG: Fetching items from {url} (start={start})")
                 response = self.session.get(url, params={'limit': limit, 'start': start})
                 response.raise_for_status()
+                self._update_library_version(response)
                 items = response.json()
+                
+                print(f"DEBUG: Got {len(items)} items")
                 
                 if not items:
                     break
@@ -259,6 +272,7 @@ class ZoteroAPIClient(ZoteroGateway):
         try:
             response = self.session.get(url)
             response.raise_for_status()
+            self._update_library_version(response)
             return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Error fetching children for {item_key}: {e}")
@@ -266,12 +280,22 @@ class ZoteroAPIClient(ZoteroGateway):
 
     def delete_item(self, item_key: str, version: int) -> bool:
         url = f"{self.BASE_URL}/groups/{self.group_id}/items/{item_key}"
-        headers = self.session.headers.copy()
-        headers['If-Match'] = str(version)
         
+        def _do_delete():
+            headers = self.session.headers.copy()
+            headers['If-Unmodified-Since-Version'] = str(self.last_library_version)
+            return self.session.delete(url, headers=headers)
+
         try:
-            response = self.session.delete(url, headers=headers)
+            response = _do_delete()
+            if response.status_code == 412:
+                # Precondition Failed: Library version mismatch.
+                # Update version and retry once.
+                self._update_library_version(response)
+                response = _do_delete()
+            
             response.raise_for_status()
+            self._update_library_version(response)
             return True
         except requests.exceptions.RequestException as e:
             print(f"Error deleting item {item_key}: {e}")
@@ -280,7 +304,7 @@ class ZoteroAPIClient(ZoteroGateway):
     def update_item_collections(self, item_key: str, version: int, collections: List[str]) -> bool:
         url = f"{self.BASE_URL}/groups/{self.group_id}/items/{item_key}"
         headers = self.session.headers.copy()
-        headers['If-Match'] = str(version)
+        headers['If-Unmodified-Since-Version'] = str(self.last_library_version)
         
         payload = {
             "collections": collections
@@ -289,6 +313,7 @@ class ZoteroAPIClient(ZoteroGateway):
         try:
             response = self.session.patch(url, headers=headers, json=payload)
             response.raise_for_status()
+            self._update_library_version(response)
             return True
         except requests.exceptions.RequestException as e:
             print(f"Error updating item {item_key} collections: {e}")
@@ -299,11 +324,12 @@ class ZoteroAPIClient(ZoteroGateway):
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
         url = f"{self.BASE_URL}/groups/{self.group_id}/items/{item_key}"
         headers = self.session.headers.copy()
-        headers['If-Match'] = str(version)
+        headers['If-Unmodified-Since-Version'] = str(self.last_library_version)
         
         try:
             response = self.session.patch(url, headers=headers, json=metadata)
             response.raise_for_status()
+            self._update_library_version(response)
             return True
         except requests.exceptions.RequestException as e:
             print(f"Error updating item {item_key} metadata: {e}")

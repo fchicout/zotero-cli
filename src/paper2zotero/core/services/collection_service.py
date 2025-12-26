@@ -62,3 +62,62 @@ class CollectionService:
         new_cols.add(dest_id)
         
         return self.gateway.update_item_collections(key, version, list(new_cols))
+
+    def empty_collection(self, collection_name: str, parent_collection_name: Optional[str] = None, verbose: bool = False) -> int:
+        """
+        Deletes all items within a specific collection.
+        Returns the number of deleted items.
+        """
+        target_id = None
+        
+        if parent_collection_name:
+            # Find collection inside parent
+            all_cols = self.gateway.get_all_collections()
+            parent_id = None
+            
+            # Find parent ID
+            for col in all_cols:
+                if col['data']['name'] == parent_collection_name:
+                    parent_id = col['key']
+                    break
+            
+            if not parent_id:
+                print(f"Parent collection '{parent_collection_name}' not found.")
+                return 0
+                
+            # Find target collection with correct parent
+            for col in all_cols:
+                if col['data']['name'] == collection_name and col['data'].get('parentCollection') == parent_id:
+                    target_id = col['key']
+                    break
+            
+            if not target_id:
+                print(f"Collection '{collection_name}' inside '{parent_collection_name}' not found.")
+                return 0
+                
+        else:
+            # Simple lookup
+            target_id = self.gateway.get_collection_id_by_name(collection_name)
+            if not target_id:
+                print(f"Collection '{collection_name}' not found.")
+                return 0
+            
+        deleted_count = 0
+        items = list(self.gateway.get_items_in_collection(target_id))
+        
+        if not items:
+            if verbose:
+                print(f"Collection '{collection_name}' is already empty.")
+            return 0
+
+        print(f"Found {len(items)} items in '{collection_name}'. Deleting...")
+        
+        for item in items:
+            if self.gateway.delete_item(item.key, item.version):
+                deleted_count += 1
+                if verbose:
+                    print(f"Deleted item {item.key}")
+            else:
+                print(f"Failed to delete item {item.key}")
+                
+        return deleted_count

@@ -193,6 +193,14 @@ def attach_pdf_command(args):
     count = service.attach_pdfs_to_collection(args.collection)
     print(f"Attached {count} PDFs to items in '{args.collection}'.")
 
+def empty_collection_command(args):
+    """Handles the 'empty-collection' subcommand."""
+    gateway = get_zotero_gateway()
+    service = CollectionService(gateway)
+    
+    count = service.empty_collection(args.collection, args.parent, args.verbose)
+    print(f"Deleted {count} items from collection '{args.collection}'.")
+
 def add_command(args):
     """Handles the 'add' subcommand."""
     client = get_common_clients()
@@ -449,6 +457,13 @@ def main():
     attach_pdf_parser = subparsers.add_parser("attach-pdf", help="Find and attach PDFs to items in a collection.")
     attach_pdf_parser.add_argument("--collection", required=True, help="The Zotero collection name.")
     attach_pdf_parser.set_defaults(func=attach_pdf_command)
+
+    # Add 'empty-collection' subcommand
+    empty_col_parser = subparsers.add_parser("empty-collection", help="Remove all items from a collection.")
+    empty_col_parser.add_argument("--collection", required=True, help="The Zotero collection name.")
+    empty_col_parser.add_argument("--parent", help="The parent collection name (optional, for disambiguation).")
+    empty_col_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
+    empty_col_parser.set_defaults(func=empty_collection_command)
 
     args = parser.parse_args()
 

@@ -199,17 +199,25 @@ class PaperImporterClient:
 
         items = self.zotero_gateway.get_items_in_collection(collection_id)
         deleted_count = 0
-
+        
+        item_count = 0
         for item in items:
-            item_key = item['key']
-            item_title = item.get('data', {}).get('title', 'Untitled')
+            item_count += 1
+            if verbose and item_count % 10 == 0:
+                print(f"Processed {item_count} items...", end='\r')
+
+            item_key = item.key
+            item_title = item.title if item.title else 'Untitled'
             
             children = self.zotero_gateway.get_item_children(item_key)
+            # if verbose and children:
+            #    print(f"Item '{item_title}' has {len(children)} children.")
+
             for child in children:
                 child_data = child.get('data', {})
                 if child_data.get('itemType') == 'attachment':
                     child_key = child['key']
-                    child_version = child['version']
+                    child_version = child.get('version')
                     child_title = child_data.get('title', 'Untitled Attachment')
                     
                     if verbose:

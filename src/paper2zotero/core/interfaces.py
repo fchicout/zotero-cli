@@ -90,6 +90,15 @@ class ZoteroGateway(ABC):
         pass
 
     @abstractmethod
+    def delete_item(self, item_key: str, version: int) -> bool:
+        """
+        Deletes an item from the library.
+        Requires item_key and current version.
+        Returns True on success, False otherwise.
+        """
+        pass
+
+    @abstractmethod
     def upload_attachment(self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf") -> bool:
         """
         Uploads a file as an attachment to a parent item.
