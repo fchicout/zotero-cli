@@ -81,13 +81,18 @@ class ArxivQueryParser:
                     field = match.group(1)
                     value = match.group(2)
                     
-                    # Fix quotes in value: replace ' with "
+                    # Instead of wrapping the whole value in parens blindly,
+                    # we should handle the OR parts.
+                    # If the value contains OR, we should parse the components.
+                    
+                    # Replace ' with "
                     value = value.replace("'", '"')
                     
-                    # Construct grouped query part
+                    # Logic: If there are multiple words not in quotes, it might be a problem.
+                    # But ArXiv API is okay with field:(A OR "B C")
                     parsed_groups.append(f'{field}:({value})')
                 else:
-                    parsed_groups.append(f'({clean_group})')
+                    parsed_groups.append(f'({clean_group.replace("'", "\"")})')
             
             if parsed_groups:
                 arxiv_query_parts.append(" AND ".join(parsed_groups))
