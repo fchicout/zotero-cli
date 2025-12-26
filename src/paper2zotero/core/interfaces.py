@@ -108,9 +108,11 @@ class ZoteroGateway(ABC):
 
 class ArxivGateway(ABC):
     @abstractmethod
-    def search(self, query: str, limit: int = 100) -> Iterator[ResearchPaper]:
+    def search(self, query: str, limit: int = 100, sort_by: str = "relevance", sort_order: str = "descending") -> Iterator[ResearchPaper]:
         """
         Searches arXiv for papers matching the query and returns an iterator of ResearchPaper objects.
+        sort_by: "relevance", "lastUpdatedDate", "submittedDate"
+        sort_order: "ascending", "descending"
         """
         pass
 

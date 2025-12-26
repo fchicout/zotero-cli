@@ -19,7 +19,8 @@ from paper2zotero.infra.unpaywall_api import UnpaywallAPIClient
 from paper2zotero.core.services.graph_service import CitationGraphService
 from paper2zotero.core.services.metadata_aggregator import MetadataAggregatorService 
 from paper2zotero.core.services.tag_service import TagService
-from paper2zotero.core.services.attachment_service import AttachmentService # Import AttachmentService
+from paper2zotero.core.services.attachment_service import AttachmentService 
+from paper2zotero.core.services.arxiv_query_parser import ArxivQueryParser
 
 def get_zotero_gateway():
     """Helper to get Zotero client from environment variables."""
@@ -200,6 +201,50 @@ def empty_collection_command(args):
     
     count = service.empty_collection(args.collection, args.parent, args.verbose)
     print(f"Deleted {count} items from collection '{args.collection}'.")
+
+def search_arxiv_command(args):
+    """Handles the 'search-arxiv' subcommand."""
+    query_str = None
+    if args.query:
+        query_str = args.query
+    elif args.file:
+        try:
+            with open(args.file, 'r') as f:
+                query_str = f.read().strip()
+        except FileNotFoundError:
+            print(f"Error: Query file '{args.file}' not found.", file=sys.stderr)
+            sys.exit(1)
+    
+    if not query_str:
+        print("Error: No query provided. Use --query or --file.", file=sys.stderr)
+        sys.exit(1)
+        
+    parser = ArxivQueryParser()
+    params = parser.parse(query_str)
+    
+    if args.verbose:
+        print(f"Parsed Parameters:")
+        print(f"  Query: {params.query}")
+        print(f"  Max Results: {params.max_results}")
+        print(f"  Sort By: {params.sort_by}")
+        print(f"  Sort Order: {params.sort_order}")
+        
+    gateway = ArxivLibGateway()
+    results = gateway.search(
+        query=params.query,
+        limit=params.max_results,
+        sort_by=params.sort_by,
+        sort_order=params.sort_order
+    )
+    
+    # We need to list or count. Since it's an iterator, we iterate.
+    count = 0
+    print("Executing search...")
+    for item in results:
+        count += 1
+        print(f"{count}. {item.title} ({item.year})")
+        
+    print(f"\nTotal papers found: {count}")
 
 def add_command(args):
     """Handles the 'add' subcommand."""
@@ -464,6 +509,14 @@ def main():
     empty_col_parser.add_argument("--parent", help="The parent collection name (optional, for disambiguation).")
     empty_col_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
     empty_col_parser.set_defaults(func=empty_collection_command)
+
+    # Add 'search-arxiv' subcommand
+    search_arxiv_parser = subparsers.add_parser("search-arxiv", help="Search arXiv using complex query string.")
+    search_group = search_arxiv_parser.add_mutually_exclusive_group(required=True)
+    search_group.add_argument("--query", help="The structured query string.")
+    search_group.add_argument("--file", help="Path to a file containing the query.")
+    search_arxiv_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
+    search_arxiv_parser.set_defaults(func=search_arxiv_command)
 
     args = parser.parse_args()
 
