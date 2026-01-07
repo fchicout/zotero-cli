@@ -267,26 +267,40 @@ def import_command(args):
     """Handles the 'import' subcommand."""
     client = get_common_clients()
     
-    query = None
+    query_str = None
     if args.query:
-        query = args.query
+        query_str = args.query
     elif args.file:
         try:
             with open(args.file, 'r') as f:
-                query = f.read().strip()
+                query_str = f.read().strip()
         except FileNotFoundError:
             print(f"Error: Query file '{args.file}' not found.", file=sys.stderr)
             sys.exit(1)
     elif not sys.stdin.isatty(): # Check if stdin is being piped
-        query = sys.stdin.read().strip()
+        query_str = sys.stdin.read().strip()
     
-    if not query:
+    if not query_str:
         print("Error: No query provided. Use --query, --file, or pipe input.", file=sys.stderr)
         sys.exit(1)
 
+    # Parse query if it looks like the structured DSL
+    if ';' in query_str and ':' in query_str:
+        parser = ArxivQueryParser()
+        params = parser.parse(query_str)
+        final_query = params.query
+        limit = params.max_results
+        sort_by = params.sort_by
+        sort_order = params.sort_order
+    else:
+        final_query = query_str
+        limit = args.limit
+        sort_by = "relevance"
+        sort_order = "descending"
+
     try:
         imported_count = client.import_from_query(
-            query, args.folder, args.limit, args.verbose
+            final_query, args.folder, limit, args.verbose, sort_by, sort_order
         )
         print(f"Successfully imported {imported_count} papers to '{args.folder}'.")
     except CollectionNotFoundError as e:

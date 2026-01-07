@@ -40,7 +40,7 @@ class PaperImporterClient:
         
         return success
 
-    def import_from_query(self, query: str, folder_name: str, limit: int = 100, verbose: bool = False) -> int:
+    def import_from_query(self, query: str, folder_name: str, limit: int = 100, verbose: bool = False, sort_by: str = "relevance", sort_order: str = "descending") -> int:
         """
         Searches arXiv and imports results into Zotero.
         Returns the number of successfully imported items.
@@ -55,7 +55,7 @@ class PaperImporterClient:
         if verbose:
             print(f"Searching arXiv for: '{query}' (limit: {limit})...")
         
-        papers = self.arxiv_gateway.search(query, limit)
+        papers = self.arxiv_gateway.search(query, limit, sort_by=sort_by, sort_order=sort_order)
         
         success_count = 0
         for paper in papers:

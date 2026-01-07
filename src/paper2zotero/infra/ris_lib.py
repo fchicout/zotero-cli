@@ -17,13 +17,16 @@ class RisLibGateway(RisGateway):
             return iter([])
 
     def _map_entry_to_paper(self, entry: dict) -> ResearchPaper:
-        title = entry.get('TI') or entry.get('T1') or 'No Title'
-        abstract = entry.get('AB', '')
-        authors = entry.get('AU', [])
-        doi = entry.get('DO')
-        publication = entry.get('JF') or entry.get('JO') or entry.get('T2')
-        year = entry.get('PY') or entry.get('YR')
-        url = entry.get('UR')
+        # rispy maps tags to human-readable keys
+        title = entry.get('primary_title') or entry.get('title') or 'No Title'
+        abstract = entry.get('abstract', '')
+        authors = entry.get('authors', [])
+        doi = entry.get('doi')
+        publication = entry.get('journal_name') or entry.get('secondary_title')
+        year = entry.get('year')
+        # urls is a list in rispy
+        urls = entry.get('urls', [])
+        url = urls[0] if urls else None
 
         return ResearchPaper(
             title=title,

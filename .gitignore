@@ -139,4 +139,4 @@ cython_debug/
 .idea/
 
 # Local configuration
-setup_env.sh
+setup_env.shtmp/
