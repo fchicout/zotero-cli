@@ -2,8 +2,8 @@ from typing import List, Optional
 import concurrent.futures
 import re
 import unicodedata
-from paper2zotero.core.interfaces import MetadataProvider
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.core.interfaces import MetadataProvider
+from zotero_cli.core.models import ResearchPaper
 
 class MetadataAggregatorService:
     def __init__(self, providers: List[MetadataProvider]):

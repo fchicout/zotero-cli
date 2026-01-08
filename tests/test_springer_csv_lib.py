@@ -1,11 +1,11 @@
 import unittest
 from unittest.mock import Mock, patch, mock_open
-from paper2zotero.infra.springer_csv_lib import SpringerCsvLibGateway
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
+from zotero_cli.core.models import ResearchPaper
 import csv
 
 class TestSpringerCsvLibGateway(unittest.TestCase):
-    @patch('paper2zotero.infra.springer_csv_lib.csv.DictReader')
+    @patch('zotero_cli.infra.springer_csv_lib.csv.DictReader')
     @patch('builtins.open', new_callable=mock_open)
     def test_parse_file_success(self, mock_file, MockDictReader):
         # Setup mock CSV rows
@@ -58,7 +58,7 @@ class TestSpringerCsvLibGateway(unittest.TestCase):
         self.assertEqual(papers[1].doi, "10.1007/s10462-025-11219-5")
         self.assertEqual(papers[1].authors, []) # Still empty
 
-    @patch('paper2zotero.infra.springer_csv_lib.csv.DictReader')
+    @patch('zotero_cli.infra.springer_csv_lib.csv.DictReader')
     @patch('builtins.open', new_callable=mock_open)
     def test_parse_file_empty(self, mock_file, MockDictReader):
         MockDictReader.return_value = []

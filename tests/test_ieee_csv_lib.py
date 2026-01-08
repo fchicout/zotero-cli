@@ -1,11 +1,11 @@
 import unittest
 from unittest.mock import Mock, patch, mock_open
-from paper2zotero.infra.ieee_csv_lib import IeeeCsvLibGateway
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
+from zotero_cli.core.models import ResearchPaper
 import csv
 
 class TestIeeeCsvLibGateway(unittest.TestCase):
-    @patch('paper2zotero.infra.ieee_csv_lib.csv.DictReader')
+    @patch('zotero_cli.infra.ieee_csv_lib.csv.DictReader')
     @patch('builtins.open', new_callable=mock_open)
     def test_parse_file_success(self, mock_file, MockDictReader):
         # Setup mock CSV rows
@@ -50,7 +50,7 @@ class TestIeeeCsvLibGateway(unittest.TestCase):
         self.assertEqual(papers[1].authors, ["D. Ye", "Z. Wang"])
         self.assertEqual(papers[1].year, "2025")
 
-    @patch('paper2zotero.infra.ieee_csv_lib.csv.DictReader')
+    @patch('zotero_cli.infra.ieee_csv_lib.csv.DictReader')
     @patch('builtins.open', new_callable=mock_open)
     def test_parse_file_empty(self, mock_file, MockDictReader):
         MockDictReader.return_value = []

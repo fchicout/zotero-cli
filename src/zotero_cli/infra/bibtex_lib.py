@@ -1,7 +1,7 @@
 import bibtexparser
 from typing import Iterator
-from paper2zotero.core.interfaces import BibtexGateway
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.core.interfaces import BibtexGateway
+from zotero_cli.core.models import ResearchPaper
 
 class BibtexLibGateway(BibtexGateway):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:

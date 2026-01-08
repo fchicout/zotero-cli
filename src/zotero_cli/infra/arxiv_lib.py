@@ -1,7 +1,7 @@
 import arxiv
 from typing import Iterator
-from paper2zotero.core.interfaces import ArxivGateway
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.core.interfaces import ArxivGateway
+from zotero_cli.core.models import ResearchPaper
 
 class ArxivLibGateway(ArxivGateway):
     def search(self, query: str, limit: int = 100, sort_by: str = "relevance", sort_order: str = "descending") -> Iterator[ResearchPaper]:

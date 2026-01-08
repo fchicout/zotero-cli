@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import Mock, MagicMock
-from paper2zotero.core.interfaces import ZoteroGateway
-from paper2zotero.core.services.metadata_aggregator import MetadataAggregatorService
-from paper2zotero.core.zotero_item import ZoteroItem
-from paper2zotero.core.models import ResearchPaper
-from paper2zotero.core.services.graph_service import CitationGraphService
+from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+from zotero_cli.core.zotero_item import ZoteroItem
+from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.services.graph_service import CitationGraphService
 
 class TestCitationGraphService(unittest.TestCase):
     def setUp(self):

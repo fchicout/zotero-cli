@@ -4,9 +4,9 @@ import os
 import hashlib
 from typing import Optional, Iterator, Dict, Any, List
 
-from paper2zotero.core.interfaces import ZoteroGateway
-from paper2zotero.core.models import ResearchPaper
-from paper2zotero.core.zotero_item import ZoteroItem
+from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.zotero_item import ZoteroItem
 
 class ZoteroAPIClient(ZoteroGateway):
     API_VERSION = '3'

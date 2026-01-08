@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
-from paper2zotero.core.models import ResearchPaper
-from paper2zotero.core.services.metadata_aggregator import MetadataAggregatorService
+from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
 class TestMetadataAggregatorService(unittest.TestCase):
     def test_merge_logic(self):

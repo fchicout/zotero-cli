@@ -1,5 +1,5 @@
 import unittest
-from paper2zotero.core.services.arxiv_query_parser import ArxivQueryParser
+from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
 
 class TestArxivQueryParser(unittest.TestCase):
     def setUp(self):

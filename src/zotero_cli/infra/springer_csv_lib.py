@@ -1,7 +1,7 @@
 import csv
 from typing import Iterator
-from paper2zotero.core.interfaces import SpringerCsvGateway
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.core.interfaces import SpringerCsvGateway
+from zotero_cli.core.models import ResearchPaper
 
 class SpringerCsvLibGateway(SpringerCsvGateway):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:

@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock, MagicMock
-from paper2zotero.core.interfaces import ZoteroGateway
-from paper2zotero.core.services.collection_service import CollectionService
-from paper2zotero.core.zotero_item import ZoteroItem # Import ZoteroItem
+from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.services.collection_service import CollectionService
+from zotero_cli.core.zotero_item import ZoteroItem # Import ZoteroItem
 
 class TestCollectionService(unittest.TestCase):
     def setUp(self):

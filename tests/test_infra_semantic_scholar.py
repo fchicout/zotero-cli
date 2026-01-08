@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch, Mock
-from paper2zotero.infra.semantic_scholar_api import SemanticScholarAPIClient
+from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient
 
 class TestSemanticScholarAPIClient(unittest.TestCase):
     def setUp(self):

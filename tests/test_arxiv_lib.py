@@ -1,12 +1,12 @@
 import unittest
 from unittest.mock import Mock, patch, MagicMock
-from paper2zotero.infra.arxiv_lib import ArxivLibGateway
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.infra.arxiv_lib import ArxivLibGateway
+from zotero_cli.core.models import ResearchPaper
 import arxiv
 
 class TestArxivLibGateway(unittest.TestCase):
-    @patch('paper2zotero.infra.arxiv_lib.arxiv.Client')
-    @patch('paper2zotero.infra.arxiv_lib.arxiv.Search')
+    @patch('zotero_cli.infra.arxiv_lib.arxiv.Client')
+    @patch('zotero_cli.infra.arxiv_lib.arxiv.Search')
     def test_search_returns_papers(self, MockSearch, MockClient):
         # Setup mocks
         mock_client_instance = MockClient.return_value
@@ -64,7 +64,8 @@ class TestArxivLibGateway(unittest.TestCase):
         MockSearch.assert_called_once_with(
             query="test query",
             max_results=2,
-            sort_by=arxiv.SortCriterion.Relevance
+            sort_by=arxiv.SortCriterion.Relevance,
+            sort_order=arxiv.SortOrder.Descending
         )
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 import unittest
-from paper2zotero.core.zotero_item import ZoteroItem
+from zotero_cli.core.zotero_item import ZoteroItem
 
 class TestZoteroItem(unittest.TestCase):
     def test_from_raw_zotero_item_full_data(self):

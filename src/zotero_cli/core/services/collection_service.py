@@ -1,7 +1,7 @@
 from typing import Optional, List, Set
 import re
-from paper2zotero.core.interfaces import ZoteroGateway
-from paper2zotero.core.zotero_item import ZoteroItem
+from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.zotero_item import ZoteroItem
 
 class CollectionService:
     def __init__(self, gateway: ZoteroGateway):

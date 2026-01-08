@@ -1,11 +1,11 @@
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 import os
-from paper2zotero.core.services.attachment_service import AttachmentService
-from paper2zotero.core.interfaces import ZoteroGateway
-from paper2zotero.core.services.metadata_aggregator import MetadataAggregatorService
-from paper2zotero.core.models import ResearchPaper
-from paper2zotero.core.zotero_item import ZoteroItem
+from zotero_cli.core.services.attachment_service import AttachmentService
+from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.zotero_item import ZoteroItem
 
 class TestAttachmentService(unittest.TestCase):
     def setUp(self):
@@ -22,11 +22,11 @@ class TestAttachmentService(unittest.TestCase):
         self.assertEqual(count, 0)
         self.mock_gateway.get_items_in_collection.assert_not_called()
 
-    @patch('paper2zotero.core.services.attachment_service.requests.get')
-    @patch('paper2zotero.core.services.attachment_service.os.remove')
-    @patch('paper2zotero.core.services.attachment_service.tempfile.mkstemp')
-    @patch('paper2zotero.core.services.attachment_service.os.fdopen')
-    @patch('paper2zotero.core.services.attachment_service.os.path.exists')
+    @patch('zotero_cli.core.services.attachment_service.requests.get')
+    @patch('zotero_cli.core.services.attachment_service.os.remove')
+    @patch('zotero_cli.core.services.attachment_service.tempfile.mkstemp')
+    @patch('zotero_cli.core.services.attachment_service.os.fdopen')
+    @patch('zotero_cli.core.services.attachment_service.os.path.exists')
     def test_attach_pdf_success(self, mock_exists, mock_fdopen, mock_mkstemp, mock_remove, mock_get):
         # Setup mocks
         mock_exists.return_value = True
@@ -97,7 +97,7 @@ class TestAttachmentService(unittest.TestCase):
         self.assertEqual(count, 0)
         self.mock_aggregator.get_enriched_metadata.assert_not_called()
 
-    @patch('paper2zotero.core.services.attachment_service.requests.get')
+    @patch('zotero_cli.core.services.attachment_service.requests.get')
     def test_download_failure(self, mock_get):
         self.mock_gateway.get_collection_id_by_name.return_value = "COL1"
         item = self._create_item()
