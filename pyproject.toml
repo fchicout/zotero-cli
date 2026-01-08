@@ -13,6 +13,13 @@ dependencies = [
     "rispy"
 ]
 
+[project.optional-dependencies]
+dev = [
+    "coverage",
+    "pytest",
+    "pytest-cov"
+]
+
 [project.scripts]
 zotero-cli = "zotero_cli.cli.main:main"
 
