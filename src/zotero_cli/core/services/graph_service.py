@@ -1,8 +1,8 @@
 from typing import List, Dict, Set, Tuple
 from collections import defaultdict
-from paper2zotero.core.interfaces import ZoteroGateway
-from paper2zotero.core.services.metadata_aggregator import MetadataAggregatorService
-from paper2zotero.core.zotero_item import ZoteroItem
+from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+from zotero_cli.core.zotero_item import ZoteroItem
 
 class CitationGraphService:
     def __init__(self, zotero_gateway: ZoteroGateway, metadata_service: MetadataAggregatorService):

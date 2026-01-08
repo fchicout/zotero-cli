@@ -1,6 +1,6 @@
 from typing import Optional
-from paper2zotero.core.interfaces import ZoteroGateway, ArxivGateway, BibtexGateway, RisGateway, SpringerCsvGateway, IeeeCsvGateway
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.core.interfaces import ZoteroGateway, ArxivGateway, BibtexGateway, RisGateway, SpringerCsvGateway, IeeeCsvGateway
+from zotero_cli.core.models import ResearchPaper
 
 class CollectionNotFoundError(Exception):
     """Raised when the specified Zotero collection cannot be found or created."""

@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import Mock, patch, mock_open
-from paper2zotero.infra.bibtex_lib import BibtexLibGateway
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.infra.bibtex_lib import BibtexLibGateway
+from zotero_cli.core.models import ResearchPaper
 
 class TestBibtexLibGateway(unittest.TestCase):
-    @patch('paper2zotero.infra.bibtex_lib.bibtexparser.load')
+    @patch('zotero_cli.infra.bibtex_lib.bibtexparser.load')
     @patch('builtins.open', new_callable=mock_open)
     def test_parse_file_success(self, mock_file, mock_load):
         # Setup mock BibDatabase

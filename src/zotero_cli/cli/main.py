@@ -3,24 +3,24 @@ import os
 import sys
 import re
 
-from paper2zotero.infra.zotero_api import ZoteroAPIClient
-from paper2zotero.infra.arxiv_lib import ArxivLibGateway
-from paper2zotero.infra.bibtex_lib import BibtexLibGateway
-from paper2zotero.infra.ris_lib import RisLibGateway
-from paper2zotero.infra.springer_csv_lib import SpringerCsvLibGateway
-from paper2zotero.infra.ieee_csv_lib import IeeeCsvLibGateway
-from paper2zotero.client import PaperImporterClient, CollectionNotFoundError
-from paper2zotero.core.services.collection_service import CollectionService
-from paper2zotero.core.services.audit_service import CollectionAuditor # Import CollectionAuditor
-from paper2zotero.core.services.duplicate_service import DuplicateFinder
-from paper2zotero.infra.crossref_api import CrossRefAPIClient
-from paper2zotero.infra.semantic_scholar_api import SemanticScholarAPIClient 
-from paper2zotero.infra.unpaywall_api import UnpaywallAPIClient 
-from paper2zotero.core.services.graph_service import CitationGraphService
-from paper2zotero.core.services.metadata_aggregator import MetadataAggregatorService 
-from paper2zotero.core.services.tag_service import TagService
-from paper2zotero.core.services.attachment_service import AttachmentService 
-from paper2zotero.core.services.arxiv_query_parser import ArxivQueryParser
+from zotero_cli.infra.zotero_api import ZoteroAPIClient
+from zotero_cli.infra.arxiv_lib import ArxivLibGateway
+from zotero_cli.infra.bibtex_lib import BibtexLibGateway
+from zotero_cli.infra.ris_lib import RisLibGateway
+from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
+from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
+from zotero_cli.client import PaperImporterClient, CollectionNotFoundError
+from zotero_cli.core.services.collection_service import CollectionService
+from zotero_cli.core.services.audit_service import CollectionAuditor # Import CollectionAuditor
+from zotero_cli.core.services.duplicate_service import DuplicateFinder
+from zotero_cli.infra.crossref_api import CrossRefAPIClient
+from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient 
+from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient 
+from zotero_cli.core.services.graph_service import CitationGraphService
+from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService 
+from zotero_cli.core.services.tag_service import TagService
+from zotero_cli.core.services.attachment_service import AttachmentService 
+from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
 
 def get_zotero_gateway():
     """Helper to get Zotero client from environment variables."""

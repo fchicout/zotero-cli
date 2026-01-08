@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock
-from paper2zotero.core.interfaces import ZoteroGateway
-from paper2zotero.core.zotero_item import ZoteroItem
-from paper2zotero.core.services.duplicate_service import DuplicateFinder, DuplicateGroup
+from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.zotero_item import ZoteroItem
+from zotero_cli.core.services.duplicate_service import DuplicateFinder, DuplicateGroup
 
 class TestDuplicateFinder(unittest.TestCase):
     def setUp(self):

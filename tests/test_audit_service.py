@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock, MagicMock
-from paper2zotero.core.interfaces import ZoteroGateway
-from paper2zotero.core.zotero_item import ZoteroItem
-from paper2zotero.core.services.audit_service import CollectionAuditor, AuditReport
+from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.zotero_item import ZoteroItem
+from zotero_cli.core.services.audit_service import CollectionAuditor, AuditReport
 
 class TestCollectionAuditor(unittest.TestCase):
     def setUp(self):

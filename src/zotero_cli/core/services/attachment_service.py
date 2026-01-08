@@ -3,8 +3,8 @@ import os
 import requests
 import tempfile
 import shutil
-from paper2zotero.core.interfaces import ZoteroGateway
-from paper2zotero.core.services.metadata_aggregator import MetadataAggregatorService
+from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
 class AttachmentService:
     def __init__(self, zotero_gateway: ZoteroGateway, metadata_aggregator: MetadataAggregatorService):

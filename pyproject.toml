@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-zotero-cli = "paper2zotero.cli.main:main"
+zotero-cli = "zotero_cli.cli.main:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]

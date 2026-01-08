@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import Mock, ANY, patch
 from io import StringIO
-from paper2zotero.client import PaperImporterClient, CollectionNotFoundError
-from paper2zotero.core.interfaces import ZoteroGateway, ArxivGateway, BibtexGateway, RisGateway, SpringerCsvGateway, IeeeCsvGateway
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.client import PaperImporterClient, CollectionNotFoundError
+from zotero_cli.core.interfaces import ZoteroGateway, ArxivGateway, BibtexGateway, RisGateway, SpringerCsvGateway, IeeeCsvGateway
+from zotero_cli.core.models import ResearchPaper
 
 class TestPaperImporterClient(unittest.TestCase):
     def setUp(self):

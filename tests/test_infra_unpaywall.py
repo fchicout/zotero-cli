@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, Mock
 import requests
-from paper2zotero.infra.unpaywall_api import UnpaywallAPIClient
+from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
 
 class TestUnpaywallAPIClient(unittest.TestCase):
     def setUp(self):

@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock, call
-from paper2zotero.core.interfaces import ZoteroGateway
-from paper2zotero.core.zotero_item import ZoteroItem
-from paper2zotero.core.services.tag_service import TagService
+from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.zotero_item import ZoteroItem
+from zotero_cli.core.services.tag_service import TagService
 
 class TestTagService(unittest.TestCase):
     def setUp(self):

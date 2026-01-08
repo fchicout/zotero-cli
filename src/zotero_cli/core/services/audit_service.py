@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 import concurrent.futures
-from paper2zotero.core.interfaces import ZoteroGateway
-from paper2zotero.core.zotero_item import ZoteroItem
+from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.zotero_item import ZoteroItem
 
 @dataclass
 class AuditReport:

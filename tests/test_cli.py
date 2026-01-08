@@ -2,19 +2,19 @@ import unittest
 from unittest.mock import patch, MagicMock, mock_open
 from io import StringIO
 import sys
-from paper2zotero.cli.main import main
-from paper2zotero.client import CollectionNotFoundError
-from paper2zotero.core.interfaces import MetadataProvider # Updated import if needed by mocks
+from zotero_cli.cli.main import main
+from zotero_cli.client import CollectionNotFoundError
+from zotero_cli.core.interfaces import MetadataProvider # Updated import if needed by mocks
 
 class TestCLI(unittest.TestCase):
     
-    @patch('paper2zotero.cli.main.PaperImporterClient')
-    @patch('paper2zotero.cli.main.IeeeCsvLibGateway') # Added
-    @patch('paper2zotero.cli.main.SpringerCsvLibGateway')
-    @patch('paper2zotero.cli.main.RisLibGateway')
-    @patch('paper2zotero.cli.main.BibtexLibGateway')
-    @patch('paper2zotero.cli.main.ArxivLibGateway')
-    @patch('paper2zotero.cli.main.ZoteroAPIClient')
+    @patch('zotero_cli.cli.main.PaperImporterClient')
+    @patch('zotero_cli.cli.main.IeeeCsvLibGateway') # Added
+    @patch('zotero_cli.cli.main.SpringerCsvLibGateway')
+    @patch('zotero_cli.cli.main.RisLibGateway')
+    @patch('zotero_cli.cli.main.BibtexLibGateway')
+    @patch('zotero_cli.cli.main.ArxivLibGateway')
+    @patch('zotero_cli.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
     def test_add_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockRisLibGateway, MockSpringerCsvLibGateway, MockIeeeCsvLibGateway, MockPaperClient): # Updated args
@@ -31,13 +31,13 @@ class TestCLI(unittest.TestCase):
         mock_client_instance.add_paper.assert_called_once_with('123', 'A', 'T', 'F')
         self.assertIn("Successfully added", mock_stdout.getvalue())
 
-    @patch('paper2zotero.cli.main.PaperImporterClient')
-    @patch('paper2zotero.cli.main.IeeeCsvLibGateway') # Added
-    @patch('paper2zotero.cli.main.SpringerCsvLibGateway')
-    @patch('paper2zotero.cli.main.RisLibGateway')
-    @patch('paper2zotero.cli.main.BibtexLibGateway')
-    @patch('paper2zotero.cli.main.ArxivLibGateway')
-    @patch('paper2zotero.cli.main.ZoteroAPIClient')
+    @patch('zotero_cli.cli.main.PaperImporterClient')
+    @patch('zotero_cli.cli.main.IeeeCsvLibGateway') # Added
+    @patch('zotero_cli.cli.main.SpringerCsvLibGateway')
+    @patch('zotero_cli.cli.main.RisLibGateway')
+    @patch('zotero_cli.cli.main.BibtexLibGateway')
+    @patch('zotero_cli.cli.main.ArxivLibGateway')
+    @patch('zotero_cli.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
     def test_import_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockRisLibGateway, MockSpringerCsvLibGateway, MockIeeeCsvLibGateway, MockPaperClient): # Updated args
@@ -51,16 +51,16 @@ class TestCLI(unittest.TestCase):
             main()
 
         # Assertions
-        mock_client_instance.import_from_query.assert_called_once_with('test query', 'F', 10, False)
+        mock_client_instance.import_from_query.assert_called_once_with('test query', 'F', 10, False, 'relevance', 'descending')
         self.assertIn("Successfully imported 5 papers", mock_stdout.getvalue())
 
-    @patch('paper2zotero.cli.main.PaperImporterClient')
-    @patch('paper2zotero.cli.main.IeeeCsvLibGateway') # Added
-    @patch('paper2zotero.cli.main.SpringerCsvLibGateway')
-    @patch('paper2zotero.cli.main.RisLibGateway')
-    @patch('paper2zotero.cli.main.BibtexLibGateway')
-    @patch('paper2zotero.cli.main.ArxivLibGateway')
-    @patch('paper2zotero.cli.main.ZoteroAPIClient')
+    @patch('zotero_cli.cli.main.PaperImporterClient')
+    @patch('zotero_cli.cli.main.IeeeCsvLibGateway') # Added
+    @patch('zotero_cli.cli.main.SpringerCsvLibGateway')
+    @patch('zotero_cli.cli.main.RisLibGateway')
+    @patch('zotero_cli.cli.main.BibtexLibGateway')
+    @patch('zotero_cli.cli.main.ArxivLibGateway')
+    @patch('zotero_cli.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
     def test_bibtex_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockRisLibGateway, MockSpringerCsvLibGateway, MockIeeeCsvLibGateway, MockPaperClient): # Updated args
@@ -77,13 +77,13 @@ class TestCLI(unittest.TestCase):
         mock_client_instance.import_from_bibtex.assert_called_once_with('papers.bib', 'F', False)
         self.assertIn("Successfully imported 3 papers", mock_stdout.getvalue())
 
-    @patch('paper2zotero.cli.main.PaperImporterClient')
-    @patch('paper2zotero.cli.main.IeeeCsvLibGateway') # Added
-    @patch('paper2zotero.cli.main.SpringerCsvLibGateway')
-    @patch('paper2zotero.cli.main.RisLibGateway')
-    @patch('paper2zotero.cli.main.BibtexLibGateway')
-    @patch('paper2zotero.cli.main.ArxivLibGateway')
-    @patch('paper2zotero.cli.main.ZoteroAPIClient')
+    @patch('zotero_cli.cli.main.PaperImporterClient')
+    @patch('zotero_cli.cli.main.IeeeCsvLibGateway') # Added
+    @patch('zotero_cli.cli.main.SpringerCsvLibGateway')
+    @patch('zotero_cli.cli.main.RisLibGateway')
+    @patch('zotero_cli.cli.main.BibtexLibGateway')
+    @patch('zotero_cli.cli.main.ArxivLibGateway')
+    @patch('zotero_cli.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
     def test_ris_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockRisLibGateway, MockSpringerCsvLibGateway, MockIeeeCsvLibGateway, MockPaperClient): # Updated args
@@ -100,13 +100,13 @@ class TestCLI(unittest.TestCase):
         mock_client_instance.import_from_ris.assert_called_once_with('papers.ris', 'F', False)
         self.assertIn("Successfully imported 4 papers", mock_stdout.getvalue())
 
-    @patch('paper2zotero.cli.main.PaperImporterClient')
-    @patch('paper2zotero.cli.main.IeeeCsvLibGateway') # Added
-    @patch('paper2zotero.cli.main.SpringerCsvLibGateway')
-    @patch('paper2zotero.cli.main.RisLibGateway')
-    @patch('paper2zotero.cli.main.BibtexLibGateway')
-    @patch('paper2zotero.cli.main.ArxivLibGateway')
-    @patch('paper2zotero.cli.main.ZoteroAPIClient')
+    @patch('zotero_cli.cli.main.PaperImporterClient')
+    @patch('zotero_cli.cli.main.IeeeCsvLibGateway') # Added
+    @patch('zotero_cli.cli.main.SpringerCsvLibGateway')
+    @patch('zotero_cli.cli.main.RisLibGateway')
+    @patch('zotero_cli.cli.main.BibtexLibGateway')
+    @patch('zotero_cli.cli.main.ArxivLibGateway')
+    @patch('zotero_cli.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
     def test_springer_csv_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockRisLibGateway, MockSpringerCsvLibGateway, MockIeeeCsvLibGateway, MockPaperClient): # Updated args
@@ -123,13 +123,13 @@ class TestCLI(unittest.TestCase):
         mock_client_instance.import_from_springer_csv.assert_called_once_with('springer.csv', 'F', False)
         self.assertIn("Successfully imported 5 papers", mock_stdout.getvalue())
         
-    @patch('paper2zotero.cli.main.PaperImporterClient')
-    @patch('paper2zotero.cli.main.IeeeCsvLibGateway') # Added
-    @patch('paper2zotero.cli.main.SpringerCsvLibGateway')
-    @patch('paper2zotero.cli.main.RisLibGateway')
-    @patch('paper2zotero.cli.main.BibtexLibGateway')
-    @patch('paper2zotero.cli.main.ArxivLibGateway')
-    @patch('paper2zotero.cli.main.ZoteroAPIClient')
+    @patch('zotero_cli.cli.main.PaperImporterClient')
+    @patch('zotero_cli.cli.main.IeeeCsvLibGateway') # Added
+    @patch('zotero_cli.cli.main.SpringerCsvLibGateway')
+    @patch('zotero_cli.cli.main.RisLibGateway')
+    @patch('zotero_cli.cli.main.BibtexLibGateway')
+    @patch('zotero_cli.cli.main.ArxivLibGateway')
+    @patch('zotero_cli.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
     def test_ieee_csv_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockRisLibGateway, MockSpringerCsvLibGateway, MockIeeeCsvLibGateway, MockPaperClient): # New test
@@ -146,13 +146,13 @@ class TestCLI(unittest.TestCase):
         mock_client_instance.import_from_ieee_csv.assert_called_once_with('ieee.csv', 'F', False)
         self.assertIn("Successfully imported 6 papers", mock_stdout.getvalue())
 
-    @patch('paper2zotero.cli.main.PaperImporterClient')
-    @patch('paper2zotero.cli.main.IeeeCsvLibGateway') # Added
-    @patch('paper2zotero.cli.main.SpringerCsvLibGateway')
-    @patch('paper2zotero.cli.main.RisLibGateway')
-    @patch('paper2zotero.cli.main.BibtexLibGateway')
-    @patch('paper2zotero.cli.main.ArxivLibGateway')
-    @patch('paper2zotero.cli.main.ZoteroAPIClient')
+    @patch('zotero_cli.cli.main.PaperImporterClient')
+    @patch('zotero_cli.cli.main.IeeeCsvLibGateway') # Added
+    @patch('zotero_cli.cli.main.SpringerCsvLibGateway')
+    @patch('zotero_cli.cli.main.RisLibGateway')
+    @patch('zotero_cli.cli.main.BibtexLibGateway')
+    @patch('zotero_cli.cli.main.ArxivLibGateway')
+    @patch('zotero_cli.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
     def test_remove_attachments_command_success(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockRisLibGateway, MockSpringerCsvLibGateway, MockIeeeCsvLibGateway, MockPaperClient): # Updated args
@@ -169,13 +169,13 @@ class TestCLI(unittest.TestCase):
         mock_client_instance.remove_attachments_from_folder.assert_called_once_with('F', False)
         self.assertIn("Successfully deleted 10 attachments", mock_stdout.getvalue())
 
-    @patch('paper2zotero.cli.main.PaperImporterClient')
-    @patch('paper2zotero.cli.main.IeeeCsvLibGateway') # Added
-    @patch('paper2zotero.cli.main.SpringerCsvLibGateway')
-    @patch('paper2zotero.cli.main.RisLibGateway')
-    @patch('paper2zotero.cli.main.BibtexLibGateway')
-    @patch('paper2zotero.cli.main.ArxivLibGateway')
-    @patch('paper2zotero.cli.main.ZoteroAPIClient')
+    @patch('zotero_cli.cli.main.PaperImporterClient')
+    @patch('zotero_cli.cli.main.IeeeCsvLibGateway') # Added
+    @patch('zotero_cli.cli.main.SpringerCsvLibGateway')
+    @patch('zotero_cli.cli.main.RisLibGateway')
+    @patch('zotero_cli.cli.main.BibtexLibGateway')
+    @patch('zotero_cli.cli.main.ArxivLibGateway')
+    @patch('zotero_cli.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stderr', new_callable=StringIO)
     @patch('sys.stdout', new_callable=StringIO)
@@ -193,13 +193,13 @@ class TestCLI(unittest.TestCase):
 
         self.assertIn("Error: Not found", mock_stderr.getvalue())
 
-    @patch('paper2zotero.cli.main.PaperImporterClient')
-    @patch('paper2zotero.cli.main.IeeeCsvLibGateway') # Added
-    @patch('paper2zotero.cli.main.SpringerCsvLibGateway')
-    @patch('paper2zotero.cli.main.RisLibGateway')
-    @patch('paper2zotero.cli.main.BibtexLibGateway')
-    @patch('paper2zotero.cli.main.ArxivLibGateway')
-    @patch('paper2zotero.cli.main.ZoteroAPIClient')
+    @patch('zotero_cli.cli.main.PaperImporterClient')
+    @patch('zotero_cli.cli.main.IeeeCsvLibGateway') # Added
+    @patch('zotero_cli.cli.main.SpringerCsvLibGateway')
+    @patch('zotero_cli.cli.main.RisLibGateway')
+    @patch('zotero_cli.cli.main.BibtexLibGateway')
+    @patch('zotero_cli.cli.main.ArxivLibGateway')
+    @patch('zotero_cli.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
     def test_import_command_file_input(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockRisLibGateway, MockSpringerCsvLibGateway, MockIeeeCsvLibGateway, MockPaperClient): # Updated args
@@ -214,15 +214,15 @@ class TestCLI(unittest.TestCase):
             with patch.object(sys, 'argv', test_args):
                 main()
         
-        mock_client_instance.import_from_query.assert_called_once_with('query from file', 'F', 100, False)
+        mock_client_instance.import_from_query.assert_called_once_with('query from file', 'F', 100, False, 'relevance', 'descending')
 
-    @patch('paper2zotero.cli.main.PaperImporterClient')
-    @patch('paper2zotero.cli.main.IeeeCsvLibGateway') # Added
-    @patch('paper2zotero.cli.main.SpringerCsvLibGateway')
-    @patch('paper2zotero.cli.main.RisLibGateway')
-    @patch('paper2zotero.cli.main.BibtexLibGateway')
-    @patch('paper2zotero.cli.main.ArxivLibGateway')
-    @patch('paper2zotero.cli.main.ZoteroAPIClient')
+    @patch('zotero_cli.cli.main.PaperImporterClient')
+    @patch('zotero_cli.cli.main.IeeeCsvLibGateway') # Added
+    @patch('zotero_cli.cli.main.SpringerCsvLibGateway')
+    @patch('zotero_cli.cli.main.RisLibGateway')
+    @patch('zotero_cli.cli.main.BibtexLibGateway')
+    @patch('zotero_cli.cli.main.ArxivLibGateway')
+    @patch('zotero_cli.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stdout', new_callable=StringIO)
     def test_import_command_pipe_input(self, mock_stdout, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockRisLibGateway, MockSpringerCsvLibGateway, MockIeeeCsvLibGateway, MockPaperClient): # Updated args
@@ -237,15 +237,15 @@ class TestCLI(unittest.TestCase):
                 with patch('sys.stdin.isatty', return_value=False):
                     main()
         
-        mock_client_instance.import_from_query.assert_called_once_with('query from pipe', 'F', 100, False)
+        mock_client_instance.import_from_query.assert_called_once_with('query from pipe', 'F', 100, False, 'relevance', 'descending')
 
-    @patch('paper2zotero.cli.main.PaperImporterClient')
-    @patch('paper2zotero.cli.main.IeeeCsvLibGateway') # Added
-    @patch('paper2zotero.cli.main.SpringerCsvLibGateway')
-    @patch('paper2zotero.cli.main.RisLibGateway')
-    @patch('paper2zotero.cli.main.BibtexLibGateway')
-    @patch('paper2zotero.cli.main.ArxivLibGateway')
-    @patch('paper2zotero.cli.main.ZoteroAPIClient')
+    @patch('zotero_cli.cli.main.PaperImporterClient')
+    @patch('zotero_cli.cli.main.IeeeCsvLibGateway') # Added
+    @patch('zotero_cli.cli.main.SpringerCsvLibGateway')
+    @patch('zotero_cli.cli.main.RisLibGateway')
+    @patch('zotero_cli.cli.main.BibtexLibGateway')
+    @patch('zotero_cli.cli.main.ArxivLibGateway')
+    @patch('zotero_cli.cli.main.ZoteroAPIClient')
     @patch.dict('os.environ', {'ZOTERO_API_KEY': 'key', 'ZOTERO_TARGET_GROUP': 'https://zotero/groups/123/name'})
     @patch('sys.stderr', new_callable=StringIO)
     def test_import_command_no_query(self, mock_stderr, MockZoteroAPI, MockArxivLibGateway, MockBibtexLibGateway, MockRisLibGateway, MockSpringerCsvLibGateway, MockIeeeCsvLibGateway, MockPaperClient): # Updated args

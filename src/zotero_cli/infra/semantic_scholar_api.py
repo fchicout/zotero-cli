@@ -2,8 +2,8 @@ import requests
 import time
 import os
 from typing import Optional, List
-from paper2zotero.core.interfaces import MetadataProvider
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.core.interfaces import MetadataProvider
+from zotero_cli.core.models import ResearchPaper
 
 class SemanticScholarAPIClient(MetadataProvider):
     BASE_URL = "https://api.semanticscholar.org/graph/v1/paper"
@@ -29,7 +29,7 @@ class SemanticScholarAPIClient(MetadataProvider):
         
         url = f"{self.BASE_URL}/{s2_id}"
         
-        headers = {'User-Agent': 'paper2zotero/1.0'}
+        headers = {'User-Agent': 'zotero_cli/1.0'}
         if self.api_key:
             headers['x-api-key'] = self.api_key
 

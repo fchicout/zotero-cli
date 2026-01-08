@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, Mock
 import requests
-from paper2zotero.infra.crossref_api import CrossRefAPIClient
+from zotero_cli.infra.crossref_api import CrossRefAPIClient
 
 class TestCrossRefAPIClient(unittest.TestCase):
     def setUp(self):

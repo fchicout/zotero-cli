@@ -1,21 +1,31 @@
 import unittest
 from unittest.mock import Mock, patch, mock_open
-from paper2zotero.infra.ris_lib import RisLibGateway
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.infra.ris_lib import RisLibGateway
+from zotero_cli.core.models import ResearchPaper
 
 class TestRisLibGateway(unittest.TestCase):
-    @patch('paper2zotero.infra.ris_lib.rispy.load')
+    @patch('zotero_cli.infra.ris_lib.rispy.load')
     @patch('builtins.open', new_callable=mock_open)
     def test_parse_file_success(self, mock_file, mock_load):
         # Setup mock rispy entries
         mock_entries = [
             {
-                'TY': 'JOUR', 'AU': ['Doe, John', 'Smith, Jane'], 'PY': '2023', 'TI': 'A Sample RIS Paper',
-                'JF': 'Journal of RIS', 'AB': 'This is an abstract.', 'DO': '10.1234/ris1', 'UR': 'http://ris.example.com'
+                'type_of_reference': 'JOUR', 
+                'authors': ['Doe, John', 'Smith, Jane'], 
+                'year': '2023', 
+                'primary_title': 'A Sample RIS Paper',
+                'journal_name': 'Journal of RIS', 
+                'abstract': 'This is an abstract.', 
+                'doi': '10.1234/ris1', 
+                'urls': ['http://ris.example.com']
             },
             {
-                'TY': 'BOOK', 'AU': ['Author, A'], 'YR': '2022', 'T1': 'Another RIS Entry',
-                'T2': 'Book Series', 'AB': 'Book abstract.'
+                'type_of_reference': 'BOOK', 
+                'authors': ['Author, A'], 
+                'year': '2022', 
+                'primary_title': 'Another RIS Entry',
+                'secondary_title': 'Book Series', 
+                'abstract': 'Book abstract.'
             }
         ]
         mock_load.return_value = mock_entries
@@ -41,7 +51,7 @@ class TestRisLibGateway(unittest.TestCase):
         self.assertIsNone(papers[1].doi)
         self.assertIsNone(papers[1].url)
 
-    @patch('paper2zotero.infra.ris_lib.rispy.load')
+    @patch('zotero_cli.infra.ris_lib.rispy.load')
     @patch('builtins.open', new_callable=mock_open)
     def test_parse_file_error_handling(self, mock_file, mock_load):
         mock_load.side_effect = Exception("RIS parse error")

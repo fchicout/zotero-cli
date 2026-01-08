@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
-from paper2zotero.infra.zotero_api import ZoteroAPIClient
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.infra.zotero_api import ZoteroAPIClient
+from zotero_cli.core.models import ResearchPaper
 import requests
 
 class TestZoteroAPIClient(unittest.TestCase):

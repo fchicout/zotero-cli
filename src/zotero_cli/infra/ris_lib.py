@@ -1,7 +1,7 @@
 import rispy
 from typing import Iterator
-from paper2zotero.core.interfaces import RisGateway
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.core.interfaces import RisGateway
+from zotero_cli.core.models import ResearchPaper
 
 class RisLibGateway(RisGateway):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:

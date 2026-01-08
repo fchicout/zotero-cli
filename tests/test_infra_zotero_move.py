@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, Mock
 import requests
-from paper2zotero.infra.zotero_api import ZoteroAPIClient
+from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
 class TestZoteroAPIClientMove(unittest.TestCase):
     def setUp(self):
@@ -16,11 +16,13 @@ class TestZoteroAPIClientMove(unittest.TestCase):
         # Setup mock response
         mock_response = Mock()
         mock_response.raise_for_status.return_value = None  # No exception
+        mock_response.headers = {'Last-Modified-Version': '43'} # Added valid version
         self.client.session.patch.return_value = mock_response
 
         # Inputs
         item_key = "ABC12345"
         version = 42
+        self.client.last_library_version = version # Set internal state
         new_collections = ["COL1", "COL2"]
 
         # Action
@@ -37,7 +39,7 @@ class TestZoteroAPIClientMove(unittest.TestCase):
         call_args = self.client.session.patch.call_args
         self.assertEqual(call_args[0][0], expected_url)
         self.assertEqual(call_args[1]['json'], {'collections': new_collections})
-        self.assertEqual(call_args[1]['headers']['If-Match'], '42')
+        self.assertEqual(call_args[1]['headers']['If-Unmodified-Since-Version'], str(version))
 
     def test_update_item_collections_failure(self):
         # Setup mock exception

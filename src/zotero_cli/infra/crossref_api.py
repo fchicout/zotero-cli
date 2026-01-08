@@ -1,7 +1,7 @@
 import requests
 from typing import List, Optional
-from paper2zotero.core.interfaces import MetadataProvider
-from paper2zotero.core.models import ResearchPaper
+from zotero_cli.core.interfaces import MetadataProvider
+from zotero_cli.core.models import ResearchPaper
 
 class CrossRefAPIClient(MetadataProvider):
     BASE_URL = "https://api.crossref.org/works/"
@@ -13,7 +13,7 @@ class CrossRefAPIClient(MetadataProvider):
         """
         url = f"{self.BASE_URL}{identifier}"
         try:
-            response = requests.get(url, headers={'User-Agent': 'paper2zotero/1.0 (mailto:fchicout@gmail.com)'})
+            response = requests.get(url, headers={'User-Agent': 'zotero_cli/1.0 (mailto:fchicout@gmail.com)'})
             response.raise_for_status()
             data = response.json()
             return self._map_to_research_paper(data)
