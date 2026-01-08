@@ -92,7 +92,8 @@ class ArxivQueryParser:
                     # But ArXiv API is okay with field:(A OR "B C")
                     parsed_groups.append(f'{field}:({value})')
                 else:
-                    parsed_groups.append(f'({clean_group.replace("'", "\"")})')
+                    clean_group_escaped = clean_group.replace("'", '"')
+                    parsed_groups.append(f'({clean_group_escaped})')
             
             if parsed_groups:
                 arxiv_query_parts.append(" AND ".join(parsed_groups))
