@@ -2,6 +2,7 @@
 
 ![Build Status](https://github.com/fchicout/zotero-cli/actions/workflows/release.yml/badge.svg)
 ![Tests](https://github.com/fchicout/zotero-cli/actions/workflows/tests.yml/badge.svg)
+![Coverage](https://img.shields.io/badge/coverage-79%25-green)
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -194,6 +195,13 @@ Automatically find (via Unpaywall) and attach PDFs to items in a collection that
 zotero-cli attach-pdf --collection "My Reading List"
 ```
 
+### 15. Search ArXiv (Advanced)
+Search ArXiv using complex queries (terms, date ranges, etc.).
+
+```bash
+zotero-cli search-arxiv --query "terms: title=LLM; date_range: from 2023-01-01" --verbose
+```
+
 ## Changelog
 
 ### v0.2.0 (December 16, 2025)
@@ -215,12 +223,21 @@ This release introduces significant new features and architectural improvements 
 
 ## Development
 
+Requires Python 3.8+.
+
 ```bash
-# Install dev dependencies
-pip install -e .
+# Clone the repository
+git clone https://github.com/fchicout/zotero-cli.git
+cd zotero-cli
+
+# Install in editable mode with dev dependencies
+pip install -e ".[dev]"
 
 # Run tests
-python -m unittest discover tests
+pytest
+
+# Check coverage
+pytest --cov=zotero_cli --cov-report=term-missing
 ```
 
 ## License
