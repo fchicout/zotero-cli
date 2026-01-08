@@ -400,7 +400,7 @@ def list_collections_command(args):
         print("No collections found or error occurred.")
 
 def main():
-    parser = argparse.ArgumentParser(description="Paper to Zotero CLI tool.")
+    parser = argparse.ArgumentParser(description="Zotero CLI tool.")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # Add 'list-collections' subcommand

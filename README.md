@@ -1,11 +1,11 @@
-# paper2zotero
+# zotero-cli
 
-![Build Status](https://github.com/fchicout/paper2zotero/actions/workflows/release.yml/badge.svg)
-![Tests](https://github.com/fchicout/paper2zotero/actions/workflows/tests.yml/badge.svg)
+![Build Status](https://github.com/fchicout/zotero-cli/actions/workflows/release.yml/badge.svg)
+![Tests](https://github.com/fchicout/zotero-cli/actions/workflows/tests.yml/badge.svg)
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-**paper2zotero** is a robust command-line utility designed to streamline the import of research papers into [Zotero](https://www.zotero.org/). It supports fetching papers directly from **arXiv**, importing from **BibTeX** and **RIS** files, importing from **Springer** and **IEEE** CSV exports, and managing Zotero collections.
+**zotero-cli** (formerly paper2zotero) is a robust command-line utility designed to streamline the import of research papers into [Zotero](https://www.zotero.org/). It supports fetching papers directly from **arXiv**, importing from **BibTeX** and **RIS** files, importing from **Springer** and **IEEE** CSV exports, and managing Zotero collections.
 
 It automatically handles collection creation and populates rich metadata including authors, abstracts, DOIs, and publication dates.
 
@@ -23,25 +23,25 @@ It automatically handles collection creation and populates rich metadata includi
 ## Installation
 
 ### From Binaries (Recommended)
-Download the latest release for your platform from the [Releases Page](https://github.com/fchicout/paper2zotero/releases).
+Download the latest release for your platform from the [Releases Page](https://github.com/fchicout/zotero-cli/releases).
 
 *   **Linux**: Download `.deb` (Debian/Ubuntu) or `.rpm` (Fedora/RHEL).
     ```bash
     # Ubuntu/Debian
-    sudo dpkg -i paper2zotero-linux-amd64.deb
+    sudo dpkg -i zotero-cli-linux-amd64.deb
     
     # Fedora/RHEL
-    sudo rpm -i paper2zotero-linux-amd64.rpm
+    sudo rpm -i zotero-cli-linux-amd64.rpm
     ```
-*   **Windows**: Download `paper2zotero.exe` and add it to your PATH.
-*   **Standalone**: Download the binary `paper2zotero` and run it directly.
+*   **Windows**: Download `zotero-cli.exe` and add it to your PATH.
+*   **Standalone**: Download the binary `zotero-cli` and run it directly.
 
 ### From Source
 Requires Python 3.8+.
 
 ```bash
-git clone https://github.com/fchicout/paper2zotero.git
-cd paper2zotero
+git clone https://github.com/fchicout/zotero-cli.git
+cd zotero-cli
 pip install .
 ```
 
@@ -64,7 +64,7 @@ export SEMANTIC_SCHOLAR_API_KEY="your_semantic_scholar_api_key_here"
 Add a specific paper by its arXiv ID.
 
 ```bash
-paper2zotero add --arxiv-id "2301.00001" \
+zotero-cli add --arxiv-id "2301.00001" \
                  --title "Sample Paper Title" \
                  --abstract "This is the abstract..." \
                  --folder "My Reading List"
@@ -75,87 +75,87 @@ Search arXiv and import all matching results.
 
 **Direct Query:**
 ```bash
-paper2zotero import --query "LLM cybersecurity" --limit 50 --folder "AI Security" --verbose
+zotero-cli import --query "LLM cybersecurity" --limit 50 --folder "AI Security" --verbose
 ```
 
 **From File:**
 ```bash
-paper2zotero import --file query.txt --folder "AI Security"
+zotero-cli import --file query.txt --folder "AI Security"
 ```
 
 **From Pipe:**
 ```bash
-echo "generative AI" | paper2zotero import --folder "GenAI" --limit 10
+echo "generative AI" | zotero-cli import --folder "GenAI" --limit 10
 ```
 
 ### 3. Import from BibTeX
 Import references from a `.bib` file (e.g., exported from Google Scholar, ScienceDirect).
 
 ```bash
-paper2zotero bibtex --file references.bib --folder "Literature Review" --verbose
+zotero-cli bibtex --file references.bib --folder "Literature Review" --verbose
 ```
 
 ### 4. Import from RIS
 Import references from a `.ris` file.
 
 ```bash
-paper2zotero ris --file citations.ris --folder "Research 2025"
+zotero-cli ris --file citations.ris --folder "Research 2025"
 ```
 
 ### 5. Import from Springer CSV
 Import references from a Springer Search Results CSV export.
 
 ```bash
-paper2zotero springer-csv --file SearchResults.csv --folder "Springer Papers"
+zotero-cli springer-csv --file SearchResults.csv --folder "Springer Papers"
 ```
 
 ### 6. Import from IEEE CSV
 Import references from an IEEE Xplore CSV export.
 
 ```bash
-paper2zotero ieee-csv --file export2025.csv --folder "IEEE Papers"
+zotero-cli ieee-csv --file export2025.csv --folder "IEEE Papers"
 ```
 
 ### 7. Remove Attachments
 Remove all child items (PDFs, snapshots) from items in a specific folder to clean up storage.
 
 ```bash
-paper2zotero remove-attachments --folder "AI Security" --verbose
+zotero-cli remove-attachments --folder "AI Security" --verbose
 ```
 
 ### 8. List Collections
 List all collections in the Zotero library with their keys and item counts.
 
 ```bash
-paper2zotero list-collections
+zotero-cli list-collections
 ```
 
 ### 9. Move Paper
 Move a paper (identified by DOI or arXiv ID) from one collection to another.
 
 ```bash
-paper2zotero move --id "2301.00001" --from-col "Reading List" --to-col "AI Security"
+zotero-cli move --id "2301.00001" --from-col "Reading List" --to-col "AI Security"
 ```
 
 ### 10. Audit Collection
 Audit a Zotero collection for completeness (presence of ID, title, abstract, and PDF attachment).
 
 ```bash
-paper2zotero audit --collection "My Research"
+zotero-cli audit --collection "My Research"
 ```
 
 ### 11. Find Duplicates
 Find duplicate papers (by DOI or normalized title) across multiple Zotero collections.
 
 ```bash
-paper2zotero duplicates --collections "Reading List, My Research, Archive"
+zotero-cli duplicates --collections "Reading List, My Research, Archive"
 ```
 
 ### 12. Generate Citation Graph
 Generate a directed citation graph in Graphviz DOT format for papers within specified collections. The output can be piped to `dot` to generate an image (e.g., SVG, PNG).
 
 ```bash
-paper2zotero graph --collections "AI, Machine Learning" > citation_graph.dot
+zotero-cli graph --collections "AI, Machine Learning" > citation_graph.dot
 dot -Tsvg citation_graph.dot -o citation_graph.svg
 ```
 
@@ -164,34 +164,34 @@ Manage tags within your Zotero library.
 
 **List all tags:**
 ```bash
-paper2zotero tag list
+zotero-cli tag list
 ```
 
 **Rename a tag:**
 ```bash
-paper2zotero tag rename --old "AI" --new "Artificial Intelligence"
+zotero-cli tag rename --old "AI" --new "Artificial Intelligence"
 ```
 
 **Delete a tag:**
 ```bash
-paper2zotero tag delete --tag "obsolete_tag"
+zotero-cli tag delete --tag "obsolete_tag"
 ```
 
 **Add tags to an item:**
 ```bash
-paper2zotero tag add --item "ITEMKEY123" --tags "important, to_read"
+zotero-cli tag add --item "ITEMKEY123" --tags "important, to_read"
 ```
 
 **Remove tags from an item:**
 ```bash
-paper2zotero tag remove --item "ITEMKEY123" --tags "to_read"
+zotero-cli tag remove --item "ITEMKEY123" --tags "to_read"
 ```
 
 ### 14. PDF Attachment (Auto)
 Automatically find (via Unpaywall) and attach PDFs to items in a collection that are missing them.
 
 ```bash
-paper2zotero attach-pdf --collection "My Reading List"
+zotero-cli attach-pdf --collection "My Reading List"
 ```
 
 ## Changelog
