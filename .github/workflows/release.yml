@@ -27,7 +27,7 @@ jobs:
 
       - name: Build Binary with PyInstaller
         run: |
-          pyinstaller --onefile --name paper2zotero --clean src/paper2zotero/cli/main.py
+          pyinstaller --onefile --name zotero-cli --clean src/paper2zotero/cli/main.py
 
       - name: Install FPM
         run: |
@@ -42,35 +42,35 @@ jobs:
       - name: Create DEB Package
         run: |
           mkdir -p dist/deb/usr/bin
-          cp dist/paper2zotero dist/deb/usr/bin/
-          fpm -s dir -t deb -n paper2zotero -v ${{ steps.get_version.outputs.VERSION }} \
+          cp dist/zotero-cli dist/deb/usr/bin/
+          fpm -s dir -t deb -n zotero-cli -v ${{ steps.get_version.outputs.VERSION }} \
             --prefix / \
             -C dist/deb \
             --description "A tool to add papers from various sources (arXiv, BibTeX) to Zotero" \
             --maintainer "Fabio Chicout <fchicout@gmail.com>" \
-            --url "https://github.com/fchicout/paper2zotero" \
-            usr/bin/paper2zotero
-          mv paper2zotero_*.deb paper2zotero-linux-amd64.deb
+            --url "https://github.com/fchicout/zotero-cli" \
+            usr/bin/zotero-cli
+          mv zotero-cli_*.deb zotero-cli-linux-amd64.deb
 
       - name: Create RPM Package
         run: |
-          fpm -s dir -t rpm -n paper2zotero -v ${{ steps.get_version.outputs.VERSION }} \
+          fpm -s dir -t rpm -n zotero-cli -v ${{ steps.get_version.outputs.VERSION }} \
             --prefix / \
             -C dist/deb \
             --description "A tool to add papers from various sources (arXiv, BibTeX) to Zotero" \
             --maintainer "Fabio Chicout <fchicout@gmail.com>" \
-            --url "https://github.com/fchicout/paper2zotero" \
-            usr/bin/paper2zotero
-          mv paper2zotero-*.rpm paper2zotero-linux-amd64.rpm
+            --url "https://github.com/fchicout/zotero-cli" \
+            usr/bin/zotero-cli
+          mv zotero-cli-*.rpm zotero-cli-linux-amd64.rpm
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-artifacts
           path: |
-            dist/paper2zotero
-            paper2zotero-linux-amd64.deb
-            paper2zotero-linux-amd64.rpm
+            dist/zotero-cli
+            zotero-cli-linux-amd64.deb
+            zotero-cli-linux-amd64.rpm
 
   build-windows:
     runs-on: windows-latest
@@ -90,13 +90,13 @@ jobs:
 
       - name: Build Binary with PyInstaller
         run: |
-          pyinstaller --onefile --name paper2zotero --clean src/paper2zotero/cli/main.py
+          pyinstaller --onefile --name zotero-cli --clean src/paper2zotero/cli/main.py
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
-          path: dist/paper2zotero.exe
+          path: dist/zotero-cli.exe
 
   release:
     needs: [build-linux, build-windows]
@@ -121,9 +121,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            assets/paper2zotero
-            assets/paper2zotero-linux-amd64.deb
+            assets/zotero-cli
+            assets/zotero-cli-linux-amd64.deb
             assets/*.rpm
-            assets/paper2zotero.exe
+            assets/zotero-cli.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

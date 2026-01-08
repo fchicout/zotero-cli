@@ -1,6 +1,6 @@
 # Gemini Workspace Context
 
-This document preserves the context, memory, and task history of the `paper2zotero` project development session.
+This document preserves the context, memory, and task history of the `zotero-cli` (formerly `paper2zotero`) project development session.
 
 ## Persona & Guidelines
 **Role:** Interactive CLI Agent specializing in Software Engineering.
@@ -11,7 +11,7 @@ This document preserves the context, memory, and task history of the `paper2zote
 *   **Security:** NEVER expose API keys in code or commits. Use `.gitignore` and environment variables.
 *   **Workflow:** Understand -> Plan -> Implement -> Verify (Tests) -> Finalize.
 
-## Project Overview: `paper2zotero`
+## Project Overview: `zotero-cli`
 A CLI tool to import research papers into Zotero from various sources (arXiv, BibTeX, RIS, CSV) and manage Zotero libraries (metadata, tags, attachments).
 
 **Key Technologies:** Python 3.8+, `requests`, `zotero-api`, `unittest`.

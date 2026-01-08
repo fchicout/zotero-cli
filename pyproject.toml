@@ -1,5 +1,5 @@
 [project]
-name = "paper2zotero"
+name = "zotero-cli"
 version = "0.2.0"
 description = "A tool to add papers from various sources (arXiv, BibTeX) to Zotero"
 authors = [{name = "Fábio Chicout", email = "fchicout@gmail.com"}]
@@ -12,6 +12,10 @@ dependencies = [
     "arxiv",
     "rispy"
 ]
+
+[project.scripts]
+zotero-cli = "paper2zotero.cli.main:main"
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
