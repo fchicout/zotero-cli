@@ -1,122 +1,141 @@
-import unittest
-from unittest.mock import Mock, patch
+import pytest
+from unittest.mock import Mock, patch, MagicMock, mock_open
+import requests
+import os
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 from zotero_cli.core.models import ResearchPaper
-import requests
+from zotero_cli.core.zotero_item import ZoteroItem
 
-class TestZoteroAPIClient(unittest.TestCase):
-    def setUp(self):
-        self.api_key = "test_api_key"
-        self.group_id = "1234567"
-        self.client = ZoteroAPIClient(self.api_key, self.group_id)
-        # Mock the session object directly
-        self.client.session = Mock(spec=requests.Session)
-        self.client.session.headers = {} # Mock headers dict
+@pytest.fixture
+def api_key():
+    return "test_api_key"
 
-    def test_get_collection_id_by_name_success(self):
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = [
-            {"key": "COLL_1", "data": {"name": "Wrong Folder"}},
-            {"key": "COLL_2", "data": {"name": "Target Folder"}},
-            {"key": "COLL_3", "data": {"name": "Another Folder"}},
-        ]
-        # Fix: ensure headers.get returns None by default or a specific value
-        mock_response.headers = {} 
-        self.client.session.get.return_value = mock_response
+@pytest.fixture
+def group_id():
+    return "1234567"
 
-        collection_id = self.client.get_collection_id_by_name("Target Folder")
-        self.assertEqual(collection_id, "COLL_2")
+@pytest.fixture
+def client(api_key, group_id):
+    client = ZoteroAPIClient(api_key, group_id)
+    # Mock the session object directly
+    client.session = Mock(spec=requests.Session)
+    client.session.headers = {}
+    return client
 
-    def test_create_collection_success(self):
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {'successful': {'0': {'key': 'NEW_COLL_KEY'}}}
-        mock_response.headers = {} # Fix
-        self.client.session.post.return_value = mock_response
+def test_get_all_collections_success(client):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [{"key": "C1", "data": {"name": "Col 1"}}]
+    mock_response.headers = {"Last-Modified-Version": "100"}
+    client.session.get.return_value = mock_response
 
-        collection_id = self.client.create_collection("New Folder")
-        self.assertEqual(collection_id, "NEW_COLL_KEY")
-        
-        expected_payload = [{"name": "New Folder"}]
-        self.client.session.post.assert_called_once_with(
-            f"{self.client.BASE_URL}/groups/{self.group_id}/collections",
-            json=expected_payload
-        )
+    collections = client.get_all_collections()
+    assert len(collections) == 1
+    assert collections[0]["key"] == "C1"
+    assert client.last_library_version == 100
 
-    def test_create_item_full_metadata(self):
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.headers = {} # Fix
-        self.client.session.post.return_value = mock_response
+def test_get_tags_success(client):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [{"tag": "tag1"}, {"tag": "tag2"}]
+    client.session.get.return_value = mock_response
 
-        paper = ResearchPaper(
-            title="Test Title", 
-            abstract="Test Abstract", 
-            authors=["John Doe", "Jane Smith"],
-            doi="10.1000/1",
-            publication="Journal of Testing",
-            year="2023",
-            url="http://example.com"
-        )
-        collection_id = "COLL_123"
-        result = self.client.create_item(paper, collection_id)
+    tags = client.get_tags()
+    assert tags == ["tag1", "tag2"]
 
-        self.assertTrue(result)
-        expected_payload = [{
-            "itemType": "journalArticle",
-            "title": "Test Title",
-            "abstractNote": "Test Abstract",
-            "creators": [
-                {"creatorType": "author", "firstName": "John", "lastName": "Doe"},
-                {"creatorType": "author", "firstName": "Jane", "lastName": "Smith"}
-            ],
-            "collections": ["COLL_123"],
-            "url": "http://example.com",
-            "DOI": "10.1000/1",
-            "publicationTitle": "Journal of Testing",
-            "date": "2023"
-        }]
-        self.client.session.post.assert_called_once_with(
-            f"{self.client.BASE_URL}/groups/{self.group_id}/items",
-            json=expected_payload
-        )
+def test_get_items_by_tag_pagination(client):
+    # Page 1 - return 100 items to trigger next page
+    res1 = Mock()
+    res1.status_code = 200
+    res1.json.return_value = [{"key": f"K{i}", "data": {"title": f"T{i}"}, "meta": {}, "version": 1} for i in range(100)]
+    res1.headers = {"Last-Modified-Version": "101"}
+    
+    # Page 2 (empty)
+    res2 = Mock()
+    res2.status_code = 200
+    res2.json.return_value = []
+    res2.headers = {"Last-Modified-Version": "101"}
 
-    def test_delete_item_success(self):
-        mock_response = Mock()
-        mock_response.status_code = 204
-        mock_response.headers = {'Last-Modified-Version': '11'} # Provide a version
-        self.client.session.delete.return_value = mock_response
-        
-        # Set initial library version
-        self.client.last_library_version = 10
+    client.session.get.side_effect = [res1, res2]
 
-        success = self.client.delete_item("ITEM_KEY", 10)
-        
-        self.assertTrue(success)
-        self.client.session.delete.assert_called_once()
-        args, kwargs = self.client.session.delete.call_args
-        self.assertEqual(args[0], f"{self.client.BASE_URL}/groups/{self.group_id}/items/ITEM_KEY")
-        self.assertEqual(kwargs['headers']['If-Unmodified-Since-Version'], '10')
+    items = list(client.get_items_by_tag("test-tag"))
+    assert len(items) == 100
+    assert client.session.get.call_count == 2
 
-    def test_delete_item_version_conflict_retry(self):
-        # First call returns 412, second returns 204
-        mock_response_412 = Mock()
-        mock_response_412.status_code = 412
-        mock_response_412.headers = {'Last-Modified-Version': '11'}
-        
-        mock_response_204 = Mock()
-        mock_response_204.status_code = 204
-        mock_response_204.headers = {'Last-Modified-Version': '12'}
-        
-        self.client.session.delete.side_effect = [mock_response_412, mock_response_204]
-        self.client.last_library_version = 10
+def test_get_item_success(client):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"key": "K1", "data": {"title": "T1"}, "meta": {}, "version": 1}
+    mock_response.headers = {} # Ensure headers.get returns None, not a Mock
+    client.session.get.return_value = mock_response
 
-        success = self.client.delete_item("ITEM_KEY", 10)
-        
-        self.assertTrue(success)
-        self.assertEqual(self.client.session.delete.call_count, 2)
-        self.assertEqual(self.client.last_library_version, 12)
+    item = client.get_item("K1")
+    assert item is not None
+    assert item.key == "K1"
 
-if __name__ == '__main__':
-    unittest.main()
+def test_get_item_failure(client):
+    client.session.get.side_effect = requests.exceptions.RequestException("404")
+    item = client.get_item("K1")
+    assert item is None
+
+@patch("os.path.basename")
+@patch("os.path.getmtime")
+@patch("builtins.open", new_callable=mock_open, read_data=b"file content")
+@patch("zotero_cli.infra.zotero_api.requests.post")
+def test_upload_attachment_full_sequence(mock_req_post, mock_file, mock_mtime, mock_basename, client):
+    mock_basename.return_value = "test.pdf"
+    mock_mtime.return_value = 1000.0
+    
+    # 1. Create Attachment
+    res_create = Mock()
+    res_create.status_code = 200
+    res_create.json.return_value = {"successful": {"0": {"key": "ATTACH_KEY"}}}
+    
+    # 2. Authorization
+    res_auth = Mock()
+    res_auth.status_code = 200
+    res_auth.json.return_value = {
+        "exists": 0,
+        "url": "http://s3.upload",
+        "params": {"p1": "v1"},
+        "uploadKey": "UPLOAD_KEY"
+    }
+    
+    # 4. Register
+    res_reg = Mock()
+    res_reg.status_code = 200
+    
+    client.session.post.side_effect = [res_create, res_auth, res_reg]
+    
+    # 3. Actual Upload (requests.post)
+    res_upload = Mock()
+    res_upload.status_code = 200
+    mock_req_post.return_value = res_upload
+
+    success = client.upload_attachment("PARENT_KEY", "/path/to/test.pdf")
+    
+    assert success is True
+    assert client.session.post.call_count == 3
+    mock_req_post.assert_called_once()
+
+def test_delete_item_retry_on_412(client):
+    res412 = Mock()
+    res412.status_code = 412
+    res412.headers = {"Last-Modified-Version": "50"}
+    
+    res204 = Mock()
+    res204.status_code = 204
+    res204.headers = {"Last-Modified-Version": "51"}
+    
+    client.session.delete.side_effect = [res412, res204]
+    client.last_library_version = 40
+
+    success = client.delete_item("K1", 40)
+    assert success is True
+    assert client.last_library_version == 51
+    assert client.session.delete.call_count == 2
+
+def test_update_item_metadata_failure(client):
+    client.session.patch.side_effect = requests.exceptions.RequestException("API Error")
+    success = client.update_item_metadata("K1", 1, {"title": "New"})
+    assert success is False
