@@ -204,6 +204,16 @@ zotero-cli search-arxiv --query "terms: title=LLM; date_range: from 2023-01-01" 
 
 ## Changelog
 
+### v0.3.0 (January 8, 2026)
+
+This major release marks the rebranding of the project to **zotero-cli** and a comprehensive architectural hardening.
+
+**Major Changes:**
+*   **Rebrand:** Project renamed from `paper2zotero` to `zotero-cli`.
+*   **Refactor:** Internal Python package renamed to `zotero_cli` for consistency.
+*   **Quality:** Test suite fully migrated to `pytest` with **80% code coverage**.
+*   **Python 3.10+ Support:** Fixed syntax issues to ensure compatibility with Python 3.10.
+
 ### v0.2.0 (December 16, 2025)
 
 This release introduces significant new features and architectural improvements focused on Zotero collection management and advanced citation analysis.
