@@ -1,9 +1,27 @@
 [project]
 name = "zotero-cli"
-version = "0.2.0"
-description = "A tool to add papers from various sources (arXiv, BibTeX) to Zotero"
+version = "0.3.0"
+description = "A CLI tool to import research papers into Zotero from arXiv, BibTeX, RIS, and CSV."
 authors = [{name = "Fábio Chicout", email = "fchicout@gmail.com"}]
+readme = "README.md"
 requires-python = ">=3.8"
+license = {file = "LICENSE"}
+keywords = ["zotero", "research", "arxiv", "bibtex", "ris", "cli", "automation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Utilities"
+]
 dependencies = [
     "requests",
     "beautifulsoup4",
@@ -12,6 +30,10 @@ dependencies = [
     "arxiv",
     "rispy"
 ]
+
+[project.urls]
+Repository = "https://github.com/fchicout/zotero-cli"
+Issues = "https://github.com/fchicout/zotero-cli/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -29,4 +51,3 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
