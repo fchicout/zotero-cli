@@ -204,6 +204,10 @@ zotero-cli search-arxiv --query "terms: title=LLM; date_range: from 2023-01-01" 
 
 ## Changelog
 
+### v0.3.1 (January 8, 2026)
+
+*   **Fix:** Resolved CI/CD build failure due to incorrect source path in release workflow.
+
 ### v0.3.0 (January 8, 2026)
 
 This major release marks the rebranding of the project to **zotero-cli** and a comprehensive architectural hardening.
