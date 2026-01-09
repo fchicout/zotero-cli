@@ -57,15 +57,18 @@ A CLI tool to import research papers into Zotero from various sources (arXiv, Bi
     *   **User Action Required:** Rotate Zotero and Semantic Scholar keys.
 
 ## Current State
-*   **Version:** `v0.2.0+` (Refactored & Rebranded).
-*   **Identity:** Project renamed to `zotero-cli` (internal module `zotero_cli`).
-*   **Quality:**
-    *   Migrated to `pytest`.
-    *   Coverage increased to **79%**.
-    *   CI workflow updated to use `pytest`.
-*   **Documentation:** `README.md` updated with coverage badge and modern dev instructions.
+*   **Version:** `v0.3.0` (Released).
+*   **Identity:** `zotero-cli` (Module: `zotero_cli`).
+*   **Quality:** 80% Test Coverage (Pytest).
+*   **Status:** PyPI-ready metadata configured. Binaries building on GitHub.
 
 ## Accomplished Tasks
+
+### Phase 6: Release Engineering (v0.3.0)
+*   **Versioning:** Bumped to `v0.3.0`.
+*   **Metadata:** Enriched `pyproject.toml` with PyPI fields (classifiers, keywords, license).
+*   **Changelog:** Updated `README.md` with release notes.
+*   **Tagging:** Pushed `v0.3.0` tag to trigger release workflow.
 
 ### Phase 5: Refactoring & Quality (Operation Identity Alignment)
 *   **Rename:** Renamed repository and internal package from `paper2zotero` to `zotero-cli`/`zotero_cli`.
