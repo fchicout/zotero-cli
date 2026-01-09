@@ -1,82 +1,78 @@
-import unittest
+import pytest
 from unittest.mock import Mock, call
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.core.services.tag_service import TagService
 
-class TestTagService(unittest.TestCase):
-    def setUp(self):
-        self.mock_gateway = Mock(spec=ZoteroGateway)
-        self.service = TagService(self.mock_gateway)
+@pytest.fixture
+def mock_gateway():
+    return Mock(spec=ZoteroGateway)
 
-    def _create_item(self, key, tags):
-        return ZoteroItem(key=key, version=1, item_type="journalArticle", tags=tags)
+@pytest.fixture
+def service(mock_gateway):
+    return TagService(mock_gateway)
 
-    def test_list_tags(self):
-        self.mock_gateway.get_tags.return_value = ["tag1", "tag2"]
-        tags = self.service.list_tags()
-        self.assertEqual(tags, ["tag1", "tag2"])
+def create_item(key, tags):
+    return ZoteroItem(key=key, version=1, item_type="journalArticle", tags=tags)
 
-    def test_add_tags_to_item(self):
-        item = self._create_item("KEY1", ["existing"])
-        self.mock_gateway.update_item_metadata.return_value = True
-        
-        result = self.service.add_tags_to_item("KEY1", item, ["new"])
-        
-        self.assertTrue(result)
-        # Check payload format
-        expected_tags = [{"tag": "existing"}, {"tag": "new"}] # Order might vary due to set
-        
-        # Verify call args
-        args = self.mock_gateway.update_item_metadata.call_args
-        self.assertEqual(args[0][0], "KEY1")
-        self.assertEqual(args[0][1], 1)
-        self.assertIn("tags", args[0][2])
-        # Compare tags list ignoring order
-        call_tags = args[0][2]["tags"]
-        self.assertEqual(len(call_tags), 2)
-        tag_strings = {t['tag'] for t in call_tags}
-        self.assertEqual(tag_strings, {"existing", "new"})
+def test_list_tags(service, mock_gateway):
+    mock_gateway.get_tags.return_value = ["tag1", "tag2"]
+    tags = service.list_tags()
+    assert tags == ["tag1", "tag2"]
 
-    def test_remove_tags_from_item(self):
-        item = self._create_item("KEY1", ["keep", "remove"])
-        self.mock_gateway.update_item_metadata.return_value = True
-        
-        result = self.service.remove_tags_from_item("KEY1", item, ["remove"])
-        
-        self.assertTrue(result)
-        args = self.mock_gateway.update_item_metadata.call_args
-        call_tags = args[0][2]["tags"]
-        self.assertEqual(len(call_tags), 1)
-        self.assertEqual(call_tags[0]["tag"], "keep")
+def test_add_tags_to_item(service, mock_gateway):
+    item = create_item("KEY1", ["existing"])
+    mock_gateway.update_item_metadata.return_value = True
+    
+    result = service.add_tags_to_item("KEY1", item, ["new"])
+    
+    assert result is True
+    args = mock_gateway.update_item_metadata.call_args
+    assert args[0][0] == "KEY1"
+    assert args[0][1] == 1
+    assert "tags" in args[0][2]
+    
+    call_tags = args[0][2]["tags"]
+    assert len(call_tags) == 2
+    tag_strings = {t['tag'] for t in call_tags}
+    assert tag_strings == {"existing", "new"}
 
-    def test_rename_tag(self):
-        item1 = self._create_item("KEY1", ["old", "other"])
-        item2 = self._create_item("KEY2", ["old"])
-        self.mock_gateway.get_items_by_tag.return_value = iter([item1, item2])
-        self.mock_gateway.update_item_metadata.return_value = True
-        
-        count = self.service.rename_tag("old", "new")
-        
-        self.assertEqual(count, 2)
-        self.assertEqual(self.mock_gateway.update_item_metadata.call_count, 2)
-        
-        # Verify item1 update
-        call1 = self.mock_gateway.update_item_metadata.call_args_list[0]
-        tags1 = {t['tag'] for t in call1[0][2]["tags"]}
-        self.assertEqual(tags1, {"new", "other"})
+def test_remove_tags_from_item(service, mock_gateway):
+    item = create_item("KEY1", ["keep", "remove"])
+    mock_gateway.update_item_metadata.return_value = True
+    
+    result = service.remove_tags_from_item("KEY1", item, ["remove"])
+    
+    assert result is True
+    args = mock_gateway.update_item_metadata.call_args
+    call_tags = args[0][2]["tags"]
+    assert len(call_tags) == 1
+    assert call_tags[0]["tag"] == "keep"
 
-    def test_delete_tag(self):
-        item1 = self._create_item("KEY1", ["delete_me", "stay"])
-        self.mock_gateway.get_items_by_tag.return_value = iter([item1])
-        self.mock_gateway.update_item_metadata.return_value = True
-        
-        count = self.service.delete_tag("delete_me")
-        
-        self.assertEqual(count, 1)
-        call1 = self.mock_gateway.update_item_metadata.call_args_list[0]
-        tags1 = {t['tag'] for t in call1[0][2]["tags"]}
-        self.assertEqual(tags1, {"stay"})
+def test_rename_tag(service, mock_gateway):
+    item1 = create_item("KEY1", ["old", "other"])
+    item2 = create_item("KEY2", ["old"])
+    mock_gateway.get_items_by_tag.return_value = iter([item1, item2])
+    mock_gateway.update_item_metadata.return_value = True
+    
+    count = service.rename_tag("old", "new")
+    
+    assert count == 2
+    assert mock_gateway.update_item_metadata.call_count == 2
+    
+    # Verify item1 update
+    call1 = mock_gateway.update_item_metadata.call_args_list[0]
+    tags1 = {t['tag'] for t in call1[0][2]["tags"]}
+    assert tags1 == {"new", "other"}
 
-if __name__ == '__main__':
-    unittest.main()
+def test_delete_tag(service, mock_gateway):
+    item1 = create_item("KEY1", ["delete_me", "stay"])
+    mock_gateway.get_items_by_tag.return_value = iter([item1])
+    mock_gateway.update_item_metadata.return_value = True
+    
+    count = service.delete_tag("delete_me")
+    
+    assert count == 1
+    call1 = mock_gateway.update_item_metadata.call_args_list[0]
+    tags1 = {t['tag'] for t in call1[0][2]["tags"]}
+    assert tags1 == {"stay"}

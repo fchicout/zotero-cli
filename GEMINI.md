@@ -57,20 +57,23 @@ A CLI tool to import research papers into Zotero from various sources (arXiv, Bi
     *   **User Action Required:** Rotate Zotero and Semantic Scholar keys.
 
 ## Current State
-*   **Version:** `v0.2.0+` (Feature-rich).
-*   **Tests:** Unit tests cover all services and infrastructure (mocked). CI/CD should now be passing with the latest fixes.
-*   **Documentation:** `README.md` updated with all new commands and Changelog.
+*   **Version:** `v0.2.0+` (Refactored & Rebranded).
+*   **Identity:** Project renamed to `zotero-cli` (internal module `zotero_cli`).
+*   **Quality:**
+    *   Migrated to `pytest`.
+    *   Coverage increased to **79%**.
+    *   CI workflow updated to use `pytest`.
+*   **Documentation:** `README.md` updated with coverage badge and modern dev instructions.
 
-## Next Steps / Pending
-1.  **Tag Auto-Automation:** Implement auto-tagging based on search queries or metadata rules (e.g., "Tag all papers by 'Hinton' with 'DL'").
-2.  **Notes & Annotations:** Support for adding/editing notes in Zotero items.
-3.  **Search:** Implement a generic search command across the library.
-4.  **Sync/Merge:** Advanced duplicate merging (currently only detection is supported).
-5.  **Refinement:** Verify `attach-pdf` robustness in real-world scenarios (handling large files, timeouts, different PDF sources).
+## Accomplished Tasks
 
-## Important Configuration
-*   **Environment Variables:**
-    *   `ZOTERO_API_KEY`
-    *   `ZOTERO_TARGET_GROUP`
-    *   `SEMANTIC_SCHOLAR_API_KEY`
-    *   `UNPAYWALL_EMAIL`
+### Phase 5: Refactoring & Quality (Operation Identity Alignment)
+*   **Rename:** Renamed repository and internal package from `paper2zotero` to `zotero-cli`/`zotero_cli`.
+*   **Testing:**
+    *   Migrated test suite from `unittest` to `pytest`.
+    *   Refactored `test_client.py` and `test_cli.py` to use fixtures.
+    *   Expanded coverage for `zotero_api.py`, `client.py`, and `main.py` (CLI subcommands).
+    *   Fixed Python 3.10 compatibility issue in `arxiv_query_parser.py`.
+*   **CI/CD:** Updated GitHub Actions to run `pytest` with coverage.
+
+### Phase 4: Attachment Management

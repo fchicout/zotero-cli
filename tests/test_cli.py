@@ -151,6 +151,47 @@ def test_missing_api_key_fails(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "Error: ZOTERO_API_KEY environment variable not set" in captured.err
 
+def test_invalid_group_url_fails(monkeypatch, capsys):
+    monkeypatch.setenv('ZOTERO_API_KEY', 'test_key')
+    monkeypatch.setenv('ZOTERO_TARGET_GROUP', 'invalid_url')
+    test_args = ['zotero-cli', 'list-collections']
+    with patch.object(sys, 'argv', test_args):
+        with pytest.raises(SystemExit) as e:
+            main()
+        assert e.value.code == 1
+    captured = capsys.readouterr()
+    assert "Error: Could not extract Group ID" in captured.err
+
+def test_move_command_failure(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.main.CollectionService') as mock_service_cls:
+        mock_service = mock_service_cls.return_value
+        mock_service.move_item.return_value = False
+        test_args = ['zotero-cli', 'move', '--id', 'ID', '--from-col', 'A', '--to-col', 'B']
+        with patch.object(sys, 'argv', test_args):
+            with pytest.raises(SystemExit) as e:
+                main()
+            assert e.value.code == 1
+        assert "Failed to move item" in capsys.readouterr().out
+
+def test_audit_command_failure(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.main.CollectionAuditor') as mock_auditor_cls:
+        mock_auditor = mock_auditor_cls.return_value
+        mock_auditor.audit_collection.return_value = None # Failure
+        test_args = ['zotero-cli', 'audit', '--collection', 'MyCol']
+        with patch.object(sys, 'argv', test_args):
+            with pytest.raises(SystemExit) as e:
+                main()
+            assert e.value.code == 1
+
+def test_no_subcommand_prints_help(mock_clients, env_vars, capsys):
+    test_args = ['zotero-cli']
+    with patch.object(sys, 'argv', test_args):
+        with pytest.raises(SystemExit) as e:
+            main()
+        assert e.value.code == 1
+    captured = capsys.readouterr()
+    assert "usage: zotero-cli" in captured.out
+
 def test_move_command_success(mock_clients, env_vars, capsys):
     with patch('zotero_cli.cli.main.CollectionService') as mock_service_cls:
         mock_service = mock_service_cls.return_value
