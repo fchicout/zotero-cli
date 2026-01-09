@@ -1,4 +1,4 @@
-import unittest
+import pytest
 from unittest.mock import Mock, patch, MagicMock
 import os
 from zotero_cli.core.services.attachment_service import AttachmentService
@@ -7,113 +7,116 @@ from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorServi
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.core.zotero_item import ZoteroItem
 
-class TestAttachmentService(unittest.TestCase):
-    def setUp(self):
-        self.mock_gateway = Mock(spec=ZoteroGateway)
-        self.mock_aggregator = Mock(spec=MetadataAggregatorService)
-        self.service = AttachmentService(self.mock_gateway, self.mock_aggregator)
+@pytest.fixture
+def mock_gateway():
+    return Mock(spec=ZoteroGateway)
 
-    def _create_item(self, key="KEY1", doi="10.1234/test"):
-        return ZoteroItem(key=key, version=1, item_type="journalArticle", title="Test Paper", doi=doi)
+@pytest.fixture
+def mock_aggregator():
+    return Mock(spec=MetadataAggregatorService)
 
-    def test_collection_not_found(self):
-        self.mock_gateway.get_collection_id_by_name.return_value = None
-        count = self.service.attach_pdfs_to_collection("NonExistent")
-        self.assertEqual(count, 0)
-        self.mock_gateway.get_items_in_collection.assert_not_called()
+@pytest.fixture
+def service(mock_gateway, mock_aggregator):
+    return AttachmentService(mock_gateway, mock_aggregator)
 
-    @patch('zotero_cli.core.services.attachment_service.requests.get')
-    @patch('zotero_cli.core.services.attachment_service.os.remove')
-    @patch('zotero_cli.core.services.attachment_service.tempfile.mkstemp')
-    @patch('zotero_cli.core.services.attachment_service.os.fdopen')
-    @patch('zotero_cli.core.services.attachment_service.os.path.exists')
-    def test_attach_pdf_success(self, mock_exists, mock_fdopen, mock_mkstemp, mock_remove, mock_get):
-        # Setup mocks
-        mock_exists.return_value = True
-        self.mock_gateway.get_collection_id_by_name.return_value = "COL1"
-        item = self._create_item()
-        self.mock_gateway.get_items_in_collection.return_value = iter([item])
-        
-        # 1. No existing PDF
-        self.mock_gateway.get_item_children.return_value = []
-        
-        # 2. Metadata found with PDF URL
-        metadata = ResearchPaper(title="Test", abstract="", pdf_url="http://example.com/paper.pdf")
-        self.mock_aggregator.get_enriched_metadata.return_value = metadata
-        
-        # 3. Download setup
-        mock_mkstemp.return_value = (123, "/tmp/temp.pdf")
-        mock_file = MagicMock()
-        mock_fdopen.return_value.__enter__.return_value = mock_file
-        
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.iter_content.return_value = [b"pdf-content"]
-        mock_get.return_value = mock_response
+def create_item(key="KEY1", doi="10.1234/test"):
+    return ZoteroItem(key=key, version=1, item_type="journalArticle", title="Test Paper", doi=doi)
 
-        # 4. Upload success
-        self.mock_gateway.upload_attachment.return_value = True
+def test_collection_not_found(service, mock_gateway):
+    mock_gateway.get_collection_id_by_name.return_value = None
+    count = service.attach_pdfs_to_collection("NonExistent")
+    assert count == 0
+    mock_gateway.get_items_in_collection.assert_not_called()
 
-        # Run
-        count = self.service.attach_pdfs_to_collection("TestCollection")
-        
-        # Assertions
-        self.assertEqual(count, 1)
-        self.mock_gateway.get_collection_id_by_name.assert_called_with("TestCollection")
-        self.mock_gateway.get_item_children.assert_called_with("KEY1")
-        self.mock_aggregator.get_enriched_metadata.assert_called_with("10.1234/test")
-        mock_get.assert_called_with("http://example.com/paper.pdf", stream=True, timeout=30)
-        self.mock_gateway.upload_attachment.assert_called_with("KEY1", "/tmp/temp.pdf")
-        mock_remove.assert_called_with("/tmp/temp.pdf")
+@patch('zotero_cli.core.services.attachment_service.requests.get')
+@patch('zotero_cli.core.services.attachment_service.os.remove')
+@patch('zotero_cli.core.services.attachment_service.tempfile.mkstemp')
+@patch('zotero_cli.core.services.attachment_service.os.fdopen')
+@patch('zotero_cli.core.services.attachment_service.os.path.exists')
+def test_attach_pdf_success(mock_exists, mock_fdopen, mock_mkstemp, mock_remove, mock_get, service, mock_gateway, mock_aggregator):
+    # Setup mocks
+    mock_exists.return_value = True
+    mock_gateway.get_collection_id_by_name.return_value = "COL1"
+    item = create_item()
+    mock_gateway.get_items_in_collection.return_value = iter([item])
+    
+    # 1. No existing PDF
+    mock_gateway.get_item_children.return_value = []
+    
+    # 2. Metadata found with PDF URL
+    metadata = ResearchPaper(title="Test", abstract="", pdf_url="http://example.com/paper.pdf")
+    mock_aggregator.get_enriched_metadata.return_value = metadata
+    
+    # 3. Download setup
+    mock_mkstemp.return_value = (123, "/tmp/temp.pdf")
+    mock_file = MagicMock()
+    mock_fdopen.return_value.__enter__.return_value = mock_file
+    
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.iter_content.return_value = [b"pdf-content"]
+    mock_get.return_value = mock_response
 
-    def test_already_has_pdf(self):
-        self.mock_gateway.get_collection_id_by_name.return_value = "COL1"
-        item = self._create_item()
-        self.mock_gateway.get_items_in_collection.return_value = iter([item])
-        
-        # Simulate existing PDF attachment
-        attachment = {
-            'data': {
-                'itemType': 'attachment',
-                'linkMode': 'imported_file',
-                'contentType': 'application/pdf'
-            }
+    # 4. Upload success
+    mock_gateway.upload_attachment.return_value = True
+
+    # Run
+    count = service.attach_pdfs_to_collection("TestCollection")
+    
+    # Assertions
+    assert count == 1
+    mock_gateway.get_collection_id_by_name.assert_called_with("TestCollection")
+    mock_gateway.get_item_children.assert_called_with("KEY1")
+    mock_aggregator.get_enriched_metadata.assert_called_with("10.1234/test")
+    mock_get.assert_called_with("http://example.com/paper.pdf", stream=True, timeout=30)
+    mock_gateway.upload_attachment.assert_called_with("KEY1", "/tmp/temp.pdf")
+    mock_remove.assert_called_with("/tmp/temp.pdf")
+
+def test_already_has_pdf(service, mock_gateway, mock_aggregator):
+    mock_gateway.get_collection_id_by_name.return_value = "COL1"
+    item = create_item()
+    mock_gateway.get_items_in_collection.return_value = iter([item])
+    
+    # Simulate existing PDF attachment
+    attachment = {
+        'data': {
+            'itemType': 'attachment',
+            'linkMode': 'imported_file',
+            'contentType': 'application/pdf'
         }
-        self.mock_gateway.get_item_children.return_value = [attachment]
-        
-        count = self.service.attach_pdfs_to_collection("TestCollection")
-        
-        self.assertEqual(count, 0)
-        self.mock_aggregator.get_enriched_metadata.assert_not_called()
+    }
+    mock_gateway.get_item_children.return_value = [attachment]
+    
+    count = service.attach_pdfs_to_collection("TestCollection")
+    
+    assert count == 0
+    mock_aggregator.get_enriched_metadata.assert_not_called()
 
-    def test_no_identifier(self):
-        self.mock_gateway.get_collection_id_by_name.return_value = "COL1"
-        item = ZoteroItem(key="KEY1", version=1, item_type="note") # No DOI/ArXiv
-        self.mock_gateway.get_items_in_collection.return_value = iter([item])
-        self.mock_gateway.get_item_children.return_value = []
+def test_no_identifier(service, mock_gateway, mock_aggregator):
+    mock_gateway.get_collection_id_by_name.return_value = "COL1"
+    item = ZoteroItem(key="KEY1", version=1, item_type="note") # No DOI/ArXiv
+    mock_gateway.get_items_in_collection.return_value = iter([item])
+    mock_gateway.get_item_children.return_value = []
 
-        count = self.service.attach_pdfs_to_collection("TestCollection")
-        
-        self.assertEqual(count, 0)
-        self.mock_aggregator.get_enriched_metadata.assert_not_called()
+    count = service.attach_pdfs_to_collection("TestCollection")
+    
+    assert count == 0
+    mock_aggregator.get_enriched_metadata.assert_not_called()
 
-    @patch('zotero_cli.core.services.attachment_service.requests.get')
-    def test_download_failure(self, mock_get):
-        self.mock_gateway.get_collection_id_by_name.return_value = "COL1"
-        item = self._create_item()
-        self.mock_gateway.get_items_in_collection.return_value = iter([item])
-        self.mock_gateway.get_item_children.return_value = []
-        
-        metadata = ResearchPaper(title="Test", abstract="", pdf_url="http://example.com/fail.pdf")
-        self.mock_aggregator.get_enriched_metadata.return_value = metadata
-        
-        # Simulate download error
-        mock_get.side_effect = Exception("Download failed")
+@patch('zotero_cli.core.services.attachment_service.requests.get')
+def test_download_failure(mock_get, service, mock_gateway, mock_aggregator):
+    mock_gateway.get_collection_id_by_name.return_value = "COL1"
+    item = create_item()
+    mock_gateway.get_items_in_collection.return_value = iter([item])
+    mock_gateway.get_item_children.return_value = []
+    
+    metadata = ResearchPaper(title="Test", abstract="", pdf_url="http://example.com/fail.pdf")
+    mock_aggregator.get_enriched_metadata.return_value = metadata
+    
+    # Simulate download error
+    mock_get.side_effect = Exception("Download failed")
 
-        count = self.service.attach_pdfs_to_collection("TestCollection")
-        
-        self.assertEqual(count, 0)
-        self.mock_gateway.upload_attachment.assert_not_called()
-
-if __name__ == '__main__':
-    unittest.main()
+    count = service.attach_pdfs_to_collection("TestCollection")
+    
+    assert count == 0
+    mock_gateway.upload_attachment.assert_not_called()

@@ -2,7 +2,7 @@
 
 ![Build Status](https://github.com/fchicout/zotero-cli/actions/workflows/release.yml/badge.svg)
 ![Tests](https://github.com/fchicout/zotero-cli/actions/workflows/tests.yml/badge.svg)
-![Coverage](https://img.shields.io/badge/coverage-79%25-green)
+![Coverage](https://img.shields.io/badge/coverage-80%25-green)
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
