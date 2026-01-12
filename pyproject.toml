@@ -28,7 +28,8 @@ dependencies = [
     "feedparser",
     "bibtexparser",
     "arxiv",
-    "rispy"
+    "rispy",
+    "rich"
 ]
 
 [project.urls]

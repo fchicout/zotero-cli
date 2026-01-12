@@ -239,6 +239,24 @@ class ZoteroAPIClient(ZoteroGateway):
                 print(f"Response content: {e.response.text}")
             return False
 
+    def create_note(self, parent_item_key: str, note_content: str) -> bool:
+        url = f"{self.BASE_URL}/groups/{self.group_id}/items"
+        payload = [{
+            "itemType": "note",
+            "parentItem": parent_item_key,
+            "note": note_content
+        }]
+        
+        try:
+            response = self.session.post(url, json=payload)
+            response.raise_for_status()
+            return True
+        except requests.exceptions.RequestException as e:
+            print(f"Error creating note for {parent_item_key}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"Response content: {e.response.text}")
+            return False
+
     def get_items_in_collection(self, collection_id: str) -> Iterator[ZoteroItem]:
         url = f"{self.BASE_URL}/groups/{self.group_id}/collections/{collection_id}/items"
         limit = 100

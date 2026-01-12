@@ -106,6 +106,15 @@ class ZoteroGateway(ABC):
         """
         pass
 
+    @abstractmethod
+    def create_note(self, parent_item_key: str, note_content: str) -> bool:
+        """
+        Creates a child note for a parent item.
+        'note_content' should be HTML.
+        Returns True on success, False otherwise.
+        """
+        pass
+
 class ArxivGateway(ABC):
     @abstractmethod
     def search(self, query: str, limit: int = 100, sort_by: str = "relevance", sort_order: str = "descending") -> Iterator[ResearchPaper]:

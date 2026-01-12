@@ -23,6 +23,7 @@ from zotero_cli.core.services.attachment_service import AttachmentService
 from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
 from zotero_cli.core.services.snapshot_service import SnapshotService
 from zotero_cli.core.services.lookup_service import LookupService
+from zotero_cli.core.services.screening_service import ScreeningService
 
 def get_zotero_gateway():
     """Helper to get Zotero client from environment variables."""
@@ -295,6 +296,26 @@ def lookup_command(args):
     
     output = service.lookup_items(keys, fields, args.format)
     print(output)
+
+def decision_command(args):
+    """Handles the 'decision' subcommand."""
+    gateway = get_zotero_gateway()
+    service = ScreeningService(gateway)
+    
+    success = service.record_decision(
+        item_key=args.key,
+        decision=args.vote,
+        code=args.code,
+        reason=args.reason,
+        source_collection=args.source,
+        target_collection=args.target,
+        agent="zotero-cli-agent" if args.agent_led else "zotero-cli"
+    )
+    
+    if success:
+        print(f"Successfully recorded decision '{args.vote}' for item '{args.key}'.")
+    else:
+        sys.exit(1)
 
 def add_command(args):
     """Handles the 'add' subcommand."""
@@ -597,6 +618,17 @@ def main():
     lookup_parser.add_argument("--fields", default="key,arxiv_id,title,date,url", help="Comma-separated list of fields to include. Default: key,arxiv_id,title,date,url")
     lookup_parser.add_argument("--format", default="table", choices=["table", "csv", "json"], help="Output format. Default: table.")
     lookup_parser.set_defaults(func=lookup_command)
+
+    # Add 'decision' subcommand
+    decision_parser = subparsers.add_parser("decision", help="Record a screening decision for an item.")
+    decision_parser.add_argument("--key", required=True, help="Zotero Item Key.")
+    decision_parser.add_argument("--vote", required=True, choices=["INCLUDE", "EXCLUDE"], help="The decision (INCLUDE/EXCLUDE).")
+    decision_parser.add_argument("--code", required=True, help="Criterion code (e.g., IC1, EC4).")
+    decision_parser.add_argument("--reason", help="Optional reason text.")
+    decision_parser.add_argument("--source", help="Optional source collection name (to move from).")
+    decision_parser.add_argument("--target", help="Optional target collection name (to move to).")
+    decision_parser.add_argument("--agent-led", action="store_true", help="Flag if decision was made by an agent.")
+    decision_parser.set_defaults(func=decision_command)
 
     args = parser.parse_args()
 
