@@ -3,6 +3,7 @@ import json
 import time
 from datetime import datetime, timezone
 import sys
+import traceback
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -35,7 +36,7 @@ class SnapshotService:
             callback: Optional function to report progress (useful for CLI spinners or WebUI bars).
         
         Returns:
-            bool: True if successful, False otherwise.
+            bool: True if successful (even if partial), False otherwise.
         """
         # 1. Resolve Collection ID
         if callback:
@@ -51,50 +52,74 @@ class SnapshotService:
             callback(0, 0, f"Fetching items from '{collection_name}'...")
         
         # We fetch raw items first to get the count
-        # Optimization: In a real async world, we'd stream this. 
-        # Here we materialize the list to give a proper progress bar.
         items_iter = self.gateway.get_items_in_collection(collection_id)
         parent_items = list(items_iter)
         total_items = len(parent_items)
 
         snapshot_data: List[Dict[str, Any]] = []
+        failed_items: List[Dict[str, Any]] = []
 
         # 3. Iterate and Enrich (The "Deep Fetch")
         for index, item in enumerate(parent_items):
             if callback:
                 callback(index + 1, total_items, f"Processing: {item.title[:30] if item.title else 'Untitled'}...")
 
-            # Convert to dict representation (we want to preserve data)
-            # Since ZoteroItem is a simplified view, for a TRUE snapshot we might want raw data.
-            # However, looking at the current codebase, ZoteroItem is the standard currency.
-            # We will construct a snapshot object that includes the ZoteroItem fields + children.
-            
-            item_data = self._serialize_item(item)
-            
-            # Fetch Children (Notes/Attachments)
-            # This is the N+1 API call bottleneck. 
-            # In V2, we should use 'ZoteroAPIClient.get_items(collection=..., include=children)' if possible
-            # or fetch all items in collection including children and stitch in memory.
-            # For now, we follow the robust iterative approach.
-            children_raw = self.gateway.get_item_children(item.key)
-            
-            # Nest children
-            item_data['children'] = children_raw
-            
-            snapshot_data.append(item_data)
+            try:
+                item_data = self._serialize_item(item)
+                
+                # Fetch Children (Notes/Attachments)
+                children_raw = self.gateway.get_item_children(item.key)
+                
+                # Nest children
+                item_data['children'] = children_raw
+                snapshot_data.append(item_data)
+
+            except Exception as e:
+                # Capture the failure but continue processing
+                print(f"\nWarning: Failed to fetch children for item '{item.key}'. Error: {e}", file=sys.stderr)
+                failed_items.append({
+                    "key": item.key,
+                    "title": item.title,
+                    "error": str(e)
+                })
 
         # 4. Construct Final Artifact
+        timestamp = datetime.now(timezone.utc).isoformat()
+        
         artifact = {
             "meta": {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": timestamp,
                 "collection_name": collection_name,
                 "collection_id": collection_id,
-                "item_count": total_items,
-                "tool_version": "zotero-cli-v0.4.0-dev", # Should grab from package
-                "schema_version": "1.0"
+                "total_items_found": total_items,
+                "items_processed_successfully": len(snapshot_data),
+                "items_failed": len(failed_items),
+                "tool_version": "zotero-cli-v0.4.0-dev",
+                "schema_version": "1.0",
+                "status": "partial_success" if failed_items else "success"
             },
+            "failures": failed_items,
             "items": snapshot_data
         }
+
+        # 5. Write to Disk
+        if callback:
+            callback(total_items, total_items, "Writing snapshot to disk...")
+            
+        try:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(artifact, f, indent=2, ensure_ascii=False)
+            
+            if failed_items:
+                print(f"\nWarning: Snapshot completed with {len(failed_items)} failures. Check 'failures' block in output.", file=sys.stderr)
+            
+            return True
+        except IOError as e:
+            print(f"Error writing snapshot file: {e}", file=sys.stderr)
+            return False
+
+    def _serialize_item(self, item: ZoteroItem) -> Dict[str, Any]:
+
 
         # 5. Write to Disk
         if callback:

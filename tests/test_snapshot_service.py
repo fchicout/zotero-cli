@@ -59,13 +59,52 @@ def test_freeze_collection_success(snapshot_service, mock_gateway, tmp_path):
         data = json.load(f)
         
     assert data["meta"]["collection_name"] == collection_name
-    assert data["meta"]["item_count"] == 2
+    assert data["meta"]["total_items_found"] == 2
     assert len(data["items"]) == 2
     
     item1_data = next(i for i in data["items"] if i["key"] == "ITEM1")
     assert item1_data["title"] == "Paper 1"
     assert len(item1_data["children"]) == 1
     assert item1_data["children"][0]["key"] == "NOTE1"
+
+def test_freeze_collection_partial_failure(snapshot_service, mock_gateway, tmp_path):
+    # Setup
+    collection_name = "Partial Fail Collection"
+    collection_id = "COLL_PARTIAL"
+    output_file = tmp_path / "snapshot_partial.json"
+    
+    mock_gateway.get_collection_id_by_name.return_value = collection_id
+    
+    item1 = ZoteroItem(key="ITEM1", version=1, item_type="journalArticle", title="Paper 1")
+    item2 = ZoteroItem(key="ITEM2", version=1, item_type="journalArticle", title="Paper 2")
+    
+    mock_gateway.get_items_in_collection.return_value = iter([item1, item2])
+    
+    # Simulate first item succeeds, second item raises Exception
+    mock_gateway.get_item_children.side_effect = [
+        [], # ITEM1 children
+        Exception("API Rate Limit") # ITEM2 fails
+    ]
+    
+    # Execute
+    success = snapshot_service.freeze_collection(collection_name, str(output_file))
+    
+    # Verify
+    assert success is True # Should still return True (Partial Success)
+    
+    with open(output_file, 'r') as f:
+        data = json.load(f)
+        
+    assert data["meta"]["items_processed_successfully"] == 1
+    assert data["meta"]["items_failed"] == 1
+    assert data["meta"]["status"] == "partial_success"
+    
+    assert len(data["items"]) == 1
+    assert data["items"][0]["key"] == "ITEM1"
+    
+    assert len(data["failures"]) == 1
+    assert data["failures"][0]["key"] == "ITEM2"
+    assert "API Rate Limit" in data["failures"][0]["error"]
 
 def test_freeze_collection_not_found(snapshot_service, mock_gateway, tmp_path):
     collection_name = "Nonexistent"
