@@ -21,6 +21,7 @@ from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorServi
 from zotero_cli.core.services.tag_service import TagService
 from zotero_cli.core.services.attachment_service import AttachmentService 
 from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
+from zotero_cli.core.services.snapshot_service import SnapshotService
 
 def get_zotero_gateway():
     """Helper to get Zotero client from environment variables."""
@@ -245,6 +246,29 @@ def search_arxiv_command(args):
         print(f"{count}. {item.title} ({item.year})")
         
     print(f"\nTotal papers found: {count}")
+
+def freeze_command(args):
+    """Handles the 'freeze' subcommand."""
+    gateway = get_zotero_gateway()
+    service = SnapshotService(gateway)
+
+    def cli_progress(current: int, total: int, message: str):
+        if total > 0:
+            percent = (current / total) * 100
+            sys.stdout.write(f"\r[{percent:5.1f}%] {message:<60}")
+        else:
+            sys.stdout.write(f"\r[ ... ] {message:<60}")
+        sys.stdout.flush()
+
+    print(f"Starting snapshot of collection '{args.collection}'...")
+    success = service.freeze_collection(args.collection, args.output, cli_progress)
+    print("") # New line after progress bar
+
+    if success:
+        print(f"Successfully froze collection '{args.collection}' to '{args.output}'.")
+    else:
+        print(f"Failed to freeze collection. Check stderr for details.")
+        sys.exit(1)
 
 def add_command(args):
     """Handles the 'add' subcommand."""
@@ -531,6 +555,12 @@ def main():
     search_group.add_argument("--file", help="Path to a file containing the query.")
     search_arxiv_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
     search_arxiv_parser.set_defaults(func=search_arxiv_command)
+
+    # Add 'freeze' subcommand
+    freeze_parser = subparsers.add_parser("freeze", help="Create a JSON snapshot of a collection for audit.")
+    freeze_parser.add_argument("--collection", required=True, help="The Zotero collection name to freeze.")
+    freeze_parser.add_argument("--output", required=True, help="Output JSON file path.")
+    freeze_parser.set_defaults(func=freeze_command)
 
     args = parser.parse_args()
 

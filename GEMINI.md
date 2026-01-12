@@ -43,6 +43,26 @@ A CLI tool to import research papers into Zotero from various sources (arXiv, Bi
 *   **Gateway:** Added `get_tags`, `get_items_by_tag`, and `get_item` to `ZoteroGateway`.
 
 ### Phase 4: Attachment Management
+
+## Backlog & Roadmap
+
+### Phase 7: SLR Professionalization (The "Dr. Vance" Suite)
+*   **Bulk Metadata Lookup (`lookup`):**
+    *   *Goal:* Generate synthesis tables directly from a list of Keys.
+    *   *Inputs:* Key list (CSV/Arg) + Requested Fields.
+    *   *Outputs:* Formatted Table (Markdown/CSV).
+*   **Interactive Screening Mode (`screen`):**
+    *   *Goal:* Internalize the screening loop (Tinder for Papers).
+    *   *Features:* Terminal UI, single-keypress decision (I/E), auto-move to collection, auto-attach JSON rationale note.
+*   **Automated PRISMA Reporting (`report`):**
+    *   *Goal:* One-click generation of the "Screening Report".
+    *   *Features:* Parse JSON notes, count decisions, generate PRISMA flow stats, export Markdown summary.
+*   **Smart Filtering (`find`):**
+    *   *Goal:* Advanced querying of audit data.
+    *   *Features:* Search by JSON note content (e.g., "Show all excluded by EC1").
+*   **Snapshot/Freeze (`freeze`):**
+    *   *Goal:* Audit verification.
+    *   *Features:* Dump full collection state to local JSON file for point-in-time proof.
 *   **Infrastructure:** Implemented `upload_attachment` in `ZoteroAPIClient` (handling Zotero's 3-step upload protocol).
 *   **Service:** Created `AttachmentService` to identify missing PDFs, fetch URLs via Unpaywall, download, and upload to Zotero.
 *   **CLI:** Added `attach-pdf` command.
