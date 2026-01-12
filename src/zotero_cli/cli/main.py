@@ -24,6 +24,7 @@ from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
 from zotero_cli.core.services.snapshot_service import SnapshotService
 from zotero_cli.core.services.lookup_service import LookupService
 from zotero_cli.core.services.screening_service import ScreeningService
+from zotero_cli.cli.tui import TuiScreeningService
 
 def get_zotero_gateway():
     """Helper to get Zotero client from environment variables."""
@@ -316,6 +317,17 @@ def decision_command(args):
         print(f"Successfully recorded decision '{args.vote}' for item '{args.key}'.")
     else:
         sys.exit(1)
+
+def screen_command(args):
+    """Handles the 'screen' subcommand (TUI)."""
+    try:
+        gateway = get_zotero_gateway()
+        service = ScreeningService(gateway)
+        tui = TuiScreeningService(service)
+        tui.run_screening_session(args.source, args.include, args.exclude)
+    except KeyboardInterrupt:
+        print("\nSession interrupted by user.")
+        sys.exit(0)
 
 def add_command(args):
     """Handles the 'add' subcommand."""
@@ -629,6 +641,13 @@ def main():
     decision_parser.add_argument("--target", help="Optional target collection name (to move to).")
     decision_parser.add_argument("--agent-led", action="store_true", help="Flag if decision was made by an agent.")
     decision_parser.set_defaults(func=decision_command)
+
+    # Add 'screen' subcommand
+    screen_parser = subparsers.add_parser("screen", help="Interactive TUI for screening papers.")
+    screen_parser.add_argument("--source", required=True, help="Source collection (e.g., 'raw_arXiv').")
+    screen_parser.add_argument("--include", required=True, help="Target collection for inclusions.")
+    screen_parser.add_argument("--exclude", required=True, help="Target collection for exclusions.")
+    screen_parser.set_defaults(func=screen_command)
 
     args = parser.parse_args()
 
