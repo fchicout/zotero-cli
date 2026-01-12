@@ -22,6 +22,7 @@ from zotero_cli.core.services.tag_service import TagService
 from zotero_cli.core.services.attachment_service import AttachmentService 
 from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
 from zotero_cli.core.services.snapshot_service import SnapshotService
+from zotero_cli.core.services.lookup_service import LookupService
 
 def get_zotero_gateway():
     """Helper to get Zotero client from environment variables."""
@@ -269,6 +270,31 @@ def freeze_command(args):
     else:
         print(f"Failed to freeze collection. Check stderr for details.")
         sys.exit(1)
+
+def lookup_command(args):
+    """Handles the 'lookup' subcommand."""
+    gateway = get_zotero_gateway()
+    service = LookupService(gateway)
+    
+    keys = []
+    if args.keys:
+        keys = [k.strip() for k in args.keys.split(',')]
+    elif args.file:
+        try:
+            with open(args.file, 'r') as f:
+                keys = [line.strip() for line in f if line.strip()]
+        except FileNotFoundError:
+            print(f"Error: File '{args.file}' not found.", file=sys.stderr)
+            sys.exit(1)
+            
+    if not keys:
+        print("Error: No keys provided. Use --keys or --file.", file=sys.stderr)
+        sys.exit(1)
+        
+    fields = [f.strip() for f in args.fields.split(',')]
+    
+    output = service.lookup_items(keys, fields, args.format)
+    print(output)
 
 def add_command(args):
     """Handles the 'add' subcommand."""
@@ -561,6 +587,16 @@ def main():
     freeze_parser.add_argument("--collection", required=True, help="The Zotero collection name to freeze.")
     freeze_parser.add_argument("--output", required=True, help="Output JSON file path.")
     freeze_parser.set_defaults(func=freeze_command)
+
+    # Add 'lookup' subcommand
+    lookup_parser = subparsers.add_parser("lookup", help="Bulk fetch item metadata by key.")
+    keys_group = lookup_parser.add_mutually_exclusive_group(required=True)
+    keys_group.add_argument("--keys", help="Comma-separated list of Zotero Item Keys.")
+    keys_group.add_argument("--file", help="File containing list of keys (one per line).")
+    
+    lookup_parser.add_argument("--fields", default="key,arxiv_id,title,date,url", help="Comma-separated list of fields to include. Default: key,arxiv_id,title,date,url")
+    lookup_parser.add_argument("--format", default="table", choices=["table", "csv", "json"], help="Output format. Default: table.")
+    lookup_parser.set_defaults(func=lookup_command)
 
     args = parser.parse_args()
 
