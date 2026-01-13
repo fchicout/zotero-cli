@@ -1,5 +1,15 @@
 # Changelog
 
+## [v1.0.9] - 2026-01-13
+
+### Performance
+*   **Move Command:** Optimized `manage move` to use direct Item Key lookup (O(1)) instead of scanning the entire source collection (O(N)). Huge speedup for large libraries.
+
+## [v1.0.8] - 2026-01-13
+
+### Bug Fixes
+*   **Collection Movement:** Improved robustness of `screen` command item movement. Now correctly handles Collection Keys vs Names and avoids unnecessary API calls if collections haven't changed.
+
 ## [v1.0.7] - 2026-01-13
 
 ### Features

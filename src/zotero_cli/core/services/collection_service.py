@@ -9,20 +9,37 @@ class CollectionService:
 
     def move_item(self, source_col_name: str, dest_col_name: str, identifier: str) -> bool:
         """
-        Moves a paper identified by DOI or arXiv ID from source collection to destiny collection.
+        Moves a paper identified by Key, DOI or arXiv ID from source collection to destiny collection.
         Returns True if successful, False if item not found or error.
         """
         source_id = self.gateway.get_collection_id_by_name(source_col_name)
         if not source_id:
-            print(f"Source collection '{source_col_name}' not found.")
-            return False
+            # Fallback: assume user passed Key
+            source_id = source_col_name
 
         dest_id = self.gateway.get_collection_id_by_name(dest_col_name)
         if not dest_id:
-            print(f"Destiny collection '{dest_col_name}' not found.")
-            return False
+            dest_id = dest_col_name
 
-        # Iterate through items in source collection
+        # 1. Optimistic approach: Assume identifier is a Key
+        item = self.gateway.get_item(identifier)
+        if item:
+            # Verify membership in source (logic check)
+            if source_id in item.collections:
+                return self._perform_move(item, source_id, dest_id)
+            else:
+                # Item exists but not in source. If forced move logic desired?
+                # Maybe the user is mistaken about source name, but wants it in dest.
+                # Let's trust the item exists and just ensure it ends up in dest.
+                # But strict logic requires source removal.
+                print(f"Item '{identifier}' found but not in source collection '{source_col_name}'.")
+                # We can still add it to dest if desired, but "Move" implies removing from source.
+                # If we return False here, we fail the move. 
+                # Let's print warning and try to add to dest anyway? No, strict move.
+                return False
+
+        # 2. Slow approach: Search by DOI/ArXiv in source collection
+        print(f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'...")
         for item in self.gateway.get_items_in_collection(source_id):
             if self._is_match(item, identifier):
                 return self._perform_move(item, source_id, dest_id)
