@@ -1,5 +1,17 @@
 # Changelog
 
+## [v1.0.5] - 2026-01-13
+
+### Features
+*   **Global Flag:** Added `--user` flag to force the tool to use the Personal Library, bypassing any active `ZOTERO_TARGET_GROUP`.
+
+## [v1.0.4] - 2026-01-13
+
+### Features
+*   **Command:** Added `zotero-cli inspect` for viewing detailed item metadata and children.
+*   **UX:** `zotero-cli list items` now filters out nested items (attachments/notes) for a cleaner view.
+*   **UX:** `zotero-cli list items` supports case-insensitive partial collection names.
+
 ## [v1.0.3] - 2026-01-13
 
 ### Features

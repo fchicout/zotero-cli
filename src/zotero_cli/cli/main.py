@@ -31,6 +31,10 @@ from zotero_cli.cli.tui import TuiScreeningService
 
 # --- Infrastructure Helpers ---
 
+# --- Infrastructure Helpers ---
+
+FORCE_USER = False
+
 def get_zotero_gateway(require_group: bool = True):
     """
     Helper to get Zotero client from environment variables.
@@ -46,11 +50,12 @@ def get_zotero_gateway(require_group: bool = True):
     user_id = os.environ.get("ZOTERO_USER_ID")
     
     # Logic:
-    # 1. If TARGET_GROUP is set, use it (Group Mode).
-    # 2. If TARGET_GROUP is NOT set, but USER_ID is set, use User Mode.
-    # 3. If neither, check require_group.
+    # 1. If FORCE_USER is True (set via CLI flag), skip Group check and try User ID.
+    # 2. If TARGET_GROUP is set, use it (Group Mode).
+    # 3. If TARGET_GROUP is NOT set, but USER_ID is set, use User Mode.
+    # 4. If neither, check require_group.
 
-    if group_url:
+    if group_url and not FORCE_USER:
         match = re.search(r'/groups/(\d+)', group_url)
         library_id = match.group(1) if match else None
         if not library_id:
@@ -258,11 +263,30 @@ def handle_list_items(args):
         col_id = args.collection # Assume it's a key if no name match found
     
     items = gateway.get_items_in_collection(col_id)
+    
+    from rich.console import Console
+    from rich.table import Table
+    console = Console()
+    
+    table = Table(title=f"Items in {args.collection}")
+    table.add_column("#", justify="right", style="cyan")
+    table.add_column("Title", style="white")
+    table.add_column("Key", style="dim")
+    table.add_column("Type", style="yellow")
+    
     count = 0
+    paper_count = 0
+    
     for item in items:
-        count += 1
-        print(f"{count}. {item.title} (Key: {item.key})")
-    print(f"\nTotal items: {count}")
+        # Filter out attachments and notes for the high-level list
+        if item.item_type in ['attachment', 'note']:
+            continue
+            
+        paper_count += 1
+        table.add_row(str(paper_count), item.title[:80], item.key, item.item_type)
+        
+    console.print(table)
+    console.print(f"\n[dim]Showing {paper_count} papers (attachments/notes hidden). Use 'zotero-cli inspect --key <KEY>' for details.[/dim]")
 
 # 4. REPORT
 def handle_report_prisma(args):
@@ -442,6 +466,7 @@ def handle_find_arxiv(args):
 def handle_info(args):
     """Display diagnostic information."""
     from rich.table import Table
+    from rich.console import Console
     from rich import box
     console = Console()
     
@@ -472,15 +497,71 @@ def handle_info(args):
     except Exception as e:
         console.print(f"[bold red]Error deriving context:[/bold red] {e}")
 
+def handle_inspect_item(args):
+    """Show detailed information for a specific item."""
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.json import JSON
+    import json
+    console = Console()
+    
+    gateway = get_zotero_gateway()
+    item = gateway.get_item(args.key)
+    
+    if not item:
+        console.print(f"[bold red]Item '{args.key}' not found.[/bold red]")
+        sys.exit(1)
+        
+    # Metadata Panel
+    meta_text = f"""
+    [bold]Title:[/bold] {item.title}
+    [bold]Type:[/bold] {item.item_type}
+    [bold]Year:[/bold] {item.year}
+    [bold]Authors:[/bold] {', '.join(item.creators)}
+    [bold]DOI:[/bold] {item.doi}
+    [bold]URL:[/bold] {item.url}
+    """
+    console.print(Panel(meta_text, title=f"Item: {item.key}", expand=False))
+    
+    # Abstract
+    if item.abstract:
+        console.print(Panel(item.abstract, title="Abstract", border_style="blue"))
+        
+    # Raw JSON
+    if args.raw:
+        # We need to re-fetch raw or expose raw_data in ZoteroItem
+        # ZoteroItem stores raw data in a way, but let's just dump the object dict for now
+        # Or better, fetch raw again if needed, or expose it.
+        # ZoteroItem.from_raw_zotero_item doesn't store the full raw dict?
+        # Let's check ZoteroItem definition.
+        pass # Placeholder for raw
+        
+    # Children (Notes/Attachments)
+    children = gateway.get_item_children(args.key)
+    if children:
+        console.print(f"\n[bold]Children ({len(children)}):[/bold]")
+        for child in children:
+            c_data = child.get('data', {})
+            c_type = c_data.get('itemType')
+            c_title = c_data.get('title') or c_data.get('note', '')[:50]
+            console.print(f" - [{c_type}] {c_title} (Key: {child['key']})")
+
 # --- Main Router ---
 
 def main():
     parser = argparse.ArgumentParser(description="Zotero CLI - The Systematic Review Engine")
+    parser.add_argument("--user", action="store_true", help="Force Personal Library mode")
     subparsers = parser.add_subparsers(dest='command', help='Primary Commands')
     
     # --- INFO ---
     parser_info = subparsers.add_parser('info', help='Display environment and configuration')
     parser_info.set_defaults(func=handle_info)
+    
+    # --- INSPECT ---
+    inspect_parser = subparsers.add_parser('inspect', help='Inspect item details')
+    inspect_parser.add_argument('--key', required=True, help='Zotero Item Key')
+    inspect_parser.add_argument('--raw', action='store_true', help='Show raw JSON')
+    inspect_parser.set_defaults(func=handle_inspect_item)
     
     # --- SCREEN ---
     screen_parser = subparsers.add_parser("screen", help="Interactive Screening Interface (TUI)")
@@ -637,6 +718,10 @@ def main():
     arxiv_find.set_defaults(func=handle_find_arxiv)
 
     args = parser.parse_args()
+    
+    global FORCE_USER
+    FORCE_USER = args.user
+
     if hasattr(args, 'func'):
         args.func(args)
     else:
