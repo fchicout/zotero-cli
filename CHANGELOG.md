@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.0.2] - 2026-01-13
+
+### Quality
+*   **Test Coverage:** Increased to 82% (Green) by adding comprehensive failure scenarios for API wrappers.
+*   **Verification:** Verified full CLI command tree functionality.
+
 ## [v1.0.1] - 2026-01-13
 
 ### Architecture
