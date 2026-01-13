@@ -25,6 +25,11 @@ def test_move_item_success_doi(service, mock_gateway):
         }
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
+    # The new logic tries get_item first. Let's make it fail lookup by ID so it falls back to scan,
+    # OR better, make it succeed if we pass the key, but here we pass DOI.
+    # If we pass DOI "10.1234/test" to get_item, it should return None (not found by key).
+    mock_gateway.get_item.return_value = None 
+    
     mock_gateway.get_items_in_collection.return_value = iter([item])
     mock_gateway.update_item_collections.return_value = True
 
@@ -41,6 +46,7 @@ def test_move_item_success_doi(service, mock_gateway):
 def test_move_item_not_found(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
         lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
+    mock_gateway.get_item.return_value = None
     mock_gateway.get_items_in_collection.return_value = iter([])
     
     result = service.move_item("Source", "Dest", "missing")
@@ -60,6 +66,7 @@ def test_move_item_success_arxiv(service, mock_gateway):
         }
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
+    mock_gateway.get_item.return_value = None # Assume lookup by key fails for arxiv ID
     mock_gateway.get_items_in_collection.return_value = iter([item])
     mock_gateway.update_item_collections.return_value = True
 
@@ -72,6 +79,29 @@ def test_collections_not_found(service, mock_gateway):
     
     assert service.move_item("BadSource", "Dest", "id") is False
     assert service.move_item("Source", "BadDest", "id") is False
+
+# New Test: Direct Key Lookup Success (The optimization)
+def test_move_item_success_key(service, mock_gateway):
+    mock_gateway.get_collection_id_by_name.side_effect = \
+        lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
+    
+    raw_item = {
+        'key': 'KEY123',
+        'data': {
+            'version': 1,
+            'collections': ['ID_SRC']
+        }
+    }
+    item = ZoteroItem.from_raw_zotero_item(raw_item)
+    # This time get_item succeeds!
+    mock_gateway.get_item.return_value = item
+    mock_gateway.update_item_collections.return_value = True
+
+    result = service.move_item("Source", "Dest", "KEY123")
+    
+    assert result is True
+    mock_gateway.get_items_in_collection.assert_not_called() # Optimization verified!
+    mock_gateway.update_item_collections.assert_called()
 
 def test_empty_collection_success_simple(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.return_value = "COLL_ID"
