@@ -76,6 +76,8 @@ def test_move_item_success_arxiv(service, mock_gateway):
 def test_collections_not_found(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
         lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
+    mock_gateway.get_item.return_value = None # Item not found by key
+    mock_gateway.get_items_in_collection.return_value = iter([]) # Not found by scan either
     
     assert service.move_item("BadSource", "Dest", "id") is False
     assert service.move_item("Source", "BadDest", "id") is False

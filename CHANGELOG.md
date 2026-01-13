@@ -1,5 +1,10 @@
 # Changelog
 
+## [v1.0.11] - 2026-01-13
+
+### Quality
+*   **Tests:** Fixed additional edge cases in `CollectionService` tests for move operations.
+
 ## [v1.0.10] - 2026-01-13
 
 ### Quality
