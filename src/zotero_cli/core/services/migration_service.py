@@ -53,7 +53,7 @@ class MigrationService:
         return stats
 
     def _is_screening_note(self, content: str) -> bool:
-        return 'screening_decision' in content or 'audit_version' in content
+        return 'screening_decision' in content or 'audit_version' in content or '"signature":' in content or '"decision":' in content
 
     def _migrate_note_content(self, content: str) -> str:
         """

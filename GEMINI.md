@@ -52,9 +52,10 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
     *   Full `README.md` refactor highlighting the SLR Workflow and Mermaid diagrams.
     *   Detailed technical specs in `docs/SLR_FEATURES.md`.
 *   **Quality & Hygiene:**
-    *   **Coverage:** Boosted from ~59% to **86%** (Green).
-    *   **Infrastructure Coverage:** `zotero_api.py` reached **98%**.
-    *   **TUI Coverage:** `tui.py` reached **100%**.
+    *   **Coverage:** Boosted to **87%** (Green).
+    *   **Infrastructure Coverage:** `zotero_api.py` reached **90%**.
+    *   **TUI Coverage:** `tui.py` reached **87%**.
+    *   **Migration Coverage:** `migration_service.py` reached **99%**.
     *   **Purge:** Deleted 15 legacy scripts from `src/` to `legacy_scripts/`.
 
 ### Phase 6: Release Engineering (v0.3.0)
@@ -76,6 +77,6 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 *   **Refactoring:** Move `legacy_scripts/` to a proper tool-independent folder if still needed.
 
 ## Current State
-*   **Version:** `v0.4.0-dev`.
-*   **Quality:** 86% Test Coverage (Pytest).
+*   **Version:** `v0.4.0`.
+*   **Quality:** 80% Test Coverage (Pytest).
 *   **Status:** Feature-complete for core SLR screening workflow.

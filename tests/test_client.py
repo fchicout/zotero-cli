@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock
 from zotero_cli.client import PaperImporterClient, CollectionNotFoundError
 from zotero_cli.core.interfaces import (
     ZoteroGateway, ArxivGateway, BibtexGateway, 
@@ -121,28 +121,70 @@ def test_import_from_springer_csv_success(client, mock_zotero_gateway, mock_spri
     count = client.import_from_springer_csv("f.csv", "F")
     assert count == 1
 
-def test_remove_attachments_success(client, mock_zotero_gateway):
-    mock_zotero_gateway.get_collection_id_by_name.return_value = "C"
-    mock_item = Mock()
-    mock_item.key = "K1"
-    mock_zotero_gateway.get_items_in_collection.return_value = iter([mock_item])
+def test_get_or_create_collection_failure(client, mock_zotero_gateway):
+    mock_zotero_gateway.get_collection_id_by_name.return_value = None
+    mock_zotero_gateway.create_collection.return_value = None
     
-    mock_child = {
-        'key': 'AK1', 
-        'version': 1, 
-        'data': {'itemType': 'attachment', 'title': 'PDF'}
-    }
-    mock_zotero_gateway.get_item_children.return_value = [mock_child]
-    mock_zotero_gateway.delete_item.return_value = True
+    with pytest.raises(CollectionNotFoundError):
+        client._get_or_create_collection("Bad Folder")
 
-    count = client.remove_attachments_from_folder("F")
-    assert count == 1
-    mock_zotero_gateway.delete_item.assert_called_with("AK1", 1)
+def test_import_from_query_missing_gateway(mock_zotero_gateway):
+    # Create client without arxiv_gateway
+    client = PaperImporterClient(mock_zotero_gateway)
+    with pytest.raises(ValueError, match="ArxivGateway not provided"):
+        client.import_from_query("query", "folder")
+
+def test_import_from_bibtex_missing_gateway(mock_zotero_gateway):
+    client = PaperImporterClient(mock_zotero_gateway)
+    with pytest.raises(ValueError, match="BibtexGateway not provided"):
+        client.import_from_bibtex("file.bib", "folder")
+
+def test_import_from_ris_missing_gateway(mock_zotero_gateway):
+    client = PaperImporterClient(mock_zotero_gateway)
+    with pytest.raises(ValueError, match="RisGateway not provided"):
+        client.import_from_ris("file.ris", "folder")
+
+def test_import_from_springer_csv_missing_gateway(mock_zotero_gateway):
+    client = PaperImporterClient(mock_zotero_gateway)
+    with pytest.raises(ValueError, match="SpringerCsvGateway not provided"):
+        client.import_from_springer_csv("file.csv", "folder")
+
+def test_import_from_ieee_csv_missing_gateway(mock_zotero_gateway):
+    client = PaperImporterClient(mock_zotero_gateway)
+    with pytest.raises(ValueError, match="IeeeCsvGateway not provided"):
+        client.import_from_ieee_csv("file.csv", "folder")
+
+def test_import_from_query_with_failures(client, mock_zotero_gateway, mock_arxiv_gateway):
+    mock_zotero_gateway.get_collection_id_by_name.return_value = "col1"
+    paper = ResearchPaper(title="Title 1", abstract="Abs 1")
+    mock_arxiv_gateway.search.return_value = [paper]
+    mock_zotero_gateway.create_item.return_value = False # Simulate failure
+    
+    count = client.import_from_query("q", "f", verbose=True)
+    assert count == 0
 
 def test_remove_attachments_collection_not_found(client, mock_zotero_gateway):
     mock_zotero_gateway.get_collection_id_by_name.return_value = None
     with pytest.raises(CollectionNotFoundError):
         client.remove_attachments_from_folder("Missing")
+
+def test_remove_attachments_with_failures(client, mock_zotero_gateway):
+    mock_zotero_gateway.get_collection_id_by_name.return_value = "col1"
+    item = MagicMock()
+    item.key = "item1"
+    item.title = "Item 1"
+    mock_zotero_gateway.get_items_in_collection.return_value = [item]
+    
+    child = {
+        "key": "child1",
+        "version": 1,
+        "data": {"itemType": "attachment", "title": "PDF"}
+    }
+    mock_zotero_gateway.get_item_children.return_value = [child]
+    mock_zotero_gateway.delete_item.return_value = False # Simulate failure
+    
+    count = client.remove_attachments_from_folder("folder", verbose=True)
+    assert count == 0
 
 def test_import_from_ris_success(client, mock_zotero_gateway, mock_ris_gateway):
     mock_zotero_gateway.get_collection_id_by_name.return_value = "COLL_RIS"

@@ -49,3 +49,83 @@ def test_migrate_note_no_changes_needed(service):
     # Use exact same content to verify no change
     new_note = service._migrate_note_content(clean_note)
     assert new_note == clean_note
+
+def test_migrate_collection_notes_full_loop(service, mock_gateway):
+    # Setup
+    mock_gateway.get_collection_id_by_name.return_value = "col123"
+    item = MagicMock()
+    item.key = "item1"
+    mock_gateway.get_items_in_collection.return_value = [item]
+    
+    note = {
+        "key": "note1",
+        "data": {
+            "itemType": "note",
+            "version": 1,
+            "note": '<div>{"signature": "vance", "decision": "accepted"}</div>'
+        }
+    }
+    mock_gateway.get_item_children.return_value = [note]
+    mock_gateway.update_note.return_value = True
+    
+    # Execute
+    stats = service.migrate_collection_notes("My Col", dry_run=False)
+    
+    # Verify
+    assert stats["processed"] == 1
+    assert stats["migrated"] == 1
+    mock_gateway.update_note.assert_called_once()
+
+def test_migrate_collection_notes_dry_run(service, mock_gateway):
+    # Setup
+    mock_gateway.get_collection_id_by_name.return_value = "col123"
+    item = MagicMock()
+    item.key = "item1"
+    mock_gateway.get_items_in_collection.return_value = [item]
+    
+    note = {
+        "key": "note1",
+        "data": {
+            "itemType": "note",
+            "version": 1,
+            "note": '<div>{"signature": "vance", "decision": "accepted"}</div>'
+        }
+    }
+    mock_gateway.get_item_children.return_value = [note]
+    
+    # Execute
+    stats = service.migrate_collection_notes("My Col", dry_run=True)
+    
+    # Verify
+    assert stats["migrated"] == 1
+    mock_gateway.update_note.assert_not_called()
+
+def test_migrate_collection_not_found(service, mock_gateway):
+    mock_gateway.get_collection_id_by_name.return_value = None
+    stats = service.migrate_collection_notes("Missing")
+    assert stats["error"] == 1
+
+def test_migrate_note_with_malformed_json(service):
+    malformed = "<div>{not actually json}</div>"
+    assert service._migrate_note_content(malformed) == malformed
+
+def test_migrate_note_no_json(service):
+    text = "Just some random note text"
+    assert service._migrate_note_content(text) == text
+
+def test_migrate_update_failure(service, mock_gateway):
+    # Setup
+    mock_gateway.get_collection_id_by_name.return_value = "col123"
+    item = MagicMock()
+    item.key = "item1"
+    mock_gateway.get_items_in_collection.return_value = [item]
+    mock_gateway.get_item_children.return_value = [{
+        "key": "note1",
+        "data": {"itemType": "note", "version": 1, "note": '<div>{"signature": "x"}</div>'}
+    }]
+    mock_gateway.update_note.return_value = False # Simulate API failure
+    
+    # Execute
+    stats = service.migrate_collection_notes("My Col", dry_run=False)
+    assert stats["failed"] == 1
+

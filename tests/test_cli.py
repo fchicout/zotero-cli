@@ -125,7 +125,6 @@ def test_import_command_structured_query(mock_clients, env_vars, capsys):
         main()
     
     # Verify it was parsed (title=AI becomes title:(AI) in parser)
-    # Parser: parsed_groups.append(f'{field}:({value})')
     mock_clients['importer'].import_from_query.assert_called_once_with(
         'title:(AI)', 'F', 10, False, 'relevance', 'descending'
     )
@@ -328,3 +327,142 @@ def test_search_arxiv_command_success(mock_clients, env_vars, capsys):
         with patch.object(sys, 'argv', test_args):
             main()
         assert "Paper 1 (2023)" in capsys.readouterr().out
+
+def test_freeze_command_success(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.main.SnapshotService') as mock_snapshot_cls:
+        mock_snapshot = mock_snapshot_cls.return_value
+        mock_snapshot.freeze_collection.return_value = True
+        test_args = ['zotero-cli', 'freeze', '--collection', 'MyCol', '--output', 'out.json']
+        with patch.object(sys, 'argv', test_args):
+            main()
+        assert "Successfully froze collection" in capsys.readouterr().out
+
+def test_lookup_command_success(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.main.LookupService') as mock_lookup_cls:
+        mock_lookup = mock_lookup_cls.return_value
+        mock_lookup.lookup_items.return_value = "Lookup Result"
+        test_args = ['zotero-cli', 'lookup', '--keys', 'K1,K2']
+        with patch.object(sys, 'argv', test_args):
+            main()
+        assert "Lookup Result" in capsys.readouterr().out
+
+def test_report_command_success(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.main.ReportService') as mock_report_cls:
+        mock_service = mock_report_cls.return_value
+        mock_report = Mock()
+        mock_report.collection_name = "MyCol"
+        mock_report.total_items = 10
+        mock_report.screened_items = 5
+        mock_report.accepted_items = 2
+        mock_report.rejected_items = 3
+        mock_report.rejections_by_code = {"EC1": 3}
+        mock_report.malformed_notes = []
+        mock_service.generate_prisma_report.return_value = mock_report
+        
+        test_args = ['zotero-cli', 'report', '--collection', 'MyCol']
+        with patch.object(sys, 'argv', test_args):
+            main()
+        assert "PRISMA Screening Summary" in capsys.readouterr().out
+
+def test_decision_command_success(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.main.ScreeningService') as mock_screen_cls:
+        mock_service = mock_screen_cls.return_value
+        mock_service.record_decision.return_value = True
+        test_args = ['zotero-cli', 'decision', '--key', 'K1', '--vote', 'INCLUDE', '--code', 'IC1']
+        with patch.object(sys, 'argv', test_args):
+            main()
+        assert "Successfully recorded decision" in capsys.readouterr().out
+
+def test_migrate_command_success(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.main.MigrationService') as mock_migrate_cls:
+        mock_service = mock_migrate_cls.return_value
+        mock_service.migrate_collection_notes.return_value = {
+            "processed": 10, "migrated": 5, "already_clean": 5, "failed": 0
+        }
+        test_args = ['zotero-cli', 'migrate', '--collection', 'MyCol']
+        with patch.object(sys, 'argv', test_args):
+            main()
+        assert "Migration Results" in capsys.readouterr().out
+
+def test_screen_command_success(mock_clients, env_vars):
+    with patch('zotero_cli.cli.main.TuiScreeningService') as mock_tui_cls:
+        mock_tui = mock_tui_cls.return_value
+        test_args = ['zotero-cli', 'screen', '--source', 'S', '--include', 'I', '--exclude', 'E']
+        with patch.object(sys, 'argv', test_args):
+            main()
+        mock_tui.run_screening_session.assert_called_once_with('S', 'I', 'E')
+        
+def test_search_arxiv_file_input(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.main.ArxivQueryParser') as mock_parser_cls:
+        mock_parser = mock_parser_cls.return_value
+        from zotero_cli.core.services.arxiv_query_parser import ArxivSearchParams
+        mock_parser.parse.return_value = ArxivSearchParams(query="parsed", max_results=1)
+        mock_clients['arxiv'].search.return_value = iter([])
+        
+        with patch('builtins.open', mock_open(read_data="query from file")):
+            test_args = ['zotero-cli', 'search-arxiv', '--file', 'q.txt', '--verbose']
+            with patch.object(sys, 'argv', test_args):
+                main()
+        assert "Parsed Parameters" in capsys.readouterr().out
+        
+def test_lookup_command_file_input(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.main.LookupService') as mock_lookup_cls:
+        mock_lookup = mock_lookup_cls.return_value
+        mock_lookup.lookup_items.return_value = "Result"
+        
+        with patch('builtins.open', mock_open(read_data="K1\nK2")):
+            test_args = ['zotero-cli', 'lookup', '--file', 'keys.txt']
+            with patch.object(sys, 'argv', test_args):
+                main()
+        assert "Result" in capsys.readouterr().out
+        
+def test_report_command_full_options(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.main.ReportService') as mock_report_cls:
+        mock_service = mock_report_cls.return_value
+        mock_report = Mock()
+        mock_report.total_items = 1
+        mock_report.screened_items = 1
+        mock_report.accepted_items = 1
+        mock_report.rejected_items = 0
+        mock_report.rejections_by_code = {}
+        mock_report.malformed_notes = ["MAL1"]
+        mock_service.generate_prisma_report.return_value = mock_report
+        mock_service.generate_mermaid_prisma.return_value = "mermaid code"
+        mock_service.render_diagram.return_value = True
+        
+        test_args = ['zotero-cli', 'report', '--collection', 'C', '--verbose', '--output-chart', 'p.png']
+        with patch.object(sys, 'argv', test_args):
+            main()
+        
+        captured = capsys.readouterr()
+        assert "Malformed note" in captured.out
+        assert "Diagram successfully saved" in captured.out
+        
+def test_decision_command_full_options(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.main.ScreeningService') as mock_screen_cls:
+        mock_service = mock_screen_cls.return_value
+        mock_service.record_decision.return_value = True
+        test_args = [
+            'zotero-cli', 'decision', '--key', 'K1', '--vote', 'EXCLUDE', 
+            '--code', 'EC1', '--reason', 'R', '--source', 'S', '--target', 'T', 
+            '--agent-led', '--persona', 'Alice', '--phase', 'full_text'
+        ]
+        with patch.object(sys, 'argv', test_args):
+            main()
+        
+        mock_service.record_decision.assert_called_once_with(
+            item_key='K1', decision='EXCLUDE', code='EC1', reason='R',
+            source_collection='S', target_collection='T',
+            agent='zotero-cli-agent', persona='Alice', phase='full_text'
+        )
+
+def test_migrate_command_dry_run(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.main.MigrationService') as mock_migrate_cls:
+        mock_service = mock_migrate_cls.return_value
+        mock_service.migrate_collection_notes.return_value = {
+            "processed": 1, "migrated": 1, "already_clean": 0, "failed": 0
+        }
+        test_args = ['zotero-cli', 'migrate', '--collection', 'C', '--dry-run']
+        with patch.object(sys, 'argv', test_args):
+            main()
+        assert "Note: This was a DRY RUN" in capsys.readouterr().out
