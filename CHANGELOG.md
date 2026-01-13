@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.0.1] - 2026-01-13
+
+### Architecture
+*   **SOLID Refactor:** Decoupled `ZoteroAPIClient` (Repository) from `ZoteroHttpClient` (Transport).
+*   **SRP Compliance:** Extracted HTTP logic, headers, and rate limiting to a dedicated transport layer.
+
 ## [v1.0.0] - 2026-01-13
 
 ### Major Changes

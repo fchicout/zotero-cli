@@ -14,8 +14,9 @@ def group_id():
 @pytest.fixture
 def client(api_key, group_id):
     client = ZoteroAPIClient(api_key, group_id)
-    client.session = Mock(spec=requests.Session)
-    client.session.headers = {}
+    # Mock http session
+    client.http.session = Mock(spec=requests.Session)
+    client.http.session.headers = {}
     return client
 
 def test_update_item_collections_success(client, group_id):
@@ -23,12 +24,12 @@ def test_update_item_collections_success(client, group_id):
     mock_response = Mock()
     mock_response.raise_for_status.return_value = None
     mock_response.headers = {'Last-Modified-Version': '43'}
-    client.session.patch.return_value = mock_response
+    client.http.session.patch.return_value = mock_response
 
     # Inputs
     item_key = "ABC12345"
     version = 42
-    client.last_library_version = version # Set internal state
+    client.http.last_library_version = version # Set internal state on http client
     new_collections = ["COL1", "COL2"]
 
     # Action
@@ -38,14 +39,27 @@ def test_update_item_collections_success(client, group_id):
     assert result is True
     
     expected_url = f"https://api.zotero.org/groups/{group_id}/items/{item_key}"
-    call_args = client.session.patch.call_args
+    call_args = client.http.session.patch.call_args
     assert call_args[0][0] == expected_url
-    assert call_args[1]['json'] == {'collections': new_collections}
+    # Payload now includes version if passed to update_item_collections? 
+    # Let's check my implementation of update_item_collections in zotero_api.py
+    # payload = {"collections": collections, "version": version} 
+    # Wait, my implementation in previous step put version in payload AND check=True.
+    
+    # assert call_args[1]['json'] == {'collections': new_collections} 
+    # This assertion might fail if I changed payload structure.
+    # Let's check zotero_api.py...
+    # payload = {"collections": collections, "version": version}
+    
+    # So I expect:
+    assert call_args[1]['json']['collections'] == new_collections
+    assert call_args[1]['json']['version'] == version
+    
     assert call_args[1]['headers']['If-Unmodified-Since-Version'] == str(version)
 
 def test_update_item_collections_failure(client):
     # Setup mock exception
-    client.session.patch.side_effect = requests.exceptions.RequestException("API Error")
+    client.http.session.patch.side_effect = requests.exceptions.RequestException("API Error")
 
     # Action
     result = client.update_item_collections("ABC", 1, [])
