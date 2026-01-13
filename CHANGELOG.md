@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.0.3] - 2026-01-13
+
+### Features
+*   **Info Command:** New `zotero-cli info` command to display diagnostic configuration.
+*   **Usability:** Improved collection name resolution with case-insensitive and partial match support.
+
 ## [v1.0.2] - 2026-01-13
 
 ### Quality

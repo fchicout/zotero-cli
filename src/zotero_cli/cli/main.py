@@ -240,9 +240,22 @@ def handle_list_groups(args):
 
 def handle_list_items(args):
     gateway = get_zotero_gateway()
+    
+    # Try direct name match
     col_id = gateway.get_collection_id_by_name(args.collection)
+    
     if not col_id:
-        col_id = args.collection # Assume key
+        # Try case-insensitive partial match
+        cols = gateway.get_all_collections()
+        for c in cols:
+            cname = c.get('data', {}).get('name', '')
+            if args.collection.lower() in cname.lower():
+                col_id = c['key']
+                print(f"Matched collection '{cname}' (Key: {col_id})")
+                break
+    
+    if not col_id:
+        col_id = args.collection # Assume it's a key if no name match found
     
     items = gateway.get_items_in_collection(col_id)
     count = 0
@@ -426,13 +439,50 @@ def handle_find_arxiv(args):
     print(f"Found {i} papers.")
 
 
+def handle_info(args):
+    """Display diagnostic information."""
+    from rich.table import Table
+    from rich import box
+    console = Console()
+    
+    api_key = os.getenv('ZOTERO_API_KEY')
+    target_group = os.getenv('ZOTERO_TARGET_GROUP')
+    user_id = os.getenv('ZOTERO_USER_ID')
+    
+    table = Table(title="Zotero CLI Configuration", box=box.ROUNDED)
+    table.add_column("Variable", style="cyan")
+    table.add_column("Value", style="green")
+    table.add_column("Status", style="yellow")
+    
+    table.add_row("API Key", f"{api_key[:4]}...{api_key[-4:]}" if api_key else "None", "OK" if api_key else "MISSING")
+    table.add_row("Target Group", target_group or "None", "SET" if target_group else "UNSET")
+    table.add_row("User ID", user_id or "None", "SET" if user_id else "UNSET")
+    
+    console.print(table)
+    
+    try:
+        gw = get_zotero_gateway(require_group=False)
+        context_table = Table(title="Active Context", box=box.MINIMAL_DOUBLE_HEAD)
+        context_table.add_column("Property")
+        context_table.add_column("Value")
+        context_table.add_row("Library Type", gw.http.library_type.upper())
+        context_table.add_row("Library ID", gw.http.library_id)
+        context_table.add_row("API Prefix", gw.http.api_prefix)
+        console.print(context_table)
+    except Exception as e:
+        console.print(f"[bold red]Error deriving context:[/bold red] {e}")
+
 # --- Main Router ---
 
 def main():
     parser = argparse.ArgumentParser(description="Zotero CLI - The Systematic Review Engine")
-    subparsers = parser.add_subparsers(dest="command", help="Primary Commands", required=True)
-
-    # 1. SCREEN
+    subparsers = parser.add_subparsers(dest='command', help='Primary Commands')
+    
+    # --- INFO ---
+    parser_info = subparsers.add_parser('info', help='Display environment and configuration')
+    parser_info.set_defaults(func=handle_info)
+    
+    # --- SCREEN ---
     screen_parser = subparsers.add_parser("screen", help="Interactive Screening Interface (TUI)")
     screen_parser.add_argument("--source", required=True, help="Source collection")
     screen_parser.add_argument("--include", required=True, help="Target for inclusion")
