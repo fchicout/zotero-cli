@@ -43,7 +43,8 @@ This displays your current API Key status, configured Group/User IDs, and the ac
 
 ## Workflow
 
-### 1. Screening (TUI)
+### 1. Screening
+**Interactive (TUI):**
 The core feature. Launch the "Tinder-for-Papers" interface.
 ```bash
 zotero-cli screen --source "raw_arXiv" --include "screened" --exclude "excluded"
@@ -51,6 +52,13 @@ zotero-cli screen --source "raw_arXiv" --include "screened" --exclude "excluded"
 *   **[I]**: Include
 *   **[E]**: Exclude (Select reason code)
 *   **[S]**: Skip
+
+**Bulk Import (CSV):**
+Import decisions from a spreadsheet (e.g., from a distributed team).
+CSV must have `Key` and `Vote` columns. `Reason` is optional.
+```bash
+zotero-cli screen --file team_decisions.csv --source "raw_arXiv" --include "screened" --exclude "excluded"
+```
 
 ### 2. Reporting (PRISMA)
 Generate a PRISMA 2020 statistics report and flowchart.
