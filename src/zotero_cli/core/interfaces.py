@@ -13,6 +13,13 @@ class ZoteroGateway(ABC):
         pass
 
     @abstractmethod
+    def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:
+        """
+        Retrieves all groups a user belongs to.
+        """
+        pass
+
+    @abstractmethod
     def get_all_collections(self) -> List[Dict[str, Any]]:
         """
         Retrieves all collections in the library.

@@ -59,20 +59,32 @@ class ReportService:
         return "\n".join(mermaid)
 
     def render_diagram(self, mermaid_code: str, output_path: str) -> bool:
-        """Renders Mermaid code to an image file using mermaid-py library."""
+        """Renders Mermaid code to an image file using global mmdc (Mermaid CLI)."""
+        import subprocess
+        import tempfile
+        import os
+
+        # Write mermaid code to temp file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.mmd', delete=False) as tmp:
+            tmp.write(mermaid_code)
+            tmp_path = tmp.name
+
         try:
-            import mermaid as mm
-            # mermaid-py uses mermaid.ink by default
-            chart = mm.Mermaid(mermaid_code)
-            # The library typically returns a 'chart' object that can be saved
-            # Depending on version, it might be chart.to_svg() or similar.
-            # Let's use a safe implementation based on mermaid-py docs
-            with open(output_path, "wb") as f:
-                f.write(chart.img_bytes)
+            # Call mmdc
+            # mmdc -i input.mmd -o output.png
+            cmd = ["mmdc", "-i", tmp_path, "-o", output_path]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                print(f"Error running mmdc: {result.stderr}")
+                return False
             return True
         except Exception as e:
             print(f"Error rendering diagram: {e}")
             return False
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
     def _process_item_notes(self, item: ZoteroItem, report: PrismaReport):
         children = self.gateway.get_item_children(item.key)

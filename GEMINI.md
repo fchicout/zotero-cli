@@ -72,11 +72,13 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 *   **[COMPLETED] Automated PRISMA Reporting (`report`):** One-click generation of screening statistics.
 *   **[COMPLETED] SDB v1.1 Upgrade:** Strict schema for audit notes including persona and phase.
 *   **[COMPLETED] Migration Tool (`migrate`):** Standardize legacy notes and remove PII (`signature`).
+    *   *Status:* `raw_arXiv` fully migrated (547/548).
+    *   *Fix:* Removed `If-Unmodified-Since-Version` header from `update_note` to fix concurrency blocking.
 *   **Smart Filtering (`find`):** Advanced querying by audit note content.
 *   **Visualization:** Integration with `mmdc` for PRISMA flowchart export.
 *   **Refactoring:** Move `legacy_scripts/` to a proper tool-independent folder if still needed.
 
 ## Current State
 *   **Version:** `v0.4.0`.
-*   **Quality:** 80% Test Coverage (Pytest).
-*   **Status:** Feature-complete for core SLR screening workflow.
+*   **Quality:** 87% Test Coverage (Pytest).
+*   **Status:** Feature-complete for core SLR screening workflow. Migration validated on production data.

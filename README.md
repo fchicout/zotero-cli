@@ -11,22 +11,18 @@
 
 **zotero-cli** transforms Zotero from a reference manager into a **Systematic Review Engine**. It automates the "tedious but critical" tasks: screening 1,000 abstracts, freezing audit trails, and generating PRISMA-ready data tables.
 
-## 🌟 The SLR Workflow (v0.4.0)
+## 🌟 The SLR Workflow (v1.0.0)
 
 We support the rigorous **Kitchenham/Wohlin** review protocol out of the box.
 
 ```mermaid
 graph LR
-    A[Raw Source
-arXiv/IEEE] -->|zotero-cli import| B(Collection: Raw)
-    B -->|zotero-cli screen| C{Screening
-Decision}
+    A[Raw Source] -->|import| B(Collection: Raw)
+    B -->|screen| C{Screening}
     C -->|Include| D(Collection: Screened)
     C -->|Exclude| E(Collection: Excluded)
-    D -->|zotero-cli freeze| F[Audit Snapshot
-JSON]
-    F -->|zotero-cli lookup| G[Synthesis Table
-Markdown]
+    D -->|report snapshot| F[Audit Snapshot]
+    F -->|analyze lookup| G[Synthesis Table]
 ```
 
 ### 1. ⚡ Interactive Screening (`screen`)
@@ -34,37 +30,35 @@ Stop clicking. Start reading. A TUI "Tinder-for-Papers" interface to speed up Ti
 ```bash
 zotero-cli screen --source "raw_arXiv" --include "screened" --exclude "excluded"
 # [I]nclude, [E]xclude, [S]kip items with single keystrokes.
-# Automatically attaches JSON audit notes (e.g., {"decision": "EXCLUDE", "code": "EC1"})
 ```
 
-### 2. 🧊 Audit Freezing (`freeze`)
-Science must be reproducible. Create an immutable JSON snapshot of your review state, including every decision note.
+### 2. 📥 Universal Import (`import`)
+Ingest papers from any source.
 ```bash
-zotero-cli freeze --collection "screened" --output "snapshot_2026-01-12.json"
-# Captures items + child notes + attachment metadata.
+zotero-cli import file papers.bib --collection "MySearch"
+zotero-cli import arxiv --query "AI AND Security" --collection "MySearch"
 ```
 
-### 3. 📊 Synthesis Tables (`lookup`)
-Generate your "Selected Studies" table directly from Zotero keys. No manual copy-pasting.
+### 3. 📊 PRISMA Reporting (`report`)
+Generate PRISMA 2020 statistics and Mermaid-based flowcharts automatically.
 ```bash
-zotero-cli lookup --keys "KEY1,KEY2" --fields "arxiv_id,title,year" --format table
+zotero-cli report prisma --collection "screened" --output-chart "prisma.png"
 ```
 
-### 4. 📈 PRISMA Reporting (`report`)
-Generate PRISMA 2020 statistics and Mermaid-based flowcharts automatically from your audit notes.
+### 4. 🧹 Maintenance (`manage`)
+Keep your library clean and compliant.
 ```bash
-zotero-cli report --collection "screened" --output-chart "prisma.png"
-```
-
-### 5. 🧹 Audit Sanitization (`migrate`)
-Ensures all audit notes follow the **Standardized Decision Block (SDB) v1.1**. Removes legacy fields (like `signature`), standardizes `agent` names, and converts single codes to lists.
-```bash
-zotero-cli migrate --collection "raw_arXiv" --dry-run
+zotero-cli manage clean --collection "Trash"
+zotero-cli manage duplicates --collections "Search1,Search2"
 ```
 
 ---
 
 ## 🚀 Quick Start
+
+### 📚 Tutorials
+*   **[Getting Started: Installation & Setup](./docs/tutorials/01-getting-started.md)** - For absolute beginners.
+*   **[Your First Systematic Review](./docs/tutorials/02-slr-workflow.md)** - How to use the screening engine.
 
 ### Installation
 ```bash
@@ -74,27 +68,35 @@ pip install zotero-cli
 ### Configuration
 ```bash
 export ZOTERO_API_KEY="your_key"
-export ZOTERO_TARGET_GROUP="https://zotero.org/groups/123"
+export ZOTERO_USER_ID="your_id"
 ```
 
 ---
 
-## 📚 Feature Reference
+## 📚 Command Reference
 
-| Category | Command | Description |
-| :--- | :--- | :--- |
-| **SLR Ops** | `screen` | **(NEW)** Interactive TUI for rapid paper screening. |
-| | `decision` | **(NEW)** Record a screening decision (CLI/Agent mode). |
-| | `report` | **(NEW)** Generate PRISMA 2020 screening statistics & flowcharts. |
-| | `freeze` | **(NEW)** Snapshot a collection to JSON for audit. |
-| | `lookup` | **(NEW)** Bulk fetch metadata table for synthesis. |
-| | `migrate` | **(NEW)** Clean up and standardize audit notes to SDB v1.1. |
-| **Import** | `import` | Bulk import from arXiv query. |
-| | `bibtex` / `ris` | Import standard bibliography files. |
-| **Manage** | `audit` | Check for missing PDFs, DOIs, or Abstracts. |
-| | `duplicates` | Find potential duplicates across collections. |
-| | `attach-pdf` | Auto-fetch PDFs via Unpaywall. |
-| **Graph** | `graph` | Generate Graphviz DOT files of citation networks. |
+| Category | Command | Subcommand | Description |
+| :--- | :--- | :--- | :--- |
+| **Workflow** | `screen` | | Interactive TUI for screening. |
+| | `decide` | | Record a decision (CLI mode). |
+| **Ingest** | `import` | `file` | Import .bib, .ris, .csv files. |
+| | | `arxiv` | Import from arXiv query. |
+| | | `manual` | Add a single paper manually. |
+| **Discovery** | `list` | `collections` | List all collections. |
+| | | `groups` | List user groups. |
+| | | `items` | List items in a collection. |
+| | `find` | `arxiv` | Search arXiv (read-only). |
+| **Output** | `report` | `prisma` | Generate PRISMA stats & charts. |
+| | | `snapshot` | Create JSON audit trail. |
+| **Manage** | `manage` | `tags` | List, rename, delete tags. |
+| | | `pdfs` | Fetch or strip PDFs. |
+| | | `duplicates` | Find duplicate items. |
+| | | `move` | Move items between collections. |
+| | | `clean` | Empty a collection. |
+| | | `migrate` | Upgrade audit notes to SDB v1.1. |
+| **Analyze** | `analyze` | `audit` | Check for missing metadata/PDFs. |
+| | | `lookup` | Bulk metadata fetch. |
+| | | `graph` | Generate citation graph. |
 
 ## Development
 

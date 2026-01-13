@@ -1,148 +1,141 @@
-# User Guide
+# User Guide (v1.0.0)
 
 ## Table of Contents
 1.  [Getting Started](#getting-started)
-2.  [Importing Papers](#importing-papers)
-3.  [Managing Collections](#managing-collections)
-4.  [Analyzing Your Library](#analyzing-your-library)
-5.  [Advanced Search](#advanced-search)
-6.  [Troubleshooting](#troubleshooting)
+2.  [Workflow (Screening & Reporting)](#workflow)
+3.  [Ingestion (Import)](#ingestion)
+4.  [Management (Tags, PDFs, Cleaning)](#management)
+5.  [Analysis & Discovery](#analysis)
 
 ## Getting Started
 
 Ensure you have your environment variables set:
 ```bash
 export ZOTERO_API_KEY="key"
+export ZOTERO_USER_ID="123456"
+# Optional: Set a default group URL to skip finding it
 export ZOTERO_TARGET_GROUP="https://zotero.org/groups/123"
 ```
 
-## Importing Papers
+---
 
-### From arXiv
-**Single Paper:**
-Add a specific paper by ID.
+## Workflow
+
+### 1. Screening (TUI)
+The core feature. Launch the "Tinder-for-Papers" interface.
 ```bash
-zotero-cli add --arxiv-id "2301.00001" --title "Paper Title" --abstract "Abstract..." --folder "My List"
+zotero-cli screen --source "raw_arXiv" --include "screened" --exclude "excluded"
+```
+*   **[I]**: Include
+*   **[E]**: Exclude (Select reason code)
+*   **[S]**: Skip
+
+### 2. Reporting (PRISMA)
+Generate a PRISMA 2020 statistics report and flowchart.
+```bash
+zotero-cli report prisma --collection "screened" --output-chart "prisma.png"
 ```
 
-**Bulk Search:**
-Search arXiv and import results.
+### 3. Snapshotting
+Create an immutable JSON audit trail of your review state.
 ```bash
-zotero-cli import --query "LLM cybersecurity" --limit 50 --folder "AI Security"
+zotero-cli report snapshot --collection "screened" --output "audit_trail.json"
 ```
 
-### From Files
-**BibTeX:**
+---
+
+## Ingestion
+
+### Universal File Import
+Supports BibTeX (`.bib`), RIS (`.ris`), and CSV (Springer/IEEE).
 ```bash
-zotero-cli bibtex --file refs.bib --folder "Imported"
+zotero-cli import file papers.bib --collection "Imported"
+zotero-cli import file ieee_export.csv --collection "IEEE"
 ```
 
-**RIS:**
+### Online Query (arXiv)
+Import directly from arXiv using a query.
 ```bash
-zotero-cli ris --file citations.ris --folder "Imported"
+zotero-cli import arxiv --query "LLM AND Security" --limit 50 --collection "AI Security"
 ```
 
-**CSV (Springer/IEEE):**
+### Manual Entry
+Add a single paper.
 ```bash
-zotero-cli springer-csv --file springer.csv --folder "Springer"
-zotero-cli ieee-csv --file ieee.csv --folder "IEEE"
+zotero-cli import manual --arxiv-id "2301.00001" --title "Paper Title" --abstract "Abstract..." --collection "My List"
 ```
 
-## Managing Collections
+---
 
-### Listing
-View all collections in your library with their item counts.
+## Management
+
+### Tags
 ```bash
-zotero-cli list-collections
+zotero-cli manage tags list
+zotero-cli manage tags rename --old "ai" --new "artificial-intelligence"
+zotero-cli manage tags delete --tag "junk"
+zotero-cli manage tags add --item "KEY123" --tags "review,prio"
 ```
 
-### Attachments
-**Auto-Attach PDFs:**
-Find missing PDFs via Unpaywall/CrossRef and upload them.
+### PDFs
+**Fetch:** Find missing PDFs via Unpaywall.
 ```bash
-zotero-cli attach-pdf --collection "Reading List"
+zotero-cli manage pdfs fetch --collection "Reading List"
+```
+**Strip:** Remove all attachments to save space.
+```bash
+zotero-cli manage pdfs strip --collection "Old Papers"
 ```
 
-**Remove Attachments:**
-Delete all child items (PDFs/Snapshots) to save storage space.
+### Hygiene
+**Duplicates:** Find duplicate titles/DOIs.
 ```bash
-zotero-cli remove-attachments --folder "Old Papers"
+zotero-cli manage duplicates --collections "Inbox, Archive"
+```
+**Move:** Transfer an item.
+```bash
+zotero-cli manage move --item-id "10.1234/doi" --source "Inbox" --target "Read"
+```
+**Clean:** Empty a collection (Destructive!).
+```bash
+zotero-cli manage clean --collection "Trash"
+```
+**Migrate:** Upgrade audit notes to Standardized Decision Block (SDB) v1.1.
+```bash
+zotero-cli manage migrate --collection "raw_arXiv"
 ```
 
-### Organization
-**Move Item:**
-Transfer an item from one collection to another using its DOI or arXiv ID.
-```bash
-zotero-cli move --id "10.1234/doi" --from-col "Inbox" --to-col "Read"
-```
+---
 
-**Empty Collection:**
-⚠️ **Destructive:** Removes all items from a collection.
-```bash
-zotero-cli empty-collection --collection "Trash"
-```
+## Analysis
 
-### Tag Management
-**List Tags:**
+### Discovery
 ```bash
-zotero-cli tag list
-```
-
-**Rename Tag:**
-Bulk rename a tag across the entire library.
-```bash
-zotero-cli tag rename --old "ai" --new "artificial-intelligence"
-```
-
-**Delete Tag:**
-Remove a tag from all items.
-```bash
-zotero-cli tag delete --tag "junk"
-```
-
-**Add/Remove on Item:**
-Modify tags for a specific Zotero Item Key.
-```bash
-zotero-cli tag add --item "ITEMKEY123" --tags "important,review"
-zotero-cli tag remove --item "ITEMKEY123" --tags "todo"
-```
-
-## Analyzing Your Library
-
-### Duplicates
-Find items with the same Title or DOI across multiple collections.
-```bash
-zotero-cli duplicates --collections "Inbox, Archive"
-```
-
-### Citation Graph
-Generate a Graphviz DOT file showing citation relationships between papers.
-```bash
-zotero-cli graph --collections "AI Security" > graph.dot
-# Convert to PNG (requires Graphviz installed)
-dot -Tpng graph.dot -o graph.png
+zotero-cli list collections   # See what you have
+zotero-cli list groups        # Find your Group IDs
+zotero-cli list items --collection "MyCol"
 ```
 
 ### Audit
-Check for missing metadata (Abstracts, DOIs, PDFs) in a collection.
+Check for missing metadata (Abstracts, DOIs, PDFs).
 ```bash
-zotero-cli audit --collection "Critical Review"
+zotero-cli analyze audit --collection "Critical Review"
 ```
 
-## Advanced Search (arXiv DSL)
-
-The `search-arxiv` command supports a structured query language for precise filtering.
-
-**Syntax:** `key: value; key2: value2`
-
-**Supported Keys:**
-*   `terms`: The search query (supports `AND`, `OR`, `field=value`).
-*   `date_range`: e.g., `from 2023-01-01`.
-*   `size`: Max results (default 100).
-*   `order`: `announced_date_first` (ascending) or `-announced_date_first` (descending).
-*   `classification`: e.g., `Computer Science (cs)`.
-
-**Example:**
+### Lookup
+Bulk fetch metadata for a list of Item Keys (useful for synthesis tables).
 ```bash
-zotero-cli search-arxiv --query "terms: title=LLM; date_range: from 2023-01-01; size: 20"
+zotero-cli analyze lookup --keys "K1,K2,K3" --format table
+```
+
+### Graph
+Generate a Graphviz DOT file of citation networks.
+```bash
+zotero-cli analyze graph --collections "AI Security" > graph.dot
+```
+
+### Find (Read-Only)
+Search arXiv without importing.
+```bash
+zotero-cli find arxiv --query "terms: title=LLM; size: 10"
 ```

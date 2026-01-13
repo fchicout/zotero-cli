@@ -16,11 +16,31 @@ def group_id():
 
 @pytest.fixture
 def client(api_key, group_id):
-    client = ZoteroAPIClient(api_key, group_id)
-    # Mock the session object directly
+    # Default is group mode
+    client = ZoteroAPIClient(api_key, group_id, 'group')
     client.session = Mock(spec=requests.Session)
     client.session.headers = {}
     return client
+
+def test_init_group_mode(api_key, group_id):
+    c = ZoteroAPIClient(api_key, group_id, 'group')
+    assert c.api_prefix == f"https://api.zotero.org/groups/{group_id}"
+
+def test_init_user_mode(api_key):
+    user_id = "999"
+    c = ZoteroAPIClient(api_key, user_id, 'user')
+    assert c.api_prefix == f"https://api.zotero.org/users/{user_id}"
+
+def test_get_user_groups(client):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [{"id": 1, "data": {"name": "G1"}}]
+    client.session.get.return_value = mock_response
+    
+    groups = client.get_user_groups("123")
+    assert len(groups) == 1
+    assert groups[0]['data']['name'] == "G1"
+    client.session.get.assert_called_with("https://api.zotero.org/users/123/groups")
 
 # --- Collection Methods ---
 
@@ -35,6 +55,8 @@ def test_get_all_collections_success(client):
     assert len(collections) == 1
     assert collections[0]["key"] == "C1"
     assert client.last_library_version == 100
+    # Verify prefix usage
+    client.session.get.assert_called_with(f"{client.api_prefix}/collections", params={'limit': 100})
 
 def test_get_all_collections_failure(client):
     client.session.get.side_effect = requests.exceptions.RequestException("API Error")

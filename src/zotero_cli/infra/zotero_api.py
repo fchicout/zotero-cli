@@ -12,9 +12,16 @@ class ZoteroAPIClient(ZoteroGateway):
     API_VERSION = '3'
     BASE_URL = 'https://api.zotero.org'
 
-    def __init__(self, api_key: str, group_id: str):
+    def __init__(self, api_key: str, library_id: str, library_type: str = 'group'):
+        """
+        Initialize the Zotero Client.
+        :param api_key: Zotero Web API Key
+        :param library_id: User ID (integer) or Group ID (integer)
+        :param library_type: 'user' or 'group'
+        """
         self.api_key = api_key
-        self.group_id = group_id
+        self.library_id = library_id
+        self.library_type = library_type
         self.session = requests.Session()
         self.session.headers.update({
             'Zotero-API-Version': self.API_VERSION,
@@ -22,14 +29,29 @@ class ZoteroAPIClient(ZoteroGateway):
         })
         self.headers = self.session.headers
         self.last_library_version = 0
+        
+        # Construct the prefix for all API calls
+        prefix = "users" if library_type == 'user' else "groups"
+        self.api_prefix = f"{self.BASE_URL}/{prefix}/{self.library_id}"
 
     def _update_library_version(self, response: requests.Response):
         version = response.headers.get('Last-Modified-Version')
         if version:
             self.last_library_version = int(version)
 
+    def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:
+        # This is always a user-scoped call
+        url = f"{self.BASE_URL}/users/{user_id}/groups"
+        try:
+            response = self.session.get(url)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching user groups: {e}")
+            return []
+
     def get_all_collections(self) -> List[Dict[str, Any]]:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/collections"
+        url = f"{self.api_prefix}/collections"
         try:
             # Fetch all collections (pagination might be needed for very large libraries)
             response = self.session.get(url, params={'limit': 100})
@@ -41,7 +63,7 @@ class ZoteroAPIClient(ZoteroGateway):
             return []
 
     def get_tags(self) -> List[str]:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/tags"
+        url = f"{self.api_prefix}/tags"
         try:
             response = self.session.get(url, params={'limit': 100}) # Pagination might be needed
             response.raise_for_status()
@@ -52,7 +74,7 @@ class ZoteroAPIClient(ZoteroGateway):
             return []
 
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/items"
+        url = f"{self.api_prefix}/items"
         limit = 100
         start = 0
         
@@ -77,7 +99,7 @@ class ZoteroAPIClient(ZoteroGateway):
                 break
 
     def get_item(self, item_key: str) -> Optional[ZoteroItem]:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/items/{item_key}"
+        url = f"{self.api_prefix}/items/{item_key}"
         try:
             response = self.session.get(url)
             response.raise_for_status()
@@ -106,7 +128,7 @@ class ZoteroAPIClient(ZoteroGateway):
                 "title": filename,
                 "contentType": mime_type
             }]
-            create_url = f"{self.BASE_URL}/groups/{self.group_id}/items"
+            create_url = f"{self.api_prefix}/items"
             response = self.session.post(create_url, json=payload)
             response.raise_for_status()
             res_data = response.json()
@@ -116,7 +138,7 @@ class ZoteroAPIClient(ZoteroGateway):
             attachment_key = list(res_data['successful'].keys())[0]
 
             # 2. Authorization
-            auth_url = f"{self.BASE_URL}/groups/{self.group_id}/items/{attachment_key}/file"
+            auth_url = f"{self.api_prefix}/items/{attachment_key}/file"
             headers = self.session.headers.copy()
             headers['If-None-Match'] = '*'
             headers['Content-Type'] = 'application/x-www-form-urlencoded'
@@ -171,7 +193,7 @@ class ZoteroAPIClient(ZoteroGateway):
         return None
 
     def create_collection(self, name: str) -> Optional[str]:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/collections"
+        url = f"{self.api_prefix}/collections"
         payload = [{
             "name": name
         }]
@@ -191,7 +213,7 @@ class ZoteroAPIClient(ZoteroGateway):
             return None
 
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/items"
+        url = f"{self.api_prefix}/items"
         
         creators = []
         for author in paper.authors:
@@ -240,7 +262,7 @@ class ZoteroAPIClient(ZoteroGateway):
             return False
 
     def create_note(self, parent_item_key: str, note_content: str) -> bool:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/items"
+        url = f"{self.api_prefix}/items"
         payload = [{
             "itemType": "note",
             "parentItem": parent_item_key,
@@ -258,9 +280,9 @@ class ZoteroAPIClient(ZoteroGateway):
             return False
 
     def update_note(self, note_key: str, version: int, note_content: str) -> bool:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/items/{note_key}"
+        url = f"{self.api_prefix}/items/{note_key}"
         headers = self.session.headers.copy()
-        headers['If-Unmodified-Since-Version'] = str(self.last_library_version)
+        # headers['If-Unmodified-Since-Version'] = str(self.last_library_version)
         
         payload = {
             "note": note_content,
@@ -285,7 +307,7 @@ class ZoteroAPIClient(ZoteroGateway):
             return False
 
     def get_items_in_collection(self, collection_id: str) -> Iterator[ZoteroItem]:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/collections/{collection_id}/items"
+        url = f"{self.api_prefix}/collections/{collection_id}/items"
         limit = 100
         start = 0
         
@@ -313,7 +335,7 @@ class ZoteroAPIClient(ZoteroGateway):
                 break
 
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/items/{item_key}/children"
+        url = f"{self.api_prefix}/items/{item_key}/children"
         try:
             response = self.session.get(url)
             response.raise_for_status()
@@ -324,7 +346,7 @@ class ZoteroAPIClient(ZoteroGateway):
             return []
 
     def delete_item(self, item_key: str, version: int) -> bool:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/items/{item_key}"
+        url = f"{self.api_prefix}/items/{item_key}"
         
         def _do_delete():
             headers = self.session.headers.copy()
@@ -347,7 +369,7 @@ class ZoteroAPIClient(ZoteroGateway):
             return False
 
     def update_item_collections(self, item_key: str, version: int, collections: List[str]) -> bool:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/items/{item_key}"
+        url = f"{self.api_prefix}/items/{item_key}"
         headers = self.session.headers.copy()
         headers['If-Unmodified-Since-Version'] = str(self.last_library_version)
         
@@ -367,7 +389,7 @@ class ZoteroAPIClient(ZoteroGateway):
             return False
 
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
-        url = f"{self.BASE_URL}/groups/{self.group_id}/items/{item_key}"
+        url = f"{self.api_prefix}/items/{item_key}"
         headers = self.session.headers.copy()
         headers['If-Unmodified-Since-Version'] = str(self.last_library_version)
         
