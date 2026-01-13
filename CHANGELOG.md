@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.0.6] - 2026-01-13
+
+### Bug Fixes
+*   **Inspect Command:** Fixed attribute mapping for `date` and `authors`.
+*   **Imports:** Fixed missing `Console` import in `info` command.
+
 ## [v1.0.5] - 2026-01-13
 
 ### Features

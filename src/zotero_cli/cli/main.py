@@ -516,8 +516,8 @@ def handle_inspect_item(args):
     meta_text = f"""
     [bold]Title:[/bold] {item.title}
     [bold]Type:[/bold] {item.item_type}
-    [bold]Year:[/bold] {item.year}
-    [bold]Authors:[/bold] {', '.join(item.creators)}
+    [bold]Date:[/bold] {item.date}
+    [bold]Authors:[/bold] {', '.join(item.authors)}
     [bold]DOI:[/bold] {item.doi}
     [bold]URL:[/bold] {item.url}
     """
