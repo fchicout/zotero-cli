@@ -257,6 +257,33 @@ class ZoteroAPIClient(ZoteroGateway):
                 print(f"Response content: {e.response.text}")
             return False
 
+    def update_note(self, note_key: str, version: int, note_content: str) -> bool:
+        url = f"{self.BASE_URL}/groups/{self.group_id}/items/{note_key}"
+        headers = self.session.headers.copy()
+        headers['If-Unmodified-Since-Version'] = str(self.last_library_version)
+        
+        payload = {
+            "note": note_content,
+            "version": version
+        }
+        
+        try:
+            response = self.session.patch(url, headers=headers, json=payload)
+            if response.status_code == 412:
+                # Precondition Failed: update library version and retry
+                self._update_library_version(response)
+                headers['If-Unmodified-Since-Version'] = str(self.last_library_version)
+                response = self.session.patch(url, headers=headers, json=payload)
+            
+            response.raise_for_status()
+            self._update_library_version(response)
+            return True
+        except requests.exceptions.RequestException as e:
+            print(f"Error updating note {note_key}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"Response content: {e.response.text}")
+            return False
+
     def get_items_in_collection(self, collection_id: str) -> Iterator[ZoteroItem]:
         url = f"{self.BASE_URL}/groups/{self.group_id}/collections/{collection_id}/items"
         limit = 100

@@ -115,6 +115,14 @@ class ZoteroGateway(ABC):
         """
         pass
 
+    @abstractmethod
+    def update_note(self, note_key: str, version: int, note_content: str) -> bool:
+        """
+        Updates an existing note.
+        Returns True on success, False otherwise.
+        """
+        pass
+
 class ArxivGateway(ABC):
     @abstractmethod
     def search(self, query: str, limit: int = 100, sort_by: str = "relevance", sort_order: str = "descending") -> Iterator[ResearchPaper]:

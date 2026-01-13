@@ -23,8 +23,10 @@ def test_run_session_no_items(tui, mock_service, mock_console):
     # Setup
     mock_service.get_pending_items.return_value = []
     
-    # Execute
-    tui.run_screening_session("Source", "Inc", "Exc")
+    # Mock persona and phase input
+    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["test_persona", "title_abstract"]):
+        # Execute
+        tui.run_screening_session("Source", "Inc", "Exc")
     
     # Verify
     mock_service.get_pending_items.assert_called_with("Source")
@@ -35,8 +37,8 @@ def test_run_session_quit_immediately(tui, mock_service, mock_console):
     items = [ZoteroItem(key="1", version=1, item_type="note", title="T1")]
     mock_service.get_pending_items.return_value = items
     
-    # Mock user input: 'q' to quit
-    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["q"]):
+    # Mock user input: persona, phase, [Enter to start], 'q' to quit
+    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["test_persona", "title_abstract", "q"]):
         tui.run_screening_session("Source", "Inc", "Exc")
     
     # Verify
@@ -52,8 +54,8 @@ def test_run_session_skip_then_quit(tui, mock_service, mock_console):
     ]
     mock_service.get_pending_items.return_value = items
     
-    # Mock user input: 's' (skip item 1), then 'q' (quit at item 2)
-    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["s", "q"]):
+    # Mock user input: persona, phase, 's' (skip item 1), then 'q' (quit at item 2)
+    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["p", "title_abstract", "s", "q"]):
         tui.run_screening_session("Source", "Inc", "Exc")
     
     # Verify
@@ -67,9 +69,12 @@ def test_run_session_include_item(tui, mock_service, mock_console):
     mock_service.record_decision.return_value = True
     
     # Mock user input: 
-    # 1. Action: 'i' (Include)
-    # 2. Code: 'IC2' (Custom code)
-    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["i", "IC2"]):
+    # 1. Persona: 'p'
+    # 2. Phase: 'title_abstract'
+    # 3. Action: 'i' (Include)
+    # 4. Code: 'IC2' (Custom code)
+    # 5. Action: 'q' (Next item action - Quit if no more items)
+    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["p", "title_abstract", "i", "IC2", "q"]):
         tui.run_screening_session("Source", "Inc", "Exc")
     
     # Verify
@@ -79,7 +84,9 @@ def test_run_session_include_item(tui, mock_service, mock_console):
         code="IC2",
         source_collection="Source",
         target_collection="Inc",
-        agent="zotero-cli-tui"
+        agent="zotero-cli-tui",
+        persona="p",
+        phase="title_abstract"
     )
     mock_console.print.assert_any_call("[bold green]Saved![/bold green]")
 
@@ -89,14 +96,8 @@ def test_run_session_exclude_item_default_code(tui, mock_service, mock_console):
     mock_service.get_pending_items.return_value = items
     mock_service.record_decision.return_value = True
     
-    # Mock user input: 
-    # 1. Action: 'e' (Exclude)
-    # 2. Code: '' (Accept default EC1) -> Wait, Prompt.ask returns default if input is empty? 
-    # Actually rich.prompt.Prompt.ask returns the default if provided and user hits enter.
-    # We simulate this by returning "EC1" directly from our mock side effect for clarity,
-    # or relying on how we mock Prompt.
-    
-    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["e", "EC1"]):
+    # Mock user input: persona, phase, action 'e', code 'EC1', quit
+    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["p", "title_abstract", "e", "EC1", "q"]):
         tui.run_screening_session("Source", "Inc", "Exc")
     
     # Verify
@@ -106,7 +107,9 @@ def test_run_session_exclude_item_default_code(tui, mock_service, mock_console):
         code="EC1",
         source_collection="Source",
         target_collection="Exc",
-        agent="zotero-cli-tui"
+        agent="zotero-cli-tui",
+        persona="p",
+        phase="title_abstract"
     )
 
 def test_run_session_record_failure(tui, mock_service, mock_console):
@@ -115,11 +118,11 @@ def test_run_session_record_failure(tui, mock_service, mock_console):
     mock_service.get_pending_items.return_value = items
     mock_service.record_decision.return_value = False
     
-    # Mock user input: 'i', 'IC1', then Enter (console.input) to continue
-    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["i", "IC1"]):
+    # Mock user input: persona, phase, action 'i', code 'IC1', then quit
+    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["p", "title_abstract", "i", "IC1", "q"]):
         tui.run_screening_session("Source", "Inc", "Exc")
     
     # Verify
     mock_console.print.assert_any_call("[bold red]Failed to save decision![/bold red]")
-    # Ensure console.input was called to pause
+    # Ensure console.input was called to pause after failure
     mock_console.input.assert_called()

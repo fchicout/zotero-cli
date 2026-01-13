@@ -24,6 +24,8 @@ from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
 from zotero_cli.core.services.snapshot_service import SnapshotService
 from zotero_cli.core.services.lookup_service import LookupService
 from zotero_cli.core.services.screening_service import ScreeningService
+from zotero_cli.core.services.report_service import ReportService
+from zotero_cli.core.services.migration_service import MigrationService
 from zotero_cli.cli.tui import TuiScreeningService
 
 def get_zotero_gateway():
@@ -57,6 +59,29 @@ def get_common_clients():
     springer_csv_gateway = SpringerCsvLibGateway()
     ieee_csv_gateway = IeeeCsvLibGateway()
     return PaperImporterClient(zotero_gateway, arxiv_gateway, bibtex_gateway, ris_gateway, springer_csv_gateway, ieee_csv_gateway)
+
+def migrate_command(args):
+    """Handles the 'migrate' subcommand for cleaning notes."""
+    gateway = get_zotero_gateway()
+    service = MigrationService(gateway)
+    
+    print(f"Migrating notes in collection '{args.collection}' (dry_run={args.dry_run})...")
+    stats = service.migrate_collection_notes(args.collection, args.dry_run)
+    
+    if "error" in stats:
+        print(f"Error: Collection '{args.collection}' not found.")
+        sys.exit(1)
+        
+    print("\nMigration Results:")
+    print(f"  Processed Items: {stats['processed']}")
+    print(f"  Migrated Notes: {stats['migrated']}")
+    print(f"  Already Clean: {stats['already_clean']}")
+    print(f"  Failed Updates: {stats['failed']}")
+    
+    if args.dry_run:
+        print("\nNote: This was a DRY RUN. No changes were made to Zotero.")
+    else:
+        print("\nSuccessfully updated Zotero notes.")
 
 def move_command(args):
     """Handles the 'move' subcommand."""
@@ -298,6 +323,68 @@ def lookup_command(args):
     output = service.lookup_items(keys, fields, args.format)
     print(output)
 
+def report_command(args):
+    """Handles the 'report' subcommand for PRISMA stats."""
+    gateway = get_zotero_gateway()
+    service = ReportService(gateway)
+    
+    print(f"Generating PRISMA report for collection '{args.collection}'...")
+    report = service.generate_prisma_report(args.collection)
+    
+    if not report:
+        print(f"Error: Collection '{args.collection}' not found.")
+        sys.exit(1)
+        
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+    
+    console = Console()
+    
+    # 1. Summary Panel
+    summary = f"""
+    [bold blue]Collection:[/bold blue] {report.collection_name}
+    [bold blue]Total Items:[/bold blue] {report.total_items}
+    [bold blue]Screened:[/bold blue] {report.screened_items} ({ (report.screened_items/report.total_items*100) if report.total_items > 0 else 0:.1f}%)
+    [bold green]Accepted:[/bold green] {report.accepted_items}
+    [bold red]Rejected:[/bold red] {report.rejected_items}
+    """
+    console.print(Panel(summary, title="PRISMA Screening Summary", expand=False))
+    
+    # 2. Rejection Breakdown Table
+    if report.rejections_by_code:
+        table = Table(title="Rejection Reasons Breakdown")
+        table.add_column("Reason Code", style="cyan")
+        table.add_column("Count", justify="right", style="magenta")
+        table.add_column("Percentage", justify="right", style="green")
+        
+        for code, count in sorted(report.rejections_by_code.items()):
+            percent = (count / report.rejected_items * 100) if report.rejected_items > 0 else 0
+            table.add_row(code, str(count), f"{percent:.1f}%")
+        
+        console.print(table)
+    
+    # 3. Quality Alerts
+    if report.malformed_notes:
+        console.print(f"\n[bold yellow]⚠ Found {len(report.malformed_notes)} malformed audit notes![/bold yellow]")
+        if args.verbose:
+            for key in report.malformed_notes:
+                console.print(f"  - Malformed note in Item: {key}")
+
+    # 4. Visual Diagram
+    if args.output_chart:
+        mermaid_code = service.generate_mermaid_prisma(report)
+        if args.verbose:
+            console.print("\n[bold blue]Mermaid Code:[/bold blue]")
+            console.print(mermaid_code)
+        
+        with console.status(f"[bold blue]Rendering diagram to {args.output_chart}...[/bold blue]"):
+            success = service.render_diagram(mermaid_code, args.output_chart)
+            if success:
+                console.print(f"\n[bold green]✓ Diagram successfully saved to {args.output_chart}[/bold green]")
+            else:
+                console.print(f"\n[bold red]✗ Failed to render diagram.[/bold red]")
+
 def decision_command(args):
     """Handles the 'decision' subcommand."""
     gateway = get_zotero_gateway()
@@ -310,7 +397,9 @@ def decision_command(args):
         reason=args.reason,
         source_collection=args.source,
         target_collection=args.target,
-        agent="zotero-cli-agent" if args.agent_led else "zotero-cli"
+        agent="zotero-cli-agent" if args.agent_led else "zotero-cli",
+        persona=args.persona if args.persona else "unknown",
+        phase=args.phase if args.phase else "title_abstract"
     )
     
     if success:
@@ -545,6 +634,12 @@ def main():
     remove_parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
     remove_parser.set_defaults(func=remove_attachments_command)
 
+    # Add 'migrate' subcommand
+    migrate_parser = subparsers.add_parser("migrate", help="Clean up and migrate Zotero notes to latest standard.")
+    migrate_parser.add_argument("--collection", required=True, help="Collection name to migrate.")
+    migrate_parser.add_argument("--dry-run", action="store_true", help="Preview changes without updating Zotero.")
+    migrate_parser.set_defaults(func=migrate_command)
+
     # Add 'move' subcommand
     move_parser = subparsers.add_parser("move", help="Move a paper from one collection to another.")
     move_parser.add_argument("--id", required=True, help="The DOI or arXiv ID of the paper.")
@@ -640,7 +735,16 @@ def main():
     decision_parser.add_argument("--source", help="Optional source collection name (to move from).")
     decision_parser.add_argument("--target", help="Optional target collection name (to move to).")
     decision_parser.add_argument("--agent-led", action="store_true", help="Flag if decision was made by an agent.")
+    decision_parser.add_argument("--persona", help="Name of the researcher/persona making the decision.")
+    decision_parser.add_argument("--phase", default="title_abstract", choices=["title_abstract", "full_text"], help="The screening phase.")
     decision_parser.set_defaults(func=decision_command)
+
+    # Add 'report' subcommand
+    report_parser = subparsers.add_parser("report", help="Generate PRISMA screening report for a collection.")
+    report_parser.add_argument("--collection", required=True, help="The Zotero collection name.")
+    report_parser.add_argument("--verbose", action="store_true", help="Show details about malformed notes.")
+    report_parser.add_argument("--output-chart", help="Path to save the PRISMA Mermaid diagram (e.g., prisma.png).")
+    report_parser.set_defaults(func=report_command)
 
     # Add 'screen' subcommand
     screen_parser = subparsers.add_parser("screen", help="Interactive TUI for screening papers.")

@@ -50,6 +50,18 @@ Generate your "Selected Studies" table directly from Zotero keys. No manual copy
 zotero-cli lookup --keys "KEY1,KEY2" --fields "arxiv_id,title,year" --format table
 ```
 
+### 4. 📈 PRISMA Reporting (`report`)
+Generate PRISMA 2020 statistics and Mermaid-based flowcharts automatically from your audit notes.
+```bash
+zotero-cli report --collection "screened" --output-chart "prisma.png"
+```
+
+### 5. 🧹 Audit Sanitization (`migrate`)
+Ensures all audit notes follow the **Standardized Decision Block (SDB) v1.1**. Removes legacy fields (like `signature`), standardizes `agent` names, and converts single codes to lists.
+```bash
+zotero-cli migrate --collection "raw_arXiv" --dry-run
+```
+
 ---
 
 ## 🚀 Quick Start
@@ -73,8 +85,10 @@ export ZOTERO_TARGET_GROUP="https://zotero.org/groups/123"
 | :--- | :--- | :--- |
 | **SLR Ops** | `screen` | **(NEW)** Interactive TUI for rapid paper screening. |
 | | `decision` | **(NEW)** Record a screening decision (CLI/Agent mode). |
+| | `report` | **(NEW)** Generate PRISMA 2020 screening statistics & flowcharts. |
 | | `freeze` | **(NEW)** Snapshot a collection to JSON for audit. |
 | | `lookup` | **(NEW)** Bulk fetch metadata table for synthesis. |
+| | `migrate` | **(NEW)** Clean up and standardize audit notes to SDB v1.1. |
 | **Import** | `import` | Bulk import from arXiv query. |
 | | `bibtex` / `ris` | Import standard bibliography files. |
 | **Manage** | `audit` | Check for missing PDFs, DOIs, or Abstracts. |

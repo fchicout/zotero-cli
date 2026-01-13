@@ -31,9 +31,11 @@ def test_record_decision_success(screening_service, mock_gateway):
     assert args[0] == item_key
     note_content = args[1]
     assert "screening_decision" in note_content
-    assert "INCLUDE" in note_content
+    assert "accepted" in note_content
     assert "IC1" in note_content
     assert "Relevant study" in note_content
+    assert "audit_version" in note_content
+    assert "1.1" in note_content
 
 def test_record_decision_with_move(screening_service, mock_gateway):
     item_key = "ITEM123"

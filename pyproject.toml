@@ -29,7 +29,8 @@ dependencies = [
     "bibtexparser",
     "arxiv",
     "rispy",
-    "rich"
+    "rich",
+    "mermaid-py"
 ]
 
 [project.urls]

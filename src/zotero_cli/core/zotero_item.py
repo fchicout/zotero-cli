@@ -14,6 +14,8 @@ class ZoteroItem:
     doi: Optional[str] = None
     arxiv_id: Optional[str] = None
     url: Optional[str] = None
+    date: Optional[str] = None
+    authors: List[str] = field(default_factory=list)
     has_pdf: bool = False # Will be set by auditor or via child items processing later
 
     @classmethod
@@ -36,6 +38,16 @@ class ZoteroItem:
 
         tags = [t.get('tag') for t in data.get('tags', []) if 'tag' in t]
 
+        # Extract Authors
+        authors = []
+        creators = data.get('creators', [])
+        for creator in creators:
+            if creator.get('creatorType') == 'author':
+                if 'firstName' in creator and 'lastName' in creator:
+                    authors.append(f"{creator['firstName']} {creator['lastName']}")
+                elif 'name' in creator:
+                    authors.append(creator['name'])
+
         return cls(
             key=raw_item['key'],
             version=data.get('version', 0),
@@ -45,6 +57,8 @@ class ZoteroItem:
             doi=doi,
             arxiv_id=arxiv_id,
             url=data.get('url'),
+            date=data.get('date'),
+            authors=authors,
             collections=data.get('collections', []),
             tags=tags,
             has_pdf=False # Default, actual check done by service

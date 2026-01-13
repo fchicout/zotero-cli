@@ -21,6 +21,14 @@ class TuiScreeningService:
     def run_screening_session(self, source_collection: str, target_included: str, target_excluded: str):
         self.console.clear()
         self.console.print(f"[bold cyan]Initializing Screening Session...[/bold cyan]")
+        
+        try:
+            persona = Prompt.ask("Enter researcher name/persona", default="unknown", console=self.console)
+            phase = Prompt.ask("Enter screening phase", choices=["title_abstract", "full_text"], default="title_abstract", console=self.console)
+        except (EOFError, StopIteration):
+            self.console.print("[bold red]Input exhausted. Quitting...[/bold red]")
+            return
+
         self.console.print(f"Source: [yellow]{source_collection}[/yellow]")
         self.console.print(f"Target (Include): [green]{target_included}[/green]")
         self.console.print(f"Target (Exclude): [red]{target_excluded}[/red]")
@@ -35,7 +43,10 @@ class TuiScreeningService:
 
         total = len(items)
         self.console.print(f"[bold green]Found {total} items to screen.[/bold green]")
-        self.console.input("[bold]Press Enter to start...[/bold]")
+        try:
+            self.console.input("[bold]Press Enter to start...[/bold]")
+        except (EOFError, StopIteration):
+            pass
 
         for index, item in enumerate(items):
             self.console.clear()
@@ -61,7 +72,9 @@ class TuiScreeningService:
                     code=code,
                     source_collection=source_collection,
                     target_collection=target_col,
-                    agent="zotero-cli-tui"
+                    agent="zotero-cli-tui",
+                    persona=persona,
+                    phase=phase
                 )
             
             if success:
@@ -85,9 +98,9 @@ class TuiScreeningService:
         layout["header"].update(Panel(header_text, style="white on blue"))
 
         # Body
-        title = Text(item.title, style="bold cyan")
+        title = Text(item.title if item.title else "No Title", style="bold cyan")
         meta = Text(f"\nYear: {item.date} | Authors: {', '.join(item.authors[:3])}", style="yellow")
-        abstract = Text(f"\n\n{item.abstract}", style="white")
+        abstract = Text(f"\n\n{item.abstract if item.abstract else 'No Abstract'}", style="white")
         
         body_content = Text.assemble(title, meta, abstract)
         layout["body"].update(Panel(body_content, title="Abstract", border_style="green"))
@@ -99,11 +112,18 @@ class TuiScreeningService:
         self.console.print(layout)
 
     def _get_user_action(self) -> str:
-        while True:
+        try:
             choice = Prompt.ask("Action", choices=["i", "e", "s", "q"], console=self.console)
             return choice
+        except EOFError:
+            return 'q'
+        except StopIteration:
+            return 'q'
 
     def _get_criteria_code(self, decision: str) -> str:
         default = "IC1" if decision == "INCLUDE" else "EC1"
-        code = Prompt.ask(f"Enter {decision} Criteria Code", default=default, console=self.console)
-        return code
+        try:
+            code = Prompt.ask(f"Enter {decision} Criteria Code", default=default, console=self.console)
+            return code
+        except (EOFError, StopIteration):
+            return default

@@ -23,26 +23,34 @@ class ScreeningService:
         reason: Optional[str] = None,
         source_collection: Optional[str] = None,
         target_collection: Optional[str] = None,
-        agent: str = "zotero-cli"
+        agent: str = "zotero-cli",
+        persona: str = "unknown",
+        phase: str = "title_abstract"
     ) -> bool:
         """
         Records a screening decision for a Zotero item.
         1. Creates a child note with the decision metadata (JSON).
         2. Optionally moves the item from source to target collection.
         """
-        decision = decision.upper()
-        if decision not in ["INCLUDE", "EXCLUDE"]:
-            print(f"Error: Invalid decision '{decision}'. Must be INCLUDE or EXCLUDE.", file=sys.stderr)
+        decision_upper = decision.upper()
+        if decision_upper not in ["INCLUDE", "EXCLUDE"]:
+            print(f"Error: Invalid decision '{decision_upper}'. Must be INCLUDE or EXCLUDE.", file=sys.stderr)
             return False
 
-        # 1. Create the Audit Note
+        # Map internal decision to SDB decision
+        sdb_decision = "accepted" if decision_upper == "INCLUDE" else "rejected"
+
+        # 1. Create the Audit Note using SDB v1.1
         decision_data = {
-            "action": "screening_decision",
-            "decision": decision,
-            "code": code,
-            "reason": reason if reason else "",
+            "audit_version": "1.1",
+            "decision": sdb_decision,
+            "reason_code": [code.strip() for code in code.split(',')] if code else [],
+            "reason_text": reason if reason else "",
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "agent": agent
+            "agent": agent,
+            "persona": persona,
+            "phase": phase,
+            "action": "screening_decision" # Keep for backward compatibility/filtering
         }
         
         note_content = f"<div>{json.dumps(decision_data, indent=2)}</div>"
