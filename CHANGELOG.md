@@ -1,5 +1,10 @@
 # Changelog
 
+## [v1.0.10] - 2026-01-13
+
+### Quality
+*   **Tests:** Fixed unit tests for `CollectionService` to correctly mock the new `get_item` optimization.
+
 ## [v1.0.9] - 2026-01-13
 
 ### Performance
