@@ -39,6 +39,24 @@ def test_screen_tui_invocation(mock_clients, env_vars):
             main()
         mock_tui.run_screening_session.assert_called_once_with('S', 'I', 'E')
 
+def test_screen_bulk_csv(mock_clients, env_vars, capsys):
+    # Mock ScreeningService
+    with patch('zotero_cli.cli.main.ScreeningService') as mock_service_cls:
+        mock_service = mock_service_cls.return_value
+        mock_service.record_decision.return_value = True
+        
+        # Create dummy CSV
+        csv_content = "Key,Vote,Reason\nK1,INCLUDE,\nK2,EXCLUDE,bad"
+        with patch('builtins.open', mock_open(read_data=csv_content)):
+            test_args = ['zotero-cli', 'screen', '--source', 'S', '--include', 'I', '--exclude', 'E', '--file', 'decisions.csv']
+            with patch.object(sys, 'argv', test_args):
+                main()
+        
+        captured = capsys.readouterr()
+        assert "Processing bulk decisions" in captured.out
+        assert "Success: 2, Failed: 0" in captured.out
+        assert mock_service.record_decision.call_count == 2
+
 # --- 2. DECIDE ---
 def test_decide_cli_invocation(mock_clients, env_vars, capsys):
     with patch('zotero_cli.cli.main.ScreeningService') as mock_screen_cls:

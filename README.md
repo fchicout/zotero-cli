@@ -75,6 +75,9 @@ export ZOTERO_USER_ID="your_id"
 
 ## 📚 Command Reference
 
+**Global Flags:**
+*   `--user`: Force the use of your Personal Library (ignores `ZOTERO_TARGET_GROUP`).
+
 | Category | Command | Subcommand | Description |
 | :--- | :--- | :--- | :--- |
 | **Workflow** | `screen` | | Interactive TUI for screening. |
@@ -82,9 +85,11 @@ export ZOTERO_USER_ID="your_id"
 | **Ingest** | `import` | `file` | Import .bib, .ris, .csv files. |
 | | | `arxiv` | Import from arXiv query. |
 | | | `manual` | Add a single paper manually. |
-| **Discovery** | `list` | `collections` | List all collections. |
+| **Discovery** | `info` | | Display current configuration & context. |
+| | `list` | `collections` | List all collections. |
 | | | `groups` | List user groups. |
-| | | `items` | List items in a collection. |
+| | | `items` | List items (filtered) in a collection. |
+| | `inspect` | | Show deep details/children of an item. |
 | | `find` | `arxiv` | Search arXiv (read-only). |
 | **Output** | `report` | `prisma` | Generate PRISMA stats & charts. |
 | | | `snapshot` | Create JSON audit trail. |

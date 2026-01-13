@@ -1,11 +1,12 @@
-# User Guide (v1.0.0)
+# User Guide (v1.0.6)
 
 ## Table of Contents
 1.  [Getting Started](#getting-started)
-2.  [Workflow (Screening & Reporting)](#workflow)
-3.  [Ingestion (Import)](#ingestion)
-4.  [Management (Tags, PDFs, Cleaning)](#management)
-5.  [Analysis & Discovery](#analysis)
+2.  [Context & Configuration](#context--configuration)
+3.  [Workflow (Screening & Reporting)](#workflow)
+4.  [Ingestion (Import)](#ingestion)
+5.  [Management (Tags, PDFs, Cleaning)](#management)
+6.  [Analysis & Discovery](#analysis)
 
 ## Getting Started
 
@@ -13,9 +14,30 @@ Ensure you have your environment variables set:
 ```bash
 export ZOTERO_API_KEY="key"
 export ZOTERO_USER_ID="123456"
-# Optional: Set a default group URL to skip finding it
+# Optional: Set a default group URL
 export ZOTERO_TARGET_GROUP="https://zotero.org/groups/123"
 ```
+
+## Context & Configuration
+
+zotero-cli can operate on your **Personal Library** or a **Group Library**.
+
+### 1. Determining Context
+*   **Group Mode:** If `ZOTERO_TARGET_GROUP` is set, the tool defaults to that Group.
+*   **Personal Mode:** If `ZOTERO_TARGET_GROUP` is NOT set, or if you use the `--user` flag, it uses your `ZOTERO_USER_ID`.
+
+### 2. Switching Context
+To temporarily force operations on your Personal Library (even if a Group is configured), use the global `--user` flag:
+```bash
+zotero-cli --user list collections
+```
+
+### 3. Checking Status (`info`)
+Not sure which library you are targeting? Run:
+```bash
+zotero-cli info
+```
+This displays your current API Key status, configured Group/User IDs, and the active Library Context.
 
 ---
 
@@ -110,10 +132,21 @@ zotero-cli manage migrate --collection "raw_arXiv"
 ## Analysis
 
 ### Discovery
+**Info:** Check configuration.
+```bash
+zotero-cli info
+```
+
+**List:**
 ```bash
 zotero-cli list collections   # See what you have
 zotero-cli list groups        # Find your Group IDs
-zotero-cli list items --collection "MyCol"
+zotero-cli list items --collection "MyCol" # Lists papers (hides attachments/notes)
+```
+
+**Inspect:** Deep dive into a specific item (shows metadata, children, notes).
+```bash
+zotero-cli inspect --key "BQPLL87F"
 ```
 
 ### Audit

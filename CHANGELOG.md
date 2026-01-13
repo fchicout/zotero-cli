@@ -1,5 +1,12 @@
 # Changelog
 
+## [v1.0.7] - 2026-01-13
+
+### Features
+*   **Bulk Screening:** New headless screening mode via CSV import.
+    *   Command: `zotero-cli screen --file decisions.csv ...`
+    *   Supports distributed team workflows.
+
 ## [v1.0.6] - 2026-01-13
 
 ### Bug Fixes

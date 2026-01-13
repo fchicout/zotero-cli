@@ -93,11 +93,65 @@ def handle_screen_run(args):
     try:
         gateway = get_zotero_gateway()
         service = ScreeningService(gateway)
-        tui = TuiScreeningService(service)
-        tui.run_screening_session(args.source, args.include, args.exclude)
+        
+        if args.file:
+            # Bulk CSV Mode
+            import csv
+            print(f"Processing bulk decisions from {args.file}...")
+            
+            with open(args.file, 'r', encoding='utf-8-sig') as f:
+                reader = csv.DictReader(f)
+                # Normalize headers to lowercase for flexible matching
+                headers = [h.lower() for h in reader.fieldnames or []]
+                if 'key' not in headers or 'vote' not in headers:
+                    print("Error: CSV must contain 'Key' and 'Vote' columns (case-insensitive).")
+                    sys.exit(1)
+                
+                # Map headers
+                key_col = next(h for h in reader.fieldnames if h.lower() == 'key')
+                vote_col = next(h for h in reader.fieldnames if h.lower() == 'vote')
+                reason_col = next((h for h in reader.fieldnames if h.lower() == 'reason'), None)
+                
+                success_count = 0
+                fail_count = 0
+                
+                for row in reader:
+                    key = row[key_col].strip()
+                    vote = row[vote_col].strip().upper()
+                    reason = row[reason_col].strip() if reason_col and row[reason_col] else None
+                    
+                    if not key or not vote:
+                        print(f"Skipping invalid row: {row}")
+                        continue
+                        
+                    if vote not in ['INCLUDE', 'EXCLUDE']:
+                        print(f"Invalid vote '{vote}' for key {key}. Must be INCLUDE or EXCLUDE.")
+                        fail_count += 1
+                        continue
+                    
+                    target = args.include if vote == 'INCLUDE' else args.exclude
+                    print(f"Processing {key} -> {vote}...", end='', flush=True)
+                    
+                    if service.record_decision(key, vote, reason, args.source, target):
+                        print(" OK")
+                        success_count += 1
+                    else:
+                        print(" FAILED")
+                        fail_count += 1
+                        
+                print(f"\nBulk screening complete. Success: {success_count}, Failed: {fail_count}")
+                
+        else:
+            # Interactive TUI Mode
+            tui = TuiScreeningService(service)
+            tui.run_screening_session(args.source, args.include, args.exclude)
+            
     except KeyboardInterrupt:
         print("\nSession interrupted by user.")
         sys.exit(0)
+    except FileNotFoundError:
+        print(f"Error: File not found: {args.file}")
+        sys.exit(1)
 
 def handle_screen_record(args):
     gateway = get_zotero_gateway()
@@ -564,10 +618,11 @@ def main():
     inspect_parser.set_defaults(func=handle_inspect_item)
     
     # --- SCREEN ---
-    screen_parser = subparsers.add_parser("screen", help="Interactive Screening Interface (TUI)")
+    screen_parser = subparsers.add_parser("screen", help="Interactive Screening Interface (TUI) or Bulk Import")
     screen_parser.add_argument("--source", required=True, help="Source collection")
     screen_parser.add_argument("--include", required=True, help="Target for inclusion")
     screen_parser.add_argument("--exclude", required=True, help="Target for exclusion")
+    screen_parser.add_argument("--file", help="CSV file for bulk decisions (Headless mode)")
     screen_parser.set_defaults(func=handle_screen_run)
 
     # 2. DECIDE (CLI Mode)
