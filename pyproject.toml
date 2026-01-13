@@ -1,6 +1,6 @@
 [project]
 name = "zotero-cli"
-version = "0.3.1"
+version = "0.4.0"
 description = "A CLI tool to import research papers into Zotero from arXiv, BibTeX, RIS, and CSV."
 authors = [{name = "Fábio Chicout", email = "fchicout@gmail.com"}]
 readme = "README.md"
