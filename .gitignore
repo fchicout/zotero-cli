@@ -12,3 +12,5 @@ tmp/
 setup_env.sh
 .env
 auth.json
+test_config.toml
+*.toml.local
