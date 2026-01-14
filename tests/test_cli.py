@@ -261,50 +261,52 @@ def test_find_arxiv(mock_clients, env_vars, capsys):
 
 # --- CONFIGURATION / MAIN ---
 
+from zotero_cli.cli.main import get_zotero_gateway, reset_config
+
 def test_config_group_mode(monkeypatch):
+    reset_config()
     monkeypatch.setenv('ZOTERO_API_KEY', 'key')
     monkeypatch.setenv('ZOTERO_TARGET_GROUP', 'https://zotero.org/groups/123')
     
-    from zotero_cli.cli.main import get_zotero_gateway
     gw = get_zotero_gateway()
     assert gw.http.library_id == '123'
     assert gw.http.library_type == 'group'
 
 def test_config_user_mode(monkeypatch):
+    reset_config()
     monkeypatch.setenv('ZOTERO_API_KEY', 'key')
     monkeypatch.delenv('ZOTERO_TARGET_GROUP', raising=False)
     monkeypatch.setenv('ZOTERO_USER_ID', '999')
     
-    from zotero_cli.cli.main import get_zotero_gateway
     gw = get_zotero_gateway()
     assert gw.http.library_id == '999'
     assert gw.http.library_type == 'user'
 
 def test_config_missing_group_id(monkeypatch, capsys):
+    reset_config()
     monkeypatch.setenv('ZOTERO_API_KEY', 'key')
     monkeypatch.setenv('ZOTERO_TARGET_GROUP', 'https://bad-url.com')
     
-    from zotero_cli.cli.main import get_zotero_gateway
     with pytest.raises(SystemExit):
         get_zotero_gateway()
     assert "Could not extract Group ID" in capsys.readouterr().err
 
 def test_config_no_context(monkeypatch, capsys):
+    reset_config()
     monkeypatch.setenv('ZOTERO_API_KEY', 'key')
     monkeypatch.delenv('ZOTERO_TARGET_GROUP', raising=False)
     monkeypatch.delenv('ZOTERO_USER_ID', raising=False)
     
-    from zotero_cli.cli.main import get_zotero_gateway
     with pytest.raises(SystemExit):
         get_zotero_gateway()
-    assert "Neither ZOTERO_TARGET_GROUP nor ZOTERO_USER_ID" in capsys.readouterr().err
+    assert "No target library defined" in capsys.readouterr().err
 
 def test_config_optional_group(monkeypatch):
+    reset_config()
     monkeypatch.setenv('ZOTERO_API_KEY', 'key')
     monkeypatch.delenv('ZOTERO_TARGET_GROUP', raising=False)
     monkeypatch.delenv('ZOTERO_USER_ID', raising=False)
     
-    from zotero_cli.cli.main import get_zotero_gateway
     # Should not exit
     gw = get_zotero_gateway(require_group=False)
     assert gw.http.library_id == "0"

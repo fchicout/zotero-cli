@@ -13,11 +13,19 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 
 ## Accomplished Tasks (Session: 2026-01-13)
 
+### Phase 9: Persistent Configuration & Robustness
+*   **[RELEASE] v1.1.0:**
+    *   **Feature:** Implemented **Persistent Configuration** via `config.toml`.
+    *   **Standards:** Adhered to XDG Base Directory Specification (`~/.config/zotero-cli/`).
+    *   **Precedence:** Established clear config hierarchy: CLI Flags > Environment Variables > Config File.
+    *   **Robustness:** Fixed `400 Bad Request` and implemented `412` concurrency retries for item movement.
+    *   **Quality:** Maintained **80%** global test coverage with 177 passing tests.
+    *   **Docs:** Updated `README.md` and `USER_GUIDE.md` with configuration instructions.
+
 ### Phase 8: The v1.0.0 Marathon
 *   **[RELEASE] v1.0.12:**
     *   **Fix:** Resolved `400 Bad Request` in `update_item_collections` by removing redundant `version` in JSON payload.
-    *   **Fix:** Implemented automatic retry on `412 Precondition Failed` for collection movement, ensuring robustness in concurrent environments.
-    *   **Verification:** Successfully validated `decide` subcommand for LLM-agent use cases.
+    *   **Fix:** Implemented automatic retry on `412 Precondition Failed` for collection movement.
 *   **[RELEASE] v1.0.11 (Final Stable):**
     *   **Architecture:** Full SOLID Refactor. Decoupled `ZoteroAPIClient` (Repository) from `ZoteroHttpClient` (Transport).
     *   **Features:**

@@ -22,6 +22,7 @@ def client(api_key, group_id):
 def test_update_item_collections_success(client, group_id):
     # Setup mock response
     mock_response = Mock()
+    mock_response.status_code = 204
     mock_response.raise_for_status.return_value = None
     mock_response.headers = {'Last-Modified-Version': '43'}
     client.http.session.patch.return_value = mock_response
@@ -41,19 +42,9 @@ def test_update_item_collections_success(client, group_id):
     expected_url = f"https://api.zotero.org/groups/{group_id}/items/{item_key}"
     call_args = client.http.session.patch.call_args
     assert call_args[0][0] == expected_url
-    # Payload now includes version if passed to update_item_collections? 
-    # Let's check my implementation of update_item_collections in zotero_api.py
-    # payload = {"collections": collections, "version": version} 
-    # Wait, my implementation in previous step put version in payload AND check=True.
     
-    # assert call_args[1]['json'] == {'collections': new_collections} 
-    # This assertion might fail if I changed payload structure.
-    # Let's check zotero_api.py...
-    # payload = {"collections": collections, "version": version}
-    
-    # So I expect:
-    assert call_args[1]['json']['collections'] == new_collections
-    assert call_args[1]['json']['version'] == version
+    # Payload should NOT include version (removed to fix 400 Bad Request)
+    assert call_args[1]['json'] == {'collections': new_collections}
     
     assert call_args[1]['headers']['If-Unmodified-Since-Version'] == str(version)
 

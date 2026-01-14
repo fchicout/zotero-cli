@@ -37,6 +37,12 @@ FORCE_USER = False
 _GLOBAL_CONFIG: Optional[ZoteroConfig] = None
 _GLOBAL_CONFIG_PATH: Optional[Path] = None
 
+def reset_config():
+    """Reset global config cache (mainly for testing)."""
+    global _GLOBAL_CONFIG, _GLOBAL_CONFIG_PATH
+    _GLOBAL_CONFIG = None
+    _GLOBAL_CONFIG_PATH = None
+
 def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
     global _GLOBAL_CONFIG, _GLOBAL_CONFIG_PATH
     if _GLOBAL_CONFIG is None or config_path:
