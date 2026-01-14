@@ -6,7 +6,7 @@ from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient
 def client():
     return SemanticScholarAPIClient()
 
-@patch('requests.get')
+@patch('requests.Session.get')
 def test_get_paper_metadata_success(mock_get, client):
     mock_response = Mock()
     mock_response.status_code = 200
@@ -35,7 +35,7 @@ def test_get_paper_metadata_success(mock_get, client):
     assert metadata.authors == ["Author A", "Author B"]
     assert metadata.references == ["10.5678/ref1"]
 
-@patch('requests.get')
+@patch('requests.Session.get')
 def test_get_paper_metadata_not_found(mock_get, client):
     mock_response = Mock()
     mock_response.status_code = 404

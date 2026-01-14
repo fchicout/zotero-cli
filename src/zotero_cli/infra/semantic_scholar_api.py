@@ -1,15 +1,18 @@
-import requests
-import time
+from typing import Optional
 import os
-from typing import Optional, List
+import time
+import requests
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.infra.base_api_client import BaseAPIClient
 
-class SemanticScholarAPIClient(MetadataProvider):
-    BASE_URL = "https://api.semanticscholar.org/graph/v1/paper"
-
-    def __init__(self):
-        self.api_key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
+class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider):
+    
+    def __init__(self, api_key: Optional[str] = None):
+        super().__init__(base_url="https://api.semanticscholar.org/graph/v1/paper")
+        self.api_key = api_key or os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
+        if self.api_key:
+            self.session.headers['x-api-key'] = self.api_key
 
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:
         """
@@ -27,30 +30,21 @@ class SemanticScholarAPIClient(MetadataProvider):
         # Fields to retrieve
         fields = "title,abstract,authors,year,venue,externalIds,url,references.externalIds"
         
-        url = f"{self.BASE_URL}/{s2_id}"
-        
-        headers = {'User-Agent': 'zotero_cli/1.0'}
-        if self.api_key:
-            headers['x-api-key'] = self.api_key
-
-        # Rate limiting: 1 request per second
+        # Rate limiting: 1 request per second (keeping it polite)
         time.sleep(1.1)
 
         try:
-            response = requests.get(
-                url, 
-                params={'fields': fields},
-                headers=headers
-            )
+            response = self._get(endpoint=s2_id, params={'fields': fields})
             
-            if response.status_code == 404:
-                return None
-                
-            response.raise_for_status()
             data = response.json()
             return self._map_to_research_paper(data)
 
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                return None
+            print(f"Error fetching metadata from Semantic Scholar for {identifier}: {e}")
+            return None
+        except Exception as e:
             print(f"Error fetching metadata from Semantic Scholar for {identifier}: {e}")
             return None
 

@@ -1,13 +1,14 @@
-import requests
-import os
 from typing import Optional
+import os
+import requests
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.infra.base_api_client import BaseAPIClient
 
-class UnpaywallAPIClient(MetadataProvider):
-    BASE_URL = "https://api.unpaywall.org/v2/"
+class UnpaywallAPIClient(BaseAPIClient, MetadataProvider):
     
     def __init__(self):
+        super().__init__(base_url="https://api.unpaywall.org/v2/")
         self.email = os.environ.get("UNPAYWALL_EMAIL", "unpaywall_client@zotero_cli.com")
 
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:
@@ -19,17 +20,17 @@ class UnpaywallAPIClient(MetadataProvider):
         if "10." not in identifier:
             return None
             
-        url = f"{self.BASE_URL}{identifier}?email={self.email}"
-        
         try:
-            response = requests.get(url)
-            if response.status_code == 404:
-                return None
-            response.raise_for_status()
+            response = self._get(endpoint=identifier, params={"email": self.email})
             
             data = response.json()
             return self._map_to_research_paper(data)
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                return None
+            print(f"Error fetching data from Unpaywall for {identifier}: {e}")
+            return None
+        except Exception as e:
             print(f"Error fetching data from Unpaywall for {identifier}: {e}")
             return None
 

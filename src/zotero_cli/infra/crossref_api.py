@@ -1,23 +1,30 @@
+from typing import Optional
 import requests
-from typing import List, Optional
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.infra.base_api_client import BaseAPIClient
 
-class CrossRefAPIClient(MetadataProvider):
-    BASE_URL = "https://api.crossref.org/works/"
+class CrossRefAPIClient(BaseAPIClient, MetadataProvider):
+    
+    def __init__(self):
+        super().__init__(base_url="https://api.crossref.org/works")
 
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:
         """
         Retrieves full paper metadata (including references) for the given identifier (DOI).
         Returns a ResearchPaper object if found, otherwise None.
         """
-        url = f"{self.BASE_URL}{identifier}"
         try:
-            response = requests.get(url, headers={'User-Agent': 'zotero_cli/1.0 (mailto:fchicout@gmail.com)'})
-            response.raise_for_status()
+            response = self._get(endpoint=identifier)
+            
             data = response.json()
             return self._map_to_research_paper(data)
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                return None
+            print(f"Error fetching metadata for DOI {identifier} from CrossRef: {e}")
+            return None
+        except Exception as e:
             print(f"Error fetching metadata for DOI {identifier} from CrossRef: {e}")
             return None
 

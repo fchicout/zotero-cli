@@ -7,7 +7,7 @@ from zotero_cli.infra.crossref_api import CrossRefAPIClient
 def client():
     return CrossRefAPIClient()
 
-@patch('requests.get')
+@patch('requests.Session.get')
 def test_get_paper_metadata_success(mock_get, client):
     mock_response = Mock()
     mock_response.raise_for_status.return_value = None
@@ -43,7 +43,7 @@ def test_get_paper_metadata_success(mock_get, client):
     assert "10.1000/cited.paper.1" in metadata.references
     assert "10.1000/cited.paper.2" in metadata.references
 
-@patch('requests.get')
+@patch('requests.Session.get')
 def test_get_paper_metadata_api_error(mock_get, client):
     mock_get.side_effect = requests.exceptions.RequestException("Network error")
     doi = "10.1000/error.paper"

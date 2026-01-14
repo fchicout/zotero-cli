@@ -7,7 +7,7 @@ from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
 def client():
     return UnpaywallAPIClient()
 
-@patch('requests.get')
+@patch('requests.Session.get')
 def test_get_paper_metadata_success(mock_get, client):
     mock_response = Mock()
     mock_response.status_code = 200
@@ -33,7 +33,7 @@ def test_get_paper_metadata_success(mock_get, client):
     assert metadata.year == "2024"
     assert metadata.authors == ["Open Scientist"]
 
-@patch('requests.get')
+@patch('requests.Session.get')
 def test_get_paper_metadata_no_oa(mock_get, client):
     mock_response = Mock()
     mock_response.status_code = 200

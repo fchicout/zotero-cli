@@ -1,7 +1,7 @@
 [project]
 name = "zotero-cli"
-version = "1.1.0"
-description = "A CLI tool to import research papers into Zotero from arXiv, BibTeX, RIS, and CSV."
+version = "1.2.0"
+description = "A Systematic Review Engine CLI for Zotero"
 authors = [{name = "Fábio Chicout", email = "fchicout@gmail.com"}]
 readme = "README.md"
 requires-python = ">=3.8"
@@ -31,7 +31,8 @@ dependencies = [
     "rispy",
     "rich",
     "mermaid-py",
-    "tomli; python_version < '3.11'"
+    "tomli; python_version < '3.11'",
+    "tenacity"
 ]
 
 [project.urls]
