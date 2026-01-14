@@ -9,76 +9,51 @@ This document preserves the context, memory, and task history of the `zotero-cli
 ## Project Overview: `zotero-cli`
 A "Systematic Review Engine" CLI tool to import, manage, and screen research papers in Zotero libraries.
 
-**Key Technologies:** Python 3.8+, `requests`, `rich`, `pytest`.
+**Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`.
 
-## Accomplished Tasks
+## Accomplished Tasks (Session: 2026-01-13)
 
-### Phase 7: SLR Professionalization (The "Dr. Vance" Suite) - [SESSION ACTIVE]
-*   **[COMPLETED] Bug Fix: Infinite Loop in TUI Tests:**
-    *   Resolved a critical memory leak/infinite loop in `TuiScreeningService` where `Prompt.ask` interacted with `MagicMock` consoles.
-    *   Improved robustness of TUI input handling with `StopIteration` and `EOFError` catching.
-    *   Updated `tests/test_tui.py` with complete mock side effects.
-*   **[COMPLETED] Audit Sanitization & Migration (`migrate`):**
-    *   *Service:* `MigrationService`.
-    *   *Command:* `migrate`.
-    *   *Standard:* Upgraded all audit notes to **SDB v1.1**.
-    *   *Compliance:* Automatically removes legacy `signature` fields and standardizes `agent` to `zotero-cli`.
-    *   *Verification:* Added `tests/test_migration.py`.
-*   **Infrastructure:**
-    *   Added `update_note` support to `ZoteroGateway` and `ZoteroAPIClient`.
-*   **Documentation:**
-    *   Updated `README.md` and `docs/SLR_FEATURES.md` with PRISMA reporting and Migration standards.
-*   **Automated PRISMA Reporting (`report`):**
-    *   *Service:* `ReportService`.
-    *   *Feature:* Parses Standardized Decision Blocks (SDB) to generate PRISMA 2020 screening statistics.
-    *   *Output:* Rich CLI tables and rejection breakdown.
-*   **Audit Snapshot (`freeze`):**
-    *   *Service:* `SnapshotService`.
-    *   *Feature:* Creates immutable JSON snapshots of collections including all child items (notes/attachments).
-    *   *Resilience:* Implemented integrity checks and partial success reporting.
-*   **Bulk Metadata Lookup (`lookup`):**
-    *   *Service:* `LookupService`.
-    *   *Feature:* Fetches and formats metadata for lists of Zotero keys into Markdown, CSV, or JSON.
-*   **Interactive Screening (`screen` / `decision`):**
-    *   *Service:* `ScreeningService`.
-    *   *Schema:* Upgraded to **SDB v1.1** (audit_version, persona, phase, reason_code list).
-    *   *TUI:* Interactive "Tinder-for-Papers" interface using `rich` for rapid screening.
-    *   *CLI:* `decision` command now supports `--persona` and `--phase`.
-    *   *Audit Trail:* Automatically creates machine-readable JSON notes for every decision.
-*   **Infrastructure:**
-    *   Patched `ZoteroGateway` and `ZoteroAPIClient` with `create_note` support.
-    *   Added `rich` dependency for TUI/formatting.
-*   **Documentation:**
-    *   Full `README.md` refactor highlighting the SLR Workflow and Mermaid diagrams.
-    *   Detailed technical specs in `docs/SLR_FEATURES.md`.
-*   **Quality & Hygiene:**
-    *   **Coverage:** Boosted to **87%** (Green).
-    *   **Infrastructure Coverage:** `zotero_api.py` reached **90%**.
-    *   **TUI Coverage:** `tui.py` reached **87%**.
-    *   **Migration Coverage:** `migration_service.py` reached **99%**.
-    *   **Purge:** Deleted 15 legacy scripts from `src/` to `legacy_scripts/`.
+### Phase 8: The v1.0.0 Marathon
+*   **[RELEASE] v1.0.12:**
+    *   **Fix:** Resolved `400 Bad Request` in `update_item_collections` by removing redundant `version` in JSON payload.
+    *   **Fix:** Implemented automatic retry on `412 Precondition Failed` for collection movement, ensuring robustness in concurrent environments.
+    *   **Verification:** Successfully validated `decide` subcommand for LLM-agent use cases.
+*   **[RELEASE] v1.0.11 (Final Stable):**
+    *   **Architecture:** Full SOLID Refactor. Decoupled `ZoteroAPIClient` (Repository) from `ZoteroHttpClient` (Transport).
+    *   **Features:**
+        *   **Context:** Added Global `--user` flag for Personal Library override.
+        *   **Diagnostics:** Added `zotero-cli info`.
+        *   **Discovery:** Added `zotero-cli inspect`.
+        *   **Performance:** Optimized `manage move` from O(N) to O(1) using direct Key lookup.
+        *   **Bulk Screening:** Added `screen --file decisions.csv` for headless batch processing.
+    *   **Quality:**
+        *   Test Coverage boosted to **82%**.
+        *   Added `tests/test_zotero_api_failures.py` for comprehensive error handling.
+    *   **Documentation:** Fully updated `README.md` and `USER_GUIDE.md`.
 
-### Phase 6: Release Engineering (v0.3.0)
-*   **Versioning:** Bumped to `v0.3.0`.
-*   **Metadata:** Enriched `pyproject.toml` with PyPI fields.
+## Roadmap & Backlog (Post-v1.0.0)
 
-### Phase 5: Refactoring & Quality
-*   **Rename:** Repository renamed to `zotero-cli`.
-*   **Testing:** Migrated to `pytest`.
+### 🧠 Intelligence (Dr. Vance)
+*   [ ] **AI-Assisted Screening:** Implement `analyze suggest` using local LLMs to rank papers against protocol criteria.
+*   [ ] **Synthesis Matrix:** Implement `analyze synthesis` to generate Paper-vs-Concept CSVs.
 
-## Backlog & Roadmap
+### 🛠 Architecture (Pythias)
+*   [ ] **CLI Framework Migration:** Refactor `argparse` to `Typer` or `Click` for better maintainability.
+*   [ ] **Persistent Config:** Support `~/.config/zotero-cli/config.toml` to replace strict Env Var dependency.
 
-### Phase 7 (Part 2): Audit Intelligence
-*   **[COMPLETED] Automated PRISMA Reporting (`report`):** One-click generation of screening statistics.
-*   **[COMPLETED] SDB v1.1 Upgrade:** Strict schema for audit notes including persona and phase.
-*   **[COMPLETED] Migration Tool (`migrate`):** Standardize legacy notes and remove PII (`signature`).
-    *   *Status:* `raw_arXiv` fully migrated (547/548).
-    *   *Fix:* Removed `If-Unmodified-Since-Version` header from `update_note` to fix concurrency blocking.
-*   **Smart Filtering (`find`):** Advanced querying by audit note content.
-*   **Visualization:** Integration with `mmdc` for PRISMA flowchart export.
-*   **Refactoring:** Move `legacy_scripts/` to a proper tool-independent folder if still needed.
+### 🛡 Quality (Valerius)
+*   [ ] **Integration Sandbox:** Set up a live Zotero Group for daily end-to-end regression tests (detect API drift).
+*   [ ] **Coverage 90%:** Target specific command handlers for unit isolation.
+
+### ⚙️ Operations (Argentis)
+*   [ ] **Semantic Release:** Automate version bumping based on git commit messages.
+*   [ ] **PyPI Publishing:** Automate `pip` release.
+
+### 📚 Documentation (Sullivan)
+*   [ ] **MkDocs Site:** Publish `docs/` to GitHub Pages.
+*   [ ] **Cookbook:** Create a "Recipes" section for complex workflows.
 
 ## Current State
-*   **Version:** `v0.4.0`.
-*   **Quality:** 87% Test Coverage (Pytest).
-*   **Status:** Feature-complete for core SLR screening workflow. Migration validated on production data.
+*   **Version:** `v1.0.11`.
+*   **Quality:** 82% Test Coverage (Green).
+*   **Status:** Stable, Feature-Rich, High Performance.

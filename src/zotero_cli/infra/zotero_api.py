@@ -198,15 +198,19 @@ class ZoteroAPIClient(ZoteroGateway):
             return False
 
     def update_item_collections(self, item_key: str, version: int, collections: List[str]) -> bool:
-        payload = {"collections": collections, "version": version} # Version in payload?
-        # Zotero API allows version in payload or header. HTTP Client uses header if version_check=True
-        # Let's rely on payload if that's what the original code implied, or headers. 
-        # Original code put it in payload usually? No, update_note put it in payload. 
-        # update_item_collections put it in payload? Let's check. 
-        # Original: payload={"collections": collections} + header If-Unmodified...
+        payload = {"collections": collections} 
         
         try:
-            self.http.patch(f"items/{item_key}", json_data=payload, version_check=True)
+            resp = self.http.patch(f"items/{item_key}", json_data=payload, version_check=True)
+            
+            if resp.status_code == 412:
+                # Retry once. The http.patch method updates self.last_library_version from the response headers.
+                # So the next call will use the fresh version.
+                resp = self.http.patch(f"items/{item_key}", json_data=payload, version_check=True)
+            
+            if resp.status_code != 204:
+                return False
+                
             return True
         except Exception as e:
             print(f"Error updating item {item_key} collections: {e}")
