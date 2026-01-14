@@ -18,28 +18,38 @@ export ZOTERO_USER_ID="123456"
 export ZOTERO_TARGET_GROUP="https://zotero.org/groups/123"
 ```
 
-## Context & Configuration
+## 1. Setup and Configuration
 
-zotero-cli can operate on your **Personal Library** or a **Group Library**.
+### 1.1 Authentication
+The `zotero-cli` requires your Zotero API Key and Library information. You can provide these via Environment Variables or a Persistent Configuration file.
 
-### 1. Determining Context
-*   **Group Mode:** If `ZOTERO_TARGET_GROUP` is set, the tool defaults to that Group.
-*   **Personal Mode:** If `ZOTERO_TARGET_GROUP` is NOT set, or if you use the `--user` flag, it uses your `ZOTERO_USER_ID`.
+#### Option A: Persistent Configuration (Recommended)
+Create a `config.toml` file in the standard configuration directory:
+- **Linux/macOS:** `~/.config/zotero-cli/config.toml`
+- **Windows:** `%APPDATA%\zotero-cli\config.toml`
 
-### 2. Switching Context
-To temporarily force operations on your Personal Library (even if a Group is configured), use the global `--user` flag:
-```bash
-zotero-cli --user list collections
+Example `config.toml`:
+```toml
+[zotero]
+api_key = "YOUR_API_KEY"
+library_id = "6287212"
+library_type = "group"
+user_id = "1909172"
 ```
 
-### 3. Checking Status (`info`)
-Not sure which library you are targeting? Run:
+You can also specify a custom config path using the global `--config` flag:
 ```bash
-zotero-cli info
+zotero-cli --config ./my-project-config.toml info
 ```
-This displays your current API Key status, configured Group/User IDs, and the active Library Context.
 
----
+#### Option B: Environment Variables
+For CI/CD or ephemeral sessions, use these variables:
+- `ZOTERO_API_KEY`: Your secret API key.
+- `ZOTERO_LIBRARY_ID`: The ID of the group or user library.
+- `ZOTERO_LIBRARY_TYPE`: Either `group` (default) or `user`.
+- `ZOTERO_TARGET_GROUP`: Full URL (e.g., `https://www.zotero.org/groups/123/name`) to derive ID.
+- `ZOTERO_USER_ID`: Your personal Zotero User ID.
+
 
 ## Workflow
 

@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import re
+from pathlib import Path
 from typing import Optional
 
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
@@ -28,34 +29,57 @@ from zotero_cli.core.services.screening_service import ScreeningService
 from zotero_cli.core.services.report_service import ReportService
 from zotero_cli.core.services.migration_service import MigrationService
 from zotero_cli.cli.tui import TuiScreeningService
-
-# --- Infrastructure Helpers ---
+from zotero_cli.core.config import ConfigLoader, ZoteroConfig
 
 # --- Infrastructure Helpers ---
 
 FORCE_USER = False
+_GLOBAL_CONFIG: Optional[ZoteroConfig] = None
+_GLOBAL_CONFIG_PATH: Optional[Path] = None
 
-def get_zotero_gateway(require_group: bool = True):
+def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
+    global _GLOBAL_CONFIG, _GLOBAL_CONFIG_PATH
+    if _GLOBAL_CONFIG is None or config_path:
+        path = Path(config_path) if config_path else None
+        loader = ConfigLoader(config_path=path)
+        _GLOBAL_CONFIG = loader.load()
+        _GLOBAL_CONFIG_PATH = loader.config_path
+    return _GLOBAL_CONFIG
+
+def get_zotero_gateway(require_group: bool = True, config_path: Optional[str] = None):
     """
-    Helper to get Zotero client from environment variables.
+    Helper to get Zotero client from configuration (Env > File).
     Supports both Group and User libraries.
     """
-    api_key = os.environ.get("ZOTERO_API_KEY")
+    config = get_config(config_path)
+    
+    api_key = config.api_key
     if not api_key:
-        print("Error: ZOTERO_API_KEY environment variable not set.", file=sys.stderr)
+        print("Error: Zotero API Key not set. Use ZOTERO_API_KEY env var or config.toml.", file=sys.stderr)
         sys.exit(1)
 
     # Determine Library Context
-    group_url = os.environ.get("ZOTERO_TARGET_GROUP")
-    user_id = os.environ.get("ZOTERO_USER_ID")
+    group_url = config.target_group_url
+    user_id = config.user_id
+    library_id = config.library_id
+    library_type = config.library_type
     
-    # Logic:
-    # 1. If FORCE_USER is True (set via CLI flag), skip Group check and try User ID.
-    # 2. If TARGET_GROUP is set, use it (Group Mode).
-    # 3. If TARGET_GROUP is NOT set, but USER_ID is set, use User Mode.
-    # 4. If neither, check require_group.
+    # Priority logic for ID/Type:
+    # 1. If FORCE_USER (CLI flag), use user_id.
+    # 2. If explicit library_id/type are set (env or config), use them.
+    # 3. Else, derive from group_url if present.
+    # 4. Fallback to user_id.
 
-    if group_url and not FORCE_USER:
+    if FORCE_USER:
+        if not user_id:
+            print("Error: --user flag set but ZOTERO_USER_ID not found.", file=sys.stderr)
+            sys.exit(1)
+        library_id = user_id
+        library_type = 'user'
+    elif library_id:
+        # Already resolved by ConfigLoader
+        pass
+    elif group_url:
         match = re.search(r'/groups/(\d+)', group_url)
         library_id = match.group(1) if match else None
         if not library_id:
@@ -68,8 +92,7 @@ def get_zotero_gateway(require_group: bool = True):
     else:
         # Fallback/Error state
         if require_group:
-             print("Error: Neither ZOTERO_TARGET_GROUP nor ZOTERO_USER_ID is set.", file=sys.stderr)
-             print("Please set one to define the target library.", file=sys.stderr)
+             print("Error: No target library defined (Group URL, Library ID, or User ID).", file=sys.stderr)
              sys.exit(1)
         else:
             library_id = "0"
@@ -78,12 +101,19 @@ def get_zotero_gateway(require_group: bool = True):
     return ZoteroAPIClient(api_key, library_id, library_type)
 
 def get_common_clients():
+    config = get_config()
     zotero_gateway = get_zotero_gateway()
     arxiv_gateway = ArxivLibGateway()
     bibtex_gateway = BibtexLibGateway()
     ris_gateway = RisLibGateway()
     springer_csv_gateway = SpringerCsvLibGateway()
     ieee_csv_gateway = IeeeCsvLibGateway()
+    
+    # Metadata services from config
+    ss_client = SemanticScholarAPIClient(config.semantic_scholar_api_key) if config.semantic_scholar_api_key else SemanticScholarAPIClient()
+    crossref_client = CrossRefAPIClient() # No key usually
+    unpaywall_client = UnpaywallAPIClient(config.unpaywall_email) if config.unpaywall_email else UnpaywallAPIClient()
+    
     return PaperImporterClient(zotero_gateway, arxiv_gateway, bibtex_gateway, ris_gateway, springer_csv_gateway, ieee_csv_gateway)
 
 # --- Handlers (Adapters for New Command Structure) ---
@@ -524,18 +554,27 @@ def handle_info(args):
     from rich import box
     console = Console()
     
-    api_key = os.getenv('ZOTERO_API_KEY')
-    target_group = os.getenv('ZOTERO_TARGET_GROUP')
-    user_id = os.getenv('ZOTERO_USER_ID')
+    config = get_config()
+    config_file = _GLOBAL_CONFIG_PATH
     
     table = Table(title="Zotero CLI Configuration", box=box.ROUNDED)
-    table.add_column("Variable", style="cyan")
+    table.add_column("Property", style="cyan")
     table.add_column("Value", style="green")
-    table.add_column("Status", style="yellow")
+    table.add_column("Source", style="yellow")
     
-    table.add_row("API Key", f"{api_key[:4]}...{api_key[-4:]}" if api_key else "None", "OK" if api_key else "MISSING")
-    table.add_row("Target Group", target_group or "None", "SET" if target_group else "UNSET")
-    table.add_row("User ID", user_id or "None", "SET" if user_id else "UNSET")
+    def get_source(key_env, val_config):
+        if os.environ.get(key_env): return "Environment"
+        if val_config: return "Config File"
+        return "None"
+
+    # API Key Masking
+    key_val = f"{config.api_key[:4]}...{config.api_key[-4:]}" if config.api_key else "None"
+    table.add_row("API Key", key_val, get_source("ZOTERO_API_KEY", config.api_key))
+    
+    table.add_row("Library ID", config.library_id or "None", get_source("ZOTERO_LIBRARY_ID", config.library_id))
+    table.add_row("Library Type", config.library_type, get_source("ZOTERO_LIBRARY_TYPE", config.library_type))
+    table.add_row("User ID", config.user_id or "None", get_source("ZOTERO_USER_ID", config.user_id))
+    table.add_row("Config Path", str(config_file), "Default" if not os.environ.get("XDG_CONFIG_HOME") else "XDG Override")
     
     console.print(table)
     
@@ -605,6 +644,7 @@ def handle_inspect_item(args):
 def main():
     parser = argparse.ArgumentParser(description="Zotero CLI - The Systematic Review Engine")
     parser.add_argument("--user", action="store_true", help="Force Personal Library mode")
+    parser.add_argument("--config", help="Path to a custom config.toml")
     subparsers = parser.add_subparsers(dest='command', help='Primary Commands')
     
     # --- INFO ---
@@ -776,6 +816,9 @@ def main():
     
     global FORCE_USER
     FORCE_USER = args.user
+
+    # Initialize global config with potential path override
+    get_config(args.config)
 
     if hasattr(args, 'func'):
         args.func(args)

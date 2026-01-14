@@ -1,0 +1,23 @@
+# zotero-cli configuration example
+# Copy this to ~/.config/zotero-cli/config.toml (Linux/macOS) 
+# or %APPDATA%\zotero-cli\config.toml (Windows)
+
+[zotero]
+# Your Zotero API Key (Create one at zotero.org -> settings -> keys)
+api_key = "YOUR_API_KEY"
+
+# Target Library ID (User ID or Group ID)
+library_id = "6287212"
+
+# Library Type: "user" or "group" (default is "group")
+library_type = "group"
+
+# (Optional) Target Group URL - used to derive library_id if set
+# target_group = "https://www.zotero.org/groups/6287212/rsl-xm"
+
+# (Optional) Personal User ID (Required for 'list groups')
+user_id = "1909172"
+
+# (Optional) External API Keys
+semantic_scholar_api_key = "YOUR_SEMANTIC_SCHOLAR_KEY"
+unpaywall_email = "your-email@example.com"

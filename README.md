@@ -54,24 +54,23 @@ zotero-cli manage duplicates --collections "Search1,Search2"
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### 📚 Tutorials
-*   **[Getting Started: Installation & Setup](./docs/tutorials/01-getting-started.md)** - For absolute beginners.
-*   **[Your First Systematic Review](./docs/tutorials/02-slr-workflow.md)** - How to use the screening engine.
+### 1. Configure
+Create `~/.config/zotero-cli/config.toml`:
 
-### Installation
-```bash
-pip install zotero-cli
+```toml
+[zotero]
+api_key = "..."
+library_id = "..."
+library_type = "group"
 ```
 
-### Configuration
+### 2. Basic Commands
 ```bash
-export ZOTERO_API_KEY="your_key"
-export ZOTERO_USER_ID="your_id"
+# Display status
+zotero-cli info
 ```
-
----
 
 ## 📚 Command Reference
 
