@@ -1,6 +1,30 @@
 # Changelog
 
-## [v1.0.11] - 2026-01-13
+## [v1.2.0] - 2026-01-14
+
+### Architecture
+*   **Command Pattern:** Refactored the entire CLI router into a registry-based Command Pattern. Logic is now modularized in `cli/commands/`.
+*   **Strategy Pattern:** Implemented the Strategy Pattern for paper importers, enabling easier extension for new bibliographic formats.
+*   **Dependency Injection:** Introduced `GatewayFactory` to centralize infrastructure creation and decouple commands from concrete implementations.
+*   **Centralized Configuration:** Moved all configuration and global state management to `core/config.py`.
+
+### Features
+*   **Persistent State:** Added `--state <FILE.csv>` to `screen` command. Researchers can now resume sessions and track local screening decisions across restarts.
+*   **Extended Inspection:** Added `--full-notes` to `inspect` command to display untruncated note content (useful for auditing inclusion/exclusion rationale).
+
+### Fixes
+*   **Snapshot:** Fixed `ZeroDivisionError` in `report snapshot` when processing empty collections.
+*   **Inspect:** Resolved bug where `inspect --raw` failed due to missing `raw_data` attribute in `ZoteroItem`.
+
+### Quality
+*   **Mock Isolation:** Enhanced test suite to mock default configuration paths, preventing local developer configs from leaking into test environments.
+*   **Regressions:** Maintained 100% pass rate across 180 unit/integration tests.
+
+## [v1.1.0] - 2026-01-13 (Retrospective)
+*   **Configuration:** Added persistent configuration via `config.toml` (XDG Specification).
+*   **Precedence:** Established CLI Flags > Env > Config File hierarchy.
+
+## [v1.0.12] - 2026-01-13
 
 ### Quality
 *   **Tests:** Fixed additional edge cases in `CollectionService` tests for move operations.

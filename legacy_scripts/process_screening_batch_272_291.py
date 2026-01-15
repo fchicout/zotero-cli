@@ -47,7 +47,7 @@ def process_batch():
         print(f"Processing {item['key']}...")
         note_content = {
             "step": "screening_title_abstract",
-            "reviewer": "Dr. Vance (Gemini)",
+            "reviewer": "Dr. Silas (Gemini)",
             "decision": item['decision'],
             "reason_code": item['reason_code'],
             "reason_text": item['reason_text'],

@@ -94,7 +94,7 @@ class SnapshotService:
                 "total_items_found": total_items,
                 "items_processed_successfully": len(snapshot_data),
                 "items_failed": len(failed_items),
-                "tool_version": "zotero-cli-v0.4.0-dev",
+                "tool_version": "zotero-cli-v1.2.0",
                 "schema_version": "1.0",
                 "status": "partial_success" if failed_items else "success"
             },

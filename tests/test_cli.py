@@ -5,19 +5,29 @@ import sys
 import os
 from zotero_cli.cli.main import main
 
+@pytest.fixture(autouse=True)
+def mock_config_path(tmp_path):
+    # Ensure tests don't load the real ~/.config/zotero-cli/config.toml
+    dummy_path = tmp_path / "dummy_config.toml"
+    with patch('zotero_cli.core.config.ConfigLoader._get_default_config_path', return_value=dummy_path):
+        yield dummy_path
+
 @pytest.fixture
 def mock_clients():
-    with patch('zotero_cli.cli.main.PaperImporterClient') as mock_importer, \
-         patch('zotero_cli.cli.main.ZoteroAPIClient') as mock_zotero, \
-         patch('zotero_cli.cli.main.ArxivLibGateway') as mock_arxiv, \
-         patch('zotero_cli.cli.main.BibtexLibGateway') as mock_bibtex, \
-         patch('zotero_cli.cli.main.RisLibGateway') as mock_ris, \
-         patch('zotero_cli.cli.main.SpringerCsvLibGateway') as mock_springer, \
-         patch('zotero_cli.cli.main.IeeeCsvLibGateway') as mock_ieee:
+    with patch('zotero_cli.infra.factory.GatewayFactory.get_paper_importer') as mock_importer_get, \
+         patch('zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway') as mock_zotero_get, \
+         patch('zotero_cli.infra.arxiv_lib.ArxivLibGateway') as mock_arxiv, \
+         patch('zotero_cli.infra.bibtex_lib.BibtexLibGateway') as mock_bibtex, \
+         patch('zotero_cli.infra.ris_lib.RisLibGateway') as mock_ris, \
+         patch('zotero_cli.infra.springer_csv_lib.SpringerCsvLibGateway') as mock_springer, \
+         patch('zotero_cli.infra.ieee_csv_lib.IeeeCsvLibGateway') as mock_ieee:
         
+        mock_importer = mock_importer_get.return_value
+        mock_zotero = mock_zotero_get.return_value
+
         yield {
-            'importer': mock_importer.return_value,
-            'zotero': mock_zotero.return_value,
+            'importer': mock_importer,
+            'zotero': mock_zotero,
             'arxiv': mock_arxiv.return_value,
             'bibtex': mock_bibtex.return_value,
             'ris': mock_ris.return_value,
@@ -32,7 +42,7 @@ def env_vars(monkeypatch):
 
 # --- 1. SCREEN ---
 def test_screen_tui_invocation(mock_clients, env_vars):
-    with patch('zotero_cli.cli.main.TuiScreeningService') as mock_tui_cls:
+    with patch('zotero_cli.cli.commands.screen_cmd.TuiScreeningService') as mock_tui_cls:
         mock_tui = mock_tui_cls.return_value
         test_args = ['zotero-cli', 'screen', '--source', 'S', '--include', 'I', '--exclude', 'E']
         with patch.object(sys, 'argv', test_args):
@@ -41,7 +51,7 @@ def test_screen_tui_invocation(mock_clients, env_vars):
 
 def test_screen_bulk_csv(mock_clients, env_vars, capsys):
     # Mock ScreeningService
-    with patch('zotero_cli.cli.main.ScreeningService') as mock_service_cls:
+    with patch('zotero_cli.cli.commands.screen_cmd.ScreeningService') as mock_service_cls:
         mock_service = mock_service_cls.return_value
         mock_service.record_decision.return_value = True
         
@@ -59,7 +69,7 @@ def test_screen_bulk_csv(mock_clients, env_vars, capsys):
 
 # --- 2. DECIDE ---
 def test_decide_cli_invocation(mock_clients, env_vars, capsys):
-    with patch('zotero_cli.cli.main.ScreeningService') as mock_screen_cls:
+    with patch('zotero_cli.cli.commands.screen_cmd.ScreeningService') as mock_screen_cls:
         mock_service = mock_screen_cls.return_value
         mock_service.record_decision.return_value = True
         test_args = [
@@ -76,36 +86,53 @@ def test_import_manual(mock_clients, env_vars, capsys):
     with patch.object(sys, 'argv', test_args):
         main()
     mock_clients['importer'].add_paper.assert_called_once_with('123', 'A', 'T', 'F')
-    assert "Successfully added" in capsys.readouterr().out
+    assert "Added." in capsys.readouterr().out
 
 def test_import_arxiv(mock_clients, env_vars, capsys):
-    mock_clients['importer'].import_from_query.return_value = 5
+    mock_clients['importer'].import_with_strategy.return_value = 5
     test_args = ['zotero-cli', 'import', 'arxiv', '--query', 'test query', '--collection', 'F', '--limit', '10']
     with patch.object(sys, 'argv', test_args):
         main()
-    mock_clients['importer'].import_from_query.assert_called_once_with(
-        'test query', 'F', 10, False, 'relevance', 'descending'
-    )
-    assert "Successfully imported 5 papers" in capsys.readouterr().out
+    
+    args, kwargs = mock_clients['importer'].import_with_strategy.call_args
+    # args[0] is the strategy
+    from zotero_cli.core.strategies import ArxivImportStrategy
+    assert isinstance(args[0], ArxivImportStrategy)
+    assert args[1] == 'test query'
+    assert args[2] == 'F'
+    assert kwargs['limit'] == 10
+    
+    assert "Imported 5 items." in capsys.readouterr().out
 
 def test_import_file_bibtex(mock_clients, env_vars, capsys):
-    mock_clients['importer'].import_from_bibtex.return_value = 3
+    mock_clients['importer'].import_with_strategy.return_value = 3
     test_args = ['zotero-cli', 'import', 'file', 'papers.bib', '--collection', 'F']
     with patch.object(sys, 'argv', test_args):
         main()
-    mock_clients['importer'].import_from_bibtex.assert_called_once_with('papers.bib', 'F', False)
-    assert "Successfully imported 3 papers" in capsys.readouterr().out
+    
+    args, _ = mock_clients['importer'].import_with_strategy.call_args
+    from zotero_cli.core.strategies import BibtexImportStrategy
+    assert isinstance(args[0], BibtexImportStrategy)
+    assert args[1] == 'papers.bib'
+    assert args[2] == 'F'
+    
+    assert "Imported 3 items." in capsys.readouterr().out
 
 def test_import_file_csv_ieee(mock_clients, env_vars, capsys):
-    mock_clients['importer'].import_from_ieee_csv.return_value = 6
+    mock_clients['importer'].import_with_strategy.return_value = 6
     # Mock open to return IEEE header
     with patch('builtins.open', mock_open(read_data="Document Title,Authors\nPaper 1,Author 1")):
         test_args = ['zotero-cli', 'import', 'file', 'ieee.csv', '--collection', 'F']
         with patch.object(sys, 'argv', test_args):
             main()
     
-    mock_clients['importer'].import_from_ieee_csv.assert_called_once_with('ieee.csv', 'F', False)
-    assert "Successfully imported 6 papers" in capsys.readouterr().out
+    args, _ = mock_clients['importer'].import_with_strategy.call_args
+    from zotero_cli.core.strategies import IeeeCsvImportStrategy
+    assert isinstance(args[0], IeeeCsvImportStrategy)
+    assert args[1] == 'ieee.csv'
+    assert args[2] == 'F'
+    
+    assert "Imported 6 items." in capsys.readouterr().out
 
 # --- 4. LIST ---
 def test_list_collections(mock_clients, env_vars, capsys):
@@ -115,7 +142,10 @@ def test_list_collections(mock_clients, env_vars, capsys):
     test_args = ['zotero-cli', 'list', 'collections']
     with patch.object(sys, 'argv', test_args):
         main()
-    assert "Col1 (Key: K1, Items: 5)" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "Col1" in out
+    assert "K1" in out
+    assert "5" in out
 
 def test_list_items(mock_clients, env_vars, capsys):
     mock_item = Mock()
@@ -135,7 +165,7 @@ def test_list_items(mock_clients, env_vars, capsys):
 
 # --- 5. REPORT ---
 def test_report_prisma(mock_clients, env_vars, capsys):
-    with patch('zotero_cli.cli.main.ReportService') as mock_report_cls:
+    with patch('zotero_cli.cli.commands.report_cmd.ReportService') as mock_report_cls:
         mock_service = mock_report_cls.return_value
         mock_report = Mock()
         mock_report.total_items = 10
@@ -152,7 +182,7 @@ def test_report_prisma(mock_clients, env_vars, capsys):
         assert "PRISMA Screening Summary" in capsys.readouterr().out
 
 def test_report_snapshot(mock_clients, env_vars, capsys):
-    with patch('zotero_cli.cli.main.SnapshotService') as mock_snapshot_cls:
+    with patch('zotero_cli.cli.commands.report_cmd.SnapshotService') as mock_snapshot_cls:
         mock_snapshot = mock_snapshot_cls.return_value
         mock_snapshot.freeze_collection.return_value = True
         test_args = ['zotero-cli', 'report', 'snapshot', '--collection', 'MyCol', '--output', 'out.json']
@@ -162,7 +192,7 @@ def test_report_snapshot(mock_clients, env_vars, capsys):
 
 # --- 6. MANAGE ---
 def test_manage_tags(mock_clients, env_vars, capsys):
-    with patch('zotero_cli.cli.main.TagService') as mock_tag_cls:
+    with patch('zotero_cli.cli.commands.manage_cmd.TagService') as mock_tag_cls:
         mock_tag = mock_tag_cls.return_value
         mock_tag.list_tags.return_value = ['t1']
         test_args = ['zotero-cli', 'manage', 'tags', 'list']
@@ -178,7 +208,7 @@ def test_manage_pdfs_strip(mock_clients, env_vars, capsys):
     assert "Removed 10 attachments" in capsys.readouterr().out
 
 def test_manage_duplicates(mock_clients, env_vars, capsys):
-    with patch('zotero_cli.cli.main.DuplicateFinder') as mock_finder_cls:
+    with patch('zotero_cli.cli.commands.manage_cmd.DuplicateFinder') as mock_finder_cls:
         mock_finder = mock_finder_cls.return_value
         mock_finder.find_duplicates.return_value = []
         test_args = ['zotero-cli', 'manage', 'duplicates', '--collections', 'A,B']
@@ -187,7 +217,7 @@ def test_manage_duplicates(mock_clients, env_vars, capsys):
         assert "No duplicates found" in capsys.readouterr().out
 
 def test_manage_move(mock_clients, env_vars, capsys):
-    with patch('zotero_cli.cli.main.CollectionService') as mock_service_cls:
+    with patch('zotero_cli.cli.commands.manage_cmd.CollectionService') as mock_service_cls:
         mock_service = mock_service_cls.return_value
         mock_service.move_item.return_value = True
         test_args = ['zotero-cli', 'manage', 'move', '--item-id', 'I', '--source', 'S', '--target', 'T']
@@ -196,7 +226,7 @@ def test_manage_move(mock_clients, env_vars, capsys):
         assert "Moved item I" in capsys.readouterr().out
 
 def test_manage_clean(mock_clients, env_vars, capsys):
-    with patch('zotero_cli.cli.main.CollectionService') as mock_service_cls:
+    with patch('zotero_cli.cli.commands.manage_cmd.CollectionService') as mock_service_cls:
         mock_service = mock_service_cls.return_value
         mock_service.empty_collection.return_value = 5
         test_args = ['zotero-cli', 'manage', 'clean', '--collection', 'Trash']
@@ -205,7 +235,7 @@ def test_manage_clean(mock_clients, env_vars, capsys):
         assert "Deleted 5 items" in capsys.readouterr().out
 
 def test_manage_migrate(mock_clients, env_vars, capsys):
-    with patch('zotero_cli.cli.main.MigrationService') as mock_migrate_cls:
+    with patch('zotero_cli.cli.commands.manage_cmd.MigrationService') as mock_migrate_cls:
         mock_service = mock_migrate_cls.return_value
         mock_service.migrate_collection_notes.return_value = {
             "processed": 10, "migrated": 5, "failed": 0
@@ -217,7 +247,7 @@ def test_manage_migrate(mock_clients, env_vars, capsys):
 
 # --- 7. ANALYZE ---
 def test_analyze_audit(mock_clients, env_vars, capsys):
-    with patch('zotero_cli.cli.main.CollectionAuditor') as mock_auditor_cls:
+    with patch('zotero_cli.cli.commands.analyze_cmd.CollectionAuditor') as mock_auditor_cls:
         mock_auditor = mock_auditor_cls.return_value
         mock_report = Mock()
         mock_report.items_missing_id = []
@@ -229,7 +259,7 @@ def test_analyze_audit(mock_clients, env_vars, capsys):
         assert "Audit Report" in capsys.readouterr().out
 
 def test_analyze_lookup(mock_clients, env_vars, capsys):
-    with patch('zotero_cli.cli.main.LookupService') as mock_lookup_cls:
+    with patch('zotero_cli.cli.commands.analyze_cmd.LookupService') as mock_lookup_cls:
         mock_lookup = mock_lookup_cls.return_value
         mock_lookup.lookup_items.return_value = "Result"
         test_args = ['zotero-cli', 'analyze', 'lookup', '--keys', 'K1']
@@ -238,7 +268,7 @@ def test_analyze_lookup(mock_clients, env_vars, capsys):
         assert "Result" in capsys.readouterr().out
 
 def test_analyze_graph(mock_clients, env_vars, capsys):
-    with patch('zotero_cli.cli.main.CitationGraphService') as mock_graph_cls:
+    with patch('zotero_cli.cli.commands.analyze_cmd.CitationGraphService') as mock_graph_cls:
         mock_graph = mock_graph_cls.return_value
         mock_graph.build_graph.return_value = "digraph"
         test_args = ['zotero-cli', 'analyze', 'graph', '--collections', 'C']
@@ -248,20 +278,26 @@ def test_analyze_graph(mock_clients, env_vars, capsys):
 
 # --- 8. FIND ---
 def test_find_arxiv(mock_clients, env_vars, capsys):
-    with patch('zotero_cli.cli.main.ArxivQueryParser') as mock_parser_cls:
+    with patch('zotero_cli.cli.commands.find_cmd.ArxivQueryParser') as mock_parser_cls:
         mock_parser = mock_parser_cls.return_value
         from zotero_cli.core.services.arxiv_query_parser import ArxivSearchParams
         mock_parser.parse.return_value = ArxivSearchParams(query="parsed", max_results=1)
-        mock_clients['arxiv'].search.return_value = iter([Mock(title="Paper 1", year="2023")])
+        mock_clients['arxiv'].search.return_value = iter([Mock(arxiv_id="123", title="Paper 1", year="2023")])
         
         test_args = ['zotero-cli', 'find', 'arxiv', '--query', 'foo']
         with patch.object(sys, 'argv', test_args):
             main()
-        assert "Paper 1 (2023)" in capsys.readouterr().out
+        out = capsys.readouterr().out
+        assert "Paper 1" in out
+        assert "2023" in out
 
 # --- CONFIGURATION / MAIN ---
 
-from zotero_cli.cli.main import get_zotero_gateway, reset_config
+from zotero_cli.core.config import reset_config
+from zotero_cli.infra.factory import GatewayFactory
+
+def get_zotero_gateway(*args, **kwargs):
+    return GatewayFactory.get_zotero_gateway(*args, **kwargs)
 
 def test_config_group_mode(monkeypatch):
     reset_config()

@@ -8,19 +8,23 @@ from rich.prompt import Prompt
 from rich.live import Live
 
 from zotero_cli.core.services.screening_service import ScreeningService
+from zotero_cli.core.services.screening_state import ScreeningStateService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 class TuiScreeningService:
     """
     Handles the TUI interaction loop for screening papers.
     """
-    def __init__(self, service: ScreeningService):
+    def __init__(self, service: ScreeningService, state_manager: Optional[ScreeningStateService] = None):
         self.service = service
+        self.state_manager = state_manager
         self.console = Console()
 
     def run_screening_session(self, source_collection: str, target_included: str, target_excluded: str):
         self.console.clear()
         self.console.print(f"[bold cyan]Initializing Screening Session...[/bold cyan]")
+        if self.state_manager:
+            self.console.print(f"State Tracking: [green]ENABLED[/green] ({self.state_manager.state_file})")
         
         try:
             persona = Prompt.ask("Enter researcher name/persona", default="unknown", console=self.console)
@@ -39,6 +43,17 @@ class TuiScreeningService:
         
         if not items:
             self.console.print("[bold red]No pending items found to screen.[/bold red]")
+            return
+
+        if self.state_manager:
+            original_count = len(items)
+            items = self.state_manager.filter_pending(items)
+            skipped = original_count - len(items)
+            if skipped > 0:
+                self.console.print(f"[bold blue]Resuming session: {skipped} items already screened locally.[/bold blue]")
+
+        if not items:
+            self.console.print("[bold green]All items in this collection have been screened locally![/bold green]")
             return
 
         total = len(items)
@@ -78,7 +93,10 @@ class TuiScreeningService:
                 )
             
             if success:
-                self.console.print(f"[bold green]Saved![/bold green]")
+                self.console.print(f"[bold green]Saved to Zotero![/bold green]")
+                if self.state_manager:
+                    self.state_manager.record_decision(item.key, decision, code, persona, phase)
+                    self.console.print(f"[bold blue]Saved to Local State![/bold blue]")
             else:
                 self.console.print(f"[bold red]Failed to save decision![/bold red]")
                 self.console.input("Press Enter to continue...")

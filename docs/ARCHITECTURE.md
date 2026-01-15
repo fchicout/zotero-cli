@@ -87,4 +87,54 @@ sequenceDiagram
     UP-->>Aggregator: {PDF_URL}
     Aggregator->>Aggregator: Merge & Deduplicate
     Aggregator-->>CLI: ResearchPaper(Merged)
+
+## Data Contracts
+
+### 1. Snapshot Artifact (`report snapshot`)
+The snapshot command produces a single JSON file that serves as an immutable audit trail for a collection.
+
+**Schema Version:** 1.0
+
+```json
+{
+  "meta": {
+    "timestamp": "ISO-8601 UTC",
+    "collection_name": "string",
+    "collection_id": "string",
+    "total_items_found": "int",
+    "items_processed_successfully": "int",
+    "items_failed": "int",
+    "tool_version": "string",
+    "schema_version": "1.0",
+    "status": "success | partial_success"
+  },
+  "failures": [
+    {
+      "key": "string",
+      "title": "string",
+      "error": "string"
+    }
+  ],
+  "items": [
+    {
+      "key": "string",
+      "version": "int",
+      "item_type": "string",
+      "title": "string",
+      "abstract": "string",
+      "doi": "string",
+      "arxiv_id": "string",
+      "url": "string",
+      "date": "string",
+      "authors": ["string"],
+      "collections": ["string"],
+      "tags": ["string"],
+      "children": [
+        { "raw_zotero_json_object": "..." }
+      ]
+    }
+  ]
+}
+```
+
 ```

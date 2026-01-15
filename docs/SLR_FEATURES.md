@@ -1,7 +1,6 @@
 # SLR Professionalization Suite: Technical Specifications
 
-**Status:** Active / v0.4.0-dev
-**Target Version:** v0.4.0
+**Status:** Active / v1.2.0
 **Context:** Enhancing `zotero-cli` to support rigorous Systematic Literature Review (SLR) workflows (Kitchenham/Wohlin).
 
 ---
@@ -26,7 +25,7 @@ All screening decisions are recorded as Zotero Child Notes containing a JSON blo
 ```
 
 ### Migration Policy
-Legacy notes (v1.0 or unversioned) are migrated to v1.1 using the `migrate` command:
+Legacy notes (v1.0 or unversioned) are migrated to v1.1 using the `manage migrate` command:
 1.  **Remove `signature`:** Persona information must reside in the `persona` field.
 2.  **Standardize `agent`:** Tool identity is strictly `zotero-cli` (or variants).
 3.  **List-based Codes:** `code` or string `reason_code` are converted to lists.
@@ -36,32 +35,26 @@ Legacy notes (v1.0 or unversioned) are migrated to v1.1 using the `migrate` comm
 ## 1. Feature: Interactive Screening Mode (`screen`) [COMPLETED]
 
 **Goal:** Increase screening velocity (Title/Abstract phase) by 5-10x.
-
-### Controls
-*   `[i]`: Include. -> Prompts: `Criteria Code? (Default: IC1):`
-*   `[e]`: Exclude. -> Prompts: `Criteria Code? (e.g., EC1, EC4):`
-*   `[s]`: Skip.
-*   `[q]`: Quit.
+Includes a TUI mode and a single-shot `decide` CLI command.
 
 ---
 
-## 2. Feature: Automated PRISMA Reporting (`report`) [COMPLETED]
+## 2. Feature: Automated PRISMA Reporting (`report prisma`) [COMPLETED]
 
 **Goal:** Real-time visibility into the SLR funnel.
-
-### Implementation
 *   Parses SDB v1.1 notes.
 *   Generates Mermaid.js source for PRISMA 2020 diagrams.
-*   Renders diagrams to PNG/SVG using `mermaid-py`.
 
 ---
 
-## 3. Feature: Bulk Metadata Lookup (`lookup`) [COMPLETED]
+## 3. Feature: Bulk Metadata Lookup (`analyze lookup`) [COMPLETED]
 
 ---
 
-## 4. Feature: Smart Filtering (`find`) [PLANNED]
+## 4. Feature: Recovery & Sync (`manage sync-csv`) [COMPLETED]
+**Goal:** Recover the screening state from Zotero SDB notes back to local CSV files if the local database is lost or for external synthesis.
 
 ---
 
-## 5. Feature: Snapshot / Freeze (`freeze`) [COMPLETED]
+## 5. Feature: Snapshot / Audit Trail (`report snapshot`) [COMPLETED]
+**Goal:** Create an immutable, deep JSON snapshot of a collection for auditing and reproducibility.

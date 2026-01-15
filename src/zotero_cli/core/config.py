@@ -80,3 +80,27 @@ class ConfigLoader:
         except Exception as e:
             print(f"Warning: Failed to load config file {self.config_path}: {e}")
             return {}
+
+# --- Global Config State ---
+
+_GLOBAL_CONFIG: Optional[ZoteroConfig] = None
+_GLOBAL_CONFIG_PATH: Optional[Path] = None
+
+def reset_config():
+    """Reset global config cache (mainly for testing)."""
+    global _GLOBAL_CONFIG, _GLOBAL_CONFIG_PATH
+    _GLOBAL_CONFIG = None
+    _GLOBAL_CONFIG_PATH = None
+
+def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
+    """Helper to get singleton configuration."""
+    global _GLOBAL_CONFIG, _GLOBAL_CONFIG_PATH
+    if _GLOBAL_CONFIG is None or config_path:
+        path = Path(config_path) if config_path else None
+        loader = ConfigLoader(config_path=path)
+        _GLOBAL_CONFIG = loader.load()
+        _GLOBAL_CONFIG_PATH = loader.config_path
+    return _GLOBAL_CONFIG
+
+def get_config_path() -> Optional[Path]:
+    return _GLOBAL_CONFIG_PATH

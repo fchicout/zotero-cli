@@ -1,0 +1,1414 @@
+DEBUG: Fetching items from collection 4TQ58IKK (start=0)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=100)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=200)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=300)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=400)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=500)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=600)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=700)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=800)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=900)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=1000)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=1100)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=1200)
+DEBUG: Got 100 items
+DEBUG: Fetching items from collection 4TQ58IKK (start=1300)
+DEBUG: Got 79 items
+                                              Items in raw_sciencedirect                                               
+┏━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━┓
+┃    # ┃ Title                                                                            ┃ Key      ┃ Type           ┃
+┡━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━┩
+│    1 │ One for all: LLM-based heterogeneous mission planning in precision agriculture   │ 6RHCCHK8 │ journalArticle │
+│    2 │ Enhancing federated intrusion detection through LLM-driven alert enrichment and  │ 33GM6J7W │ journalArticle │
+│    3 │ Predicting inter-state cyberattacks with graph-text fusion using graph neural ne │ 24VK6NS5 │ journalArticle │
+│    4 │ Automated tactics planning for cyber attack and defense based on large language  │ 2EUTPXTN │ journalArticle │
+│    5 │ Improving online anti-phishing training using cognitive large language models    │ 3MQ5PPDT │ journalArticle │
+│    6 │ Leveraging MDS2 and SBOM data for LLM-assisted vulnerability analysis of medical │ 3RJ29RGC │ journalArticle │
+│    7 │ eX-NIDS: a framework for explainable network intrusion detection leveraging larg │ 2VMS4RMT │ journalArticle │
+│    8 │ Generative AI and large language models: a new frontier in reverse vaccinology   │ 37ZGRRJI │ journalArticle │
+│    9 │ Zero-shot load forecasting for integrated energy systems: a large language model │ 3BNDR4X7 │ journalArticle │
+│   10 │ Large language models-empowered automatic knowledge graph development based on m │ 39F75VDM │ journalArticle │
+│   11 │ Hierarchical multimodal robust spam detection using large language models and co │ 2F5TWS6N │ journalArticle │
+│   12 │ Enhancing maritime cyber situational awareness: a cybersecurity visualisation fo │ 2PEKJHI7 │ journalArticle │
+│   13 │ Randomized CNN based deep learning technique for the cyber-attacks detection in  │ 2URXTDUG │ journalArticle │
+│   14 │ Decoding developer password patterns: a comparative analysis of password extract │ 25ADJ2QS │ journalArticle │
+│   15 │ IIoT-enabled digital twin for legacy and smart factory machines with LLM integra │ 2A7M39EI │ journalArticle │
+│   16 │ A multilayered deep learning framework for cyber attack detection and mitigation │ 2NKZ7GAH │ journalArticle │
+│   17 │ Cybersecurity for tactical 6G networks: threats, architecture, and intelligence  │ 2QWVETEU │ journalArticle │
+│   18 │ Rethinking driver fatigue detection as anomaly identification: a hypergraph-tran │ 2N4QNK5F │ journalArticle │
+│   19 │ Harnessing GPT-4 for generation of cybersecurity GRC policies: a focus on ransom │ 3JJIFE77 │ journalArticle │
+│   20 │ A novel approach for malicious URL detection using RoBERTa and sparse autoencode │ 2HS5TBU3 │ journalArticle │
+│   21 │ Reducing the risk of social engineering attacks using SOAR measures in a real wo │ 2R3GCPCJ │ journalArticle │
+│   22 │ CTIMD: cyber threat intelligence enhanced malware detection using API call seque │ 2EBQQT8R │ journalArticle │
+│   23 │ On-device derivation of IoT usage control policies: automating U-XACML policy ge │ 29TI9UU4 │ journalArticle │
+│   24 │ Malware of dynamic behavior and attack patterns using ATT&CK framework           │ 3KGA7XU3 │ journalArticle │
+│   25 │ A multimodal interpretable framework for adversarial intent attribution and fore │ 2AM9DN4H │ journalArticle │
+│   26 │ CANSat-IDS: an adaptive distributed intrusion detection system for satellites, b │ 3ATZPMM4 │ journalArticle │
+│   27 │ Security script arrangement based on enhanced BERT for cooperative defense in ne │ 2ZDVUK3B │ journalArticle │
+│   28 │ ATHITD: attention-based temporal heterogeneous graph neural network for insider  │ 37ER88VS │ journalArticle │
+│   29 │ DeepfakeCLIP: semantic-opposite prompt learning for generalizable deepfake detec │ 3F46JQBA │ journalArticle │
+│   30 │ Real-time taxi spatial anomaly detection based on vehicle trajectory prediction  │ 3JZRTA9N │ journalArticle │
+│   31 │ Explainable anomaly detection using vision transformer based SVDD                │ 3NBN4592 │ journalArticle │
+│   32 │ An empirical investigation into the capabilities of anomaly detection approaches │ 3HK6TWAX │ journalArticle │
+│   33 │ Proactive disentangled modeling of trigger–object pairings for backdoor defense  │ 36KZMV8H │ journalArticle │
+│   34 │ SCL-CVD: supervised contrastive learning for code vulnerability detection via Gr │ 3BHF57VF │ journalArticle │
+│   35 │ Detecting abnormal logins by discovering anomalous links via graph transformers  │ 3HKNP4CP │ journalArticle │
+│   36 │ Development and validation of coreLang: a threat modeling language for the ICT d │ 3KW5IKGW │ journalArticle │
+│   37 │ Generative AI in medical practice: In-depth exploration of privacy and security  │ 2RVUNAB5 │ journalArticle │
+│   38 │ Online grooming detection: a comprehensive survey of child exploitation in chat  │ 35QUKITD │ journalArticle │
+│   39 │ Legally-aware AI moderation in Vietnam: a cybersecurity law-compliant framework  │ 2M7E6EUG │ journalArticle │
+│   40 │ Workplace security and privacy implications in the GenAI age: a survey           │ 3AD77F3Z │ journalArticle │
+│   41 │ Towards prompt tuning-based software vulnerability assessment with continual lea │ 2R6ST86H │ journalArticle │
+│   42 │ An ethical assessment framework for AI security and ethics in smart grid         │ 3HRGNRWD │ journalArticle │
+│   43 │ NFIoT-GATE-DTL IDS: genetic algorithm-tuned ensemble of deep transfer learning f │ 3J4V5E96 │ journalArticle │
+│   44 │ VulDIAC: vulnerability detection and interpretation based on augmented CFG and c │ 2NHNEXZQ │ journalArticle │
+│   45 │ Suspicious minds: psychological techniques correlated with online phishing attac │ 37TQPKG7 │ journalArticle │
+│   46 │ HHBT: DNS tunneling detection via hybrid hierarchical bidirectional transformer  │ 382IVW5T │ journalArticle │
+│   47 │ EmoSense: a multimodal sentiment-aware framework for music short video AI-genera │ 26T2BA79 │ journalArticle │
+│   48 │ A management knowledge graph approach for critical infrastructure protection: on │ 3A87536D │ journalArticle │
+│   49 │ SKT-IDS: unknown attack detection method based on sigmoid kernel transformation  │ 3MPN2VB7 │ journalArticle │
+│   50 │ Phishing URL detection generalisation using unsupervised domain adaptation       │ 35A43RWP │ journalArticle │
+│   51 │ Vishing: detecting social engineering in spoken communication — a first survey & │ 2SR55RGX │ journalArticle │
+│   52 │ Learning from usage analysis of mobile devices                                   │ 3ECJJSE9 │ journalArticle │
+│   53 │ GramBeddings: a new neural network for URL based identification of phishing web  │ 27TVBHBS │ journalArticle │
+│   54 │ Privacy for IoT: informed consent management in smart buildings                  │ 2D6H3KX7 │ journalArticle │
+│   55 │ The contagion effect of artificial intelligence across innovative industries: fr │ 37RCJQQ9 │ journalArticle │
+│   56 │ Industrial digital twins based on enterprise modeling: architecture, methodology │ 2XJXZF29 │ journalArticle │
+│   57 │ Deconstructing a form of hybrid investment fraud: examining ‘pig butchering’ in  │ 3NVEMASB │ journalArticle │
+│   58 │ Protecting machine learning from poisoning attacks: a risk-based approach        │ 22ITV484 │ journalArticle │
+│   59 │ Blockchain-as-a-service: a pure chain approach                                   │ 3M7NPA4W │ journalArticle │
+│   60 │ A five-layer framework for AI governance: integrating regulation, standards, and │ 2WH4J7HJ │ journalArticle │
+│   61 │ Informed machine learning for complex data                                       │ 25KPIEM3 │ journalArticle │
+│   62 │ Digitalization, autonomy and the future of energy policy                         │ 3CC3CT5X │ journalArticle │
+│   63 │ Enhancing vulnerability repair through the extraction and matching of repair pat │ 2KZRRKSV │ journalArticle │
+│   64 │ Fake news research trends, linkages to generative artificial intelligence and su │ 289B8Q2K │ journalArticle │
+│   65 │ FuzzyDoo: a framework for finding flaws in the 5G landscape                      │ 3NQVKCBV │ journalArticle │
+│   66 │ Use of supervised machine learning to detect abuse of COVID-19 related domain na │ 2REJWZ26 │ journalArticle │
+│   67 │ Recent advances in wind turbine condition monitoring using SCADA data: a state-o │ 2V638R3G │ journalArticle │
+│   68 │ Identifying self-disclosed anxiety on Twitter: a natural language processing app │ 3HHZR7UW │ journalArticle │
+│   69 │ Uncovering the impact of IP location display on user behavior in China's social  │ 36F9K724 │ journalArticle │
+│   70 │ An architecture for model-based and intelligent automation in DevOps             │ 2NQ79D5T │ journalArticle │
+│   71 │ SoK: timeline based event reconstruction for digital forensics: terminology, met │ 2DGNUPZS │ journalArticle │
+│   72 │ How does misinformation influence the digital agri-food advisory service? Multi- │ 323FCJKB │ journalArticle │
+│   73 │ Neural networks based domain name generation                                     │ 2UISN6TP │ journalArticle │
+│   74 │ On signal encryption at MapReduce and collaborative attribute-based access with  │ 3R66ZVXX │ journalArticle │
+│   75 │ LiDAR localization using position-encoded landmarks without point cloud maps     │ 3AER56QR │ journalArticle │
+│   76 │ Developing SPIM-TA: a maturity-level framework for systematic process improvemen │ 3B6CEEK3 │ journalArticle │
+│   77 │ Challenges and opportunities for artificial intelligence in auditing: evidence f │ 2JGB2HMW │ journalArticle │
+│   78 │ A systematic mapping study of online health communities in the field of informat │ 2SFCVACG │ journalArticle │
+│   79 │ Overview of the future impact of wearables and artificial intelligence in health │ 2GQQ47P8 │ journalArticle │
+│   80 │ Bibliographic review of AI applied to project management and its analysis in the │ 2ZBGGWN3 │ journalArticle │
+│   81 │ Information retrieval algorithms and neural ranking models to detect previously  │ 3B3WAE5H │ journalArticle │
+│   82 │ Combined geometric and kinetic data model in model-based systems engineering of  │ 3BKEDGSM │ journalArticle │
+│   83 │ The need for human-centered design for AI robots in urban parks and forests      │ 26PTTSJQ │ journalArticle │
+│   84 │ Online sexist meme and its effects on moral and emotional processes in social me │ 3J8BI94V │ journalArticle │
+│   85 │ My AI, my code, my secret – trade secrecy, informational transparency and meanin │ 2KXG966Q │ journalArticle │
+│   86 │ Spherical sustainability in construction and demolition: how aligned are policie │ 2V33AR6B │ journalArticle │
+│   87 │ DroidTTP: mapping android applications with TTP for cyber threat intelligence    │ 77NFICZR │ journalArticle │
+│   88 │ Optimizing prompt efficacy in large language models for fake news detection via  │ 6Q334K5A │ journalArticle │
+│   89 │ Enhancing network security using knowledge graphs and large language models for  │ 7DNU6787 │ journalArticle │
+│   90 │ Optimising AI models for intelligence extraction in the life cycle of cybersecur │ 6AXMX5AJ │ journalArticle │
+│   91 │ An adversarial machine learning approach on securing large language model with v │ 747JWNZZ │ journalArticle │
+│   92 │ Automating software size measurement with language models: insights from industr │ 648CH2QU │ journalArticle │
+│   93 │ ICSThreatQA: a knowledge-graph enhanced question answering model for industrial  │ 6JMV3E7Z │ journalArticle │
+│   94 │ LangurTrace: forensic analysis of local LLM applications                         │ 64A6FZEX │ journalArticle │
+│   95 │ JAPPI: an unsupervised endpoint application identification methodology for impro │ 6DHV3BUX │ journalArticle │
+│   96 │ How informative are cybersecurity risk disclosures? Empirical analysis of firms  │ 6HPAN5VN │ journalArticle │
+│   97 │ Exploring topic models to discern cyber threats on Twitter: a case study on Log4 │ 5ZTQX484 │ journalArticle │
+│   98 │ A chit-chat between llama 2 and ChatGPT for the automated creation of exploits   │ 7FXREM8B │ journalArticle │
+│   99 │ Exploring perceptions of decision-makers and specialists in defensive machine le │ 6TKCINWZ │ journalArticle │
+│  100 │ Knowledge enhancement and disentanglement learning for video captioning          │ 72SR7NXN │ journalArticle │
+│  101 │ PAttL-GAN: pixel attention localization generative adversarial network for unsup │ 78IWDV36 │ journalArticle │
+│  102 │ Open-CyKG: an open cyber threat intelligence knowledge graph                     │ 6JFFT62C │ journalArticle │
+│  103 │ Predictive analytics-based cybersecurity framework for cloud infrastructure:     │ 7NI4DQFK │ journalArticle │
+│  104 │ Gamifying information security: adversarial risk exploration for IT/OT infrastru │ 6FU2D4I3 │ journalArticle │
+│  105 │ TextJosher: a transfer-based black-box attack method against text classifiers    │ 796JNT2R │ journalArticle │
+│  106 │ Towards a robust android malware detection model using explainable deep learning │ 5XX68WCJ │ journalArticle │
+│  107 │ Studying SATD in drone systems with human-AI collaboration                       │ 6TETM3U2 │ journalArticle │
+│  108 │ HyVAW: a hybrid vulnerability analysis workflow threat model methodology for com │ 743Z6REA │ journalArticle │
+│  109 │ Preparing for an agentic era of human-machine transportation systems: opportunit │ 77G22SD4 │ journalArticle │
+│  110 │ Generative AI and process systems engineering: the next frontier                 │ 6BX3RIMH │ journalArticle │
+│  111 │ Harnessing the power of AI-instructor collaborative grading approach: topic-base │ 663PXKGI │ journalArticle │
+│  112 │ Embodied digital twin driven human-centric collaborative robot behavior: cogniti │ 679SJBHR │ journalArticle │
+│  113 │ CVE severity prediction from vulnerability description - a deep learning approac │ 6J6FUGXW │ journalArticle │
+│  114 │ CADefender: detection of unknown malicious AutoLISP computer-aided design files  │ 74H4Z6G5 │ journalArticle │
+│  115 │ A SysML-based language for evaluating the integrity of simulation and physical e │ 7ITUQT6V │ journalArticle │
+│  116 │ Adaptive security framework for multi-environment networks using ensemble data d │ 6D6N5822 │ journalArticle │
+│  117 │ A survey on deep learning in edge–cloud collaboration: model partitioning, priva │ 5U73JM77 │ journalArticle │
+│  118 │ Toward greener logistics: uncovering key enablers of the physical internet using │ 7G79Z5E9 │ journalArticle │
+│  119 │ Edge AI for internet of energy: challenges and perspectives                      │ 66499SCZ │ journalArticle │
+│  120 │ Redefining boundaries in innovation and knowledge domains: investigating the imp │ 5S9X36TN │ journalArticle │
+│  121 │ Application of meta-learning in cyberspace security: a survey                    │ 6T3BZ242 │ journalArticle │
+│  122 │ Content disarm and reconstruction of Microsoft office OLE files                  │ 7BHI2IBN │ journalArticle │
+│  123 │ Detection of malicious URLs using temporal convolutional network and multi-head  │ 5WP6XQNP │ journalArticle │
+│  124 │ Analysis and experimental comparison of state-of-the-art deep-learning classific │ 7MBPD2QM │ journalArticle │
+│  125 │ Automating the correctness assessment of AI-generated code for security contexts │ 7ME94V7R │ journalArticle │
+│  126 │ A meta-survey of adversarial attacks against artificial intelligence algorithms, │ 7PW4RXS6 │ journalArticle │
+│  127 │ DeepFake detection in the AIGC era: a survey, benchmarks, and future perspective │ 5XRNU9RP │ journalArticle │
+│  128 │ AI and blockchain-based source code vulnerability detection and prevention syste │ 6RGVS78X │ journalArticle │
+│  129 │ Real-time identity authentication scheme based on dynamic credentials for power  │ 7FDU25PH │ journalArticle │
+│  130 │ Resilient cognitive twin: a generative approach                                  │ 7M48XIF7 │ journalArticle │
+│  131 │ Multi-paradigm modeling for cyber–physical systems: a systematic mapping review  │ 7EEEBTF7 │ journalArticle │
+│  132 │ Disease and personality information enhanced depression detection based on the T │ 7KCCU5GV │ journalArticle │
+│  133 │ HalalChain: a decentralized blockchain model for enhanced data integrity, real-t │ 65EVC9X7 │ journalArticle │
+│  134 │ Detecting vulnerabilities in IoT software: new hybrid model and comprehensive da │ 62PCJ3BJ │ journalArticle │
+│  135 │ Leveraging fusion of sequence tagging models for toxic spans detection           │ 6PJMSSE3 │ journalArticle │
+│  136 │ Exploring ethical frontiers of artificial intelligence in marketing              │ 7MWI2TWK │ journalArticle │
+│  137 │ A value-driven system design framework for sustainable 6G networks               │ 7J6XHCSP │ journalArticle │
+│  138 │ New blockchain consensus algorithm applied on healthcare industry: proof of visi │ 6U87WN3M │ journalArticle │
+│  139 │ QSTAformer: a quantum-enhanced transformer for robust short-term voltage stabili │ 7EZIKUTZ │ journalArticle │
+│  140 │ Enhancing understanding and addressing gender bias in IT/SE job advertisements   │ 7CX236CJ │ journalArticle │
+│  141 │ An overview of unmanned surface vehicles: methods, practices, and applications   │ 7JFBAURT │ journalArticle │
+│  142 │ IT-embedded dynamic capabilities for public institutions coping with disinformat │ 7GNM4HRP │ journalArticle │
+│  143 │ ViLanIoT: a visual language for improving internet of things systems representat │ 7HJGAWMR │ journalArticle │
+│  144 │ Harnessing customized AI to create voice of customer via GPT3.5                  │ 69H9JVRE │ journalArticle │
+│  145 │ A I and contemporary challenges: the good, bad and the scary                     │ 7ECU4KGC │ journalArticle │
+│  146 │ Exposing image splicing traces in scientific publications via uncertainty-guided │ 5ZMVIVAP │ journalArticle │
+│  147 │ Interpretable research of fuzzy methods: a literature survey                     │ 7NVUCINB │ journalArticle │
+│  148 │ Generative spatial artificial intelligence for sustainable smart cities: a pione │ 67XD2W3U │ journalArticle │
+│  149 │ Fortifying NLP models against poisoning attacks: the power of personalized predi │ 6XNVD2PZ │ journalArticle │
+│  150 │ A novel CAPTCHA recognition system based on refined visual attention             │ 77DWPH4U │ journalArticle │
+│  151 │ Evaluating quality of ontology-driven conceptual models abstractions             │ 5S7WJ77U │ journalArticle │
+│  152 │ A/B testing: a systematic literature review                                      │ 6XM9E8J4 │ journalArticle │
+│  153 │ AI-driven business model innovation: a systematic review and research agenda     │ 7PJRI7EX │ journalArticle │
+│  154 │ Digital sustainable growth model (DSGM): achieving synergy between economy and t │ 75WV2B2Q │ journalArticle │
+│  155 │ Trust, transparency, and adoption in generative AI for software engineering: ins │ 72TDUA32 │ journalArticle │
+│  156 │ Whom to pity, whom to scold? Effects of empathetic and normative AI-assisted int │ 5ZPPR2RE │ journalArticle │
+│  157 │ GreenDFL: a framework for assessing the sustainability of decentralized federate │ 6GHS6S2T │ journalArticle │
+│  158 │ A knowledge graph-based learning assistance systems for industrial maintenance   │ 7AU239E8 │ journalArticle │
+│  159 │ A digital twin-based framework for predictive quality assurance and supply chain │ 76KXGFQU │ journalArticle │
+│  160 │ A two-phase TOE framework integrating SEM and ANN for evaluating cloud computing │ 5UQ9DV4I │ journalArticle │
+│  161 │ STTraj2Vec: a spatio-temporal trajectory representation learning approach        │ 5WMITM5A │ journalArticle │
+│  162 │ An efficient hybrid deep neural network model for multi-horizon forecasting of p │ 6MQQ9I9G │ journalArticle │
+│  163 │ FedLLMGuard: a federated large language model for anomaly detection in 5G networ │ 9JK6I6U2 │ journalArticle │
+│  164 │ Periodic watermarking for copyright protection of large language models in cloud │ 7R4U97AW │ journalArticle │
+│  165 │ From COBIT to ISO 42001: evaluating cybersecurity frameworks for opportunities,  │ 8PXEJJNQ │ journalArticle │
+│  166 │ Enhancing cyber risk identification in the construction industry using language  │ 8S7MP89Q │ journalArticle │
+│  167 │ Enhancing large language model for fake news video detection via cross-modal ret │ 7S2ZSZA8 │ journalArticle │
+│  168 │ Betastack: enhancing base station traffic prediction with network-specific large │ 9A73GXKK │ journalArticle │
+│  169 │ Longitudinal abuse and sentiment analysis of hollywood movie dialogues using lan │ 8ET8DS4X │ journalArticle │
+│  170 │ Generative AI of things for sustainable smart cities: synergizing cognitive augm │ 88RMSGW2 │ journalArticle │
+│  171 │ Reinforcement learning for an efficient and effective malware investigation duri │ 8A8EVC7H │ journalArticle │
+│  172 │ Scalable automation for IoT cyberSecurity compliance: ontology-driven reasoning  │ 86XU4B46 │ journalArticle │
+│  173 │ Real-time traffic flow optimization using large language models and reinforcemen │ 9GTDAU52 │ journalArticle │
+│  174 │ MALM-CLIP: a generative multi-agent framework for multimodal fusion in few-shot  │ 8UZNHS2K │ journalArticle │
+│  175 │ The influence of persuasive techniques on large language models: a scenario-base │ 9HDSZ8PS │ journalArticle │
+│  176 │ Serious games as a tool to model attack and defense scenarios for cyber-security │ 8637WQ4Z │ journalArticle │
+│  177 │ Generative fuzzer-driven vulnerability detection in the internet of things netwo │ 87KA9G8C │ journalArticle │
+│  178 │ Zero- and few-shot chinese cybersecurity event detection via meta-distillation l │ 85KH925C │ journalArticle │
+│  179 │ LEGF-DST: LLMs-enhanced graph-fusion dual-stream transformer for fine-grained ch │ 7SJ9PPBV │ journalArticle │
+│  180 │ ChatGPT: a canary in the coal mine or a parrot in the echo chamber? Detecting fr │ 99D3AKNW │ journalArticle │
+│  181 │ Enhancing cybersecurity risk assessment using temporal knowledge graph-based exp │ 94TB87CJ │ journalArticle │
+│  182 │ Evolving threats, emerging laws: poland's 2023 answer to the smishing challenge  │ 9CKWJ2PR │ journalArticle │
+│  183 │ Research on the application of large language model in electric power enterprise │ 988IXFZZ │ journalArticle │
+│  184 │ An ensemble of fuzzy soft expert set with deep learning on attack detection for  │ 88DUZITF │ journalArticle │
+│  185 │ Enhanced (cyber) situational awareness: using interpretable principal component  │ 84IHG4XA │ journalArticle │
+│  186 │ Public sentiment and engagement on cybersecurity: insights from reddit discussio │ 933EKXAP │ journalArticle │
+│  187 │ AIS-NIDS: an intelligent and self-sustaining network intrusion detection system  │ 83U8MP69 │ journalArticle │
+│  188 │ Data management in polish SMEs in the era of AI – threats and benefits of AI-bas │ 8IWTXIJN │ journalArticle │
+│  189 │ When explainability turns into a threat - using xAI to fool a fake news detectio │ 8UR748VW │ journalArticle │
+│  190 │ Zero day malware detection with alpha: fast DBI with transformer models for real │ 8BZPR6EA │ journalArticle │
+│  191 │ An end-to-end learning approach for enhancing intrusion detection in industrial- │ 82CNNHVB │ journalArticle │
+│  192 │ GraphShield: advanced dynamic graph-based malware detection using graph neural n │ 8HGMASI9 │ journalArticle │
+│  193 │ Cerebrum twin: a 6D semantic digital twin of multi-lobe digital brain functions  │ 7XPASFWA │ journalArticle │
+│  194 │ Towards reproducible machine learning-based process monitoring and quality predi │ 86W3QMU6 │ journalArticle │
+│  195 │ Industry 6.0: vision, technical landscape, and opportunities                     │ 7UXPPXHN │ journalArticle │
+│  196 │ Industry 4.0 for smart transport systems: foundations and applications           │ 85QQDUD5 │ journalArticle │
+│  197 │ Research status and application of artificial intelligence large models in the o │ 8KFHNAXF │ journalArticle │
+│  198 │ G2MBCF: enhanced named entity recognition for sensitive entities identification  │ 9EXWTMXN │ journalArticle │
+│  199 │ DaC-GANSAEBF: divide and conquer-generative adversarial network—squeeze and exci │ 94VEF4CF │ journalArticle │
+│  200 │ MFXSS: an effective XSS vulnerability detection method in JavaScript based on mu │ 8KWZMPII │ journalArticle │
+│  201 │ A comprehensive analysis combining structural features for detection of new rans │ 994AJQKW │ journalArticle │
+│  202 │ Edge-featured multi-hop attention graph neural network for intrusion detection s │ 7RWTGBI4 │ journalArticle │
+│  203 │ DecomCAM: advancing beyond saliency maps through decomposition and integration   │ 8J83CCN8 │ journalArticle │
+│  204 │ SCsVulSegLytix: detecting and extracting vulnerable segments from smart contract │ 9J28U46R │ journalArticle │
+│  205 │ Design of countermeasure to packet falsification in vehicle platooning by explai │ 97GK27CI │ journalArticle │
+│  206 │ Beyond domain dependency in security requirements identification                 │ 8482JV28 │ journalArticle │
+│  207 │ A comparison and critical reflection of information disorder detection technique │ 9GIVKVVW │ journalArticle │
+│  208 │ Classifying spam emails using agglomerative hierarchical clustering and a topic- │ 9EX656AF │ journalArticle │
+│  209 │ An enhanced mechanism for detection of spam emails by deep learning technique wi │ 7VZZ8JVD │ journalArticle │
+│  210 │ Just a little human intelligence feedback! Unsupervised learning assisted superv │ 8C83U7AG │ journalArticle │
+│  211 │ SNAKE: a sustainable and multi-functional traffic analysis system utilizing spec │ 8A8QGII8 │ journalArticle │
+│  212 │ Classifying illicit dark web content through zero-shot prompting: an empirical s │ 7VAZKHHR │ journalArticle │
+│  213 │ FlowTransformer: a transformer framework for flow-based network intrusion detect │ 84UHPKDV │ journalArticle │
+│  214 │ A survey of strategy-driven evasion methods for PE malware: transformation, conc │ 8DS8GSC2 │ journalArticle │
+│  215 │ A real-time automated attack-defense graph generation approach                   │ 7W65IEJZ │ journalArticle │
+│  216 │ STG2P: a two-stage pipeline model for intrusion detection based on improved Ligh │ 934SUTDT │ journalArticle │
+│  217 │ Human-in-the-loop in smart manufacturing (H-SM): a review and perspective        │ 8EHFJWF2 │ journalArticle │
+│  218 │ A digital twin-based smart assembly for cable-driven parallel robots             │ 875HBBEC │ journalArticle │
+│  219 │ Using fake text vectors to improve the sensitivity of minority class for macro m │ 8E4MBA2F │ journalArticle │
+│  220 │ Chatbots for active learning: a case of phishing email identification            │ 9A4M224E │ journalArticle │
+│  221 │ POSVIA: inconsistency analyzer for open-source proof-of-concept reports          │ 8E7U3U9K │ journalArticle │
+│  222 │ Kyrtos: a methodology for automatic deep analysis of graphic charts with curves  │ 8MTNZFSI │ journalArticle │
+│  223 │ Transferable features from 1D-convolutional network for industrial malware class │ 92X9R4Q3 │ journalArticle │
+│  224 │ Developing and leveraging digital twins in engineering design                    │ 8VWQ86VG │ journalArticle │
+│  225 │ Agile and iterative governance: china’s regulatory response to AI                │ 88EA6VD3 │ journalArticle │
+│  226 │ Beyond the headlines: analyzing news topics related to port productivity across  │ 9CM9Q35T │ journalArticle │
+│  227 │ SADDLE: a runtime feedback control architecture for adaptive distributed deep le │ 82UPHH58 │ journalArticle │
+│  228 │ Stop bugging me! Evading modern-day wiretapping using adversarial perturbations  │ 9DI5GVQ5 │ journalArticle │
+│  229 │ Privacy and personal data risk governance for generative artificial intelligence │ 8WJD2IUH │ journalArticle │
+│  230 │ So much more than test cases – an industrial study on testing of software units  │ 7S5PWWBV │ journalArticle │
+│  231 │ CodeSearchAttack: enhancing soft-label black-box adversarial attacks on code     │ 7W577WWW │ journalArticle │
+│  232 │ Towards trustworthy and interpretable prediction of school bullying: a NAS-drive │ 7QJ9JN97 │ journalArticle │
+│  233 │ FederatedTrust: a solution for trustworthy federated learning                    │ 8VHN2FF3 │ journalArticle │
+│  234 │ Visually inspired power quality disturbances recognition via gramian angular dif │ 827GZ4JK │ journalArticle │
+│  235 │ BugRadar: bug localization by knowledge graph link prediction                    │ 9EMDJTGJ │ journalArticle │
+│  236 │ Transforming the construction industry towards circular supply chain management  │ 8EQ95DFD │ journalArticle │
+│  237 │ The impact of ChatGPT on human skills: a quantitative study on Twitter data      │ 97PN5VIW │ journalArticle │
+│  238 │ The fundamental rights impact assessment (FRIA) in the AI act: roots, legal obli │ 7SWAC9CI │ journalArticle │
+│  239 │ State of charge estimation of lithium-ion batteries using improved multi-attenti │ 859N7ZT9 │ journalArticle │
+│  240 │ Enhancing the horizon scanning utility of futures-oriented systematic and scopin │ 8T2TR97I │ journalArticle │
+│  241 │ The paradigm of hallucinations in AI-driven cybersecurity systems: understanding │ D8V49MUF │ journalArticle │
+│  242 │ DLAP: a deep learning augmented large language model prompting framework for sof │ BKFVPBHJ │ journalArticle │
+│  243 │ IDS-GPT: a novel deep learning-powered framework for network traffic intrusion d │ CKJAX6D2 │ journalArticle │
+│  244 │ Leveraging large language models for human-machine collaborative troubleshooting │ BWQU555Z │ journalArticle │
+│  245 │ Sentiment analysis of the United States public support of nuclear power on socia │ CSX2UGKH │ journalArticle │
+│  246 │ GPT on the wire: towards realistic network traffic conversations generated with  │ BJTHXV97 │ journalArticle │
+│  247 │ Enhanced automated code vulnerability repair using large language models         │ BV4ZSBA3 │ journalArticle │
+│  248 │ Multimodal large language models in health care: applications, challenges, and f │ CVXCVDBP │ journalArticle │
+│  249 │ Automated speech therapy through personalized pronunciation correction using rei │ CCDSXB4T │ journalArticle │
+│  250 │ Cyber threat detection: unsupervised hunting of anomalous commands (UHAC)        │ C4878QS4 │ journalArticle │
+│  251 │ A cognitive platform for collecting cyber threat intelligence and real-time dete │ CAPSTP2B │ journalArticle │
+│  252 │ Severity-based triage of cybersecurity incidents using kill chain attack graphs  │ D9J5SXST │ journalArticle │
+│  253 │ Integrating system calls and position-specific scoring for enhanced anomaly dete │ BUCZI3RP │ journalArticle │
+│  254 │ Towards a standardized methodology and dataset for evaluating LLM-based digital  │ BZI9Z8A4 │ journalArticle │
+│  255 │ Wavy-attention network for real-time cyber-attack detection in a small modular p │ D7K6F3I4 │ journalArticle │
+│  256 │ LLM-agent-UMF: LLM-based agent unified modeling framework for seamless design of │ C6FSIB82 │ journalArticle │
+│  257 │ TrafficT5: multi-stage self-correcting framework for traffic generation          │ D6QHTMNE │ journalArticle │
+│  258 │ Anomaly detection in attributed networks via local multi-order contrastive learn │ CP385XCM │ journalArticle │
+│  259 │ Zilean: a modularized framework for large-scale temporal concept drift type clas │ D9CG7BKX │ journalArticle │
+│  260 │ Automated vulnerability score prediction through lightweight generative AI       │ CZUVU8VN │ journalArticle │
+│  261 │ Enhancing cyber-physical-social systems through decentralized governance and blo │ BPMZQHUD │ journalArticle │
+│  262 │ Structure-aware malicious behavior detection through 2D spatio-temporal modeling │ CG73P79Z │ journalArticle │
+│  263 │ Anomaly detection using system logs: a deep learning approach                    │ C3NPAX7N │ journalArticle │
+│  264 │ Explained anomaly detection in text reviews: can subjective scenarios be correct │ C2N79NEJ │ journalArticle │
+│  265 │ Improving intrusion detection in O-RAN with synthetic data generation: a GAN and │ C65ECM72 │ journalArticle │
+│  266 │ A systematic literature review of software engineering research on jupyter noteb │ CQV9VZ2W │ journalArticle │
+│  267 │ Comprehensive benchmarking of knowledge graph embeddings methods for android mal │ CMHHDD34 │ journalArticle │
+│  268 │ MGGPT: a multi-graph GPT-enhanced framework for dynamic fraud detection in crypt │ C23UUZRJ │ journalArticle │
+│  269 │ Syntax-aware hierarchical attention networks for code vulnerability detection    │ CX5WV8D9 │ journalArticle │
+│  270 │ Spam detection for YouTube video comments using machine learning approaches      │ BJNQXKU2 │ journalArticle │
+│  271 │ MPDroid: a multimodal pre-training android malware detection method with static  │ BRGK89A5 │ journalArticle │
+│  272 │ Assessing the detection of lateral movement through unsupervised learning techni │ CRXG6EK4 │ journalArticle │
+│  273 │ Continual learning for energy management systems: a review of methods and applic │ BSV58HEP │ journalArticle │
+│  274 │ Reproducibility of machine learning-based fault detection and diagnosis for HVAC │ BSBD7TA2 │ journalArticle │
+│  275 │ PEGNN: peripheral-enhanced graph neural network for social bot detection         │ C5FRRGZD │ journalArticle │
+│  276 │ Semi-meta-supervised hate speech detection                                       │ BUB9792P │ journalArticle │
+│  277 │ Semantic malware classification using artificial intelligence techniques         │ C696B3XQ │ journalArticle │
+│  278 │ Hybrid distributed deep-GAN intrusion detection system in IoT with autoencoder:  │ CMUFMWWG │ journalArticle │
+│  279 │ Stacking ensemble-based HIDS framework for detecting anomalous system processes  │ CEWB9BTP │ journalArticle │
+│  280 │ A novel end-to-end ensemble framework for enhanced android malware detection acc │ BKM2RMGV │ journalArticle │
+│  281 │ Meta-knowledge triple driven multi-modal knowledge graph construction method and │ C37B3VCN │ journalArticle │
+│  282 │ KubeFuzzer: automating RESTful API vulnerability detection in kubernetes         │ CVE3QRUZ │ journalArticle │
+│  283 │ Towards enhancing security of IoT-enabled healthcare system                      │ D2R53GHB │ journalArticle │
+│  284 │ Uncovering phishing attacks using principles of persuasion analysis              │ C9TU8ZCM │ journalArticle │
+│  285 │ AI-driven semantic similarity-based job matching framework for recruitment syste │ CIKH3G9U │ journalArticle │
+│  286 │ Redefining biological weapons in the evolving AI, CRISPR, and biothreat landscap │ CBAPZEKE │ journalArticle │
+│  287 │ Is my stance the same as your stance? A cross validation study of stance detecti │ BRVSN7CF │ journalArticle │
+│  288 │ Next-generation control for electrolyzers: a review of GPT-based AI frameworks i │ D2HU9R5V │ journalArticle │
+│  289 │ Adversarial attacks on artificial intelligence of things-based operational techn │ CI45RH5S │ journalArticle │
+│  290 │ AraCOVID19-MFH: arabic COVID-19 multi-label fake news & hate speech detection da │ BTBUK8J2 │ journalArticle │
+│  291 │ A verifiable EVM-based cross-language smart contract implementation scheme for m │ CNAR46BX │ journalArticle │
+│  292 │ Intercepting hail hydra: real-time detection of algorithmically generated domain │ CMNP5VEN │ journalArticle │
+│  293 │ Con-detect: detecting adversarially perturbed natural language inputs to deep cl │ C9SGEHH2 │ journalArticle │
+│  294 │ Balancing privacy and usability: a design science research approach for cookie c │ CHV6R8V8 │ journalArticle │
+│  295 │ Integration of data science with product design towards data-driven design       │ DA8BFZDP │ journalArticle │
+│  296 │ Conceptual modeling: foundations, a historical perspective, and a vision for the │ CSWV7G9T │ journalArticle │
+│  297 │ SwiftR: cross-platform ransomware fingerprinting using hierarchical neural netwo │ C8J3XT92 │ journalArticle │
+│  298 │ A cross-continental analysis of how regional cues shape top stack overflow contr │ CV4PHIS6 │ journalArticle │
+│  299 │ Beyond replacement: how project managers perceive the transformative role of AI  │ BSR3QDMC │ journalArticle │
+│  300 │ The privacy cost of fun: a measurement study of user data exposure in tiktok min │ C7XD8F7H │ journalArticle │
+│  301 │ Few-shot cyberviolence intent classification with meta-learning AutoEncoder base │ DBF3KF5I │ journalArticle │
+│  302 │ Do names echo semantics? A large-scale study of identifiers used in C++’s named  │ D89MRXBR │ journalArticle │
+│  303 │ Differences between human and artificial/augmented intelligence in medicine      │ C9ZR4Q2I │ journalArticle │
+│  304 │ MLPro 2.0 - online machine learning in python                                    │ CUJMZDPS │ journalArticle │
+│  305 │ VirtualPatch: distributing android security patches through android virtualizati │ CKC9M7TX │ journalArticle │
+│  306 │ AI for managing open innovation: opportunities, challenges, and a research agend │ BXDMDAPI │ journalArticle │
+│  307 │ From BIM to metaverse for AEC industry                                           │ BQ2TIU2C │ journalArticle │
+│  308 │ AI vs. human-generated content and accounts on Instagram: user preferences, eval │ CEXWXCZQ │ journalArticle │
+│  309 │ Enhancing healthcare decision support through explainable AI models for risk pre │ BXQQRFFQ │ journalArticle │
+│  310 │ An agentic AI-based architecture for digital twins specialized in predictive mai │ CZWHWTQ8 │ journalArticle │
+│  311 │ SELF: a method of searching for library functions in stripped binary code        │ D83VTM8U │ journalArticle │
+│  312 │ A sociotechnical perspective for responsible AI maturity models: findings from a │ BN9U5SN5 │ journalArticle │
+│  313 │ Investigating OTA employees’ double-edged perceptions of ChatGPT: the moderating │ C9S98JVI │ journalArticle │
+│  314 │ HSE: a plug-and-play module for unified fault diagnosis foundation models        │ C8PPU8J2 │ journalArticle │
+│  315 │ Digitization of the enterprise - prospects for process automation with using RPA │ CKE3KNC6 │ journalArticle │
+│  316 │ The power of emotions: leveraging user generated content for customer experience │ D8AE9E8W │ journalArticle │
+│  317 │ Investigative genetic genealogy in Europe: why the “manifestly made public by th │ CS93WHK9 │ journalArticle │
+│  318 │ Correct audit logging in concurrent systems                                      │ D74BHHER │ journalArticle │
+│  319 │ From data jungle to data governance in digital ecosystems: empirical evidence fr │ BRCEN782 │ journalArticle │
+│  320 │ Reflections and attentiveness on eXplainable artificial intelligence (XAI). The  │ C44RH3GM │ journalArticle │
+│  321 │ Automated graph anomaly detection with large language models                     │ AXWC3A8V │ journalArticle │
+│  322 │ Building adaptative and transparent cyber agents with local language models      │ AFADIIEN │ journalArticle │
+│  323 │ Misinformation detection on online social networks using pretrained language mod │ 9RZTMSNS │ journalArticle │
+│  324 │ Large language models integration in smart grids                                 │ BB6IMQA8 │ journalArticle │
+│  325 │ PhishNet: a real-time, scalable ensemble framework for smishing attack detection │ AV5QKP8B │ journalArticle │
+│  326 │ ChronoSentinel: incremental temporal embedding for security knowledge graph usin │ A9W67U4I │ journalArticle │
+│  327 │ Exploring large language models for indoor occupancy measurement in smart office │ 9TJG2B2N │ journalArticle │
+│  328 │ Unknown web attack threat detection based on large language model                │ BEPFGTIV │ journalArticle │
+│  329 │ The machines are watching: exploring the potential of large language models for  │ BI7Q8X23 │ journalArticle │
+│  330 │ SecLMNER: a framework for enhanced named entity recognition in multi-source cybe │ AGVFKAGP │ journalArticle │
+│  331 │ A formal framework for LLM-assisted automated generation of zeek signatures from │ 9N7XDHGZ │ journalArticle │
+│  332 │ An innovative GPT-based open-source intelligence using historical cyber incident │ B33E3577 │ journalArticle │
+│  333 │ CTFAgent: an LLM-powered agent for CTF challenge solving                         │ B6WNFUGP │ journalArticle │
+│  334 │ Generative AI and large language models - benefits, drawbacks, future and recomm │ BE9UMCU9 │ journalArticle │
+│  335 │ Automated robustness testing for LLM-based natural language processing software  │ BCZ9V28T │ journalArticle │
+│  336 │ Towards the future of pedestrian–AV interaction: human perception vs. LLM insigh │ B4BWEZ5Z │ journalArticle │
+│  337 │ OSTIS: a novel organization-specific threat intelligence system                  │ AKW5SZ7E │ journalArticle │
+│  338 │ BlockLLM: a futuristic LLM-based decentralized vehicular network architecture fo │ A9XD2IVQ │ journalArticle │
+│  339 │ FHGraph: a novel framework for fake news detection using graph contrastive learn │ BHCXH8IB │ journalArticle │
+│  340 │ Automated discovery and mapping ATT&CK tactics and techniques for unstructured c │ BCBTU22A │ journalArticle │
+│  341 │ Evaluating spam filters and stylometric detection of AI-generated phishing email │ 9JKKUXR7 │ journalArticle │
+│  342 │ Evaluating password strength based on information spread on social networks: a c │ A2CH9254 │ journalArticle │
+│  343 │ Actminer: applying causality tracking and increment aligning for graph-based thr │ AHQKUW2H │ journalArticle │
+│  344 │ De-identification of open-source intelligence using finetuned LLaMA-3            │ ASU2PQQV │ journalArticle │
+│  345 │ A comparative analysis on using GPT and BERT for automated vulnerability scoring │ 9K2IE4FE │ journalArticle │
+│  346 │ Threat intelligence ATT&CK extraction based on the attention transformer hierarc │ B4663B22 │ journalArticle │
+│  347 │ Unveiling security, privacy, and ethical concerns of ChatGPT                     │ 9QCIES38 │ journalArticle │
+│  348 │ A scoping review of ChatGPT research in accounting and finance                   │ 9NQ39URK │ journalArticle │
+│  349 │ Overview of key power system state estimation methods with a focus on artificial │ 9P6DAWJ7 │ journalArticle │
+│  350 │ Zero-shot learning for requirements classification: an exploratory study         │ 9NU32V6W │ journalArticle │
+│  351 │ VehicleLang: a probabilistic modeling and simulation language for modern vehicle │ BIBZB26K │ journalArticle │
+│  352 │ Contextual embeddings based on fine-tuned urdu-BERT for urdu threatening content │ AC4BM6VT │ journalArticle │
+│  353 │ Federated learning for solar energy applications: a case study on real-time faul │ BEGUXTDB │ journalArticle │
+│  354 │ Threat intelligence named entity recognition techniques based on few-shot learni │ B25U8PKF │ journalArticle │
+│  355 │ Towards safer online communities: deep learning and explainable AI for hate spee │ BI2SM8V7 │ journalArticle │
+│  356 │ DarkMor: a framework for darknet traffic detection that integrates local and spa │ BJJFHZZJ │ journalArticle │
+│  357 │ Multimodal privacy-leaking image detection method based on multi-image correlati │ 9VE4UA2K │ journalArticle │
+│  358 │ Territorialising the cloud or clouding the territory? Volumetric vulnerabilities │ 9XUFDJGN │ journalArticle │
+│  359 │ DST-IDS: dynamic spatial-temporal graph-transformer network for in-vehicle netwo │ AQBNEUIR │ journalArticle │
+│  360 │ CASI: context-aware automatic semantic inference by fusing video and network tra │ AANXGKJR │ journalArticle │
+│  361 │ AI agents vs. Agentic AI: a conceptual taxonomy, applications and challenges     │ BBH3QQ7N │ journalArticle │
+│  362 │ Syscall-BSEM: behavioral semantics enhancement method of system call sequence fo │ 9K2VKRRE │ journalArticle │
+│  363 │ mURLi: a tool for detection of malicious URLs and injection attacks              │ BC58FWXF │ journalArticle │
+│  364 │ BotSSCL: social bot detection with self-supervised contrastive learning          │ A4JI6ZTZ │ journalArticle │
+│  365 │ Brace yourself! Why managers should adopt a synthetic media incident response pl │ BFTWS9DH │ journalArticle │
+│  366 │ ChatGPT in science and research: how generative AI drives innovation and knowled │ 9ZENKT4I │ journalArticle │
+│  367 │ MalSort: lightweight and efficient image-based malware classification using mask │ A7FBRFRB │ journalArticle │
+│  368 │ Malicious mining code detection based on ensemble learning in cloud computing en │ 9K4IPRVA │ journalArticle │
+│  369 │ An automatic vulnerability classification framework based on BiGRU-TextCNN       │ AQWTX8UF │ journalArticle │
+│  370 │ Can attention detect AI-generated text? A novel benford's law-based approach     │ B58MTGCT │ journalArticle │
+│  371 │ The delphi panel investigation of artificial intelligence in investor relations  │ 9QJTKQVA │ journalArticle │
+│  372 │ TinyWolf — efficient on-device TinyML training for IoT using enhanced grey wolf  │ BFJII6AF │ journalArticle │
+│  373 │ AI act compliance within the MyHealth@EU framework: tutorial                     │ AEE54SUR │ journalArticle │
+│  374 │ Urban mobility foundation model: a literature review and hierarchical perspectiv │ A6CH5CX6 │ journalArticle │
+│  375 │ Explainable evaluation of generative adversarial networks for wearables data aug │ AQSURBWX │ journalArticle │
+│  376 │ Fraud and complexity theory: moving beyond the fraud triangle towards a new theo │ 9V5RFEJ6 │ journalArticle │
+│  377 │ Automating modern code review processes with code similarity measurement         │ BHMREIB7 │ journalArticle │
+│  378 │ A comprehensive review on technological breakthroughs in precision agriculture:  │ AICW2WD2 │ journalArticle │
+│  379 │ Development and testing of an IoT platform with smart algorithms for building en │ 9KATIV2J │ journalArticle │
+│  380 │ Envyr: instant execution with smart inference                                    │ 9W68ZIBP │ journalArticle │
+│  381 │ Predicting learners' engagement and help-seeking behaviors in an e-learning envi │ 9P4T69BK │ journalArticle │
+│  382 │ Understanding danmaku and comment interactions through content features and vide │ AT6E7UUZ │ journalArticle │
+│  383 │ Safety assessment of intelligent vehicles considering drivers’ risk perception i │ AJC9ZK2J │ journalArticle │
+│  384 │ Architectures and algorithms of an autonomous small-scale drilling agent         │ ACJ3G9QB │ journalArticle │
+│  385 │ Fuzz4Cuda: fuzzing your NVIDIA GPU libraries through debug interface             │ B3SA9RV9 │ journalArticle │
+│  386 │ Classification of a nanocomposite using a combination between recurrent neural n │ AUUQWUCA │ journalArticle │
+│  387 │ PhenoRerank: a re-ranking model for phenotypic concept recognition pre-trained o │ 9UPBZ57K │ journalArticle │
+│  388 │ Advanced framework for risk coupling analysis applied to ship groundings in shen │ AAQJNE9P │ journalArticle │
+│  389 │ Coherence mode: characterizing local graph structural information for temporal k │ ANTG77R2 │ journalArticle │
+│  390 │ Discrete bayesian optimization via machine learning                              │ 9KNEP3VI │ journalArticle │
+│  391 │ CitySpec with shield: a secure intelligent assistant for requirement formalizati │ BFTVD4KZ │ journalArticle │
+│  392 │ Metadata schema for virtual building models in digital twins: VB schema implemen │ B54RV6RG │ journalArticle │
+│  393 │ LLM-APTDS: a high-precision advanced persistent threat detection system for imba │ FCKQT7WI │ journalArticle │
+│  394 │ An AI-driven thermal-fluid testbed for advanced small modular reactors: integrat │ FPJJ234K │ journalArticle │
+│  395 │ LLM-LADE: large language model-based log anomaly detection with explanation      │ GWFTEEBC │ journalArticle │
+│  396 │ A survey of large language models for cyber threat detection                     │ G2EV5E9F │ journalArticle │
+│  397 │ Can LLM-generated misinformation be detected: a study on cyber threat intelligen │ GU8NSS8Z │ journalArticle │
+│  398 │ Bridging the gap between LLMs and structured program vulnerability analysis: an  │ GIC8HKT5 │ journalArticle │
+│  399 │ Revolutionizing power electronics design through large language models: applicat │ GKB9EZZH │ journalArticle │
+│  400 │ A survey of cyber threat attribution: challenges, techniques, and future directi │ G8R7FTJI │ journalArticle │
+│  401 │ Safeguarding user data privacy in online large language model services           │ FBCJ4SD3 │ journalArticle │
+│  402 │ RETO: reinforcement learning enhanced terminology optimization for cyber threat  │ FN396VH9 │ journalArticle │
+│  403 │ Privacy issues in large language models: a survey                                │ G3MFAD6H │ journalArticle │
+│  404 │ LM-hunter: an NLP-powered graph method for detecting adversary lateral movements │ F3Z289TJ │ journalArticle │
+│  405 │ Neurosymbolic AI for network intrusion detection systems: a survey               │ G8CM9A6Q │ journalArticle │
+│  406 │ Enhancing cybersecurity in edge IIoT networks: an asynchronous federated learnin │ GSUZNVRR │ journalArticle │
+│  407 │ Belt rotation in pipe conveyors: development of an overlap monitoring system usi │ FRTDKITG │ journalArticle │
+│  408 │ Cybersecurity-aware log management system for critical water infrastructures     │ G3PFXU3P │ journalArticle │
+│  409 │ Tabular federated learning to detect cyber faults in smart buildings             │ GJCH3VGE │ journalArticle │
+│  410 │ HarmonyNet: navigating hate speech detection                                     │ FTM6VZIS │ journalArticle │
+│  411 │ Privacy and cybersecurity issues facing the metaverse: an analysis of technologi │ GT6G3MWU │ journalArticle │
+│  412 │ AI as a shield against cyberattacks - employee awareness in the EU               │ FAS2ANQJ │ journalArticle │
+│  413 │ Generative AI in EU law: liability, privacy, intellectual property, and cybersec │ FTQ24UUX │ journalArticle │
+│  414 │ Investigating ChatGPT and cybersecurity: a perspective on topic modeling and sen │ G6HQHN49 │ journalArticle │
+│  415 │ From attack descriptions to vulnerabilities: a sentence transformer-based approa │ G2UPXP8F │ journalArticle │
+│  416 │ Leveraging evolutionary algorithms with a dynamic weighted search space approach │ GFQ6AVMF │ journalArticle │
+│  417 │ Blockchain-enabled mitigation strategies for distributed denial of service attac │ FCM8R424 │ journalArticle │
+│  418 │ Mining user privacy concern topics from app reviews                              │ FNVA4D2K │ journalArticle │
+│  419 │ PWAGAT: potential web attacker detection based on graph attention network        │ GP3VI3XK │ journalArticle │
+│  420 │ From automated to autonomous process operations                                  │ FWHDXJMI │ journalArticle │
+│  421 │ LinguTimeX a framework for multilingual CTC detection using explainable AI and n │ FVHTNQGD │ journalArticle │
+│  422 │ Exploring the directions of artificial intelligence in good health and well-bein │ GQU7CCNR │ journalArticle │
+│  423 │ SoK: an empirical investigation of malware techniques in advanced persistent thr │ FANJ539X │ journalArticle │
+│  424 │ Skip-patching spatial–temporal discrepancy-based anomaly detection on multivaria │ GNUFUFWP │ journalArticle │
+│  425 │ COVID-19 lies and truths: employing the elaboration likelihood model (ELM) and l │ GDFUMASU │ journalArticle │
+│  426 │ Optimising blockchain security: computational analysis of adaptive AI coaching   │ GT8DK37N │ journalArticle │
+│  427 │ A 3D geospatial platform and AI tour application for visualizing archaeological, │ G7HB6SI6 │ journalArticle │
+│  428 │ Linking online activity to offline behavior: a meta-review of three decades of o │ F8FFGUQS │ journalArticle │
+│  429 │ From screens to scenes: a survey of embodied AI in healthcare                    │ FP4E5WXS │ journalArticle │
+│  430 │ DSGN: log-based anomaly diagnosis with dynamic semantic gate networks            │ GU5WDII9 │ journalArticle │
+│  431 │ Deep learning for optimizing urban governance by "sensing-processing-responding" │ FBTCETS9 │ journalArticle │
+│  432 │ Advanced genetic algorithm and penalty fitness function for enhancing DeFi secur │ F85265WH │ journalArticle │
+│  433 │ CrossCode2Vec: a unified representation across source and binary functions for c │ FQM85KUN │ journalArticle │
+│  434 │ SABA: scene-aware bidirectional backdoor attack against multimodal learning      │ FBV4S4XZ │ journalArticle │
+│  435 │ News sentiment, climate conditions, and New Zealand electricity market: a real-t │ F33DAX45 │ journalArticle │
+│  436 │ MDOB: enhancing resilient and explainable AI-powered malware detection using fea │ FW8QUHG6 │ journalArticle │
+│  437 │ The impact of AI foundation models on the future of digital engineering for logi │ GE6Z5P68 │ journalArticle │
+│  438 │ A semantic element representation model for malicious domain name detection      │ GTTS8TCV │ journalArticle │
+│  439 │ PypiGuard: a novel meta-learning approach for enhanced malicious package detecti │ F9EREERI │ journalArticle │
+│  440 │ Generative modeling in smart manufacturing: applications, challenges, and future │ F9UEBRUP │ journalArticle │
+│  441 │ A systematic review of metaheuristics-based and machine learning-driven intrusio │ GKPCQMXW │ journalArticle │
+│  442 │ FIN: boosting binary code embedding by normalizing function inlinings            │ GS3TFG6I │ journalArticle │
+│  443 │ Towards the future of bot detection: a comprehensive taxonomical review and chal │ GJ9CPEQX │ journalArticle │
+│  444 │ Abusive content detection in online user-generated data: a survey                │ GV2HZCV9 │ journalArticle │
+│  445 │ LARM: linux anti ransomware monitor                                              │ F4QU3IDK │ journalArticle │
+│  446 │ Token and part-of-speech fusion for pretraining of transformers with application │ F9M2JJEV │ journalArticle │
+│  447 │ A black-box assessment of authentication and reliability in consumer IoT devices │ GHBBRDFK │ journalArticle │
+│  448 │ Trust or distrust? AIGC trustworthiness and an extended analysis within nomology │ F59VU65K │ journalArticle │
+│  449 │ A study on gen-AI technology development trends to enhance small-medium sized en │ G8UD5ADE │ journalArticle │
+│  450 │ Edge-enabled smart agriculture framework: integrating IoT, lightweight deep lear │ GP9EGGW7 │ journalArticle │
+│  451 │ Combining AI and AM – improving approximate matching through transformer network │ FR4CXMT5 │ journalArticle │
+│  452 │ A graph proximity feature augmentation approach for identifying accounts of terr │ GGSRC5AW │ journalArticle │
+│  453 │ Generative AI: the transformative impact of ChatGPT on systemic financial risk i │ FXQFUEQI │ journalArticle │
+│  454 │ Development model based on visual image big data applied to art management       │ GF5THPP3 │ journalArticle │
+│  455 │ Defeating CSI obfuscation mechanisms: a study on unauthorized wi-fi sensing in w │ GQ6TBZ44 │ journalArticle │
+│  456 │ Bias and ethics of AI systems applied in auditing - a systematic review          │ FJF4CRU4 │ journalArticle │
+│  457 │ Technical solution to counter potential crime: text analysis to detect fake news │ GPFXK35D │ journalArticle │
+│  458 │ The european AI liability directives – critique of a half-hearted approach and l │ FGTH5KRX │ journalArticle │
+│  459 │ Piloting a maturity model for responsible artificial intelligence: a portuguese  │ FPMBC485 │ journalArticle │
+│  460 │ Regulation and innovation: unveiling the quadruple-helix-innovation ecosystem of │ F8VK5QSR │ journalArticle │
+│  461 │ Yes, but…: technology, netnography, and futures                                  │ FAM45SK2 │ journalArticle │
+│  462 │ Emotion-cognitive reasoning integrated BERT for sentiment analysis of online pub │ GRJQFF3X │ journalArticle │
+│  463 │ Fully leveraging AI in B2B sales: exploring sales managers’ capabilities and org │ FNFKB4MI │ journalArticle │
+│  464 │ Data-driven AI emergency planning in process industry                            │ GGEJ37EJ │ journalArticle │
+│  465 │ LT-CNN: an integrated deep learning method for enhancing topic recognition in di │ FQBJ7NK2 │ journalArticle │
+│  466 │ Managing emergency crises using secure information through educational awareness │ GFQNKE5C │ journalArticle │
+│  467 │ Exploring the relationships between formalisation and validation tools in sustai │ G56KXTHZ │ journalArticle │
+│  468 │ Distributing intelligent functionalities in the internet of things with agents a │ GPXH2V6E │ journalArticle │
+│  469 │ A digital twin framework for intelligent electric vehicle charging optimization  │ GUUVS4KJ │ journalArticle │
+│  470 │ Forensic image classification with active learning and generative adversarial ne │ GNWQ9ZSI │ journalArticle │
+│  471 │ Capturing creative requirements via requirements reuse: a machine learning-based │ GAM5G8AX │ journalArticle │
+│  472 │ XG-NID: dual-modality network intrusion detection using a heterogeneous graph ne │ HCIIE2MU │ journalArticle │
+│  473 │ Integrating large language models into manufacturing execution systems: a system │ HJXCF3TM │ journalArticle │
+│  474 │ MET-LLM: enhancing large language models for malicious encrypted traffic detecti │ I9E5IWW4 │ journalArticle │
+│  475 │ Enhancing password security with honeywords and LLMs                             │ HM8DBERB │ journalArticle │
+│  476 │ AI for cyber-security risk: harnessing AI for automatic generation of company-sp │ H6RA7WST │ journalArticle │
+│  477 │ AECR: automatic attack technique intelligence extraction based on fine-tuned lar │ HKENI8C8 │ journalArticle │
+│  478 │ Making waves: a conceptual framework exploring how large language model-based mu │ H9FWC43C │ journalArticle │
+│  479 │ Formal requirements engineering and large language models: a two-way roadmap     │ I27XERZ3 │ journalArticle │
+│  480 │ Trusta: reasoning about assurance cases with formal methods and large language m │ GX4TNE5U │ journalArticle │
+│  481 │ Potential of multimodal large language models for data mining of medical images  │ HNI3VBCA │ journalArticle │
+│  482 │ ChatGPT or bard: who is a better certified ethical hacker?                       │ HWZGUWZU │ journalArticle │
+│  483 │ LogPrécis: unleashing language models for automated malicious log analysis       │ I6FH62D5 │ journalArticle │
+│  484 │ TIMFuser: a multi-granular fusion framework for cyber threat intelligence        │ H456MX86 │ journalArticle │
+│  485 │ SAFE-TAP: semantic-aware and fused embedding for TAP rule security detection     │ I5VGUJ45 │ journalArticle │
+│  486 │ Few-shot relation extraction approach for threat intelligence based on multi-lev │ HQEDNAXZ │ journalArticle │
+│  487 │ AI-generated content in cross-domain applications: research trends, challenges a │ IFI9SW2C │ journalArticle │
+│  488 │ Enhancing anomaly detection efficiency: introducing grid searchbased multi-popul │ IIC3FMD2 │ journalArticle │
+│  489 │ Developing ethical principle awareness and reasoning in a cybersecurity context: │ H55R6NUR │ journalArticle │
+│  490 │ Automotive intelligence for supporting vehicle-SOC analysts                      │ HU6B7IZ8 │ journalArticle │
+│  491 │ Detection and mitigation against false data injection attacks using SHT and ANN  │ I7ZHGM3R │ journalArticle │
+│  492 │ Thai-language chatbot security: detecting instruction attacks with XLM-RoBERTa a │ H9CEMENZ │ journalArticle │
+│  493 │ LineJLocRepair: a line-level method for automated vulnerability repair based on  │ H3N6XDSH │ journalArticle │
+│  494 │ Advanced computational methods for news classification: a study in neural networ │ HI6NSQKS │ journalArticle │
+│  495 │ Joint relational triple extraction with enhanced representation and binary taggi │ HUI73247 │ journalArticle │
+│  496 │ An LLM-based virtual assistant for tele-operation of industrial electrical syste │ GXMXKNR4 │ journalArticle │
+│  497 │ Spam email classification based on cybersecurity potential risk using natural la │ IK642QJV │ journalArticle │
+│  498 │ CSTSINR: improving temporal continuity via convolutional structured implicit neu │ HTE72ND6 │ journalArticle │
+│  499 │ Unveiling the multifaceted concept of cognitive security: trends, perspectives,  │ H4UVNZAG │ journalArticle │
+│  500 │ ReZG: retrieval-augmented zero-shot counter narrative generation for hate speech │ INFIGUFV │ journalArticle │
+│  501 │ A multi-scale patch mixer network for time series anomaly detection              │ GXAA9EHP │ journalArticle │
+│  502 │ A community-centric intelligent cyberinfrastructure for addressing nitrogen poll │ IAZMDZ7C │ journalArticle │
+│  503 │ Images of AI: how AI practitioners view the impact of artificial intelligence on │ I6JDD73F │ journalArticle │
+│  504 │ From scattered sources to comprehensive technology landscape : a recommendation- │ H26FC68C │ journalArticle │
+│  505 │ CSGVD: a deep learning approach combining sequence and graph embedding for sourc │ I3Z3VKZV │ journalArticle │
+│  506 │ AI-driven assistants for education and research? A case study on ChatGPT for air │ ICCG99JU │ journalArticle │
+│  507 │ Digital evolution and twin miracle of sugarcane breeding                         │ IB7ZP54E │ journalArticle │
+│  508 │ Clean up the mess: addressing data pollution in cryptocurrency abuse reporting s │ HGRBFPA9 │ journalArticle │
+│  509 │ Deepfake detection in generative AI: a legal framework proposal to protect human │ I2JKJXZ6 │ journalArticle │
+│  510 │ SeMalBERT: semantic-based malware detection with bidirectional encoder represent │ GWM4KCTN │ journalArticle │
+│  511 │ A novel ensemble method for enhancing internet of things device security against │ I3TQUGAB │ journalArticle │
+│  512 │ Generating customized low-code development platforms for digital twins           │ HJ7X4JEM │ journalArticle │
+│  513 │ I-MAD: interpretable malware detector using galaxy transformer                   │ IB5DVNMI │ journalArticle │
+│  514 │ Unmasking social robots’ camouflage: a GNN-random forest framework for enhanced  │ HCK58NP3 │ journalArticle │
+│  515 │ Preserving data privacy in machine learning systems                              │ HV8UINKQ │ journalArticle │
+│  516 │ The hitchhiker’s guide to challenges in transport policy research: towards ANSWE │ I48FWUT2 │ journalArticle │
+│  517 │ GSEDroid: GNN-based android malware detection framework using lightweight semant │ HHET3CHV │ journalArticle │
+│  518 │ Artificial intelligence in ocular oncology: differentiating choroidal melanocyti │ HXMWSAWC │ journalArticle │
+│  519 │ Challenges and strategies for wide-scale artificial intelligence (AI) deployment │ I7FMFQSV │ journalArticle │
+│  520 │ Comprehensive examination of the bright and dark sides of generative AI services │ IH7MACHH │ journalArticle │
+│  521 │ A methodology for the systematic design of storytelling dashboards applied to in │ GWHK3N6Q │ journalArticle │
+│  522 │ Diagnostic analysis and performance optimization of scalable computing systems i │ H34ZN5F9 │ journalArticle │
+│  523 │ CORAL: container online risk assessment with logical attack graphs               │ I8SP5PW2 │ journalArticle │
+│  524 │ From manual to automated systematic review: key attributes influencing the durat │ ICE7D4SD │ journalArticle │
+│  525 │ Green artificial intelligence initiatives: potentials and challenges             │ H9KN2M97 │ journalArticle │
+│  526 │ Blockchain for logistics 4.0: a systematic review and prospects                  │ HCGHIS42 │ journalArticle │
+│  527 │ Illusions of truth—experimental insights into human and algorithmic detections o │ I7VU8AB4 │ journalArticle │
+│  528 │ Interaction dataset of autonomous vehicles with traffic lights and signs         │ I8CVQGJT │ journalArticle │
+│  529 │ Emotional resources and knowledge management: a gender perspective on human-cent │ I3REJXKQ │ journalArticle │
+│  530 │ AI as an emerging trend for managing employee efficiency in the retail and servi │ I82TXKVN │ journalArticle │
+│  531 │ The role of artificial intelligence for early warning systems: status, applicabi │ IPF5HE3Q │ journalArticle │
+│  532 │ Product verification using OCR classification and mondrian conformal prediction  │ HW288CNJ │ journalArticle │
+│  533 │ A machine learning approach for detecting customs fraud through unstructured dat │ HRXVVEE4 │ journalArticle │
+│  534 │ Membership inference attacks via spatial projection-based relative information l │ ICGAMVAJ │ journalArticle │
+│  535 │ Disruptive technologies for e-diasporas: blockchain, DAOs, data cooperatives, me │ I3USVVWM │ journalArticle │
+│  536 │ Developing and validating an artificial intelligence ethical awareness scale for │ HT8QXVXC │ journalArticle │
+│  537 │ Fostering cleaner production through the adoption of sustainable maintenance: an │ IITX2BNT │ journalArticle │
+│  538 │ DeKeDVer: a deep learning-based multi-type software vulnerability classification │ IHWXDCZD │ journalArticle │
+│  539 │ X-news dataset for online news categorization                                    │ HE2E78T7 │ journalArticle │
+│  540 │ Tell me something new: data subject rights applied to inferred data and profiles │ HIF3MKTC │ journalArticle │
+│  541 │ CHESSIoT: a model-driven approach for engineering multi-layered IoT systems      │ H3I2H62A │ journalArticle │
+│  542 │ A value-oriented artificial intelligence-as-a-service business plan using integr │ IPBEKHBC │ journalArticle │
+│  543 │ Deep learning techniques for hand vein biometrics: a comprehensive review        │ I9A83VC9 │ journalArticle │
+│  544 │ Digitalization, internationalization, and firm performance: a resource-orchestra │ HG43EJ7U │ journalArticle │
+│  545 │ ExplainableDetector: exploring transformer-based language modeling approach for  │ EMHIPTKK │ journalArticle │
+│  546 │ Assessing the effectiveness of crawlers and large language models in detecting a │ F2NU5XAW │ journalArticle │
+│  547 │ ContextualGraph-LLM: a multimodal framework for enhanced darknet traffic analysi │ EXR5ZBUU │ journalArticle │
+│  548 │ RLFE-IDS: a framework of intrusion detection system based on retrieval augmented │ DHA8BESG │ journalArticle │
+│  549 │ Evaluating various finetuned LLMs for cybersecurity named entity recognition     │ EUZI35DB │ journalArticle │
+│  550 │ Integrating human expertise & automated methods for a dynamic and multi-parametr │ DUR3UW6J │ journalArticle │
+│  551 │ LLM+m: dual-model chatGPT-based product training and testing with adversarial at │ E4XGSW5X │ journalArticle │
+│  552 │ Prompt engineering for virtual asset transaction analysis using large language m │ ERZ7TWVE │ journalArticle │
+│  553 │ Enhancing vulnerability detection efficiency: an exploration of light-weight LLM │ EFWBZZJ9 │ journalArticle │
+│  554 │ Training a language model to learn the syntax of commands                        │ E7UMRG5W │ journalArticle │
+│  555 │ SpAIware: uncovering a novel artificial intelligence attack vector through persi │ E2K36DJX │ journalArticle │
+│  556 │ Optimized detection of cyber-attacks on IoT networks via hybrid deep learning mo │ DTVTPCWF │ journalArticle │
+│  557 │ Unleashing offensive artificial intelligence: automated attack technique code ge │ E5C3WRPN │ journalArticle │
+│  558 │ A domain-specific autonomous agent for network traffic analysis                  │ EJTS3JH7 │ journalArticle │
+│  559 │ PyPIMalDet: a malicious PyPI package detection method combining code features an │ EBBP2HEF │ journalArticle │
+│  560 │ SIoV-IDS: SDN-enabled zero-trust framework for explainable intrusion detection i │ DSXNIIF7 │ journalArticle │
+│  561 │ FLAD: adaptive federated learning for DDoS attack detection                      │ EGI6U7BU │ journalArticle │
+│  562 │ LLM4Game: multi-agent reinforcement learning with knowledge injection for dynami │ E9GN346Z │ journalArticle │
+│  563 │ Explainable DNN for smart contract vulnerability detection in the metaverse      │ EINURJR5 │ journalArticle │
+│  564 │ Enhancing usability in face privacy protection via vision-language guided diffus │ DKK359J8 │ journalArticle │
+│  565 │ Perspectives for artificial intelligence in sustainable energy systems           │ DE2B98KE │ journalArticle │
+│  566 │ A novel framework for assessing determinant risk factors on cyber (dis)trust beh │ EZFEQMIJ │ journalArticle │
+│  567 │ Characterizing generative artificial intelligence applications: text-mining-enab │ DFQKV6DV │ journalArticle │
+│  568 │ Temporal-enhanced transformer for anomaly detection in spacecraft irregular-inte │ EPQPV9T4 │ journalArticle │
+│  569 │ A robust hybrid machine learning model for bengali cyber bullying detection in s │ E37KHDG3 │ journalArticle │
+│  570 │ Improving quality of indicators of compromise using STIX graphs                  │ EZIRFUKG │ journalArticle │
+│  571 │ Attention-guided adversarial sample generation for robust webshell detection     │ EBPBT9KI │ journalArticle │
+│  572 │ An analytical approach to named entity recognition for military aerospace intell │ DSIVWSVC │ journalArticle │
+│  573 │ Using chat GPT to evaluate police threats, risk and harm                         │ EU2X7QHH │ journalArticle │
+│  574 │ Blind protocol identification using synthetic dataset: a case study on geographi │ DXZZS8H8 │ journalArticle │
+│  575 │ DNS user profiling and risk assessment: a learning approach                      │ DMV69ECX │ journalArticle │
+│  576 │ Advancements on IoT and AI applied to pneumology                                 │ ECEJNA2B │ journalArticle │
+│  577 │ How could generative AI support and add value to non-technology companies – a qu │ DFBI48NN │ journalArticle │
+│  578 │ Understanding practitioners’ challenges and requirements in the design, implemen │ EHRW94KS │ journalArticle │
+│  579 │ Armed boundary sabotage: a case study of human malicious behaviors identificatio │ ET6ZBKJC │ journalArticle │
+│  580 │ VWA-6G AI assisted continuous security monitoring over open RAN service manageme │ DUJTKQIN │ journalArticle │
+│  581 │ DeVAIC: a tool for security assessment of AI-generated code                      │ EGF6KNRX │ journalArticle │
+│  582 │ AIGC-empowered smart manufacturing: prospects and challenges                     │ EXUCZ4IS │ journalArticle │
+│  583 │ An ethical assessment framework for AI security and ethics in smart grid         │ DNWK5INW │ journalArticle │
+│  584 │ GenAI in rule-based systems for IoMT security: testing and evaluation            │ EIFFCZGW │ journalArticle │
+│  585 │ Sensing the diversity of rumors: rumor detection with hierarchical prototype con │ EK59Z723 │ journalArticle │
+│  586 │ Collaborative optimization for multirobot manufacturing system reliability throu │ EX4SH8DI │ journalArticle │
+│  587 │ Building robust traffic classifier under low quality data: a federated contrasti │ DC7QU99E │ journalArticle │
+│  588 │ Using data analytics to distinguish legitimate and illegitimate shell companies  │ DVKDBATB │ journalArticle │
+│  589 │ A novel AI-driven framework of collaborative intelligent operation and maintenan │ E3XBGNVM │ journalArticle │
+│  590 │ Anti-traceable backdoor: blaming malicious poisoning on innocents in non-IID fed │ DGWSB52J │ journalArticle │
+│  591 │ Explaining vulnerabilities of biased news classifiers through rough sets and gra │ ESZ2E2Q8 │ journalArticle │
+│  592 │ A multi-level and iterative feature engineering framework for deepfake audio det │ E6FWZJ3K │ journalArticle │
+│  593 │ The invisible evidence: digital forensics as key to solving crimes in the digita │ DFZE6G66 │ journalArticle │
+│  594 │ It's just distributed computing: rethinking AI governance                        │ EIAJDHGI │ journalArticle │
+│  595 │ Graph-based detection for false data injection attacks in power grid             │ DXN39KTV │ journalArticle │
+│  596 │ Vehicle-to-everything mode of operation technologies: a state-of-art systematic  │ EC3J7NVG │ journalArticle │
+│  597 │ A red team automated testing modeling and online planning method for post-penetr │ E6B2UIC6 │ journalArticle │
+│  598 │ Cyberbullying detection for low-resource languages and dialects: review of the s │ EE8HEV7W │ journalArticle │
+│  599 │ Malicious traffic detection in IoT and local networks using stacked ensemble cla │ ETR6KIXN │ journalArticle │
+│  600 │ PassREfinder-FL: privacy-preserving credential stuffing risk prediction via grap │ EAHTFMQZ │ journalArticle │
+│  601 │ MetaCloze: a schema-guided automated building metadata model generation system v │ EDUF58RV │ journalArticle │
+│  602 │ Robotics for HVAC applications: a critical review and future perspectives        │ DDJETG3N │ journalArticle │
+│  603 │ Sharpening kubernetes audit logs with context awareness                          │ DGJWQGIN │ journalArticle │
+│  604 │ Towards autonomous supply chains: definition, characteristics, conceptual framew │ EB4PTR83 │ journalArticle │
+│  605 │ MVF-PointCLIP: training-free multi-view fusion PointCLIP for zero-shot 3D classi │ EKNWWN9H │ journalArticle │
+│  606 │ Extracting goal models from natural language requirement specifications          │ DDIX3XA6 │ journalArticle │
+│  607 │ Comprehending the theoretical knowledge and practice around AI-enabled innovatio │ DFFEZR3W │ journalArticle │
+│  608 │ Uncovering the potential of chatbots during the development of industrial smart  │ EJKU88SC │ journalArticle │
+│  609 │ Anatomy of innovation biosphere in global AI landscape: actors, interactions, an │ ECXXV8EQ │ journalArticle │
+│  610 │ Malware2ATT&CK: a sophisticated model for mapping malware to ATT&CK techniques   │ F2WBJZER │ journalArticle │
+│  611 │ CLIP-MEI: exploit more effective information for few-shot action recognition     │ DPQTSB6P │ journalArticle │
+│  612 │ “ChatGPT seems too good to be true”: college students’ use and perceptions of ge │ EHMJ4VAM │ journalArticle │
+│  613 │ CSFuzzer: a grey-box fuzzer for network protocol using context-aware state feedb │ DSBFJJSP │ journalArticle │
+│  614 │ ESFLM: efficient and secure federated learning model with homomorphic encryption │ E7M6QMUX │ journalArticle │
+│  615 │ Regulating artificial intelligence for CANDU software qualifications             │ ER7TZPGV │ journalArticle │
+│  616 │ Artificial intelligence in consumer preferences: implications for health and wel │ E9EWIIUI │ journalArticle │
+│  617 │ A review of deep learning with special emphasis on architectures, applications a │ ER8C8HZP │ journalArticle │
+│  618 │ Big data and AI for smart maintenance: literature review on the impact on plants │ DM4DKTFE │ journalArticle │
+│  619 │ Harnessing generative AI: reviewing applications, challenges, and solutions for  │ EXJFDMD5 │ journalArticle │
+│  620 │ How does digital intelligence drive the SRDI development of SMEs? Evidence from  │ E34QQ553 │ journalArticle │
+│  621 │ Artificial intelligence in the L2 classroom: implications and challenges on ethi │ E3ZFZMBV │ journalArticle │
+│  622 │ Secured human-centric sustainable healthcare in industry 5.0 through artificial  │ DJWT445E │ journalArticle │
+│  623 │ MSL: a pattern language for engineering self-adaptive systems                    │ DFN9GFVV │ journalArticle │
+│  624 │ Designing a composite deep learning based differential protection scheme of powe │ DGIUTB52 │ journalArticle │
+│  625 │ Automated generation of cybersecurity response playbooks via large language mode │ K5WKA36P │ journalArticle │
+│  626 │ Exploring the ability of emerging large language models to detect cyberbullying  │ IXWF7KVF │ journalArticle │
+│  627 │ Sóley: automated detection of logic vulnerabilities in ethereum smart contracts  │ K3GASAIW │ journalArticle │
+│  628 │ Large language models for cyber resilience: a comprehensive review, challenges,  │ JBKRX386 │ journalArticle │
+│  629 │ SecureQwen: leveraging LLMs for vulnerability detection in python codebases      │ JRCGEXKP │ journalArticle │
+│  630 │ Chinese cyber threat intelligence named entity recognition via RoBERTa-wwm-RDCNN │ JE5SRZCR │ journalArticle │
+│  631 │ MADONNA: browser-based malicious domain detection using optimized neural network │ K24MK2UT │ journalArticle │
+│  632 │ TIJERE: a novel threat intelligence joint extraction model based on analyst expe │ JHCDQVWE │ journalArticle │
+│  633 │ Integrative innovation of large language models in industries: technologies, app │ JT882UF7 │ journalArticle │
+│  634 │ Forecasting cyber threats and pertinent mitigation technologies                  │ JCTJJE5Z │ journalArticle │
+│  635 │ SIEVE: generating a cybersecurity log dataset collection for SIEM event classifi │ IWJVSGAW │ journalArticle │
+│  636 │ Enhancing medical digital twins within metaverse using blockchain, NFTs and LLMs │ IUBW9GGW │ journalArticle │
+│  637 │ Advancing software security: DCodeBERT for automatic vulnerability detection and │ JKBEVVPW │ journalArticle │
+│  638 │ Homophobia and transphobia span identification in low-resource languages         │ J5TTP64K │ journalArticle │
+│  639 │ Measuring the impact of cyber policy: a news-based cyber policy index and its sp │ K4M4EAXC │ journalArticle │
+│  640 │ Ripple2Detect: a semantic similarity learning based framework for insider threat │ JNJN53S9 │ journalArticle │
+│  641 │ Collective intelligence-based service migration enabling zoom-in functionality w │ JPHX23MF │ journalArticle │
+│  642 │ Walkthrough phishing detection techniques                                        │ J9XPGNS5 │ journalArticle │
+│  643 │ DR-RAG: domain-rule-based retrieval-augmented generation for aviation digital mo │ JGGAXR5A │ journalArticle │
+│  644 │ An integrated model based on deep learning classifiers and pre-trained transform │ J6NZSZ9N │ journalArticle │
+│  645 │ Identification of cyber harassment and intention of target users on social media │ J8TQZT7J │ journalArticle │
+│  646 │ APT-MMF: an advanced persistent threat actor attribution method based on multimo │ JH4I33PH │ journalArticle │
+│  647 │ A novel self-adaptive interval type-3 fuzzy logic system for X spam detection    │ JH6C7PGS │ journalArticle │
+│  648 │ Towards sustainable business in the automation era: exploring its transformative │ JRIWIXFQ │ journalArticle │
+│  649 │ MalwareNet: an intelligent malware detection and classification using advanced e │ JIHBGG8Q │ journalArticle │
+│  650 │ Extending limited datasets with GAN-like self-supervision for SMS spam detection │ JRN4TG55 │ journalArticle │
+│  651 │ Unveiling metaverse sentiments using machine learning approaches                 │ JACWT7PB │ journalArticle │
+│  652 │ Learning never stops: improving software vulnerability type identification via i │ J7QVFFF4 │ journalArticle │
+│  653 │ The use of artificial intelligence (AI) in the flight deck: enhancing human-AI t │ JSVFAW5E │ journalArticle │
+│  654 │ Exploring transferable adversarial attacks for deep learning-based network intru │ IZRHCAG9 │ journalArticle │
+│  655 │ Defining and generating operation and maintenance management requirements in dig │ JFW55VV2 │ journalArticle │
+│  656 │ Building a multi-class short message service dataset for smishing detection usin │ ISQGF47N │ journalArticle │
+│  657 │ A study on ChatGPT for industry 4.0: background, potentials, challenges, and eve │ JJ3WFZJ4 │ journalArticle │
+│  658 │ A3D: attention-based auto-encoder anomaly detector for false data injection atta │ JJ54NDMZ │ journalArticle │
+│  659 │ PatchView: multi-modality detection of security patches                          │ J4AHNSQR │ journalArticle │
+│  660 │ “Language is the dress of thought”: a new method for automatic detection of AI-g │ K23CPTTQ │ journalArticle │
+│  661 │ Deciphering technological advancements for efficient disaster management and com │ IW7WRNW3 │ journalArticle │
+│  662 │ Open problems and challenges in federated learning for IoT: a comprehensive revi │ J24E5JJF │ journalArticle │
+│  663 │ Design patterns for GDPR-aware process modeling in BPMN                          │ J6HDT2UU │ journalArticle │
+│  664 │ Sexual-predator detection system based on social behavior biometric (SSB) featur │ JA9MJFDV │ journalArticle │
+│  665 │ Individual software expertise formalization and assessment from project manageme │ JZ5MSFC5 │ journalArticle │
+│  666 │ The ALTAI checklist as a tool to assess ethical and legal implications for a tru │ K9JIMP4J │ journalArticle │
+│  667 │ Usefulness and usability of heuristic walkthroughs for evaluating domain-specifi │ J9ANEVK8 │ journalArticle │
+│  668 │ Artificial intelligence, knowledge and human resource management: a systematic l │ JJNKR8RI │ journalArticle │
+│  669 │ Advancements in natural language processing: implications, challenges, and futur │ JDCH276X │ journalArticle │
+│  670 │ Common vulnerability scoring system prediction based on open source intelligence │ JXRWBTIZ │ journalArticle │
+│  671 │ BIM ontology for information management (BIM-OIM)                                │ JSF8DWKF │ journalArticle │
+│  672 │ Expert system for extracting keywords in educational texts and textbooks based o │ JRS563N6 │ journalArticle │
+│  673 │ Can you fool AI by doing a 180? — a case study on authorship analysis of texts b │ JJMS3S4X │ journalArticle │
+│  674 │ A graph neural network approach to detect original review spammers of astroturfi │ IVVKD2IN │ journalArticle │
+│  675 │ A hierarchical indoor spatial-semantic reasoning-based scene graph construction  │ JIM2H7JQ │ journalArticle │
+│  676 │ Fluid computing & digital twins for intelligent interoperability in the IoT ecos │ J6WBDD2G │ journalArticle │
+│  677 │ CASMS: combining clustering with attention semantic model for identifying securi │ JKSAUHXZ │ journalArticle │
+│  678 │ Identifying contextual content-based risk drivers for advanced risk management s │ JGV72DJA │ journalArticle │
+│  679 │ Laws of encryption: an emerging legal framework                                  │ K8S5V3GF │ journalArticle │
+│  680 │ GNPSum: a code summarization enhancement framework based on graph node position  │ J45HKDEP │ journalArticle │
+│  681 │ Artificial intelligence auditability and auditor readiness for auditing artifici │ JFKCEJC3 │ journalArticle │
+│  682 │ A multi-module explainable artificial intelligence framework for project risk ma │ JZB93VMZ │ journalArticle │
+│  683 │ Impact of artificial intelligence on project management (PM): multi-expert persp │ IPMRDPD4 │ journalArticle │
+│  684 │ The effects of artificial intelligence applications in educational settings: cha │ IQ4E2Q89 │ journalArticle │
+│  685 │ FedMVA: enhancing software vulnerability assessment via federated multimodal lea │ JGQT2HJW │ journalArticle │
+│  686 │ EADRAN: an edge marketplace for federated learning                               │ JHNF3XR3 │ journalArticle │
+│  687 │ Strategic leadership at high altitude: investigating how AI affects the required │ JA6P6F9Q │ journalArticle │
+│  688 │ Evaluating privacy, security, and trust perceptions in conversational AI: a syst │ JZQMUZMC │ journalArticle │
+│  689 │ AdaptiveWordBug: generating adversarial texts with an adaptive scoring strategy  │ K3VQIR42 │ journalArticle │
+│  690 │ A data and knowledge driven autonomous intelligent manufacturing system for inte │ JE4MQVI7 │ journalArticle │
+│  691 │ OCR post-correction for detecting adversarial text images                        │ IVZNX3MI │ journalArticle │
+│  692 │ Machine learning for energy-resource allocation, workflow scheduling and live mi │ IQKBE82T │ journalArticle │
+│  693 │ Towards an extensible model-based digital twin framework for space launch vehicl │ J5R566AI │ journalArticle │
+│  694 │ To err is human: managing the risks of contracting AI systems                    │ IW8C4K2H │ journalArticle │
+│  695 │ Authentication and authorization in modern web apps for data security using node │ JFDDSJRN │ journalArticle │
+│  696 │ Can the consumer perception of corporate social responsibility be saved? An exam │ IRDU6K6X │ journalArticle │
+│  697 │ Latent space refinement for unsupervised cyber threat text classification        │ MSP5I2J8 │ journalArticle │
+│  698 │ Assessing LLMs in malicious code deobfuscation of real-world malware campaigns   │ KADN3TZ5 │ journalArticle │
+│  699 │ Large language models for conceptual modeling: assessment and application potent │ MEG487GG │ journalArticle │
+│  700 │ A classification-by-retrieval framework for few-shot anomaly detection to detect │ MDIENBTS │ journalArticle │
+│  701 │ Digital innovation and supply chain risk: a large language model-based analysis  │ MH2DJBA6 │ journalArticle │
+│  702 │ ConceptUML: multiphase unsupervised threat detection via latent concept learning │ MB2PKJEK │ journalArticle │
+│  703 │ From one attack domain to another: contrastive transfer learning with siamese ne │ KEKD92J4 │ journalArticle │
+│  704 │ A threat modeling language for generating attack graphs of substation automation │ KKV2FUDI │ journalArticle │
+│  705 │ Role of natural language processing in automatic detection of unexpected finding │ MGUS287G │ journalArticle │
+│  706 │ CCLog: actionable APT forensics via fused log semantics and provenance graph top │ KG7PPEAB │ journalArticle │
+│  707 │ CyberEntRel: joint extraction of cyber entities and relations using deep learnin │ KGKXHJAX │ journalArticle │
+│  708 │ Cyber–physical resilience and security strategies for renewable energy-driven Io │ KIFVKEKF │ journalArticle │
+│  709 │ Attack surface analysis and mitigation for near-field communication networks and │ MPDU955S │ journalArticle │
+│  710 │ An automated unsupervised anomaly detection framework for DCS controller logs in │ M48U68DN │ journalArticle │
+│  711 │ Taxonomy of digital twins for power grids                                        │ MVRGCR72 │ journalArticle │
+│  712 │ TFKAN: transformer based on kolmogorov–arnold networks for intrusion detection i │ MS2F66MW │ journalArticle │
+│  713 │ MDDB-AETB: malicious domain detection boosting based on alignment with encrypted │ MNZ739EM │ journalArticle │
+│  714 │ Detecting duplicate vulnerability records across databases                       │ KFR4ZZ7F │ journalArticle │
+│  715 │ Semi-supervised log anomaly detection based on bidirectional temporal convolutio │ KGIZBSMS │ journalArticle │
+│  716 │ Enhancing log anomaly detection with semantic embedding and integrated neural ne │ KJ8BEZ65 │ journalArticle │
+│  717 │ TrafficCLIP: a lightweight cross-modal framework for network traffic classificat │ MV9PU6ZN │ journalArticle │
+│  718 │ Detecting and visualizing hate speech in social media: a cyber watchdog for surv │ MNPIW2DW │ journalArticle │
+│  719 │ Adaptive edge security framework for dynamic IoT security policies in diverse en │ KJ56BIUI │ journalArticle │
+│  720 │ Semi-supervised traceability analysis of investigative scanners of darknet traff │ KSXX9DC2 │ journalArticle │
+│  721 │ Wireless sensor network modeling and analysis for attack detection               │ MAPM7FMT │ journalArticle │
+│  722 │ A decentralized defense model for covert zero-dynamic attacks in industrial cont │ MEHPB2PT │ journalArticle │
+│  723 │ Deep neural network for text anomaly detection in SIoT                           │ M2V4ANV9 │ journalArticle │
+│  724 │ Detecting technology opportunities appropriate for enterprise R&D: the synthesis │ KZUWSC7Q │ journalArticle │
+│  725 │ DDoSBERT: fine-tuning variant text classification bidirectional encoder represen │ MNWTZWFV │ journalArticle │
+│  726 │ KPAMA: a kubernetes based tool for mitigating ML system aging                    │ MHUFN8SM │ journalArticle │
+│  727 │ Leveraging deep learning for precision-aware road accident detection             │ KHH5BNH6 │ journalArticle │
+│  728 │ BiT5: a bidirectional NLP approach for advanced vulnerability detection in codeb │ MVJD9DUC │ journalArticle │
+│  729 │ Analyzing the market's reaction to AI narratives in corporate filings            │ MFRZRIDT │ journalArticle │
+│  730 │ A model-driven approach to streamline the development of prescriptive services f │ MH2EZBXD │ journalArticle │
+│  731 │ Automatic detection of cyberbullying behaviour on social media using stacked Bi- │ KW94IHS8 │ journalArticle │
+│  732 │ Implementation path and reference model for multilateral data circulation system │ MW7DEJ7P │ journalArticle │
+│  733 │ CleanSheet: advancing backdoor attack techniques for deep neural networks with s │ M3HXQDB7 │ journalArticle │
+│  734 │ Manufacturing analytics system: a new IT category enabling next-level operationa │ KA4KN64C │ journalArticle │
+│  735 │ Invoice #31415 attached: automated analysis of malicious microsoft office docume │ KFMZBTDK │ journalArticle │
+│  736 │ Policy conflict detection approach for decision-making in intelligent industrial │ KZRMXX4W │ journalArticle │
+│  737 │ A hybrid approach for adversarial attack detection based on sentiment analysis m │ M4NTAUDS │ journalArticle │
+│  738 │ NDE 4.0: progress, promise, and its role to industry 4.0                         │ MKFF6B4S │ journalArticle │
+│  739 │ Identification of multilingual offense and troll from social media memes using w │ MR9KEH2J │ journalArticle │
+│  740 │ Cyberbullying-related hate speech detection using shallow-to-deep learning       │ MHQ65A22 │ journalArticle │
+│  741 │ JSContana: malicious JavaScript detection using adaptable context analysis and k │ KGQPCD5Q │ journalArticle │
+│  742 │ Data-driven intelligence in crisis: the case of ukrainian refugee management     │ KF4IZVHU │ journalArticle │
+│  743 │ Engineering patterns for trust and safety on social media platforms: a case stud │ MIZF69M8 │ journalArticle │
+│  744 │ Improved capsule networks based on nash equilibrium for malicious code classific │ MK5PK8WX │ journalArticle │
+│  745 │ Transforming B2B platforms through interconnected digital twins: enhancing situa │ MT9TPJND │ journalArticle │
+│  746 │ Role-based manufacturing systems: a concept towards intelligent and adaptive aut │ MANDICMU │ journalArticle │
+│  747 │ ENVQA: improving visual question answering model by enriching the visual feature │ MR34DIRQ │ journalArticle │
+│  748 │ A systematic literature review on security testing of ethereum smart contracts   │ MSBU3KSG │ journalArticle │
+│  749 │ Human-centric assembly in smart factories                                        │ MK9DM4T2 │ journalArticle │
+│  750 │ Forecasting the trajectory of personal watercrafts using models based on recurre │ KXFNEXA5 │ journalArticle │
+│  751 │ Challenges of implementing ChatGPT on education: systematic literature review    │ KA6DCSEM │ journalArticle │
+│  752 │ A dual-layer attention based CAPTCHA recognition approach with guided visual att │ MJUFVE6J │ journalArticle │
+│  753 │ Better alone than in bad company: addressing the risks of companion chatbots thr │ KR2RVUF6 │ journalArticle │
+│  754 │ User-friendly and industry-integrated AI for medicinal chemists and pharmaceutic │ M2KZVVN4 │ journalArticle │
+│  755 │ Trust, transparency, and adoption in generative AI for software engineering: ins │ MT8ZPFAX │ journalArticle │
+│  756 │ BFS2Adv: black-box adversarial attack towards hard-to-attack short texts         │ MT55743K │ journalArticle │
+│  757 │ A few-shot malware classification approach for unknown family recognition using  │ KW853NFG │ journalArticle │
+│  758 │ Toward quality 5.0: integrating industry 4.0, human-centricity, and quality mana │ MU839DUG │ journalArticle │
+│  759 │ Responsible smart home technology adoption: exploring public perceptions and key │ MIGI5PFU │ journalArticle │
+│  760 │ APBAM: adversarial perturbation-driven backdoor attack in multimodal learning    │ MDUGMGDR │ journalArticle │
+│  761 │ Architectural patterns for designing quantum artificial intelligence systems     │ M7KKSWIF │ journalArticle │
+│  762 │ Dual similarity enhanced hybrid orthogonal fusion for multimodal named entity re │ MU5ZFVIP │ journalArticle │
+│  763 │ ChatGPT in education: a blessing or a curse? A qualitative study exploring early │ MVJ66RWH │ journalArticle │
+│  764 │ Universal artificial intelligence workflow for factory energy saving: ten case s │ MIQFTET9 │ journalArticle │
+│  765 │ The paradoxes of digital tools in hospitals: qualitative interview study         │ KHMCGMI3 │ journalArticle │
+│  766 │ Exploiting deep transformer models in textual review based recommender systems   │ M84EXHGP │ journalArticle │
+│  767 │ CubeAgent: efficient query-based video adversarial examples generation through d │ KZRXEA7J │ journalArticle │
+│  768 │ Graph4Web: a relation-aware graph attention network for web service classificati │ M6XMZWAV │ journalArticle │
+│  769 │ FedBrain: a robust multi-site brain network analysis framework based on federate │ KM8Q9FKC │ journalArticle │
+│  770 │ Reinforcement learning for data center energy efficiency optimization: a systema │ MVR2R7II │ journalArticle │
+│  771 │ A systematic review of transformers and large language models in the energy sect │ QBQEJE8W │ journalArticle │
+│  772 │ Deobfuscation of JavaScript code and identification of security weaknesses throu │ PXN7BM7Q │ journalArticle │
+│  773 │ AI-enhanced intrusion detection in smart renewable energy grids: a novel industr │ QJH7GJHG │ journalArticle │
+│  774 │ Large language models for chatbot applications handling sensitive information    │ RE22VVHZ │ journalArticle │
+│  775 │ Assessing the cybersecurity of connected 3D printers using large language models │ QUNR4R48 │ journalArticle │
+│  776 │ Backdoor samples detection based on perturbation discrepancy consistency in pre- │ Q84QSU32 │ journalArticle │
+│  777 │ A text classification approach to enhancing cyber threat detection               │ PIJ2X8T8 │ journalArticle │
+│  778 │ Utilizing fine-tuning of large language models for generating synthetic payloads │ PQSESGUN │ journalArticle │
+│  779 │ Traffic scene perception via multimodal large language model with data augmentat │ PP7B6WZV │ journalArticle │
+│  780 │ When large language models and machine learning meet multi-criteria decision mak │ RD7AXGB5 │ journalArticle │
+│  781 │ ForensicLLM: a local large language model for digital forensics                  │ QE9XQKMD │ journalArticle │
+│  782 │ Periodic watermarking for copyright protection of large language models in cloud │ Q2GXMSEP │ journalArticle │
+│  783 │ Cyber threat indicators extraction based on contextual knowledge prompt          │ PQQEA8JJ │ journalArticle │
+│  784 │ Enhancing reliability in LLM-integrated robotic systems: a unified approach to s │ QR4MQKAC │ journalArticle │
+│  785 │ LogOW: a semi-supervised log anomaly detection model in open-world setting       │ QIEX9A9Z │ journalArticle │
+│  786 │ MoPHoney: an adaptive honeyword generation system based on mixture-of-prompts    │ QVSJ4KSX │ journalArticle │
+│  787 │ Cybersecurity risk and firm growth: empirical evidence based on text analysis    │ Q3XFJ58D │ journalArticle │
+│  788 │ AWMT: automatic jailbreaking attack framework utilizing working-memory trees     │ REURKCC7 │ journalArticle │
+│  789 │ A 2 C: a modular multi-stage collaborative decision framework for human–AI teams │ PMI8QNNZ │ journalArticle │
+│  790 │ Entity and relation extractions for threat intelligence knowledge graphs         │ PGGV2WJV │ journalArticle │
+│  791 │ A novel framework for phishing attack detection using domain-adapted GloVe embed │ R86D3Q76 │ journalArticle │
+│  792 │ Temporal transaction network anomaly detection for industrial internet of things │ Q5QWJ23H │ journalArticle │
+│  793 │ A comparative study of machine learning and deep learning models in binary and m │ QJAUCJ4T │ journalArticle │
+│  794 │ Generation and deployment of honeytokens in relational databases for cyber decep │ REJ7MFQS │ journalArticle │
+│  795 │ Advanced BERT and CNN-based computational model for phishing detection in enterp │ QBPTW9X3 │ journalArticle │
+│  796 │ Development of major process accident indicators based on industrial internet    │ Q7V4XCGP │ journalArticle │
+│  797 │ Multi-head attention enhanced parallel dilated convolution and residual learning │ QSCXCCQF │ journalArticle │
+│  798 │ SecureCPS: cognitive inspired framework for detection of cyber attacks in cyber– │ REFMDNM9 │ journalArticle │
+│  799 │ The prince of insiders: a multiple pathway approach to understanding IP theft in │ Q2MHXM9S │ journalArticle │
+│  800 │ Real-time explainable IoT security with machine learning and CTGAN-enhanced dete │ PJR92P5W │ journalArticle │
+│  801 │ Can ChatGPT be used to generate scientific hypotheses?                           │ R4NJRJSV │ journalArticle │
+│  802 │ Intelligent fault detection in battery systems: a machine learning approach with │ Q6MVWAIK │ journalArticle │
+│  803 │ Role of digital technologies to enhance the human integration in industrial cybe │ PK3DA847 │ journalArticle │
+│  804 │ Artificial intelligence and machine learning for distributed energy resource man │ Q9HZGI9Q │ journalArticle │
+│  805 │ Attack behavior extraction based on heterogeneous cyberthreat intelligence and g │ PVB3ND4P │ journalArticle │
+│  806 │ Interactive process drift detection (IPDD) for condition-based maintenance using │ PXFR6BKC │ journalArticle │
+│  807 │ Towards unbalanced multiclass intrusion detection with hybrid sampling methods a │ QU45QXAH │ journalArticle │
+│  808 │ GraphFVD: property graph-based fine-grained vulnerability detection              │ QCPFR8F8 │ journalArticle │
+│  809 │ Harnessing attention for cropping and fusion in CLIP-based AIGC detection        │ PKG2WBG3 │ journalArticle │
+│  810 │ Severity prediction of software vulnerabilities using convolutional neural netwo │ R7NFWRC9 │ journalArticle │
+│  811 │ Aggression detection through deep neural model on Twitter                        │ Q5Q3XCE4 │ journalArticle │
+│  812 │ Understanding privacy concerns in ChatGPT: a data-driven approach with LDA topic │ R3879FRT │ journalArticle │
+│  813 │ Wordcloud: detecting mobile malware with deep learning and word of cloud         │ PN9K346X │ journalArticle │
+│  814 │ Building society 5.0: a foundation for decision-making based on open models and  │ QP5NI5GX │ journalArticle │
+│  815 │ Impact of portable executable header features on malware detection燗ccuracy      │ QXNC9DXQ │ journalArticle │
+│  816 │ MalGEA: a malware analysis framework via matrix factorization based node embeddi │ Q6B6ASJC │ journalArticle │
+│  817 │ Evolving malware detection through instant dynamic graph inverse reinforcement l │ PQU75VPJ │ journalArticle │
+│  818 │ Collision course detection for personal watercrafts using models based on recurr │ QKWCNRDV │ journalArticle │
+│  819 │ MLAF-VD: a vulnerability detection model based on multi-level abstract features  │ PGGFB9X4 │ journalArticle │
+│  820 │ Named entity recognition based on anchor span for manufacturing knowledge extrac │ QZZP29N6 │ journalArticle │
+│  821 │ Use of artificial intelligence in soybean breeding and production                │ QZ3MUCHF │ bookSection    │
+│  822 │ A novel approach for application classification with encrypted traffic using BER │ R7C2K7HZ │ journalArticle │
+│  823 │ A systematic review of data fusion techniques for optimized structural health mo │ PKC8CZM4 │ journalArticle │
+│  824 │ Cultivating security culture for information security success: a mixed-methods s │ PNEGFQKV │ journalArticle │
+│  825 │ Allocating distributed AI/ML applications to cloud–edge continuum based on priva │ QKH35KW2 │ journalArticle │
+│  826 │ Algorithmic solutions, subjectivity and decision errors: a study of AI accountab │ Q7F9IDTU │ journalArticle │
+│  827 │ A cyberpunk 2077 perspective on the prediction and understanding of future techn │ REZ9F7R8 │ journalArticle │
+│  828 │ A review on security implementations in soft-processors for IoT applications     │ R5775SRT │ journalArticle │
+│  829 │ An overview of blockchain research and future agenda: insights from structural t │ QAU64VPJ │ journalArticle │
+│  830 │ Computational analysis of information disorder in cognitive warfare              │ RC2IEHHM │ journalArticle │
+│  831 │ Sensitive target-guided directed fuzzing for IoT web services                    │ Q5Z9QBZD │ journalArticle │
+│  832 │ Navigating the muddy waters of bias in artificial intelligence research: underst │ R353GXQZ │ journalArticle │
+│  833 │ DeepVATS: deep visual analytics for time series                                  │ PHHW758X │ journalArticle │
+│  834 │ Run time dynamic digital twins and dynamic digital twins networks                │ PZ7TKKBS │ journalArticle │
+│  835 │ Blockchain-assisted explainable decision traces (BAXDT): an approach for transpa │ Q2S32N23 │ journalArticle │
+│  836 │ Half a century of information processing & management: a bibliometric retrospect │ QVUWECSX │ journalArticle │
+│  837 │ A new perspective on precursors and rare events from a systematic review         │ Q8RAWVFJ │ journalArticle │
+│  838 │ Navigating parasitic strategy                                                    │ Q659NBEH │ journalArticle │
+│  839 │ RaxCS: towards cross-language code summarization with contrastive pre-training a │ QDQDA3BV │ journalArticle │
+│  840 │ Knowledge graph and mitigation measures recommendation for safety hazards in lar │ RF65JR3N │ journalArticle │
+│  841 │ FMG-locator: fusion SegFormer with facial mask guidance for multi-person forgery │ QWG2ZDQB │ journalArticle │
+│  842 │ Transforming towards AI-augmented healthcare: experiences of physicians in Swede │ Q7W2AERJ │ journalArticle │
+│  843 │ A collaborative deep learning microservice for backdoor defenses in industrial I │ QTWM9GB3 │ journalArticle │
+│  844 │ AI governance on young consumers in higher education: a content analysis of poli │ QRAXAU3V │ journalArticle │
+│  845 │ Enabling self-approaching optimization of home energy management system through  │ PTRETZ28 │ journalArticle │
+│  846 │ Beyond human-in-the-loop: sensemaking between artificial intelligence and human  │ QJN94KTG │ journalArticle │
+│  847 │ Social media mining under the COVID-19 context: progress, challenges, and opport │ PGN626UA │ journalArticle │
+│  848 │ INOR—an intelligent noise reduction method to defend against adversarial audio e │ Q7M2GV3H │ journalArticle │
+│  849 │ Capturing institutional logics and the construction of digital technologies: a m │ PU4EC8I4 │ journalArticle │
+│  850 │ Intelligent manufacturing, media attention, and sustainable development performa │ R5IV68G2 │ journalArticle │
+│  851 │ Adaptive diffusion markov-enhanced GCN with LLM explanations for IoT attack dete │ NSU7SI3F │ journalArticle │
+│  852 │ Security concerns for large language models: a survey                            │ MZZWVN2Z │ journalArticle │
+│  853 │ Large language model-assisted digital twin for remote monitoring and control of  │ MXCUHQX8 │ journalArticle │
+│  854 │ Red teaming large language models: a comprehensive review and critical analysis  │ PG6IHWCP │ journalArticle │
+│  855 │ Transforming cybersecurity with agentic AI to combat emerging cyber threats      │ NGGP5Q7X │ journalArticle │
+│  856 │ Hyper attack graph: constructing a hypergraph for cyber threat intelligence anal │ PB76AWE9 │ journalArticle │
+│  857 │ A large language model-based platform for real-time building monitoring and occu │ NNCB3ZZ2 │ journalArticle │
+│  858 │ Enhancing user information disclosure intention in dynamic conversations of inte │ P77IWCKA │ journalArticle │
+│  859 │ A novel hybrid cybersecurity assessment methodology for HTTPS deployment         │ NM7KS85H │ journalArticle │
+│  860 │ An LLM-guided SD-LDM digital twin construction strategy (LSDT) for multi-industr │ PDR9I64X │ journalArticle │
+│  861 │ An explainable framework for assisting the detection of AI-generated textual con │ N65RQGBT │ journalArticle │
+│  862 │ Proactive safety reasoning in human-robot collaboration in disassembly through L │ P383P7FZ │ journalArticle │
+│  863 │ FLADEN: federated learning for anomaly DEtection in IoT networks                 │ NDP5QDF6 │ journalArticle │
+│  864 │ A robust cross-domain IDS using BiGRU-LSTM-attention for medical and industrial  │ PEHIV7WA │ journalArticle │
+│  865 │ Harnessing collective intelligence of multi-agent LLM systems for sensor failure │ P2I665IE │ journalArticle │
+│  866 │ Toward efficient vibe coding: an LLM-based agent for low-code software developme │ P5EW92DF │ journalArticle │
+│  867 │ A machine learning approach for detecting cybersecurity vulnerabilities in the i │ NHWNWW72 │ journalArticle │
+│  868 │ Automatic assertion generation with LLM for ICS program verification             │ MXWHRAE7 │ journalArticle │
+│  869 │ Human-guided collective LLM intelligence for strategic planning via two-stage in │ NDJH2IGC │ journalArticle │
+│  870 │ Artificial intelligence for cybersecurity: literature review and future research │ NASWHR9E │ journalArticle │
+│  871 │ A comprehensive survey on AI-enabled secure social industrial internet of things │ PD6E37MK │ journalArticle │
+│  872 │ Securing the metaverse: machine learning–based perspectives on risk, trust, and  │ PEUIGU57 │ journalArticle │
+│  873 │ Toxicity in online platforms and AI systems: a survey of needs, challenges, miti │ NZWIKQS8 │ journalArticle │
+│  874 │ AI can be cyberbullying perpetrators: investigating individuals’ perceptions and │ N7HXUBQ2 │ journalArticle │
+│  875 │ Indicators of employee phishing email behaviours: intuition, elaboration, attent │ NST28U4R │ journalArticle │
+│  876 │ MambaAD: multivariate time series anomaly detection in IoT via multi-view mamba  │ NAB8JXJN │ journalArticle │
+│  877 │ Enhanced phishing detection using multimodal data                                │ N72WQINE │ journalArticle │
+│  878 │ Energy-efficient and secure digital learning using the GAIA green AI analytics f │ NVDE5NXF │ journalArticle │
+│  879 │ CDA.AI for OpenCDA: AI pathways for cooperative driving automation research      │ NPRT82WA │ journalArticle │
+│  880 │ Industrial large models as carriers for malicious payloads: a fast and robust ap │ NP7VSHP3 │ journalArticle │
+│  881 │ The metaverse: privacy and information security risks                            │ NZQ3CEE3 │ journalArticle │
+│  882 │ Deep learning and pre-training technology for encrypted traffic classification:  │ P99F6T9G │ journalArticle │
+│  883 │ A big data architecture for early identification and categorization of dark web  │ N53UM4EH │ journalArticle │
+│  884 │ Research on SQL injection detection technology based on content matching and dee │ N9X4GM34 │ journalArticle │
+│  885 │ Frequency adaptive enhancement and multi-view feature fusion for image manipulat │ PGBFTR76 │ journalArticle │
+│  886 │ Prompting GPT –4 to support automatic safety case generation                     │ N5ZIZXKQ │ journalArticle │
+│  887 │ MTRC: a self-supervised network intrusion detection framework based on multiple  │ P7IU9GQF │ journalArticle │
+│  888 │ Comparative analysis of machine learning algorithms for email phishing detection │ NMX9I346 │ journalArticle │
+│  889 │ The cyber-industrialization of catfishing and romance fraud                      │ NWQ4FRZE │ journalArticle │
+│  890 │ On resource consumption of machine learning in communications network security   │ P5BW3FFH │ journalArticle │
+│  891 │ A software vulnerability detection method based on multi-modality with unified p │ PDW93HRJ │ journalArticle │
+│  892 │ Enhancing cyberbullying identification with ELECTRA-BiLSTM: a hybrid approach fo │ NFVISQV9 │ journalArticle │
+│  893 │ Emotion and phrase-based patterns in smishing: a feature-driven detection framew │ PAW5JN5Z │ journalArticle │
+│  894 │ Malicious encrypted traffic detection method based on multi-granularity represen │ NX8EAESE │ journalArticle │
+│  895 │ Blockchain-enabled dynamic honeypot conversion for resource-efficient IoT securi │ NWF6TND9 │ journalArticle │
+│  896 │ Detection of malicious javascript on an imbalanced dataset                       │ P5TQ8VF2 │ journalArticle │
+│  897 │ Future themes in regulating artificial intelligence in investment management     │ PB4QQU39 │ journalArticle │
+│  898 │ Semantic-based defense mechanism for ai model networks using rich semantic ident │ NM3NNCW7 │ journalArticle │
+│  899 │ Adversarial measurements for convolutional neural network-based energy theft det │ NQ9SNAIW │ journalArticle │
+│  900 │ Generative AI: opportunities, challenges, and research directions for supply cha │ N4Q7UXMK │ journalArticle │
+│  901 │ Assessing health students' attitudes and usage of ChatGPT in Jordan: validation  │ N9SQUNE7 │ journalArticle │
+│  902 │ Cyberbullying detection of resource constrained language from social media using │ NDUCCK2I │ journalArticle │
+│  903 │ PSI-rooted subgraph: a novel feature for IoT botnet detection using classifier a │ PFCHT8CC │ journalArticle │
+│  904 │ Preparedness of european pediatric oncologists to integrate AI in the clinical r │ NC2PKMEV │ journalArticle │
+│  905 │ AI-generated SWOT analysis of emerging technologies in air transportation: poten │ P4HZBW2H │ journalArticle │
+│  906 │ MPSAutodetect: a malicious powershell script detection model based on stacked de │ N8RNV5BX │ journalArticle │
+│  907 │ Unveiling the microservices testing methods, challenges, solutions, and solution │ N8VJKMFJ │ journalArticle │
+│  908 │ AI vs linguistic-based human judgement: bridging the gap in pursuit of truth for │ NVXMG6HW │ journalArticle │
+│  909 │ Self-driving laboratories with artificial intelligence: an overview of process s │ PFT84UBJ │ journalArticle │
+│  910 │ Architecture for data-centric and semantic-enhanced industrial metaverse: bridgi │ NUIXN8UX │ journalArticle │
+│  911 │ Fostering security-related citizenship through the employee-supervisor relations │ PEKJZ586 │ journalArticle │
+│  912 │ ETHICS of AI adoption and deployment in health care: progress, challenges, and n │ N9A3AUAN │ journalArticle │
+│  913 │ CMCPS: a model copyright protection scheme based on cohen's kappa statistic      │ NUGGX64D │ journalArticle │
+│  914 │ Benchmarking of synthetic network data: reviewing challenges and approaches      │ P4FQEAPS │ journalArticle │
+│  915 │ Online social network individual depression detection using a multitask heteroge │ NKKQ9NQZ │ journalArticle │
+│  916 │ Preparing educational leaders for the age of AI: lessons from a graduate course  │ NN5UEG4Z │ journalArticle │
+│  917 │ Interpretability research of deep learning: a literature survey                  │ P5B5I7U6 │ journalArticle │
+│  918 │ Research on cooperative control model of power grid equipment manufacturing qual │ PEUUVQQM │ journalArticle │
+│  919 │ AlexNet architecture based convolutional neural network for toxic comments class │ N839MTSI │ journalArticle │
+│  920 │ Understanding the impact of ChatGPT on tourism and hospitality: trends, prospect │ N3B4IR3B │ journalArticle │
+│  921 │ HyperLAC: hypergraph-based large-scale alert classification with spatial-tempora │ NU8KU8U5 │ journalArticle │
+│  922 │ DESIGN and be SMART: eleven engineering challenges to achieve sustainable air tr │ NHP8NQCU │ journalArticle │
+│  923 │ Human–robot collaboration in construction: robot design, perception and interact │ N2K27TQR │ journalArticle │
+│  924 │ Enhancing healthcare in Africa using statistical learning: applications and oppo │ NEQSZNMG │ journalArticle │
+│  925 │ A hybrid model for building energy consumption forecasting using long short term │ NWA25DFB │ journalArticle │
+│  926 │ AI-powered marketing: what, where, and how?                                      │ P74XXXHG │ journalArticle │
+│  927 │ Does bigger still mean better? How digital transformation affects the market sha │ N8QIAR2G │ journalArticle │
+│  928 │ Connecting the dots in trustworthy artificial intelligence: from AI principles,  │ N2KMEZ8S │ journalArticle │
+│  929 │ The search for AI value: the role of complexity in human-AI engagement in the fi │ P48656TU │ journalArticle │
+│  930 │ CLEHTO — a multi-layered algorithm for secure, adaptive data transmission in IoT │ PAZVXTUD │ journalArticle │
+│  931 │ A predictive maintenance application for a robot cell using LSTM model           │ P7HWQH6K │ journalArticle │
+│  932 │ Automated program repair for variability bugs in software product line systems   │ PFUKURMA │ journalArticle │
+│  933 │ Evaluating three large language models for security incident detection and analy │ RUSERRQN │ journalArticle │
+│  934 │ LLM-TIKG: threat intelligence knowledge graph construction utilizing large langu │ T447HGWG │ journalArticle │
+│  935 │ volGPT: evaluation on triaging ransomware process in memory forensics with large │ SZBEI9QG │ journalArticle │
+│  936 │ Generative AI in minimizing cyber-attacks: developing the vehicular threat intel │ SVTU9CQ6 │ journalArticle │
+│  937 │ Golden jackal driven optimization for a transparent and interpretable intrusion  │ RFW8DM4X │ journalArticle │
+│  938 │ Considerations for adapting higher education technology courses for AI large lan │ T2ZDXBSG │ journalArticle │
+│  939 │ A comprehensive survey on integrating large language models with knowledge-based │ RHSEPV9K │ journalArticle │
+│  940 │ KnowCTI: knowledge-based cyber threat intelligence entity and relation extractio │ T4G6TAFG │ journalArticle │
+│  941 │ Vulcan: automatic extraction and analysis of cyber threat intelligence from unst │ S2C9TIPW │ journalArticle │
+│  942 │ LSPR23: a novel IDS dataset from the largest live-fire cybersecurity exercise    │ RKWVEP3Z │ journalArticle │
+│  943 │ Application of a digital intelligent assistant to support industrial processes:  │ RI8FVFKV │ journalArticle │
+│  944 │ A novel LLM-based classifier for predicting bug-fixing time in bug tracking syst │ T3R2DZVU │ journalArticle │
+│  945 │ Parallelized derivation algorithm for anomaly detection in internet of things en │ S4HXRK3J │ journalArticle │
+│  946 │ Collaborative anomaly detection in log data: comparative analysis and evaluation │ RIMJNQMK │ journalArticle │
+│  947 │ UAV leveraging GenAI/LLMs, a brief survey                                        │ RG9IST8H │ journalArticle │
+│  948 │ Proactive threat detection in enterprise systems using wazuh: a MITRE ATT&CK eva │ RKMEBQJE │ journalArticle │
+│  949 │ Cybersecurity in the age of generative AI: a systematic taxonomy of AI-powered v │ RWXZQM4B │ journalArticle │
+│  950 │ Anomaly diagnosis of connected autonomous vehicles: a survey                     │ RW5DVR8D │ journalArticle │
+│  951 │ A step-by-step definition of a reference architecture for cyber ranges           │ SUNQ34P9 │ journalArticle │
+│  952 │ Fuzzing drones for anomaly detection: a systematic literature review             │ SEPGQ7FP │ journalArticle │
+│  953 │ Sociotechnical cybersecurity framework for securing health care from vulnerabili │ SSH44MX6 │ journalArticle │
+│  954 │ Log-based anomaly detection of system logs using graph neural network            │ SG384AS8 │ journalArticle │
+│  955 │ Your forensic AI-assistant, SERENA: systematic extraction and reconstruction for │ S8SPRU42 │ journalArticle │
+│  956 │ Guiding cybersecurity compliance: an ontology for the NIS 2 directive            │ RH7SVPRJ │ journalArticle │
+│  957 │ Innovative AI strategies for enhancing smart building operations through digital │ S5V968IQ │ journalArticle │
+│  958 │ Generative AI for transportation safety and resilience: a comprehensive review f │ SD6JJTQJ │ journalArticle │
+│  959 │ MMEF-SSCT: a novel multidimensional and multi-level comprehensive evaluation fra │ SCTGAGGC │ journalArticle │
+│  960 │ A novel cross-domain adaptation framework for unsupervised criminal jargon detec │ RWH53I7Z │ journalArticle │
+│  961 │ Advancing autonomous driving system testing: demands, challenges, and future dir │ SKZ9AMUH │ journalArticle │
+│  962 │ PSC-BERT: a spam identification and classification algorithm via prompt learning │ SV555WQH │ journalArticle │
+│  963 │ Artificial intelligence (AI): foundations, trends and future directions          │ RNBE9RSA │ journalArticle │
+│  964 │ Self-diagnosis service to support analysis of production performance, monitoring │ RTS4UQTV │ journalArticle │
+│  965 │ Anomaly detection in electronic invoice systems based on machine learning        │ SD2M5SSW │ journalArticle │
+│  966 │ Improving deep learning with prior knowledge and cognitive models: a survey on e │ S8R5EWII │ journalArticle │
+│  967 │ Context-aware embeddings for robust multiclass fraudulent URL detection in onlin │ RMPTU5E9 │ journalArticle │
+│  968 │ Critical meter identification and network embedding based attack detection for p │ SI6FQIKW │ journalArticle │
+│  969 │ Into the next generation of digital protection: AI resiliency as a public respon │ RQ6RCPH2 │ journalArticle │
+│  970 │ Q-FlexiViT: a quantum-flexible vision transformer optimized by octopus-inspired  │ RHZDXQXE │ journalArticle │
+│  971 │ Federated learning: a cutting-edge survey of the latest advancements and applica │ T4MN6T45 │ journalArticle │
+│  972 │ Epidemic effects in the diffusion of emerging digital technologies: evidence fro │ S5E22CD4 │ journalArticle │
+│  973 │ Towards explainable fake news detection and automated content credibility assess │ SATFQ536 │ journalArticle │
+│  974 │ Multi-stage self-training social bot detection based on graph neural network     │ S879INF5 │ journalArticle │
+│  975 │ An ensemble of pre-trained transformer models for imbalanced multiclass malware  │ SXAFMSN2 │ journalArticle │
+│  976 │ SLIFER: investigating performance and robustness of malware detection pipelines  │ S234MV6H │ journalArticle │
+│  977 │ Log2Evt: constructing high-level events for IoT systems through log-code executi │ S4AD6FIN │ journalArticle │
+│  978 │ Cyberbullying sexism harassment identification by metaheurustics-tuned eXtreme g │ RJGPVP6X │ journalArticle │
+│  979 │ SIDiLDNG: a similarity-based intrusion detection system using improved levenshte │ RM5W3DZC │ journalArticle │
+│  980 │ OptAML: optimized adversarial machine learning on water treatment and distributi │ SVZDCKVX │ journalArticle │
+│  981 │ A mathematical model of a novel proportional control scheme for mitigating DDoS  │ RHXAQ4U3 │ journalArticle │
+│  982 │ Context2Vector: accelerating security event triage via context representation le │ T6K3WIIB │ journalArticle │
+│  983 │ High interest but low adoption: navigating organizations’ journey towards genera │ T6BTK3Q9 │ journalArticle │
+│  984 │ Detection cyberbullying using AI and sentiment analysis to examine psychological │ RK5UXI2M │ journalArticle │
+│  985 │ TaskComplexity: a dataset for task complexity classification with In-context lea │ SFH7N5SQ │ journalArticle │
+│  986 │ SOLVE-IT: a proposed digital forensic knowledge base inspired by MITRE ATT&CK    │ RGN3U9BV │ journalArticle │
+│  987 │ Q-omni: a quantum computing and GPT-4o solution for camel-vehicle collisions     │ ST83VI3H │ journalArticle │
+│  988 │ Charting the ChatGPT landscape: insights from academic discourse on Twitter      │ SE3USMIU │ journalArticle │
+│  989 │ Future manufacturing with AI-driven particle vision analysis in the microscopic  │ RR4B9BWF │ journalArticle │
+│  990 │ Vision-based extraction of industrial information from legacy programmable logic │ SFHIRQAB │ journalArticle │
+│  991 │ Shaping the future of nuclear reactors with digital twins: current developments  │ RWJD37IU │ journalArticle │
+│  992 │ DSCAPS: a decentralized smart contract auditing platform based on sidechain      │ SD7FQFEH │ journalArticle │
+│  993 │ Exploring harmony search for power system optimization: applications, formulatio │ S3TKQCQD │ journalArticle │
+│  994 │ RecMaL: rectify the malware family label via hybrid analysis                     │ S2RUH55R │ journalArticle │
+│  995 │ The enabling technologies for digitalization in the chemical process industry    │ SKS8JKBQ │ journalArticle │
+│  996 │ Architectural tactics in software architecture: a systematic mapping study       │ RZ9J5HZM │ journalArticle │
+│  997 │ A knowledge graph-driven framework of multi-stakeholder synergistic operation an │ RF6GN2TD │ journalArticle │
+│  998 │ Reinforcement learning based deep fuzzy hierarchical clustering to generate pers │ RW5J5X93 │ journalArticle │
+│  999 │ A novel hybrid liquid neural network with time dependent neuromorphic and transf │ S47P93KI │ journalArticle │
+│ 1000 │ A design framework for operationalizing trustworthy artificial intelligence in h │ SK9J8X52 │ journalArticle │
+│ 1001 │ Artificial intelligence for human flourishing – beyond principles for machine le │ RSVITTUG │ journalArticle │
+│ 1002 │ A survey on versatile embedded machine learning hardware acceleration            │ SXT86T27 │ journalArticle │
+│ 1003 │ Generative AI in banking: empirical insights on integration, challenges and oppo │ S9HT9ZCE │ journalArticle │
+│ 1004 │ PQCAIE: post quantum cryptographic authentication scheme for IoT-based e-health  │ S2R23GBF │ journalArticle │
+│ 1005 │ Patient health record protection beyond the health insurance portability and acc │ SZZI3JD7 │ journalArticle │
+│ 1006 │ Artificial intelligence, human vulnerability and multi-level resilience          │ RR5ZU46K │ journalArticle │
+│ 1007 │ Definition and implementation of the cloud infrastructure for the integration of │ S5EUIGPU │ journalArticle │
+│ 1008 │ Exploring the impact of the COVID-19 pandemic on Twitter in Japan: qualitative a │ RTRKIXS5 │ journalArticle │
+│ 1009 │ Research on visual operation and maintenance platform of accelerator neutron sou │ SWAU64SX │ journalArticle │
+│ 1010 │ A comprehensive survey of research towards AI-enabled unmanned aerial systems in │ SP7HUCWH │ journalArticle │
+│ 1011 │ A survey on uncertainty reasoning and quantification in belief theory and its ap │ S7KM6SC6 │ journalArticle │
+│ 1012 │ Pirate-GPT: a locally deployed large language model framework for reliable offli │ VTBK5PHX │ journalArticle │
+│ 1013 │ Enabling real-time, explainable DDoS mitigation via on-premise large language mo │ VTH9A9VZ │ journalArticle │
+│ 1014 │ Java source code vulnerability detection using large language model              │ V8RRTKSJ │ journalArticle │
+│ 1015 │ Identification and categorization of the top 100 articles and the future of larg │ VJHK8AHH │ journalArticle │
+│ 1016 │ A comparative benchmark study of LLM-based threat elicitation tools              │ VZG54NRK │ journalArticle │
+│ 1017 │ Leveraging large language models for malware detection through PE header and lib │ WHWC3VFF │ journalArticle │
+│ 1018 │ Mapping the research landscape of large language models from 2018 to 2024: a bib │ V5Z8IKJA │ journalArticle │
+│ 1019 │ CyberRAG: an agentic RAG cyber attack classification and reporting tool          │ WARK7KDA │ journalArticle │
+│ 1020 │ Large language model-based interpretable machine learning control in building en │ W4V7SCTV │ journalArticle │
+│ 1021 │ Cybersecurity in smart microgrids using blockchain-federated learning and quantu │ V2G3FJW7 │ journalArticle │
+│ 1022 │ Threat hunting for adversary impact inhibiting system recovery                   │ WJ3X97KM │ journalArticle │
+│ 1023 │ Modelling cybersecurity environment using lotka-volterra equations, and its stoc │ UZZHQ6EJ │ journalArticle │
+│ 1024 │ Continuous multi-task pre-training for malicious URL detection and webpage class │ VE6JHA79 │ journalArticle │
+│ 1025 │ StreamVAD: a streaming framework with progressive context integration for multi- │ W8XKTJGF │ journalArticle │
+│ 1026 │ The evolution of cybersecurity in self-driving cars: insights from bibliometric  │ UXC8QAPT │ journalArticle │
+│ 1027 │ Few-VulD: a few-shot learning framework for software vulnerability detection     │ V6JPFWKZ │ journalArticle │
+│ 1028 │ Survey of cybersecurity in smart grids protocols and datasets                    │ VDXDDRQJ │ journalArticle │
+│ 1029 │ Silent emissions: the cyber-infrastructure environmental impacts of autonomous v │ WIHVK9QA │ journalArticle │
+│ 1030 │ DualAttlog: context aware dual attention networks for log-based anomaly detectio │ W9V88KTI │ journalArticle │
+│ 1031 │ Experiences and challenges from a software ecosystem for cyber–physical systems  │ VUMFF4GZ │ journalArticle │
+│ 1032 │ MAGNet: a multimodal knowledge-augmented graph network for early-stage misinform │ VRTGR6QC │ journalArticle │
+│ 1033 │ Toward human-centric coal mine auxiliary operations in industry 5.0: an XR-based │ UXT97KF9 │ journalArticle │
+│ 1034 │ Classification and application of deep learning in construction engineering and  │ VRX8RMPH │ journalArticle │
+│ 1035 │ APT-ATT: an efficient APT attribution model based on heterogeneous threat intell │ VI4RG2GI │ journalArticle │
+│ 1036 │ Copula entropy regularization transformer with C 2 variational autoencoder and f │ VA5ATWP7 │ journalArticle │
+│ 1037 │ AI for science: covert cyberattacks on energy storage systems                    │ VMUUDC9Z │ journalArticle │
+│ 1038 │ Zero day ransomware detection with pulse: function classification with transform │ VVIPAU6N │ journalArticle │
+│ 1039 │ DBWE-corbat: background network traffic generation using dynamic word embedding  │ VA6N3QUZ │ journalArticle │
+│ 1040 │ Automatic code generation based on abstract syntax-based encoding. Application o │ W2MKABQZ │ journalArticle │
+│ 1041 │ Image-based intrusion detection system for GPS spoofing cyberattacks in unmanned │ W96T62JV │ journalArticle │
+│ 1042 │ IoT-PRIDS: leveraging packet representations for intrusion detection in IoT netw │ W4G55Q2F │ journalArticle │
+│ 1043 │ Cracks in the chain: a technical analysis of real-life supply chain security inc │ V6KVMAPZ │ journalArticle │
+│ 1044 │ bjCnet: a contrastive learning-based framework for software defect prediction    │ WJDDQ4IS │ journalArticle │
+│ 1045 │ Phishing email detection using vector similarity search leveraging transformer-b │ VP6TQ6GK │ journalArticle │
+│ 1046 │ Chemical, biological, radiological and nuclear event detection and classificatio │ VXP7837N │ journalArticle │
+│ 1047 │ From the past to the present: a social bot detection method based on spatio-temp │ V8BM5C7R │ journalArticle │
+│ 1048 │ P3Fed: a personalized and privacy-preserving federated framework for intrusion d │ W7I2ESZ9 │ journalArticle │
+│ 1049 │ Fraud detection at eBay                                                          │ VDWAXZQE │ journalArticle │
+│ 1050 │ Double layer blockchain-assisted trusted data flow model for industrial control  │ VNI23PFA │ journalArticle │
+│ 1051 │ Dynamic network intrusion detection model based on transformer and adversarial a │ UXIRT2EI │ journalArticle │
+│ 1052 │ An evaluation framework for network IDS/IPS datasets: leveraging MITRE ATT&CK an │ WAI5S9XN │ journalArticle │
+│ 1053 │ A uniform assessment of host-based intrusion detection data sets                 │ VP3WUB27 │ journalArticle │
+│ 1054 │ The psychological manipulation of phishing emails: a cognitive bias approach     │ WJSDMSHB │ journalArticle │
+│ 1055 │ Privacy and security vulnerabilities in edge intelligence: an analysis and count │ VDJ6BKU4 │ journalArticle │
+│ 1056 │ An exploration method for technology forecasting that combines link prediction w │ WCW95PBN │ journalArticle │
+│ 1057 │ Cognitive systems and interoperability in the enterprise: a systematic literatur │ W559JH5W │ journalArticle │
+│ 1058 │ AI and employee wellbeing in the workplace: an empirical study                   │ VT9K48XK │ journalArticle │
+│ 1059 │ Enabling human–CPS cognitive interoperability: cognitive architectures as techno │ UWMBISNA │ journalArticle │
+│ 1060 │ Using generative AI in supply chain management: how and how not?                 │ W9XKZITX │ journalArticle │
+│ 1061 │ An optimization-based deep belief network for the detection of phishing e-mails  │ WF7H6FGV │ journalArticle │
+│ 1062 │ AttackTracer: semantic-level adversarial attack location traceability via eviden │ V9GX9W4Z │ journalArticle │
+│ 1063 │ Directed grey box fuzzy testing for power terminal device firmware with intermed │ WG9JRIUR │ journalArticle │
+│ 1064 │ SankeyVis: visualizing active relationship from emails based on multiple dimensi │ WKBVS4DF │ journalArticle │
+│ 1065 │ IoT systems testing: taxonomy, empirical findings, and recommendations           │ UZXTUMMC │ journalArticle │
+│ 1066 │ Enimanal: augmented cross-architecture IoT malware analysis using graph neural n │ VN2TU8C4 │ journalArticle │
+│ 1067 │ The role of automated planning in battle management systems for military tactics │ W4NVIGD3 │ journalArticle │
+│ 1068 │ Digital twinning for smart restoration of classic cars                           │ VBVUWD5A │ journalArticle │
+│ 1069 │ Automated event extraction of CVE descriptions                                   │ W9FRN3S5 │ journalArticle │
+│ 1070 │ ODL-BCI: optimal deep learning model for brain-computer interface to classify st │ V9TC98IV │ journalArticle │
+│ 1071 │ Advancing fault diagnosis in industrial systems: the power of V-nets for managin │ WBHXVA3Z │ journalArticle │
+│ 1072 │ Measuring privacy policy compliance in the alexa ecosystem: In-depth analysis    │ V8NHRGZD │ journalArticle │
+│ 1073 │ Machine learning at the edge to improve in-field safeguards inspections          │ VR2B733M │ journalArticle │
+│ 1074 │ Data-driven construction project risk causal network: integration of ensemble ca │ VXUMEM5P │ journalArticle │
+│ 1075 │ Patent litigation and narrative R&D disclosures: evidence from the adoption of a │ WH72VWI7 │ journalArticle │
+│ 1076 │ A data-driven hybrid framework for analyzing vessel detentions in Australia      │ W2DRS7NF │ journalArticle │
+│ 1077 │ Enabling innovation with big data analytics capabilities: the moderating role of │ UZ4V5KI3 │ journalArticle │
+│ 1078 │ Modification and use of a machine learning algorithm to the Z-SEP clustering in  │ WH4CWNGP │ journalArticle │
+│ 1079 │ Overview: application status and prospects of digital twin technology in mechani │ W6RE23Q7 │ journalArticle │
+│ 1080 │ Multi-objective optimization collaborating with deep reinforcement learning: adv │ VU6DZARK │ journalArticle │
+│ 1081 │ The impact of artificial intelligence and industry 4.0 on transforming accountin │ VUN5ED9E │ journalArticle │
+│ 1082 │ Privacy preservation in federated learning: an insightful survey from the GDPR p │ W4CXA48X │ journalArticle │
+│ 1083 │ Towards an integrative model of organizational human-AI collaboration: a semi-sy │ W3IC5493 │ journalArticle │
+│ 1084 │ An explainable big transfer learning approach for IoT-based safety management in │ W7EIK4JR │ journalArticle │
+│ 1085 │ Enhancing personalization in IoT-based health monitoring via generative AI and t │ VV5HJ9CZ │ journalArticle │
+│ 1086 │ Sharing runtime permission issues for developers based on similar-app review min │ WII4NQK5 │ journalArticle │
+│ 1087 │ Role of ethics in developing AI-based applications in medicine: insights from ex │ VQSF2PJ3 │ journalArticle │
+│ 1088 │ HL-DPoS: an enhanced anti-long-range attack DPoS algorithm                       │ VRHHQW8P │ journalArticle │
+│ 1089 │ SpearBot: leveraging large language models in a generative-critique framework fo │ UJE2RFHX │ journalArticle │
+│ 1090 │ CyberLLaMA: a fine-tuned large language model for cybersecurity named entity rec │ TN2IQH8Z │ journalArticle │
+│ 1091 │ An adaptive intrusion detection system for the internet of things using large la │ TNE74B6N │ journalArticle │
+│ 1092 │ SynthCTI: LLM-driven synthetic CTI generation to enhance MITRE technique mapping │ T6MDF4KR │ journalArticle │
+│ 1093 │ A novel system for strengthening security in large language models against hallu │ U83N97TM │ journalArticle │
+│ 1094 │ The three sides of the moon LLMs in cybersecurity: guardians, enablers and targe │ T9I4HC9D │ journalArticle │
+│ 1095 │ Integrative innovation of large language models in industries: technologies, app │ U4XJPTR3 │ journalArticle │
+│ 1096 │ Security of LLM-based agents regarding attacks, defenses, and applications: a co │ TT96N6NF │ journalArticle │
+│ 1097 │ Exploring and mitigating fawning hallucinations in large language models         │ TS9QU5FA │ journalArticle │
+│ 1098 │ A large language model-based building operation and maintenance information quer │ TUWV8MIJ │ journalArticle │
+│ 1099 │ Vul-LMGNNs: fusing language models and online-distilled graph neural networks fo │ UKG5HEW9 │ journalArticle │
+│ 1100 │ A novel feature integration and entity boundary detection for named entity recog │ UCIEFZAH │ journalArticle │
+│ 1101 │ A novel approach for software vulnerability detection based on ensemble learning │ USGWNHZV │ journalArticle │
+│ 1102 │ Cybersecurity of distributed energy resource systems in the smart grid: a survey │ TFNJWEMB │ journalArticle │
+│ 1103 │ Tensor networks for explainable machine learning in cybersecurity                │ TPH2PTUR │ journalArticle │
+│ 1104 │ Textual adversarial attacks in cybersecurity named entity recognition            │ U789FPK7 │ journalArticle │
+│ 1105 │ Redefining the programmer: human-AI collaboration, LLMs, and security in modern  │ UAFZV892 │ journalArticle │
+│ 1106 │ Multi-level fine-tuning, data augmentation, and few-shot learning for specialize │ UW3DWDPU │ journalArticle │
+│ 1107 │ Neurosymbolic learning and domain knowledge-driven explainable AI for enhanced I │ UCIUE5IF │ journalArticle │
+│ 1108 │ Multi-tier linguistic and emotional modeling for cyberbullying detection in tami │ URFKPA9U │ journalArticle │
+│ 1109 │ Explainable AI and random forest based reliable intrusion detection system       │ US9HVHCX │ journalArticle │
+│ 1110 │ A.I. assisted malware capabilities capturing                                     │ T947V9VW │ journalArticle │
+│ 1111 │ Offloading-verified framework for adversary detection and mitigation in IoT      │ U486CUBJ │ journalArticle │
+│ 1112 │ Unveiling shadows: a comprehensive framework for insider threat detection based  │ THDUCDEA │ journalArticle │
+│ 1113 │ ChatGPT for digital forensic investigation: the good, the bad, and the unknown   │ TJ6SFUWE │ journalArticle │
+│ 1114 │ Foundation models and transformers for anomaly detection: a survey               │ U5JGH7NE │ journalArticle │
+│ 1115 │ Digital twins-enabled zero touch network: a smart contract and explainable AI in │ UQDZ7KJG │ journalArticle │
+│ 1116 │ Vulnerability detection through machine learning-based fuzzing: a systematic rev │ TND84NJ4 │ journalArticle │
+│ 1117 │ NN2ViT: neural networks and vision transformers based approach for visual anomal │ U93FNUV6 │ journalArticle │
+│ 1118 │ Detection of violence incitation expressions in urdu tweets using convolutional  │ UJS9VQPW │ journalArticle │
+│ 1119 │ Botnet DGA domain name classification using transformer network with hybrid embe │ TBWZ97KT │ journalArticle │
+│ 1120 │ Coding style matters: scalable and efficient identification of memory management │ UKZF8K9F │ journalArticle │
+│ 1121 │ Human-understandable explanation for software vulnerability prediction           │ URS935SI │ journalArticle │
+│ 1122 │ ScamGen: unveiling psychological patterns in tele-scam through advanced template │ UTUC5UVP │ journalArticle │
+│ 1123 │ Blockchain-based auditing of legal decisions supported by explainable AI and gen │ U6K2ZF3W │ journalArticle │
+│ 1124 │ A novel framework for effective phishing URL detection using an LSTM-based siame │ TWMF8ECG │ journalArticle │
+│ 1125 │ Opinion paper: “so what if ChatGPT wrote it?” multidisciplinary perspectives on  │ U73T22H9 │ journalArticle │
+│ 1126 │ A fine-grained framework for online IoT device firmware identification via versi │ UEZ6SQEN │ journalArticle │
+│ 1127 │ Securing inclusive digital environments: an adaptive approach to ISO 27001 for a │ TWFCDDXG │ journalArticle │
+│ 1128 │ Automated threat attack categorisation into cloud service models                 │ TVQQICPF │ journalArticle │
+│ 1129 │ Explainable malware detection through integrated graph reduction and learning te │ UDW5HD9T │ journalArticle │
+│ 1130 │ Efficient malware detection using NLP and deep learning model                    │ UKZKP7RJ │ journalArticle │
+│ 1131 │ TransURL: improving malicious URL detection with multi-layer transformer encodin │ UHU7RINC │ journalArticle │
+│ 1132 │ Network intrusion detection based on n-gram frequency and time-aware transformer │ UFD59QMV │ journalArticle │
+│ 1133 │ E-WebGuard: enhanced neural architectures for precision web attack detection     │ TZ9BJKFA │ journalArticle │
+│ 1134 │ ALBERT-BiLSTM cross-attention network with progressive knowledge distillation fo │ UJBNUQ99 │ journalArticle │
+│ 1135 │ Evaluating the substitutability of generative AI-generated faces in biometric ap │ UGGZZJVI │ journalArticle │
+│ 1136 │ Future of humanity in an artificial intelligence centric world                   │ TWXKQRNE │ journalArticle │
+│ 1137 │ Human factors in phishing: understanding susceptibility and resilience           │ UMDDFH6N │ journalArticle │
+│ 1138 │ Survey on explainable AI: techniques, challenges and open issues                 │ U8M7WPZT │ journalArticle │
+│ 1139 │ A vulnerability detection framework by focusing on critical execution paths      │ UE738ICF │ journalArticle │
+│ 1140 │ Do not get fooled: defense against the one-pixel attack to protect IoT-enabled d │ TM4XDPVQ │ journalArticle │
+│ 1141 │ Machine learning and internet of things in industry 4.0: a review                │ T7ZC9IT9 │ journalArticle │
+│ 1142 │ Bolstering biosecurity amid the biotechnology revolution                         │ UNRMPFCF │ journalArticle │
+│ 1143 │ AutoSeg: automatic micro-segmentation policy generation via configuration analys │ TMMQNSX5 │ journalArticle │
+│ 1144 │ Adversarial machine learning in industry: a systematic literature review         │ U7EQ343C │ journalArticle │
+│ 1145 │ Hello me, meet the real me: voice synthesis attacks on voice assistants          │ UAP2SBT2 │ journalArticle │
+│ 1146 │ GreenBERT: a lightweight green transformer for automated prediction of software  │ TFHKUGVK │ journalArticle │
+│ 1147 │ Unpacking digital transformation – constructing a framework based on industry us │ TI4E63B3 │ journalArticle │
+│ 1148 │ Towards understanding the role of content-based and contextualized features in d │ TRFNH5VJ │ journalArticle │
+│ 1149 │ Interdependence in information practices: differences matter when caring for imm │ TF48CX37 │ journalArticle │
+│ 1150 │ Ethical, legal and social aspects (ELSA) for AI: an assessment tool for agri-foo │ TEWZHIPN │ journalArticle │
+│ 1151 │ Method and models for sentiment analysis and hidden propaganda finding           │ U26A5HPZ │ journalArticle │
+│ 1152 │ ChatGPT’s infusion advantage: the moderating role of strategic agility           │ U6DX49BV │ journalArticle │
+│ 1153 │ Sentiment and time-series analysis of direct-message conversations               │ TD665FGW │ journalArticle │
+│ 1154 │ BCBA: an IIoT encrypted traffic classifier based on a serial network model       │ UPIUZGNK │ journalArticle │
+│ 1155 │ DFPulse: the 2024 digital forensic practitioner survey                           │ T9BS24VR │ journalArticle │
+│ 1156 │ A methodology for estimating the cost of a digital twin                          │ TZI5UKAR │ journalArticle │
+│ 1157 │ Driving AI-enabled transformation in small and medium tourism enterprises: the s │ USPUE6SQ │ journalArticle │
+│ 1158 │ AI-driven alternative and online dispute resolution in the european union: an an │ URWJ47T8 │ journalArticle │
+│ 1159 │ PVE: a log parsing method based on VAE using embedding vectors                   │ UJ2F82QB │ journalArticle │
+│ 1160 │ Ensemble filter-wrapper text feature selection methods for text classification   │ TRR3MG2U │ journalArticle │
+│ 1161 │ Implementing digital twin for maintenance 4.0 in SMEs: a framework for affordabl │ TAB3UHUI │ journalArticle │
+│ 1162 │ BIS-model: an explicit SysML-based modeling and analysis framework for smart bui │ U72GVTXF │ journalArticle │
+│ 1163 │ Mapping research in the journal of innovation & knowledge to sustainable develop │ U9CK8X8U │ journalArticle │
+│ 1164 │ Evaluation of clinical practice guideline-derived clinical decision support syst │ TP6ZXPUC │ journalArticle │
+│ 1165 │ Digital image encryption algorithm based on double chaotic map and LSTM          │ UJBU5U9N │ journalArticle │
+│ 1166 │ AttacKG+: boosting attack graph construction with large language models          │ X7MICJEQ │ journalArticle │
+│ 1167 │ Evaluation of LLM-based chatbots for OSINT-based cyber threat awareness          │ X6UUHKHJ │ journalArticle │
+│ 1168 │ DecoyPot: a large language model-driven web API honeypot for realistic attacker  │ X7CZCQSJ │ journalArticle │
+│ 1169 │ Cross-model evaluation of LLMs for generating formal specification of distribute │ XSQ9Z8P7 │ journalArticle │
+│ 1170 │ DistilXIDS: efficient, lightweight and explainable transformer-based language mo │ XUENERCF │ journalArticle │
+│ 1171 │ “Digital camouflage”: the LLVM challenge in LLM-based malware detection          │ XPKFFPFU │ journalArticle │
+│ 1172 │ Securing large language models: a quantitative assurance framework approach      │ WNTBXMGP │ journalArticle │
+│ 1173 │ Modeling and executing cyber security exercise scenarios in cyber ranges         │ WS4FWV4M │ journalArticle │
+│ 1174 │ Simulation of prompt injection attacks on generative pre-trained transformers mo │ XEQXS2BV │ journalArticle │
+│ 1175 │ A knowledge graphs construction method enhanced by multimodal large language mod │ XDHIED2Q │ journalArticle │
+│ 1176 │ Evaluating large language models for software testing                            │ WTAUJ73M │ journalArticle │
+│ 1177 │ Safety analysis in the era of large language models: a case study of STPA using  │ XVK4NS3I │ journalArticle │
+│ 1178 │ A traffic normalization location attention network for cyber attack detection in │ XPEP9SWI │ journalArticle │
+│ 1179 │ Evolving cybersecurity of AI-featured digital products and services: rise of sta │ XXDBRPEE │ journalArticle │
+│ 1180 │ Blockchain-enabled supply chain resilience: leveraging multimodal large language │ WQBZCNSC │ journalArticle │
+│ 1181 │ Experimental investigation of memory-related software aging in LLM systems       │ XCNSU68Z │ journalArticle │
+│ 1182 │ HEOD: human-assisted ensemble outlier detection for cybersecurity                │ XSZSKDER │ journalArticle │
+│ 1183 │ Manod: a multi-modal anomaly detection framework for distributed system          │ XDVHNN6R │ journalArticle │
+│ 1184 │ Empowering cybersecurity analysis: unifying CVE, CWE, and CPE through knowledge  │ X77Q2ERA │ journalArticle │
+│ 1185 │ Retentive network-based time series anomaly detection in cyber-physical systems  │ X4S93P8S │ journalArticle │
+│ 1186 │ Managing linux servers with LLM-based AI agents: an empirical evaluation with GP │ XHEQ98AM │ journalArticle │
+│ 1187 │ Explainable artificial intelligence models in intrusion detection systems        │ WNH2WTE6 │ journalArticle │
+│ 1188 │ Leveraging federated learning for DoS attack detection in IoT networks based on  │ XJ2GZ5KF │ journalArticle │
+│ 1189 │ RAF-AG: report analysis framework for attack path generation                     │ X2J35W2D │ journalArticle │
+│ 1190 │ Generative artificial intelligence in healthcare from the perspective of digital │ XTE6ITDE │ journalArticle │
+│ 1191 │ DongTing: a large-scale dataset for anomaly detection of the linux kernel        │ X9CFQ3UG │ journalArticle │
+│ 1192 │ MFFURL: multi-modal feature fusion-based approach for malicious URL detection    │ XRK4X94E │ journalArticle │
+│ 1193 │ Artificial intelligence as an innovative element of support in policing          │ WQR2S3CX │ journalArticle │
+│ 1194 │ Fuzzing JavaScript engines with a syntax-aware neural program model              │ X24GPSAD │ journalArticle │
+│ 1195 │ Otupy: a flexible, portable, and extensible framework for remote control of secu │ XEPKSUX4 │ journalArticle │
+│ 1196 │ An efficient framework for semantically-correlated term detection and sanitizati │ X6D4FFET │ journalArticle │
+│ 1197 │ Enhanced IoT security: privacy-preserving federated learning model for accurate, │ XPNF5FXJ │ journalArticle │
+│ 1198 │ A novel approach for android malware detection based on intelligent computing    │ WRPK9D7T │ journalArticle │
+│ 1199 │ Lightweight and robust multi-source domain generalization for classifying intern │ XGPTCQMU │ journalArticle │
+│ 1200 │ Pheromone-based graph embedding algorithm for ethereum phishing detection        │ WWMGMJ7A │ journalArticle │
+│ 1201 │ A hybrid CNN-brown-bear optimization framework for enhanced detection of URL phi │ XGKX2K8P │ journalArticle │
+│ 1202 │ Optimal operation of grid-friendly megawatt-level ultra-fast EV charging station │ X8ZNGVGJ │ journalArticle │
+│ 1203 │ Deep generative models in energy system applications: review, challenges, and fu │ XWEAMD9V │ journalArticle │
+│ 1204 │ A real-time hostile activities analyses and detection system                     │ XXKMKJHZ │ journalArticle │
+│ 1205 │ The anatomy of deception: measuring technical and human factors of a large-scale │ XKCFVKB6 │ journalArticle │
+│ 1206 │ Defending novice user privacy: an evaluation of default web browser configuratio │ XTABNENF │ journalArticle │
+│ 1207 │ DRL-BM: intelligent buffer management in data center network                     │ XFQ99IV2 │ journalArticle │
+│ 1208 │ ARPA-H for radiologists: novel funding opportunities and results of a national s │ XT8RZA7D │ journalArticle │
+│ 1209 │ Digital transformation of public health for noncommunicable diseases: narrative  │ WUSXINAB │ journalArticle │
+│ 1210 │ Integrating the caring life course theory and artificial intelligence applicatio │ X8XGRGCZ │ journalArticle │
+│ 1211 │ Designing the future of flight: a socio-technical framework for single-pilot ope │ XR4G2AJX │ journalArticle │
+│ 1212 │ Transforming towards inclusion-by-design: information system design principles s │ X5VU2XHH │ journalArticle │
+│ 1213 │ “Eh? Aye!”: categorisation bias for natural human vs AI-augmented voices is infl │ XZT8PXX6 │ journalArticle │
+│ 1214 │ Exploring the impact of data poisoning attacks on machine learning model reliabi │ XSKH35UF │ journalArticle │
+│ 1215 │ Distributed machine learning for next-generation communication networks: a surve │ WN62JTMN │ journalArticle │
+│ 1216 │ TitNet: a time-series model based on multi-period nesting for encrypted traffic  │ WZJ4Q2SR │ journalArticle │
+│ 1217 │ Towards human-AI collaboration in the competency-based curriculum development pr │ XRPBSD3E │ journalArticle │
+│ 1218 │ Using sentiment analysis to detect disruptive events in supply chains            │ XB6J4CBR │ journalArticle │
+│ 1219 │ Secure data communication for wireless mobile nodes in intelligent transportatio │ WZ3ZKQGX │ journalArticle │
+│ 1220 │ Balancing innovation, responsibility, and ethical consideration in AI adoption   │ WMRQRRTJ │ journalArticle │
+│ 1221 │ Collaborative model-driven software engineering — a systematic survey of practic │ XPVFFJFF │ journalArticle │
+│ 1222 │ Resource consumption analysis of distributed machine learning for the security o │ XQBD4PQP │ journalArticle │
+│ 1223 │ How to build new productive forces for traditional chinese medicine industry: in │ X35H8DE7 │ journalArticle │
+│ 1224 │ Trustworthy and explainable federated system for extracting descriptive rules in │ XPF36CSI │ journalArticle │
+│ 1225 │ Revealing the built environment impacts on truck emissions using interpretable m │ XVVB5KI4 │ journalArticle │
+│ 1226 │ SMANet: sequence-enhanced multi-head attention network for robust neural semanti │ XFRQSPRU │ journalArticle │
+│ 1227 │ Detecting abusive instagram comments in turkish using convolutional neural netwo │ XC6RP7PG │ journalArticle │
+│ 1228 │ AI as decision aid or delegated agent: the effects of trust dimensions on the ad │ X8CAQVF6 │ journalArticle │
+│ 1229 │ Comprehensive survey of artificial intelligence techniques and strategies for cl │ XWIZ3WCZ │ journalArticle │
+│ 1230 │ Towards practical cancelable biometrics for finger vein recognition              │ XHT3694I │ journalArticle │
+│ 1231 │ A review of sentiment analysis research in arabic language                       │ WZT4HKDB │ journalArticle │
+│ 1232 │ Computation and communication efficient approach for federated learning based ur │ WVPWHA27 │ journalArticle │
+│ 1233 │ Ensuring security of personal data in library services platforms of academic lib │ WXBWWV42 │ journalArticle │
+│ 1234 │ An explainable and adaptive internet of things intrusion detection system suppor │ ZFPX8SHB │ journalArticle │
+│ 1235 │ LLM-AE-MP: web attack detection using a large language model with autoencoder an │ ZD2HX78R │ journalArticle │
+│ 1236 │ Anomaly detection for blockchain nodes based on eBPF and fine-tuning large langu │ ZW67AZ4H │ journalArticle │
+│ 1237 │ Generative agent-based modeling with large language models for insider threat de │ ZFMJBKGF │ journalArticle │
+│ 1238 │ Heterogeneous data-driven resolution generation for software systems via large l │ Z6KII29C │ journalArticle │
+│ 1239 │ Enhancing user prompt confidentiality in large language models through advanced  │ ZK4SZGHD │ journalArticle │
+│ 1240 │ Role of cybersecurity for a secure global communication eco-system: a comprehens │ ZGJSC9FB │ journalArticle │
+│ 1241 │ Context-aware decision making in autonomous vehicles: integrating social behavio │ ZNJMKEW9 │ journalArticle │
+│ 1242 │ Vulnerability detection using BERT based LLM model with transparency obligation  │ Z77276ES │ journalArticle │
+│ 1243 │ LLMs are one-shot URL classifiers and explainers                                 │ ZMI425R3 │ journalArticle │
+│ 1244 │ Stylometry recognizes human and LLM-generated texts in short samples             │ ZZMPBHZH │ journalArticle │
+│ 1245 │ Self-adaptive cyber defense for sustainable IoT: a DRL-based IDS optimizing secu │ ZVF8793V │ journalArticle │
+│ 1246 │ Edge propagation for link prediction in requirement-cyber threat intelligence kn │ Z5XIMAFT │ journalArticle │
+│ 1247 │ Adapting convolutional autoencoder for DDoS attack detection via joint reconstru │ Z6NC3X9T │ journalArticle │
+│ 1248 │ Span-level emotion-cause-category triplet extraction with instruction tuning LLM │ ZCUW3B6T │ journalArticle │
+│ 1249 │ A quantitative framework for the validation of twin-based cyber defense          │ Z7NEAMRJ │ journalArticle │
+│ 1250 │ Automatic phishing website detection and prevention model using transformer deep │ Z8I45J9I │ journalArticle │
+│ 1251 │ A proactive decoy selection scheme for cyber deception using MITRE ATT&CK        │ ZV43ZWT4 │ journalArticle │
+│ 1252 │ Semi-supervised graph anomaly detection via dual-channel reconstruction          │ ZXJ3DCBG │ journalArticle │
+│ 1253 │ APIARY: an API-based automatic rule generator for yara to enhance malware detect │ ZJARV3PD │ journalArticle │
+│ 1254 │ Augmenting IoT intrusion detection system performance using deep neural燦etwork  │ Z3RQTUV4 │ journalArticle │
+│ 1255 │ VulTriNet: a software vulnerability detection method based on tri-channel networ │ ZGTNHAEB │ journalArticle │
+│ 1256 │ Ethio-fake: cutting-edge approaches to combat fake news in under-resourced langu │ ZX2DUWBN │ journalArticle │
+│ 1257 │ Python source code vulnerability detection with named entity recognition         │ ZFZ6MW7C │ journalArticle │
+│ 1258 │ A lightweight IoT intrusion detection model based on improved BERT-of-theseus    │ ZMZVGWDC │ journalArticle │
+│ 1259 │ Information fusion in smart agriculture: machine learning applications and futur │ Z45JS2FH │ journalArticle │
+│ 1260 │ Managing emerging port security challenges in developing green and digital shipp │ Z55E7GI6 │ journalArticle │
+│ 1261 │ Towards comprehensive cyberbullying detection: a dataset incorporating aggressiv │ ZKHTCMHC │ journalArticle │
+│ 1262 │ A lightweight embedding method for knowledge graph quality evaluation            │ ZAXQD7VA │ journalArticle │
+│ 1263 │ Resource-efficient automatic software vulnerability assessment via knowledge dis │ ZGTKMUWG │ journalArticle │
+│ 1264 │ Digital, technological and AI skills for smart production work environment       │ ZKKHRW7W │ journalArticle │
+│ 1265 │ Pkg2Vec: hierarchical package embedding for code authorship attribution          │ ZE9CBR4I │ journalArticle │
+│ 1266 │ Assessing UML diagrams by GPT: implications for education                        │ ZXVZSA5Q │ journalArticle │
+│ 1267 │ Societal impacts of chatbot and mitigation strategies for negative impacts: a la │ ZST2AWT4 │ journalArticle │
+│ 1268 │ Evaluating european maritime infrastructure resilience through constructive simu │ ZS2HRCPC │ journalArticle │
+│ 1269 │ A comprehensive survey of artificial intelligence applications in UAV-enabled wi │ ZF7V4CRP │ journalArticle │
+│ 1270 │ Business and human rights in industry 4.0: a blueprint for collaborative human r │ ZGIIHUBG │ journalArticle │
+│ 1271 │ Deep clustering framework review using multicriteria evaluation                  │ ZEKPGUK8 │ journalArticle │
+│ 1272 │ Deep learning based emotion analysis of microblog texts                          │ ZS7ADJ8A │ journalArticle │
+│ 1273 │ An examination of herding behavior among tech stock investors in ASEAN-6 countri │ ZXIECPZ9 │ journalArticle │
+│ 1274 │ Human-centric artificial intelligence towards industry 5.0: retrospect and prosp │ ZQU7382W │ journalArticle │
+│ 1275 │ A survey on agents applications in healthcare: opportunities, challenges and tre │ ZV5R6X7W │ journalArticle │
+│ 1276 │ Blockchain sharding scheme based on generative AI and DRL: applied to building i │ Z6ZMB6V5 │ journalArticle │
+│ 1277 │ Biometric data landscape in southeast Asia: challenges and opportunities for eff │ Z932ZHQ8 │ journalArticle │
+│ 1278 │ Towards secure intelligent O-RAN architecture: vulnerabilities, threats and prom │ 5JE69KCT │ journalArticle │
+│ 1279 │ Enhancing trust in large language models for streamlined decision-making in mili │ 5BTCMKJ4 │ journalArticle │
+│ 1280 │ Elevating cyber threat intelligence against disinformation campaigns with LLM-ba │ 4VPIPFUA │ journalArticle │
+│ 1281 │ PageLLM: incremental approach for updating a security knowledge graph by using p │ 4JB55ZGK │ journalArticle │
+│ 1282 │ LLM-powered threat intelligence: proactive detection of zero-day attacks in elec │ 4TUDEVC4 │ journalArticle │
+│ 1283 │ An integrated IDS for the internet of vehicles using a large language model fram │ 3TUGVV4T │ journalArticle │
+│ 1284 │ Automatic synthesis of econometric empirical research results using large langua │ 5MZCKE6K │ journalArticle │
+│ 1285 │ A NLP approach to quantify resilience in cyber-socio-technical systems with LLM  │ 46RC4ETD │ journalArticle │
+│ 1286 │ LPASS: linear probes as stepping stones for vulnerability detection using compre │ 4ZP5DXAU │ journalArticle │
+│ 1287 │ Intelligent fault diagnosis for CNC through the integration of large language mo │ 5FXPSBBR │ journalArticle │
+│ 1288 │ EnhanceCTI: enhanced semantic filtering and feature extraction framework for ind │ 4UVJMMZ5 │ journalArticle │
+│ 1289 │ Automatic instantiation of assurance cases from patterns using large language mo │ 58EH353G │ journalArticle │
+│ 1290 │ LaAeb: a comprehensive log-text analysis based approach for insider threat detec │ 5FNWSMHX │ journalArticle │
+│ 1291 │ PTFusion: LLM-driven context-aware knowledge fusion for web penetration testing  │ 57MPG2HI │ journalArticle │
+│ 1292 │ Bibliometric analysis of maritime cybersecurity: research status, focus, and per │ 4IX9GAFM │ journalArticle │
+│ 1293 │ Cybersecurity preparedness of small-to-medium businesses: a western Australia st │ 4DWIKPAT │ journalArticle │
+│ 1294 │ Self-X-based secure human-cyber-physical system (SSHCPS) for autonomous manufact │ 3SCRP3F3 │ journalArticle │
+│ 1295 │ ArtPerception: ASCII art-based jailbreak on LLMs with recognition pre-test       │ 4PSZISQN │ journalArticle │
+│ 1296 │ Voting-based ensemble classifiers model on ransomware detection for cybersecurit │ 4WFN99SA │ journalArticle │
+│ 1297 │ DeTinyLLM: efficient detection of machine-generated text via compact paraphrase  │ 45JEAF4W │ journalArticle │
+│ 1298 │ Ransomware detection and family classification using fine-tuned BERT and RoBERTa │ 4BRPXCCQ │ journalArticle │
+│ 1299 │ Improving critical infrastructure security through hybrid embeddings for vulnera │ 5A5VJEPS │ journalArticle │
+│ 1300 │ Weaponized AI for cyber attacks                                                  │ 4GAQRPHI │ journalArticle │
+│ 1301 │ Temporal feature aggregation with attention for insider threat detection from ac │ 5QUQJXAZ │ journalArticle │
+│ 1302 │ Detecting APT-exploited processes through semantic fusion and interaction predic │ 5MHHDDBK │ journalArticle │
+│ 1303 │ WMPA-ConvBERT-BM: a hybrid deep learning model optimized by whale-marine predato │ 4WFUBHKQ │ journalArticle │
+│ 1304 │ Artificial intelligence and digital nationalism: a social media discourse analys │ 4UI2TUPW │ journalArticle │
+│ 1305 │ Network intrusion datasets: a survey, limitations, and recommendations           │ 4JUA97BZ │ journalArticle │
+│ 1306 │ M2VMapper: malware-to-vulnerability mapping for android using text processing    │ 4FP3A62E │ journalArticle │
+│ 1307 │ General purpose artificial intelligence systems (GPAIS): properties, definition, │ 5EJ7J36M │ journalArticle │
+│ 1308 │ The DevSafeOps dilemma: a systematic literature review on rapidity in safe auton │ 5PWU6JQQ │ journalArticle │
+│ 1309 │ CoST: comprehensive structural and temporal learning of social propagation for f │ 42XBHZ8J │ journalArticle │
+│ 1310 │ Apply transfer learning to cybersecurity: predicting exploitability of vulnerabi │ 59Z292XQ │ journalArticle │
+│ 1311 │ Enhancing supply chain resilience and efficiency of HVAC systems in semiconducto │ 3Z66AQ6B │ journalArticle │
+│ 1312 │ One-class classification via generative adversarial and federated distillation   │ 4F4BDNHV │ journalArticle │
+│ 1313 │ N-gram MalGAN: evading machine learning detection via feature n-gram             │ 3ZM7PMDN │ journalArticle │
+│ 1314 │ Detecting DDoS based on attention mechanism for software-defined networks        │ 5GET4NVN │ journalArticle │
+│ 1315 │ Intelligent financial system: how AI is transforming finance                     │ 557I9WMZ │ journalArticle │
+│ 1316 │ Making waves: generative artificial intelligence in water distribution networks: │ 457KDB48 │ journalArticle │
+│ 1317 │ Unsupervised learning for community detection in attributed networks based on gr │ 56NR77PE │ journalArticle │
+│ 1318 │ Security provision for protecting intelligent sensors and zero touch devices by  │ 4CEAXE6E │ journalArticle │
+│ 1319 │ VUDENC: vulnerability detection with deep learning on a natural codebase for pyt │ 5B4945T2 │ journalArticle │
+│ 1320 │ Broad learning: a GPU-free image-based malware classification                    │ 52SPNUB6 │ journalArticle │
+│ 1321 │ Formal security analysis for software architecture design: an expressive framewo │ 5EJN9TKJ │ journalArticle │
+│ 1322 │ In depth analysis for securing the truth: addressing the fake news challenge wit │ 4W5NA497 │ journalArticle │
+│ 1323 │ SybilFlyover: heterogeneous graph-based fake account detection model on social n │ 49RTWDE6 │ journalArticle │
+│ 1324 │ Crypto-cognitive exploitation: integrating cognitive, social, and technological  │ 3XXDS7TS │ journalArticle │
+│ 1325 │ Big data as a service and application for indian banking sector                  │ 547ZBD27 │ journalArticle │
+│ 1326 │ Bayes-based word weighting for enhanced vulnerability classification in critical │ 5AA9TBE4 │ journalArticle │
+│ 1327 │ Unified resilience model using deep learning for assessing power system performa │ 4BJPPT32 │ journalArticle │
+│ 1328 │ Causality-enhanced system reliability and safety analysis: an overview           │ 44JPUCNF │ journalArticle │
+│ 1329 │ A comprehensive review of synthetic data generation in smart farming by using va │ 3T2F6232 │ journalArticle │
+│ 1330 │ ContractArmor: attack surface generator for smart contracts                      │ 5P3MKSJF │ journalArticle │
+│ 1331 │ Disruptor or enabler? AI and financial system stability                          │ 4Z39AH5X │ journalArticle │
+│ 1332 │ Practical aspects of designing a human-centred AI system in manufacturing        │ 3SQ73XXQ │ journalArticle │
+│ 1333 │ Who gets the money? A qualitative analysis of fintech lending and credit scoring │ 4FSUVUSB │ journalArticle │
+│ 1334 │ Human-centered AI: advancing ethical, transparent, and context-aware systems for │ 4MS42NE3 │ journalArticle │
+│ 1335 │ Towards a methodology for ethical artificial intelligence system development: a  │ 3T8T3ITR │ journalArticle │
+│ 1336 │ A risk assessment framework for online transactions via graph neural networks an │ 5IZDFPED │ journalArticle │
+│ 1337 │ Development and validation of generative AI competence scale (GenAIComp) among u │ 47WDKFNI │ journalArticle │
+│ 1338 │ Production planning and control in industry 4.0: overview on challenges of data- │ 5IACCM8R │ journalArticle │
+│ 1339 │ Impact of ChatGPT and generative AI on lifelong learning and upskilling learners │ 4NUUXUPS │ journalArticle │
+│ 1340 │ Artificial intelligence in knowledge management: identifying and addressing the  │ 3TX9QKDN │ journalArticle │
+│ 1341 │ The metaverse: innovations and generative AI                                     │ 4MD5ARAR │ journalArticle │
+│ 1342 │ Hunter: tracing anycast communications to uncover cross-border personal data tra │ 4MA3EUUW │ journalArticle │
+│ 1343 │ Robotics: enabler and inhibitor of the sustainable development goals             │ 4MV3Q7XQ │ journalArticle │
+│ 1344 │ ExploitGen: template-augmented exploit code generation based on CodeBERT         │ 4ZI2B7DC │ journalArticle │
+│ 1345 │ Bias and discrimination in ML-based systems of administrative decision-making an │ 5JA9V8JU │ journalArticle │
+│ 1346 │ Advanced multi-model prediction of aircraft engine remaining useful life with ra │ 48E5XGCX │ journalArticle │
+│ 1347 │ The decentralisation defence                                                     │ 5BPG74SD │ journalArticle │
+│ 1348 │ A literature review of fault diagnosis based on ensemble learning                │ 4M6X5AGJ │ journalArticle │
+│ 1349 │ Barriers to district heating deployment: insights from literature and experts    │ 47M3URAP │ journalArticle │
+│ 1350 │ Distributed artificial intelligence: taxonomy, review, framework, and reference  │ 5G3PDVNX │ journalArticle │
+│ 1351 │ An automatic software vulnerability classification framework using term frequenc │ 5MSW9UX8 │ journalArticle │
+│ 1352 │ Development of the machine learning-based safety significant factor inference mo │ AHFTRFCI │ journalArticle │
+│ 1353 │ Explainable artificial intelligence (XAI): what we know and what is left to atta │ 7EQIV7K9 │ journalArticle │
+│ 1354 │ Artificial intelligence adoption challenges from healthcare providers’ perspecti │ 4JBQJIZZ │ journalArticle │
+│ 1355 │ Advances in emerging digital technologies for energy efficiency and energy integ │ FIHNSQGQ │ journalArticle │
+│ 1356 │ Richer document embeddings for author profiling tasks based on a heuristic searc │ GV8EF3PW │ journalArticle │
+│ 1357 │ Monitoring tools for DevOps and microservices: a systematic grey literature revi │ D5XPU32C │ journalArticle │
+│ 1358 │ The digital prior restraint: applying human rights safeguards to upload filters  │ JUS47HU3 │ journalArticle │
+│ 1359 │ Enhancing wind power prediction with self-attentive variational autoencoders: a  │ NKKFZ25M │ journalArticle │
+│ 1360 │ Assessing behavioral data science privacy issues in government artificial intell │ RTFIW9VX │ journalArticle │
+│ 1361 │ Integrating the pressure-state-response model with the extension catastrophe pro │ QBKGP4G3 │ journalArticle │
+│ 1362 │ Artificial intelligence (AI): multidisciplinary perspectives on emerging challen │ VJWAMN96 │ journalArticle │
+│ 1363 │ Losing control: exposing security weaknesses of kubernetes control plane interfa │ T9PPFNVK │ journalArticle │
+│ 1364 │ Beyond code: is there a difference between comments in visual and textual langua │ Z829MCX9 │ journalArticle │
+│ 1365 │ An empirical study of IoT security aspects at sentence-level in developer textua │ 3U8TKUH4 │ journalArticle │
+│ 1366 │ EncryptoVision: a dual-modal fusion-based multi-classification model for encrypt │ 53D3IK5G │ journalArticle │
+│ 1367 │ Anticipating compliance. An exploration of foresight initiatives in data protect │ JJHAJ8HJ │ journalArticle │
+│ 1368 │ Finding associations between natural and computer languages: a case-study of bil │ FPH528XA │ journalArticle │
+│ 1369 │ EUPHORIA: a neural multi-view approach to combine content and behavioral feature │ H3EW5RHT │ journalArticle │
+│ 1370 │ A systematic review on ethereum phishing scam detection: challenges, empirical i │ M772GXU9 │ journalArticle │
+│ 1371 │ How generative AI reshapes construction and built environment: the good, the bad │ QUVWEE8A │ journalArticle │
+│ 1372 │ The hidden complexities of android TPL detection: an empirical analysis of techn │ MFEMAC2P │ journalArticle │
+│ 1373 │ The end of open source? Regulating open source under the cyber resilience act an │ DUKX2NM3 │ journalArticle │
+│ 1374 │ Human-centred cybersecurity for critical infrastructure: the case of the florida │ GRV8NGRT │ journalArticle │
+│ 1375 │ Venous thromboembolism in the era of machine learning and artificial intelligenc │ QKEKICA5 │ journalArticle │
+│ 1376 │ Application of generative artificial intelligence in minimizing cyber attacks on │ PAMQEQ8B │ journalArticle │
+│ 1377 │ PMANet: malicious URL detection via post-trained language model guided multi-lev │ RZVZNATU │ journalArticle │
+│ 1378 │ Uncovering the risks of digital supply chains: a large language model framework  │ 3AJNINAW │ journalArticle │
+│ 1379 │ Detecting hate speech for hindi-english code-mix text data using dual contrastiv │ M3XGPRWV │ journalArticle │
+└──────┴──────────────────────────────────────────────────────────────────────────────────┴──────────┴────────────────┘
+
+Showing 1379 papers (attachments/notes hidden). Use 'zotero-cli inspect --key <KEY>' for details.

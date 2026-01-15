@@ -1,4 +1,4 @@
-# User Guide (v1.0.6)
+# User Guide (v1.2.0)
 
 ## Table of Contents
 1.  [Getting Started](#getting-started)
@@ -62,6 +62,13 @@ zotero-cli screen --source "raw_arXiv" --include "screened" --exclude "excluded"
 *   **[I]**: Include
 *   **[E]**: Exclude (Select reason code)
 *   **[S]**: Skip
+
+**Single Decision (CLI):**
+Record a decision directly from the terminal without entering the TUI.
+```bash
+zotero-cli decide --item "ITEM_KEY" --vote "include"
+zotero-cli decide --item "ITEM_KEY" --vote "exclude" --reason "E1"
+```
 
 **Bulk Import (CSV):**
 Import decisions from a spreadsheet (e.g., from a distributed team).
@@ -143,6 +150,11 @@ zotero-cli manage clean --collection "Trash"
 **Migrate:** Upgrade audit notes to Standardized Decision Block (SDB) v1.1.
 ```bash
 zotero-cli manage migrate --collection "raw_arXiv"
+```
+
+**Sync-CSV:** Recover screening state from Zotero notes back to a CSV file.
+```bash
+zotero-cli manage sync-csv --collection "screened" --output "screening_recovery.csv"
 ```
 
 ---

@@ -1,8 +1,7 @@
 import argparse
 import os
 import sys
-from zotero_cli.cli.commands.base import BaseCommand
-from zotero_cli.cli.registry import CommandRegistry
+from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
 from zotero_cli.infra.factory import GatewayFactory # Assuming we'll build this
 # For now, importing from main.py's helpers if possible, or duplicating logic until Factory is ready.
@@ -39,11 +38,8 @@ class ImportCommand(BaseCommand):
         man_p.add_argument("--collection", required=True)
 
     def execute(self, args: argparse.Namespace):
-        # We need a proper Factory here.
-        # Temporary: Import from client.py or main utils
-        # Refactor Goal: Create zotero_cli.container (Dependency Injection)
-        from zotero_cli.cli.main import get_common_clients 
-        client = get_common_clients()
+        from zotero_cli.infra.factory import GatewayFactory
+        client = GatewayFactory.get_paper_importer(force_user=getattr(args, 'user', False))
 
         if args.import_type == "file":
             self._handle_file(client, args)
@@ -53,23 +49,32 @@ class ImportCommand(BaseCommand):
             self._handle_manual(client, args)
 
     def _handle_file(self, client, args):
+        from zotero_cli.core.strategies import BibtexImportStrategy, RisImportStrategy, SpringerCsvImportStrategy, IeeeCsvImportStrategy
+        
         ext = os.path.splitext(args.file)[1].lower()
+        strategy = None
+        
         if ext == '.bib':
-            count = client.import_from_bibtex(args.file, args.collection, args.verbose)
+            strategy = BibtexImportStrategy(client.bibtex_gateway)
         elif ext == '.ris':
-            count = client.import_from_ris(args.file, args.collection, args.verbose)
+            strategy = RisImportStrategy(client.ris_gateway)
         elif ext == '.csv':
              # Simple heuristic
              with open(args.file, 'r', encoding='utf-8') as f:
                 header = f.readline()
-                if 'Item Title' in header: count = client.import_from_springer_csv(args.file, args.collection, args.verbose)
-                else: count = client.import_from_ieee_csv(args.file, args.collection, args.verbose)
+                if 'Item Title' in header: 
+                    strategy = SpringerCsvImportStrategy(client.springer_csv_gateway)
+                else: 
+                    strategy = IeeeCsvImportStrategy(client.ieee_csv_gateway)
         else:
             print(f"Unsupported: {ext}")
             return
+            
+        count = client.import_with_strategy(strategy, args.file, args.collection, args.verbose)
         print(f"Imported {count} items.")
 
     def _handle_arxiv(self, client, args):
+        from zotero_cli.core.strategies import ArxivImportStrategy
         q = args.query
         if args.file:
             with open(args.file) as f: q = f.read().strip()
@@ -81,7 +86,8 @@ class ImportCommand(BaseCommand):
         else:
             limit, sort = args.limit, "relevance"
             
-        count = client.import_from_query(q, args.collection, limit, args.verbose, sort, "descending")
+        strategy = ArxivImportStrategy(client.arxiv_gateway)
+        count = client.import_with_strategy(strategy, q, args.collection, args.verbose, limit=limit, sort_by=sort)
         print(f"Imported {count} items.")
 
     def _handle_manual(self, client, args):

@@ -17,6 +17,7 @@ class ZoteroItem:
     date: Optional[str] = None
     authors: List[str] = field(default_factory=list)
     has_pdf: bool = False # Will be set by auditor or via child items processing later
+    raw_data: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_raw_zotero_item(cls, raw_item: Dict[str, Any]) -> 'ZoteroItem':
@@ -61,7 +62,8 @@ class ZoteroItem:
             authors=authors,
             collections=data.get('collections', []),
             tags=tags,
-            has_pdf=False # Default, actual check done by service
+            has_pdf=False, # Default, actual check done by service
+            raw_data=raw_item
         )
 
     def has_identifier(self) -> bool:

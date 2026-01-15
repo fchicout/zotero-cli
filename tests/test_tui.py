@@ -88,7 +88,7 @@ def test_run_session_include_item(tui, mock_service, mock_console):
         persona="p",
         phase="title_abstract"
     )
-    mock_console.print.assert_any_call("[bold green]Saved![/bold green]")
+    mock_console.print.assert_any_call("[bold green]Saved to Zotero![/bold green]")
 
 def test_run_session_exclude_item_default_code(tui, mock_service, mock_console):
     # Setup

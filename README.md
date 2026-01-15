@@ -98,6 +98,7 @@ zotero-cli info
 | | | `move` | Move items between collections. |
 | | | `clean` | Empty a collection. |
 | | | `migrate` | Upgrade audit notes to SDB v1.1. |
+| | | `sync-csv` | Recover screening state from Zotero notes to CSV. |
 | **Analyze** | `analyze` | `audit` | Check for missing metadata/PDFs. |
 | | | `lookup` | Bulk metadata fetch. |
 | | | `graph` | Generate citation graph. |

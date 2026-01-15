@@ -12,7 +12,7 @@ def service(mock_gateway):
     return MigrationService(mock_gateway)
 
 def test_migrate_note_content_removes_signature(service):
-    legacy_note = '<div>{"signature": "Dr. Vance", "decision": "accepted", "agent": "vance-cli", "audit_version": "1.0"}</div>'
+    legacy_note = '<div>{"signature": "Dr. Silas", "decision": "accepted", "agent": "vance-cli", "audit_version": "1.0"}</div>'
     new_note = service._migrate_note_content(legacy_note)
     
     data = json.loads(new_note.replace("<div>", "").replace("</div>", ""))
