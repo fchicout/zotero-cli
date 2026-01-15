@@ -23,6 +23,7 @@ class ListCommand(BaseCommand):
         # Items
         li_p = sub.add_parser("items", help="List items in collection")
         li_p.add_argument("--collection", required=True)
+        li_p.add_argument("--top-only", action="store_true", help="Fetch only top-level items (no child notes/attachments)")
 
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
@@ -64,7 +65,7 @@ class ListCommand(BaseCommand):
             print(f"Error: Collection '{args.collection}' not found.")
             return
             
-        items = list(gateway.get_items_in_collection(col_id))
+        items = list(gateway.get_items_in_collection(col_id, top_only=getattr(args, 'top_only', False)))
         table = Table(title=f"Items in {args.collection}")
         table.add_column("Key", style="cyan")
         table.add_column("Title")

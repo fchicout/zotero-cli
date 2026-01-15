@@ -94,6 +94,20 @@ def test_get_item_success(client):
     assert item is not None
     assert item.key == "K1"
 
+def test_get_items_in_collection_top_only(client):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [{"key": "K1", "data": {"title": "Top Item"}, "meta": {}, "version": 1}]
+    mock_response.headers = {}
+    client.http.session.get.return_value = mock_response
+
+    items = list(client.get_items_in_collection("C1", top_only=True))
+    assert len(items) == 1
+    
+    # Verify correct endpoint
+    args, kwargs = client.http.session.get.call_args
+    assert "/collections/C1/items/top" in args[0]
+
 # --- Item Modification Methods ---
 
 def test_create_item_success(client):
@@ -101,6 +115,7 @@ def test_create_item_success(client):
     
     mock_response = Mock()
     mock_response.status_code = 200
+    mock_response.json.return_value = {"successful": {"0": {"key": "K1"}}}
     mock_response.headers = {}
     client.http.session.post.return_value = mock_response
     
@@ -115,6 +130,7 @@ def test_create_item_success(client):
 def test_create_note_success(client):
     mock_response = Mock()
     mock_response.status_code = 200
+    mock_response.json.return_value = {"successful": {"0": {"key": "N1"}}}
     mock_response.headers = {}
     client.http.session.post.return_value = mock_response
     

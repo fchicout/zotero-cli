@@ -147,6 +147,17 @@ def test_list_collections(mock_clients, env_vars, capsys):
     assert "K1" in out
     assert "5" in out
 
+def test_list_groups(mock_clients, env_vars, capsys):
+    mock_clients['zotero'].get_user_groups.return_value = [
+        {'id': 123, 'name': 'Research Group', 'url': '...'}
+    ]
+    test_args = ['zotero-cli', 'list', 'groups']
+    with patch.object(sys, 'argv', test_args):
+        main()
+    out = capsys.readouterr().out
+    assert "123" in out
+    assert "Research Group" in out
+
 def test_list_items(mock_clients, env_vars, capsys):
     mock_item = Mock()
     mock_item.title = "Paper 1"
@@ -162,6 +173,31 @@ def test_list_items(mock_clients, env_vars, capsys):
     assert "Paper 1" in capsys.readouterr().out
     # We changed the output format to a table, so precise string match might vary
     # But checking for title is safe. Key is now in a separate column.
+
+def test_list_items_not_found(mock_clients, env_vars, capsys):
+    mock_clients['zotero'].get_collection_id_by_name.return_value = None
+    
+    test_args = ['zotero-cli', 'list', 'items', '--collection', 'NonExistent']
+    with patch.object(sys, 'argv', test_args):
+        main()
+    
+    assert "Error: Collection 'NonExistent' not found." in capsys.readouterr().out
+
+def test_list_items_top_only(mock_clients, env_vars, capsys):
+    mock_item = Mock()
+    mock_item.title = "Paper Top"
+    mock_item.key = "K_TOP"
+    mock_item.item_type = "journalArticle"
+    mock_clients['zotero'].get_collection_id_by_name.return_value = "CID"
+    mock_clients['zotero'].get_items_in_collection.return_value = iter([mock_item])
+    
+    test_args = ['zotero-cli', 'list', 'items', '--collection', 'MyCol', '--top-only']
+    with patch.object(sys, 'argv', test_args):
+        main()
+    
+    # Verify the call to gateway includes top_only=True
+    mock_clients['zotero'].get_items_in_collection.assert_called_once_with('CID', top_only=True)
+    assert "Paper Top" in capsys.readouterr().out
 
 # --- 5. REPORT ---
 def test_report_prisma(mock_clients, env_vars, capsys):

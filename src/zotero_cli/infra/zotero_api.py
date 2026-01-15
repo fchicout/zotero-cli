@@ -70,13 +70,17 @@ class ZoteroAPIClient(ZoteroGateway):
             print(f"Error fetching item {item_key}: {e}")
             return None
 
-    def get_items_in_collection(self, collection_id: str) -> Iterator[ZoteroItem]:
+    def get_items_in_collection(self, collection_id: str, top_only: bool = False) -> Iterator[ZoteroItem]:
         limit = 100
         start = 0
+        endpoint = f"collections/{collection_id}/items"
+        if top_only:
+            endpoint += "/top"
+            
         while True:
             try:
-                print(f"DEBUG: Fetching items from collection {collection_id} (start={start})")
-                response = self.http.get(f"collections/{collection_id}/items", params={'limit': limit, 'start': start})
+                print(f"DEBUG: Fetching items from collection {collection_id} (start={start}, top_only={top_only})")
+                response = self.http.get(endpoint, params={'limit': limit, 'start': start})
                 items = response.json()
                 print(f"DEBUG: Got {len(items)} items")
                 

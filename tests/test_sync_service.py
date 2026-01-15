@@ -19,7 +19,7 @@ class TestSyncService(unittest.TestCase):
         
         # Mock Children (Notes)
         # Item 1 has a valid screening note
-        note_content = 'Pre-text <pre>{"decision": "approve", "reason": "Relevant", "criteria": ["IC1"], "timestamp": "2024-01-01"}</pre>'
+        note_content = 'Pre-text <pre>{"decision": "approve", "reason": "Relevant", "criteria": ["IC1"], "timestamp": "2024-01-01", "action": "screening_decision"}</pre>'
         self.gateway.get_item_children.side_effect = [
             [{'data': {'itemType': 'note', 'note': f"screening_decision: {note_content}"}}], # Item 1
             [] # Item 2 (No notes)
@@ -40,7 +40,7 @@ class TestSyncService(unittest.TestCase):
 
     def test_extract_screening_data_valid(self):
         item = ZoteroItem(key="K1", title="T", version=1, item_type="journalArticle")
-        json_str = '{"decision": "reject", "reason": "Old", "criteria": ["EC2"]}'
+        json_str = '{"decision": "reject", "reason": "Old", "criteria": ["EC2"], "action": "screening_decision"}'
         note = f'Some text screening_decision: ```json\n{json_str}\n```'
         
         self.gateway.get_item_children.return_value = [
