@@ -49,22 +49,42 @@ class SyncService:
         
         # 3. Process Items
         for idx, item in enumerate(items):
-            if callback: callback(idx + 1, total, f"Scanning: {item.title[:30]}...")
+            title = item.title if item.title else "Untitled"
+            if callback: callback(idx + 1, total, f"Scanning: {title[:30]}...")
             
-            # Find the screening note
-            screening_data = self._extract_screening_data(item)
-            
-            if screening_data:
-                # Map to CSV schema
-                row = {
-                    "key": item.key,
-                    "title": item.title,
-                    "decision": screening_data.get("decision", "unknown"),
-                    "reason": screening_data.get("reason", ""),
-                    "criteria": ",".join(screening_data.get("criteria", [])),
-                    "timestamp": screening_data.get("timestamp", "")
-                }
-                recovered_rows.append(row)
+            try:
+                # Find the screening note
+                screening_data = self._extract_screening_data(item)
+                
+                if screening_data:
+                    # Map to CSV schema
+                    # SDB v1.1 Mapping:
+                    # 'criteria' (CSV) <- 'reason_code' (JSON)
+                    # 'reason' (CSV) <- 'reason_text' (JSON)
+                    
+                    # Try 'reason_code' first (v1.1), fallback to 'criteria' (legacy)
+                    criteria_val = screening_data.get("reason_code")
+                    if criteria_val is None:
+                        criteria_val = screening_data.get("criteria", [])
+                    
+                    # Try 'reason_text' first, fallback to 'reason'
+                    reason_val = screening_data.get("reason_text")
+                    if reason_val is None:
+                        reason_val = screening_data.get("reason", "")
+
+                    row = {
+                        "key": item.key,
+                        "title": item.title,
+                        "decision": screening_data.get("decision", "unknown"),
+                        "reason": reason_val,
+                        "criteria": ",".join(criteria_val) if isinstance(criteria_val, list) else str(criteria_val),
+                        "timestamp": screening_data.get("timestamp", "")
+                    }
+                    recovered_rows.append(row)
+            except Exception as e:
+                print(f"\n[ERROR] Failed on item {item.key}: {e}", file=sys.stderr)
+                import traceback
+                traceback.print_exc()
 
         # 4. Write CSV
         if callback: callback(total, total, f"Writing {len(recovered_rows)} records to {output_csv_path}...")
@@ -85,34 +105,39 @@ class SyncService:
     def _extract_screening_data(self, item: ZoteroItem) -> Optional[Dict]:
         """
         Helper to find and parse the JSON note attached to an item.
+        Strictly looks for notes conforming to the SDB schema (must have 'audit_version' or 'action').
         """
-        # We need to fetch children for this specific item
-        # Ideally, get_items_in_collection should optionally pre-fetch children, 
-        # but for now we do a N+1 query (or O(1) if cached).
-        # Optimization: The Gateway implementation might be lazy.
-        
-        children = self.gateway.get_item_children(item.key)
+        try:
+            children = self.gateway.get_item_children(item.key)
+        except Exception as e:
+            # If fetching children fails, log warning and skip
+            print(f"Warning: Failed to fetch children for {item.key}: {e}", file=sys.stderr)
+            return None
         
         for child in children:
             # Check if it's a note
             if child.get('data', {}).get('itemType') == 'note':
                 note_content = child['data'].get('note', '')
                 
-                # Check for our signature
-                if "screening_decision" in note_content:
+                # Heuristic 1: Look for JSON-like structure
+                start = note_content.find('{')
+                end = note_content.rfind('}') + 1
+                
+                if start != -1 and end != -1:
                     try:
-                        # Extract the JSON block
-                        # Usually wrapped in <pre> or ```json
-                        # Simple robust parser: look for { ... }
-                        start = note_content.find('{')
-                        end = note_content.rfind('}') + 1
-                        if start != -1 and end != -1:
-                            json_str = note_content[start:end]
-                            # Clean up HTML entities if necessary? 
-                            # Usually Zotero API returns clean text or HTML.
-                            # Assuming HTML stripping might be needed if it's rich text.
-                            # For this MVP, we assume the JSON is parseable.
-                            return json.loads(json_str)
+                        candidate_json = note_content[start:end]
+                        # Clean simple HTML entities if necessary (Zotero often wraps in <p> or <pre>)
+                        # This is a naive cleaner, but effective for the tool's own output
+                        candidate_json = candidate_json.replace('<br>', '').replace('</p>', '').replace('<p>', '')
+                        
+                        data = json.loads(candidate_json)
+                        
+                        # Heuristic 2: Validation (Is this OUR note?)
+                        # We look for specific keys defined in our SDB spec
+                        if "audit_version" in data or data.get("action") == "screening_decision":
+                            return data
+                            
                     except json.JSONDecodeError:
+                        # Not a valid JSON note, likely a human note. Ignore.
                         continue
         return None

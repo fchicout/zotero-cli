@@ -119,21 +119,6 @@ class SnapshotService:
             return False
 
     def _serialize_item(self, item: ZoteroItem) -> Dict[str, Any]:
-
-
-        # 5. Write to Disk
-        if callback:
-            callback(total_items, total_items, "Writing snapshot to disk...")
-            
-        try:
-            with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(artifact, f, indent=2, ensure_ascii=False)
-            return True
-        except IOError as e:
-            print(f"Error writing snapshot file: {e}", file=sys.stderr)
-            return False
-
-    def _serialize_item(self, item: ZoteroItem) -> Dict[str, Any]:
         """Helper to convert ZoteroItem dataclass to a clean dictionary."""
         # Using implicit __dict__ or manual mapping to ensure control
         return {

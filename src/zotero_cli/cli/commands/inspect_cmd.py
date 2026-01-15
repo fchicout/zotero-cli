@@ -26,7 +26,7 @@ class InspectCommand(BaseCommand):
             return
 
         if args.raw:
-            console.print(json.dumps(item.raw_data, indent=2))
+            print(json.dumps(item.raw_data, indent=2))
             return
 
         console.print(Panel(f"[bold]Title:[/bold] {item.title}\n" \
@@ -34,7 +34,8 @@ class InspectCommand(BaseCommand):
                            f"[bold]Date:[/bold] {item.date}\n" \
                            f"[bold]Authors:[/bold] {', '.join(item.authors)}\n" \
                            f"[bold]DOI:[/bold] {item.doi}\n" \
-                           f"[bold]URL:[/bold] {item.url}",
+                           f"[bold]URL:[/bold] {item.url}\n\n" \
+                           f"[bold]Abstract:[/bold]\n{item.abstract}",
                            title=f"Item: {args.key}"))
         
         # Children (Notes/Attachments)

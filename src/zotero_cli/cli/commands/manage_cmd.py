@@ -140,7 +140,7 @@ class ManageCommand(BaseCommand):
 
     def _handle_move(self, gateway, args):
         service = CollectionService(gateway)
-        if service.move_item(args.item_id, args.source, args.target):
+        if service.move_item(args.source, args.target, args.item_id):
             print(f"Moved item {args.item_id} from {args.source} to {args.target}.")
         else:
             print("Failed to move item.")

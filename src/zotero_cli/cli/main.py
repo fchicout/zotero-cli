@@ -40,8 +40,7 @@ def main():
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
             import traceback
-            # Only show traceback in a "debug" mode if we had one
-            # traceback.print_exc()
+            traceback.print_exc()
             sys.exit(1)
     else:
         parser.print_help()

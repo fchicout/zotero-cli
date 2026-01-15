@@ -84,16 +84,18 @@ class DecideCommand(BaseCommand):
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
         service = ScreeningService(gateway)
         
-        agent = args.persona if args.agent_led else "human"
+        agent_name = args.persona if args.agent_led else "human"
         
         success = service.record_decision(
-            args.key, 
-            args.vote, 
-            agent, 
-            f"[{args.code}] {args.reason or ''}",
-            args.source,
-            args.target,
-            args.phase
+            item_key=args.key,
+            decision=args.vote,
+            code=args.code,
+            reason=args.reason,
+            source_collection=args.source,
+            target_collection=args.target,
+            agent="zotero-cli",
+            persona=agent_name,
+            phase=args.phase
         )
         
         if success:

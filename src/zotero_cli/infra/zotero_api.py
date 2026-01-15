@@ -154,8 +154,14 @@ class ZoteroAPIClient(ZoteroGateway):
             "note": note_content
         }]
         try:
-            self.http.post("items", json_data=payload)
-            return True
+            response = self.http.post("items", json_data=payload)
+            data = response.json()
+            # Zotero bulk API returns 200 even if items fail. Check 'successful' block.
+            if 'successful' in data and data['successful']:
+                return True
+            if 'failed' in data and data['failed']:
+                print(f"Error: Zotero failed to create note for {parent_item_key}. Details: {data['failed']}", file=sys.stderr)
+            return False
         except Exception as e:
             print(f"Error creating note for {parent_item_key}: {e}")
             return False
