@@ -23,9 +23,13 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 
 ## Accomplished Tasks (Session: 2026-01-15)
 
+## Accomplished Tasks (Session: 2026-01-15)
+
 ### Phase 11: Backlog Reconciliation & Systematic Mapping Operations
 *   **[CLOSED] Issue #13 (Docs):** Synchronized all v1.1.0+ commands in `README.md` and `USER_GUIDE.md`. Defined `report snapshot` JSON contracts.
-*   **[FEAT] Issue #20:** Added `--top-only` flag to `list items` command. Implemented `/top` endpoint support in `ZoteroAPIClient`. Achieved 100% test coverage for the feature.
+*   **[CLOSED] Issue #20 (Feat):** Added `--top-only` flag to `list items` command. Implemented `/top` endpoint support in `ZoteroAPIClient`. Achieved 100% test coverage for the feature.
+*   **[CLOSED] Issue #8 (Ops):** Verified and closed `sync-csv` state recovery task.
+*   **[CLEANUP] Repo Hygiene:** Deleted legacy scripts (`recover_screening_state.py`, `transform_inventory.py`), data dumps, and temporary `issue*.md` files.
 *   **[NEW] Quality Tooling:** Implemented `tests/infra/test_doc_consistency.py` to programmatically verify documentation coverage of CLI commands.
 *   **[FIX] Issue #17 (Bug):** Identified and patched argument order bug in `manage move`. Created workaround for `decide` command movement failure.
 *   **[OPS] arXiv Finalization:** Resolved data drift (Set theory violation) in `raw_arXiv`. Generated final audit CSVs for Included (375) and Excluded (173) sets.
