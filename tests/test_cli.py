@@ -383,3 +383,28 @@ def test_config_optional_group(monkeypatch):
     gw = get_zotero_gateway(require_group=False)
     assert gw.http.library_id == "0"
 
+def test_decide_alias_invocation(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.commands.screen_cmd.ScreeningService') as mock_screen_cls:
+        mock_service = mock_screen_cls.return_value
+        mock_service.record_decision.return_value = True
+        test_args = [
+            'zotero-cli', 'd', '--key', 'K1', '--vote', 'INCLUDE', 
+            '--code', 'IC1'
+        ]
+        with patch.object(sys, 'argv', test_args):
+            main()
+        assert "Successfully recorded decision" in capsys.readouterr().out
+
+def test_manage_move_auto_source(mock_clients, env_vars, capsys):
+    with patch('zotero_cli.cli.commands.manage_cmd.CollectionService') as mock_service_cls:
+        mock_service = mock_service_cls.return_value
+        mock_service.move_item.return_value = True
+        # Source not provided
+        test_args = ['zotero-cli', 'manage', 'move', '--item-id', 'I', '--target', 'T']
+        with patch.object(sys, 'argv', test_args):
+            main()
+        
+        # Verify call arguments
+        # Argument order in CollectionService.move_item(source, target, item_id)
+        mock_service.move_item.assert_called_once_with(None, 'T', 'I')
+        assert "Moved item I" in capsys.readouterr().out

@@ -43,7 +43,7 @@ class ManageCommand(BaseCommand):
         # Move
         move_p = sub.add_parser("move", help="Move item")
         move_p.add_argument("--item-id", required=True)
-        move_p.add_argument("--source", required=True)
+        move_p.add_argument("--source", required=False, help="Source collection (optional if item exists)")
         move_p.add_argument("--target", required=True)
         
         # Clean

@@ -143,3 +143,73 @@ def test_empty_collection_parent_not_found(service, mock_gateway):
     count = service.empty_collection("Child", parent_collection_name="MissingParent")
     assert count == 0
     mock_gateway.delete_item.assert_not_called()
+
+# --- Auto-Source Tests ---
+
+def test_move_item_auto_source_success(service, mock_gateway):
+    mock_gateway.get_collection_id_by_name.side_effect = \
+        lambda name: "ID_DEST" if name == "Dest" else None
+    
+    raw_item = {
+        'key': 'KEY1',
+        'data': {
+            'version': 1,
+            'collections': ['ID_SRC'] # Only one source
+        }
+    }
+    item = ZoteroItem.from_raw_zotero_item(raw_item)
+    mock_gateway.get_item.return_value = item
+    mock_gateway.update_item_collections.return_value = True
+
+    # Call with source_col_name=None
+    result = service.move_item(None, "Dest", "KEY1")
+    
+    assert result is True
+    args = mock_gateway.update_item_collections.call_args
+    assert 'ID_DEST' in args[0][2]
+    assert 'ID_SRC' not in args[0][2]
+
+def test_move_item_auto_source_ambiguous(service, mock_gateway):
+    mock_gateway.get_collection_id_by_name.side_effect = \
+        lambda name: "ID_DEST" if name == "Dest" else None
+
+    raw_item = {
+        'key': 'KEY1',
+        'data': {
+            'version': 1,
+            'collections': ['ID_A', 'ID_B'] # Two sources
+        }
+    }
+    item = ZoteroItem.from_raw_zotero_item(raw_item)
+    mock_gateway.get_item.return_value = item
+
+    result = service.move_item(None, "Dest", "KEY1")
+    
+    assert result is False
+    mock_gateway.update_item_collections.assert_not_called()
+
+def test_move_item_auto_source_already_in_dest_only(service, mock_gateway):
+    mock_gateway.get_collection_id_by_name.side_effect = \
+        lambda name: "ID_DEST" if name == "Dest" else None
+    
+    raw_item = {
+        'key': 'KEY1',
+        'data': {
+            'version': 1,
+            'collections': ['ID_DEST'] # Already only in dest
+        }
+    }
+    item = ZoteroItem.from_raw_zotero_item(raw_item)
+    mock_gateway.get_item.return_value = item
+    mock_gateway.update_item_collections.return_value = True
+
+    result = service.move_item(None, "Dest", "KEY1")
+    
+    assert result is True
+    args = mock_gateway.update_item_collections.call_args
+    assert args[0][2] == ['ID_DEST']
+
+def test_move_item_auto_source_not_found(service, mock_gateway):
+    mock_gateway.get_item.return_value = None
+    result = service.move_item(None, "Dest", "MISSING")
+    assert result is False
