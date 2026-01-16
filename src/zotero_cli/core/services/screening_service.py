@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import json
 import sys
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import ItemRepository, CollectionRepository, NoteRepository
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.core.services.collection_service import CollectionService
 
@@ -13,9 +13,15 @@ class ScreeningService:
     Provides the core logic for both CLI 'decision' command and TUI 'screen' mode.
     """
 
-    def __init__(self, gateway: ZoteroGateway):
-        self.gateway = gateway
-        self.collection_service = CollectionService(gateway)
+    def __init__(self, 
+                 item_repo: ItemRepository,
+                 collection_repo: CollectionRepository,
+                 note_repo: NoteRepository,
+                 collection_service: CollectionService):
+        self.item_repo = item_repo
+        self.collection_repo = collection_repo
+        self.note_repo = note_repo
+        self.collection_service = collection_service
 
     def record_decision(
         self,
@@ -57,15 +63,7 @@ class ScreeningService:
         
         note_content = f"<div>{json.dumps(decision_data, indent=2)}</div>"
         
-        # We need a way to create a note in the gateway. 
-        # Checking ZoteroAPIClient for 'create_note' or similar.
-        # It seems we have 'upload_attachment' but not a generic 'create_note' for text.
-        # Wait, I see 'create_item' in zotero_api.py. I might need to add 'create_note'.
-        
-        # Let's add a create_note method to the gateway if it's missing.
-        # I'll check ZoteroAPIClient again.
-        
-        success = self.gateway.create_note(item_key, note_content)
+        success = self.note_repo.create_note(item_key, note_content)
         if not success:
             print(f"Error: Failed to create audit note for item {item_key}.", file=sys.stderr)
             return False
@@ -82,21 +80,23 @@ class ScreeningService:
         """
         Fetches items from a collection that do NOT yet have a screening decision note.
         """
-        col_id = self.gateway.get_collection_id_by_name(collection_name)
+        col_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not col_id:
             return []
         
-        all_items = self.gateway.get_items_in_collection(col_id)
+        all_items = self.collection_repo.get_items_in_collection(col_id)
         pending = []
         
         for item in all_items:
             # Check if item has a decision note
-            children = self.gateway.get_item_children(item.key)
+            children = self.note_repo.get_item_children(item.key)
             has_decision = False
             for child in children:
-                if child.get('itemType') == 'note':
-                    content = child.get('note', '')
-                    if 'screening_decision' in content:
+                # Handle both direct and nested data structures
+                data = child.get('data', child)
+                if data.get('itemType') == 'note':
+                    content = data.get('note', '')
+                    if 'screening_decision' in content or '"decision"' in content:
                         has_decision = True
                         break
             

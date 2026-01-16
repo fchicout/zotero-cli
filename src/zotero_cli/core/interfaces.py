@@ -3,7 +3,66 @@ from typing import Optional, Iterator, List, Dict, Any
 from .models import ResearchPaper, ZoteroQuery
 from .zotero_item import ZoteroItem
 
-class ZoteroGateway(ABC):
+class ItemRepository(ABC):
+    @abstractmethod
+    def get_item(self, item_key: str) -> Optional[ZoteroItem]: pass
+    
+    @abstractmethod
+    def create_item(self, paper: ResearchPaper, collection_id: str) -> bool: pass
+    
+    @abstractmethod
+    def create_generic_item(self, item_data: Dict[str, Any]) -> Optional[str]: pass
+    
+    @abstractmethod
+    def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool: pass
+    
+    @abstractmethod
+    def delete_item(self, item_key: str, version: int) -> bool: pass
+
+class CollectionRepository(ABC):
+    @abstractmethod
+    def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]: pass
+    
+    @abstractmethod
+    def get_collection_id_by_name(self, name: str) -> Optional[str]: pass
+    
+    @abstractmethod
+    def create_collection(self, name: str, parent_key: Optional[str] = None) -> Optional[str]: pass
+    
+    @abstractmethod
+    def delete_collection(self, collection_key: str, version: int) -> bool: pass
+    
+    @abstractmethod
+    def get_all_collections(self) -> List[Dict[str, Any]]: pass
+    
+    @abstractmethod
+    def get_items_in_collection(self, collection_id: str, top_only: bool = False) -> Iterator[ZoteroItem]: pass
+
+class TagRepository(ABC):
+    @abstractmethod
+    def get_tags(self) -> List[str]: pass
+    
+    @abstractmethod
+    def get_tags_for_item(self, item_key: str) -> List[str]: pass
+    
+    @abstractmethod
+    def delete_tags(self, tags: List[str], version: int) -> bool: pass
+
+class NoteRepository(ABC):
+    @abstractmethod
+    def create_note(self, parent_item_key: str, note_content: str) -> bool: pass
+    
+    @abstractmethod
+    def update_note(self, note_key: str, version: int, note_content: str) -> bool: pass
+    
+    @abstractmethod
+    def get_item_children(self, item_key: str) -> List[Dict[str, Any]]: pass
+
+class AttachmentRepository(ABC):
+    @abstractmethod
+    def upload_attachment(self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf") -> bool: pass
+
+class ZoteroGateway(ItemRepository, CollectionRepository, TagRepository, NoteRepository, AttachmentRepository, ABC):
     @abstractmethod
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
         """
@@ -12,24 +71,14 @@ class ZoteroGateway(ABC):
         pass
 
     @abstractmethod
-    def get_tags_for_item(self, item_key: str) -> List[str]:
-        """Retrieves tags for a specific item."""
-        pass
-
-    @abstractmethod
     def get_tags_in_collection(self, collection_key: str) -> List[str]:
         """Retrieves tags assigned to items in a collection."""
         pass
 
     @abstractmethod
-    def delete_tags(self, tags: List[str], version: int) -> bool:
-        """Deletes multiple tags from the library."""
-        pass
-    @abstractmethod
-    def get_collection_id_by_name(self, name: str) -> Optional[str]:
+    def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
         """
-        Retrieves the ID of a Zotero collection by its name.
-        Returns the collection ID if found, otherwise None.
+        Retrieves all items with a specific tag.
         """
         pass
 
@@ -37,13 +86,6 @@ class ZoteroGateway(ABC):
     def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:
         """
         Retrieves all groups a user belongs to.
-        """
-        pass
-
-    @abstractmethod
-    def get_all_collections(self) -> List[Dict[str, Any]]:
-        """
-        Retrieves all collections in the library.
         """
         pass
 
@@ -68,57 +110,9 @@ class ZoteroGateway(ABC):
         pass
 
     @abstractmethod
-    def create_collection(self, name: str, parent_key: Optional[str] = None) -> Optional[str]:
-        """
-        Creates a new Zotero collection with the given name.
-        Returns the new collection ID if successful, otherwise None.
-        """
-        pass
-
-    @abstractmethod
-    def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
-        """
-        Retrieves a collection object by key.
-        """
-        pass
-
-    @abstractmethod
-    def delete_collection(self, collection_key: str, version: int) -> bool:
-        """
-        Deletes a collection by key.
-        Returns True on success.
-        """
-        pass
-
-    @abstractmethod
     def rename_collection(self, collection_key: str, version: int, name: str) -> bool:
         """
         Renames a collection.
-        Returns True on success.
-        """
-        pass
-
-    @abstractmethod
-    def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
-        """
-        Creates a new Zotero item based on the provided ResearchPaper data
-        and adds it to the specified collection.
-        Returns True on success, False otherwise.
-        """
-        pass
-
-    @abstractmethod
-    def create_generic_item(self, item_data: Dict[str, Any]) -> Optional[str]:
-        """
-        Creates a new item with raw dictionary data.
-        Returns the new Item Key if successful.
-        """
-        pass
-
-    @abstractmethod
-    def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool:
-        """
-        Updates an item with raw dictionary data (PATCH).
         Returns True on success.
         """
         pass
@@ -137,75 +131,6 @@ class ZoteroGateway(ABC):
         """
         Updates specific metadata fields of an item.
         Requires item_key, current version, and a dictionary of fields to update.
-        Returns True on success, False otherwise.
-        """
-        pass
-
-    @abstractmethod
-    def get_items_in_collection(self, collection_id: str) -> Iterator[ZoteroItem]:
-        """
-        Retrieves all items in a specified collection.
-        """
-        pass
-
-    @abstractmethod
-    def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
-        """
-        Retrieves child items (like attachments) for a given item.
-        """
-        pass
-
-    @abstractmethod
-    def get_tags(self) -> List[str]:
-        """
-        Retrieves all unique tags in the library.
-        """
-        pass
-
-    @abstractmethod
-    def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
-        """
-        Retrieves all items with a specific tag.
-        """
-        pass
-
-    @abstractmethod
-    def get_item(self, item_key: str) -> Optional[ZoteroItem]:
-        """
-        Retrieves a single item by its key.
-        """
-        pass
-
-    @abstractmethod
-    def delete_item(self, item_key: str, version: int) -> bool:
-        """
-        Deletes an item from the library.
-        Requires item_key and current version.
-        Returns True on success, False otherwise.
-        """
-        pass
-
-    @abstractmethod
-    def upload_attachment(self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf") -> bool:
-        """
-        Uploads a file as an attachment to a parent item.
-        Handles the Zotero 3-step upload process.
-        """
-        pass
-
-    @abstractmethod
-    def create_note(self, parent_item_key: str, note_content: str) -> bool:
-        """
-        Creates a child note for a parent item.
-        'note_content' should be HTML.
-        Returns True on success, False otherwise.
-        """
-        pass
-
-    @abstractmethod
-    def update_note(self, note_key: str, version: int, note_content: str) -> bool:
-        """
-        Updates an existing note.
         Returns True on success, False otherwise.
         """
         pass

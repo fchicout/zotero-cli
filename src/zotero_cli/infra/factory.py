@@ -63,6 +63,30 @@ class GatewayFactory:
         return ZoteroAPIClient(api_key, library_id, library_type)
 
     @staticmethod
+    def get_item_repository(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> 'ItemRepository':
+        from zotero_cli.infra.repositories import ZoteroItemRepository
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user)
+        return ZoteroItemRepository(gateway)
+
+    @staticmethod
+    def get_collection_repository(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> 'CollectionRepository':
+        from zotero_cli.infra.repositories import ZoteroCollectionRepository
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user)
+        return ZoteroCollectionRepository(gateway)
+
+    @staticmethod
+    def get_tag_repository(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> 'TagRepository':
+        from zotero_cli.infra.repositories import ZoteroTagRepository
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user)
+        return ZoteroTagRepository(gateway)
+
+    @staticmethod
+    def get_note_repository(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> 'NoteRepository':
+        from zotero_cli.infra.repositories import ZoteroNoteRepository
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user)
+        return ZoteroNoteRepository(gateway)
+
+    @staticmethod
     def get_metadata_aggregator(config: Optional[ZoteroConfig] = None):
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
@@ -88,11 +112,40 @@ class GatewayFactory:
             from zotero_cli.core.config import get_config as main_get_config
             config = main_get_config()
 
-        gateway = GatewayFactory.get_zotero_gateway(config, force_user)
+        item_repo = GatewayFactory.get_item_repository(config, force_user)
+        col_repo = GatewayFactory.get_collection_repository(config, force_user)
+        att_repo = GatewayFactory.get_item_repository(config, force_user) # It also implements AttachmentRepository for now
+        note_repo = GatewayFactory.get_note_repository(config, force_user)
         aggregator = GatewayFactory.get_metadata_aggregator(config)
         
         from zotero_cli.core.services.attachment_service import AttachmentService
-        return AttachmentService(gateway, aggregator)
+        return AttachmentService(item_repo, col_repo, att_repo, note_repo, aggregator)
+
+    @staticmethod
+    def get_collection_service(config: Optional[ZoteroConfig] = None, force_user: bool = False):
+        if not config:
+            from zotero_cli.core.config import get_config as main_get_config
+            config = main_get_config()
+
+        item_repo = GatewayFactory.get_item_repository(config, force_user)
+        col_repo = GatewayFactory.get_collection_repository(config, force_user)
+        
+        from zotero_cli.core.services.collection_service import CollectionService
+        return CollectionService(item_repo, col_repo)
+
+    @staticmethod
+    def get_screening_service(config: Optional[ZoteroConfig] = None, force_user: bool = False):
+        if not config:
+            from zotero_cli.core.config import get_config as main_get_config
+            config = main_get_config()
+
+        item_repo = GatewayFactory.get_item_repository(config, force_user)
+        col_repo = GatewayFactory.get_collection_repository(config, force_user)
+        note_repo = GatewayFactory.get_note_repository(config, force_user)
+        col_service = GatewayFactory.get_collection_service(config, force_user)
+        
+        from zotero_cli.core.services.screening_service import ScreeningService
+        return ScreeningService(item_repo, col_repo, note_repo, col_service)
 
     @staticmethod
     def get_paper_importer(config: Optional[ZoteroConfig] = None, force_user: bool = False):

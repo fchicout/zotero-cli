@@ -17,33 +17,37 @@ class DuplicateFinder:
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
 
-    def find_duplicates(self, collection_names: List[str]) -> List[DuplicateGroup]:
+    def find_duplicates(self, collection_ids: List[str]) -> List[dict]:
         all_items_by_identifier = defaultdict(list)
         
-        for col_name in collection_names:
-            col_id = self.gateway.get_collection_id_by_name(col_name)
-            if not col_id:
-                print(f"Warning: Collection '{col_name}' not found. Skipping.")
+        for col_id in collection_ids:
+            # col_id is already expected to be a Zotero Key/ID
+            items = list(self.gateway.get_items_in_collection(col_id))
+            if not items and not self.gateway.get_collection(col_id):
+                print(f"Warning: Collection '{col_id}' not found or empty. Skipping.")
                 continue
             
-            for item in self.gateway.get_items_in_collection(col_id):
+            for item in items:
                 normalized_doi = self._normalize_doi(item.doi) if item.doi else None
+                normalized_arxiv = item.arxiv_id.strip().lower() if item.arxiv_id else None
                 normalized_title = self._normalize_title(item.title) if item.title else None
                 
                 if normalized_doi:
                     all_items_by_identifier[("doi", normalized_doi)].append(item)
+                elif normalized_arxiv:
+                    all_items_by_identifier[("arxiv", normalized_arxiv)].append(item)
                 elif normalized_title:
                     all_items_by_identifier[("title", normalized_title)].append(item)
-                # Items without DOI or title are not considered for this type of duplication check
 
-        duplicate_groups = []
+        duplicates = []
         for (id_type, identifier_value), items in all_items_by_identifier.items():
             if len(items) > 1:
-                duplicate_groups.append(DuplicateGroup(
-                    identifier_key=f"{id_type.upper()}: {identifier_value}", 
-                    items=items
-                ))
-        return duplicate_groups
+                duplicates.append({
+                    'title': items[0].title,
+                    'doi': items[0].doi,
+                    'keys': [i.key for i in items]
+                })
+        return duplicates
 
     def _normalize_doi(self, doi: str) -> str:
         return doi.strip().lower()

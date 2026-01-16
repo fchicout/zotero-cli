@@ -3,64 +3,87 @@ import os
 import requests
 import tempfile
 import shutil
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import (
+    ItemRepository, CollectionRepository, AttachmentRepository, NoteRepository
+)
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
 class AttachmentService:
-    def __init__(self, zotero_gateway: ZoteroGateway, metadata_aggregator: MetadataAggregatorService):
-        self.zotero_gateway = zotero_gateway
+    def __init__(self, 
+                 item_repo: ItemRepository,
+                 collection_repo: CollectionRepository,
+                 attachment_repo: AttachmentRepository,
+                 note_repo: NoteRepository,
+                 metadata_aggregator: MetadataAggregatorService):
+        self.item_repo = item_repo
+        self.collection_repo = collection_repo
+        self.attachment_repo = attachment_repo
+        self.note_repo = note_repo
         self.metadata_aggregator = metadata_aggregator
 
     def attach_pdfs_to_collection(self, collection_name: str) -> int:
-        col_id = self.zotero_gateway.get_collection_id_by_name(collection_name)
+        col_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not col_id:
             print(f"Collection '{collection_name}' not found.")
             return 0
 
         success_count = 0
-        items = self.zotero_gateway.get_items_in_collection(col_id)
+        items = self.collection_repo.get_items_in_collection(col_id)
         
         for item in items:
-            # 1. Check if item needs PDF
-            if self._has_pdf_attachment(item.key):
-                continue
-            
-            identifier = item.doi or item.arxiv_id
-            if not identifier:
-                continue
-
-            print(f"Checking PDF for: {item.title} ({identifier})")
-
-            # 2. Get Metadata (PDF URL)
-            enriched = self.metadata_aggregator.get_enriched_metadata(identifier)
-            if not enriched or not enriched.pdf_url:
-                print("  No PDF URL found.")
-                continue
-
-            print(f"  Found PDF URL: {enriched.pdf_url}")
-
-            # 3. Download
-            pdf_path = self._download_file(enriched.pdf_url)
-            if not pdf_path:
-                print("  Failed to download PDF.")
-                continue
-
-            # 4. Upload
-            print("  Uploading to Zotero...")
-            if self.zotero_gateway.upload_attachment(item.key, pdf_path):
-                print("  Success!")
+            if self.attach_pdf_to_item(item.key):
                 success_count += 1
-            else:
-                print("  Upload failed.")
-            
-            # Cleanup
-            if os.path.exists(pdf_path):
-                os.remove(pdf_path)
-
+        
         return success_count
 
+    def attach_pdf_to_item(self, item_key: str) -> bool:
+        """Attempts to find and attach a PDF to a single item."""
+        # 1. Check if item exists and already has PDF
+        item = self.item_repo.get_item(item_key)
+        if not item:
+            print(f"Item '{item_key}' not found.")
+            return False
+
+        if self._has_pdf_attachment(item_key):
+            return False
+        
+        identifier = item.doi or item.arxiv_id
+        if not identifier:
+            return False
+
+        print(f"Checking PDF for: {item.title} ({identifier})")
+
+        # 2. Get Metadata (PDF URL)
+        enriched = self.metadata_aggregator.get_enriched_metadata(identifier)
+        if not enriched or not enriched.pdf_url:
+            print("  No PDF URL found.")
+            return False
+
+        print(f"  Found PDF URL: {enriched.pdf_url}")
+
+        # 3. Download
+        pdf_path = self._download_file(enriched.pdf_url)
+        if not pdf_path:
+            print("  Failed to download PDF.")
+            return False
+
+        # 4. Upload
+        print("  Uploading to Zotero...")
+        success = self.attachment_repo.upload_attachment(item_key, pdf_path)
+        
+        # Cleanup
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+            
+        if success:
+            print("  Success!")
+        else:
+            print("  Upload failed.")
+            
+        return success
+
     def _has_pdf_attachment(self, item_key: str) -> bool:
-        children = self.zotero_gateway.get_item_children(item_key)
+        children = self.note_repo.get_item_children(item_key)
         for child in children:
             if child.get('data', {}).get('itemType') == 'attachment' and \
                child.get('data', {}).get('linkMode') == 'imported_file' and \
