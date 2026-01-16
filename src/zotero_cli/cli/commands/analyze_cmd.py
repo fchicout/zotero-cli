@@ -60,9 +60,9 @@ class AnalyzeCommand(BaseCommand):
         with open(args.new, 'r') as f:
             new_data = json.load(f)
             snap_new = new_data.get('items', new_data) if isinstance(new_data, dict) else new_data
-            
+
         shifts = service.detect_shifts(snap_old, snap_new)
-        
+
         if not shifts:
             console.print("[bold green]No shifts detected. State is stable.[/bold green]")
             return

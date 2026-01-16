@@ -17,7 +17,8 @@ class ArxivQueryParser:
     """
 
     def parse(self, query_str: str) -> ArxivSearchParams:
-        params = {
+        from typing import Any
+        params: Dict[str, Any] = {
             'max_results': 100,
             'sort_by': 'relevance',
             'sort_order': 'descending'

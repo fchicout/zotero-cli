@@ -1,5 +1,5 @@
 import sys
-from typing import Optional, List, Set
+from typing import Optional, Set
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -25,9 +25,9 @@ class CollectionService:
         if not item:
             # Try slow lookup if key failed (only if source is provided, otherwise we can't search in it)
             if source_col_name:
-                 source_id = self.collection_repo.get_collection_id_by_name(source_col_name) or source_col_name
+                 lookup_source_id = self.collection_repo.get_collection_id_by_name(source_col_name) or source_col_name
                  print(f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'...")
-                 found_items = list(self.collection_repo.get_items_in_collection(source_id))
+                 found_items = list(self.collection_repo.get_items_in_collection(lookup_source_id))
                  for i in found_items:
                      if self._is_match(i, identifier):
                          item = i
@@ -38,7 +38,7 @@ class CollectionService:
                 return False
 
         # Resolve Source ID
-        source_id = None
+        source_id: Optional[str] = None
         if source_col_name:
             source_id = self.collection_repo.get_collection_id_by_name(source_col_name)
             if not source_id:
@@ -119,23 +119,25 @@ class CollectionService:
         """
         primary_id = self.collection_repo.get_collection_id_by_name(primary_col) or primary_col
         secondary_id = self.collection_repo.get_collection_id_by_name(secondary_col) or secondary_col
-        
+
         # 1. Map Identifiers in Primary
         primary_identifiers: Set[str] = set()
         primary_keys: Set[str] = set()
-        
+
         for item in self.collection_repo.get_items_in_collection(primary_id):
             primary_keys.add(item.key)
-            if item.doi: primary_identifiers.add(self._normalize_id(item.doi))
-            if item.arxiv_id: primary_identifiers.add(self._normalize_id(item.arxiv_id))
-            
+            if item.doi:
+                primary_identifiers.add(self._normalize_id(item.doi))
+            if item.arxiv_id:
+                primary_identifiers.add(self._normalize_id(item.arxiv_id))
+
         # 2. Iterate Secondary and Check for matches
         secondary_items = list(self.collection_repo.get_items_in_collection(secondary_id))
-        
+
         pruned_count = 0
         for item in secondary_items:
             is_duplicate = False
-            
+
             # Match by Key (Shared object)
             if item.key in primary_keys:
                 is_duplicate = True
@@ -145,7 +147,7 @@ class CollectionService:
             # Match by ArXiv
             elif item.arxiv_id and self._normalize_id(item.arxiv_id) in primary_identifiers:
                 is_duplicate = True
-                
+
             if is_duplicate:
                 # ACTION: Remove from secondary
                 if item.key in primary_keys:
@@ -159,5 +161,5 @@ class CollectionService:
                     # Different object (Duplicate import) -> Delete secondary item entirely
                     if self.item_repo.delete_item(item.key, item.version):
                         pruned_count += 1
-                        
+
         return pruned_count

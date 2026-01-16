@@ -27,42 +27,28 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 
 **Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`.
 
-## Accomplished Tasks (Session: 2026-01-16)
+## Accomplishments (Session: 2026-01-16)
 
-### Phase 11: Backlog Reconciliation & Systematic Mapping Operations
-*   **[CLOSED] Issue #19 (Feat):** Implemented `report screening` command. Generates full Markdown reports with PRISMA statistics and Mermaid diagrams.
-*   **[CLOSED] Issue #24 (Arch):** Implemented Full CRUD Repository Pattern. Split monolithic gateway into specialized repositories (Item, Collection, Tag, Note, Attachment).
-*   **[CLOSED] Issue #18 (Feat):** Implemented `review audit` command. Detects items missing DOI, PDFs, or SDB v1.1 screening notes. Integrated into the new Pre-Flight Protocol. (Assigned to: fchicout).
-*   **[NEW] Pre-Flight Protocol:** Formalized `tests/integration/test_slr_workflow.py` as a mandatory E2E regression suite (Iron Gauntlet).
-*   **[ARCHITECTURAL PURGE] v2.0 Transition:**
-    *   Removed `handle_legacy_routing`.
-    *   Deleted `manage_cmd.py` and `maint_cmd.py` (Functionality re-homed to Noun-Verb structure).
-    *   Modularized documentation in `docs/commands/`.
-*   **[FIX] PDF Upload:** Resolved 400 error in attachment registration by aligning with Zotero v3 API specs.
-*   **[FIX] Duplicate Detection:** Refactored `DuplicateFinder` to use IDs and added arXiv ID as a definitive match criteria.
-*   **[CLOSED] Issue #13 (Docs):** Synchronized all v1.1.0+ commands in `README.md` and `USER_GUIDE.md`. Defined `report snapshot` JSON contracts.
-*   **[CLOSED] Issue #20 (Feat):** Added `--top-only` flag to `list items` command. Implemented `/top` endpoint support in `ZoteroAPIClient`. Achieved 100% test coverage for the feature.
-*   **[CLOSED] Issue #8 (Ops):** Verified and closed `sync-csv` state recovery task.
-*   **[CLEANUP] Repo Hygiene:** Deleted legacy scripts (`recover_screening_state.py`, `transform_inventory.py`), data dumps, and temporary `issue*.md` files.
-*   **[NEW] Quality Tooling:** Implemented `tests/infra/test_doc_consistency.py` to programmatically verify documentation coverage of CLI commands.
-*   **[FIX] Issue #17 (Bug):** Fully refactored `ScreeningService` to delegate item movement to `CollectionService`, resolving the `decide` command failure and removing code duplication (PR #22).
-*   **[CLOSED] Issue #21 (UX):** Implemented `decide` alias (`zotero-cli d`) and strict auto-source inference for item movement. Logic fails safely on ambiguity (PR #23).
-*   **[OPS] arXiv Finalization:** Resolved data drift (Set theory violation) in `raw_arXiv`. Generated final audit CSVs for Included (375) and Excluded (173) sets.
-*   **OPS] ScienceDirect Finalization:** Successfully reconciled 1379 items. Recovered 33 audit notes and adjusted 7 items to 'Included' based on re-evaluation.
-*   **[FIX] CLI Robustness:** Hardened `sync-csv` and `inspect` command to handle items with null titles or non-JSON notes gracefully.
-*   **[FEAT] Report Dashboard:** Implemented `report status` with Rich progress bars and stats table (Issue #12).
-*   **[UX] Decide Presets:** Added `--short-paper`, `--not-english`, `--is-survey`, `--no-pdf` flags to `decide` command for rapid screening.
-*   **[REFACTOR] CLI Structure:** Registered `screen` and `decide` as top-level commands for better ergonomics.
+### Phase 12: The Golden Path Implementation
+*   **[PROCESS] Establishment of Golden Path v2.1:** Codified in `docs/PROCESS.md`. Mandatory Quad-Gate (Ruff/Mypy/Unit/E2E).
+*   **[CLOSED] Issue #16 (Feat):** Implemented TUI Fast-Skip. Uses tag matching (`rsl:phase:*`) to bypass already-screened items. Verified via Real-API E2E.
+*   **[CLOSED] Issue #27 (Feat):** Implemented System Backup/Restore. Supports full library and scoped collection backup to `.zaf` (LZMA compressed ZIP).
+*   **[CLOSED] Issue #15 (Arch):** Standardized CSV Schema. Implemented Canonical Research CSV mapping for IEEE, Springer, and BibTeX. Added `system normalize` command.
+*   **[CLOSED] Issue #14 (Ops):** Implemented `review prune`. Enforces mutual exclusivity between Included/Excluded sets using robust DOI/arXiv matching.
+*   **[CLOSED] Issue #9 (Ops):** Implemented `analyze shift`. Detects collection drift between snapshots.
+*   **[QUALITY] Zero Mypy Tolerance:** Resolved ALL logic errors and warnings in source code. Achieved 100% Green Mypy report.
+*   **[BUGFIX] CLI Registration:** Resolved critical issue where Noun commands (`import`, `system`, `collection`) were not registering due to missing imports in `main.py` and missing decorators.
+*   **[VERIFICATION] Iron Gauntlet:** All 21 tests (Unit + Real-API E2E) passed successfully.
 
 ## Current State
 
-*   **Version:** `v2.0.0-dev`
-*   **Research (ScienceDirect):** 1379/1379 items screened and verified.
-*   **Research (arXiv):** 100% Finalized and Synced.
-*   **Quality:** 100% Test Pass (216 tests + Expanded Iron Gauntlet E2E). Coverage: 81%.
-*   **Status:** Pre-Release (Gate: Clear GitHub Issue Backlog).
+*   **Version:** `v2.0.0-rc1` (Release Candidate)
+*   **Quality:** 100% Test Pass. Zero Mypy Errors. Zero Ruff Errors.
+*   **Coverage Crisis:** Total coverage dropped from **81% to 34%**.
+    *   *Root Cause (Suspected):* The "Deep Clean" included legacy files (`infra/zotero_api.py`, `client.py`, `repositories.py`) in the calculation. These were previously hidden or excluded.
+*   **Status:** **HALTED.** Coverage regression investigation required before v2.0.0 Final.
 
-## Backlog (Prioritized)
-*   **Issue #27 (Feat):** Implement `system backup/restore` using `.zaf`.
-*   **Issue #3 (Infra):** Implement Quality Gates (ruff/mypy) in CI.
-*   **Issue #16 (Feat):** Refine TUI to skip items with existing SDB notes (v1.1 verification).
+## Next Actions (Immediate)
+1.  **Coverage Audit:** Identify why coverage plummeted. Check if previous 81% was scoped only to `core/`.
+2.  **Test Expansion:** Increase unit/integration tests for legacy `infra/` and `client.py` methods.
+3.  **Final Release:** Bump version to `2.0.0` and tag once Coverage is restored/explained.

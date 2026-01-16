@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -31,7 +31,7 @@ class ZoteroQuery:
     direction: Optional[str] = "desc" # 'asc' or 'desc'
 
     def to_params(self) -> dict:
-        params = {}
+        params: Dict[str, Any] = {}
         if self.q:
             params['q'] = self.q
         if self.qmode:

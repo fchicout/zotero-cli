@@ -51,6 +51,7 @@ class SystemCommand(BaseCommand):
 
     def _handle_normalize(self, args):
         import os
+        from typing import Any
 
         from zotero_cli.core.strategies import (
             BibtexImportStrategy,
@@ -64,7 +65,6 @@ class SystemCommand(BaseCommand):
         from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
         from zotero_cli.infra.ris_lib import RisLibGateway
         from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
-        from typing import Any
 
         ext = os.path.splitext(args.file)[1].lower()
         strategy: Any = None

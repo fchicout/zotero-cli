@@ -124,13 +124,18 @@ class PaperImporterClient:
         items = self.zotero_gateway.get_items_in_collection(col_id)
         count = 0
         for item in items:
-            children = self.zotero_gateway.get_item_children(item.key)
-            for child in children:
-                if child.get('data', {}).get('itemType') == 'attachment':
-                    if self.zotero_gateway.delete_item(child['key'], child['version']):
-                        count += 1
-                        if verbose:
-                            print(f"Removed attachment: {child['key']}")
+            count += self.remove_attachments_from_item(item.key, verbose)
+        return count
+
+    def remove_attachments_from_item(self, item_key: str, verbose: bool = False) -> int:
+        children = self.zotero_gateway.get_item_children(item_key)
+        count = 0
+        for child in children:
+            if child.get('data', {}).get('itemType') == 'attachment':
+                if self.zotero_gateway.delete_item(child['key'], child['version']):
+                    count += 1
+                    if verbose:
+                        print(f"Removed attachment: {child['key']}")
         return count
 
     def attach_missing_pdfs(self, folder_name: str) -> int:

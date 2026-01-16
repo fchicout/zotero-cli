@@ -16,7 +16,7 @@ class BibtexLibGateway(BibtexGateway):
                 yield self._map_entry_to_paper(entry)
         except Exception as e:
             print(f"Error parsing BibTeX file: {e}")
-            return iter([])
+            return
 
     def _map_entry_to_paper(self, entry: dict) -> ResearchPaper:
         # Authors: "Smith, John and Doe, Jane"

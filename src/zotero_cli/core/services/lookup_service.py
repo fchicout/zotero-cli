@@ -67,6 +67,7 @@ class LookupService:
         """Extracts requested fields from a ZoteroItem."""
         row = {}
         for field in fields:
+            val: Any = None
             if field == "authors":
                 val = ", ".join(item.authors) if item.authors else ""
             else:

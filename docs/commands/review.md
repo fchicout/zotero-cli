@@ -75,6 +75,21 @@ zotero-cli review migrate --collection "My Review"
 
 ---
 
+### `prune`
+Enforce mutual exclusivity between the **Included** and **Excluded** collections.
+Uses DOI and arXiv ID matching to detect duplicates across collections. Items found in both will be removed from the **Excluded** collection.
+
+**Usage:**
+```bash
+zotero-cli review prune --included "My Included" --excluded "My Excluded"
+```
+
+**Parameters:**
+*   `--included`: (Required) The primary collection (Set A).
+*   `--excluded`: (Required) The secondary collection (Set B).
+
+---
+
 ### `sync-csv`
 Recover or synchronize a local CSV state file from Zotero screening notes. Useful for restoring a lost `.csv` state from the Source of Truth (Zotero).
 

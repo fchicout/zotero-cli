@@ -50,12 +50,13 @@ class ImportCommand(BaseCommand):
             BibtexImportStrategy,
             CanonicalCsvImportStrategy,
             IeeeCsvImportStrategy,
+            ImportStrategy,
             RisImportStrategy,
             SpringerCsvImportStrategy,
         )
 
         ext = os.path.splitext(args.file)[1].lower()
-        strategy = None
+        strategy: ImportStrategy | None = None
 
         if ext == '.bib':
             strategy = BibtexImportStrategy(client.bibtex_gateway)

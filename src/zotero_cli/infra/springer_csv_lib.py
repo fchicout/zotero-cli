@@ -14,10 +14,10 @@ class SpringerCsvLibGateway(SpringerCsvGateway):
                     yield self._map_row_to_paper(row)
         except FileNotFoundError:
             print(f"Error: Springer CSV file '{file_path}' not found.")
-            return iter([])
+            return
         except Exception as e:
             print(f"Error parsing Springer CSV file: {e}")
-            return iter([])
+            return
 
     def _map_row_to_paper(self, row: dict) -> ResearchPaper:
         title = row.get('Item Title', 'No Title')

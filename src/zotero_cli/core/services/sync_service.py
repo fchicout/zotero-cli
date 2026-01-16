@@ -1,7 +1,7 @@
 import csv
 import json
 import sys
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -78,44 +78,36 @@ class SyncService:
 
                     row = {
                         "key": item.key,
-                        "title": item.title,
+                        "title": item.title or "No Title",
                         "decision": screening_data.get("decision", "unknown"),
-                        "reason": reason_val,
+                        "reason": str(reason_val),
                         "criteria": ",".join(criteria_val) if isinstance(criteria_val, list) else str(criteria_val),
                         "timestamp": screening_data.get("timestamp", "")
                     }
                     recovered_rows.append(row)
             except Exception as e:
                 print(f"\n[ERROR] Failed on item {item.key}: {e}", file=sys.stderr)
-                import traceback
-                traceback.print_exc()
 
         # 4. Write CSV
-        if callback:
-            callback(total, total, f"Writing {len(recovered_rows)} records to {output_csv_path}...")
+        if not recovered_rows:
+            print(f"\nWarning: No screening notes found in '{collection_name}'.", file=sys.stderr)
+            return True
 
         try:
-            with open(output_csv_path, 'w', newline='', encoding='utf-8') as csvfile:
-                fieldnames = ['key', 'title', 'decision', 'reason', 'criteria', 'timestamp']
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
+            with open(output_csv_path, 'w', encoding='utf-8', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=["key", "title", "decision", "reason", "criteria", "timestamp"])
                 writer.writeheader()
-                for row in recovered_rows:
-                    writer.writerow(row)
+                writer.writerows(recovered_rows)
             return True
-        except IOError as e:
-            print(f"Error writing CSV: {e}", file=sys.stderr)
+        except Exception as e:
+            print(f"Error writing CSV file: {e}", file=sys.stderr)
             return False
 
-    def _extract_screening_data(self, item: ZoteroItem) -> Optional[Dict]:
-        """
-        Helper to find and parse the JSON note attached to an item.
-        Strictly looks for notes conforming to the SDB schema (must have 'audit_version' or 'action').
-        """
+    def _extract_screening_data(self, item: ZoteroItem) -> Optional[Dict[str, Any]]:
+        """Helper to find and parse the screening decision note for an item."""
         try:
             children = self.gateway.get_item_children(item.key)
         except Exception as e:
-            # If fetching children fails, log warning and skip
             print(f"Warning: Failed to fetch children for {item.key}: {e}", file=sys.stderr)
             return None
 
@@ -131,18 +123,15 @@ class SyncService:
                 if start != -1 and end != -1:
                     try:
                         candidate_json = note_content[start:end]
-                        # Clean simple HTML entities if necessary (Zotero often wraps in <p> or <pre>)
-                        # This is a naive cleaner, but effective for the tool's own output
+                        # Clean simple HTML entities
                         candidate_json = candidate_json.replace('<br>', '').replace('</p>', '').replace('<p>', '')
 
-                        data = json.loads(candidate_json)
+                        data = cast(Dict[str, Any], json.loads(candidate_json))
 
-                        # Heuristic 2: Validation (Is this OUR note?)
-                        # We look for specific keys defined in our SDB spec
+                        # Heuristic 2: Validation
                         if "audit_version" in data or data.get("action") == "screening_decision":
                             return data
 
                     except json.JSONDecodeError:
-                        # Not a valid JSON note, likely a human note. Ignore.
                         continue
         return None

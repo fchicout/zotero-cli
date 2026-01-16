@@ -96,6 +96,10 @@ class IeeeCsvGateway(ABC):
     @abstractmethod
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]: pass
 
+class CanonicalCsvGateway(ABC):
+    @abstractmethod
+    def parse_file(self, file_path: str) -> Iterator[ResearchPaper]: pass
+
 class ZoteroGateway(ItemRepository, CollectionRepository, TagRepository, NoteRepository, AttachmentRepository):
     """
     Unified Gateway interface for Zotero API.

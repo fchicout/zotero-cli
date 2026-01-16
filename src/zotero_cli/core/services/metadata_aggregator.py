@@ -47,7 +47,7 @@ class MetadataAggregatorService:
         base = ResearchPaper(title="", abstract="")
 
         # 1. Initialize sets for merging collections
-        all_authors = []
+        all_authors: List[str] = []
         all_references = set()
 
         best_title = ""

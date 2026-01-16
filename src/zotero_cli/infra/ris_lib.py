@@ -17,7 +17,7 @@ class RisLibGateway(RisGateway):
                 yield self._map_entry_to_paper(entry)
         except Exception as e:
             print(f"Error parsing RIS file: {e}")
-            return iter([])
+            return
 
     def _map_entry_to_paper(self, entry: dict) -> ResearchPaper:
         # rispy maps tags to human-readable keys

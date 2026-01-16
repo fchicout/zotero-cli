@@ -1,8 +1,7 @@
 import re
 import sys
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from zotero_cli.client import PaperImporterClient
 from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.interfaces import (
     CollectionRepository,
@@ -21,6 +20,12 @@ from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
 from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
+if TYPE_CHECKING:
+    from zotero_cli.client import PaperImporterClient
+    from zotero_cli.core.services.attachment_service import AttachmentService
+    from zotero_cli.core.services.collection_service import CollectionService
+    from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+    from zotero_cli.core.services.screening_service import ScreeningService
 
 class GatewayFactory:
     """
@@ -93,7 +98,13 @@ class GatewayFactory:
         return ZoteroNoteRepository(gateway)
 
     @staticmethod
-    def get_metadata_aggregator(config: Optional[ZoteroConfig] = None):
+    def get_attachment_repository(config: Optional[ZoteroConfig] = None, force_user: bool = False):
+        from zotero_cli.infra.repositories import ZoteroAttachmentRepository
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user)
+        return ZoteroAttachmentRepository(gateway)
+
+    @staticmethod
+    def get_metadata_aggregator(config: Optional[ZoteroConfig] = None) -> "MetadataAggregatorService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
             config = main_get_config()
@@ -113,14 +124,14 @@ class GatewayFactory:
         return aggregator
 
     @staticmethod
-    def get_attachment_service(config: Optional[ZoteroConfig] = None, force_user: bool = False):
+    def get_attachment_service(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> "AttachmentService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
             config = main_get_config()
 
         item_repo = GatewayFactory.get_item_repository(config, force_user)
         col_repo = GatewayFactory.get_collection_repository(config, force_user)
-        att_repo = GatewayFactory.get_item_repository(config, force_user) # It also implements AttachmentRepository for now
+        att_repo = GatewayFactory.get_attachment_repository(config, force_user)
         note_repo = GatewayFactory.get_note_repository(config, force_user)
         aggregator = GatewayFactory.get_metadata_aggregator(config)
 
@@ -128,7 +139,7 @@ class GatewayFactory:
         return AttachmentService(item_repo, col_repo, att_repo, note_repo, aggregator)
 
     @staticmethod
-    def get_collection_service(config: Optional[ZoteroConfig] = None, force_user: bool = False):
+    def get_collection_service(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> "CollectionService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
             config = main_get_config()
@@ -140,7 +151,7 @@ class GatewayFactory:
         return CollectionService(item_repo, col_repo)
 
     @staticmethod
-    def get_screening_service(config: Optional[ZoteroConfig] = None, force_user: bool = False):
+    def get_screening_service(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> "ScreeningService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
             config = main_get_config()
@@ -155,7 +166,7 @@ class GatewayFactory:
         return ScreeningService(item_repo, col_repo, note_repo, tag_repo, col_service)
 
     @staticmethod
-    def get_paper_importer(config: Optional[ZoteroConfig] = None, force_user: bool = False):
+    def get_paper_importer(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> "PaperImporterClient":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
             config = main_get_config()
@@ -171,6 +182,7 @@ class GatewayFactory:
         ieee_csv_gateway = IeeeCsvLibGateway()
         canonical_csv_gateway = CanonicalCsvLibGateway()
 
+        from zotero_cli.client import PaperImporterClient
         return PaperImporterClient(
             zotero_gateway,
             arxiv_gateway,

@@ -69,6 +69,7 @@ class ConfigLoader:
         )
 
     def _load_from_file(self) -> Dict[str, Any]:
+        from typing import cast
         if not self.config_path.exists():
             return {}
 
@@ -76,7 +77,7 @@ class ConfigLoader:
             with open(self.config_path, "rb") as f:
                 data = tomllib.load(f)
                 # Expecting a [zotero] section
-                return data.get("zotero", {})
+                return cast(Dict[str, Any], data.get("zotero", {}))
         except Exception as e:
             print(f"Warning: Failed to load config file {self.config_path}: {e}")
             return {}

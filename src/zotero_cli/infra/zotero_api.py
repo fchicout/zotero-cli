@@ -1,6 +1,6 @@
 import hashlib
 import os
-from typing import Any, Callable, Dict, Iterator, List, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional, TypeVar, cast
 
 import requests
 
@@ -9,6 +9,7 @@ from zotero_cli.core.models import ResearchPaper, ZoteroQuery
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.http_client import ZoteroHttpClient
 
+T = TypeVar("T")
 
 class ZoteroAPIClient(ZoteroGateway):
     """
@@ -19,18 +20,18 @@ class ZoteroAPIClient(ZoteroGateway):
     def __init__(self, api_key: str, library_id: str, library_type: str = 'group'):
         self.http = ZoteroHttpClient(api_key, library_id, library_type)
 
-    def _safe_execute(self, operation: str, default_val: Any, func: Callable, *args, **kwargs) -> Any:
+    def _safe_execute(self, operation: str, default_val: T, func: Callable[[], T]) -> T:
         try:
-            return func(*args, **kwargs)
+            return func()
         except Exception as e:
             print(f"Error {operation}: {e}")
             return default_val
 
     def _parse_write_response(self, response: requests.Response) -> Optional[str]:
-        data = response.json()
+        data = cast(Dict[str, Any], response.json())
         if 'successful' in data and data['successful']:
             first_index = list(data['successful'].keys())[0]
-            return data['successful'][first_index]['key']
+            return str(data['successful'][first_index]['key'])
         if 'failed' in data and data['failed']:
             print(f"Write failed details: {data['failed']}")
         return None
@@ -46,7 +47,7 @@ class ZoteroAPIClient(ZoteroGateway):
             try:
                 params['start'] = start
                 response = self.http.get(endpoint, params=params)
-                items = response.json()
+                items = cast(List[Dict[str, Any]], response.json())
                 if not items:
                     break
                 for item in items:
@@ -63,56 +64,56 @@ class ZoteroAPIClient(ZoteroGateway):
     def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:
         return self._safe_execute(
             "fetching user groups", [],
-            lambda: self.http.get(f"users/{user_id}/groups", use_prefix=False).json()
+            lambda: cast(List[Dict[str, Any]], self.http.get(f"users/{user_id}/groups", use_prefix=False).json())
         )
 
     def get_all_collections(self) -> List[Dict[str, Any]]:
         return self._safe_execute(
             "fetching collections", [],
-            lambda: self.http.get("collections", params={'limit': 100}).json()
+            lambda: cast(List[Dict[str, Any]], self.http.get("collections", params={'limit': 100}).json())
         )
 
     def get_top_collections(self) -> List[Dict[str, Any]]:
         return self._safe_execute(
             "fetching top collections", [],
-            lambda: self.http.get("collections/top").json()
+            lambda: cast(List[Dict[str, Any]], self.http.get("collections/top").json())
         )
 
     def get_subcollections(self, collection_key: str) -> List[Dict[str, Any]]:
         return self._safe_execute(
             f"fetching subcollections of {collection_key}", [],
-            lambda: self.http.get(f"collections/{collection_key}/collections").json()
+            lambda: cast(List[Dict[str, Any]], self.http.get(f"collections/{collection_key}/collections").json())
         )
 
     def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
         return self._safe_execute(
             f"fetching collection {collection_key}", None,
-            lambda: self.http.get(f"collections/{collection_key}").json()
+            lambda: cast(Optional[Dict[str, Any]], self.http.get(f"collections/{collection_key}").json())
         )
 
     def get_tags(self) -> List[str]:
         def _fetch_tags():
             response = self.http.get("tags", params={'limit': 100})
-            tags_data = response.json()
+            tags_data = cast(List[Dict[str, Any]], response.json())
             return [t['tag'] for t in tags_data]
         return self._safe_execute("fetching tags", [], _fetch_tags)
 
     def get_tags_for_item(self, item_key: str) -> List[str]:
         return self._safe_execute(
             f"fetching tags for item {item_key}", [],
-            lambda: [t['tag'] for t in self.http.get(f"items/{item_key}/tags").json()]
+            lambda: [t['tag'] for t in cast(List[Dict[str, Any]], self.http.get(f"items/{item_key}/tags").json())]
         )
 
     def get_tags_in_collection(self, collection_key: str) -> List[str]:
         return self._safe_execute(
             f"fetching tags in collection {collection_key}", [],
-            lambda: [t['tag'] for t in self.http.get(f"collections/{collection_key}/tags").json()]
+            lambda: [t['tag'] for t in cast(List[Dict[str, Any]], self.http.get(f"collections/{collection_key}/tags").json())]
         )
 
     def get_saved_searches(self) -> List[Dict[str, Any]]:
         return self._safe_execute(
             "fetching saved searches", [],
-            lambda: self.http.get("searches").json()
+            lambda: cast(List[Dict[str, Any]], self.http.get("searches").json())
         )
 
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
@@ -133,20 +134,20 @@ class ZoteroAPIClient(ZoteroGateway):
     def get_item(self, item_key: str) -> Optional[ZoteroItem]:
         return self._safe_execute(
             f"fetching item {item_key}", None,
-            lambda: ZoteroItem.from_raw_zotero_item(self.http.get(f"items/{item_key}").json())
+            lambda: ZoteroItem.from_raw_zotero_item(cast(Dict[str, Any], self.http.get(f"items/{item_key}").json()))
         )
 
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
         return self._safe_execute(
             f"fetching children for {item_key}", [],
-            lambda: self.http.get(f"items/{item_key}/children").json()
+            lambda: cast(List[Dict[str, Any]], self.http.get(f"items/{item_key}/children").json())
         )
 
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
         cols = self.get_all_collections()
         for c in cols:
             if c.get('data', {}).get('name') == name:
-                return c['key']
+                return str(c['key'])
         return None
 
     # --- Write Operations ---
