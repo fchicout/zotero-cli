@@ -10,7 +10,8 @@ def mock_gateway():
 
 @pytest.fixture
 def service(mock_gateway):
-    return CollectionService(mock_gateway)
+    # Pass mock_gateway for both repo interfaces since it implements them all
+    return CollectionService(mock_gateway, mock_gateway)
 
 def test_move_item_success_doi(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
@@ -31,17 +32,17 @@ def test_move_item_success_doi(service, mock_gateway):
     mock_gateway.get_item.return_value = None 
     
     mock_gateway.get_items_in_collection.return_value = iter([item])
-    mock_gateway.update_item_collections.return_value = True
+    mock_gateway.update_item.return_value = True
 
     result = service.move_item("Source", "Dest", "10.1234/test")
     
     assert result is True
-    args = mock_gateway.update_item_collections.call_args
+    args = mock_gateway.update_item.call_args
     assert args[0][0] == 'ITEM1'
     assert args[0][1] == 1
-    assert 'ID_DEST' in args[0][2]
-    assert 'ID_SRC' not in args[0][2]
-    assert 'ID_OTHER' in args[0][2]
+    assert 'ID_DEST' in args[0][2]['collections']
+    assert 'ID_SRC' not in args[0][2]['collections']
+    assert 'ID_OTHER' in args[0][2]['collections']
 
 def test_move_item_not_found(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
@@ -51,7 +52,7 @@ def test_move_item_not_found(service, mock_gateway):
     
     result = service.move_item("Source", "Dest", "missing")
     assert result is False
-    mock_gateway.update_item_collections.assert_not_called()
+    mock_gateway.update_item.assert_not_called()
 
 def test_move_item_success_arxiv(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
@@ -68,7 +69,7 @@ def test_move_item_success_arxiv(service, mock_gateway):
     item = ZoteroItem.from_raw_zotero_item(raw_item)
     mock_gateway.get_item.return_value = None # Assume lookup by key fails for arxiv ID
     mock_gateway.get_items_in_collection.return_value = iter([item])
-    mock_gateway.update_item_collections.return_value = True
+    mock_gateway.update_item.return_value = True
 
     result = service.move_item("Source", "Dest", "2301.00001")
     assert result is True
@@ -97,13 +98,13 @@ def test_move_item_success_key(service, mock_gateway):
     item = ZoteroItem.from_raw_zotero_item(raw_item)
     # This time get_item succeeds!
     mock_gateway.get_item.return_value = item
-    mock_gateway.update_item_collections.return_value = True
+    mock_gateway.update_item.return_value = True
 
     result = service.move_item("Source", "Dest", "KEY123")
     
     assert result is True
     mock_gateway.get_items_in_collection.assert_not_called() # Optimization verified!
-    mock_gateway.update_item_collections.assert_called()
+    mock_gateway.update_item.assert_called()
 
 def test_empty_collection_success_simple(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.return_value = "COLL_ID"
@@ -159,15 +160,15 @@ def test_move_item_auto_source_success(service, mock_gateway):
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
     mock_gateway.get_item.return_value = item
-    mock_gateway.update_item_collections.return_value = True
+    mock_gateway.update_item.return_value = True
 
     # Call with source_col_name=None
     result = service.move_item(None, "Dest", "KEY1")
     
     assert result is True
-    args = mock_gateway.update_item_collections.call_args
-    assert 'ID_DEST' in args[0][2]
-    assert 'ID_SRC' not in args[0][2]
+    args = mock_gateway.update_item.call_args
+    assert 'ID_DEST' in args[0][2]['collections']
+    assert 'ID_SRC' not in args[0][2]['collections']
 
 def test_move_item_auto_source_ambiguous(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
@@ -186,7 +187,7 @@ def test_move_item_auto_source_ambiguous(service, mock_gateway):
     result = service.move_item(None, "Dest", "KEY1")
     
     assert result is False
-    mock_gateway.update_item_collections.assert_not_called()
+    mock_gateway.update_item.assert_not_called()
 
 def test_move_item_auto_source_already_in_dest_only(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
@@ -201,13 +202,13 @@ def test_move_item_auto_source_already_in_dest_only(service, mock_gateway):
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
     mock_gateway.get_item.return_value = item
-    mock_gateway.update_item_collections.return_value = True
+    mock_gateway.update_item.return_value = True
 
     result = service.move_item(None, "Dest", "KEY1")
     
     assert result is True
-    args = mock_gateway.update_item_collections.call_args
-    assert args[0][2] == ['ID_DEST']
+    args = mock_gateway.update_item.call_args
+    assert args[0][2]['collections'] == ['ID_DEST']
 
 def test_move_item_auto_source_not_found(service, mock_gateway):
     mock_gateway.get_item.return_value = None

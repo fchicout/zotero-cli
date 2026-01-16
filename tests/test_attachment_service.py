@@ -17,7 +17,8 @@ def mock_aggregator():
 
 @pytest.fixture
 def service(mock_gateway, mock_aggregator):
-    return AttachmentService(mock_gateway, mock_aggregator)
+    # Pass mock_gateway for all repo interfaces since it implements them all
+    return AttachmentService(mock_gateway, mock_gateway, mock_gateway, mock_gateway, mock_aggregator)
 
 def create_item(key="KEY1", doi="10.1234/test"):
     return ZoteroItem(key=key, version=1, item_type="journalArticle", title="Test Paper", doi=doi)
@@ -39,6 +40,7 @@ def test_attach_pdf_success(mock_exists, mock_fdopen, mock_mkstemp, mock_remove,
     mock_gateway.get_collection_id_by_name.return_value = "COL1"
     item = create_item()
     mock_gateway.get_items_in_collection.return_value = iter([item])
+    mock_gateway.get_item.return_value = item
     
     # 1. No existing PDF
     mock_gateway.get_item_children.return_value = []
@@ -76,6 +78,7 @@ def test_already_has_pdf(service, mock_gateway, mock_aggregator):
     mock_gateway.get_collection_id_by_name.return_value = "COL1"
     item = create_item()
     mock_gateway.get_items_in_collection.return_value = iter([item])
+    mock_gateway.get_item.return_value = item
     
     # Simulate existing PDF attachment
     attachment = {
@@ -96,6 +99,7 @@ def test_no_identifier(service, mock_gateway, mock_aggregator):
     mock_gateway.get_collection_id_by_name.return_value = "COL1"
     item = ZoteroItem(key="KEY1", version=1, item_type="note") # No DOI/ArXiv
     mock_gateway.get_items_in_collection.return_value = iter([item])
+    mock_gateway.get_item.return_value = item
     mock_gateway.get_item_children.return_value = []
 
     count = service.attach_pdfs_to_collection("TestCollection")
@@ -108,6 +112,7 @@ def test_download_failure(mock_get, service, mock_gateway, mock_aggregator):
     mock_gateway.get_collection_id_by_name.return_value = "COL1"
     item = create_item()
     mock_gateway.get_items_in_collection.return_value = iter([item])
+    mock_gateway.get_item.return_value = item
     mock_gateway.get_item_children.return_value = []
     
     metadata = ResearchPaper(title="Test", abstract="", pdf_url="http://example.com/fail.pdf")

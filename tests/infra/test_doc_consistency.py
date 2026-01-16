@@ -1,18 +1,29 @@
 import re
+import argparse
 from pathlib import Path
 from zotero_cli.cli.base import CommandRegistry
 import zotero_cli.cli.commands  # Trigger registration
 import pytest
 
 def get_registered_commands():
-    """Extracts all registered command names and their subcommands."""
-    commands = {}
+    """Extracts all registered command names and their subcommands via argparse introspection."""
+    commands_map = {}
     for cmd in CommandRegistry.get_commands():
-        # This is simplified; assuming commands handle their own subcommands logic internally
-        # for a rigorous check we might need to instantiate them or inspect their args.
-        # But for now, let's track the top-level commands.
-        commands[cmd.name] = cmd
-    return commands
+        # Create a dummy parser to extract sub-actions
+        parser = argparse.ArgumentParser()
+        cmd.register_args(parser)
+        
+        verbs = []
+        # Look for subparsers in the parser
+        for action in parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                verbs.extend(action.choices.keys())
+        
+        commands_map[cmd.name] = {
+            "instance": cmd,
+            "verbs": verbs
+        }
+    return commands_map
 
 def get_markdown_content(filepath):
     """Reads content from a markdown file."""
@@ -22,62 +33,45 @@ def get_markdown_content(filepath):
     except FileNotFoundError:
         return ""
 
-def extract_commands_from_readme(content):
-    """
-    Heuristic: Looks for commands in code blocks or table rows.
-    Specifically targets the Command Reference table in README.md
-    """
-    # Naive search for `zotero-cli <cmd>`
-    found_commands = set()
+@pytest.mark.infra
+def test_documentation_structure():
+    """Ensures every registered noun has a corresponding file in docs/commands/."""
+    registry = get_registered_commands()
+    docs_dir = Path("docs/commands")
     
-    # Pattern for table rows like: | **Category** | `command` | `subcommand` | ...
-    # This is specific to our README format
-    table_pattern = re.compile(r"|\s*`?([a-z]+)`?\s*|\s*(`?([a-z-]+)`?)?\s*|")
+    assert docs_dir.exists(), "Documentation directory 'docs/commands/' is missing!"
     
-    for line in content.split('\n'):
-        match = table_pattern.search(line)
-        if match:
-            # Group 1 is top-level command
-            # Group 3 is subcommand (optional)
-            cmd = match.group(1).strip('`')
-            sub = match.group(3)
-            if sub:
-                sub = sub.strip('`')
-                found_commands.add(f"{cmd} {sub}")
-            else:
-                found_commands.add(cmd)
-                
-    return found_commands
+    for noun in registry:
+        if noun == "maint": continue # Skip deprecated
+        doc_file = docs_dir / f"{noun}.md"
+        assert doc_file.exists(), f"Missing documentation file for noun '{noun}': {doc_file}"
 
 @pytest.mark.infra
-def test_readme_coverage():
-    """Ensures all registered commands are mentioned in the README."""
+def test_verb_coverage():
+    """Ensures every verb for a noun is documented in its markdown file."""
+    registry = get_registered_commands()
+    docs_dir = Path("docs/commands")
     
-    # 1. Get Code Truth
-    registry_commands = CommandRegistry.get_commands()
-    
-    # 2. Get Doc Truth
-    readme_path = Path("README.md")
-    readme_content = get_markdown_content(readme_path)
-    
-    # We need a way to know "valid" subcommands to check rigorously.
-    # For now, let's just check that the TOP LEVEL command appears in the docs.
-    # To be more precise, we can manually define the expected full commands for now
-    # or improve the CommandRegistry to expose subcommands meta-data.
-    
-    # Let's perform a simple check: Does the command name appear in the README?
-    for cmd in registry_commands:
-        assert cmd.name in readme_content, f"Command '{cmd.name}' is missing from README.md"
+    for noun, info in registry.items():
+        if noun == "maint": continue
+        doc_file = docs_dir / f"{noun}.md"
+        content = get_markdown_content(doc_file)
+        
+        for verb in info['verbs']:
+            # Look for headers or code blocks mentioning the verb
+            # Example: ### `verb` or **`verb`** or zotero-cli noun verb
+            pattern = re.compile(rf"(###\s+`{verb}`|`{noun}\s+{verb}`|\*\s+`{verb}`)", re.IGNORECASE)
+            assert pattern.search(content), f"Verb '{verb}' for noun '{noun}' is not documented in {doc_file.name}"
 
 @pytest.mark.infra
-def test_user_guide_coverage():
-    """Ensures USER_GUIDE.md exists and mentions commands."""
-    user_guide_path = Path("docs/USER_GUIDE.md")
-    assert user_guide_path.exists(), "USER_GUIDE.md is missing!"
+def test_readme_index_coverage():
+    """Ensures the README.md index contains all registered nouns."""
+    registry = get_registered_commands()
+    readme_content = get_markdown_content("README.md")
     
-    content = get_markdown_content(user_guide_path)
-    registry_commands = CommandRegistry.get_commands()
-    
-    for cmd in registry_commands:
-        assert f"zotero-cli {cmd.name}" in content or f"`{cmd.name}`" in content, \
-            f"Command '{cmd.name}' is not documented in USER_GUIDE.md"
+    for noun in registry:
+        if noun == "maint": continue
+        # Flexible check for the link, allowing for styling like **[`noun`](...)**
+        pattern = re.compile(rf"\[`?{noun}`?\]\(docs/commands/{noun}.md\)")
+        assert pattern.search(readme_content), \
+            f"Noun '{noun}' is missing from the README.md command index"

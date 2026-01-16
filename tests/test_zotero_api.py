@@ -165,13 +165,15 @@ def test_delete_item_retry_on_412(client):
 
 # --- Upload Attachment (Complex) ---
 
+@patch("os.path.getsize")
 @patch("os.path.basename")
 @patch("os.path.getmtime")
 @patch("builtins.open", new_callable=mock_open, read_data=b"file content")
 @patch("zotero_cli.infra.http_client.requests.post") # Patch the requests used in upload_file
-def test_upload_attachment_full_sequence(mock_req_post, mock_file, mock_mtime, mock_basename, client):
+def test_upload_attachment_full_sequence(mock_req_post, mock_file, mock_mtime, mock_basename, mock_getsize, client):
     mock_basename.return_value = "test.pdf"
     mock_mtime.return_value = 1000.0
+    mock_getsize.return_value = 12
     
     # 1. Create Attachment
     res_create = Mock()

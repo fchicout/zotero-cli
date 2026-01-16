@@ -83,6 +83,11 @@ def test_audit_collection_missing_attributes(auditor, mock_gateway, children_dat
     assert item3 in report.items_missing_pdf
 
 def test_audit_collection_not_found(auditor, mock_gateway):
+
     mock_gateway.get_collection_id_by_name.return_value = None
+
+    mock_gateway.get_collection.return_value = None
+
     report = auditor.audit_collection("Non Existent Collection")
+
     assert report is None

@@ -12,7 +12,10 @@ def mock_gateway():
 
 @pytest.fixture
 def screening_service(mock_gateway):
-    return ScreeningService(mock_gateway)
+    # Pass mock_gateway for all repo interfaces since it implements them all
+    # For collection_service, we use a mock
+    mock_col_service = MagicMock()
+    return ScreeningService(mock_gateway, mock_gateway, mock_gateway, mock_col_service)
 
 def test_record_decision_success(screening_service, mock_gateway):
     item_key = "ITEM123"
@@ -45,7 +48,6 @@ def test_record_decision_with_move(screening_service, mock_gateway):
     mock_gateway.create_note.return_value = True
     
     # Mock the internal collection service
-    screening_service.collection_service = MagicMock()
     screening_service.collection_service.move_item.return_value = True
     
     success = screening_service.record_decision(

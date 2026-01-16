@@ -1,0 +1,191 @@
+{
+  "meta": {
+    "timestamp": "2026-01-16T18:25:40.939028+00:00",
+    "collection_name": "E2E_Source_1768587923",
+    "collection_id": "MVRZ9M9N",
+    "total_items_found": 3,
+    "items_processed_successfully": 3,
+    "items_failed": 0,
+    "tool_version": "zotero-cli-v1.2.0",
+    "schema_version": "1.0",
+    "status": "success"
+  },
+  "failures": [],
+  "items": [
+    {
+      "key": "H8SFC27X",
+      "version": 36377,
+      "item_type": "note",
+      "title": null,
+      "abstract": null,
+      "doi": null,
+      "arxiv_id": null,
+      "url": null,
+      "date": null,
+      "authors": [],
+      "collections": [],
+      "tags": [],
+      "children": []
+    },
+    {
+      "key": "IHQUNN5Z",
+      "version": 36376,
+      "item_type": "attachment",
+      "title": "13040_2021_Article_244.pdf",
+      "abstract": null,
+      "doi": null,
+      "arxiv_id": null,
+      "url": "",
+      "date": null,
+      "authors": [],
+      "collections": [],
+      "tags": [],
+      "children": []
+    },
+    {
+      "key": "S6NJKZRD",
+      "version": 36374,
+      "item_type": "journalArticle",
+      "title": "Quit When You Can: Efficient Evaluation of Ensembles with Ordering Optimization",
+      "abstract": "Given a classifier ensemble and a set of examples to be classified, many examples may be confidently and accurately classified after only a subset of the base models in the ensemble are evaluated. This can reduce both mean latency and CPU while maintaining the high accuracy of the original ensemble. To achieve such gains, we propose jointly optimizing a fixed evaluation order of the base models and early-stopping thresholds. Our proposed objective is a combinatorial optimization problem, but we provide a greedy algorithm that achieves a 4-approximation of the optimal solution for certain cases. For those cases, this is also the best achievable polynomial time approximation bound unless $P = NP$. Experiments on benchmark and real-world problems show that the proposed Quit When You Can (QWYC) algorithm can speed-up average evaluation time by $2$x--$4$x, and is around $1.5$x faster than prior work. QWYC's joint optimization of ordering and thresholds also performed better in experiments than various fixed orderings, including gradient boosted trees' ordering.",
+      "doi": "10.48550/arXiv.1706.03762",
+      "arxiv_id": "1806.11202v1",
+      "url": "https://arxiv.org/pdf/1806.11202v1",
+      "date": "2018",
+      "authors": [
+        "Serena Wang",
+        "Maya Gupta",
+        "Seungil You"
+      ],
+      "collections": [
+        "MVRZ9M9N"
+      ],
+      "tags": [],
+      "children": [
+        {
+          "key": "H8SFC27X",
+          "version": 36377,
+          "library": {
+            "type": "group",
+            "id": 6287212,
+            "name": "rsl-xm",
+            "links": {
+              "alternate": {
+                "href": "https://www.zotero.org/groups/6287212",
+                "type": "text/html"
+              }
+            }
+          },
+          "links": {
+            "self": {
+              "href": "https://api.zotero.org/groups/6287212/items/H8SFC27X",
+              "type": "application/json"
+            },
+            "alternate": {
+              "href": "https://www.zotero.org/groups/6287212/items/H8SFC27X",
+              "type": "text/html"
+            },
+            "up": {
+              "href": "https://api.zotero.org/groups/6287212/items/S6NJKZRD",
+              "type": "application/json"
+            }
+          },
+          "meta": {
+            "createdByUser": {
+              "id": 1909172,
+              "username": "fchicout",
+              "name": "Fábio Chicout",
+              "links": {
+                "alternate": {
+                  "href": "https://www.zotero.org/fchicout",
+                  "type": "text/html"
+                }
+              }
+            },
+            "numChildren": 0
+          },
+          "data": {
+            "key": "H8SFC27X",
+            "version": 36377,
+            "parentItem": "S6NJKZRD",
+            "itemType": "note",
+            "note": "<div>{\n  \"audit_version\": \"1.1\",\n  \"decision\": \"accepted\",\n  \"reason_code\": [\n    \"bulk\"\n  ],\n  \"reason_text\": \"Iron Gauntlet Bulk Test\",\n  \"timestamp\": \"2026-01-16T18:25:34.959079+00:00\",\n  \"agent\": \"zotero-cli\",\n  \"persona\": \"unknown\",\n  \"phase\": \"title_abstract\",\n  \"action\": \"screening_decision\"\n}</div>",
+            "tags": [],
+            "relations": {},
+            "dateAdded": "2026-01-16T18:25:35Z",
+            "dateModified": "2026-01-16T18:25:35Z"
+          }
+        },
+        {
+          "key": "IHQUNN5Z",
+          "version": 36376,
+          "library": {
+            "type": "group",
+            "id": 6287212,
+            "name": "rsl-xm",
+            "links": {
+              "alternate": {
+                "href": "https://www.zotero.org/groups/6287212",
+                "type": "text/html"
+              }
+            }
+          },
+          "links": {
+            "self": {
+              "href": "https://api.zotero.org/groups/6287212/items/IHQUNN5Z",
+              "type": "application/json"
+            },
+            "alternate": {
+              "href": "https://www.zotero.org/groups/6287212/items/IHQUNN5Z",
+              "type": "text/html"
+            },
+            "up": {
+              "href": "https://api.zotero.org/groups/6287212/items/S6NJKZRD",
+              "type": "application/json"
+            },
+            "enclosure": {
+              "type": "application/pdf",
+              "href": "https://api.zotero.org/groups/6287212/items/IHQUNN5Z/file/view",
+              "title": "13040_2021_Article_244.pdf",
+              "length": 1146437
+            }
+          },
+          "meta": {
+            "createdByUser": {
+              "id": 1909172,
+              "username": "fchicout",
+              "name": "Fábio Chicout",
+              "links": {
+                "alternate": {
+                  "href": "https://www.zotero.org/fchicout",
+                  "type": "text/html"
+                }
+              }
+            },
+            "numChildren": 0
+          },
+          "data": {
+            "key": "IHQUNN5Z",
+            "version": 36376,
+            "parentItem": "S6NJKZRD",
+            "itemType": "attachment",
+            "linkMode": "imported_file",
+            "title": "13040_2021_Article_244.pdf",
+            "accessDate": "",
+            "url": "",
+            "note": "",
+            "contentType": "application/pdf",
+            "charset": "",
+            "filename": "13040_2021_Article_244.pdf",
+            "md5": "f301d24140f338928ca50b961038da7a",
+            "mtime": 1760970018890,
+            "tags": [],
+            "relations": {},
+            "dateAdded": "2026-01-16T18:25:34Z",
+            "dateModified": "2026-01-16T18:25:34Z"
+          }
+        }
+      ]
+    }
+  ]
+}
