@@ -23,6 +23,11 @@ class TagCommand(BaseCommand):
         rem_p.add_argument("--item", required=True, help="Item Key")
         rem_p.add_argument("--tags", required=True, help="Comma-separated tags")
 
+        # Rename
+        ren_p = sub.add_parser("rename", help="Rename a tag library-wide")
+        ren_p.add_argument("--old", required=True)
+        ren_p.add_argument("--new", required=True)
+
         # Purge
         purge_p = sub.add_parser("purge", help="Permanently delete tags from library (multi-delete)")
         purge_p.add_argument("tags", help="Comma-separated tags")
@@ -42,6 +47,8 @@ class TagCommand(BaseCommand):
         elif args.verb == "remove":
             tags = [t.strip() for t in args.tags.split(',')]
             service.remove_tags_from_item(args.item, tags)
+        elif args.verb == "rename":
+            service.rename_tag(args.old, args.new)
         elif args.verb == "purge":
             tags = [t.strip() for t in args.tags.split(',')]
             version = args.version

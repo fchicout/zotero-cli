@@ -6,7 +6,6 @@ from zotero_cli.cli.base import BaseCommand, CommandRegistry
 
 console = Console()
 
-@CommandRegistry.register
 class InspectCommand(BaseCommand):
     name = "inspect"
     help = "Inspect item details"

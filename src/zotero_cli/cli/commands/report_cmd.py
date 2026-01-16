@@ -29,6 +29,16 @@ class ReportCommand(BaseCommand):
         snap_p.add_argument("--collection", required=True)
         snap_p.add_argument("--output", required=True)
 
+        # Screening (Markdown)
+        screen_p = sub.add_parser("screening", help="Generate Markdown Screening Report (PRISMA)")
+        screen_p.add_argument("--collection", required=True)
+        screen_p.add_argument("--output", required=True, help="Path to output Markdown file")
+
+        # Status (Progress Dashboard)
+        status_p = sub.add_parser("status", help="Generate Markdown Progress Dashboard")
+        status_p.add_argument("--collection", required=True)
+        status_p.add_argument("--output", required=True, help="Path to output Markdown file")
+
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
@@ -37,12 +47,20 @@ class ReportCommand(BaseCommand):
             self._handle_prisma(gateway, args)
         elif args.report_type == "snapshot":
             self._handle_snapshot(gateway, args)
+        elif args.report_type == "screening":
+            self._handle_screening(gateway, args)
+        elif args.report_type == "status":
+            self._handle_status(gateway, args)
 
     def _handle_prisma(self, gateway, args):
         service = ReportService(gateway)
         print(f"Generating PRISMA report for '{args.collection}'...")
         report = service.generate_prisma_report(args.collection)
         
+        if not report:
+            console.print(f"[bold red]Error:[/bold red] Collection '{args.collection}' not found.")
+            sys.exit(1)
+
         summary = (
             f"[bold blue]Collection:[/bold blue] {report.collection_name}\n"
             f"[bold blue]Total Items:[/bold blue] {report.total_items}\n"
@@ -85,3 +103,26 @@ class ReportCommand(BaseCommand):
             print(f"Snapshot saved to '{args.output}'.")
         else:
             sys.exit(1)
+
+    def _handle_screening(self, gateway, args):
+        service = ReportService(gateway)
+        print(f"Generating Markdown screening report for '{args.collection}'...")
+        report = service.generate_prisma_report(args.collection)
+        
+        if not report:
+            console.print(f"[bold red]Error:[/bold red] Collection '{args.collection}' not found.")
+            sys.exit(1)
+
+        md_content = service.generate_screening_markdown(report)
+        
+        try:
+            with open(args.output, 'w', encoding='utf-8') as f:
+                f.write(md_content)
+            console.print(f"\n[bold green]✓ Screening report saved to {args.output}[/bold green]")
+        except Exception as e:
+            console.print(f"\n[bold red]✗ Failed to write report: {e}[/bold red]")
+            sys.exit(1)
+
+    def _handle_status(self, gateway, args):
+        # reuse screening markdown logic for dashboard
+        self._handle_screening(gateway, args)

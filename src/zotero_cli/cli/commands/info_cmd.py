@@ -2,7 +2,6 @@ import argparse
 import sys
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 
-@CommandRegistry.register
 class InfoCommand(BaseCommand):
     name = "info"
     help = "Display environment and configuration"

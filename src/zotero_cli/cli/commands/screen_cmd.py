@@ -2,13 +2,13 @@ import argparse
 import sys
 from rich.console import Console
 
-from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.core.services.screening_service import ScreeningService
+from zotero_cli.cli.base import BaseCommand
 from zotero_cli.cli.tui import TuiScreeningService
+from zotero_cli.infra.factory import GatewayFactory
+from zotero_cli.core.services.screening_service import ScreeningService
 
 console = Console()
 
-@CommandRegistry.register
 class ScreenCommand(BaseCommand):
     name = "screen"
     help = "Interactive Screening Interface (TUI)"
@@ -21,23 +21,21 @@ class ScreenCommand(BaseCommand):
         parser.add_argument("--state", help="Local CSV file to track screening state")
 
     def execute(self, args: argparse.Namespace):
-        from zotero_cli.infra.factory import GatewayFactory
-        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
-        
         if args.file:
-            self._handle_bulk(gateway, args)
+            self._handle_bulk(args)
         else:
-            self._handle_tui(gateway, args)
+            self._handle_tui(args)
 
-    def _handle_tui(self, gateway, args):
+    def _handle_tui(self, args):
         from zotero_cli.core.services.screening_state import ScreeningStateService
         state_manager = ScreeningStateService(args.state) if args.state else None
         
-        tui = TuiScreeningService(gateway, state_manager)
+        service = GatewayFactory.get_screening_service(force_user=getattr(args, 'user', False))
+        tui = TuiScreeningService(service, state_manager)
         tui.run_screening_session(args.source, args.include, args.exclude)
 
-    def _handle_bulk(self, gateway, args):
-        service = ScreeningService(gateway)
+    def _handle_bulk(self, args):
+        service = GatewayFactory.get_screening_service(force_user=getattr(args, 'user', False))
         print(f"Processing bulk decisions from {args.file}...")
         
         import csv
@@ -55,7 +53,14 @@ class ScreenCommand(BaseCommand):
                     if not key or not vote:
                         continue
                         
-                    if service.record_decision(key, vote, "bulk", reason, args.source, args.include if vote == "INCLUDE" else args.exclude):
+                    if service.record_decision(
+                        item_key=key, 
+                        decision=vote, 
+                        code="bulk", 
+                        reason=reason, 
+                        source_collection=args.source, 
+                        target_collection=args.include if vote == "INCLUDE" else args.exclude
+                    ):
                         success_count += 1
                     else:
                         fail_count += 1
@@ -63,10 +68,8 @@ class ScreenCommand(BaseCommand):
         except Exception as e:
             print(f"Error processing CSV: {e}")
 
-@CommandRegistry.register
 class DecideCommand(BaseCommand):
     name = "decide"
-    aliases = ["d"]
     help = "Record a single decision (CLI mode)"
 
     def register_args(self, parser: argparse.ArgumentParser):
@@ -81,9 +84,7 @@ class DecideCommand(BaseCommand):
         parser.add_argument("--phase", default="title_abstract")
 
     def execute(self, args: argparse.Namespace):
-        from zotero_cli.infra.factory import GatewayFactory
-        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
-        service = ScreeningService(gateway)
+        service = GatewayFactory.get_screening_service(force_user=getattr(args, 'user', False))
         
         agent_name = args.persona if args.agent_led else "human"
         

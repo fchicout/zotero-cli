@@ -1,7 +1,13 @@
 import argparse
+from rich.console import Console
+from rich.table import Table
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.core.services.collection_service import CollectionService
 from zotero_cli.cli.commands.list_cmd import ListCommand
+from zotero_cli.infra.factory import GatewayFactory
+from zotero_cli.core.services.collection_service import CollectionService
+from zotero_cli.core.services.duplicate_service import DuplicateFinder
+
+console = Console()
 
 @CommandRegistry.register
 class CollectionCommand(BaseCommand):
@@ -37,9 +43,25 @@ class CollectionCommand(BaseCommand):
         clean_p.add_argument("--parent")
         clean_p.add_argument("--verbose", action="store_true")
 
+        # Duplicates
+        dup_p = sub.add_parser("duplicates", help="Find duplicate items in one or more collections")
+        dup_p.add_argument("--collections", required=True, help="Comma-separated collection names or keys")
+
+        # PDF operations
+        pdf_p = sub.add_parser("pdf", help="Bulk PDF attachment operations")
+        pdf_sub = pdf_p.add_subparsers(dest="pdf_verb", required=True)
+        
+        fetch_p = pdf_sub.add_parser("fetch", help="Fetch missing PDFs for all items in a collection")
+        fetch_p.add_argument("--collection", required=True, help="Collection name or key")
+        fetch_p.add_argument("--verbose", action="store_true")
+
+        strip_p = pdf_sub.add_parser("strip", help="Remove all PDF attachments from items in a collection")
+        strip_p.add_argument("--collection", required=True, help="Collection name or key")
+        strip_p.add_argument("--verbose", action="store_true")
+
     def execute(self, args: argparse.Namespace):
-        from zotero_cli.infra.factory import GatewayFactory
-        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
+        force_user = getattr(args, 'user', False)
+        gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
         
         if args.verb == "list":
             args.list_type = "collections"
@@ -76,9 +98,46 @@ class CollectionCommand(BaseCommand):
                 else:
                     print(f"Failed to delete collection '{args.key}'")
         elif args.verb == "clean":
-            service = CollectionService(gateway)
+            service = GatewayFactory.get_collection_service(force_user=force_user)
             count = service.empty_collection(args.collection, args.parent, args.verbose)
             print(f"Deleted {count} items.")
+        elif args.verb == "duplicates":
+            self._handle_duplicates(gateway, args)
+        elif args.verb == "pdf":
+            self._handle_pdf_ops(gateway, args)
+
+    def _handle_pdf_ops(self, gateway, args):
+        force_user = getattr(args, 'user', False)
+        if args.pdf_verb == "fetch":
+            service = GatewayFactory.get_attachment_service(force_user=force_user)
+            count = service.attach_pdfs_to_collection(args.collection)
+            print(f"Fetched {count} PDFs for collection '{args.collection}'.")
+        elif args.pdf_verb == "strip":
+            importer = GatewayFactory.get_paper_importer(force_user=force_user)
+            count = importer.remove_attachments_from_folder(args.collection, args.verbose)
+            print(f"Removed {count} attachments from collection '{args.collection}'.")
+
+    def _handle_duplicates(self, gateway, args):
+        from zotero_cli.core.services.duplicate_service import DuplicateFinder
+        service = DuplicateFinder(gateway)
+        col_ids = []
+        for c in args.collections.split(','):
+            c = c.strip()
+            # Try to resolve name to ID
+            cid = gateway.get_collection_id_by_name(c) or c
+            col_ids.append(cid)
+            
+        dupes = service.find_duplicates(col_ids)
+        if not dupes:
+            print("No duplicates found.")
+            return
+        table = Table(title="Duplicate Items")
+        table.add_column("Title")
+        table.add_column("DOI")
+        table.add_column("Keys")
+        for d in dupes:
+            table.add_row(d['title'] or "No Title", d['doi'] or 'N/A', ", ".join(d['keys']))
+        console.print(table)
 
     def _handle_recursive_delete(self, gateway, col_id):
         """Recursively deletes sub-collections and all items within."""
@@ -103,4 +162,3 @@ class CollectionCommand(BaseCommand):
                     print(f"  [coll] Deleted sub-collection: {sub_name} ({sub['key']})")
                 else:
                     print(f"  [coll] FAILED to delete sub-collection: {sub['key']}")
-        
