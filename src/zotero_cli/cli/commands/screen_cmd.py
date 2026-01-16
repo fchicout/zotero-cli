@@ -1,11 +1,11 @@
 import argparse
 import sys
+
 from rich.console import Console
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.tui import TuiScreeningService
 from zotero_cli.infra.factory import GatewayFactory
-from zotero_cli.core.services.screening_service import ScreeningService
 
 console = Console()
 
@@ -30,7 +30,7 @@ class ScreenCommand(BaseCommand):
     def _handle_tui(self, args):
         from zotero_cli.core.services.screening_state import ScreeningStateService
         state_manager = ScreeningStateService(args.state) if args.state else None
-        
+
         service = GatewayFactory.get_screening_service(force_user=getattr(args, 'user', False))
         tui = TuiScreeningService(service, state_manager)
         tui.run_screening_session(args.source, args.include, args.exclude)
@@ -38,11 +38,11 @@ class ScreenCommand(BaseCommand):
     def _handle_bulk(self, args):
         service = GatewayFactory.get_screening_service(force_user=getattr(args, 'user', False))
         print(f"Processing bulk decisions from {args.file}...")
-        
+
         import csv
         success_count = 0
         fail_count = 0
-        
+
         try:
             with open(args.file, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
@@ -50,16 +50,16 @@ class ScreenCommand(BaseCommand):
                     key = row.get('Key')
                     vote = row.get('Vote')
                     reason = row.get('Reason', '')
-                    
+
                     if not key or not vote:
                         continue
-                        
+
                     if service.record_decision(
-                        item_key=key, 
-                        decision=vote, 
-                        code="bulk", 
-                        reason=reason, 
-                        source_collection=args.source, 
+                        item_key=key,
+                        decision=vote,
+                        code="bulk",
+                        reason=reason,
+                        source_collection=args.source,
                         target_collection=args.include if vote == "INCLUDE" else args.exclude
                     ):
                         success_count += 1
@@ -84,7 +84,7 @@ class DecideCommand(BaseCommand):
         parser.add_argument("--agent-led", action="store_true")
         parser.add_argument("--persona")
         parser.add_argument("--phase", default="title_abstract")
-        
+
         # Exclusion presets
         parser.add_argument("--short-paper", metavar="CODE", help="Exclude as Short Paper with EC code")
         parser.add_argument("--not-english", metavar="CODE", help="Exclude as Non-English with EC code")
@@ -93,11 +93,11 @@ class DecideCommand(BaseCommand):
 
     def execute(self, args: argparse.Namespace):
         service = GatewayFactory.get_screening_service(force_user=getattr(args, 'user', False))
-        
+
         vote = args.vote
         code = args.code
         reason = args.reason
-        
+
         # Resolve flags to decision
         if args.short_paper:
             vote, code, reason = "EXCLUDE", args.short_paper, "Short Paper"
@@ -107,13 +107,13 @@ class DecideCommand(BaseCommand):
             vote, code, reason = "EXCLUDE", args.is_survey, "SLR/Survey"
         elif args.no_pdf:
             vote, code, reason = "EXCLUDE", args.no_pdf, "No PDF"
-            
+
         if not vote or not code:
             console.print("[bold red]Error:[/bold red] You must provide --vote and --code OR use one of the exclusion flags (e.g., --short-paper EC5).")
             sys.exit(1)
-        
+
         agent_name = args.persona if args.agent_led else "human"
-        
+
         success = service.record_decision(
             item_key=args.key,
             decision=vote,
@@ -125,7 +125,7 @@ class DecideCommand(BaseCommand):
             persona=agent_name,
             phase=args.phase
         )
-        
+
         if success:
             print(f"Successfully recorded decision for {args.key} ({vote}: {reason})")
         else:

@@ -1,11 +1,17 @@
-from typing import Optional, List, Dict, Any, Callable
-from datetime import datetime, timezone
 import json
 import sys
+from datetime import datetime, timezone
+from typing import List, Optional
 
-from zotero_cli.core.interfaces import ItemRepository, CollectionRepository, NoteRepository, TagRepository
-from zotero_cli.core.zotero_item import ZoteroItem
+from zotero_cli.core.interfaces import (
+    CollectionRepository,
+    ItemRepository,
+    NoteRepository,
+    TagRepository,
+)
 from zotero_cli.core.services.collection_service import CollectionService
+from zotero_cli.core.zotero_item import ZoteroItem
+
 
 class ScreeningService:
     """
@@ -13,7 +19,7 @@ class ScreeningService:
     Provides the core logic for both CLI 'decision' command and TUI 'screen' mode.
     """
 
-    def __init__(self, 
+    def __init__(self,
                  item_repo: ItemRepository,
                  collection_repo: CollectionRepository,
                  note_repo: NoteRepository,
@@ -63,9 +69,9 @@ class ScreeningService:
             "phase": phase,
             "action": "screening_decision" # Keep for backward compatibility/filtering
         }
-        
+
         note_content = f"<div>{json.dumps(decision_data, indent=2)}</div>"
-        
+
         success = self.note_repo.create_note(item_key, note_content)
         if not success:
             print(f"Error: Failed to create audit note for item {item_key}.", file=sys.stderr)
@@ -75,7 +81,7 @@ class ScreeningService:
         tags_to_add = []
         # Phase Tag
         tags_to_add.append(f"rsl:phase:{phase}")
-        
+
         # Decision Tags
         if sdb_decision == "rejected":
             codes = decision_data['reason_code']
@@ -83,7 +89,7 @@ class ScreeningService:
                 tags_to_add.append(f"rsl:exclude:{c}")
         elif sdb_decision == "accepted":
             tags_to_add.append("rsl:include")
-            
+
         if tags_to_add:
             tag_success = self.tag_repo.add_tags(item_key, tags_to_add)
             if not tag_success:
@@ -94,7 +100,7 @@ class ScreeningService:
             move_success = self.collection_service.move_item(source_collection, target_collection, item_key)
             if not move_success:
                 print(f"Warning: Decision recorded but failed to move item {item_key}.", file=sys.stderr)
-        
+
         return True
 
     def get_pending_items(self, collection_name: str) -> List[ZoteroItem]:
@@ -104,10 +110,10 @@ class ScreeningService:
         col_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not col_id:
             return []
-        
+
         all_items = self.collection_repo.get_items_in_collection(col_id)
         pending = []
-        
+
         for item in all_items:
             # Check if item has a decision note
             children = self.note_repo.get_item_children(item.key)
@@ -120,8 +126,8 @@ class ScreeningService:
                     if 'screening_decision' in content or '"decision"' in content:
                         has_decision = True
                         break
-            
+
             if not has_decision:
                 pending.append(item)
-                
+
         return pending

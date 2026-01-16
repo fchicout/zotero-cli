@@ -1,10 +1,11 @@
 import argparse
+
 from rich.console import Console
+
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.commands.inspect_cmd import InspectCommand
 from zotero_cli.cli.commands.list_cmd import ListCommand
 from zotero_cli.infra.factory import GatewayFactory
-from zotero_cli.core.services.collection_service import CollectionService
 
 console = Console()
 
@@ -15,7 +16,7 @@ class ItemCommand(BaseCommand):
 
     def register_args(self, parser: argparse.ArgumentParser):
         sub = parser.add_subparsers(dest="verb", required=True)
-        
+
         # Inspect
         inspect_p = sub.add_parser("inspect", help=InspectCommand.help)
         InspectCommand().register_args(inspect_p)
@@ -44,7 +45,7 @@ class ItemCommand(BaseCommand):
         # PDF operations
         pdf_p = sub.add_parser("pdf", help="PDF attachment operations")
         pdf_sub = pdf_p.add_subparsers(dest="pdf_verb", required=True)
-        
+
         fetch_p = pdf_sub.add_parser("fetch", help="Fetch missing PDF for a specific item")
         fetch_p.add_argument("key", help="Item Key")
         fetch_p.add_argument("--verbose", action="store_true")
@@ -60,7 +61,7 @@ class ItemCommand(BaseCommand):
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, 'user', False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
-        
+
         if args.verb == "inspect":
             InspectCommand().execute(args)
         elif args.verb == "move":
@@ -95,7 +96,7 @@ class ItemCommand(BaseCommand):
     def _handle_pdf_attach(self, gateway, args):
         import mimetypes
         import os
-        
+
         path = args.path
         if not os.path.exists(path):
             print(f"Error: File not found: {path}")
@@ -103,7 +104,7 @@ class ItemCommand(BaseCommand):
 
         mime_type, _ = mimetypes.guess_type(path)
         mime_type = mime_type or "application/octet-stream"
-        
+
         print(f"Attaching local file: {path} (MIME: {mime_type})")
         if gateway.upload_attachment(args.key, path, mime_type=mime_type):
             print("Successfully attached file.")
@@ -129,10 +130,13 @@ class ItemCommand(BaseCommand):
         payload = {}
         if args.json:
             payload = json.loads(args.json)
-        
-        if args.doi: payload['DOI'] = args.doi
-        if args.title: payload['title'] = args.title
-        if args.abstract: payload['abstractNote'] = args.abstract
+
+        if args.doi:
+            payload['DOI'] = args.doi
+        if args.title:
+            payload['title'] = args.title
+        if args.abstract:
+            payload['abstractNote'] = args.abstract
 
         if not payload:
             print("Error: No updates provided. Use --doi, --title, --abstract, or --json.")

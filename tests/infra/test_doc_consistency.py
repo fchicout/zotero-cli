@@ -1,9 +1,11 @@
-import re
 import argparse
+import re
 from pathlib import Path
-from zotero_cli.cli.base import CommandRegistry
-import zotero_cli.cli.commands  # Trigger registration
+
 import pytest
+
+from zotero_cli.cli.base import CommandRegistry
+
 
 def get_registered_commands():
     """Extracts all registered command names and their subcommands via argparse introspection."""
@@ -12,13 +14,13 @@ def get_registered_commands():
         # Create a dummy parser to extract sub-actions
         parser = argparse.ArgumentParser()
         cmd.register_args(parser)
-        
+
         verbs = []
         # Look for subparsers in the parser
         for action in parser._actions:
             if isinstance(action, argparse._SubParsersAction):
                 verbs.extend(action.choices.keys())
-        
+
         commands_map[cmd.name] = {
             "instance": cmd,
             "verbs": verbs
@@ -38,9 +40,9 @@ def test_documentation_structure():
     """Ensures every registered noun has a corresponding file in docs/commands/."""
     registry = get_registered_commands()
     docs_dir = Path("docs/commands")
-    
+
     assert docs_dir.exists(), "Documentation directory 'docs/commands/' is missing!"
-    
+
     for noun in registry:
         if noun == "maint": continue # Skip deprecated
         doc_file = docs_dir / f"{noun}.md"
@@ -51,12 +53,12 @@ def test_verb_coverage():
     """Ensures every verb for a noun is documented in its markdown file."""
     registry = get_registered_commands()
     docs_dir = Path("docs/commands")
-    
+
     for noun, info in registry.items():
         if noun == "maint": continue
         doc_file = docs_dir / f"{noun}.md"
         content = get_markdown_content(doc_file)
-        
+
         for verb in info['verbs']:
             # Look for headers or code blocks mentioning the verb
             # Example: ### `verb` or **`verb`** or zotero-cli noun verb
@@ -68,7 +70,7 @@ def test_readme_index_coverage():
     """Ensures the README.md index contains all registered nouns."""
     registry = get_registered_commands()
     readme_content = get_markdown_content("README.md")
-    
+
     for noun in registry:
         if noun == "maint": continue
         # Flexible check for the link, allowing for styling like **[`noun`](...)**

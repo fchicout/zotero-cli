@@ -1,5 +1,6 @@
 import argparse
 import sys
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -17,13 +18,13 @@ class ReportCommand(BaseCommand):
 
     def register_args(self, parser: argparse.ArgumentParser):
         sub = parser.add_subparsers(dest="report_type", required=True)
-        
+
         # PRISMA
         prisma_p = sub.add_parser("prisma", help="PRISMA Statistics")
         prisma_p.add_argument("--collection", required=True)
         prisma_p.add_argument("--output-chart")
         prisma_p.add_argument("--verbose", action="store_true")
-        
+
         # Snapshot
         snap_p = sub.add_parser("snapshot", help="JSON Audit Snapshot")
         snap_p.add_argument("--collection", required=True)
@@ -42,7 +43,7 @@ class ReportCommand(BaseCommand):
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
-        
+
         if args.report_type == "prisma":
             self._handle_prisma(gateway, args)
         elif args.report_type == "snapshot":
@@ -56,7 +57,7 @@ class ReportCommand(BaseCommand):
         service = ReportService(gateway)
         print(f"Generating PRISMA report for '{args.collection}'...")
         report = service.generate_prisma_report(args.collection)
-        
+
         if not report:
             console.print(f"[bold red]Error:[/bold red] Collection '{args.collection}' not found.")
             sys.exit(1)
@@ -70,7 +71,7 @@ class ReportCommand(BaseCommand):
             f"[bold red]Rejected:[/bold red] {report.rejected_items}"
         )
         console.print(Panel(summary, title="PRISMA Screening Summary", expand=False))
-        
+
         if report.rejections_by_code:
             table = Table(title="Rejection Reasons")
             table.add_column("Code", style="cyan")
@@ -86,11 +87,11 @@ class ReportCommand(BaseCommand):
             if service.render_diagram(mermaid_code, args.output_chart):
                 console.print(f"\n[bold green]✓ Diagram saved to {args.output_chart}[/bold green]")
             else:
-                console.print(f"\n[bold red]✗ Failed to render diagram.[/bold red]")
+                console.print("\n[bold red]✗ Failed to render diagram.[/bold red]")
 
     def _handle_snapshot(self, gateway, args):
         service = SnapshotService(gateway)
-        
+
         def cli_progress(current, total, msg):
             percent = (current / total * 100) if total > 0 else 0
             sys.stdout.write(f"\r[{percent:5.1f}%] {msg:<60}")
@@ -108,13 +109,13 @@ class ReportCommand(BaseCommand):
         service = ReportService(gateway)
         print(f"Generating Markdown screening report for '{args.collection}'...")
         report = service.generate_prisma_report(args.collection)
-        
+
         if not report:
             console.print(f"[bold red]Error:[/bold red] Collection '{args.collection}' not found.")
             sys.exit(1)
 
         md_content = service.generate_screening_markdown(report)
-        
+
         try:
             with open(args.output, 'w', encoding='utf-8') as f:
                 f.write(md_content)
@@ -131,18 +132,18 @@ class ReportCommand(BaseCommand):
         service = ReportService(gateway)
         with console.status("[bold green]Fetching items and calculating stats..."):
             report = service.generate_prisma_report(args.collection)
-            
+
         if not report:
              console.print(f"[bold red]Error:[/bold red] Collection '{args.collection}' not found.")
              sys.exit(1)
 
         # Progress Bar
-        from rich.progress import Progress, BarColumn, TextColumn
-        
+        from rich.progress import BarColumn, Progress, TextColumn
+
         console.print(f"\n[bold]Status Report: {report.collection_name}[/bold]\n")
-        
+
         percent_screened = (report.screened_items / report.total_items * 100) if report.total_items else 0
-        
+
         with Progress(
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
@@ -152,20 +153,20 @@ class ReportCommand(BaseCommand):
         ) as progress:
             task = progress.add_task("[cyan]Screening Progress", total=report.total_items)
             progress.update(task, completed=report.screened_items)
-            
+
         # Stats Table
         table = Table(show_header=True, header_style="bold magenta", expand=True)
         table.add_column("Metric", style="dim")
         table.add_column("Count")
         table.add_column("Percentage")
-        
+
         percent_accepted = (report.accepted_items / report.screened_items * 100) if report.screened_items else 0
         percent_rejected = (report.rejected_items / report.screened_items * 100) if report.screened_items else 0
-        
+
         table.add_row("Total Items", str(report.total_items), "100%")
         table.add_row("Screened", str(report.screened_items), f"{percent_screened:.1f}%")
         table.add_row("Remaining", str(report.total_items - report.screened_items), f"{100-percent_screened:.1f}%")
         table.add_row("Accepted", f"[green]{report.accepted_items}[/green]", f"{percent_accepted:.1f}% (of screened)")
         table.add_row("Rejected", f"[red]{report.rejected_items}[/red]", f"{percent_rejected:.1f}% (of screened)")
-        
+
         console.print(table)

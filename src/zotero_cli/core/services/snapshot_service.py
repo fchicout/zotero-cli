@@ -1,9 +1,7 @@
-from typing import Callable, Optional, List, Dict, Any
 import json
-import time
-from datetime import datetime, timezone
 import sys
-import traceback
+from datetime import datetime, timezone
+from typing import Any, Callable, Dict, List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -22,26 +20,26 @@ class SnapshotService:
         self.gateway = gateway
 
     def freeze_collection(
-        self, 
-        collection_name: str, 
-        output_path: str, 
+        self,
+        collection_name: str,
+        output_path: str,
         callback: Optional[ProgressCallback] = None
     ) -> bool:
         """
         Creates a JSON snapshot of the specified collection, including all child items (notes/attachments).
-        
+
         Args:
             collection_name: The name of the collection to freeze.
             output_path: The file path to save the JSON snapshot.
             callback: Optional function to report progress (useful for CLI spinners or WebUI bars).
-        
+
         Returns:
             bool: True if successful (even if partial), False otherwise.
         """
         # 1. Resolve Collection ID
         if callback:
             callback(0, 0, "Resolving collection ID...")
-        
+
         collection_id = self.gateway.get_collection_id_by_name(collection_name)
         if not collection_id:
             print(f"Error: Collection '{collection_name}' not found.", file=sys.stderr)
@@ -50,7 +48,7 @@ class SnapshotService:
         # 2. Fetch Top-Level Items
         if callback:
             callback(0, 0, f"Fetching items from '{collection_name}'...")
-        
+
         # We fetch raw items first to get the count
         items_iter = self.gateway.get_items_in_collection(collection_id)
         parent_items = list(items_iter)
@@ -66,10 +64,10 @@ class SnapshotService:
 
             try:
                 item_data = self._serialize_item(item)
-                
+
                 # Fetch Children (Notes/Attachments)
                 children_raw = self.gateway.get_item_children(item.key)
-                
+
                 # Nest children
                 item_data['children'] = children_raw
                 snapshot_data.append(item_data)
@@ -85,7 +83,7 @@ class SnapshotService:
 
         # 4. Construct Final Artifact
         timestamp = datetime.now(timezone.utc).isoformat()
-        
+
         artifact = {
             "meta": {
                 "timestamp": timestamp,
@@ -105,14 +103,14 @@ class SnapshotService:
         # 5. Write to Disk
         if callback:
             callback(total_items, total_items, "Writing snapshot to disk...")
-            
+
         try:
             with open(output_path, 'w', encoding='utf-8') as f:
                 json.dump(artifact, f, indent=2, ensure_ascii=False)
-            
+
             if failed_items:
                 print(f"\nWarning: Snapshot completed with {len(failed_items)} failures. Check 'failures' block in output.", file=sys.stderr)
-            
+
             return True
         except IOError as e:
             print(f"Error writing snapshot file: {e}", file=sys.stderr)

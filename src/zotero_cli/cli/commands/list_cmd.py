@@ -1,4 +1,5 @@
 import argparse
+
 from rich.console import Console
 from rich.table import Table
 
@@ -13,13 +14,13 @@ class ListCommand(BaseCommand):
 
     def register_args(self, parser: argparse.ArgumentParser):
         sub = parser.add_subparsers(dest="list_type", required=True)
-        
+
         # Collections
         sub.add_parser("collections", help="List collections")
-        
+
         # Groups
         sub.add_parser("groups", help="List user groups")
-        
+
         # Items
         li_p = sub.add_parser("items", help="List items in collection")
         li_p.add_argument("--collection", required=False, help="Collection name or key")
@@ -29,7 +30,7 @@ class ListCommand(BaseCommand):
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
-        
+
         if args.list_type == "collections":
             self._handle_collections(gateway, args)
         elif args.list_type == "groups":
@@ -53,7 +54,7 @@ class ListCommand(BaseCommand):
         if not config.user_id:
             print("Error: ZOTERO_USER_ID not configured. Cannot fetch user groups.")
             return
-            
+
         groups = gateway.get_user_groups(config.user_id)
         table = Table(title="Zotero Groups")
         table.add_column("ID", style="cyan")
@@ -77,7 +78,7 @@ class ListCommand(BaseCommand):
             col_id = gateway.get_collection_id_by_name(args.collection)
             if not col_id:
                 col_id = args.collection # Try Key
-                
+
             items = list(gateway.get_items_in_collection(col_id, top_only=getattr(args, 'top_only', False)))
             title = f"Items in {args.collection}"
 

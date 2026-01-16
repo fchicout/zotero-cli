@@ -1,7 +1,10 @@
-import pytest
 from unittest.mock import Mock
-from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
+import pytest
 import requests
+
+from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
 
 @pytest.fixture
 def api_key():
@@ -31,9 +34,9 @@ def test_update_item_metadata_success(client, group_id):
     metadata = {"abstractNote": "New abstract"}
 
     result = client.update_item_metadata(item_key, version, metadata)
-    
+
     assert result is True
-    
+
     # Http client adds prefix
     expected_url = f"https://api.zotero.org/groups/{group_id}/items/{item_key}"
     call_args = client.http.session.patch.call_args
@@ -47,6 +50,6 @@ def test_update_item_metadata_success(client, group_id):
 
 def test_update_item_metadata_failure(client):
     client.http.session.patch.side_effect = requests.exceptions.RequestException("API Error")
-    
+
     result = client.update_item_metadata("ITEM123", 1, {})
     assert result is False

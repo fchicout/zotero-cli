@@ -1,8 +1,11 @@
-import pytest
 from unittest.mock import Mock
+
+import pytest
+
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.collection_service import CollectionService
 from zotero_cli.core.zotero_item import ZoteroItem
+
 
 @pytest.fixture
 def mock_gateway():
@@ -16,7 +19,7 @@ def service(mock_gateway):
 def test_move_item_success_doi(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
         lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
-    
+
     raw_item = {
         'key': 'ITEM1',
         'data': {
@@ -29,13 +32,13 @@ def test_move_item_success_doi(service, mock_gateway):
     # The new logic tries get_item first. Let's make it fail lookup by ID so it falls back to scan,
     # OR better, make it succeed if we pass the key, but here we pass DOI.
     # If we pass DOI "10.1234/test" to get_item, it should return None (not found by key).
-    mock_gateway.get_item.return_value = None 
-    
+    mock_gateway.get_item.return_value = None
+
     mock_gateway.get_items_in_collection.return_value = iter([item])
     mock_gateway.update_item.return_value = True
 
     result = service.move_item("Source", "Dest", "10.1234/test")
-    
+
     assert result is True
     args = mock_gateway.update_item.call_args
     assert args[0][0] == 'ITEM1'
@@ -49,7 +52,7 @@ def test_move_item_not_found(service, mock_gateway):
         lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
     mock_gateway.get_item.return_value = None
     mock_gateway.get_items_in_collection.return_value = iter([])
-    
+
     result = service.move_item("Source", "Dest", "missing")
     assert result is False
     mock_gateway.update_item.assert_not_called()
@@ -57,7 +60,7 @@ def test_move_item_not_found(service, mock_gateway):
 def test_move_item_success_arxiv(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
         lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
-    
+
     raw_item = {
         'key': 'ITEM2',
         'data': {
@@ -73,13 +76,13 @@ def test_move_item_success_arxiv(service, mock_gateway):
 
     result = service.move_item("Source", "Dest", "2301.00001")
     assert result is True
-        
+
 def test_collections_not_found(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
         lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
     mock_gateway.get_item.return_value = None # Item not found by key
     mock_gateway.get_items_in_collection.return_value = iter([]) # Not found by scan either
-    
+
     assert service.move_item("BadSource", "Dest", "id") is False
     assert service.move_item("Source", "BadDest", "id") is False
 
@@ -87,7 +90,7 @@ def test_collections_not_found(service, mock_gateway):
 def test_move_item_success_key(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
         lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
-    
+
     raw_item = {
         'key': 'KEY123',
         'data': {
@@ -101,17 +104,17 @@ def test_move_item_success_key(service, mock_gateway):
     mock_gateway.update_item.return_value = True
 
     result = service.move_item("Source", "Dest", "KEY123")
-    
+
     assert result is True
     mock_gateway.get_items_in_collection.assert_not_called() # Optimization verified!
     mock_gateway.update_item.assert_called()
 
 def test_empty_collection_success_simple(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.return_value = "COLL_ID"
-    
+
     item1 = Mock(spec=ZoteroItem); item1.key = "K1"; item1.version = 1
     item2 = Mock(spec=ZoteroItem); item2.key = "K2"; item2.version = 2
-    
+
     mock_gateway.get_items_in_collection.return_value = iter([item1, item2])
     mock_gateway.delete_item.return_value = True
 
@@ -128,7 +131,7 @@ def test_empty_collection_with_parent_success(service, mock_gateway):
         {'key': 'WRONG_CHILD', 'data': {'name': 'ChildCol', 'parentCollection': 'OTHER_ID'}},
         {'key': 'TARGET_ID', 'data': {'name': 'ChildCol', 'parentCollection': 'PARENT_ID'}}
     ]
-    
+
     item1 = Mock(spec=ZoteroItem); item1.key = "K1"; item1.version = 1
     mock_gateway.get_items_in_collection.return_value = iter([item1])
     mock_gateway.delete_item.return_value = True
@@ -150,7 +153,7 @@ def test_empty_collection_parent_not_found(service, mock_gateway):
 def test_move_item_auto_source_success(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
         lambda name: "ID_DEST" if name == "Dest" else None
-    
+
     raw_item = {
         'key': 'KEY1',
         'data': {
@@ -164,7 +167,7 @@ def test_move_item_auto_source_success(service, mock_gateway):
 
     # Call with source_col_name=None
     result = service.move_item(None, "Dest", "KEY1")
-    
+
     assert result is True
     args = mock_gateway.update_item.call_args
     assert 'ID_DEST' in args[0][2]['collections']
@@ -185,14 +188,14 @@ def test_move_item_auto_source_ambiguous(service, mock_gateway):
     mock_gateway.get_item.return_value = item
 
     result = service.move_item(None, "Dest", "KEY1")
-    
+
     assert result is False
     mock_gateway.update_item.assert_not_called()
 
 def test_move_item_auto_source_already_in_dest_only(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = \
         lambda name: "ID_DEST" if name == "Dest" else None
-    
+
     raw_item = {
         'key': 'KEY1',
         'data': {
@@ -205,7 +208,7 @@ def test_move_item_auto_source_already_in_dest_only(service, mock_gateway):
     mock_gateway.update_item.return_value = True
 
     result = service.move_item(None, "Dest", "KEY1")
-    
+
     assert result is True
     args = mock_gateway.update_item.call_args
     assert args[0][2]['collections'] == ['ID_DEST']

@@ -1,14 +1,19 @@
 from abc import ABC, abstractmethod
-from typing import Iterator, Dict, Any, Optional
-from zotero_cli.core.models import ResearchPaper
+from typing import Iterator
+
 from zotero_cli.core.interfaces import (
-    ArxivGateway, BibtexGateway, RisGateway, 
-    SpringerCsvGateway, IeeeCsvGateway
+    ArxivGateway,
+    BibtexGateway,
+    IeeeCsvGateway,
+    RisGateway,
+    SpringerCsvGateway,
 )
+from zotero_cli.core.models import ResearchPaper
+
 
 class ImportStrategy(ABC):
     """Abstract base class for all import strategies."""
-    
+
     @abstractmethod
     def fetch_papers(self, source: str, **kwargs) -> Iterator[ResearchPaper]:
         """Fetch or parse papers from the source."""

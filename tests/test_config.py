@@ -1,8 +1,9 @@
 import os
-import pytest
 from pathlib import Path
 from unittest.mock import patch
-from zotero_cli.core.config import ConfigLoader, ZoteroConfig
+
+from zotero_cli.core.config import ConfigLoader
+
 
 def test_config_loader_default_path():
     with patch.dict(os.environ, {"XDG_CONFIG_HOME": "/tmp/config"}):
@@ -12,13 +13,13 @@ def test_config_loader_default_path():
 def test_load_from_env_only(tmp_path):
     config_file = tmp_path / "config.toml"
     # No file exists
-    
+
     env = {
         "ZOTERO_API_KEY": "env_key",
         "ZOTERO_USER_ID": "env_user",
         "ZOTERO_LIBRARY_ID": "env_lib"
     }
-    
+
     with patch.dict(os.environ, env):
         loader = ConfigLoader(config_path=config_file)
         config = loader.load()
@@ -31,7 +32,7 @@ def test_load_from_file_only(tmp_path):
     config_file.parent.mkdir(parents=True, exist_ok=True)
     with open(config_file, "w") as f:
         f.write('[zotero]\napi_key = "file_key"\nuser_id = "file_user"\nlibrary_id = "file_lib"\n')
-    
+
     # Ensure env is empty for these keys
     with patch.dict(os.environ, {}, clear=True):
         loader = ConfigLoader(config_path=config_file)
@@ -45,11 +46,11 @@ def test_precedence_env_over_file(tmp_path):
     config_file.parent.mkdir(parents=True, exist_ok=True)
     with open(config_file, "w") as f:
         f.write('[zotero]\napi_key = "file_key"\nuser_id = "file_user"\n')
-    
+
     env = {
         "ZOTERO_API_KEY": "env_key"
     }
-    
+
     with patch.dict(os.environ, env):
         loader = ConfigLoader(config_path=config_file)
         config = loader.load()

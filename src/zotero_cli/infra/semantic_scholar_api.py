@@ -1,13 +1,16 @@
-from typing import Optional
 import os
 import time
+from typing import Optional
+
 import requests
+
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
 
+
 class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider):
-    
+
     def __init__(self, api_key: Optional[str] = None):
         super().__init__(base_url="https://api.semanticscholar.org/graph/v1/paper")
         self.api_key = api_key or os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
@@ -25,17 +28,17 @@ class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider):
             s2_id = f"DOI:{identifier}"
         elif "arxiv" in identifier.lower() and not identifier.upper().startswith("ARXIV:"):
              # Basic handling, might need more robust parsing if identifier is a URL
-             pass 
+             pass
 
         # Fields to retrieve
         fields = "title,abstract,authors,year,venue,externalIds,url,references.externalIds"
-        
+
         # Rate limiting: 1 request per second (keeping it polite)
         time.sleep(1.1)
 
         try:
             response = self._get(endpoint=s2_id, params={'fields': fields})
-            
+
             data = response.json()
             return self._map_to_research_paper(data)
 
@@ -51,12 +54,12 @@ class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider):
     def _map_to_research_paper(self, data: dict) -> ResearchPaper:
         # Extract authors
         authors = [a['name'] for a in data.get('authors', []) if 'name' in a]
-        
+
         # Extract Identifiers
         external_ids = data.get('externalIds', {})
         doi = external_ids.get('DOI')
         arxiv_id = external_ids.get('ArXiv')
-        
+
         # Extract References (DOIs only for now)
         references = []
         for ref in (data.get('references') or []):

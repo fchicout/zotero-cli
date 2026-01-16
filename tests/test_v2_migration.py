@@ -1,7 +1,10 @@
-import pytest
-from unittest.mock import patch, Mock
 import sys
+from unittest.mock import patch
+
+import pytest
+
 from zotero_cli.cli.main import main
+
 
 @pytest.fixture(autouse=True)
 def mock_config(tmp_path):
@@ -18,6 +21,6 @@ def test_modern_review_decide_invocation(capsys):
         test_args = ['zotero-cli', 'review', 'decide', '--key', 'K1', '--vote', 'INCLUDE', '--code', 'TEST']
         with patch.object(sys, 'argv', test_args):
             main()
-        
+
         mock_service.record_decision.assert_called_once()
         assert "[DEPRECATED]" not in capsys.readouterr().err

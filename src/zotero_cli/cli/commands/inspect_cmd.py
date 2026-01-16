@@ -1,8 +1,10 @@
 import argparse
 import json
+
 from rich.console import Console
 from rich.panel import Panel
-from zotero_cli.cli.base import BaseCommand, CommandRegistry
+
+from zotero_cli.cli.base import BaseCommand
 
 console = Console()
 
@@ -18,7 +20,7 @@ class InspectCommand(BaseCommand):
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
-        
+
         item = gateway.get_item(args.key)
         if not item:
             console.print(f"[bold red]Item '{args.key}' not found.[/bold red]")
@@ -36,7 +38,7 @@ class InspectCommand(BaseCommand):
                            f"[bold]URL:[/bold] {item.url}\n\n" \
                            f"[bold]Abstract:[/bold]\n{item.abstract}",
                            title=f"Item: {args.key}"))
-        
+
         # Children (Notes/Attachments)
         children = gateway.get_item_children(args.key)
         if children:

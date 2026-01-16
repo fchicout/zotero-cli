@@ -1,7 +1,8 @@
-import pytest
-from unittest.mock import Mock, patch, mock_open
-from zotero_cli.infra.ris_lib import RisLibGateway
+from unittest.mock import mock_open, patch
+
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.infra.ris_lib import RisLibGateway
+
 
 @patch('zotero_cli.infra.ris_lib.rispy.load')
 @patch('builtins.open', new_callable=mock_open)
@@ -9,21 +10,21 @@ def test_parse_file_success(mock_file, mock_load):
     # Setup mock rispy entries
     mock_entries = [
         {
-            'type_of_reference': 'JOUR', 
-            'authors': ['Doe, John', 'Smith, Jane'], 
-            'year': '2023', 
+            'type_of_reference': 'JOUR',
+            'authors': ['Doe, John', 'Smith, Jane'],
+            'year': '2023',
             'primary_title': 'A Sample RIS Paper',
-            'journal_name': 'Journal of RIS', 
-            'abstract': 'This is an abstract.', 
-            'doi': '10.1234/ris1', 
+            'journal_name': 'Journal of RIS',
+            'abstract': 'This is an abstract.',
+            'doi': '10.1234/ris1',
             'urls': ['http://ris.example.com']
         },
         {
-            'type_of_reference': 'BOOK', 
-            'authors': ['Author, A'], 
-            'year': '2022', 
+            'type_of_reference': 'BOOK',
+            'authors': ['Author, A'],
+            'year': '2022',
             'primary_title': 'Another RIS Entry',
-            'secondary_title': 'Book Series', 
+            'secondary_title': 'Book Series',
             'abstract': 'Book abstract.'
         }
     ]
@@ -33,7 +34,7 @@ def test_parse_file_success(mock_file, mock_load):
     papers = list(gateway.parse_file("test.ris"))
 
     assert len(papers) == 2
-    
+
     assert isinstance(papers[0], ResearchPaper)
     assert papers[0].title == "A Sample RIS Paper"
     assert papers[0].authors == ["Doe, John", "Smith, Jane"]

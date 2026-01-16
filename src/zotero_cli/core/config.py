@@ -1,8 +1,8 @@
 import os
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -28,7 +28,7 @@ class ConfigLoader:
     1. Environment Variables (Highest)
     2. config.toml
     3. Default values (Lowest)
-    
+
     CLI flags are handled at the CLI layer and override this.
     """
 
@@ -44,12 +44,12 @@ class ConfigLoader:
 
     def load(self) -> ZoteroConfig:
         file_config = self._load_from_file()
-        
+
         # Merge logic: Env > File
         api_key = os.environ.get("ZOTERO_API_KEY") or file_config.get("api_key")
         user_id = os.environ.get("ZOTERO_USER_ID") or file_config.get("user_id")
         group_url = os.environ.get("ZOTERO_TARGET_GROUP") or file_config.get("target_group")
-        
+
         # Derive library_id/type from group_url or user_id
         library_id = os.environ.get("ZOTERO_LIBRARY_ID") or file_config.get("library_id")
         library_type = os.environ.get("ZOTERO_LIBRARY_TYPE") or file_config.get("library_type", "group")
@@ -71,7 +71,7 @@ class ConfigLoader:
     def _load_from_file(self) -> Dict[str, Any]:
         if not self.config_path.exists():
             return {}
-        
+
         try:
             with open(self.config_path, "rb") as f:
                 data = tomllib.load(f)

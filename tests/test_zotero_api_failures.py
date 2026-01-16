@@ -1,13 +1,16 @@
+from unittest.mock import Mock, mock_open, patch
+
 import pytest
-from unittest.mock import Mock, patch, mock_open
-from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
 
 @pytest.fixture
 def client():
     c = ZoteroAPIClient("key", "123", "group")
     c.http = Mock()
-    # Ensure http methods raise by default for failure tests, 
+    # Ensure http methods raise by default for failure tests,
     # but individual tests will override this.
     return c
 
@@ -82,13 +85,13 @@ def test_upload_attachment_failure_post(client):
 def test_upload_attachment_failure_auth(mock_file, mock_mtime, mock_base, client):
     # Pass step 1, fail step 2
     mock_base.return_value = "f.pdf"
-    
+
     # Step 1 success
     res1 = Mock()
     res1.json.return_value = {"successful": {"0": {"key": "K"}}}
-    
+
     # Step 2 fail
     client.http.post.return_value = res1
     client.http.post_form.side_effect = Exception("Auth Boom")
-    
+
     assert client.upload_attachment("P1", "f.pdf") is False

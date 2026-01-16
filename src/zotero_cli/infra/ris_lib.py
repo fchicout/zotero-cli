@@ -1,7 +1,10 @@
-import rispy
 from typing import Iterator
+
+import rispy
+
 from zotero_cli.core.interfaces import RisGateway
 from zotero_cli.core.models import ResearchPaper
+
 
 class RisLibGateway(RisGateway):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
@@ -9,7 +12,7 @@ class RisLibGateway(RisGateway):
             with open(file_path, 'r', encoding='utf-8') as ris_file:
                 # rispy.load accepts a file-like object
                 entries = rispy.load(ris_file)
-            
+
             for entry in entries:
                 yield self._map_entry_to_paper(entry)
         except Exception as e:

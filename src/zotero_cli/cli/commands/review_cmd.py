@@ -1,7 +1,9 @@
 import argparse
 import sys
+
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.services.migration_service import MigrationService
+
 
 @CommandRegistry.register
 class ReviewCommand(BaseCommand):
@@ -10,9 +12,9 @@ class ReviewCommand(BaseCommand):
 
     def register_args(self, parser: argparse.ArgumentParser):
         sub = parser.add_subparsers(dest="verb", required=True)
-        
-        from zotero_cli.cli.commands.screen_cmd import ScreenCommand, DecideCommand
-        
+
+        from zotero_cli.cli.commands.screen_cmd import DecideCommand, ScreenCommand
+
         # Screen
         screen_p = sub.add_parser("screen", help=ScreenCommand.help)
         ScreenCommand().register_args(screen_p)
@@ -51,17 +53,18 @@ class ReviewCommand(BaseCommand):
             self._handle_sync_csv(args)
 
     def _handle_audit(self, args):
-        from rich.table import Table
         from rich.console import Console
-        from zotero_cli.infra.factory import GatewayFactory
+        from rich.table import Table
+
         from zotero_cli.core.services.audit_service import CollectionAuditor
+        from zotero_cli.infra.factory import GatewayFactory
         console = Console()
-        
+
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
         service = CollectionAuditor(gateway)
         print(f"Auditing collection: {args.collection}...")
         report = service.audit_collection(args.collection)
-        
+
         if not report:
             sys.exit(1)
 
@@ -84,7 +87,7 @@ class ReviewCommand(BaseCommand):
         print(f"Total items analyzed: {report.total_items}")
 
         has_failures = any([
-            report.items_missing_id, report.items_missing_pdf, 
+            report.items_missing_id, report.items_missing_pdf,
             report.items_missing_note, report.items_missing_title,
             report.items_missing_abstract
         ])
@@ -106,7 +109,6 @@ class ReviewCommand(BaseCommand):
 
     def _handle_migrate(self, args):
         from zotero_cli.infra.factory import GatewayFactory
-        from zotero_cli.core.services.migration_service import MigrationService
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
         service = MigrationService(gateway)
         results = service.migrate_collection_notes(args.collection, args.dry_run)
@@ -116,11 +118,11 @@ class ReviewCommand(BaseCommand):
         print(f"  Failed:    {results['failed']}")
 
     def _handle_sync_csv(self, args):
-        from zotero_cli.infra.factory import GatewayFactory
         from zotero_cli.core.services.sync_service import SyncService
+        from zotero_cli.infra.factory import GatewayFactory
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
         service = SyncService(gateway)
-        
+
         def cli_progress(current, total, msg):
             percent = (current / total * 100) if total > 0 else 0
             sys.stdout.write(f"\r[{percent:5.1f}%] {msg:<60}")

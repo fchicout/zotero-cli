@@ -1,5 +1,7 @@
+from typing import Any, Dict, Optional
+
 import requests
-from typing import Optional, Dict, Any, Union
+
 
 class ZoteroHttpClient:
     """
@@ -18,25 +20,25 @@ class ZoteroHttpClient:
         self.api_key = api_key
         self.library_id = library_id
         self.library_type = library_type
-        
+
         self.session = requests.Session()
         self.session.headers.update({
             'Zotero-API-Version': self.API_VERSION,
             'Zotero-API-Key': self.api_key
         })
-        
+
         # Determine prefix: /groups/123 or /users/123
         prefix = "users" if library_type == 'user' else "groups"
         self.api_prefix = f"{self.BASE_URL}/{prefix}/{self.library_id}"
-        
+
         # State
         self.last_library_version = 0
 
     def get(self, endpoint: str, params: Optional[Dict] = None, use_prefix: bool = True) -> requests.Response:
         url = f"{self.api_prefix}/{endpoint}" if use_prefix else f"{self.BASE_URL}/{endpoint}"
-        # Strip leading slash if present in endpoint to avoid double slash issues? 
+        # Strip leading slash if present in endpoint to avoid double slash issues?
         # requests handles it mostly, but let's be clean.
-        
+
         response = self.session.get(url, params=params)
         self._update_version(response)
         response.raise_for_status()
@@ -52,19 +54,19 @@ class ZoteroHttpClient:
     def patch(self, endpoint: str, json_data: Any, version_check: bool = False) -> requests.Response:
         url = f"{self.api_prefix}/{endpoint}"
         headers = self.session.headers.copy()
-        
+
         # Concurrency Control
         if version_check:
             headers['If-Unmodified-Since-Version'] = str(self.last_library_version)
-        
+
         response = self.session.patch(url, json=json_data, headers=headers)
-        
+
         # Simple retry logic for 412 could go here, but logic currently resides in caller.
         # For now, we return raw response for caller to handle 412.
-        
+
         if response.status_code != 412:
             response.raise_for_status()
-            
+
         self._update_version(response)
         return response
 
@@ -73,11 +75,11 @@ class ZoteroHttpClient:
         headers = self.session.headers.copy()
         if version_check:
             headers['If-Unmodified-Since-Version'] = str(self.last_library_version)
-            
+
         response = self.session.delete(url, params=params, headers=headers)
         if response.status_code != 412:
             response.raise_for_status()
-            
+
         self._update_version(response)
         return response
 
@@ -97,7 +99,7 @@ class ZoteroHttpClient:
         h = self.session.headers.copy()
         if headers:
             h.update(headers)
-            
+
         response = self.session.post(url, data=data, headers=h)
         response.raise_for_status()
         return response

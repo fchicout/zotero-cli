@@ -1,11 +1,14 @@
 from typing import Optional
+
 import requests
+
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
 
+
 class CrossRefAPIClient(BaseAPIClient, MetadataProvider):
-    
+
     def __init__(self):
         super().__init__(base_url="https://api.crossref.org/works")
 
@@ -16,7 +19,7 @@ class CrossRefAPIClient(BaseAPIClient, MetadataProvider):
         """
         try:
             response = self._get(endpoint=identifier)
-            
+
             data = response.json()
             return self._map_to_research_paper(data)
         except requests.exceptions.HTTPError as e:
@@ -30,13 +33,13 @@ class CrossRefAPIClient(BaseAPIClient, MetadataProvider):
 
     def _map_to_research_paper(self, data: dict) -> ResearchPaper:
         item = data.get('message', {})
-        
+
         # Title
         title = item.get('title', [''])[0] if item.get('title') else ''
-        
+
         # Abstract (often XML)
         abstract = item.get('abstract', '')
-        
+
         # Authors
         authors = []
         for author in item.get('author', []):
@@ -44,7 +47,7 @@ class CrossRefAPIClient(BaseAPIClient, MetadataProvider):
             family = author.get('family', '')
             if given or family:
                 authors.append(f"{given} {family}".strip())
-        
+
         # Year
         year = None
         published = item.get('published-print') or item.get('published-online')

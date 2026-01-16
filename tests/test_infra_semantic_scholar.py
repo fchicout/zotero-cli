@@ -1,6 +1,9 @@
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import patch, Mock
+
 from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient
+
 
 @pytest.fixture
 def client():
@@ -25,7 +28,7 @@ def test_get_paper_metadata_success(mock_get, client):
     mock_get.return_value = mock_response
 
     metadata = client.get_paper_metadata("10.1234/s2")
-    
+
     assert metadata is not None
     assert metadata.title == "S2 Title"
     assert metadata.abstract == "S2 Abstract"
@@ -40,6 +43,6 @@ def test_get_paper_metadata_not_found(mock_get, client):
     mock_response = Mock()
     mock_response.status_code = 404
     mock_get.return_value = mock_response
-    
+
     metadata = client.get_paper_metadata("10.0000/missing")
     assert metadata is None

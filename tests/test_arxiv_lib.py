@@ -1,15 +1,17 @@
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from zotero_cli.infra.arxiv_lib import ArxivLibGateway
-from zotero_cli.core.models import ResearchPaper
+from unittest.mock import MagicMock, Mock, patch
+
 import arxiv
+
+from zotero_cli.core.models import ResearchPaper
+from zotero_cli.infra.arxiv_lib import ArxivLibGateway
+
 
 @patch('zotero_cli.infra.arxiv_lib.arxiv.Client')
 @patch('zotero_cli.infra.arxiv_lib.arxiv.Search')
 def test_search_returns_papers(MockSearch, MockClient):
     # Setup mocks
     mock_client_instance = MockClient.return_value
-    
+
     # Create mock result objects that mimic arxiv.Result
     mock_result1 = MagicMock()
     mock_result1.get_short_id.return_value = "2301.00001v1"
@@ -42,7 +44,7 @@ def test_search_returns_papers(MockSearch, MockClient):
 
     # Assertion
     assert len(papers) == 2
-    
+
     assert isinstance(papers[0], ResearchPaper)
     assert papers[0].arxiv_id == "2301.00001v1"
     assert papers[0].title == "Title 1"

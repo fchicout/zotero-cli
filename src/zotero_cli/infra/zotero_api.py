@@ -1,13 +1,14 @@
-import os
 import hashlib
-from typing import Optional, Iterator, Dict, Any, List, Callable
-import sys
+import os
+from typing import Any, Callable, Dict, Iterator, List, Optional
+
 import requests
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import ResearchPaper, ZoteroQuery
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.http_client import ZoteroHttpClient
+
 
 class ZoteroAPIClient(ZoteroGateway):
     """
@@ -37,19 +38,22 @@ class ZoteroAPIClient(ZoteroGateway):
     def _paginate_items(self, endpoint: str, params: Optional[Dict] = None) -> Iterator[ZoteroItem]:
         limit = 100
         start = 0
-        if params is None: params = {}
+        if params is None:
+            params = {}
         params['limit'] = limit
-        
+
         while True:
             try:
                 params['start'] = start
                 response = self.http.get(endpoint, params=params)
                 items = response.json()
-                if not items: break
+                if not items:
+                    break
                 for item in items:
                     yield ZoteroItem.from_raw_zotero_item(item)
                 start += len(items)
-                if len(items) < limit: break
+                if len(items) < limit:
+                    break
             except Exception as e:
                 print(f"Error fetching items from {endpoint}: {e}")
                 break
@@ -151,7 +155,7 @@ class ZoteroAPIClient(ZoteroGateway):
         payload = {"name": name}
         if parent_key:
             payload["parentCollection"] = parent_key
-            
+
         try:
             response = self.http.post("collections", json_data=[payload])
             return self._parse_write_response(response)
@@ -177,8 +181,22 @@ class ZoteroAPIClient(ZoteroGateway):
             print(f"Error renaming collection {collection_key}: {e}")
             return False
 
+    def add_tags(self, item_key: str, tags: List[str]) -> bool:
+        if not tags:
+            return True
+        item = self.get_item(item_key)
+        if not item:
+            return False
+        
+        current_tags = [t['tag'] for t in item.raw_data.get('data', {}).get('tags', [])]
+        updated_tags = set(current_tags) | set(tags)
+        tag_payload = [{"tag": t} for t in updated_tags]
+        
+        return self.update_item(item_key, item.version, {"tags": tag_payload})
+
     def delete_tags(self, tags: List[str], version: int) -> bool:
-        if not tags: return True
+        if not tags:
+            return True
         # Chunking: Zotero supports up to 50 tags per request
         chunk_size = 50
         success = True
@@ -208,15 +226,22 @@ class ZoteroAPIClient(ZoteroGateway):
             "creators": creators,
             "collections": [collection_id]
         }
-        
-        if paper.url: item_payload["url"] = paper.url
-        elif paper.arxiv_id: item_payload["url"] = f"https://arxiv.org/abs/{paper.arxiv_id}"
+
+        if paper.url:
+            item_payload["url"] = paper.url
+        elif paper.arxiv_id:
+            item_payload["url"] = f"https://arxiv.org/abs/{paper.arxiv_id}"
+
         if paper.arxiv_id:
             item_payload["libraryCatalog"] = "arXiv"
             item_payload["extra"] = f"arXiv: {paper.arxiv_id}"
-        if paper.doi: item_payload["DOI"] = paper.doi
-        if paper.publication: item_payload["publicationTitle"] = paper.publication
-        if paper.year: item_payload["date"] = paper.year
+
+        if paper.doi:
+            item_payload["DOI"] = paper.doi
+        if paper.publication:
+            item_payload["publicationTitle"] = paper.publication
+        if paper.year:
+            item_payload["date"] = paper.year
 
         try:
             response = self.http.post("items", json_data=[item_payload])
@@ -260,7 +285,7 @@ class ZoteroAPIClient(ZoteroGateway):
             "version": version
         }
         try:
-            response = self.http.patch(f"items/{note_key}", json_data=payload, version_check=False) 
+            response = self.http.patch(f"items/{note_key}", json_data=payload, version_check=False)
             if response.status_code == 412:
                 new_version = self.http.last_library_version
                 payload['version'] = new_version
@@ -281,7 +306,7 @@ class ZoteroAPIClient(ZoteroGateway):
             return False
 
     def update_item_collections(self, item_key: str, version: int, collections: List[str]) -> bool:
-        payload = {"collections": collections} 
+        payload = {"collections": collections}
         try:
             resp = self.http.patch(f"items/{item_key}", json_data=payload, version_check=True)
             if resp.status_code == 412:
@@ -301,7 +326,7 @@ class ZoteroAPIClient(ZoteroGateway):
             filename = os.path.basename(file_path)
             filesize = os.path.getsize(file_path)
             mtime = int(os.path.getmtime(file_path) * 1000)
-            
+
             md5_hash = hashlib.md5()
             with open(file_path, "rb") as f:
                 for chunk in iter(lambda: f.read(4096), b""):
@@ -316,10 +341,11 @@ class ZoteroAPIClient(ZoteroGateway):
                 "title": filename,
                 "contentType": mime_type
             }]
-            
+
             res = self.http.post("items", json_data=payload)
             attachment_key = self._parse_write_response(res)
-            if not attachment_key: return False
+            if not attachment_key:
+                return False
 
             # 2. Get Upload Authorization
             auth_data = {
@@ -330,18 +356,18 @@ class ZoteroAPIClient(ZoteroGateway):
             }
             # Important: If-None-Match: * ensures we don't overwrite if not needed
             headers = {'If-None-Match': '*', 'Content-Type': 'application/x-www-form-urlencoded'}
-            
+
             # Add params=1 as query param to get upload parameters
             auth_res = self.http.post_form(f"items/{attachment_key}/file?params=1", data=auth_data, headers=headers)
             auth_resp_data = auth_res.json()
-            
+
             if auth_resp_data.get('exists') == 1:
                 return True
 
             upload_url = auth_resp_data['url']
             upload_params = auth_resp_data.get('params', {})
             upload_key = auth_resp_data.get('uploadKey')
-            
+
             # 3. Perform the actual upload (typically to S3)
             with open(file_path, 'rb') as f:
                 self.http.upload_file(upload_url, data=upload_params, files={'file': f})
@@ -350,7 +376,7 @@ class ZoteroAPIClient(ZoteroGateway):
             reg_data = {"upload": upload_key}
             reg_headers = {'Content-Type': 'application/x-www-form-urlencoded'}
             self.http.post_form(f"items/{attachment_key}/file", data=reg_data, headers=reg_headers)
-            
+
             return True
 
         except Exception as e:

@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+
 @dataclass
 class ResearchPaper:
     title: str
@@ -28,14 +29,21 @@ class ZoteroQuery:
     since: Optional[int] = None
     sort: Optional[str] = "date"
     direction: Optional[str] = "desc" # 'asc' or 'desc'
-    
+
     def to_params(self) -> dict:
         params = {}
-        if self.q: params['q'] = self.q
-        if self.qmode: params['qmode'] = self.qmode
-        if self.item_type: params['itemType'] = self.item_type
-        if self.tag: params['tag'] = self.tag
-        if self.since: params['since'] = self.since
-        if self.sort: params['sort'] = self.sort
-        if self.direction: params['direction'] = self.direction
+        if self.q:
+            params['q'] = self.q
+        if self.qmode:
+            params['qmode'] = self.qmode
+        if self.item_type:
+            params['itemType'] = self.item_type
+        if self.tag:
+            params['tag'] = self.tag
+        if self.since:
+            params['since'] = self.since
+        if self.sort:
+            params['sort'] = self.sort
+        if self.direction:
+            params['direction'] = self.direction
         return params

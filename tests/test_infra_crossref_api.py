@@ -1,7 +1,10 @@
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import patch, Mock
 import requests
+
 from zotero_cli.infra.crossref_api import CrossRefAPIClient
+
 
 @pytest.fixture
 def client():
@@ -24,7 +27,7 @@ def test_get_paper_metadata_success(mock_get, client):
                 {"DOI": "10.1000/cited.paper.1"},
                 {"unrelated_field": "some_value"},
                 {"DOI": "10.1000/cited.paper.2"},
-                {"DOI": ""} 
+                {"DOI": ""}
             ]
         }
     }

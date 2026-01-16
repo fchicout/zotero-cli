@@ -1,7 +1,9 @@
 import csv
 from typing import Iterator
+
 from zotero_cli.core.interfaces import IeeeCsvGateway
 from zotero_cli.core.models import ResearchPaper
+
 
 class IeeeCsvLibGateway(IeeeCsvGateway):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
@@ -24,7 +26,7 @@ class IeeeCsvLibGateway(IeeeCsvGateway):
         doi = row.get('DOI')
         abstract = row.get('Abstract', '')
         url = row.get('PDF Link')
-        
+
         authors_str = row.get('Authors', '')
         authors = [a.strip() for a in authors_str.split(';') if a.strip()]
 

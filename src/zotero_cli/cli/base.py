@@ -1,13 +1,14 @@
-from abc import ABC, abstractmethod
 import argparse
-from typing import Dict, List, Type, Any, Optional
+from abc import ABC, abstractmethod
+from typing import Dict, List, Optional, Type
+
 
 class BaseCommand(ABC):
     """
     Abstract base class for all CLI commands.
     Enforces the Command Pattern.
     """
-    
+
     @property
     @abstractmethod
     def name(self) -> str:

@@ -1,9 +1,12 @@
-import pytest
-from unittest.mock import patch, Mock, mock_open
-from io import StringIO
 import sys
-import os
+from unittest.mock import Mock, mock_open, patch
+
+import pytest
+
 from zotero_cli.cli.main import main
+from zotero_cli.core.config import reset_config
+from zotero_cli.infra.factory import GatewayFactory
+
 
 @pytest.fixture(autouse=True)
 def mock_config_path(tmp_path):
@@ -21,7 +24,7 @@ def mock_clients():
          patch('zotero_cli.infra.ris_lib.RisLibGateway') as mock_ris, \
          patch('zotero_cli.infra.springer_csv_lib.SpringerCsvLibGateway') as mock_springer, \
          patch('zotero_cli.infra.ieee_csv_lib.IeeeCsvLibGateway') as mock_ieee:
-        
+
         mock_importer = mock_importer_get.return_value
         mock_zotero = mock_zotero_get.return_value
 
@@ -55,14 +58,14 @@ def test_screen_bulk_csv(mock_clients, env_vars, capsys):
     with patch('zotero_cli.infra.factory.GatewayFactory.get_screening_service') as mock_factory_get:
         mock_service = mock_factory_get.return_value
         mock_service.record_decision.return_value = True
-        
+
         # Create dummy CSV
         csv_content = "Key,Vote,Reason\nK1,INCLUDE,\nK2,EXCLUDE,bad"
         with patch('builtins.open', mock_open(read_data=csv_content)):
             test_args = ['zotero-cli', 'review', 'screen', '--source', 'S', '--include', 'I', '--exclude', 'E', '--file', 'decisions.csv']
             with patch.object(sys, 'argv', test_args):
                 main()
-        
+
         captured = capsys.readouterr()
         assert "Processing bulk decisions" in captured.out
         assert "Success: 2, Failed: 0" in captured.out
@@ -74,7 +77,7 @@ def test_decide_cli_invocation(mock_clients, env_vars, capsys):
         mock_service = mock_factory_get.return_value
         mock_service.record_decision.return_value = True
         test_args = [
-            'zotero-cli', 'review', 'decide', '--key', 'K1', '--vote', 'INCLUDE', 
+            'zotero-cli', 'review', 'decide', '--key', 'K1', '--vote', 'INCLUDE',
             '--code', 'IC1'
         ]
         with patch.object(sys, 'argv', test_args):
@@ -94,7 +97,7 @@ def test_import_arxiv(mock_clients, env_vars, capsys):
     test_args = ['zotero-cli', 'import', 'arxiv', '--query', 'test query', '--collection', 'F', '--limit', '10']
     with patch.object(sys, 'argv', test_args):
         main()
-    
+
     args, kwargs = mock_clients['importer'].import_with_strategy.call_args
     # args[0] is the strategy
     from zotero_cli.core.strategies import ArxivImportStrategy
@@ -102,7 +105,7 @@ def test_import_arxiv(mock_clients, env_vars, capsys):
     assert args[1] == 'test query'
     assert args[2] == 'F'
     assert kwargs['limit'] == 10
-    
+
     assert "Imported 5 items." in capsys.readouterr().out
 
 def test_import_file_bibtex(mock_clients, env_vars, capsys):
@@ -110,13 +113,13 @@ def test_import_file_bibtex(mock_clients, env_vars, capsys):
     test_args = ['zotero-cli', 'import', 'file', 'papers.bib', '--collection', 'F']
     with patch.object(sys, 'argv', test_args):
         main()
-    
+
     args, _ = mock_clients['importer'].import_with_strategy.call_args
     from zotero_cli.core.strategies import BibtexImportStrategy
     assert isinstance(args[0], BibtexImportStrategy)
     assert args[1] == 'papers.bib'
     assert args[2] == 'F'
-    
+
     assert "Imported 3 items." in capsys.readouterr().out
 
 def test_import_file_csv_ieee(mock_clients, env_vars, capsys):
@@ -126,13 +129,13 @@ def test_import_file_csv_ieee(mock_clients, env_vars, capsys):
         test_args = ['zotero-cli', 'import', 'file', 'ieee.csv', '--collection', 'F']
         with patch.object(sys, 'argv', test_args):
             main()
-    
+
     args, _ = mock_clients['importer'].import_with_strategy.call_args
     from zotero_cli.core.strategies import IeeeCsvImportStrategy
     assert isinstance(args[0], IeeeCsvImportStrategy)
     assert args[1] == 'ieee.csv'
     assert args[2] == 'F'
-    
+
     assert "Imported 6 items." in capsys.readouterr().out
 
 # --- 4. LIST ---
@@ -166,22 +169,22 @@ def test_list_items(mock_clients, env_vars, capsys):
     mock_item.item_type = "journalArticle"
     mock_clients['zotero'].get_collection_id_by_name.return_value = "CID"
     mock_clients['zotero'].get_items_in_collection.return_value = iter([mock_item])
-    
+
     test_args = ['zotero-cli', 'list', 'items', '--collection', 'MyCol']
     with patch.object(sys, 'argv', test_args):
         main()
-    
+
     assert "Paper 1" in capsys.readouterr().out
     # We changed the output format to a table, so precise string match might vary
     # But checking for title is safe. Key is now in a separate column.
 
 def test_list_items_not_found(mock_clients, env_vars, capsys):
     mock_clients['zotero'].get_collection_id_by_name.return_value = None
-    
+
     test_args = ['zotero-cli', 'list', 'items', '--collection', 'NonExistent']
     with patch.object(sys, 'argv', test_args):
         main()
-    
+
     # It currently prints an empty table if not found, but it should ideally error.
     # For now, let's just assert it shows 0 items.
     assert "Showing 0 items" in capsys.readouterr().out
@@ -193,11 +196,11 @@ def test_list_items_top_only(mock_clients, env_vars, capsys):
     mock_item.item_type = "journalArticle"
     mock_clients['zotero'].get_collection_id_by_name.return_value = "CID"
     mock_clients['zotero'].get_items_in_collection.return_value = iter([mock_item])
-    
+
     test_args = ['zotero-cli', 'list', 'items', '--collection', 'MyCol', '--top-only']
     with patch.object(sys, 'argv', test_args):
         main()
-    
+
     # Verify the call to gateway includes top_only=True
     mock_clients['zotero'].get_items_in_collection.assert_called_once_with('CID', top_only=True)
     assert "Paper Top" in capsys.readouterr().out
@@ -214,7 +217,7 @@ def test_report_prisma(mock_clients, env_vars, capsys):
         mock_report.rejections_by_code = {}
         mock_report.malformed_notes = []
         mock_service.generate_prisma_report.return_value = mock_report
-        
+
         test_args = ['zotero-cli', 'report', 'prisma', '--collection', 'MyCol']
         with patch.object(sys, 'argv', test_args):
             main()
@@ -236,12 +239,12 @@ def test_report_screening(mock_clients, env_vars, capsys, tmp_path):
         mock_report.collection_name = "MyCol"
         mock_service.generate_prisma_report.return_value = mock_report
         mock_service.generate_screening_markdown.return_value = "# Report Content"
-        
+
         out_file = tmp_path / "report.md"
         test_args = ['zotero-cli', 'report', 'screening', '--collection', 'MyCol', '--output', str(out_file)]
         with patch.object(sys, 'argv', test_args):
             main()
-        
+
         assert "Screening report saved" in capsys.readouterr().out
         assert out_file.exists()
         assert out_file.read_text() == "# Report Content"
@@ -254,12 +257,12 @@ def test_report_status(mock_clients, env_vars, capsys, tmp_path):
             mock_report.collection_name = "MyCol"
             mock_service.generate_prisma_report.return_value = mock_report
             mock_service.generate_screening_markdown.return_value = "# Dashboard Content"
-            
+
             out_file = tmp_path / "status.md"
             test_args = ['zotero-cli', 'report', 'status', '--collection', 'MyCol', '--output', str(out_file)]
             with patch.object(sys, 'argv', test_args):
                 main()
-            
+
             assert "Screening report saved" in capsys.readouterr().out
             assert out_file.exists()
             assert out_file.read_text() == "# Dashboard Content"
@@ -358,7 +361,7 @@ def test_find_arxiv(mock_clients, env_vars, capsys):
         from zotero_cli.core.services.arxiv_query_parser import ArxivSearchParams
         mock_parser.parse.return_value = ArxivSearchParams(query="parsed", max_results=1)
         mock_clients['arxiv'].search.return_value = iter([Mock(arxiv_id="123", title="Paper 1", year="2023")])
-        
+
         test_args = ['zotero-cli', 'find', 'arxiv', '--query', 'foo']
         with patch.object(sys, 'argv', test_args):
             main()
@@ -368,8 +371,7 @@ def test_find_arxiv(mock_clients, env_vars, capsys):
 
 # --- CONFIGURATION / MAIN ---
 
-from zotero_cli.core.config import reset_config
-from zotero_cli.infra.factory import GatewayFactory
+
 
 def get_zotero_gateway(*args, **kwargs):
     return GatewayFactory.get_zotero_gateway(*args, **kwargs)
@@ -378,7 +380,7 @@ def test_config_group_mode(monkeypatch):
     reset_config()
     monkeypatch.setenv('ZOTERO_API_KEY', 'key')
     monkeypatch.setenv('ZOTERO_TARGET_GROUP', 'https://zotero.org/groups/123')
-    
+
     gw = get_zotero_gateway()
     assert gw.http.library_id == '123'
     assert gw.http.library_type == 'group'
@@ -388,7 +390,7 @@ def test_config_user_mode(monkeypatch):
     monkeypatch.setenv('ZOTERO_API_KEY', 'key')
     monkeypatch.delenv('ZOTERO_TARGET_GROUP', raising=False)
     monkeypatch.setenv('ZOTERO_USER_ID', '999')
-    
+
     gw = get_zotero_gateway()
     assert gw.http.library_id == '999'
     assert gw.http.library_type == 'user'
@@ -397,7 +399,7 @@ def test_config_missing_group_id(monkeypatch, capsys):
     reset_config()
     monkeypatch.setenv('ZOTERO_API_KEY', 'key')
     monkeypatch.setenv('ZOTERO_TARGET_GROUP', 'https://bad-url.com')
-    
+
     with pytest.raises(SystemExit):
         get_zotero_gateway()
     assert "Could not extract Group ID" in capsys.readouterr().err
@@ -407,7 +409,7 @@ def test_config_no_context(monkeypatch, capsys):
     monkeypatch.setenv('ZOTERO_API_KEY', 'key')
     monkeypatch.delenv('ZOTERO_TARGET_GROUP', raising=False)
     monkeypatch.delenv('ZOTERO_USER_ID', raising=False)
-    
+
     with pytest.raises(SystemExit):
         get_zotero_gateway()
     assert "No target library defined" in capsys.readouterr().err
@@ -417,7 +419,7 @@ def test_config_optional_group(monkeypatch):
     monkeypatch.setenv('ZOTERO_API_KEY', 'key')
     monkeypatch.delenv('ZOTERO_TARGET_GROUP', raising=False)
     monkeypatch.delenv('ZOTERO_USER_ID', raising=False)
-    
+
     # Should not exit
     gw = get_zotero_gateway(require_group=False)
     assert gw.http.library_id == "0"
@@ -438,7 +440,7 @@ def test_item_move_auto_source(mock_clients, env_vars, capsys):
 
             main()
 
-        
+
 
         # Verify call arguments
 

@@ -1,7 +1,10 @@
-import pytest
 import json
 from unittest.mock import MagicMock
+
+import pytest
+
 from zotero_cli.core.services.migration_service import MigrationService
+
 
 @pytest.fixture
 def mock_gateway():
@@ -14,7 +17,7 @@ def service(mock_gateway):
 def test_migrate_note_content_removes_signature(service):
     legacy_note = '<div>{"signature": "Dr. Silas", "decision": "accepted", "agent": "vance-cli", "audit_version": "1.0"}</div>'
     new_note = service._migrate_note_content(legacy_note)
-    
+
     data = json.loads(new_note.replace("<div>", "").replace("</div>", ""))
     assert "signature" not in data
     assert data["agent"] == "zotero-cli"
@@ -24,7 +27,7 @@ def test_migrate_note_content_removes_signature(service):
 def test_migrate_note_content_standardizes_agent(service):
     legacy_note = '<div>{"decision": "accepted", "agent": "Manual TUI", "audit_version": "1.0"}</div>'
     new_note = service._migrate_note_content(legacy_note)
-    
+
     data = json.loads(new_note.replace("<div>", "").replace("</div>", ""))
     assert data["agent"] == "zotero-cli"
     assert data["persona"] == "Manual TUI"
@@ -32,7 +35,7 @@ def test_migrate_note_content_standardizes_agent(service):
 def test_migrate_note_content_handles_reason_code(service):
     legacy_note = '<div>{"decision": "rejected", "code": "EC1", "audit_version": "1.0"}</div>'
     new_note = service._migrate_note_content(legacy_note)
-    
+
     data = json.loads(new_note.replace("<div>", "").replace("</div>", ""))
     assert data["reason_code"] == ["EC1"]
     assert "code" not in data
@@ -40,7 +43,7 @@ def test_migrate_note_content_handles_reason_code(service):
 def test_migrate_note_content_handles_comma_separated_codes(service):
     legacy_note = '<div>{"decision": "rejected", "reason_code": "EC1, EC2", "audit_version": "1.0"}</div>'
     new_note = service._migrate_note_content(legacy_note)
-    
+
     data = json.loads(new_note.replace("<div>", "").replace("</div>", ""))
     assert data["reason_code"] == ["EC1", "EC2"]
 
@@ -56,7 +59,7 @@ def test_migrate_collection_notes_full_loop(service, mock_gateway):
     item = MagicMock()
     item.key = "item1"
     mock_gateway.get_items_in_collection.return_value = [item]
-    
+
     note = {
         "key": "note1",
         "data": {
@@ -67,10 +70,10 @@ def test_migrate_collection_notes_full_loop(service, mock_gateway):
     }
     mock_gateway.get_item_children.return_value = [note]
     mock_gateway.update_note.return_value = True
-    
+
     # Execute
     stats = service.migrate_collection_notes("My Col", dry_run=False)
-    
+
     # Verify
     assert stats["processed"] == 1
     assert stats["migrated"] == 1
@@ -82,7 +85,7 @@ def test_migrate_collection_notes_dry_run(service, mock_gateway):
     item = MagicMock()
     item.key = "item1"
     mock_gateway.get_items_in_collection.return_value = [item]
-    
+
     note = {
         "key": "note1",
         "data": {
@@ -92,10 +95,10 @@ def test_migrate_collection_notes_dry_run(service, mock_gateway):
         }
     }
     mock_gateway.get_item_children.return_value = [note]
-    
+
     # Execute
     stats = service.migrate_collection_notes("My Col", dry_run=True)
-    
+
     # Verify
     assert stats["migrated"] == 1
     mock_gateway.update_note.assert_not_called()
@@ -124,7 +127,7 @@ def test_migrate_update_failure(service, mock_gateway):
         "data": {"itemType": "note", "version": 1, "note": '<div>{"signature": "x"}</div>'}
     }]
     mock_gateway.update_note.return_value = False # Simulate API failure
-    
+
     # Execute
     stats = service.migrate_collection_notes("My Col", dry_run=False)
     assert stats["failed"] == 1

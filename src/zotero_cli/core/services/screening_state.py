@@ -1,7 +1,8 @@
 import csv
 import os
-from typing import Set, Dict, List, Optional, Any
 from datetime import datetime
+from typing import Any, List, Set
+
 
 class ScreeningStateService:
     """
@@ -16,7 +17,7 @@ class ScreeningStateService:
     def _load_state(self):
         if not os.path.exists(self.state_file):
             return
-        
+
         try:
             with open(self.state_file, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
@@ -33,13 +34,13 @@ class ScreeningStateService:
     def record_decision(self, item_key: str, decision: str, code: str, persona: str, phase: str):
         """Appends a decision to the state file."""
         file_exists = os.path.exists(self.state_file)
-        
+
         try:
             with open(self.state_file, 'a', encoding='utf-8', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=['Timestamp', 'Key', 'Decision', 'Code', 'Persona', 'Phase'])
                 if not file_exists:
                     writer.writeheader()
-                
+
                 writer.writerow({
                     'Timestamp': datetime.now().isoformat(),
                     'Key': item_key,

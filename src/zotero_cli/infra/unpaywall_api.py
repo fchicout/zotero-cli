@@ -1,12 +1,15 @@
-from typing import Optional
 import os
+from typing import Optional
+
 import requests
+
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
 
+
 class UnpaywallAPIClient(BaseAPIClient, MetadataProvider):
-    
+
     def __init__(self, email: Optional[str] = None):
         super().__init__(base_url="https://api.unpaywall.org/v2/")
         self.email = email or os.environ.get("UNPAYWALL_EMAIL", "unpaywall_client@zotero_cli.com")
@@ -19,10 +22,10 @@ class UnpaywallAPIClient(BaseAPIClient, MetadataProvider):
         # Unpaywall works best with DOIs. If it's not a DOI, return None or try to extract.
         if "10." not in identifier:
             return None
-            
+
         try:
             response = self._get(endpoint=identifier, params={"email": self.email})
-            
+
             data = response.json()
             return self._map_to_research_paper(data)
         except requests.exceptions.HTTPError as e:
@@ -37,7 +40,7 @@ class UnpaywallAPIClient(BaseAPIClient, MetadataProvider):
     def _map_to_research_paper(self, data: dict) -> ResearchPaper:
         # Title
         title = data.get('title', '')
-        
+
         # Authors
         authors = []
         for author in data.get('z_authors', []) or []:
@@ -45,10 +48,10 @@ class UnpaywallAPIClient(BaseAPIClient, MetadataProvider):
             family = author.get('family', '')
             if given or family:
                 authors.append(f"{given} {family}".strip())
-        
+
         # Year
         year = str(data.get('year')) if data.get('year') else None
-        
+
         # Publication / Venue
         publication = data.get('publisher', '')
         if not publication:
@@ -59,7 +62,7 @@ class UnpaywallAPIClient(BaseAPIClient, MetadataProvider):
         best_oa_location = data.get('best_oa_location', {})
         if best_oa_location:
             pdf_url = best_oa_location.get('url_for_pdf')
-        
+
         # If no PDF in best location, check oa_locations
         if not pdf_url:
             for loc in data.get('oa_locations', []) or []:

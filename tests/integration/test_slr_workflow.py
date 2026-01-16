@@ -1,11 +1,10 @@
+import csv
 import os
-import pytest
+import re
 import subprocess
 import time
-import re
-import json
-import csv
-from pathlib import Path
+
+import pytest
 
 # Integration tests interact with the REAL Zotero API.
 # Ensure ZOTERO_API_KEY and ZOTERO_USER_ID (or ZOTERO_TARGET_GROUP) are set.
@@ -30,21 +29,21 @@ def test_iron_gauntlet_slr():
     report_path = f"tests/integration/report_{ts}.md"
     status_path = f"tests/integration/status_{ts}.md"
     local_pdf = "/home/fcfmc/Downloads/13040_2021_Article_244.pdf"
-    
+
     collections_to_cleanup = [col_src, col_mir]
-    
+
     try:
         # 1. Create Collections
         print(f"\n[1/8] Creating collections: {col_src}, {col_mir}")
         assert run_cli(["collection", "create", col_src]).returncode == 0
         assert run_cli(["collection", "create", col_mir]).returncode == 0
-        
+
         # 2. Import same paper to both
         print("[2/8] Importing probe paper...")
         import_cmd = ["import", "arxiv", "--query", "ti:Attention Is All You Need", "--limit", "1"]
         assert run_cli(import_cmd + ["--collection", col_src]).returncode == 0
         assert run_cli(import_cmd + ["--collection", col_mir]).returncode == 0
-        
+
         # Get Keys
         res_src = run_cli(["item", "list", "--collection", col_src])
         keys_src = extract_keys(res_src.stdout)
@@ -61,14 +60,14 @@ def test_iron_gauntlet_slr():
         run_cli(["item", "update", item_key, "--doi", "10.48550/arXiv.1706.03762"])
         if os.path.exists(local_pdf):
             run_cli(["item", "pdf", "attach", item_key, local_pdf])
-        
+
         # 5. Bulk Decision via CSV
         print("[5/8] Executing bulk decisions...")
         with open(csv_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(["Key", "Vote", "Reason"])
             writer.writerow([item_key, "INCLUDE", "Iron Gauntlet Bulk Test"])
-        
+
         res = run_cli(["review", "screen", "--source", col_src, "--include", col_src, "--exclude", col_mir, "--file", csv_path])
         assert "Success: 1" in res.stdout
 
@@ -82,12 +81,12 @@ def test_iron_gauntlet_slr():
 
         # Exclude using flag
         run_cli(["decide", "--key", bert_key, "--short-paper", "EC5", "--source", col_src, "--target", col_mir])
-        
+
         # Verify Tagging
         res_tags = run_cli(["item", "show", bert_key]) # Assuming 'item show' or checking notes
         # Since 'item show' might not list tags in detail, we check the report stats later or check note existence
         # For now, we trust the report will show 1 rejection
-        
+
         # 7. Reporting (Dummy Collection)
         print("[7/8] Reporting on dummy collection...")
         assert run_cli(["report", "prisma", "--collection", col_src]).returncode == 0
@@ -96,28 +95,28 @@ def test_iron_gauntlet_slr():
         assert run_cli(["report", "status", "--collection", col_src, "--output", status_path]).returncode == 0
         assert os.path.exists(report_path)
         assert os.path.exists(status_path)
-        
+
         # Verify the dashboard stats contain our decisions
-        # NOTE: Since the Excluded item was moved to col_mir, it won't appear in col_src stats as "Rejected", 
-        # it just disappears from col_src. 
+        # NOTE: Since the Excluded item was moved to col_mir, it won't appear in col_src stats as "Rejected",
+        # it just disappears from col_src.
         # To verify the "Short Paper" decision, we must check col_mir.
-        
+
         print("[7.5/8] Verifying item movement and tagging in Mirror...")
         res_mir = run_cli(["item", "list", "--collection", col_mir])
         assert bert_key in res_mir.stdout
-        
+
         # Verify the note/decision is correct (We can't easily parse tags from CLI list yet, but presence is key)
         # In a real scenario, we would use 'inspect' or 'show' to see the audit note.
-        
+
         # Verify Source stats: Should have 1 Included (from Bulk) and 0 Remaining (since BERT moved)
         with open(status_path, 'r') as f:
             content = f.read()
             # Match Markdown format: *   **Included (Accepted):** 1
-            assert "**Included (Accepted):** 1" in content 
-            
-            # "Rejected" will be 0 because the item left the collection. 
+            assert "**Included (Accepted):** 1" in content
+
+            # "Rejected" will be 0 because the item left the collection.
             # This confirms Dr. Silas's observation that we need Multi-Collection reporting in v2.1.
-        
+
         # 8. Destructive: Clean Mirror
         print("[8/8] Verifying collection clean...")
         assert run_cli(["collection", "clean", "--collection", col_mir]).returncode == 0
@@ -125,10 +124,10 @@ def test_iron_gauntlet_slr():
 
     finally:
         # Cleanup
-        print(f"\n--- Final Purge ---")
+        print("\n--- Final Purge ---")
         for col in collections_to_cleanup:
             run_cli(["collection", "delete", col, "--recursive"])
-        
+
         for p in [csv_path, snap_path, report_path, status_path]:
             if os.path.exists(p):
                 os.remove(p)

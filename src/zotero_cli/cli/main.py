@@ -1,11 +1,8 @@
 import argparse
 import sys
-from typing import Optional
-from pathlib import Path
 
-from zotero_cli.core.config import get_config, ZoteroConfig, reset_config
 from zotero_cli.cli.base import CommandRegistry
-import zotero_cli.cli.commands # Trigger registration
+from zotero_cli.core.config import get_config
 
 # --- Global State ---
 FORCE_USER = False
@@ -17,7 +14,7 @@ def main():
     parser.add_argument("--user", action="store_true", help="Force Personal Library mode")
     parser.add_argument("--config", help="Path to a custom config.toml")
     subparsers = parser.add_subparsers(dest='command', help='Primary Commands')
-    
+
     # --- Registered Commands ---
     # Sort by name for consistent help output
     commands = sorted(CommandRegistry.get_commands(), key=lambda x: x.name)
@@ -28,7 +25,7 @@ def main():
         cmd_parser.set_defaults(func=cmd.execute)
 
     args = parser.parse_args()
-    
+
     global FORCE_USER
     FORCE_USER = args.user
 

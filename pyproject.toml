@@ -1,70 +1,38 @@
 [project]
 name = "zotero-cli"
 version = "2.0.0-dev"
-description = "Zotero CLI for the Power Researcher: A Systematic Literature Review (SLR) engine with TUI screening, PRISMA automation, and advanced library management."
-authors = [{name = "Fábio Chicout", email = "fchicout@gmail.com"}]
-readme = "README.md"
-requires-python = ">=3.8"
-license = {file = "LICENSE"}
-keywords = ["zotero", "research", "slr", "systematic-review", "prisma", "arxiv", "bibtex", "ris", "cli", "automation"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Environment :: Console",
-    "Intended Audience :: Science/Research",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering",
-    "Topic :: Utilities"
-]
 dependencies = [
-    "requests",
-    "beautifulsoup4",
-    "feedparser",
-    "bibtexparser",
-    "arxiv",
-    "rispy",
-    "rich",
-    "mermaid-py",
-    "tomli; python_version < '3.11'",
-    "tenacity"
+    "requests>=2.31.0",
+    "rich>=13.7.0",
+    "toml>=0.10.2",
+    "tenacity>=8.2.3",
+    "pytest>=7.4.0",
 ]
 
-[project.urls]
-Repository = "https://github.com/fchicout/zotero-cli"
-Issues = "https://github.com/fchicout/zotero-cli/issues"
+[tool.ruff]
+line-length = 100
+target-version = "py310"
 
-[project.optional-dependencies]
-dev = [
-    "coverage",
-    "pytest",
-    "pytest-cov"
+[tool.ruff.lint]
+# Enable Pyflakes (F), pycodestyle (E, W), isort (I)
+select = ["F", "E", "W", "I"]
+ignore = [
+    "E501", # Line too long (handled by formatter)
 ]
 
-[project.scripts]
-zotero-cli = "zotero_cli.cli.main:main"
+[tool.ruff.lint.isort]
+known-first-party = ["zotero_cli"]
 
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-
-where = ["src"]
-
-
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false # We'll tighten this gradually
+check_untyped_defs = true
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-
+testpaths = ["tests"]
 markers = [
-
-    "infra: Infrastructure and documentation consistency tests",
-
-    "integration: End-to-end and integration workflow tests"
-
+    "integration: tests that interact with real APIs",
 ]

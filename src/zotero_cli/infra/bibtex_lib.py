@@ -1,14 +1,17 @@
-import bibtexparser
 from typing import Iterator
+
+import bibtexparser
+
 from zotero_cli.core.interfaces import BibtexGateway
 from zotero_cli.core.models import ResearchPaper
+
 
 class BibtexLibGateway(BibtexGateway):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
         try:
             with open(file_path, 'r') as bibtex_file:
                 bib_database = bibtexparser.load(bibtex_file)
-            
+
             for entry in bib_database.entries:
                 yield self._map_entry_to_paper(entry)
         except Exception as e:
@@ -19,13 +22,13 @@ class BibtexLibGateway(BibtexGateway):
         # Authors: "Smith, John and Doe, Jane"
         authors_str = entry.get('author', '')
         authors = [a.strip() for a in authors_str.split(' and ')] if authors_str else []
-        
+
         # Publication
         publication = entry.get('journal') or entry.get('journaltitle') or entry.get('booktitle')
-        
+
         # Year
         year = entry.get('year') or entry.get('date')
-        
+
         # URL
         url = entry.get('url') or entry.get('link')
 

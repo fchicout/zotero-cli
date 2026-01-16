@@ -1,8 +1,11 @@
-import pytest
 from unittest.mock import Mock
+
+import pytest
+
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.core.services.duplicate_service import DuplicateFinder
+from zotero_cli.core.zotero_item import ZoteroItem
+
 
 @pytest.fixture
 def mock_gateway():
@@ -28,11 +31,11 @@ def test_find_duplicates_no_duplicates(finder, mock_gateway):
     item1 = create_zotero_item("KEY1", "Unique Title 1", "10.1/1")
     item2 = create_zotero_item("KEY2", "Unique Title 2", "10.1/2")
     mock_gateway.get_items_in_collection.side_effect = [
-        iter([item1]), 
-        iter([item2])  
+        iter([item1]),
+        iter([item2])
     ]
     mock_gateway.get_collection.return_value = {"key": "ID_A"}
-    
+
     duplicates = finder.find_duplicates(["ID_A", "ID_B"])
     assert len(duplicates) == 0
 
@@ -40,10 +43,10 @@ def test_find_duplicates_by_doi(finder, mock_gateway):
     item1 = create_zotero_item("KEY1", "Title A", "10.1/DUPLICATE")
     item2 = create_zotero_item("KEY2", "Title B", "10.1/DUPLICATE")
     item3 = create_zotero_item("KEY3", "Another Title", "10.1/UNIQUE")
-    
+
     mock_gateway.get_items_in_collection.side_effect = [
-        iter([item1, item3]), 
-        iter([item2])          
+        iter([item1, item3]),
+        iter([item2])
     ]
     mock_gateway.get_collection.return_value = {"key": "ID_A"}
 
@@ -62,7 +65,7 @@ def test_find_duplicates_by_title(finder, mock_gateway):
         iter([item2])
     ]
     mock_gateway.get_collection.return_value = {"key": "ID_A"}
-    
+
     duplicates = finder.find_duplicates(["ID_A", "ID_B"])
     assert len(duplicates) == 1
     assert duplicates[0]['title'] == "Duplicate Title"
@@ -83,7 +86,7 @@ def test_find_duplicates_mixed_identifiers(finder, mock_gateway):
 
     duplicates = finder.find_duplicates(["ID_A", "ID_B"])
     assert len(duplicates) == 2
-    
+
     doi_group = next(g for g in duplicates if g['doi'] == "10.1/MIXED")
     assert set(doi_group['keys']) == {"KEY_DOI_1", "KEY_DOI_2"}
 
@@ -97,7 +100,7 @@ def test_find_duplicates_with_missing_collection(finder, mock_gateway):
         iter([])
     ]
     mock_gateway.get_collection.side_effect = [{"key": "A"}, None]
-    
+
     duplicates = finder.find_duplicates(["A", "MISSING"])
     assert len(duplicates) == 0
 

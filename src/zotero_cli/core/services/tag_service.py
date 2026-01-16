@@ -1,6 +1,8 @@
-from typing import List, Optional
+from typing import List
+
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.zotero_item import ZoteroItem
+
 
 class TagService:
     def __init__(self, gateway: ZoteroGateway):
@@ -16,7 +18,7 @@ class TagService:
         """
         current_tags = set(item.tags)
         new_tags = set(tags_to_add)
-        
+
         # If all new tags are already present, skip update
         if new_tags.issubset(current_tags):
             return True
@@ -30,7 +32,7 @@ class TagService:
         """
         current_tags = set(item.tags)
         to_remove = set(tags_to_remove)
-        
+
         if not to_remove.intersection(current_tags):
             return True # Nothing to remove
 
@@ -64,6 +66,21 @@ class TagService:
             if tag in current_tags:
                 current_tags.remove(tag)
                 if self._update_tags(item.key, item.version, list(current_tags)):
+                    count += 1
+        return count
+
+    def purge_tags_from_collection(self, collection_name: str) -> int:
+        """
+        Removes all tags from all items in a specific collection.
+        """
+        col_id = self.gateway.get_collection_id_by_name(collection_name)
+        if not col_id:
+            return 0
+            
+        count = 0
+        for item in self.gateway.get_items_in_collection(col_id):
+            if item.tags:
+                if self._update_tags(item.key, item.version, []):
                     count += 1
         return count
 

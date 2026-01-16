@@ -1,7 +1,9 @@
 import csv
 from typing import Iterator
+
 from zotero_cli.core.interfaces import SpringerCsvGateway
 from zotero_cli.core.models import ResearchPaper
+
 
 class SpringerCsvLibGateway(SpringerCsvGateway):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
@@ -25,7 +27,7 @@ class SpringerCsvLibGateway(SpringerCsvGateway):
         url = row.get('URL')
 
         # Omit authors as per decision, Zotero will resolve via DOI
-        
+
         return ResearchPaper(
             title=title,
             abstract='', # Springer CSV usually doesn't have abstract in this export format directly

@@ -1,11 +1,13 @@
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-import os
-from zotero_cli.core.services.attachment_service import AttachmentService
+
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.services.attachment_service import AttachmentService
+from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 from zotero_cli.core.zotero_item import ZoteroItem
+
 
 @pytest.fixture
 def mock_gateway():
@@ -41,19 +43,19 @@ def test_attach_pdf_success(mock_exists, mock_fdopen, mock_mkstemp, mock_remove,
     item = create_item()
     mock_gateway.get_items_in_collection.return_value = iter([item])
     mock_gateway.get_item.return_value = item
-    
+
     # 1. No existing PDF
     mock_gateway.get_item_children.return_value = []
-    
+
     # 2. Metadata found with PDF URL
     metadata = ResearchPaper(title="Test", abstract="", pdf_url="http://example.com/paper.pdf")
     mock_aggregator.get_enriched_metadata.return_value = metadata
-    
+
     # 3. Download setup
     mock_mkstemp.return_value = (123, "/tmp/temp.pdf")
     mock_file = MagicMock()
     mock_fdopen.return_value.__enter__.return_value = mock_file
-    
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.iter_content.return_value = [b"pdf-content"]
@@ -64,7 +66,7 @@ def test_attach_pdf_success(mock_exists, mock_fdopen, mock_mkstemp, mock_remove,
 
     # Run
     count = service.attach_pdfs_to_collection("TestCollection")
-    
+
     # Assertions
     assert count == 1
     mock_gateway.get_collection_id_by_name.assert_called_with("TestCollection")
@@ -79,7 +81,7 @@ def test_already_has_pdf(service, mock_gateway, mock_aggregator):
     item = create_item()
     mock_gateway.get_items_in_collection.return_value = iter([item])
     mock_gateway.get_item.return_value = item
-    
+
     # Simulate existing PDF attachment
     attachment = {
         'data': {
@@ -89,9 +91,9 @@ def test_already_has_pdf(service, mock_gateway, mock_aggregator):
         }
     }
     mock_gateway.get_item_children.return_value = [attachment]
-    
+
     count = service.attach_pdfs_to_collection("TestCollection")
-    
+
     assert count == 0
     mock_aggregator.get_enriched_metadata.assert_not_called()
 
@@ -103,7 +105,7 @@ def test_no_identifier(service, mock_gateway, mock_aggregator):
     mock_gateway.get_item_children.return_value = []
 
     count = service.attach_pdfs_to_collection("TestCollection")
-    
+
     assert count == 0
     mock_aggregator.get_enriched_metadata.assert_not_called()
 
@@ -114,14 +116,14 @@ def test_download_failure(mock_get, service, mock_gateway, mock_aggregator):
     mock_gateway.get_items_in_collection.return_value = iter([item])
     mock_gateway.get_item.return_value = item
     mock_gateway.get_item_children.return_value = []
-    
+
     metadata = ResearchPaper(title="Test", abstract="", pdf_url="http://example.com/fail.pdf")
     mock_aggregator.get_enriched_metadata.return_value = metadata
-    
+
     # Simulate download error
     mock_get.side_effect = Exception("Download failed")
 
     count = service.attach_pdfs_to_collection("TestCollection")
-    
+
     assert count == 0
     mock_gateway.upload_attachment.assert_not_called()

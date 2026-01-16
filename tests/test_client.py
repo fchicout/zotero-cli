@@ -1,11 +1,18 @@
+from unittest.mock import MagicMock, Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
-from zotero_cli.client import PaperImporterClient, CollectionNotFoundError
+
+from zotero_cli.client import CollectionNotFoundError, PaperImporterClient
 from zotero_cli.core.interfaces import (
-    ZoteroGateway, ArxivGateway, BibtexGateway, 
-    RisGateway, SpringerCsvGateway, IeeeCsvGateway
+    ArxivGateway,
+    BibtexGateway,
+    IeeeCsvGateway,
+    RisGateway,
+    SpringerCsvGateway,
+    ZoteroGateway,
 )
 from zotero_cli.core.models import ResearchPaper
+
 
 @pytest.fixture
 def mock_zotero_gateway():
@@ -33,7 +40,7 @@ def mock_ieee_csv_gateway():
 
 @pytest.fixture
 def client(
-    mock_zotero_gateway, 
+    mock_zotero_gateway,
     mock_arxiv_gateway,
     mock_bibtex_gateway,
     mock_ris_gateway,
@@ -83,9 +90,9 @@ def test_add_paper_collection_creation_fails(client, mock_zotero_gateway):
 def test_import_from_query_success(client, mock_zotero_gateway, mock_arxiv_gateway):
     mock_zotero_gateway.get_collection_id_by_name.return_value = "COLL_456"
     mock_zotero_gateway.create_item.return_value = True
-    
+
     mock_papers = [
-        ResearchPaper(title="P1", abstract="A1"), 
+        ResearchPaper(title="P1", abstract="A1"),
         ResearchPaper(title="P2", abstract="A2")
     ]
     mock_arxiv_gateway.search.return_value = iter(mock_papers)
@@ -124,7 +131,7 @@ def test_import_from_springer_csv_success(client, mock_zotero_gateway, mock_spri
 def test_get_or_create_collection_failure(client, mock_zotero_gateway):
     mock_zotero_gateway.get_collection_id_by_name.return_value = None
     mock_zotero_gateway.create_collection.return_value = None
-    
+
     with pytest.raises(CollectionNotFoundError):
         client._get_or_create_collection("Bad Folder")
 
@@ -159,7 +166,7 @@ def test_import_from_query_with_failures(client, mock_zotero_gateway, mock_arxiv
     paper = ResearchPaper(title="Title 1", abstract="Abs 1")
     mock_arxiv_gateway.search.return_value = [paper]
     mock_zotero_gateway.create_item.return_value = False # Simulate failure
-    
+
     count = client.import_from_query("q", "f", verbose=True)
     assert count == 0
 
@@ -174,7 +181,7 @@ def test_remove_attachments_with_failures(client, mock_zotero_gateway):
     item.key = "item1"
     item.title = "Item 1"
     mock_zotero_gateway.get_items_in_collection.return_value = [item]
-    
+
     child = {
         "key": "child1",
         "version": 1,
@@ -182,7 +189,7 @@ def test_remove_attachments_with_failures(client, mock_zotero_gateway):
     }
     mock_zotero_gateway.get_item_children.return_value = [child]
     mock_zotero_gateway.delete_item.return_value = False # Simulate failure
-    
+
     count = client.remove_attachments_from_folder("folder", verbose=True)
     assert count == 0
 
@@ -202,7 +209,7 @@ def test_import_from_ris_success(client, mock_zotero_gateway, mock_ris_gateway):
     mock_zotero_gateway.get_collection_id_by_name.assert_called_with("RIS Folder")
     mock_ris_gateway.parse_file.assert_called_once_with("test.ris")
     assert mock_zotero_gateway.create_item.call_count == 2
-    
+
     calls = mock_zotero_gateway.create_item.call_args_list
     assert calls[0].args[0] == mock_ris_papers[0]
     assert calls[0].args[1] == "COLL_RIS"
@@ -230,7 +237,7 @@ def test_import_from_ieee_csv_success(client, mock_zotero_gateway, mock_ieee_csv
     mock_zotero_gateway.get_collection_id_by_name.assert_called_with("IEEE Folder")
     mock_ieee_csv_gateway.parse_file.assert_called_once_with("test.csv")
     assert mock_zotero_gateway.create_item.call_count == 2
-    
+
     calls = mock_zotero_gateway.create_item.call_args_list
     assert calls[0].args[0] == mock_ieee_papers[0]
     assert calls[0].args[1] == "COLL_IEEE"

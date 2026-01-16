@@ -1,6 +1,7 @@
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
 import re
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
 
 @dataclass
 class ZoteroItem:
@@ -22,7 +23,7 @@ class ZoteroItem:
     @classmethod
     def from_raw_zotero_item(cls, raw_item: Dict[str, Any]) -> 'ZoteroItem':
         data = raw_item.get('data', {})
-        
+
         # Extract DOI
         doi = data.get('DOI')
 

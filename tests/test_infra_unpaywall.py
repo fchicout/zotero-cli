@@ -1,7 +1,9 @@
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import patch, Mock
-import requests
+
 from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
+
 
 @pytest.fixture
 def client():
@@ -25,7 +27,7 @@ def test_get_paper_metadata_success(mock_get, client):
     mock_get.return_value = mock_response
 
     metadata = client.get_paper_metadata("10.1234/test")
-    
+
     assert metadata is not None
     assert metadata.title == "Open Access Paper"
     assert metadata.doi == "10.1234/test"
@@ -46,7 +48,7 @@ def test_get_paper_metadata_no_oa(mock_get, client):
     mock_get.return_value = mock_response
 
     metadata = client.get_paper_metadata("10.1234/closed")
-    
+
     assert metadata is not None
     assert metadata.pdf_url is None
 

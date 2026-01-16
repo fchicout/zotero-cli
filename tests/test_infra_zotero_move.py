@@ -1,7 +1,10 @@
-import pytest
 from unittest.mock import Mock
+
+import pytest
 import requests
+
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
 
 @pytest.fixture
 def api_key():
@@ -38,14 +41,14 @@ def test_update_item_collections_success(client, group_id):
 
     # Assertion
     assert result is True
-    
+
     expected_url = f"https://api.zotero.org/groups/{group_id}/items/{item_key}"
     call_args = client.http.session.patch.call_args
     assert call_args[0][0] == expected_url
-    
+
     # Payload should NOT include version (removed to fix 400 Bad Request)
     assert call_args[1]['json'] == {'collections': new_collections}
-    
+
     assert call_args[1]['headers']['If-Unmodified-Since-Version'] == str(version)
 
 def test_update_item_collections_failure(client):

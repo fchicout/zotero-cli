@@ -1,8 +1,11 @@
-import pytest
 from unittest.mock import Mock
+
+import pytest
+
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.core.services.audit_service import CollectionAuditor
+from zotero_cli.core.zotero_item import ZoteroItem
+
 
 @pytest.fixture
 def mock_gateway():
@@ -29,10 +32,10 @@ def create_mock_item(children_data, key, title=None, abstract=None, doi=None, ar
         }
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
-    
+
     if has_pdf:
         children_data[key] = [{
-            'key': 'ATT' + key, 
+            'key': 'ATT' + key,
             'data': {
                 'itemType': 'attachment',
                 'linkMode': 'imported_file',
@@ -48,9 +51,9 @@ def test_audit_collection_full_compliance(auditor, mock_gateway, children_data):
     item1 = create_mock_item(children_data, "ITEM1", "Title 1", "Abstract 1", "10.1/1", None, True)
     item2 = create_mock_item(children_data, "ITEM2", "Title 2", "Abstract 2", None, "2301.00001", True)
     mock_gateway.get_items_in_collection.return_value = iter([item1, item2])
-    
+
     report = auditor.audit_collection("Test Collection")
-    
+
     assert report is not None
     assert report.total_items == 2
     assert len(report.items_missing_id) == 0
@@ -66,9 +69,9 @@ def test_audit_collection_missing_attributes(auditor, mock_gateway, children_dat
     item2 = create_mock_item(children_data, "ITEM2", "Title 2", None, None, None, True)
     item3 = create_mock_item(children_data, "ITEM3", "Title 3", "Abstract 3", None, None, False)
     mock_gateway.get_items_in_collection.return_value = iter([item1, item2, item3])
-    
+
     report = auditor.audit_collection("Test Collection")
-    
+
     assert report is not None
     assert report.total_items == 3
     assert len(report.items_missing_id) == 2

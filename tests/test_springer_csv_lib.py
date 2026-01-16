@@ -1,7 +1,8 @@
-import pytest
-from unittest.mock import Mock, patch, mock_open
-from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
+from unittest.mock import mock_open, patch
+
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
+
 
 @patch('zotero_cli.infra.springer_csv_lib.csv.DictReader')
 @patch('builtins.open', new_callable=mock_open)
@@ -39,7 +40,7 @@ def test_parse_file_success(mock_file, MockDictReader):
     papers = list(gateway.parse_file("test.csv"))
 
     assert len(papers) == 2
-    
+
     assert isinstance(papers[0], ResearchPaper)
     assert papers[0].title == "CyberNER-LLM"
     assert papers[0].abstract == ""

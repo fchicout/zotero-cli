@@ -1,9 +1,15 @@
-from abc import ABC
-import requests
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
 import logging
-from typing import Optional, Dict, Any, Union
-import sys
+from abc import ABC
+from typing import Any, Dict, Optional
+
+import requests
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -13,7 +19,7 @@ class BaseAPIClient(ABC):
     Abstract base class for Metadata Providers.
     Encapsulates HTTP transport, retries, and error handling.
     """
-    
+
     def __init__(self, base_url: str, headers: Optional[Dict[str, str]] = None):
         self.base_url = base_url.rstrip('/')
         self.session = requests.Session()
@@ -31,15 +37,15 @@ class BaseAPIClient(ABC):
     def _get(self, endpoint: str = "", params: Optional[Dict[str, Any]] = None, url_override: Optional[str] = None) -> requests.Response:
         """
         Execute a GET request with built-in retry logic.
-        
+
         Args:
             endpoint: The API endpoint (e.g., "works/10.1234/5678").
             params: Query parameters.
             url_override: If provided, ignores self.base_url and uses this full URL.
-            
+
         Returns:
             requests.Response object.
-            
+
         Raises:
             requests.exceptions.HTTPError: If the status code is 4xx/5xx (except 404 which might be handled by caller).
         """

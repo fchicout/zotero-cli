@@ -1,10 +1,16 @@
-from typing import Optional, Iterator, List, Dict, Any
+from typing import Any, Dict, Iterator, List, Optional
+
 from zotero_cli.core.interfaces import (
-    ItemRepository, CollectionRepository, TagRepository, 
-    NoteRepository, AttachmentRepository, ZoteroGateway
+    AttachmentRepository,
+    CollectionRepository,
+    ItemRepository,
+    NoteRepository,
+    TagRepository,
+    ZoteroGateway,
 )
-from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.zotero_item import ZoteroItem
+
 
 class ZoteroItemRepository(ItemRepository):
     def __init__(self, gateway: ZoteroGateway):
@@ -24,6 +30,12 @@ class ZoteroItemRepository(ItemRepository):
 
     def delete_item(self, item_key: str, version: int) -> bool:
         return self.gateway.delete_item(item_key, version)
+
+    def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
+        return self.gateway.get_items_by_tag(tag)
+
+    def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
+        return self.gateway.update_item_metadata(item_key, version, metadata)
 
 class ZoteroCollectionRepository(CollectionRepository):
     def __init__(self, gateway: ZoteroGateway):
@@ -64,19 +76,19 @@ class ZoteroTagRepository(TagRepository):
         item = self.gateway.get_item(item_key)
         if not item:
             return False
-            
+
         current_tags = self.gateway.get_tags_for_item(item_key)
         # Combine and deduplicate
         updated_tag_set = set(current_tags) | set(tags)
-        
+
         # Convert to Zotero API format [{"tag": "name"}, ...]
         tag_payload = [{"tag": t} for t in updated_tag_set]
-        
+
         # We need the version from the raw item data usually, but get_item returns ZoteroItem
         # ZoteroItem (v2) has 'version' attribute? Let's check ZoteroItem definition or fetch raw.
         # Ideally gateway.get_item should return version.
         # Assuming ZoteroItem has a .version attribute (it should).
-        
+
         return self.gateway.update_item(item_key, item.version, {"tags": tag_payload})
 
     def delete_tags(self, tags: List[str], version: int) -> bool:

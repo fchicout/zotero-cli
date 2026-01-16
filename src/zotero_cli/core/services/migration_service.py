@@ -1,8 +1,9 @@
-from typing import List, Dict, Any, Optional
 import json
 import re
+from typing import Dict
+
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.zotero_item import ZoteroItem
+
 
 class MigrationService:
     """
@@ -27,7 +28,7 @@ class MigrationService:
         for item in items:
             stats["processed"] += 1
             children = self.gateway.get_item_children(item.key)
-            
+
             for child in children:
                 # Handle different API response structures
                 child_data = child.get('data', child)
@@ -35,7 +36,7 @@ class MigrationService:
                     note_key = child['key']
                     note_version = child_data.get('version', 0)
                     note_content = child_data.get('note', '')
-                    
+
                     if self._is_screening_note(note_content):
                         new_content = self._migrate_note_content(note_content)
                         if new_content != note_content:
@@ -49,7 +50,7 @@ class MigrationService:
                                 stats["migrated"] += 1
                         else:
                             stats["already_clean"] += 1
-        
+
         return stats
 
     def _is_screening_note(self, content: str) -> bool:
@@ -57,14 +58,14 @@ class MigrationService:
 
     def _migrate_note_content(self, content: str) -> str:
         """
-        Parses JSON from note, removes 'signature', standardizes 'agent', 
+        Parses JSON from note, removes 'signature', standardizes 'agent',
         and ensures 'audit_version' 1.1.
         """
         # Extract JSON
         match = re.search(r'(\{.*\})', content, re.DOTALL)
         if not match:
             return content
-        
+
         try:
             data = json.loads(match.group(1))
             changed = False
@@ -73,7 +74,7 @@ class MigrationService:
             if 'signature' in data:
                 del data['signature']
                 changed = True
-            
+
             # 2. Standardize 'agent'
             if data.get('agent') != 'zotero-cli':
                 # If agent was something else but it's a tool decision, standardize.

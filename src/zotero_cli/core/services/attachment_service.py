@@ -1,15 +1,20 @@
-from typing import Optional
 import os
-import requests
 import tempfile
-import shutil
+from typing import Optional
+
+import requests
+
 from zotero_cli.core.interfaces import (
-    ItemRepository, CollectionRepository, AttachmentRepository, NoteRepository
+    AttachmentRepository,
+    CollectionRepository,
+    ItemRepository,
+    NoteRepository,
 )
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
+
 class AttachmentService:
-    def __init__(self, 
+    def __init__(self,
                  item_repo: ItemRepository,
                  collection_repo: CollectionRepository,
                  attachment_repo: AttachmentRepository,
@@ -29,11 +34,11 @@ class AttachmentService:
 
         success_count = 0
         items = self.collection_repo.get_items_in_collection(col_id)
-        
+
         for item in items:
             if self.attach_pdf_to_item(item.key):
                 success_count += 1
-        
+
         return success_count
 
     def attach_pdf_to_item(self, item_key: str) -> bool:
@@ -46,7 +51,7 @@ class AttachmentService:
 
         if self._has_pdf_attachment(item_key):
             return False
-        
+
         identifier = item.doi or item.arxiv_id
         if not identifier:
             return False
@@ -70,16 +75,16 @@ class AttachmentService:
         # 4. Upload
         print("  Uploading to Zotero...")
         success = self.attachment_repo.upload_attachment(item_key, pdf_path)
-        
+
         # Cleanup
         if os.path.exists(pdf_path):
             os.remove(pdf_path)
-            
+
         if success:
             print("  Success!")
         else:
             print("  Upload failed.")
-            
+
         return success
 
     def _has_pdf_attachment(self, item_key: str) -> bool:
@@ -95,7 +100,7 @@ class AttachmentService:
         try:
             response = requests.get(url, stream=True, timeout=30)
             response.raise_for_status()
-            
+
             # Create temp file
             fd, path = tempfile.mkstemp(suffix=".pdf")
             with os.fdopen(fd, 'wb') as tmp:

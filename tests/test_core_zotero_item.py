@@ -1,5 +1,5 @@
-import pytest
 from zotero_cli.core.zotero_item import ZoteroItem
+
 
 def test_from_raw_zotero_item_full_data():
     raw_item = {

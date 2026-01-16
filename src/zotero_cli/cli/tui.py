@@ -1,15 +1,15 @@
-from typing import List, Optional
-import sys
+from typing import Optional
+
 from rich.console import Console
 from rich.layout import Layout
 from rich.panel import Panel
-from rich.text import Text
 from rich.prompt import Prompt
-from rich.live import Live
+from rich.text import Text
 
 from zotero_cli.core.services.screening_service import ScreeningService
 from zotero_cli.core.services.screening_state import ScreeningStateService
 from zotero_cli.core.zotero_item import ZoteroItem
+
 
 class TuiScreeningService:
     """
@@ -22,10 +22,10 @@ class TuiScreeningService:
 
     def run_screening_session(self, source_collection: str, target_included: str, target_excluded: str):
         self.console.clear()
-        self.console.print(f"[bold cyan]Initializing Screening Session...[/bold cyan]")
+        self.console.print("[bold cyan]Initializing Screening Session...[/bold cyan]")
         if self.state_manager:
             self.console.print(f"State Tracking: [green]ENABLED[/green] ({self.state_manager.state_file})")
-        
+
         try:
             persona = Prompt.ask("Enter researcher name/persona", default="unknown", console=self.console)
             phase = Prompt.ask("Enter screening phase", choices=["title_abstract", "full_text"], default="title_abstract", console=self.console)
@@ -40,7 +40,7 @@ class TuiScreeningService:
         # Fetch items
         with self.console.status("[bold green]Fetching pending items...[/bold green]"):
             items = self.service.get_pending_items(source_collection)
-        
+
         if not items:
             self.console.print("[bold red]No pending items found to screen.[/bold red]")
             return
@@ -66,20 +66,20 @@ class TuiScreeningService:
         for index, item in enumerate(items):
             self.console.clear()
             self._display_item(item, index + 1, total)
-            
+
             action = self._get_user_action()
-            
+
             if action == 'q':
                 self.console.print("[bold yellow]Quitting session...[/bold yellow]")
                 break
             elif action == 's':
                 self.console.print("[yellow]Skipping item...[/yellow]")
                 continue
-            
+
             decision = "INCLUDE" if action == 'i' else "EXCLUDE"
             target_col = target_included if action == 'i' else target_excluded
             code = self._get_criteria_code(decision)
-            
+
             with self.console.status(f"[bold blue]Recording decision ({decision})...[/bold blue]"):
                 success = self.service.record_decision(
                     item_key=item.key,
@@ -91,14 +91,14 @@ class TuiScreeningService:
                     persona=persona,
                     phase=phase
                 )
-            
+
             if success:
-                self.console.print(f"[bold green]Saved to Zotero![/bold green]")
+                self.console.print("[bold green]Saved to Zotero![/bold green]")
                 if self.state_manager:
                     self.state_manager.record_decision(item.key, decision, code, persona, phase)
-                    self.console.print(f"[bold blue]Saved to Local State![/bold blue]")
+                    self.console.print("[bold blue]Saved to Local State![/bold blue]")
             else:
-                self.console.print(f"[bold red]Failed to save decision![/bold red]")
+                self.console.print("[bold red]Failed to save decision![/bold red]")
                 self.console.input("Press Enter to continue...")
 
         self.console.print("[bold cyan]Session Complete.[/bold cyan]")
@@ -119,7 +119,7 @@ class TuiScreeningService:
         title = Text(item.title if item.title else "No Title", style="bold cyan")
         meta = Text(f"\nYear: {item.date} | Authors: {', '.join(item.authors[:3])}", style="yellow")
         abstract = Text(f"\n\n{item.abstract if item.abstract else 'No Abstract'}", style="white")
-        
+
         body_content = Text.assemble(title, meta, abstract)
         layout["body"].update(Panel(body_content, title="Abstract", border_style="green"))
 
