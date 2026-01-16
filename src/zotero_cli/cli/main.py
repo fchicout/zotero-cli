@@ -10,9 +10,42 @@ import zotero_cli.cli.commands # Trigger registration
 # --- Global State ---
 FORCE_USER = False
 
+# --- Command Routing (v2.0 Transition) ---
+
+def handle_legacy_routing():
+    if len(sys.argv) < 2:
+        return
+
+    mapping = {
+        "decide": ["review", "decide"],
+        "d": ["review", "decide"], # Alias support
+        "screen": ["review", "screen"],
+        "inspect": ["item", "inspect"],
+        "info": ["system", "info"],
+    }
+    
+    cmd = sys.argv[1]
+    
+    if cmd in mapping:
+        new_cmd = mapping[cmd]
+        print(f"[DEPRECATED] '{cmd}' is now 'zotero-cli {' '.join(new_cmd)}'.", file=sys.stderr)
+        sys.argv[1:2] = new_cmd
+    elif cmd == "manage" and len(sys.argv) > 2:
+        sub = sys.argv[2]
+        if sub == "move":
+            print(f"[DEPRECATED] 'manage move' is now 'item move'.", file=sys.stderr)
+            sys.argv[1:3] = ["item", "move"]
+        elif sub == "clean":
+            print(f"[DEPRECATED] 'manage clean' is now 'collection clean'.", file=sys.stderr)
+            sys.argv[1:3] = ["collection", "clean"]
+    elif cmd == "list" and len(sys.argv) > 2 and sys.argv[2] == "groups":
+        print(f"[DEPRECATED] 'list groups' is now 'system groups'.", file=sys.stderr)
+        sys.argv[1:3] = ["system", "groups"]
+
 # --- Main Router ---
 
 def main():
+    handle_legacy_routing()
     parser = argparse.ArgumentParser(description="Zotero CLI - The Systematic Review Engine")
     parser.add_argument("--user", action="store_true", help="Force Personal Library mode")
     parser.add_argument("--config", help="Path to a custom config.toml")

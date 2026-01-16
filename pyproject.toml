@@ -1,6 +1,6 @@
 [project]
 name = "zotero-cli"
-version = "1.2.0"
+version = "2.0.0-dev"
 description = "A Systematic Review Engine CLI for Zotero"
 authors = [{name = "Fábio Chicout", email = "fchicout@gmail.com"}]
 readme = "README.md"

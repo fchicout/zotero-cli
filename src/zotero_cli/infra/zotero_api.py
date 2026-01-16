@@ -147,10 +147,13 @@ class ZoteroAPIClient(ZoteroGateway):
 
     # --- Write Operations ---
 
-    def create_collection(self, name: str) -> Optional[str]:
-        payload = [{"name": name}]
+    def create_collection(self, name: str, parent_key: Optional[str] = None) -> Optional[str]:
+        payload = {"name": name}
+        if parent_key:
+            payload["parentCollection"] = parent_key
+            
         try:
-            response = self.http.post("collections", json_data=payload)
+            response = self.http.post("collections", json_data=[payload])
             return self._parse_write_response(response)
         except Exception as e:
             print(f"Error creating collection: {e}")

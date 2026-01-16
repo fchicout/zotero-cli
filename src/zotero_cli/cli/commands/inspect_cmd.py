@@ -12,7 +12,7 @@ class InspectCommand(BaseCommand):
     help = "Inspect item details"
 
     def register_args(self, parser: argparse.ArgumentParser):
-        parser.add_argument('--key', required=True, help='Zotero Item Key')
+        parser.add_argument('key', help='Zotero Item Key')
         parser.add_argument('--raw', action='store_true', help='Show raw JSON')
         parser.add_argument('--full-notes', action='store_true', help='Show full content of child notes')
 

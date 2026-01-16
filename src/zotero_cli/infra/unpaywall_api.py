@@ -7,9 +7,9 @@ from zotero_cli.infra.base_api_client import BaseAPIClient
 
 class UnpaywallAPIClient(BaseAPIClient, MetadataProvider):
     
-    def __init__(self):
+    def __init__(self, email: Optional[str] = None):
         super().__init__(base_url="https://api.unpaywall.org/v2/")
-        self.email = os.environ.get("UNPAYWALL_EMAIL", "unpaywall_client@zotero_cli.com")
+        self.email = email or os.environ.get("UNPAYWALL_EMAIL", "unpaywall_client@zotero_cli.com")
 
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:
         """

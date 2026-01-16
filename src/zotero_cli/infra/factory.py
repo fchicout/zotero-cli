@@ -73,7 +73,14 @@ class GatewayFactory:
         up_client = UnpaywallAPIClient(config.unpaywall_email) if config.unpaywall_email else UnpaywallAPIClient()
         
         from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
-        return MetadataAggregatorService([ss_client, cr_client, up_client])
+        aggregator = MetadataAggregatorService([ss_client, cr_client, up_client])
+        
+        # Assign attributes for compatibility with PaperImporterClient
+        aggregator.semantic_scholar = ss_client
+        aggregator.crossref = cr_client
+        aggregator.unpaywall = up_client
+        
+        return aggregator
 
     @staticmethod
     def get_attachment_service(config: Optional[ZoteroConfig] = None, force_user: bool = False):

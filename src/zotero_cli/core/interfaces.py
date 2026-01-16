@@ -68,7 +68,7 @@ class ZoteroGateway(ABC):
         pass
 
     @abstractmethod
-    def create_collection(self, name: str) -> Optional[str]:
+    def create_collection(self, name: str, parent_key: Optional[str] = None) -> Optional[str]:
         """
         Creates a new Zotero collection with the given name.
         Returns the new collection ID if successful, otherwise None.

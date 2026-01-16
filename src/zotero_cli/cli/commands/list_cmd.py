@@ -22,8 +22,9 @@ class ListCommand(BaseCommand):
         
         # Items
         li_p = sub.add_parser("items", help="List items in collection")
-        li_p.add_argument("--collection", required=True)
-        li_p.add_argument("--top-only", action="store_true", help="Fetch only top-level items (no child notes/attachments)")
+        li_p.add_argument("--collection", required=False, help="Collection name or key")
+        li_p.add_argument("--trash", action="store_true", help="List items in the trash")
+        li_p.add_argument("--top-only", action="store_true", help="Fetch only top-level items")
 
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
@@ -47,7 +48,13 @@ class ListCommand(BaseCommand):
         console.print(table)
 
     def _handle_groups(self, gateway, args):
-        groups = gateway.get_user_groups()
+        from zotero_cli.core.config import get_config
+        config = get_config()
+        if not config.user_id:
+            print("Error: ZOTERO_USER_ID not configured. Cannot fetch user groups.")
+            return
+            
+        groups = gateway.get_user_groups(config.user_id)
         table = Table(title="Zotero Groups")
         table.add_column("ID", style="cyan")
         table.add_column("Name")
@@ -60,17 +67,25 @@ class ListCommand(BaseCommand):
         console.print(table)
 
     def _handle_items(self, gateway, args):
-        col_id = gateway.get_collection_id_by_name(args.collection)
-        if not col_id:
-            print(f"Error: Collection '{args.collection}' not found.")
-            return
-            
-        items = list(gateway.get_items_in_collection(col_id, top_only=getattr(args, 'top_only', False)))
-        table = Table(title=f"Items in {args.collection}")
+        if args.trash:
+            items = list(gateway.get_trash_items())
+            title = "Trash Items"
+        else:
+            if not args.collection:
+                print("Error: --collection required for non-trash listings.")
+                return
+            col_id = gateway.get_collection_id_by_name(args.collection)
+            if not col_id:
+                col_id = args.collection # Try Key
+                
+            items = list(gateway.get_items_in_collection(col_id, top_only=getattr(args, 'top_only', False)))
+            title = f"Items in {args.collection}"
+
+        table = Table(title=title)
         table.add_column("Key", style="cyan")
         table.add_column("Title")
         table.add_column("Type")
         for item in items:
             table.add_row(item.key, item.title or 'Untitled', item.item_type)
         console.print(table)
-        console.print(f"\n[dim]Showing {len(items)} papers.[/dim]")
+        console.print(f"\n[dim]Showing {len(items)} items.[/dim]")
