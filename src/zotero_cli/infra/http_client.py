@@ -68,13 +68,13 @@ class ZoteroHttpClient:
         self._update_version(response)
         return response
 
-    def delete(self, endpoint: str, version_check: bool = True) -> requests.Response:
+    def delete(self, endpoint: str, params: Optional[Dict] = None, version_check: bool = True) -> requests.Response:
         url = f"{self.api_prefix}/{endpoint}"
         headers = self.session.headers.copy()
         if version_check:
             headers['If-Unmodified-Since-Version'] = str(self.last_library_version)
             
-        response = self.session.delete(url, headers=headers)
+        response = self.session.delete(url, params=params, headers=headers)
         if response.status_code != 412:
             response.raise_for_status()
             

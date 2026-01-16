@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch, MagicMock, mock_open
 import requests
 import os
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
-from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.models import ResearchPaper, ZoteroQuery
 from zotero_cli.core.zotero_item import ZoteroItem
 
 @pytest.fixture
@@ -309,3 +309,47 @@ def test_get_trash_items(client):
     assert len(items) == 1
     assert items[0].key == "TRASH1"
     assert "items/trash" in client.http.session.get.call_args[0][0]
+
+# --- Search and Extended Tag Tests ---
+
+def test_search_items(client):
+    query = ZoteroQuery(q="test", item_type="journalArticle")
+    mock_resp = Mock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = []
+    mock_resp.headers = {}
+    client.http.session.get.return_value = mock_resp
+    
+    list(client.search_items(query))
+    
+    args, kwargs = client.http.session.get.call_args
+    assert kwargs['params']['q'] == "test"
+    assert kwargs['params']['itemType'] == "journalArticle"
+
+def test_get_tags_for_item(client):
+    client.http.session.get.return_value.json.return_value = [{"tag": "T1"}, {"tag": "T2"}]
+    client.http.session.get.return_value.status_code = 200
+    client.http.session.get.return_value.headers = {}
+    tags = client.get_tags_for_item("K1")
+    assert tags == ["T1", "T2"]
+    assert "items/K1/tags" in client.http.session.get.call_args[0][0]
+
+def test_get_tags_in_collection(client):
+    client.http.session.get.return_value.json.return_value = [{"tag": "C1"}]
+    client.http.session.get.return_value.status_code = 200
+    client.http.session.get.return_value.headers = {}
+    tags = client.get_tags_in_collection("COLL")
+    assert tags == ["C1"]
+    assert "collections/COLL/tags" in client.http.session.get.call_args[0][0]
+
+def test_delete_tags_chunking(client):
+    # 60 tags should result in 2 chunks (50 + 10)
+    tags = [f"tag{i}" for i in range(60)]
+    mock_resp = Mock()
+    mock_resp.status_code = 204
+    mock_resp.headers = {}
+    client.http.session.delete.return_value = mock_resp
+    
+    success = client.delete_tags(tags, 1)
+    assert success is True
+    assert client.http.session.delete.call_count == 2

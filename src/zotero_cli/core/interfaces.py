@@ -1,9 +1,30 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Iterator, List, Dict, Any
-from .models import ResearchPaper
+from .models import ResearchPaper, ZoteroQuery
 from .zotero_item import ZoteroItem
 
 class ZoteroGateway(ABC):
+    @abstractmethod
+    def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
+        """
+        Performs a library search based on the provided query object.
+        """
+        pass
+
+    @abstractmethod
+    def get_tags_for_item(self, item_key: str) -> List[str]:
+        """Retrieves tags for a specific item."""
+        pass
+
+    @abstractmethod
+    def get_tags_in_collection(self, collection_key: str) -> List[str]:
+        """Retrieves tags assigned to items in a collection."""
+        pass
+
+    @abstractmethod
+    def delete_tags(self, tags: List[str], version: int) -> bool:
+        """Deletes multiple tags from the library."""
+        pass
     @abstractmethod
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
         """

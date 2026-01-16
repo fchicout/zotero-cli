@@ -5,7 +5,7 @@ import sys
 import requests
 
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.models import ResearchPaper, ZoteroQuery
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.http_client import ZoteroHttpClient
 
@@ -93,14 +93,29 @@ class ZoteroAPIClient(ZoteroGateway):
             return [t['tag'] for t in tags_data]
         return self._safe_execute("fetching tags", [], _fetch_tags)
 
+    def get_tags_for_item(self, item_key: str) -> List[str]:
+        return self._safe_execute(
+            f"fetching tags for item {item_key}", [],
+            lambda: [t['tag'] for t in self.http.get(f"items/{item_key}/tags").json()]
+        )
+
+    def get_tags_in_collection(self, collection_key: str) -> List[str]:
+        return self._safe_execute(
+            f"fetching tags in collection {collection_key}", [],
+            lambda: [t['tag'] for t in self.http.get(f"collections/{collection_key}/tags").json()]
+        )
+
     def get_saved_searches(self) -> List[Dict[str, Any]]:
         return self._safe_execute(
             "fetching saved searches", [],
             lambda: self.http.get("searches").json()
         )
 
+    def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
+        return self._paginate_items("items", params=query.to_params())
+
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
-        return self._paginate_items("items", params={'tag': tag})
+        return self.search_items(ZoteroQuery(tag=tag))
 
     def get_items_in_collection(self, collection_id: str, top_only: bool = False) -> Iterator[ZoteroItem]:
         endpoint = f"collections/{collection_id}/items"
@@ -159,6 +174,21 @@ class ZoteroAPIClient(ZoteroGateway):
             print(f"Error renaming collection {collection_key}: {e}")
             return False
 
+    def delete_tags(self, tags: List[str], version: int) -> bool:
+        if not tags: return True
+        # Chunking: Zotero supports up to 50 tags per request
+        chunk_size = 50
+        success = True
+        for i in range(0, len(tags), chunk_size):
+            chunk = tags[i:i + chunk_size]
+            tags_query = " || ".join(chunk)
+            try:
+                self.http.delete("tags", params={"tag": tags_query}, version_check=True)
+            except Exception as e:
+                print(f"Error deleting tags chunk: {e}")
+                success = False
+        return success
+
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
         creators = []
         for author in paper.authors:
@@ -216,7 +246,6 @@ class ZoteroAPIClient(ZoteroGateway):
         }]
         try:
             response = self.http.post("items", json_data=payload)
-            # Use helper but convert to bool
             return bool(self._parse_write_response(response))
         except Exception as e:
             print(f"Error creating note for {parent_item_key}: {e}")
@@ -262,11 +291,9 @@ class ZoteroAPIClient(ZoteroGateway):
             return False
 
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
-        # Re-use generic update_item
         return self.update_item(item_key, version, metadata)
 
     def upload_attachment(self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf") -> bool:
-        # Complex logic (kept as is, but could use helpers if applicable, but it has specific auth flow)
         try:
             filename = os.path.basename(file_path)
             mtime = int(os.path.getmtime(file_path) * 1000)
@@ -276,7 +303,6 @@ class ZoteroAPIClient(ZoteroGateway):
                     md5_hash.update(chunk)
             md5 = md5_hash.hexdigest()
 
-            # 1. Create Attachment Item
             payload = [{
                 "itemType": "attachment",
                 "linkMode": "imported_file",
@@ -289,7 +315,6 @@ class ZoteroAPIClient(ZoteroGateway):
             attachment_key = self._parse_write_response(res)
             if not attachment_key: return False
 
-            # 2. Authorization
             auth_data = {
                 "md5": md5,
                 "filename": filename,
@@ -304,7 +329,6 @@ class ZoteroAPIClient(ZoteroGateway):
             if auth_resp_data.get('exists') == 1:
                 return True
 
-            # 3. Upload
             upload_url = auth_resp_data['url']
             upload_params = auth_resp_data.get('params', {})
             upload_key = auth_resp_data.get('uploadKey')
@@ -312,7 +336,6 @@ class ZoteroAPIClient(ZoteroGateway):
             with open(file_path, 'rb') as f:
                 self.http.upload_file(upload_url, data=upload_params, files={'file': f})
 
-            # 4. Register
             reg_data = {"upload": upload_key}
             self.http.post_form(f"items/{attachment_key}/file", data=reg_data, headers=headers)
             return True
