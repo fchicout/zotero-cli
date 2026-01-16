@@ -1,10 +1,12 @@
 import argparse
+import sys
 
 from rich.console import Console
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.commands.list_cmd import ListCommand
+from zotero_cli.core.services.backup_service import BackupService
 from zotero_cli.core.services.duplicate_service import DuplicateFinder
 from zotero_cli.infra.factory import GatewayFactory
 
@@ -57,6 +59,11 @@ class CollectionCommand(BaseCommand):
         strip_p = pdf_sub.add_parser("strip", help="Remove all PDF attachments from a collection")
         strip_p.add_argument("--collection", required=True, help="Collection name or key")
 
+        # Backup
+        backup_p = sub.add_parser("backup", help="Backup a collection to .zaf archive")
+        backup_p.add_argument("--name", required=True, help="Collection name or key")
+        backup_p.add_argument("--output", required=True, help="Output file path")
+
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, 'user', False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -107,6 +114,8 @@ class CollectionCommand(BaseCommand):
             self._handle_duplicates(gateway, args)
         elif args.verb == "pdf":
             self._handle_pdf(args)
+        elif args.verb == "backup":
+            self._handle_backup(gateway, args)
 
     def _handle_clean(self, args):
         force_user = getattr(args, 'user', False)
@@ -115,7 +124,6 @@ class CollectionCommand(BaseCommand):
         print(f"Deleted {count} items from '{args.collection}'.")
 
     def _handle_pdf(self, args):
-        # ... implementation from _handle_pdf_ops ...
         force_user = getattr(args, 'user', False)
         if args.pdf_verb == "fetch":
             service = GatewayFactory.get_attachment_service(force_user=force_user)
@@ -147,26 +155,16 @@ class CollectionCommand(BaseCommand):
             table.add_row(d['title'] or "No Title", d['doi'] or 'N/A', ", ".join(d['keys']))
         console.print(table)
 
-    def _handle_recursive_delete(self, gateway, col_id):
-        """Recursively deletes sub-collections and all items within."""
-        # 1. Delete items in this collection
-        items = list(gateway.get_items_in_collection(col_id))
-        if items:
-            for item in items:
-                title_snip = (item.title[:50] + '...') if item.title and len(item.title) > 50 else (item.title or "No Title")
-                if gateway.delete_item(item.key, item.version):
-                    print(f"  [item] Deleted: {item.key} - {title_snip}")
-                else:
-                    print(f"  [item] FAILED to delete: {item.key}")
+    def _handle_backup(self, gateway, args):
+        # Resolve collection ID
+        col_id = gateway.get_collection_id_by_name(args.name)
+        if not col_id:
+            col_id = args.name
 
-        # 2. Delete sub-collections recursively
-        sub_cols = gateway.get_subcollections(col_id)
-        if sub_cols:
-            for sub in sub_cols:
-                sub_name = sub.get('data', {}).get('name', 'Unknown')
-                print(f"  [coll] Entering sub-collection: {sub_name} ({sub['key']})")
-                self._handle_recursive_delete(gateway, sub['key'])
-                if gateway.delete_collection(sub['key'], sub['version']):
-                    print(f"  [coll] Deleted sub-collection: {sub_name} ({sub['key']})")
-                else:
-                    print(f"  [coll] FAILED to delete sub-collection: {sub['key']}")
+        service = BackupService(gateway)
+        print(f"Starting Backup for Collection '{args.name}' ({col_id})...")
+        try:
+            service.backup_collection(col_id, args.output)
+            print(f"Backup complete: {args.output}")
+        except Exception as e:
+            print(f"Backup failed: {e}", file=sys.stderr)

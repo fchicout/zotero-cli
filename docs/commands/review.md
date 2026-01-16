@@ -12,6 +12,10 @@ Interactive Screening Interface (TUI) for title and abstract screening.
 zotero-cli review screen --source "Target Collection" --include "Included" --exclude "Excluded"
 ```
 
+**Features:**
+*   **Auto-Skip:** Items with existing decision tags (`rsl:phase:*`, `rsl:include`, `rsl:exclude`) are automatically filtered out of the queue to prevent re-screening.
+*   **State Tracking:** Can optionally track progress in a local CSV to resume offline.
+
 **Parameters:**
 *   `--source`: (Required) Collection name or key to screen.
 *   `--include`: (Required) Target collection for items marked as 'Include'.
