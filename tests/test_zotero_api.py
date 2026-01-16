@@ -208,3 +208,66 @@ def test_upload_attachment_full_sequence(mock_req_post, mock_file, mock_mtime, m
     assert success is True
     assert client.http.session.post.call_count == 3
     mock_req_post.assert_called_once()
+
+# --- Generic CRUD Tests ---
+
+def test_create_generic_item(client):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"successful": {"0": {"key": "GEN_KEY"}}}
+    mock_response.headers = {}
+    client.http.session.post.return_value = mock_response
+    
+    key = client.create_generic_item({"itemType": "book", "title": "My Book"})
+    assert key == "GEN_KEY"
+    args, kwargs = client.http.session.post.call_args
+    assert kwargs['json'][0]['itemType'] == "book"
+
+def test_update_item(client):
+    mock_response = Mock()
+    mock_response.status_code = 204
+    mock_response.headers = {}
+    client.http.session.patch.return_value = mock_response
+    client.http.last_library_version = 1 # Set version for header check
+    
+    success = client.update_item("K1", 1, {"title": "New Title"})
+    assert success is True
+    # Verify session call
+    args, kwargs = client.http.session.patch.call_args
+    # The URL will be full prefix + endpoint
+    assert "items/K1" in args[0]
+    assert kwargs['json'] == {"title": "New Title"}
+    assert kwargs['headers']['If-Unmodified-Since-Version'] == '1'
+
+def test_get_collection_success(client):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"key": "C1", "data": {"name": "Col 1"}}
+    mock_response.headers = {}
+    client.http.session.get.return_value = mock_response
+
+    col = client.get_collection("C1")
+    assert col['key'] == "C1"
+    assert "/collections/C1" in client.http.session.get.call_args[0][0]
+
+def test_delete_collection_success(client):
+    mock_response = Mock()
+    mock_response.status_code = 204
+    mock_response.headers = {}
+    client.http.session.delete.return_value = mock_response
+    
+    success = client.delete_collection("C1", 1)
+    assert success is True
+    assert "/collections/C1" in client.http.session.delete.call_args[0][0]
+
+def test_rename_collection_success(client):
+    mock_response = Mock()
+    mock_response.status_code = 204
+    mock_response.headers = {}
+    client.http.session.patch.return_value = mock_response
+    
+    success = client.rename_collection("C1", 1, "New Name")
+    assert success is True
+    # Verify payload
+    args, kwargs = client.http.session.patch.call_args
+    assert kwargs['json']['name'] == "New Name"

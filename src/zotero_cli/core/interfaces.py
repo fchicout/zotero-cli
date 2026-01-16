@@ -35,11 +35,50 @@ class ZoteroGateway(ABC):
         pass
 
     @abstractmethod
+    def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieves a collection object by key.
+        """
+        pass
+
+    @abstractmethod
+    def delete_collection(self, collection_key: str, version: int) -> bool:
+        """
+        Deletes a collection by key.
+        Returns True on success.
+        """
+        pass
+
+    @abstractmethod
+    def rename_collection(self, collection_key: str, version: int, name: str) -> bool:
+        """
+        Renames a collection.
+        Returns True on success.
+        """
+        pass
+
+    @abstractmethod
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
         """
         Creates a new Zotero item based on the provided ResearchPaper data
         and adds it to the specified collection.
         Returns True on success, False otherwise.
+        """
+        pass
+
+    @abstractmethod
+    def create_generic_item(self, item_data: Dict[str, Any]) -> Optional[str]:
+        """
+        Creates a new item with raw dictionary data.
+        Returns the new Item Key if successful.
+        """
+        pass
+
+    @abstractmethod
+    def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool:
+        """
+        Updates an item with raw dictionary data (PATCH).
+        Returns True on success.
         """
         pass
 
