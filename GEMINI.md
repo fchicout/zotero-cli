@@ -16,6 +16,12 @@ This document preserves the context, memory, and task history of the `zotero-cli
 **Scientific Advisor:**
 *   **Dr. Silas:** Research Methodology, Bibliographic Rigor, Kitchenham/Wohlin Standards.
 
+**Modus Operandi (The Argentis Protocol):**
+1.  **Atomic Commits:** Every logical change (feature, refactor, doc) must be a separate commit.
+2.  **Strict Semantic Versioning:** Commit messages must follow Conventional Commits (feat, fix, refactor, docs, chore, test).
+3.  **Traceability:** No "WIP" commits. Code must be runnable/testable at every commit.
+4.  **Verification:** Verify status and diffs before committing.
+
 ## Project Overview: `zotero-cli`
 A "Systematic Review Engine" CLI tool to import, manage, and screen research papers in Zotero libraries.
 
