@@ -35,9 +35,9 @@ class ReportCommand(BaseCommand):
         screen_p.add_argument("--output", required=True, help="Path to output Markdown file")
 
         # Status (Progress Dashboard)
-        status_p = sub.add_parser("status", help="Generate Markdown Progress Dashboard")
+        status_p = sub.add_parser("status", help="Show Progress Dashboard")
         status_p.add_argument("--collection", required=True)
-        status_p.add_argument("--output", required=True, help="Path to output Markdown file")
+        status_p.add_argument("--output", help="Optional path to save report (acts like screening)")
 
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
@@ -124,5 +124,48 @@ class ReportCommand(BaseCommand):
             sys.exit(1)
 
     def _handle_status(self, gateway, args):
-        # reuse screening markdown logic for dashboard
-        self._handle_screening(gateway, args)
+        if args.output:
+             # Backward compatibility: if output is provided, act like screening
+             return self._handle_screening(gateway, args)
+
+        service = ReportService(gateway)
+        with console.status("[bold green]Fetching items and calculating stats..."):
+            report = service.generate_prisma_report(args.collection)
+            
+        if not report:
+             console.print(f"[bold red]Error:[/bold red] Collection '{args.collection}' not found.")
+             sys.exit(1)
+
+        # Progress Bar
+        from rich.progress import Progress, BarColumn, TextColumn
+        
+        console.print(f"\n[bold]Status Report: {report.collection_name}[/bold]\n")
+        
+        percent_screened = (report.screened_items / report.total_items * 100) if report.total_items else 0
+        
+        with Progress(
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TextColumn("{task.completed}/{task.total}"),
+            console=console
+        ) as progress:
+            task = progress.add_task("[cyan]Screening Progress", total=report.total_items)
+            progress.update(task, completed=report.screened_items)
+            
+        # Stats Table
+        table = Table(show_header=True, header_style="bold magenta", expand=True)
+        table.add_column("Metric", style="dim")
+        table.add_column("Count")
+        table.add_column("Percentage")
+        
+        percent_accepted = (report.accepted_items / report.screened_items * 100) if report.screened_items else 0
+        percent_rejected = (report.rejected_items / report.screened_items * 100) if report.screened_items else 0
+        
+        table.add_row("Total Items", str(report.total_items), "100%")
+        table.add_row("Screened", str(report.screened_items), f"{percent_screened:.1f}%")
+        table.add_row("Remaining", str(report.total_items - report.screened_items), f"{100-percent_screened:.1f}%")
+        table.add_row("Accepted", f"[green]{report.accepted_items}[/green]", f"{percent_accepted:.1f}% (of screened)")
+        table.add_row("Rejected", f"[red]{report.rejected_items}[/red]", f"{percent_rejected:.1f}% (of screened)")
+        
+        console.print(table)

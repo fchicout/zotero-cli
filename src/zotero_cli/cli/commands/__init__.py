@@ -8,6 +8,7 @@ from .collection_cmd import CollectionCommand
 from .review_cmd import ReviewCommand
 from .tag_cmd import TagCommand
 from .system_cmd import SystemCommand
+from .screen_cmd import ScreenCommand, DecideCommand
 
 __all__ = [
     "ImportCommand",
@@ -15,5 +16,6 @@ __all__ = [
     "FindCommand",
     "ListCommand", "ItemCommand", "CollectionCommand",
     "ReviewCommand", "TagCommand",
-    "SystemCommand"
+    "SystemCommand",
+    "ScreenCommand", "DecideCommand"
 ]

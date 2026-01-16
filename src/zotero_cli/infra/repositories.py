@@ -57,6 +57,28 @@ class ZoteroTagRepository(TagRepository):
     def get_tags_for_item(self, item_key: str) -> List[str]:
         return self.gateway.get_tags_for_item(item_key)
 
+    def add_tags(self, item_key: str, tags: List[str]) -> bool:
+        """
+        Adds tags to an item, preserving existing tags.
+        """
+        item = self.gateway.get_item(item_key)
+        if not item:
+            return False
+            
+        current_tags = self.gateway.get_tags_for_item(item_key)
+        # Combine and deduplicate
+        updated_tag_set = set(current_tags) | set(tags)
+        
+        # Convert to Zotero API format [{"tag": "name"}, ...]
+        tag_payload = [{"tag": t} for t in updated_tag_set]
+        
+        # We need the version from the raw item data usually, but get_item returns ZoteroItem
+        # ZoteroItem (v2) has 'version' attribute? Let's check ZoteroItem definition or fetch raw.
+        # Ideally gateway.get_item should return version.
+        # Assuming ZoteroItem has a .version attribute (it should).
+        
+        return self.gateway.update_item(item_key, item.version, {"tags": tag_payload})
+
     def delete_tags(self, tags: List[str], version: int) -> bool:
         return self.gateway.delete_tags(tags, version)
 

@@ -2,13 +2,14 @@ import argparse
 import sys
 from rich.console import Console
 
-from zotero_cli.cli.base import BaseCommand
+from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.tui import TuiScreeningService
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.core.services.screening_service import ScreeningService
 
 console = Console()
 
+@CommandRegistry.register
 class ScreenCommand(BaseCommand):
     name = "screen"
     help = "Interactive Screening Interface (TUI)"
@@ -68,31 +69,56 @@ class ScreenCommand(BaseCommand):
         except Exception as e:
             print(f"Error processing CSV: {e}")
 
+@CommandRegistry.register
 class DecideCommand(BaseCommand):
     name = "decide"
     help = "Record a single decision (CLI mode)"
 
     def register_args(self, parser: argparse.ArgumentParser):
         parser.add_argument("--key", required=True)
-        parser.add_argument("--vote", required=True, choices=["INCLUDE", "EXCLUDE"])
-        parser.add_argument("--code", required=True)
+        parser.add_argument("--vote", choices=["INCLUDE", "EXCLUDE"], help="Decision vote (required unless flag used)")
+        parser.add_argument("--code", help="Exclusion/Inclusion criteria code (required unless flag used)")
         parser.add_argument("--reason")
         parser.add_argument("--source")
         parser.add_argument("--target")
         parser.add_argument("--agent-led", action="store_true")
         parser.add_argument("--persona")
         parser.add_argument("--phase", default="title_abstract")
+        
+        # Exclusion presets
+        parser.add_argument("--short-paper", metavar="CODE", help="Exclude as Short Paper with EC code")
+        parser.add_argument("--not-english", metavar="CODE", help="Exclude as Non-English with EC code")
+        parser.add_argument("--is-survey", metavar="CODE", help="Exclude as Survey/SLR with EC code")
+        parser.add_argument("--no-pdf", metavar="CODE", help="Exclude due to missing PDF with EC code")
 
     def execute(self, args: argparse.Namespace):
         service = GatewayFactory.get_screening_service(force_user=getattr(args, 'user', False))
+        
+        vote = args.vote
+        code = args.code
+        reason = args.reason
+        
+        # Resolve flags to decision
+        if args.short_paper:
+            vote, code, reason = "EXCLUDE", args.short_paper, "Short Paper"
+        elif args.not_english:
+            vote, code, reason = "EXCLUDE", args.not_english, "Not English"
+        elif args.is_survey:
+            vote, code, reason = "EXCLUDE", args.is_survey, "SLR/Survey"
+        elif args.no_pdf:
+            vote, code, reason = "EXCLUDE", args.no_pdf, "No PDF"
+            
+        if not vote or not code:
+            console.print("[bold red]Error:[/bold red] You must provide --vote and --code OR use one of the exclusion flags (e.g., --short-paper EC5).")
+            sys.exit(1)
         
         agent_name = args.persona if args.agent_led else "human"
         
         success = service.record_decision(
             item_key=args.key,
-            decision=args.vote,
-            code=args.code,
-            reason=args.reason,
+            decision=vote,
+            code=code,
+            reason=reason,
             source_collection=args.source,
             target_collection=args.target,
             agent="zotero-cli",
@@ -101,7 +127,7 @@ class DecideCommand(BaseCommand):
         )
         
         if success:
-            print(f"Successfully recorded decision for {args.key}")
+            print(f"Successfully recorded decision for {args.key} ({vote}: {reason})")
         else:
             print(f"Failed to record decision for {args.key}")
             sys.exit(1)

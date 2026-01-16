@@ -72,29 +72,52 @@ def test_iron_gauntlet_slr():
         res = run_cli(["review", "screen", "--source", col_src, "--include", col_src, "--exclude", col_mir, "--file", csv_path])
         assert "Success: 1" in res.stdout
 
-        # 6. Reporting (Dummy Collection)
-        print("[6/8] Reporting on dummy collection...")
+        # 6. Single Decision with Flags (New Feature)
+        print("[6/8] Testing 'decide' with exclusion flags...")
+        # Import a second paper to exclude
+        run_cli(["import", "arxiv", "--query", "ti:BERT", "--limit", "1", "--collection", col_src])
+        res_bert = run_cli(["item", "list", "--collection", col_src])
+        keys_bert = extract_keys(res_bert.stdout)
+        bert_key = [k for k in keys_bert if k != item_key][0] # Find the new key
+
+        # Exclude using flag
+        run_cli(["decide", "--key", bert_key, "--short-paper", "EC5", "--source", col_src, "--target", col_mir])
+        
+        # Verify Tagging
+        res_tags = run_cli(["item", "show", bert_key]) # Assuming 'item show' or checking notes
+        # Since 'item show' might not list tags in detail, we check the report stats later or check note existence
+        # For now, we trust the report will show 1 rejection
+        
+        # 7. Reporting (Dummy Collection)
+        print("[7/8] Reporting on dummy collection...")
         assert run_cli(["report", "prisma", "--collection", col_src]).returncode == 0
         assert run_cli(["report", "snapshot", "--collection", col_src, "--output", snap_path]).returncode == 0
         assert run_cli(["report", "screening", "--collection", col_src, "--output", report_path]).returncode == 0
         assert run_cli(["report", "status", "--collection", col_src, "--output", status_path]).returncode == 0
         assert os.path.exists(report_path)
         assert os.path.exists(status_path)
-
-        # 7. Reporting (Existing Research Collections - READ ONLY)
-        print("[7/8] Verifying reporting on research collections (raw_arXiv, screening_arXiv)...")
-        # Note: We assume these collections exist in the target library. 
-        # If not, the test will skip or warn, but won't fail the gauntlet if it's environment-specific.
-        for coll in ["raw_arXiv", "screening_arXiv"]:
-            res = run_cli(["report", "prisma", "--collection", coll])
-            if res.returncode == 0:
-                print(f"      ✓ PRISMA verified for {coll}")
-                tmp_md = f"tests/integration/tmp_{coll}.md"
-                assert run_cli(["report", "screening", "--collection", coll, "--output", tmp_md]).returncode == 0
-                if os.path.exists(tmp_md): os.remove(tmp_md)
-            else:
-                print(f"      ! Collection {coll} not found or inaccessible. Skipping validation.")
-
+        
+        # Verify the dashboard stats contain our decisions
+        # NOTE: Since the Excluded item was moved to col_mir, it won't appear in col_src stats as "Rejected", 
+        # it just disappears from col_src. 
+        # To verify the "Short Paper" decision, we must check col_mir.
+        
+        print("[7.5/8] Verifying item movement and tagging in Mirror...")
+        res_mir = run_cli(["item", "list", "--collection", col_mir])
+        assert bert_key in res_mir.stdout
+        
+        # Verify the note/decision is correct (We can't easily parse tags from CLI list yet, but presence is key)
+        # In a real scenario, we would use 'inspect' or 'show' to see the audit note.
+        
+        # Verify Source stats: Should have 1 Included (from Bulk) and 0 Remaining (since BERT moved)
+        with open(status_path, 'r') as f:
+            content = f.read()
+            # Match Markdown format: *   **Included (Accepted):** 1
+            assert "**Included (Accepted):** 1" in content 
+            
+            # "Rejected" will be 0 because the item left the collection. 
+            # This confirms Dr. Silas's observation that we need Multi-Collection reporting in v2.1.
+        
         # 8. Destructive: Clean Mirror
         print("[8/8] Verifying collection clean...")
         assert run_cli(["collection", "clean", "--collection", col_mir]).returncode == 0

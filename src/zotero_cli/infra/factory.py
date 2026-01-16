@@ -142,10 +142,11 @@ class GatewayFactory:
         item_repo = GatewayFactory.get_item_repository(config, force_user)
         col_repo = GatewayFactory.get_collection_repository(config, force_user)
         note_repo = GatewayFactory.get_note_repository(config, force_user)
+        tag_repo = GatewayFactory.get_tag_repository(config, force_user)
         col_service = GatewayFactory.get_collection_service(config, force_user)
         
         from zotero_cli.core.services.screening_service import ScreeningService
-        return ScreeningService(item_repo, col_repo, note_repo, col_service)
+        return ScreeningService(item_repo, col_repo, note_repo, tag_repo, col_service)
 
     @staticmethod
     def get_paper_importer(config: Optional[ZoteroConfig] = None, force_user: bool = False):

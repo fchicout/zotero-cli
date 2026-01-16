@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import json
 import sys
 
-from zotero_cli.core.interfaces import ItemRepository, CollectionRepository, NoteRepository
+from zotero_cli.core.interfaces import ItemRepository, CollectionRepository, NoteRepository, TagRepository
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.core.services.collection_service import CollectionService
 
@@ -17,10 +17,12 @@ class ScreeningService:
                  item_repo: ItemRepository,
                  collection_repo: CollectionRepository,
                  note_repo: NoteRepository,
+                 tag_repo: TagRepository,
                  collection_service: CollectionService):
         self.item_repo = item_repo
         self.collection_repo = collection_repo
         self.note_repo = note_repo
+        self.tag_repo = tag_repo
         self.collection_service = collection_service
 
     def record_decision(
@@ -38,7 +40,8 @@ class ScreeningService:
         """
         Records a screening decision for a Zotero item.
         1. Creates a child note with the decision metadata (JSON).
-        2. Optionally moves the item from source to target collection.
+        2. Applies semantic tags (e.g., rsl:exclude:EC1).
+        3. Optionally moves the item from source to target collection.
         """
         decision_upper = decision.upper()
         if decision_upper not in ["INCLUDE", "EXCLUDE"]:
@@ -68,7 +71,25 @@ class ScreeningService:
             print(f"Error: Failed to create audit note for item {item_key}.", file=sys.stderr)
             return False
 
-        # 2. Collection Movement (Optional)
+        # 2. Apply Tags
+        tags_to_add = []
+        # Phase Tag
+        tags_to_add.append(f"rsl:phase:{phase}")
+        
+        # Decision Tags
+        if sdb_decision == "rejected":
+            codes = decision_data['reason_code']
+            for c in codes:
+                tags_to_add.append(f"rsl:exclude:{c}")
+        elif sdb_decision == "accepted":
+            tags_to_add.append("rsl:include")
+            
+        if tags_to_add:
+            tag_success = self.tag_repo.add_tags(item_key, tags_to_add)
+            if not tag_success:
+                print(f"Warning: Failed to apply tags {tags_to_add} to item {item_key}.", file=sys.stderr)
+
+        # 3. Collection Movement (Optional)
         if source_collection and target_collection:
             move_success = self.collection_service.move_item(source_collection, target_collection, item_key)
             if not move_success:

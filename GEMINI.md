@@ -50,17 +50,19 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 *   **[OPS] arXiv Finalization:** Resolved data drift (Set theory violation) in `raw_arXiv`. Generated final audit CSVs for Included (375) and Excluded (173) sets.
 *   **OPS] ScienceDirect Finalization:** Successfully reconciled 1379 items. Recovered 33 audit notes and adjusted 7 items to 'Included' based on re-evaluation.
 *   **[FIX] CLI Robustness:** Hardened `sync-csv` and `inspect` command to handle items with null titles or non-JSON notes gracefully.
+*   **[FEAT] Report Dashboard:** Implemented `report status` with Rich progress bars and stats table (Issue #12).
+*   **[UX] Decide Presets:** Added `--short-paper`, `--not-english`, `--is-survey`, `--no-pdf` flags to `decide` command for rapid screening.
+*   **[REFACTOR] CLI Structure:** Registered `screen` and `decide` as top-level commands for better ergonomics.
 
 ## Current State
 
 *   **Version:** `v2.0.0-dev`
 *   **Research (ScienceDirect):** 1379/1379 items screened and verified.
 *   **Research (arXiv):** 100% Finalized and Synced.
-*   **Quality:** 100% Test Pass (211 tests + Iron Gauntlet E2E). Coverage: 81%.
-*   **Status:** Stable (v2 Development Baseline established).
+*   **Quality:** 100% Test Pass (216 tests + Expanded Iron Gauntlet E2E). Coverage: 81%.
+*   **Status:** Pre-Release (Gate: Clear GitHub Issue Backlog).
 
 ## Backlog (Prioritized)
-*   **Issue #12 (Feat):** Implement `report status` progress dashboard. *[Service Logic Ready]*
 *   **Issue #27 (Feat):** Implement `system backup/restore` using `.zaf`.
 *   **Issue #3 (Infra):** Implement Quality Gates (ruff/mypy) in CI.
 *   **Issue #16 (Feat):** Refine TUI to skip items with existing SDB notes (v1.1 verification).
