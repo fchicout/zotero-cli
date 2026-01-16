@@ -271,3 +271,41 @@ def test_rename_collection_success(client):
     # Verify payload
     args, kwargs = client.http.session.patch.call_args
     assert kwargs['json']['name'] == "New Name"
+
+# --- New Read Methods ---
+
+def test_get_top_collections(client):
+    client.http.session.get.return_value.json.return_value = [{"key": "TOP"}]
+    client.http.session.get.return_value.status_code = 200
+    client.http.session.get.return_value.headers = {}
+    cols = client.get_top_collections()
+    assert cols[0]['key'] == "TOP"
+    assert "/collections/top" in client.http.session.get.call_args[0][0]
+
+def test_get_subcollections(client):
+    client.http.session.get.return_value.json.return_value = [{"key": "SUB"}]
+    client.http.session.get.return_value.status_code = 200
+    client.http.session.get.return_value.headers = {}
+    cols = client.get_subcollections("PARENT")
+    assert cols[0]['key'] == "SUB"
+    assert "/collections/PARENT/collections" in client.http.session.get.call_args[0][0]
+
+def test_get_saved_searches(client):
+    client.http.session.get.return_value.json.return_value = [{"key": "SEARCH"}]
+    client.http.session.get.return_value.status_code = 200
+    client.http.session.get.return_value.headers = {}
+    searches = client.get_saved_searches()
+    assert searches[0]['key'] == "SEARCH"
+    assert "searches" in client.http.session.get.call_args[0][0]
+
+def test_get_trash_items(client):
+    mock_resp = Mock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = [{"key": "TRASH1", "data": {}, "meta": {}, "version": 1}]
+    mock_resp.headers = {"Last-Modified-Version": "1"}
+    client.http.session.get.return_value = mock_resp
+    
+    items = list(client.get_trash_items())
+    assert len(items) == 1
+    assert items[0].key == "TRASH1"
+    assert "items/trash" in client.http.session.get.call_args[0][0]
