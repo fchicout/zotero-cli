@@ -115,7 +115,17 @@ class ScreeningService:
         pending = []
 
         for item in all_items:
-            # Check if item has a decision note
+            # FAST PATH: Check tags first
+            has_tag_decision = False
+            for tag in item.tags:
+                if tag.startswith("rsl:phase:") or tag.startswith("rsl:exclude:") or tag == "rsl:include":
+                    has_tag_decision = True
+                    break
+
+            if has_tag_decision:
+                continue
+
+            # SLOW PATH: Check note content (Fallback)
             children = self.note_repo.get_item_children(item.key)
             has_decision = False
             for child in children:

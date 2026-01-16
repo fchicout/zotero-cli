@@ -76,7 +76,7 @@ class TagService:
         col_id = self.gateway.get_collection_id_by_name(collection_name)
         if not col_id:
             return 0
-            
+
         count = 0
         for item in self.gateway.get_items_in_collection(col_id):
             if item.tags:

@@ -46,7 +46,7 @@ class AnalyzeCommand(BaseCommand):
     def _handle_audit(self, gateway, args):
         service = CollectionAuditor(gateway)
         report = service.audit_collection(args.collection)
-        
+
         if not report:
             console.print(f"[bold red]Audit failed for collection: {args.collection}[/bold red]")
             return

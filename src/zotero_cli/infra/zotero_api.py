@@ -187,11 +187,11 @@ class ZoteroAPIClient(ZoteroGateway):
         item = self.get_item(item_key)
         if not item:
             return False
-        
+
         current_tags = [t['tag'] for t in item.raw_data.get('data', {}).get('tags', [])]
         updated_tags = set(current_tags) | set(tags)
         tag_payload = [{"tag": t} for t in updated_tags]
-        
+
         return self.update_item(item_key, item.version, {"tags": tag_payload})
 
     def delete_tags(self, tags: List[str], version: int) -> bool:

@@ -8,22 +8,22 @@ from .zotero_item import ZoteroItem
 class ItemRepository(ABC):
     @abstractmethod
     def get_item(self, item_key: str) -> Optional[ZoteroItem]: pass
-    
+
     @abstractmethod
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool: pass
-    
+
     @abstractmethod
     def create_generic_item(self, item_data: Dict[str, Any]) -> Optional[str]: pass
-    
+
     @abstractmethod
     def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool: pass
-    
+
     @abstractmethod
     def delete_item(self, item_key: str, version: int) -> bool: pass
 
     @abstractmethod
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]: pass
-    
+
     @abstractmethod
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool: pass
 class CollectionRepository(ABC):
