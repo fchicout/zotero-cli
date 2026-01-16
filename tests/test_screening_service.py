@@ -43,11 +43,10 @@ def test_record_decision_with_move(screening_service, mock_gateway):
     target_col = "Screened"
     
     mock_gateway.create_note.return_value = True
-    mock_gateway.get_collection_id_by_name.side_effect = ["SRC_ID", "TGT_ID"]
     
-    item = ZoteroItem(key=item_key, version=10, item_type="journalArticle", collections=["SRC_ID", "OTHER_ID"])
-    mock_gateway.get_item.return_value = item
-    mock_gateway.update_item_collections.return_value = True
+    # Mock the internal collection service
+    screening_service.collection_service = MagicMock()
+    screening_service.collection_service.move_item.return_value = True
     
     success = screening_service.record_decision(
         item_key=item_key,
@@ -58,13 +57,8 @@ def test_record_decision_with_move(screening_service, mock_gateway):
     )
     
     assert success is True
-    # Verify move
-    mock_gateway.update_item_collections.assert_called_once()
-    # collections should have SRC_ID removed and TGT_ID added
-    updated_cols = mock_gateway.update_item_collections.call_args[0][2]
-    assert "SRC_ID" not in updated_cols
-    assert "TGT_ID" in updated_cols
-    assert "OTHER_ID" in updated_cols
+    # Verify move delegated to collection service
+    screening_service.collection_service.move_item.assert_called_once_with(source_col, target_col, item_key)
 
 def test_get_pending_items(screening_service, mock_gateway):
     mock_gateway.get_collection_id_by_name.return_value = "COL_ID"
