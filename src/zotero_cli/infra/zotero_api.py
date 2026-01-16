@@ -116,6 +116,37 @@ class ZoteroAPIClient(ZoteroGateway):
             print(f"Error creating collection: {e}")
             return None
 
+    def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
+        try:
+            response = self.http.get(f"collections/{collection_key}")
+            return response.json()
+        except Exception as e:
+            print(f"Error fetching collection {collection_key}: {e}")
+            return None
+
+    def delete_collection(self, collection_key: str, version: int) -> bool:
+        try:
+            response = self.http.delete(f"collections/{collection_key}", version_check=True)
+            if response.status_code == 412:
+                # Retry once
+                self.http.delete(f"collections/{collection_key}", version_check=True)
+            return True
+        except Exception as e:
+            print(f"Error deleting collection {collection_key}: {e}")
+            return False
+
+    def rename_collection(self, collection_key: str, version: int, name: str) -> bool:
+        payload = {"name": name, "version": version}
+        try:
+            # We don't necessarily need version in payload if version_check=True handles If-Unmodified-Since-Version header
+            # But Zotero API often accepts version in body too.
+            # ZoteroHttpClient.patch uses headers.
+            self.http.patch(f"collections/{collection_key}", json_data={"name": name}, version_check=True)
+            return True
+        except Exception as e:
+            print(f"Error renaming collection {collection_key}: {e}")
+            return False
+
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
         creators = []
         for author in paper.authors:
@@ -149,6 +180,28 @@ class ZoteroAPIClient(ZoteroGateway):
             return True
         except Exception as e:
             print(f"Error creating item: {e}")
+            return False
+
+    def create_generic_item(self, item_data: Dict[str, Any]) -> Optional[str]:
+        try:
+            response = self.http.post("items", json_data=[item_data])
+            data = response.json()
+            if 'successful' in data and data['successful']:
+                first_index = list(data['successful'].keys())[0]
+                return data['successful'][first_index]['key']
+            if 'failed' in data and data['failed']:
+                print(f"Error creating item: {data['failed']}")
+            return None
+        except Exception as e:
+            print(f"Error creating generic item: {e}")
+            return None
+
+    def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool:
+        try:
+            self.http.patch(f"items/{item_key}", json_data=item_data, version_check=True)
+            return True
+        except Exception as e:
+            print(f"Error updating item {item_key}: {e}")
             return False
 
     def create_note(self, parent_item_key: str, note_content: str) -> bool:
