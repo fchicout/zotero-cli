@@ -65,6 +65,27 @@ class CollectionAuditor:
 
         return report
 
+    def detect_shifts(self, snapshot_old: List[dict], snapshot_new: List[dict]) -> List[dict]:
+        """
+        Compares two snapshots (lists of item dicts) and returns items that changed collections.
+        """
+        map_old = {i['key']: set(i.get('collections', [])) for i in snapshot_old}
+        map_new = {i['key']: set(i.get('collections', [])) for i in snapshot_new}
+
+        shifts = []
+        for key, cols_new in map_new.items():
+            if key in map_old:
+                cols_old = map_old[key]
+                if cols_new != cols_old:
+                    # Resolve collection names if possible, but IDs are fine for now
+                    shifts.append({
+                        "key": key,
+                        "title": next((i['title'] for i in snapshot_new if i['key'] == key), "Unknown"),
+                        "from": list(cols_old),
+                        "to": list(cols_new)
+                    })
+        return shifts
+
     def _audit_children(self, item_key: str) -> tuple[bool, bool]:
         """Returns (has_pdf, has_screening_note)"""
         children = self.gateway.get_item_children(item_key)

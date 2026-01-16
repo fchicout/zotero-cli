@@ -51,6 +51,7 @@ class SystemCommand(BaseCommand):
 
     def _handle_normalize(self, args):
         import os
+
         from zotero_cli.core.strategies import (
             BibtexImportStrategy,
             CanonicalCsvImportStrategy,
@@ -63,9 +64,11 @@ class SystemCommand(BaseCommand):
         from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
         from zotero_cli.infra.ris_lib import RisLibGateway
         from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
+        from typing import Any
 
         ext = os.path.splitext(args.file)[1].lower()
-        strategy = None
+        strategy: Any = None
+        gateway: Any = None
 
         if ext == '.bib':
             gateway = BibtexLibGateway()
@@ -87,7 +90,7 @@ class SystemCommand(BaseCommand):
                     gateway = CanonicalCsvLibGateway()
                     strategy = CanonicalCsvImportStrategy(gateway)
                 else:
-                    print(f"Error: Unknown CSV format for normalization.")
+                    print("Error: Unknown CSV format for normalization.")
                     return
         else:
             print(f"Error: Unsupported file extension {ext}")
@@ -95,7 +98,7 @@ class SystemCommand(BaseCommand):
 
         print(f"Parsing {args.file}...")
         papers = list(strategy.fetch_papers(args.file))
-        
+
         # 2. Write to Canonical
         canon_gw = CanonicalCsvLibGateway()
         canon_gw.write_file(iter(papers), args.output)

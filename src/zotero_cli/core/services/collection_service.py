@@ -158,3 +158,30 @@ class CollectionService:
                 print(f"Failed to delete item {item.key}")
 
         return deleted_count
+
+    def prune_intersection(self, primary_col: str, secondary_col: str) -> int:
+        """
+        Removes items from 'secondary_col' if they are also present in 'primary_col'.
+        Ensures Sets are disjoint.
+        """
+        primary_id = self.collection_repo.get_collection_id_by_name(primary_col) or primary_col
+        secondary_id = self.collection_repo.get_collection_id_by_name(secondary_col) or secondary_col
+
+        if not primary_id or not secondary_id:
+            print("Error: Could not resolve collection IDs.", file=sys.stderr)
+            return 0
+
+        primary_items = {item.key for item in self.collection_repo.get_items_in_collection(primary_id)}
+        secondary_items = list(self.collection_repo.get_items_in_collection(secondary_id))
+
+        pruned_count = 0
+        for item in secondary_items:
+            if item.key in primary_items:
+                # Remove from secondary
+                current_cols = set(item.collections)
+                if secondary_id in current_cols:
+                    current_cols.remove(secondary_id)
+                    if self.item_repo.update_item(item.key, item.version, {"collections": list(current_cols)}):
+                        pruned_count += 1
+
+        return pruned_count

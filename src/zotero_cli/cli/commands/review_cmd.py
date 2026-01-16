@@ -38,6 +38,11 @@ class ReviewCommand(BaseCommand):
         sync_p.add_argument("--collection", required=True, help="Collection name or key")
         sync_p.add_argument("--output", required=True, help="Path to output CSV")
 
+        # Prune
+        prune_p = sub.add_parser("prune", help="Enforce mutual exclusivity between two collections")
+        prune_p.add_argument("--included", required=True, help="Primary collection (Winner)")
+        prune_p.add_argument("--excluded", required=True, help="Secondary collection (Loser - items removed from here)")
+
     def execute(self, args: argparse.Namespace):
         if args.verb == "screen":
             from zotero_cli.cli.commands.screen_cmd import ScreenCommand
@@ -51,6 +56,20 @@ class ReviewCommand(BaseCommand):
             self._handle_migrate(args)
         elif args.verb == "sync-csv":
             self._handle_sync_csv(args)
+        elif args.verb == "prune":
+            self._handle_prune(args)
+
+    def _handle_prune(self, args):
+        from zotero_cli.infra.factory import GatewayFactory
+        service = GatewayFactory.get_collection_service(force_user=getattr(args, 'user', False))
+
+        print(f"Pruning intersection: '{args.included}' vs '{args.excluded}'...")
+        count = service.prune_intersection(args.included, args.excluded)
+
+        if count > 0:
+            print(f"[bold green]Pruned {count} items from '{args.excluded}'.")
+        else:
+            print("No intersection found. Sets are disjoint.")
 
     def _handle_audit(self, args):
         from rich.console import Console
