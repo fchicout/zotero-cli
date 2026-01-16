@@ -14,3 +14,8 @@ setup_env.sh
 auth.json
 test_config.toml
 *.toml.localunscreened_sciencedirect_keys.txt
+
+# Integration Test Artifacts
+tests/integration/*.csv
+tests/integration/*.json
+tests/integration/*.md
