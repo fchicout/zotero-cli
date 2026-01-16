@@ -27,6 +27,26 @@ class ZoteroGateway(ABC):
         pass
 
     @abstractmethod
+    def get_top_collections(self) -> List[Dict[str, Any]]:
+        """Retrieves top-level collections."""
+        pass
+
+    @abstractmethod
+    def get_subcollections(self, collection_key: str) -> List[Dict[str, Any]]:
+        """Retrieves subcollections of a specific collection."""
+        pass
+
+    @abstractmethod
+    def get_saved_searches(self) -> List[Dict[str, Any]]:
+        """Retrieves saved searches."""
+        pass
+
+    @abstractmethod
+    def get_trash_items(self) -> Iterator[ZoteroItem]:
+        """Retrieves items in the trash."""
+        pass
+
+    @abstractmethod
     def create_collection(self, name: str) -> Optional[str]:
         """
         Creates a new Zotero collection with the given name.
