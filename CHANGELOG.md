@@ -1,6 +1,6 @@
 # Changelog
 
-## [v1.2.0] - 2026-01-14
+## [v1.2.0] - 2026-01-16
 
 ### Architecture
 *   **Command Pattern:** Refactored the entire CLI router into a registry-based Command Pattern. Logic is now modularized in `cli/commands/`.
@@ -9,10 +9,13 @@
 *   **Centralized Configuration:** Moved all configuration and global state management to `core/config.py`.
 
 ### Features
+*   **Decide Alias:** Added `d` alias for `decide` command to speed up manual screening.
+*   **Smart Move:** `manage move` and `decide` now support auto-inference of the source collection. If an item belongs to exactly one other collection, it is moved from there automatically. Fails safely on ambiguity.
 *   **Persistent State:** Added `--state <FILE.csv>` to `screen` command. Researchers can now resume sessions and track local screening decisions across restarts.
 *   **Extended Inspection:** Added `--full-notes` to `inspect` command to display untruncated note content (useful for auditing inclusion/exclusion rationale).
 
 ### Fixes
+*   **Decide Command:** Fixed critical bug where `decide` failed to move items due to logic duplication. Now delegates to `CollectionService`.
 *   **Snapshot:** Fixed `ZeroDivisionError` in `report snapshot` when processing empty collections.
 *   **Inspect:** Resolved bug where `inspect --raw` failed due to missing `raw_data` attribute in `ZoteroItem`.
 

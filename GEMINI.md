@@ -31,7 +31,8 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 *   **[CLOSED] Issue #8 (Ops):** Verified and closed `sync-csv` state recovery task.
 *   **[CLEANUP] Repo Hygiene:** Deleted legacy scripts (`recover_screening_state.py`, `transform_inventory.py`), data dumps, and temporary `issue*.md` files.
 *   **[NEW] Quality Tooling:** Implemented `tests/infra/test_doc_consistency.py` to programmatically verify documentation coverage of CLI commands.
-*   **[FIX] Issue #17 (Bug):** Identified and patched argument order bug in `manage move`. Created workaround for `decide` command movement failure.
+*   **[FIX] Issue #17 (Bug):** Fully refactored `ScreeningService` to delegate item movement to `CollectionService`, resolving the `decide` command failure and removing code duplication (PR #22).
+*   **[CLOSED] Issue #21 (UX):** Implemented `decide` alias (`zotero-cli d`) and strict auto-source inference for item movement. Logic fails safely on ambiguity (PR #23).
 *   **[OPS] arXiv Finalization:** Resolved data drift (Set theory violation) in `raw_arXiv`. Generated final audit CSVs for Included (375) and Excluded (173) sets.
 *   **OPS] ScienceDirect Finalization:** Successfully reconciled 1379 items. Recovered 33 audit notes and adjusted 7 items to 'Included' based on re-evaluation.
 *   **[FIX] CLI Robustness:** Hardened `sync-csv` and `inspect` commands to handle items with null titles or non-JSON notes gracefully.
@@ -42,9 +43,8 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 *   **Research (ScienceDirect):** 1379/1379 items screened and verified.
 *   **Research (arXiv):** 100% Finalized and Synced.
 *   **Quality:** 86% Test Coverage. Automated Doc-Check active.
-*   **Status:** Stable with known bug in `decide` (Issue #17).
+*   **Status:** Stable.
 
 ## Backlog (Prioritized)
 *   **Issue #18 (Feat):** Implement `audit` command to detect incomplete screening (missing notes).
 *   **Issue #19 (Feat):** Implement `report screening` generator (Markdown/PRISMA statistics).
-*   **Issue #21 (UX):** Improve `decide` (aliases) and `move` (auto-source) command inference.
