@@ -5,6 +5,7 @@ import sys
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.zotero_item import ZoteroItem
+from zotero_cli.core.services.collection_service import CollectionService
 
 class ScreeningService:
     """
@@ -14,6 +15,7 @@ class ScreeningService:
 
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
+        self.collection_service = CollectionService(gateway)
 
     def record_decision(
         self,
@@ -70,41 +72,7 @@ class ScreeningService:
 
         # 2. Collection Movement (Optional)
         if source_collection and target_collection:
-            # Fetch item to get current collections
-            item = self.gateway.get_item(item_key)
-            if not item:
-                print(f"Error: Item {item_key} not found for movement.", file=sys.stderr)
-                return False
-            
-            # Resolve Source ID
-            source_id = self.gateway.get_collection_id_by_name(source_collection)
-            if not source_id: 
-                source_id = source_collection # Assume Key
-            
-            # Resolve Target ID
-            target_id = self.gateway.get_collection_id_by_name(target_collection)
-            if not target_id:
-                target_id = target_collection # Assume Key
-
-            # Debugging
-            # print(f"DEBUG: Move {item_key} from {source_id} to {target_id}")
-            # print(f"DEBUG: Current Collections: {item.collections}")
-            
-            if source_id == target_id:
-                # No movement needed
-                return True
-
-            # Update collections list
-            new_collections = [c for c in item.collections if c != source_id]
-            if target_id not in new_collections:
-                new_collections.append(target_id)
-            
-            # Optimization: If list didn't change (e.g. item wasn't in source to begin with), skip patch
-            if set(new_collections) == set(item.collections):
-                # print("DEBUG: Collections unchanged, skipping update.")
-                return True
-
-            move_success = self.gateway.update_item_collections(item_key, item.version, new_collections)
+            move_success = self.collection_service.move_item(source_collection, target_collection, item_key)
             if not move_success:
                 print(f"Warning: Decision recorded but failed to move item {item_key}.", file=sys.stderr)
         
