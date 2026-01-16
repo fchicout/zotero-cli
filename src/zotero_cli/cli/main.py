@@ -22,7 +22,8 @@ def main():
     # Sort by name for consistent help output
     commands = sorted(CommandRegistry.get_commands(), key=lambda x: x.name)
     for cmd in commands:
-        cmd_parser = subparsers.add_parser(cmd.name, help=cmd.help)
+        aliases = getattr(cmd, 'aliases', [])
+        cmd_parser = subparsers.add_parser(cmd.name, help=cmd.help, aliases=aliases)
         cmd.register_args(cmd_parser)
         cmd_parser.set_defaults(func=cmd.execute)
 

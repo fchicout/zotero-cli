@@ -66,6 +66,7 @@ class ScreenCommand(BaseCommand):
 @CommandRegistry.register
 class DecideCommand(BaseCommand):
     name = "decide"
+    aliases = ["d"]
     help = "Record a single decision (CLI mode)"
 
     def register_args(self, parser: argparse.ArgumentParser):

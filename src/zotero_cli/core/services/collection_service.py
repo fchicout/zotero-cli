@@ -1,5 +1,6 @@
 from typing import Optional, List, Set
 import re
+import sys
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -7,45 +8,62 @@ class CollectionService:
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
 
-    def move_item(self, source_col_name: str, dest_col_name: str, identifier: str) -> bool:
+    def move_item(self, source_col_name: Optional[str], dest_col_name: str, identifier: str) -> bool:
         """
         Moves a paper identified by Key, DOI or arXiv ID from source collection to destiny collection.
-        Returns True if successful, False if item not found or error.
+        If source_col_name is None, attempts to infer it from the item's current collections.
+        Returns True if successful, False if item not found, ambiguous source, or error.
         """
-        source_id = self.gateway.get_collection_id_by_name(source_col_name)
-        if not source_id:
-            # Fallback: assume user passed Key
-            source_id = source_col_name
-
         dest_id = self.gateway.get_collection_id_by_name(dest_col_name)
         if not dest_id:
             dest_id = dest_col_name
 
-        # 1. Optimistic approach: Assume identifier is a Key
+        # Fetch item first
         item = self.gateway.get_item(identifier)
-        if item:
-            # Verify membership in source (logic check)
-            if source_id in item.collections:
-                return self._perform_move(item, source_id, dest_id)
-            else:
-                # Item exists but not in source. If forced move logic desired?
-                # Maybe the user is mistaken about source name, but wants it in dest.
-                # Let's trust the item exists and just ensure it ends up in dest.
-                # But strict logic requires source removal.
-                print(f"Item '{identifier}' found but not in source collection '{source_col_name}'.")
-                # We can still add it to dest if desired, but "Move" implies removing from source.
-                # If we return False here, we fail the move. 
-                # Let's print warning and try to add to dest anyway? No, strict move.
+        if not item:
+            # Try slow lookup if key failed (only if source is provided, otherwise we can't search in it)
+            if source_col_name:
+                 source_id = self.gateway.get_collection_id_by_name(source_col_name) or source_col_name
+                 print(f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'...")
+                 found_items = list(self.gateway.get_items_in_collection(source_id))
+                 for i in found_items:
+                     if self._is_match(i, identifier):
+                         item = i
+                         break
+            
+            if not item:
+                print(f"Item '{identifier}' not found.")
                 return False
 
-        # 2. Slow approach: Search by DOI/ArXiv in source collection
-        print(f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'...")
-        for item in self.gateway.get_items_in_collection(source_id):
-            if self._is_match(item, identifier):
-                return self._perform_move(item, source_id, dest_id)
-        
-        print(f"Item with identifier '{identifier}' not found in '{source_col_name}'.")
-        return False
+        # Resolve Source ID
+        source_id = None
+        if source_col_name:
+            source_id = self.gateway.get_collection_id_by_name(source_col_name)
+            if not source_id:
+                source_id = source_col_name
+        else:
+            # Auto-inference
+            current_cols = set(item.collections)
+            # Remove dest_id if present to see what's left
+            candidates = current_cols - {dest_id}
+            
+            if len(candidates) == 0:
+                print(f"Item '{identifier}' is not in any other collection. Adding to '{dest_col_name}'.")
+                # Just add to dest
+                return self.gateway.update_item_collections(item.key, item.version, list(current_cols | {dest_id}))
+            elif len(candidates) == 1:
+                source_id = list(candidates)[0]
+                print(f"Inferred source collection: {source_id}")
+            else:
+                print(f"Error: Ambiguous source. Item '{identifier}' is in multiple collections ({candidates}). Please specify --source to ensure correct movement.", file=sys.stderr)
+                return False
+
+        # Verify membership
+        if source_id in item.collections:
+            return self._perform_move(item, source_id, dest_id)
+        else:
+            print(f"Item '{identifier}' found but not in source collection '{source_col_name or source_id}'.")
+            return False
 
     def _is_match(self, item: ZoteroItem, identifier: str) -> bool:
         
