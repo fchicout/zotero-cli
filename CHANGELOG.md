@@ -1,6 +1,26 @@
 # Changelog
 
-## [v1.2.0] - 2026-01-16
+All notable changes to this project will be documented in this file.
+
+## [2.0.0-dev] - 2026-01-16
+
+### Added
+- **Noun-Verb Architecture:** Completely reorganized the CLI into a logically scoped structure (e.g., `item`, `collection`, `review`).
+- **Command: `review audit`:** Programmatic verification of collection completeness (Identifiers, PDFs, Screening Notes).
+- **Command: `item pdf attach`:** Support for uploading local files (PDF, PostScript, DVI) with automatic MIME detection.
+- **Pre-Flight Protocol:** Mandatory System Integration Test suite (`tests/integration/test_slr_workflow.py`).
+- **Modular Documentation:** Detailed documentation for every command noun in `docs/commands/`.
+- **Guided Tours:** Narrative-based user stories for common SLR tasks.
+
+### Changed
+- **Scoping Fix:** Moved bulk PDF operations from `item` to `collection` namespace.
+- **Improved PDF Upload:** Fully aligned with Zotero v3 API specification for reliable multi-step file registration.
+- **Test Automation:** Enhanced documentation consistency tests to verify 100% parity between CLI and Markdown.
+
+### Removed
+- **Legacy Routing:** Deleted `manage` and `maint` top-level commands and their associated legacy routing logic.
+
+## [1.2.0] - 2026-01-15
 
 ### Architecture
 *   **Command Pattern:** Refactored the entire CLI router into a registry-based Command Pattern. Logic is now modularized in `cli/commands/`.

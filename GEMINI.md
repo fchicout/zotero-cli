@@ -23,25 +23,38 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 
 ## Accomplished Tasks (Session: 2026-01-16)
 
-### Phase 12: v2.0 Architecture & The Great Reorganization
-*   **[RELEASE] v1.2.0:** Tagged and released stable version with fix for Issue #17 and #21.
-*   **[ARCH] Workflow-Centric Tree:** Refactored the command hierarchy into logical namespaces: `item`, `collection`, `review`, `tag`, `maint`, and `system`.
-*   **[FEAT] Full CRUD Support:** Added foundational API and CLI support for collection creation, deletion, renaming, and bulk tag purging.
-*   **[FEAT] Smart Identifiers:** Implemented name-based resolution for collection management commands.
-*   **[FEAT] Deep Delete:** Added `--recursive` flag to collection deletion with verbose per-item logging.
-*   **[FEAT] Metadata Expansion:** Added `--abstract` support to `item update` and positional key support to `item inspect`.
-*   **[UX] System Diagnostics:** Grouped environment and group discovery under `system info` and `system groups`.
-*   **[FIX] Dependency Bugs:** Patched `UnpaywallAPIClient` and `MetadataAggregator` initialization errors.
-*   **[GUARD] Legacy Routing:** Implemented transparent redirection for v1.x commands with deprecation warnings.
+### Phase 11: Backlog Reconciliation & Systematic Mapping Operations
+*   **[CLOSED] Issue #19 (Feat):** Implemented `report screening` command. Generates full Markdown reports with PRISMA statistics and Mermaid diagrams.
+*   **[CLOSED] Issue #24 (Arch):** Implemented Full CRUD Repository Pattern. Split monolithic gateway into specialized repositories (Item, Collection, Tag, Note, Attachment).
+*   **[CLOSED] Issue #18 (Feat):** Implemented `review audit` command. Detects items missing DOI, PDFs, or SDB v1.1 screening notes. Integrated into the new Pre-Flight Protocol. (Assigned to: fchicout).
+*   **[NEW] Pre-Flight Protocol:** Formalized `tests/integration/test_slr_workflow.py` as a mandatory E2E regression suite (Iron Gauntlet).
+*   **[ARCHITECTURAL PURGE] v2.0 Transition:**
+    *   Removed `handle_legacy_routing`.
+    *   Deleted `manage_cmd.py` and `maint_cmd.py` (Functionality re-homed to Noun-Verb structure).
+    *   Modularized documentation in `docs/commands/`.
+*   **[FIX] PDF Upload:** Resolved 400 error in attachment registration by aligning with Zotero v3 API specs.
+*   **[FIX] Duplicate Detection:** Refactored `DuplicateFinder` to use IDs and added arXiv ID as a definitive match criteria.
+*   **[CLOSED] Issue #13 (Docs):** Synchronized all v1.1.0+ commands in `README.md` and `USER_GUIDE.md`. Defined `report snapshot` JSON contracts.
+*   **[CLOSED] Issue #20 (Feat):** Added `--top-only` flag to `list items` command. Implemented `/top` endpoint support in `ZoteroAPIClient`. Achieved 100% test coverage for the feature.
+*   **[CLOSED] Issue #8 (Ops):** Verified and closed `sync-csv` state recovery task.
+*   **[CLEANUP] Repo Hygiene:** Deleted legacy scripts (`recover_screening_state.py`, `transform_inventory.py`), data dumps, and temporary `issue*.md` files.
+*   **[NEW] Quality Tooling:** Implemented `tests/infra/test_doc_consistency.py` to programmatically verify documentation coverage of CLI commands.
+*   **[FIX] Issue #17 (Bug):** Fully refactored `ScreeningService` to delegate item movement to `CollectionService`, resolving the `decide` command failure and removing code duplication (PR #22).
+*   **[CLOSED] Issue #21 (UX):** Implemented `decide` alias (`zotero-cli d`) and strict auto-source inference for item movement. Logic fails safely on ambiguity (PR #23).
+*   **[OPS] arXiv Finalization:** Resolved data drift (Set theory violation) in `raw_arXiv`. Generated final audit CSVs for Included (375) and Excluded (173) sets.
+*   **OPS] ScienceDirect Finalization:** Successfully reconciled 1379 items. Recovered 33 audit notes and adjusted 7 items to 'Included' based on re-evaluation.
+*   **[FIX] CLI Robustness:** Hardened `sync-csv` and `inspect` command to handle items with null titles or non-JSON notes gracefully.
 
 ## Current State
 
-*   **Version:** `v2.0.0-dev` (Foundation Complete).
-*   **Quality:** 86% Test Coverage. All new CRUD and search paths verified.
-*   **Status:** Transitioning to Workflow-Centric architecture.
+*   **Version:** `v2.0.0-dev`
+*   **Research (ScienceDirect):** 1379/1379 items screened and verified.
+*   **Research (arXiv):** 100% Finalized and Synced.
+*   **Quality:** 100% Test Pass (211 tests + Iron Gauntlet E2E). Coverage: 81%.
+*   **Status:** Stable (v2 Development Baseline established).
 
 ## Backlog (Prioritized)
-*   **Issue #27 (Docs):** Documentation Sprint (Sullivan) - Align README/Guides with v2.0 namespaces.
-*   **Issue #18 (Feat):** Implement `review audit` command.
-*   **Issue #19 (Feat):** Implement `report screening` generator.
-*   **Issue #24 (Arch):** Complete remaining CRUD CLI wrappers (Item move cleanup/Item create generic).
+*   **Issue #12 (Feat):** Implement `report status` progress dashboard. *[Service Logic Ready]*
+*   **Issue #27 (Feat):** Implement `system backup/restore` using `.zaf`.
+*   **Issue #3 (Infra):** Implement Quality Gates (ruff/mypy) in CI.
+*   **Issue #16 (Feat):** Refine TUI to skip items with existing SDB notes (v1.1 verification).
