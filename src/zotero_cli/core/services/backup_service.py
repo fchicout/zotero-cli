@@ -1,16 +1,17 @@
 import json
 import zipfile
 from datetime import datetime, timezone
-from typing import IO, Union, List, Dict, Any
+from typing import IO, Any, Dict, List, Union
 
 from zotero_cli.core.interfaces import ZoteroGateway
+
 
 class BackupService:
     """
     Handles creation of .zaf (Zotero Archive Format) backup files.
     Uses LZMA compression (7zip algorithm) for efficiency.
     """
-    
+
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
         self.version = "1.0" # Format version
@@ -22,9 +23,9 @@ class BackupService:
         col = self.gateway.get_collection(collection_key)
         if not col:
             raise ValueError(f"Collection {collection_key} not found")
-        
+
         col_name = col.get('data', {}).get('name', 'Unknown')
-        
+
         manifest = {
             "format": "zaf",
             "version": self.version,
@@ -34,10 +35,10 @@ class BackupService:
             "root_collection_name": col_name,
             "generator": "zotero-cli"
         }
-        
+
         items = list(self.gateway.get_items_in_collection(collection_key))
         item_data = [item.raw_data for item in items]
-        
+
         self._write_zip(output, manifest, item_data)
 
     def backup_system(self, output: Union[str, IO[bytes]]):
@@ -51,9 +52,9 @@ class BackupService:
             "scope_type": "library",
             "generator": "zotero-cli"
         }
-        
+
         item_data: List[Dict[str, Any]] = []
-        
+
         self._write_zip(output, manifest, item_data)
 
     def _write_zip(self, output: Union[str, IO[bytes]], manifest: dict, item_data: list):

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterator
+from typing import Any, Iterator
 
 from zotero_cli.core.interfaces import (
     ArxivGateway,
@@ -52,6 +52,13 @@ class SpringerCsvImportStrategy(ImportStrategy):
 
 class IeeeCsvImportStrategy(ImportStrategy):
     def __init__(self, gateway: IeeeCsvGateway):
+        self.gateway = gateway
+
+    def fetch_papers(self, source: str, **kwargs) -> Iterator[ResearchPaper]:
+        return self.gateway.parse_file(source)
+
+class CanonicalCsvImportStrategy(ImportStrategy):
+    def __init__(self, gateway: Any):
         self.gateway = gateway
 
     def fetch_papers(self, source: str, **kwargs) -> Iterator[ResearchPaper]:

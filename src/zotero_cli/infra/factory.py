@@ -12,6 +12,7 @@ from zotero_cli.core.interfaces import (
 )
 from zotero_cli.infra.arxiv_lib import ArxivLibGateway
 from zotero_cli.infra.bibtex_lib import BibtexLibGateway
+from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
 from zotero_cli.infra.crossref_api import CrossRefAPIClient
 from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
 from zotero_cli.infra.ris_lib import RisLibGateway
@@ -168,6 +169,7 @@ class GatewayFactory:
         ris_gateway = RisLibGateway()
         springer_csv_gateway = SpringerCsvLibGateway()
         ieee_csv_gateway = IeeeCsvLibGateway()
+        canonical_csv_gateway = CanonicalCsvLibGateway()
 
         return PaperImporterClient(
             zotero_gateway,
@@ -178,5 +180,6 @@ class GatewayFactory:
             ieee_csv_gateway,
             aggregator.semantic_scholar,
             aggregator.crossref,
-            aggregator.unpaywall
+            aggregator.unpaywall,
+            canonical_csv_gateway
         )

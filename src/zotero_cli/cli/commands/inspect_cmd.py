@@ -7,6 +7,8 @@ from rich.panel import Panel
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.infra.factory import GatewayFactory
 
+console = Console()
+
 
 @CommandRegistry.register
 class InspectCommand(BaseCommand):
@@ -19,7 +21,6 @@ class InspectCommand(BaseCommand):
         parser.add_argument('--full-notes', action='store_true', help='Show full content of child notes')
 
     def execute(self, args: argparse.Namespace):
-        from zotero_cli.infra.factory import GatewayFactory
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
 
         item = gateway.get_item(args.key)

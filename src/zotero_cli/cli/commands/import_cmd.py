@@ -48,6 +48,7 @@ class ImportCommand(BaseCommand):
     def _handle_file(self, client, args):
         from zotero_cli.core.strategies import (
             BibtexImportStrategy,
+            CanonicalCsvImportStrategy,
             IeeeCsvImportStrategy,
             RisImportStrategy,
             SpringerCsvImportStrategy,
@@ -63,11 +64,17 @@ class ImportCommand(BaseCommand):
         elif ext == '.csv':
             # Peek at header to determine source
             with open(args.file, 'r', encoding='utf-8') as f:
-                header = f.readline()
-                if 'Item Title' in header:
+                header = f.readline().lower()
+                if 'item title' in header:
                     strategy = SpringerCsvImportStrategy(client.springer_csv_gateway)
-                else:
+                elif 'document title' in header:
                     strategy = IeeeCsvImportStrategy(client.ieee_csv_gateway)
+                elif 'title' in header and 'doi' in header:
+                    # Assume Canonical if it has 'title' and 'doi' (Our standard)
+                    strategy = CanonicalCsvImportStrategy(client.canonical_csv_gateway)
+                else:
+                    print(f"Error: Unknown CSV format. Headers: {header}")
+                    return
         else:
             print(f"Unsupported: {ext}")
             return

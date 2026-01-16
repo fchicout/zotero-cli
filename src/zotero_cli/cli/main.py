@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from zotero_cli.cli import commands # noqa: F401 (Trigger registration)
+from zotero_cli.cli import commands  # noqa: F401 (Trigger registration)
 from zotero_cli.cli.base import CommandRegistry
 from zotero_cli.core.config import get_config
 
@@ -18,8 +18,8 @@ def main():
 
     # --- Registered Commands ---
     # Sort by name for consistent help output
-    commands = sorted(CommandRegistry.get_commands(), key=lambda x: x.name)
-    for cmd in commands:
+    registered_commands = sorted(CommandRegistry.get_commands(), key=lambda x: x.name)
+    for cmd in registered_commands:
         aliases = getattr(cmd, 'aliases', [])
         cmd_parser = subparsers.add_parser(cmd.name, help=cmd.help, aliases=aliases)
         cmd.register_args(cmd_parser)

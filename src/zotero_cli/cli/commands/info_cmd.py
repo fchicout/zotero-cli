@@ -1,5 +1,6 @@
+import argparse
+
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.infra.factory import GatewayFactory
 
 
 @CommandRegistry.register
