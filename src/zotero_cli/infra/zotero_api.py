@@ -299,13 +299,16 @@ class ZoteroAPIClient(ZoteroGateway):
     def upload_attachment(self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf") -> bool:
         try:
             filename = os.path.basename(file_path)
+            filesize = os.path.getsize(file_path)
             mtime = int(os.path.getmtime(file_path) * 1000)
+            
             md5_hash = hashlib.md5()
             with open(file_path, "rb") as f:
                 for chunk in iter(lambda: f.read(4096), b""):
                     md5_hash.update(chunk)
             md5 = md5_hash.hexdigest()
 
+            # 1. Create Attachment Item placeholder
             payload = [{
                 "itemType": "attachment",
                 "linkMode": "imported_file",
@@ -318,15 +321,18 @@ class ZoteroAPIClient(ZoteroGateway):
             attachment_key = self._parse_write_response(res)
             if not attachment_key: return False
 
+            # 2. Get Upload Authorization
             auth_data = {
                 "md5": md5,
                 "filename": filename,
-                "mtime": mtime,
-                "contentType": mime_type,
-                "params": "1"
+                "filesize": filesize,
+                "mtime": mtime
             }
+            # Important: If-None-Match: * ensures we don't overwrite if not needed
             headers = {'If-None-Match': '*', 'Content-Type': 'application/x-www-form-urlencoded'}
-            auth_res = self.http.post_form(f"items/{attachment_key}/file", data=auth_data, headers=headers)
+            
+            # Add params=1 as query param to get upload parameters
+            auth_res = self.http.post_form(f"items/{attachment_key}/file?params=1", data=auth_data, headers=headers)
             auth_resp_data = auth_res.json()
             
             if auth_resp_data.get('exists') == 1:
@@ -336,11 +342,15 @@ class ZoteroAPIClient(ZoteroGateway):
             upload_params = auth_resp_data.get('params', {})
             upload_key = auth_resp_data.get('uploadKey')
             
+            # 3. Perform the actual upload (typically to S3)
             with open(file_path, 'rb') as f:
                 self.http.upload_file(upload_url, data=upload_params, files={'file': f})
 
+            # 4. Register the upload with Zotero
             reg_data = {"upload": upload_key}
-            self.http.post_form(f"items/{attachment_key}/file", data=reg_data, headers=headers)
+            reg_headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+            self.http.post_form(f"items/{attachment_key}/file", data=reg_data, headers=reg_headers)
+            
             return True
 
         except Exception as e:
