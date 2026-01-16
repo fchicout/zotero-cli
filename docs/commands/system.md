@@ -39,10 +39,49 @@ zotero-cli system backup --output "full_backup_2026.zaf"
 ---
 
 ### `restore`
+
 Restore items from a `.zaf` archive.
+
 *Note: Currently in development. Functionality placeholder.*
 
+
+
 **Usage:**
+
 ```bash
+
 zotero-cli system restore --file "backup.zaf" --dry-run
+
 ```
+
+
+
+---
+
+
+
+### `normalize`
+
+Convert external CSV files (IEEE Xplore, Springer) into the Zotero-CLI Canonical format.
+
+This allows for consistent pre-processing and manual auditing before importing to Zotero.
+
+
+
+**Usage:**
+
+```bash
+
+zotero-cli system normalize "ieee_export.csv" --output "papers_ready.csv"
+
+```
+
+
+
+**Features:**
+
+*   Automatic detection of IEEE and Springer formats.
+
+*   Maps disparate headers to a single canonical schema.
+
+*   Enables use of CSVs in `review screen` headless modes.

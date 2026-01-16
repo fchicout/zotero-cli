@@ -50,34 +50,52 @@ class SystemCommand(BaseCommand):
             self._handle_normalize(args)
 
     def _handle_normalize(self, args):
+        import os
         from zotero_cli.core.strategies import (
+            BibtexImportStrategy,
             CanonicalCsvImportStrategy,
             IeeeCsvImportStrategy,
+            RisImportStrategy,
             SpringerCsvImportStrategy,
         )
+        from zotero_cli.infra.bibtex_lib import BibtexLibGateway
         from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
         from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
+        from zotero_cli.infra.ris_lib import RisLibGateway
         from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
 
-        # 1. Detect and Load
-        with open(args.file, 'r', encoding='utf-8') as f:
-            header = f.readline().lower()
-            if 'item title' in header:
-                gateway = SpringerCsvLibGateway()
-                strategy = SpringerCsvImportStrategy(gateway)
-            elif 'document title' in header:
-                gateway = IeeeCsvLibGateway()
-                strategy = IeeeCsvImportStrategy(gateway)
-            elif 'title' in header and 'doi' in header:
-                gateway = CanonicalCsvLibGateway()
-                strategy = CanonicalCsvImportStrategy(gateway)
-            else:
-                print("Error: Unknown CSV format for normalization.")
-                return
+        ext = os.path.splitext(args.file)[1].lower()
+        strategy = None
+
+        if ext == '.bib':
+            gateway = BibtexLibGateway()
+            strategy = BibtexImportStrategy(gateway)
+        elif ext == '.ris':
+            gateway = RisLibGateway()
+            strategy = RisImportStrategy(gateway)
+        elif ext == '.csv':
+            # 1. Detect CSV Type
+            with open(args.file, 'r', encoding='utf-8') as f:
+                header = f.readline().lower()
+                if 'item title' in header:
+                    gateway = SpringerCsvLibGateway()
+                    strategy = SpringerCsvImportStrategy(gateway)
+                elif 'document title' in header:
+                    gateway = IeeeCsvLibGateway()
+                    strategy = IeeeCsvImportStrategy(gateway)
+                elif 'title' in header and 'doi' in header:
+                    gateway = CanonicalCsvLibGateway()
+                    strategy = CanonicalCsvImportStrategy(gateway)
+                else:
+                    print(f"Error: Unknown CSV format for normalization.")
+                    return
+        else:
+            print(f"Error: Unsupported file extension {ext}")
+            return
 
         print(f"Parsing {args.file}...")
         papers = list(strategy.fetch_papers(args.file))
-
+        
         # 2. Write to Canonical
         canon_gw = CanonicalCsvLibGateway()
         canon_gw.write_file(iter(papers), args.output)

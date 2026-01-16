@@ -5,12 +5,18 @@ Ingest research papers from various external sources and local files.
 ## Verbs
 
 ### `file`
-Import items from local files. Supports `.bib` (BibTeX), `.ris` (RIS), and `.csv` (IEEE Xplore or Springer formats).
+Import papers from a local file. Supports `.bib`, `.ris`, and `.csv` (IEEE, Springer, and Zotero-CLI Canonical).
 
 **Usage:**
 ```bash
-zotero-cli import file "references.bib" --collection "MySearch"
+zotero-cli import file "citations.bib" --collection "New Collection"
 ```
+
+**Supported CSV Formats:**
+1.  **IEEE Xplore**: Auto-detected by 'Document Title' header.
+2.  **Springer Link**: Auto-detected by 'Item Title' header.
+3.  **Canonical**: Auto-detected by 'title' and 'doi' headers (lowercase).
+
 
 **Parameters:**
 *   `file`: (Positional, Required) Path to the file.
