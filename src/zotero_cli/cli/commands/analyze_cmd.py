@@ -55,12 +55,14 @@ class AnalyzeCommand(BaseCommand):
     def _handle_shift(self, gateway, args):
         service = CollectionAuditor(gateway)
         with open(args.old, 'r') as f:
-            snap_old = json.load(f)
+            old_data = json.load(f)
+            snap_old = old_data.get('items', old_data) if isinstance(old_data, dict) else old_data
         with open(args.new, 'r') as f:
-            snap_new = json.load(f)
-
+            new_data = json.load(f)
+            snap_new = new_data.get('items', new_data) if isinstance(new_data, dict) else new_data
+            
         shifts = service.detect_shifts(snap_old, snap_new)
-
+        
         if not shifts:
             console.print("[bold green]No shifts detected. State is stable.[/bold green]")
             return
@@ -91,7 +93,6 @@ class AnalyzeCommand(BaseCommand):
         console.print(f"[bold]Audit Report for {args.collection}:[/bold]")
         console.print(f"  Missing IDs: {len(report.items_missing_id)}")
         console.print(f"  Missing PDFs: {len(report.items_missing_pdf)}")
-        # More details could be added here
 
     def _handle_lookup(self, gateway, args):
         service = LookupService(gateway)
@@ -105,17 +106,9 @@ class AnalyzeCommand(BaseCommand):
         print(result)
 
     def _handle_graph(self, gateway, args):
-        service = CitationGraphService(gateway)
-        col_ids = [c.strip() for c in args.collections.split(',')]
-        # Provide metadata_service via factory if possible, but for now graph service might need update
-        # Wait, graph service needs metadata_service (MetadataAggregator).
         from zotero_cli.infra.factory import GatewayFactory
         meta_service = GatewayFactory.get_metadata_aggregator()
-        # Re-instantiate service with meta_service?
-        # CitationGraphService(gateway, meta_service)
-        # But previous code instantiated it with just gateway.
-        # Let's check CitationGraphService constructor.
-        # If it changed, we need to fix it here.
         service = CitationGraphService(gateway, meta_service)
+        col_ids = [c.strip() for c in args.collections.split(',')]
         dot = service.build_graph(col_ids)
         print(dot)

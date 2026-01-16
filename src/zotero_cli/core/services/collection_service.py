@@ -1,5 +1,5 @@
 import sys
-from typing import Optional
+from typing import Optional, List, Set
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -50,12 +50,10 @@ class CollectionService:
             candidates = current_cols - {dest_id}
 
             if len(candidates) == 0:
-                print(f"Item '{identifier}' is not in any other collection. Adding to '{dest_col_name}'.")
                 # Just add to dest
                 return self.item_repo.update_item(item.key, item.version, {"collections": list(current_cols | {dest_id})})
             elif len(candidates) == 1:
                 source_id = list(candidates)[0]
-                print(f"Inferred source collection: {source_id}")
             else:
                 print(f"Error: Ambiguous source. Item '{identifier}' is in multiple collections ({candidates}). Please specify --source to ensure correct movement.", file=sys.stderr)
                 return False
@@ -68,17 +66,12 @@ class CollectionService:
             return False
 
     def _is_match(self, item: ZoteroItem, identifier: str) -> bool:
-
-        # Check DOI
         if item.doi:
             if self._normalize_id(item.doi) == self._normalize_id(identifier):
                 return True
-
-        # Check arXiv ID
         if item.arxiv_id:
             if self._normalize_id(item.arxiv_id) == self._normalize_id(identifier):
                 return True
-
         return False
 
     def _normalize_id(self, identifier: str) -> str:
@@ -90,7 +83,6 @@ class CollectionService:
         current_cols = set(item.collections)
 
         if dest_id in current_cols and source_id not in current_cols:
-            print(f"Item is already in '{dest_id}' and not in '{source_id}'.")
             return True
 
         new_cols = current_cols.copy()
@@ -105,55 +97,16 @@ class CollectionService:
         Deletes all items within a specific collection.
         Returns the number of deleted items.
         """
-        target_id = None
-
-        if parent_collection_name:
-            # Find collection inside parent
-            all_cols = self.collection_repo.get_all_collections()
-            parent_id = None
-
-            # Find parent ID
-            for col in all_cols:
-                if col['data']['name'] == parent_collection_name:
-                    parent_id = col['key']
-                    break
-
-            if not parent_id:
-                print(f"Parent collection '{parent_collection_name}' not found.")
-                return 0
-
-            # Find target collection with correct parent
-            for col in all_cols:
-                if col['data']['name'] == collection_name and col['data'].get('parentCollection') == parent_id:
-                    target_id = col['key']
-                    break
-
-            if not target_id:
-                print(f"Collection '{collection_name}' inside '{parent_collection_name}' not found.")
-                return 0
-
-        else:
-            # Simple lookup
-            target_id = self.collection_repo.get_collection_id_by_name(collection_name)
-            if not target_id:
-                print(f"Collection '{collection_name}' not found.")
-                return 0
+        target_id = self.collection_repo.get_collection_id_by_name(collection_name) or collection_name
+        if not target_id:
+            return 0
 
         deleted_count = 0
         items = list(self.collection_repo.get_items_in_collection(target_id))
 
-        if not items:
-            if verbose:
-                print(f"Collection '{collection_name}' is already empty.")
-            return 0
-
-        print(f"Found {len(items)} items in '{collection_name}'. Deleting...")
-
         for item in items:
             if self.item_repo.delete_item(item.key, item.version):
                 deleted_count += 1
-                if verbose:
-                    print(f"Deleted item {item.key}")
             else:
                 print(f"Failed to delete item {item.key}")
 
@@ -162,26 +115,49 @@ class CollectionService:
     def prune_intersection(self, primary_col: str, secondary_col: str) -> int:
         """
         Removes items from 'secondary_col' if they are also present in 'primary_col'.
-        Ensures Sets are disjoint.
+        Uses DOI/ArXiv ID for robust matching across duplicate imports.
         """
         primary_id = self.collection_repo.get_collection_id_by_name(primary_col) or primary_col
         secondary_id = self.collection_repo.get_collection_id_by_name(secondary_col) or secondary_col
-
-        if not primary_id or not secondary_id:
-            print("Error: Could not resolve collection IDs.", file=sys.stderr)
-            return 0
-
-        primary_items = {item.key for item in self.collection_repo.get_items_in_collection(primary_id)}
+        
+        # 1. Map Identifiers in Primary
+        primary_identifiers: Set[str] = set()
+        primary_keys: Set[str] = set()
+        
+        for item in self.collection_repo.get_items_in_collection(primary_id):
+            primary_keys.add(item.key)
+            if item.doi: primary_identifiers.add(self._normalize_id(item.doi))
+            if item.arxiv_id: primary_identifiers.add(self._normalize_id(item.arxiv_id))
+            
+        # 2. Iterate Secondary and Check for matches
         secondary_items = list(self.collection_repo.get_items_in_collection(secondary_id))
-
+        
         pruned_count = 0
         for item in secondary_items:
-            if item.key in primary_items:
-                # Remove from secondary
-                current_cols = set(item.collections)
-                if secondary_id in current_cols:
-                    current_cols.remove(secondary_id)
-                    if self.item_repo.update_item(item.key, item.version, {"collections": list(current_cols)}):
+            is_duplicate = False
+            
+            # Match by Key (Shared object)
+            if item.key in primary_keys:
+                is_duplicate = True
+            # Match by DOI
+            elif item.doi and self._normalize_id(item.doi) in primary_identifiers:
+                is_duplicate = True
+            # Match by ArXiv
+            elif item.arxiv_id and self._normalize_id(item.arxiv_id) in primary_identifiers:
+                is_duplicate = True
+                
+            if is_duplicate:
+                # ACTION: Remove from secondary
+                if item.key in primary_keys:
+                    # Same object -> Remove collection reference
+                    current_cols = set(item.collections)
+                    if secondary_id in current_cols:
+                        current_cols.remove(secondary_id)
+                        if self.item_repo.update_item(item.key, item.version, {"collections": list(current_cols)}):
+                            pruned_count += 1
+                else:
+                    # Different object (Duplicate import) -> Delete secondary item entirely
+                    if self.item_repo.delete_item(item.key, item.version):
                         pruned_count += 1
-
+                        
         return pruned_count
