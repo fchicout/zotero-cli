@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 
 from zotero_cli.core.interfaces import (
     ArxivGateway,
@@ -27,13 +27,19 @@ class PaperImporterClient:
                  bibtex_gateway: Optional[BibtexGateway] = None,
                  ris_gateway: Optional[RisGateway] = None,
                  springer_csv_gateway: Optional[SpringerCsvGateway] = None,
-                 ieee_csv_gateway: Optional[IeeeCsvGateway] = None):
+                 ieee_csv_gateway: Optional[IeeeCsvGateway] = None,
+                 semantic_scholar: Any = None,
+                 crossref: Any = None,
+                 unpaywall: Any = None):
         self.zotero_gateway = zotero_gateway
         self.arxiv_gateway = arxiv_gateway
         self.bibtex_gateway = bibtex_gateway
         self.ris_gateway = ris_gateway
         self.springer_csv_gateway = springer_csv_gateway
         self.ieee_csv_gateway = ieee_csv_gateway
+        self.semantic_scholar = semantic_scholar
+        self.crossref = crossref
+        self.unpaywall = unpaywall
 
     def _get_or_create_collection(self, folder_name: str) -> str:
         col_id = self.zotero_gateway.get_collection_id_by_name(folder_name)

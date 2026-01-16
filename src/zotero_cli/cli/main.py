@@ -1,6 +1,7 @@
 import argparse
 import sys
 
+from zotero_cli.cli import commands # noqa: F401 (Trigger registration)
 from zotero_cli.cli.base import CommandRegistry
 from zotero_cli.core.config import get_config
 

@@ -1,8 +1,8 @@
-import argparse
+from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.infra.factory import GatewayFactory
 
-from zotero_cli.cli.base import BaseCommand
 
-
+@CommandRegistry.register
 class InfoCommand(BaseCommand):
     name = "info"
     help = "Display environment and configuration"

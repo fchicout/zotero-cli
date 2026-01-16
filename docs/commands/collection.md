@@ -83,10 +83,25 @@ Attempt to fetch and attach missing PDFs for all items in a collection.
 zotero-cli collection pdf fetch --collection "Inbox"
 ```
 
-#### `pdf strip`
-Remove all PDF attachments from all items in a collection.
+### `pdf strip`
+Remove all PDF attachments from items in a collection.
 
 **Usage:**
 ```bash
-zotero-cli collection pdf strip --collection "Processed"
+zotero-cli collection pdf strip --collection "My Review"
 ```
+
+---
+
+### `backup`
+Create a scoped backup of a specific collection tree.
+Produces a `.zaf` archive containing only the items within the target collection.
+
+**Usage:**
+```bash
+zotero-cli collection backup --name "My Review" --output "review_backup.zaf"
+```
+
+**Parameters:**
+*   `--name`: (Required) Collection name or key.
+*   `--output`: (Required) Output .zaf file path.

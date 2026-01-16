@@ -1,11 +1,12 @@
 import argparse
 import os
 
-from zotero_cli.cli.base import BaseCommand
+from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
 from zotero_cli.infra.factory import GatewayFactory
 
 
+@CommandRegistry.register
 class ImportCommand(BaseCommand):
     name = "import"
     help = "Import papers from various sources"

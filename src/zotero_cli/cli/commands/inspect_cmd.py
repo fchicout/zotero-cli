@@ -4,10 +4,11 @@ import json
 from rich.console import Console
 from rich.panel import Panel
 
-from zotero_cli.cli.base import BaseCommand
+from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.infra.factory import GatewayFactory
 
-console = Console()
 
+@CommandRegistry.register
 class InspectCommand(BaseCommand):
     name = "inspect"
     help = "Inspect item details"
