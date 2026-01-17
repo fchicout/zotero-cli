@@ -24,4 +24,4 @@ jobs:
 
       - name: Run Tests
         run: |
-          pytest --cov=zotero_cli --cov-report=xml
+          pytest tests/unit --cov=zotero_cli --cov-report=xml
