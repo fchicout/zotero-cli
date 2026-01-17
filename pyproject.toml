@@ -10,6 +10,15 @@ dependencies = [
     "pytest>=7.4.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "types-requests",
+    "types-toml",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
