@@ -121,7 +121,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            assets/zotero-cli
+            assets/dist/zotero-cli
             assets/zotero-cli-linux-amd64.deb
             assets/*.rpm
             assets/zotero-cli.exe
