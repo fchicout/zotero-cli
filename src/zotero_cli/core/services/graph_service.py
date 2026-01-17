@@ -25,7 +25,7 @@ class CitationGraphService:
                     doi_to_item_map[item.doi] = item
 
         all_dois_in_collections: Set[str] = set(doi_to_item_map.keys())
-        graph_edges: List[Tuple[str, str]] = [] # (citing_doi, cited_doi)
+        graph_edges: List[Tuple[str, str]] = []  # (citing_doi, cited_doi)
 
         # 2. Build graph edges by fetching metadata
         for citing_doi, citing_item in doi_to_item_map.items():
@@ -40,13 +40,13 @@ class CitationGraphService:
 
         # 3. Generate DOT string
         dot_string = "digraph CitationGraph {\n"
-        dot_string += '  rankdir="LR";\n' # Left-to-right layout
+        dot_string += '  rankdir="LR";\n'  # Left-to-right layout
 
         # Add nodes
         for doi, item in doi_to_item_map.items():
             label = item.title if item.title else f"Item {item.key}"
             # Sanitize label for DOT (replace quotes and escape special chars)
-            label = label.replace('"', '\"').replace('\n', ' ').strip()
+            label = label.replace('"', '"').replace("\n", " ").strip()
             dot_string += f'  "{doi}" [label="{label}"];\n'
 
         # Add edges

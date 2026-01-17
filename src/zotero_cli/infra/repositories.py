@@ -37,6 +37,7 @@ class ZoteroItemRepository(ItemRepository):
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
         return self.gateway.update_item_metadata(item_key, version, metadata)
 
+
 class ZoteroCollectionRepository(CollectionRepository):
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
@@ -56,8 +57,11 @@ class ZoteroCollectionRepository(CollectionRepository):
     def get_all_collections(self) -> List[Dict[str, Any]]:
         return self.gateway.get_all_collections()
 
-    def get_items_in_collection(self, collection_id: str, top_only: bool = False) -> Iterator[ZoteroItem]:
+    def get_items_in_collection(
+        self, collection_id: str, top_only: bool = False
+    ) -> Iterator[ZoteroItem]:
         return self.gateway.get_items_in_collection(collection_id, top_only)
+
 
 class ZoteroTagRepository(TagRepository):
     def __init__(self, gateway: ZoteroGateway):
@@ -94,6 +98,7 @@ class ZoteroTagRepository(TagRepository):
     def delete_tags(self, tags: List[str], version: int) -> bool:
         return self.gateway.delete_tags(tags, version)
 
+
 class ZoteroNoteRepository(NoteRepository):
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
@@ -107,9 +112,12 @@ class ZoteroNoteRepository(NoteRepository):
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
         return self.gateway.get_item_children(item_key)
 
+
 class ZoteroAttachmentRepository(AttachmentRepository):
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
 
-    def upload_attachment(self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf") -> bool:
+    def upload_attachment(
+        self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
+    ) -> bool:
         return self.gateway.upload_attachment(parent_item_key, file_path, mime_type)

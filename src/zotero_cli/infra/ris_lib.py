@@ -9,7 +9,7 @@ from zotero_cli.core.models import ResearchPaper
 class RisLibGateway(RisGateway):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
         try:
-            with open(file_path, 'r', encoding='utf-8') as ris_file:
+            with open(file_path, "r", encoding="utf-8") as ris_file:
                 # rispy.load accepts a file-like object
                 entries = rispy.load(ris_file)
 
@@ -21,14 +21,14 @@ class RisLibGateway(RisGateway):
 
     def _map_entry_to_paper(self, entry: dict) -> ResearchPaper:
         # rispy maps tags to human-readable keys
-        title = entry.get('primary_title') or entry.get('title') or 'No Title'
-        abstract = entry.get('abstract', '')
-        authors = entry.get('authors', [])
-        doi = entry.get('doi')
-        publication = entry.get('journal_name') or entry.get('secondary_title')
-        year = entry.get('year')
+        title = entry.get("primary_title") or entry.get("title") or "No Title"
+        abstract = entry.get("abstract", "")
+        authors = entry.get("authors", [])
+        doi = entry.get("doi")
+        publication = entry.get("journal_name") or entry.get("secondary_title")
+        year = entry.get("year")
         # urls is a list in rispy
-        urls = entry.get('urls', [])
+        urls = entry.get("urls", [])
         url = urls[0] if urls else None
 
         return ResearchPaper(
@@ -38,6 +38,6 @@ class RisLibGateway(RisGateway):
             publication=publication,
             year=year,
             doi=doi,
-            url=url
+            url=url,
             # RIS format doesn't typically have a direct arxiv_id field
         )

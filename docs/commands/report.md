@@ -1,65 +1,43 @@
 # Command: `report`
 
-Generate statistics, PRISMA diagrams, and immutable snapshots.
+Generate screening statistics, PRISMA flow diagrams, and audit snapshots.
 
 ## Verbs
 
 ### `prisma`
-Generate a PRISMA-aligned screening summary.
+Generate PRISMA screening statistics and optionally a Mermaid flow diagram.
 
 **Usage:**
 ```bash
-zotero-cli report prisma --collection "SLR" --output-chart "prisma.png"
+zotero-cli report prisma --collection "SLR-Core" --output-chart prisma.png
 ```
-
-**Parameters:**
-*   `--collection`: (Required) Collection name or key.
-*   `--output-chart`: Optional path to save a Mermaid-rendered chart.
 
 ---
 
 ### `snapshot`
-Generate an immutable JSON audit trail of all items in a collection, including full metadata and child notes.
+Create a JSON snapshot of a collection's current state for auditing and drift detection.
 
 **Usage:**
 ```bash
-zotero-cli report snapshot --collection "Included" --output "snapshot_v1.json"
+zotero-cli report snapshot --collection "Included" --output included_2026.json
 ```
 
 ---
-
-
 
 ### `screening`
-
-Generate a detailed Markdown report of the screening process, including PRISMA statistics and a Mermaid flow diagram.
-
-
+Generate a detailed Markdown report with all screening decisions and reasons.
 
 **Usage:**
-
 ```bash
-
-zotero-cli report screening --collection "SLR" --output "screening_report.md"
-
+zotero-cli report screening --collection "SLR-Core" --output screening_report.md
 ```
-
-
 
 ---
 
-
-
 ### `status`
-
-Generate a real-time Markdown progress dashboard for a collection.
-
-
+Display a real-time progress dashboard of the screening process in the terminal.
 
 **Usage:**
-
 ```bash
-
-zotero-cli report status --collection "SLR" --output "progress.md"
-
+zotero-cli report status --collection "Raw"
 ```

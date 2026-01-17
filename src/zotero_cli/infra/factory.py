@@ -21,11 +21,12 @@ from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
 if TYPE_CHECKING:
-    from zotero_cli.client import PaperImporterClient
     from zotero_cli.core.services.attachment_service import AttachmentService
     from zotero_cli.core.services.collection_service import CollectionService
+    from zotero_cli.core.services.import_service import ImportService
     from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
     from zotero_cli.core.services.screening_service import ScreeningService
+
 
 class GatewayFactory:
     """
@@ -34,9 +35,12 @@ class GatewayFactory:
     """
 
     @staticmethod
-    def get_zotero_gateway(config: Optional[ZoteroConfig] = None, force_user: bool = False, require_group: bool = True) -> ZoteroAPIClient:
+    def get_zotero_gateway(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, require_group: bool = True
+    ) -> ZoteroAPIClient:
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
+
             config = main_get_config()
 
         api_key = config.api_key
@@ -50,18 +54,21 @@ class GatewayFactory:
         # Priority logic mirrored from main.py
         if force_user:
             library_id = config.user_id
-            library_type = 'user'
+            library_type = "user"
         elif not library_id:
             if config.target_group_url:
-                match = re.search(r'/groups/(\d+)', config.target_group_url)
+                match = re.search(r"/groups/(\d+)", config.target_group_url)
                 if not match:
-                    print(f"Error: Could not extract Group ID from URL: {config.target_group_url}", file=sys.stderr)
+                    print(
+                        f"Error: Could not extract Group ID from URL: {config.target_group_url}",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
                 library_id = match.group(1)
-                library_type = 'group'
+                library_type = "group"
             elif config.user_id:
                 library_id = config.user_id
-                library_type = 'user'
+                library_type = "user"
 
         if not library_id:
             if require_group:
@@ -69,51 +76,76 @@ class GatewayFactory:
                 sys.exit(1)
             else:
                 library_id = "0"
-                library_type = 'user'
+                library_type = "user"
 
         return ZoteroAPIClient(api_key, library_id, library_type)
 
     @staticmethod
-    def get_item_repository(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> ItemRepository:
+    def get_item_repository(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> ItemRepository:
         from zotero_cli.infra.repositories import ZoteroItemRepository
+
         gateway = GatewayFactory.get_zotero_gateway(config, force_user)
         return ZoteroItemRepository(gateway)
 
     @staticmethod
-    def get_collection_repository(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> CollectionRepository:
+    def get_collection_repository(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> CollectionRepository:
         from zotero_cli.infra.repositories import ZoteroCollectionRepository
+
         gateway = GatewayFactory.get_zotero_gateway(config, force_user)
         return ZoteroCollectionRepository(gateway)
 
     @staticmethod
-    def get_tag_repository(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> TagRepository:
+    def get_tag_repository(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> TagRepository:
         from zotero_cli.infra.repositories import ZoteroTagRepository
+
         gateway = GatewayFactory.get_zotero_gateway(config, force_user)
         return ZoteroTagRepository(gateway)
 
     @staticmethod
-    def get_note_repository(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> NoteRepository:
+    def get_note_repository(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> NoteRepository:
         from zotero_cli.infra.repositories import ZoteroNoteRepository
+
         gateway = GatewayFactory.get_zotero_gateway(config, force_user)
         return ZoteroNoteRepository(gateway)
 
     @staticmethod
     def get_attachment_repository(config: Optional[ZoteroConfig] = None, force_user: bool = False):
         from zotero_cli.infra.repositories import ZoteroAttachmentRepository
+
         gateway = GatewayFactory.get_zotero_gateway(config, force_user)
         return ZoteroAttachmentRepository(gateway)
 
     @staticmethod
-    def get_metadata_aggregator(config: Optional[ZoteroConfig] = None) -> "MetadataAggregatorService":
+    def get_metadata_aggregator(
+        config: Optional[ZoteroConfig] = None,
+    ) -> "MetadataAggregatorService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
+
             config = main_get_config()
 
-        ss_client = SemanticScholarAPIClient(config.semantic_scholar_api_key) if config.semantic_scholar_api_key else SemanticScholarAPIClient()
+        ss_client = (
+            SemanticScholarAPIClient(config.semantic_scholar_api_key)
+            if config.semantic_scholar_api_key
+            else SemanticScholarAPIClient()
+        )
         cr_client = CrossRefAPIClient()
-        up_client = UnpaywallAPIClient(config.unpaywall_email) if config.unpaywall_email else UnpaywallAPIClient()
+        up_client = (
+            UnpaywallAPIClient(config.unpaywall_email)
+            if config.unpaywall_email
+            else UnpaywallAPIClient()
+        )
 
         from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+
         aggregator = MetadataAggregatorService([ss_client, cr_client, up_client])
 
         # Assign attributes for compatibility with PaperImporterClient
@@ -124,9 +156,12 @@ class GatewayFactory:
         return aggregator
 
     @staticmethod
-    def get_attachment_service(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> "AttachmentService":
+    def get_attachment_service(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> "AttachmentService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
+
             config = main_get_config()
 
         item_repo = GatewayFactory.get_item_repository(config, force_user)
@@ -136,24 +171,32 @@ class GatewayFactory:
         aggregator = GatewayFactory.get_metadata_aggregator(config)
 
         from zotero_cli.core.services.attachment_service import AttachmentService
+
         return AttachmentService(item_repo, col_repo, att_repo, note_repo, aggregator)
 
     @staticmethod
-    def get_collection_service(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> "CollectionService":
+    def get_collection_service(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> "CollectionService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
+
             config = main_get_config()
 
         item_repo = GatewayFactory.get_item_repository(config, force_user)
         col_repo = GatewayFactory.get_collection_repository(config, force_user)
 
         from zotero_cli.core.services.collection_service import CollectionService
+
         return CollectionService(item_repo, col_repo)
 
     @staticmethod
-    def get_screening_service(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> "ScreeningService":
+    def get_screening_service(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> "ScreeningService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
+
             config = main_get_config()
 
         item_repo = GatewayFactory.get_item_repository(config, force_user)
@@ -163,35 +206,45 @@ class GatewayFactory:
         col_service = GatewayFactory.get_collection_service(config, force_user)
 
         from zotero_cli.core.services.screening_service import ScreeningService
+
         return ScreeningService(item_repo, col_repo, note_repo, tag_repo, col_service)
 
     @staticmethod
-    def get_paper_importer(config: Optional[ZoteroConfig] = None, force_user: bool = False) -> "PaperImporterClient":
+    def get_import_service(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> "ImportService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
+
             config = main_get_config()
 
-        zotero_gateway = GatewayFactory.get_zotero_gateway(config, force_user)
-        aggregator = GatewayFactory.get_metadata_aggregator(config)
+        item_repo = GatewayFactory.get_item_repository(config, force_user)
+        col_service = GatewayFactory.get_collection_service(config, force_user)
 
-        # Format gateways
-        arxiv_gateway = ArxivLibGateway()
-        bibtex_gateway = BibtexLibGateway()
-        ris_gateway = RisLibGateway()
-        springer_csv_gateway = SpringerCsvLibGateway()
-        ieee_csv_gateway = IeeeCsvLibGateway()
-        canonical_csv_gateway = CanonicalCsvLibGateway()
+        from zotero_cli.core.services.import_service import ImportService
 
-        from zotero_cli.client import PaperImporterClient
-        return PaperImporterClient(
-            zotero_gateway,
-            arxiv_gateway,
-            bibtex_gateway,
-            ris_gateway,
-            springer_csv_gateway,
-            ieee_csv_gateway,
-            aggregator.semantic_scholar,
-            aggregator.crossref,
-            aggregator.unpaywall,
-            canonical_csv_gateway
-        )
+        return ImportService(item_repo, col_service)
+
+    @staticmethod
+    def get_arxiv_gateway() -> ArxivLibGateway:
+        return ArxivLibGateway()
+
+    @staticmethod
+    def get_bibtex_gateway() -> BibtexLibGateway:
+        return BibtexLibGateway()
+
+    @staticmethod
+    def get_ris_gateway() -> RisLibGateway:
+        return RisLibGateway()
+
+    @staticmethod
+    def get_springer_csv_gateway() -> SpringerCsvLibGateway:
+        return SpringerCsvLibGateway()
+
+    @staticmethod
+    def get_ieee_csv_gateway() -> IeeeCsvLibGateway:
+        return IeeeCsvLibGateway()
+
+    @staticmethod
+    def get_canonical_csv_gateway() -> CanonicalCsvLibGateway:
+        return CanonicalCsvLibGateway()

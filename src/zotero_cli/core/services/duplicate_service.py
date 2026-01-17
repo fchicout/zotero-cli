@@ -14,6 +14,7 @@ class DuplicateGroup:
     identifier_key: str
     items: List[ZoteroItem] = field(default_factory=list)
 
+
 class DuplicateFinder:
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
@@ -43,11 +44,9 @@ class DuplicateFinder:
         duplicates = []
         for (id_type, identifier_value), items in all_items_by_identifier.items():
             if len(items) > 1:
-                duplicates.append({
-                    'title': items[0].title,
-                    'doi': items[0].doi,
-                    'keys': [i.key for i in items]
-                })
+                duplicates.append(
+                    {"title": items[0].title, "doi": items[0].doi, "keys": [i.key for i in items]}
+                )
         return duplicates
 
     def _normalize_doi(self, doi: str) -> str:
@@ -58,13 +57,13 @@ class DuplicateFinder:
         title = title.lower()
 
         # Decompose unicode characters and remove non-spacing marks (accents)
-        normalized_title = unicodedata.normalize('NFD', title)
-        title = ''.join(c for c in normalized_title if unicodedata.category(c) != 'Mn')
+        normalized_title = unicodedata.normalize("NFD", title)
+        title = "".join(c for c in normalized_title if unicodedata.category(c) != "Mn")
 
         # Remove punctuation
-        title = re.sub(r'[^\w\s]', '', title)
+        title = re.sub(r"[^\w\s]", "", title)
 
         # Replace multiple spaces with single space and strip
-        title = re.sub(r'\s+', ' ', title).strip()
+        title = re.sub(r"\s+", " ", title).strip()
 
         return title

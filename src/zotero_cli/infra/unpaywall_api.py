@@ -9,7 +9,6 @@ from zotero_cli.infra.base_api_client import BaseAPIClient
 
 
 class UnpaywallAPIClient(BaseAPIClient, MetadataProvider):
-
     def __init__(self, email: Optional[str] = None):
         super().__init__(base_url="https://api.unpaywall.org/v2/")
         self.email = email or os.environ.get("UNPAYWALL_EMAIL", "unpaywall_client@zotero_cli.com")
@@ -39,46 +38,46 @@ class UnpaywallAPIClient(BaseAPIClient, MetadataProvider):
 
     def _map_to_research_paper(self, data: dict) -> ResearchPaper:
         # Title
-        title = data.get('title', '')
+        title = data.get("title", "")
 
         # Authors
         authors = []
-        for author in data.get('z_authors', []) or []:
-            given = author.get('given', '')
-            family = author.get('family', '')
+        for author in data.get("z_authors", []) or []:
+            given = author.get("given", "")
+            family = author.get("family", "")
             if given or family:
                 authors.append(f"{given} {family}".strip())
 
         # Year
-        year = str(data.get('year')) if data.get('year') else None
+        year = str(data.get("year")) if data.get("year") else None
 
         # Publication / Venue
-        publication = data.get('publisher', '')
+        publication = data.get("publisher", "")
         if not publication:
-            publication = data.get('journal_name', '')
+            publication = data.get("journal_name", "")
 
         # PDF URL - Unpaywall specific value
         pdf_url = None
-        best_oa_location = data.get('best_oa_location', {})
+        best_oa_location = data.get("best_oa_location", {})
         if best_oa_location:
-            pdf_url = best_oa_location.get('url_for_pdf')
+            pdf_url = best_oa_location.get("url_for_pdf")
 
         # If no PDF in best location, check oa_locations
         if not pdf_url:
-            for loc in data.get('oa_locations', []) or []:
-                if loc.get('url_for_pdf'):
-                    pdf_url = loc.get('url_for_pdf')
+            for loc in data.get("oa_locations", []) or []:
+                if loc.get("url_for_pdf"):
+                    pdf_url = loc.get("url_for_pdf")
                     break
 
         return ResearchPaper(
             title=title,
-            abstract="", # Unpaywall rarely has abstracts
+            abstract="",  # Unpaywall rarely has abstracts
             authors=authors,
             publication=publication,
             year=year,
-            doi=data.get('doi'),
-            url=data.get('doi_url'),
+            doi=data.get("doi"),
+            url=data.get("doi_url"),
             pdf_url=pdf_url,
-            citation_count=None, # Unpaywall doesn't provide this
-            references=[]
+            citation_count=None,  # Unpaywall doesn't provide this
+            references=[],
         )

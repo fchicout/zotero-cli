@@ -19,7 +19,7 @@ class LookupService:
         self,
         keys: List[str],
         fields: List[str] = ["key", "arxiv_id", "title", "date", "url"],
-        output_format: str = "table"
+        output_format: str = "table",
     ) -> str:
         """
         Fetches metadata for a list of item keys and returns a formatted string.
@@ -40,7 +40,7 @@ class LookupService:
 
         chunk_size = 50
         for i in range(0, len(keys), chunk_size):
-            chunk_keys = keys[i:i + chunk_size]
+            chunk_keys = keys[i : i + chunk_size]
             # Since our gateway interface currently only has get_item (singular),
             # we should technically refactor the gateway to support get_items(keys=[]).
             # But for now, we will iterate. If performance is bad, we refactor Gateway later.

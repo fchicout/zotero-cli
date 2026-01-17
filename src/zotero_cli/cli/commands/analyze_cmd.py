@@ -11,6 +11,7 @@ from zotero_cli.core.services.lookup_service import LookupService
 
 console = Console()
 
+
 @CommandRegistry.register
 class AnalyzeCommand(BaseCommand):
     name = "analyze"
@@ -41,7 +42,8 @@ class AnalyzeCommand(BaseCommand):
 
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
-        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
+
+        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
 
         if args.analyze_type == "audit":
             self._handle_audit(gateway, args)
@@ -54,12 +56,12 @@ class AnalyzeCommand(BaseCommand):
 
     def _handle_shift(self, gateway, args):
         service = CollectionAuditor(gateway)
-        with open(args.old, 'r') as f:
+        with open(args.old, "r") as f:
             old_data = json.load(f)
-            snap_old = old_data.get('items', old_data) if isinstance(old_data, dict) else old_data
-        with open(args.new, 'r') as f:
+            snap_old = old_data.get("items", old_data) if isinstance(old_data, dict) else old_data
+        with open(args.new, "r") as f:
             new_data = json.load(f)
-            snap_new = new_data.get('items', new_data) if isinstance(new_data, dict) else new_data
+            snap_new = new_data.get("items", new_data) if isinstance(new_data, dict) else new_data
 
         shifts = service.detect_shifts(snap_old, snap_new)
 
@@ -74,12 +76,7 @@ class AnalyzeCommand(BaseCommand):
         table.add_column("To", style="green")
 
         for s in shifts:
-            table.add_row(
-                s['key'],
-                s['title'][:50],
-                ", ".join(s['from']),
-                ", ".join(s['to'])
-            )
+            table.add_row(s["key"], s["title"][:50], ", ".join(s["from"]), ", ".join(s["to"]))
         console.print(table)
 
     def _handle_audit(self, gateway, args):
@@ -96,19 +93,20 @@ class AnalyzeCommand(BaseCommand):
 
     def _handle_lookup(self, gateway, args):
         service = LookupService(gateway)
-        keys = args.keys.split(',') if args.keys else []
+        keys = args.keys.split(",") if args.keys else []
         if args.file:
             with open(args.file) as f:
                 keys.extend([line.strip() for line in f if line.strip()])
 
-        fields = args.fields.split(',')
+        fields = args.fields.split(",")
         result = service.lookup_items(keys, fields, args.format)
         print(result)
 
     def _handle_graph(self, gateway, args):
         from zotero_cli.infra.factory import GatewayFactory
+
         meta_service = GatewayFactory.get_metadata_aggregator()
         service = CitationGraphService(gateway, meta_service)
-        col_ids = [c.strip() for c in args.collections.split(',')]
+        col_ids = [c.strip() for c in args.collections.split(",")]
         dot = service.build_graph(col_ids)
         print(dot)

@@ -9,6 +9,7 @@ from zotero_cli.core.zotero_item import ZoteroItem
 # Progress Callback Type: current, total, message
 ProgressCallback = Callable[[int, int, str], None]
 
+
 class SyncService:
     """
     Service responsible for synchronizing local state (CSV) from remote truth (Zotero Notes).
@@ -21,7 +22,7 @@ class SyncService:
         self,
         collection_name: str,
         output_csv_path: str,
-        callback: Optional[ProgressCallback] = None
+        callback: Optional[ProgressCallback] = None,
     ) -> bool:
         """
         Scans a collection, finds screening notes, and rebuilds the CSV file.
@@ -81,8 +82,10 @@ class SyncService:
                         "title": item.title or "No Title",
                         "decision": screening_data.get("decision", "unknown"),
                         "reason": str(reason_val),
-                        "criteria": ",".join(criteria_val) if isinstance(criteria_val, list) else str(criteria_val),
-                        "timestamp": screening_data.get("timestamp", "")
+                        "criteria": ",".join(criteria_val)
+                        if isinstance(criteria_val, list)
+                        else str(criteria_val),
+                        "timestamp": screening_data.get("timestamp", ""),
                     }
                     recovered_rows.append(row)
             except Exception as e:
@@ -94,8 +97,10 @@ class SyncService:
             return True
 
         try:
-            with open(output_csv_path, 'w', encoding='utf-8', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=["key", "title", "decision", "reason", "criteria", "timestamp"])
+            with open(output_csv_path, "w", encoding="utf-8", newline="") as f:
+                writer = csv.DictWriter(
+                    f, fieldnames=["key", "title", "decision", "reason", "criteria", "timestamp"]
+                )
                 writer.writeheader()
                 writer.writerows(recovered_rows)
             return True
@@ -113,18 +118,22 @@ class SyncService:
 
         for child in children:
             # Check if it's a note
-            if child.get('data', {}).get('itemType') == 'note':
-                note_content = child['data'].get('note', '')
+            if child.get("data", {}).get("itemType") == "note":
+                note_content = child["data"].get("note", "")
 
                 # Heuristic 1: Look for JSON-like structure
-                start = note_content.find('{')
-                end = note_content.rfind('}') + 1
+                start = note_content.find("{")
+                end = note_content.rfind("}") + 1
 
                 if start != -1 and end != -1:
                     try:
                         candidate_json = note_content[start:end]
                         # Clean simple HTML entities
-                        candidate_json = candidate_json.replace('<br>', '').replace('</p>', '').replace('<p>', '')
+                        candidate_json = (
+                            candidate_json.replace("<br>", "")
+                            .replace("</p>", "")
+                            .replace("<p>", "")
+                        )
 
                         data = cast(Dict[str, Any], json.loads(candidate_json))
 

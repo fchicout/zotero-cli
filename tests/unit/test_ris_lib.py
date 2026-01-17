@@ -1,0 +1,62 @@
+from unittest.mock import mock_open, patch
+
+from zotero_cli.core.models import ResearchPaper
+from zotero_cli.infra.ris_lib import RisLibGateway
+
+
+@patch("zotero_cli.infra.ris_lib.rispy.load")
+@patch("builtins.open", new_callable=mock_open)
+def test_parse_file_success(mock_file, mock_load):
+    # Setup mock rispy entries
+    mock_entries = [
+        {
+            "type_of_reference": "JOUR",
+            "authors": ["Doe, John", "Smith, Jane"],
+            "year": "2023",
+            "primary_title": "A Sample RIS Paper",
+            "journal_name": "Journal of RIS",
+            "abstract": "This is an abstract.",
+            "doi": "10.1234/ris1",
+            "urls": ["http://ris.example.com"],
+        },
+        {
+            "type_of_reference": "BOOK",
+            "authors": ["Author, A"],
+            "year": "2022",
+            "primary_title": "Another RIS Entry",
+            "secondary_title": "Book Series",
+            "abstract": "Book abstract.",
+        },
+    ]
+    mock_load.return_value = mock_entries
+
+    gateway = RisLibGateway()
+    papers = list(gateway.parse_file("test.ris"))
+
+    assert len(papers) == 2
+
+    assert isinstance(papers[0], ResearchPaper)
+    assert papers[0].title == "A Sample RIS Paper"
+    assert papers[0].authors == ["Doe, John", "Smith, Jane"]
+    assert papers[0].year == "2023"
+    assert papers[0].publication == "Journal of RIS"
+    assert papers[0].doi == "10.1234/ris1"
+    assert papers[0].url == "http://ris.example.com"
+
+    assert isinstance(papers[1], ResearchPaper)
+    assert papers[1].title == "Another RIS Entry"
+    assert papers[1].authors == ["Author, A"]
+    assert papers[1].year == "2022"
+    assert papers[1].publication == "Book Series"
+    assert papers[1].doi is None
+    assert papers[1].url is None
+
+
+@patch("zotero_cli.infra.ris_lib.rispy.load")
+@patch("builtins.open", new_callable=mock_open)
+def test_parse_file_error_handling(mock_file, mock_load):
+    mock_load.side_effect = Exception("RIS parse error")
+
+    gateway = RisLibGateway()
+    papers = list(gateway.parse_file("bad.ris"))
+    assert len(papers) == 0

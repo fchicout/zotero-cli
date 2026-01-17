@@ -9,6 +9,7 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib
 
+
 @dataclass(frozen=True)
 class ZoteroConfig:
     api_key: Optional[str] = None
@@ -21,6 +22,7 @@ class ZoteroConfig:
 
     def is_valid(self) -> bool:
         return bool(self.api_key and self.library_id)
+
 
 class ConfigLoader:
     """
@@ -36,10 +38,10 @@ class ConfigLoader:
         self.config_path = config_path or self._get_default_config_path()
 
     def _get_default_config_path(self) -> Path:
-        if os.name == 'nt':
-            base = Path(os.environ.get('APPDATA', '~')).expanduser()
+        if os.name == "nt":
+            base = Path(os.environ.get("APPDATA", "~")).expanduser()
         else:
-            base = Path(os.environ.get('XDG_CONFIG_HOME', '~/.config')).expanduser()
+            base = Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
         return base / "zotero-cli" / "config.toml"
 
     def load(self) -> ZoteroConfig:
@@ -52,10 +54,14 @@ class ConfigLoader:
 
         # Derive library_id/type from group_url or user_id
         library_id = os.environ.get("ZOTERO_LIBRARY_ID") or file_config.get("library_id")
-        library_type = os.environ.get("ZOTERO_LIBRARY_TYPE") or file_config.get("library_type", "group")
+        library_type = os.environ.get("ZOTERO_LIBRARY_TYPE") or file_config.get(
+            "library_type", "group"
+        )
 
         # Extra keys
-        ss_key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY") or file_config.get("semantic_scholar_api_key")
+        ss_key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY") or file_config.get(
+            "semantic_scholar_api_key"
+        )
         up_email = os.environ.get("UNPAYWALL_EMAIL") or file_config.get("unpaywall_email")
 
         return ZoteroConfig(
@@ -65,11 +71,12 @@ class ConfigLoader:
             target_group_url=group_url,
             user_id=user_id,
             semantic_scholar_api_key=ss_key,
-            unpaywall_email=up_email
+            unpaywall_email=up_email,
         )
 
     def _load_from_file(self) -> Dict[str, Any]:
         from typing import cast
+
         if not self.config_path.exists():
             return {}
 
@@ -82,16 +89,19 @@ class ConfigLoader:
             print(f"Warning: Failed to load config file {self.config_path}: {e}")
             return {}
 
+
 # --- Global Config State ---
 
 _GLOBAL_CONFIG: Optional[ZoteroConfig] = None
 _GLOBAL_CONFIG_PATH: Optional[Path] = None
+
 
 def reset_config():
     """Reset global config cache (mainly for testing)."""
     global _GLOBAL_CONFIG, _GLOBAL_CONFIG_PATH
     _GLOBAL_CONFIG = None
     _GLOBAL_CONFIG_PATH = None
+
 
 def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
     """Helper to get singleton configuration."""
@@ -102,6 +112,7 @@ def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
         _GLOBAL_CONFIG = loader.load()
         _GLOBAL_CONFIG_PATH = loader.config_path
     return _GLOBAL_CONFIG
+
 
 def get_config_path() -> Optional[Path]:
     return _GLOBAL_CONFIG_PATH

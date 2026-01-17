@@ -14,12 +14,14 @@ from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorServi
 
 
 class AttachmentService:
-    def __init__(self,
-                 item_repo: ItemRepository,
-                 collection_repo: CollectionRepository,
-                 attachment_repo: AttachmentRepository,
-                 note_repo: NoteRepository,
-                 metadata_aggregator: MetadataAggregatorService):
+    def __init__(
+        self,
+        item_repo: ItemRepository,
+        collection_repo: CollectionRepository,
+        attachment_repo: AttachmentRepository,
+        note_repo: NoteRepository,
+        metadata_aggregator: MetadataAggregatorService,
+    ):
         self.item_repo = item_repo
         self.collection_repo = collection_repo
         self.attachment_repo = attachment_repo
@@ -87,12 +89,39 @@ class AttachmentService:
 
         return success
 
+    def remove_attachments_from_collection(
+        self, collection_name: str, verbose: bool = False
+    ) -> int:
+        col_id = self.collection_repo.get_collection_id_by_name(collection_name)
+        if not col_id:
+            print(f"Collection '{collection_name}' not found.")
+            return 0
+
+        items = self.collection_repo.get_items_in_collection(col_id)
+        count = 0
+        for item in items:
+            count += self.remove_attachments_from_item(item.key, verbose)
+        return count
+
+    def remove_attachments_from_item(self, item_key: str, verbose: bool = False) -> int:
+        children = self.note_repo.get_item_children(item_key)
+        count = 0
+        for child in children:
+            if child.get("data", {}).get("itemType") == "attachment":
+                if self.item_repo.delete_item(child["key"], child["version"]):
+                    count += 1
+                    if verbose:
+                        print(f"Removed attachment: {child['key']}")
+        return count
+
     def _has_pdf_attachment(self, item_key: str) -> bool:
         children = self.note_repo.get_item_children(item_key)
         for child in children:
-            if child.get('data', {}).get('itemType') == 'attachment' and \
-               child.get('data', {}).get('linkMode') == 'imported_file' and \
-               child.get('data', {}).get('contentType', '') == 'application/pdf':
+            if (
+                child.get("data", {}).get("itemType") == "attachment"
+                and child.get("data", {}).get("linkMode") == "imported_file"
+                and child.get("data", {}).get("contentType", "") == "application/pdf"
+            ):
                 return True
         return False
 
@@ -103,7 +132,7 @@ class AttachmentService:
 
             # Create temp file
             fd, path = tempfile.mkstemp(suffix=".pdf")
-            with os.fdopen(fd, 'wb') as tmp:
+            with os.fdopen(fd, "wb") as tmp:
                 for chunk in response.iter_content(chunk_size=8192):
                     tmp.write(chunk)
             return path

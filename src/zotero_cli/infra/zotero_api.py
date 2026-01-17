@@ -11,13 +11,14 @@ from zotero_cli.infra.http_client import ZoteroHttpClient
 
 T = TypeVar("T")
 
+
 class ZoteroAPIClient(ZoteroGateway):
     """
     Implementation of ZoteroGateway using ZoteroHttpClient.
     Focuses on Domain Object mapping (JSON -> ZoteroItem) and Business Logic.
     """
 
-    def __init__(self, api_key: str, library_id: str, library_type: str = 'group'):
+    def __init__(self, api_key: str, library_id: str, library_type: str = "group"):
         self.http = ZoteroHttpClient(api_key, library_id, library_type)
 
     def _safe_execute(self, operation: str, default_val: T, func: Callable[[], T]) -> T:
@@ -29,10 +30,10 @@ class ZoteroAPIClient(ZoteroGateway):
 
     def _parse_write_response(self, response: requests.Response) -> Optional[str]:
         data = cast(Dict[str, Any], response.json())
-        if 'successful' in data and data['successful']:
-            first_index = list(data['successful'].keys())[0]
-            return str(data['successful'][first_index]['key'])
-        if 'failed' in data and data['failed']:
+        if "successful" in data and data["successful"]:
+            first_index = list(data["successful"].keys())[0]
+            return str(data["successful"][first_index]["key"])
+        if "failed" in data and data["failed"]:
             print(f"Write failed details: {data['failed']}")
         return None
 
@@ -41,11 +42,11 @@ class ZoteroAPIClient(ZoteroGateway):
         start = 0
         if params is None:
             params = {}
-        params['limit'] = limit
+        params["limit"] = limit
 
         while True:
             try:
-                params['start'] = start
+                params["start"] = start
                 response = self.http.get(endpoint, params=params)
                 items = cast(List[Dict[str, Any]], response.json())
                 if not items:
@@ -63,57 +64,48 @@ class ZoteroAPIClient(ZoteroGateway):
 
     def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:
         return self._safe_execute(
-            "fetching user groups", [],
-            lambda: cast(List[Dict[str, Any]], self.http.get(f"users/{user_id}/groups", use_prefix=False).json())
+            "fetching user groups",
+            [],
+            lambda: cast(
+                List[Dict[str, Any]],
+                self.http.get(f"users/{user_id}/groups", use_prefix=False).json(),
+            ),
         )
 
     def get_all_collections(self) -> List[Dict[str, Any]]:
         return self._safe_execute(
-            "fetching collections", [],
-            lambda: cast(List[Dict[str, Any]], self.http.get("collections", params={'limit': 100}).json())
-        )
-
-    def get_top_collections(self) -> List[Dict[str, Any]]:
-        return self._safe_execute(
-            "fetching top collections", [],
-            lambda: cast(List[Dict[str, Any]], self.http.get("collections/top").json())
-        )
-
-    def get_subcollections(self, collection_key: str) -> List[Dict[str, Any]]:
-        return self._safe_execute(
-            f"fetching subcollections of {collection_key}", [],
-            lambda: cast(List[Dict[str, Any]], self.http.get(f"collections/{collection_key}/collections").json())
+            "fetching collections",
+            [],
+            lambda: cast(
+                List[Dict[str, Any]], self.http.get("collections", params={"limit": 100}).json()
+            ),
         )
 
     def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
         return self._safe_execute(
-            f"fetching collection {collection_key}", None,
-            lambda: cast(Optional[Dict[str, Any]], self.http.get(f"collections/{collection_key}").json())
+            f"fetching collection {collection_key}",
+            None,
+            lambda: cast(
+                Optional[Dict[str, Any]], self.http.get(f"collections/{collection_key}").json()
+            ),
         )
 
     def get_tags(self) -> List[str]:
         def _fetch_tags():
-            response = self.http.get("tags", params={'limit': 100})
+            response = self.http.get("tags", params={"limit": 100})
             tags_data = cast(List[Dict[str, Any]], response.json())
-            return [t['tag'] for t in tags_data]
+            return [t["tag"] for t in tags_data]
+
         return self._safe_execute("fetching tags", [], _fetch_tags)
 
     def get_tags_for_item(self, item_key: str) -> List[str]:
         return self._safe_execute(
-            f"fetching tags for item {item_key}", [],
-            lambda: [t['tag'] for t in cast(List[Dict[str, Any]], self.http.get(f"items/{item_key}/tags").json())]
-        )
-
-    def get_tags_in_collection(self, collection_key: str) -> List[str]:
-        return self._safe_execute(
-            f"fetching tags in collection {collection_key}", [],
-            lambda: [t['tag'] for t in cast(List[Dict[str, Any]], self.http.get(f"collections/{collection_key}/tags").json())]
-        )
-
-    def get_saved_searches(self) -> List[Dict[str, Any]]:
-        return self._safe_execute(
-            "fetching saved searches", [],
-            lambda: cast(List[Dict[str, Any]], self.http.get("searches").json())
+            f"fetching tags for item {item_key}",
+            [],
+            lambda: [
+                t["tag"]
+                for t in cast(List[Dict[str, Any]], self.http.get(f"items/{item_key}/tags").json())
+            ],
         )
 
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
@@ -122,32 +114,35 @@ class ZoteroAPIClient(ZoteroGateway):
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
         return self.search_items(ZoteroQuery(tag=tag))
 
-    def get_items_in_collection(self, collection_id: str, top_only: bool = False) -> Iterator[ZoteroItem]:
+    def get_items_in_collection(
+        self, collection_id: str, top_only: bool = False
+    ) -> Iterator[ZoteroItem]:
         endpoint = f"collections/{collection_id}/items"
         if top_only:
             endpoint += "/top"
         return self._paginate_items(endpoint)
 
-    def get_trash_items(self) -> Iterator[ZoteroItem]:
-        return self._paginate_items("items/trash")
-
     def get_item(self, item_key: str) -> Optional[ZoteroItem]:
         return self._safe_execute(
-            f"fetching item {item_key}", None,
-            lambda: ZoteroItem.from_raw_zotero_item(cast(Dict[str, Any], self.http.get(f"items/{item_key}").json()))
+            f"fetching item {item_key}",
+            None,
+            lambda: ZoteroItem.from_raw_zotero_item(
+                cast(Dict[str, Any], self.http.get(f"items/{item_key}").json())
+            ),
         )
 
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
         return self._safe_execute(
-            f"fetching children for {item_key}", [],
-            lambda: cast(List[Dict[str, Any]], self.http.get(f"items/{item_key}/children").json())
+            f"fetching children for {item_key}",
+            [],
+            lambda: cast(List[Dict[str, Any]], self.http.get(f"items/{item_key}/children").json()),
         )
 
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
         cols = self.get_all_collections()
         for c in cols:
-            if c.get('data', {}).get('name') == name:
-                return str(c['key'])
+            if c.get("data", {}).get("name") == name:
+                return str(c["key"])
         return None
 
     # --- Write Operations ---
@@ -176,7 +171,9 @@ class ZoteroAPIClient(ZoteroGateway):
 
     def rename_collection(self, collection_key: str, version: int, name: str) -> bool:
         try:
-            self.http.patch(f"collections/{collection_key}", json_data={"name": name}, version_check=True)
+            self.http.patch(
+                f"collections/{collection_key}", json_data={"name": name}, version_check=True
+            )
             return True
         except Exception as e:
             print(f"Error renaming collection {collection_key}: {e}")
@@ -189,7 +186,7 @@ class ZoteroAPIClient(ZoteroGateway):
         if not item:
             return False
 
-        current_tags = [t['tag'] for t in item.raw_data.get('data', {}).get('tags', [])]
+        current_tags = [t["tag"] for t in item.raw_data.get("data", {}).get("tags", [])]
         updated_tags = set(current_tags) | set(tags)
         tag_payload = [{"tag": t} for t in updated_tags]
 
@@ -202,7 +199,7 @@ class ZoteroAPIClient(ZoteroGateway):
         chunk_size = 50
         success = True
         for i in range(0, len(tags), chunk_size):
-            chunk = tags[i:i + chunk_size]
+            chunk = tags[i : i + chunk_size]
             tags_query = " || ".join(chunk)
             try:
                 self.http.delete("tags", params={"tag": tags_query}, version_check=True)
@@ -214,9 +211,11 @@ class ZoteroAPIClient(ZoteroGateway):
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
         creators = []
         for author in paper.authors:
-            parts = author.rsplit(' ', 1)
+            parts = author.rsplit(" ", 1)
             if len(parts) == 2:
-                creators.append({"creatorType": "author", "firstName": parts[0], "lastName": parts[1]})
+                creators.append(
+                    {"creatorType": "author", "firstName": parts[0], "lastName": parts[1]}
+                )
             else:
                 creators.append({"creatorType": "author", "name": author})
 
@@ -225,7 +224,7 @@ class ZoteroAPIClient(ZoteroGateway):
             "title": paper.title,
             "abstractNote": paper.abstract,
             "creators": creators,
-            "collections": [collection_id]
+            "collections": [collection_id],
         }
 
         if paper.url:
@@ -268,11 +267,7 @@ class ZoteroAPIClient(ZoteroGateway):
             return False
 
     def create_note(self, parent_item_key: str, note_content: str) -> bool:
-        payload = [{
-            "itemType": "note",
-            "parentItem": parent_item_key,
-            "note": note_content
-        }]
+        payload = [{"itemType": "note", "parentItem": parent_item_key, "note": note_content}]
         try:
             response = self.http.post("items", json_data=payload)
             return bool(self._parse_write_response(response))
@@ -281,15 +276,12 @@ class ZoteroAPIClient(ZoteroGateway):
             return False
 
     def update_note(self, note_key: str, version: int, note_content: str) -> bool:
-        payload = {
-            "note": note_content,
-            "version": version
-        }
+        payload = {"note": note_content, "version": version}
         try:
             response = self.http.patch(f"items/{note_key}", json_data=payload, version_check=False)
             if response.status_code == 412:
                 new_version = self.http.last_library_version
-                payload['version'] = new_version
+                payload["version"] = new_version
                 self.http.patch(f"items/{note_key}", json_data=payload, version_check=False)
             return True
         except Exception as e:
@@ -306,23 +298,12 @@ class ZoteroAPIClient(ZoteroGateway):
             print(f"Error deleting item {item_key}: {e}")
             return False
 
-    def update_item_collections(self, item_key: str, version: int, collections: List[str]) -> bool:
-        payload = {"collections": collections}
-        try:
-            resp = self.http.patch(f"items/{item_key}", json_data=payload, version_check=True)
-            if resp.status_code == 412:
-                resp = self.http.patch(f"items/{item_key}", json_data=payload, version_check=True)
-            if resp.status_code != 204:
-                return False
-            return True
-        except Exception as e:
-            print(f"Error updating item {item_key} collections: {e}")
-            return False
-
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
         return self.update_item(item_key, version, metadata)
 
-    def upload_attachment(self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf") -> bool:
+    def upload_attachment(
+        self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
+    ) -> bool:
         try:
             filename = os.path.basename(file_path)
             filesize = os.path.getsize(file_path)
@@ -335,13 +316,15 @@ class ZoteroAPIClient(ZoteroGateway):
             md5 = md5_hash.hexdigest()
 
             # 1. Create Attachment Item placeholder
-            payload = [{
-                "itemType": "attachment",
-                "linkMode": "imported_file",
-                "parentItem": parent_item_key,
-                "title": filename,
-                "contentType": mime_type
-            }]
+            payload = [
+                {
+                    "itemType": "attachment",
+                    "linkMode": "imported_file",
+                    "parentItem": parent_item_key,
+                    "title": filename,
+                    "contentType": mime_type,
+                }
+            ]
 
             res = self.http.post("items", json_data=payload)
             attachment_key = self._parse_write_response(res)
@@ -349,33 +332,30 @@ class ZoteroAPIClient(ZoteroGateway):
                 return False
 
             # 2. Get Upload Authorization
-            auth_data = {
-                "md5": md5,
-                "filename": filename,
-                "filesize": filesize,
-                "mtime": mtime
-            }
+            auth_data = {"md5": md5, "filename": filename, "filesize": filesize, "mtime": mtime}
             # Important: If-None-Match: * ensures we don't overwrite if not needed
-            headers = {'If-None-Match': '*', 'Content-Type': 'application/x-www-form-urlencoded'}
+            headers = {"If-None-Match": "*", "Content-Type": "application/x-www-form-urlencoded"}
 
             # Add params=1 as query param to get upload parameters
-            auth_res = self.http.post_form(f"items/{attachment_key}/file?params=1", data=auth_data, headers=headers)
+            auth_res = self.http.post_form(
+                f"items/{attachment_key}/file?params=1", data=auth_data, headers=headers
+            )
             auth_resp_data = auth_res.json()
 
-            if auth_resp_data.get('exists') == 1:
+            if auth_resp_data.get("exists") == 1:
                 return True
 
-            upload_url = auth_resp_data['url']
-            upload_params = auth_resp_data.get('params', {})
-            upload_key = auth_resp_data.get('uploadKey')
+            upload_url = auth_resp_data["url"]
+            upload_params = auth_resp_data.get("params", {})
+            upload_key = auth_resp_data.get("uploadKey")
 
             # 3. Perform the actual upload (typically to S3)
-            with open(file_path, 'rb') as f:
-                self.http.upload_file(upload_url, data=upload_params, files={'file': f})
+            with open(file_path, "rb") as f:
+                self.http.upload_file(upload_url, data=upload_params, files={"file": f})
 
             # 4. Register the upload with Zotero
             reg_data = {"upload": upload_key}
-            reg_headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+            reg_headers = {"Content-Type": "application/x-www-form-urlencoded"}
             self.http.post_form(f"items/{attachment_key}/file", data=reg_data, headers=reg_headers)
 
             return True

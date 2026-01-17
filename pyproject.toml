@@ -1,6 +1,7 @@
 [project]
 name = "zotero-cli"
 version = "2.0.0-dev"
+license = {text = "MIT"}
 dependencies = [
     "requests>=2.31.0",
     "rich>=13.7.0",
@@ -31,9 +32,14 @@ disallow_untyped_defs = false # We'll tighten this gradually
 check_untyped_defs = true
 ignore_missing_imports = true
 disable_error_code = ["import-untyped"]
+exclude = ["build/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    "integration: tests that interact with real APIs",
+    "unit: fast isolated logic tests",
+    "e2e: tests that interact with real APIs or external state",
+    "docs: tests for documentation consistency and repository structure",
 ]
+
+

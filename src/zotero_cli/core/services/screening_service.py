@@ -19,12 +19,14 @@ class ScreeningService:
     Provides the core logic for both CLI 'decision' command and TUI 'screen' mode.
     """
 
-    def __init__(self,
-                 item_repo: ItemRepository,
-                 collection_repo: CollectionRepository,
-                 note_repo: NoteRepository,
-                 tag_repo: TagRepository,
-                 collection_service: CollectionService):
+    def __init__(
+        self,
+        item_repo: ItemRepository,
+        collection_repo: CollectionRepository,
+        note_repo: NoteRepository,
+        tag_repo: TagRepository,
+        collection_service: CollectionService,
+    ):
         self.item_repo = item_repo
         self.collection_repo = collection_repo
         self.note_repo = note_repo
@@ -41,7 +43,7 @@ class ScreeningService:
         target_collection: Optional[str] = None,
         agent: str = "zotero-cli",
         persona: str = "unknown",
-        phase: str = "title_abstract"
+        phase: str = "title_abstract",
     ) -> bool:
         """
         Records a screening decision for a Zotero item.
@@ -51,7 +53,10 @@ class ScreeningService:
         """
         decision_upper = decision.upper()
         if decision_upper not in ["INCLUDE", "EXCLUDE"]:
-            print(f"Error: Invalid decision '{decision_upper}'. Must be INCLUDE or EXCLUDE.", file=sys.stderr)
+            print(
+                f"Error: Invalid decision '{decision_upper}'. Must be INCLUDE or EXCLUDE.",
+                file=sys.stderr,
+            )
             return False
 
         # Map internal decision to SDB decision
@@ -61,13 +66,13 @@ class ScreeningService:
         decision_data = {
             "audit_version": "1.1",
             "decision": sdb_decision,
-            "reason_code": [code.strip() for code in code.split(',')] if code else [],
+            "reason_code": [code.strip() for code in code.split(",")] if code else [],
             "reason_text": reason if reason else "",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "agent": agent,
             "persona": persona,
             "phase": phase,
-            "action": "screening_decision" # Keep for backward compatibility/filtering
+            "action": "screening_decision",  # Keep for backward compatibility/filtering
         }
 
         note_content = f"<div>{json.dumps(decision_data, indent=2)}</div>"
@@ -84,7 +89,7 @@ class ScreeningService:
 
         # Decision Tags
         if sdb_decision == "rejected":
-            codes = decision_data['reason_code']
+            codes = decision_data["reason_code"]
             for c in codes:
                 tags_to_add.append(f"rsl:exclude:{c}")
         elif sdb_decision == "accepted":
@@ -93,13 +98,21 @@ class ScreeningService:
         if tags_to_add:
             tag_success = self.tag_repo.add_tags(item_key, tags_to_add)
             if not tag_success:
-                print(f"Warning: Failed to apply tags {tags_to_add} to item {item_key}.", file=sys.stderr)
+                print(
+                    f"Warning: Failed to apply tags {tags_to_add} to item {item_key}.",
+                    file=sys.stderr,
+                )
 
         # 3. Collection Movement (Optional)
         if source_collection and target_collection:
-            move_success = self.collection_service.move_item(source_collection, target_collection, item_key)
+            move_success = self.collection_service.move_item(
+                source_collection, target_collection, item_key
+            )
             if not move_success:
-                print(f"Warning: Decision recorded but failed to move item {item_key}.", file=sys.stderr)
+                print(
+                    f"Warning: Decision recorded but failed to move item {item_key}.",
+                    file=sys.stderr,
+                )
 
         return True
 
@@ -118,7 +131,11 @@ class ScreeningService:
             # FAST PATH: Check tags first
             has_tag_decision = False
             for tag in item.tags:
-                if tag.startswith("rsl:phase:") or tag.startswith("rsl:exclude:") or tag == "rsl:include":
+                if (
+                    tag.startswith("rsl:phase:")
+                    or tag.startswith("rsl:exclude:")
+                    or tag == "rsl:include"
+                ):
                     has_tag_decision = True
                     break
 
@@ -130,10 +147,10 @@ class ScreeningService:
             has_decision = False
             for child in children:
                 # Handle both direct and nested data structures
-                data = child.get('data', child)
-                if data.get('itemType') == 'note':
-                    content = data.get('note', '')
-                    if 'screening_decision' in content or '"decision"' in content:
+                data = child.get("data", child)
+                if data.get("itemType") == "note":
+                    content = data.get("note", "")
+                    if "screening_decision" in content or '"decision"' in content:
                         has_decision = True
                         break
 

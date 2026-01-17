@@ -8,7 +8,6 @@ from zotero_cli.infra.base_api_client import BaseAPIClient
 
 
 class CrossRefAPIClient(BaseAPIClient, MetadataProvider):
-
     def __init__(self):
         super().__init__(base_url="https://api.crossref.org/works")
 
@@ -32,43 +31,43 @@ class CrossRefAPIClient(BaseAPIClient, MetadataProvider):
             return None
 
     def _map_to_research_paper(self, data: dict) -> ResearchPaper:
-        item = data.get('message', {})
+        item = data.get("message", {})
 
         # Title
-        title = item.get('title', [''])[0] if item.get('title') else ''
+        title = item.get("title", [""])[0] if item.get("title") else ""
 
         # Abstract (often XML)
-        abstract = item.get('abstract', '')
+        abstract = item.get("abstract", "")
 
         # Authors
         authors = []
-        for author in item.get('author', []):
-            given = author.get('given', '')
-            family = author.get('family', '')
+        for author in item.get("author", []):
+            given = author.get("given", "")
+            family = author.get("family", "")
             if given or family:
                 authors.append(f"{given} {family}".strip())
 
         # Year
         year = None
-        published = item.get('published-print') or item.get('published-online')
-        if published and 'date-parts' in published:
-            year = str(published['date-parts'][0][0])
+        published = item.get("published-print") or item.get("published-online")
+        if published and "date-parts" in published:
+            year = str(published["date-parts"][0][0])
 
         # References
         references = []
-        if 'reference' in item:
-            for ref in item['reference']:
-                if 'DOI' in ref and ref['DOI']:
-                    references.append(ref['DOI'])
+        if "reference" in item:
+            for ref in item["reference"]:
+                if "DOI" in ref and ref["DOI"]:
+                    references.append(ref["DOI"])
 
         return ResearchPaper(
             title=title,
-            abstract=abstract, # CrossRef abstract is often XML/HTML
+            abstract=abstract,  # CrossRef abstract is often XML/HTML
             authors=authors,
-            publication=item.get('container-title', [''])[0] if item.get('container-title') else '',
+            publication=item.get("container-title", [""])[0] if item.get("container-title") else "",
             year=year,
-            doi=item.get('DOI'),
-            url=item.get('URL'),
+            doi=item.get("DOI"),
+            url=item.get("URL"),
             references=references,
-            citation_count=item.get('is-referenced-by-count')
+            citation_count=item.get("is-referenced-by-count"),
         )

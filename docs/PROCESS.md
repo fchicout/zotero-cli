@@ -39,7 +39,7 @@
         1.  `ruff check .` (Linting)
         2.  `mypy .` (Type Safety)
         3.  `pytest tests/unit` (Logic)
-        4.  `pytest tests/e2e` (Iron Gauntlet - Workflow)
+        4.  `pytest tests/integration` (Iron Gauntlet - Workflow)
 8.  **Green Commit:**
     *   `git commit -m "type(scope): description (Issue #ID)"`
     *   *Repeat Phase C for each logical unit of the feature.*

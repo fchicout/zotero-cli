@@ -11,6 +11,7 @@ from zotero_cli.core.services.snapshot_service import SnapshotService
 
 console = Console()
 
+
 @CommandRegistry.register
 class ReportCommand(BaseCommand):
     name = "report"
@@ -42,7 +43,8 @@ class ReportCommand(BaseCommand):
 
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
-        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
+
+        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
 
         if args.report_type == "prisma":
             self._handle_prisma(gateway, args)
@@ -66,7 +68,7 @@ class ReportCommand(BaseCommand):
             f"[bold blue]Collection:[/bold blue] {report.collection_name}\n"
             f"[bold blue]Total Items:[/bold blue] {report.total_items}\n"
             f"[bold blue]Screened:[/bold blue] {report.screened_items} "
-            f"({ (report.screened_items/report.total_items*100) if report.total_items > 0 else 0:.1f}%)\n"
+            f"({(report.screened_items / report.total_items * 100) if report.total_items > 0 else 0:.1f}%)\n"
             f"[bold green]Accepted:[/bold green] {report.accepted_items}\n"
             f"[bold red]Rejected:[/bold red] {report.rejected_items}"
         )
@@ -117,7 +119,7 @@ class ReportCommand(BaseCommand):
         md_content = service.generate_screening_markdown(report)
 
         try:
-            with open(args.output, 'w', encoding='utf-8') as f:
+            with open(args.output, "w", encoding="utf-8") as f:
                 f.write(md_content)
             console.print(f"\n[bold green]✓ Screening report saved to {args.output}[/bold green]")
         except Exception as e:
@@ -126,30 +128,32 @@ class ReportCommand(BaseCommand):
 
     def _handle_status(self, gateway, args):
         if args.output:
-             # Backward compatibility: if output is provided, act like screening
-             return self._handle_screening(gateway, args)
+            # Backward compatibility: if output is provided, act like screening
+            return self._handle_screening(gateway, args)
 
         service = ReportService(gateway)
         with console.status("[bold green]Fetching items and calculating stats..."):
             report = service.generate_prisma_report(args.collection)
 
         if not report:
-             console.print(f"[bold red]Error:[/bold red] Collection '{args.collection}' not found.")
-             sys.exit(1)
+            console.print(f"[bold red]Error:[/bold red] Collection '{args.collection}' not found.")
+            sys.exit(1)
 
         # Progress Bar
         from rich.progress import BarColumn, Progress, TextColumn
 
         console.print(f"\n[bold]Status Report: {report.collection_name}[/bold]\n")
 
-        percent_screened = (report.screened_items / report.total_items * 100) if report.total_items else 0
+        percent_screened = (
+            (report.screened_items / report.total_items * 100) if report.total_items else 0
+        )
 
         with Progress(
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
             TextColumn("{task.completed}/{task.total}"),
-            console=console
+            console=console,
         ) as progress:
             task = progress.add_task("[cyan]Screening Progress", total=report.total_items)
             progress.update(task, completed=report.screened_items)
@@ -160,13 +164,29 @@ class ReportCommand(BaseCommand):
         table.add_column("Count")
         table.add_column("Percentage")
 
-        percent_accepted = (report.accepted_items / report.screened_items * 100) if report.screened_items else 0
-        percent_rejected = (report.rejected_items / report.screened_items * 100) if report.screened_items else 0
+        percent_accepted = (
+            (report.accepted_items / report.screened_items * 100) if report.screened_items else 0
+        )
+        percent_rejected = (
+            (report.rejected_items / report.screened_items * 100) if report.screened_items else 0
+        )
 
         table.add_row("Total Items", str(report.total_items), "100%")
         table.add_row("Screened", str(report.screened_items), f"{percent_screened:.1f}%")
-        table.add_row("Remaining", str(report.total_items - report.screened_items), f"{100-percent_screened:.1f}%")
-        table.add_row("Accepted", f"[green]{report.accepted_items}[/green]", f"{percent_accepted:.1f}% (of screened)")
-        table.add_row("Rejected", f"[red]{report.rejected_items}[/red]", f"{percent_rejected:.1f}% (of screened)")
+        table.add_row(
+            "Remaining",
+            str(report.total_items - report.screened_items),
+            f"{100 - percent_screened:.1f}%",
+        )
+        table.add_row(
+            "Accepted",
+            f"[green]{report.accepted_items}[/green]",
+            f"{percent_accepted:.1f}% (of screened)",
+        )
+        table.add_row(
+            "Rejected",
+            f"[red]{report.rejected_items}[/red]",
+            f"{percent_rejected:.1f}% (of screened)",
+        )
 
         console.print(table)

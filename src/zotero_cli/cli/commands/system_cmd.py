@@ -1,11 +1,45 @@
 import argparse
+import os
 import sys
+from typing import Any
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.commands.info_cmd import InfoCommand
 from zotero_cli.cli.commands.list_cmd import ListCommand
 from zotero_cli.core.services.backup_service import BackupService
+from zotero_cli.core.strategies import (
+    BibtexImportStrategy,
+    CanonicalCsvImportStrategy,
+    IeeeCsvImportStrategy,
+    RisImportStrategy,
+    SpringerCsvImportStrategy,
+)
+from zotero_cli.infra.bibtex_lib import BibtexLibGateway
+from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
 from zotero_cli.infra.factory import GatewayFactory
+from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
+from zotero_cli.infra.ris_lib import RisLibGateway
+from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
+
+
+class InfoCommand(BaseCommand):
+    name = "info"
+    help = "Display environment and configuration"
+
+    def register_args(self, parser: argparse.ArgumentParser):
+        pass  # No extra args for info
+
+    def execute(self, args: argparse.Namespace):
+        from zotero_cli.core.config import get_config, get_config_path
+
+        config = get_config(args.config)
+
+        print("--- Zotero CLI Info ---")
+        print(f"Config Path: {get_config_path() or 'None (using defaults/env)'}")
+        print(f"Library ID:  {config.library_id}")
+        print(f"Library Type: {config.library_type}")
+        print(f"API Key:     {'********' if config.api_key else 'NOT SET'}")
+        if config.target_group_url:
+            print(f"Group URL:   {config.target_group_url}")
 
 
 @CommandRegistry.register
@@ -32,7 +66,9 @@ class SystemCommand(BaseCommand):
         restore_p.add_argument("--dry-run", action="store_true", help="Simulate restore")
 
         # Normalize CSV
-        norm_p = sub.add_parser("normalize", help="Convert external CSV (IEEE, Springer) to Canonical format")
+        norm_p = sub.add_parser(
+            "normalize", help="Convert external CSV (IEEE, Springer) to Canonical format"
+        )
         norm_p.add_argument("file", help="Input CSV file")
         norm_p.add_argument("--output", required=True, help="Output Canonical CSV path")
 
@@ -50,43 +86,27 @@ class SystemCommand(BaseCommand):
             self._handle_normalize(args)
 
     def _handle_normalize(self, args):
-        import os
-        from typing import Any
-
-        from zotero_cli.core.strategies import (
-            BibtexImportStrategy,
-            CanonicalCsvImportStrategy,
-            IeeeCsvImportStrategy,
-            RisImportStrategy,
-            SpringerCsvImportStrategy,
-        )
-        from zotero_cli.infra.bibtex_lib import BibtexLibGateway
-        from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
-        from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
-        from zotero_cli.infra.ris_lib import RisLibGateway
-        from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
-
         ext = os.path.splitext(args.file)[1].lower()
         strategy: Any = None
         gateway: Any = None
 
-        if ext == '.bib':
+        if ext == ".bib":
             gateway = BibtexLibGateway()
             strategy = BibtexImportStrategy(gateway)
-        elif ext == '.ris':
+        elif ext == ".ris":
             gateway = RisLibGateway()
             strategy = RisImportStrategy(gateway)
-        elif ext == '.csv':
+        elif ext == ".csv":
             # 1. Detect CSV Type
-            with open(args.file, 'r', encoding='utf-8') as f:
+            with open(args.file, "r", encoding="utf-8") as f:
                 header = f.readline().lower()
-                if 'item title' in header:
+                if "item title" in header:
                     gateway = SpringerCsvLibGateway()
                     strategy = SpringerCsvImportStrategy(gateway)
-                elif 'document title' in header:
+                elif "document title" in header:
                     gateway = IeeeCsvLibGateway()
                     strategy = IeeeCsvImportStrategy(gateway)
-                elif 'title' in header and 'doi' in header:
+                elif "title" in header and "doi" in header:
                     gateway = CanonicalCsvLibGateway()
                     strategy = CanonicalCsvImportStrategy(gateway)
                 else:
@@ -105,7 +125,7 @@ class SystemCommand(BaseCommand):
         print(f"Normalization complete. Saved {len(papers)} items to {args.output}")
 
     def _handle_backup(self, args):
-        force_user = getattr(args, 'user', False)
+        force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
         service = BackupService(gateway)
 

@@ -14,7 +14,7 @@ class BackupService:
 
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
-        self.version = "1.0" # Format version
+        self.version = "1.0"  # Format version
 
     def backup_collection(self, collection_key: str, output: Union[str, IO[bytes]]):
         """
@@ -24,7 +24,7 @@ class BackupService:
         if not col:
             raise ValueError(f"Collection {collection_key} not found")
 
-        col_name = col.get('data', {}).get('name', 'Unknown')
+        col_name = col.get("data", {}).get("name", "Unknown")
 
         manifest = {
             "format": "zaf",
@@ -33,7 +33,7 @@ class BackupService:
             "scope_type": "collection",
             "root_collection_key": collection_key,
             "root_collection_name": col_name,
-            "generator": "zotero-cli"
+            "generator": "zotero-cli",
         }
 
         items = list(self.gateway.get_items_in_collection(collection_key))
@@ -50,7 +50,7 @@ class BackupService:
             "version": self.version,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "scope_type": "library",
-            "generator": "zotero-cli"
+            "generator": "zotero-cli",
         }
 
         item_data: List[Dict[str, Any]] = []
@@ -59,7 +59,7 @@ class BackupService:
 
     def _write_zip(self, output: Union[str, IO[bytes]], manifest: dict, item_data: list):
         # Use LZMA if available (standard in Py3.3+)
-        compression = zipfile.ZIP_LZMA if hasattr(zipfile, 'ZIP_LZMA') else zipfile.ZIP_DEFLATED
+        compression = zipfile.ZIP_LZMA if hasattr(zipfile, "ZIP_LZMA") else zipfile.ZIP_DEFLATED
 
         with zipfile.ZipFile(output, "w", compression=compression) as zf:
             # Write Manifest

@@ -26,7 +26,9 @@ class TagService:
         updated_tags = list(current_tags.union(new_tags))
         return self._update_tags(item.key, item.version, updated_tags)
 
-    def remove_tags_from_item(self, item_key: str, item: ZoteroItem, tags_to_remove: List[str]) -> bool:
+    def remove_tags_from_item(
+        self, item_key: str, item: ZoteroItem, tags_to_remove: List[str]
+    ) -> bool:
         """
         Removes specific tags from an item.
         """
@@ -34,7 +36,7 @@ class TagService:
         to_remove = set(tags_to_remove)
 
         if not to_remove.intersection(current_tags):
-            return True # Nothing to remove
+            return True  # Nothing to remove
 
         updated_tags = list(current_tags - to_remove)
         return self._update_tags(item.key, item.version, updated_tags)

@@ -14,6 +14,7 @@ from tenacity import (
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 class BaseAPIClient(ABC):
     """
     Abstract base class for Metadata Providers.
@@ -21,20 +22,31 @@ class BaseAPIClient(ABC):
     """
 
     def __init__(self, base_url: str, headers: Optional[Dict[str, str]] = None):
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.session = requests.Session()
         self.session.headers.update(headers or {})
         # Default user agent if not provided
-        if 'User-Agent' not in self.session.headers:
-            self.session.headers['User-Agent'] = 'zotero-cli/1.2.0 (mailto:fchicout@gmail.com)'
+        if "User-Agent" not in self.session.headers:
+            self.session.headers["User-Agent"] = "zotero-cli/1.2.0 (mailto:fchicout@gmail.com)"
 
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((requests.exceptions.ConnectionError, requests.exceptions.Timeout, requests.exceptions.ChunkedEncodingError)),
-        before_sleep=before_sleep_log(logger, logging.WARNING)
+        retry=retry_if_exception_type(
+            (
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+                requests.exceptions.ChunkedEncodingError,
+            )
+        ),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
     )
-    def _get(self, endpoint: str = "", params: Optional[Dict[str, Any]] = None, url_override: Optional[str] = None) -> requests.Response:
+    def _get(
+        self,
+        endpoint: str = "",
+        params: Optional[Dict[str, Any]] = None,
+        url_override: Optional[str] = None,
+    ) -> requests.Response:
         """
         Execute a GET request with built-in retry logic.
 

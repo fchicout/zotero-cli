@@ -31,6 +31,7 @@ class BaseCommand(ABC):
         """Execute the command logic."""
         pass
 
+
 class CommandRegistry:
     _commands: Dict[str, BaseCommand] = {}
 

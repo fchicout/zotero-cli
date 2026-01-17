@@ -7,6 +7,7 @@ from zotero_cli.cli.base import BaseCommand, CommandRegistry
 
 console = Console()
 
+
 @CommandRegistry.register
 class ListCommand(BaseCommand):
     name = "list"
@@ -29,7 +30,8 @@ class ListCommand(BaseCommand):
 
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
-        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
+
+        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
 
         if args.list_type == "collections":
             self._handle_collections(gateway, args)
@@ -45,11 +47,12 @@ class ListCommand(BaseCommand):
         table.add_column("Key", style="cyan")
         table.add_column("Items", justify="right")
         for c in cols:
-            table.add_row(c['data']['name'], c['key'], str(c['meta'].get('numItems', 0)))
+            table.add_row(c["data"]["name"], c["key"], str(c["meta"].get("numItems", 0)))
         console.print(table)
 
     def _handle_groups(self, gateway, args):
         from zotero_cli.core.config import get_config
+
         config = get_config()
         if not config.user_id:
             print("Error: ZOTERO_USER_ID not configured. Cannot fetch user groups.")
@@ -61,8 +64,8 @@ class ListCommand(BaseCommand):
         table.add_column("Name")
         table.add_column("URL")
         for g in groups:
-            gid = str(g.get('id', 'N/A'))
-            name = g.get('name', 'N/A')
+            gid = str(g.get("id", "N/A"))
+            name = g.get("name", "N/A")
             url = f"https://www.zotero.org/groups/{gid}"
             table.add_row(gid, name, url)
         console.print(table)
@@ -77,9 +80,11 @@ class ListCommand(BaseCommand):
                 return
             col_id = gateway.get_collection_id_by_name(args.collection)
             if not col_id:
-                col_id = args.collection # Try Key
+                col_id = args.collection  # Try Key
 
-            items = list(gateway.get_items_in_collection(col_id, top_only=getattr(args, 'top_only', False)))
+            items = list(
+                gateway.get_items_in_collection(col_id, top_only=getattr(args, "top_only", False))
+            )
             title = f"Items in {args.collection}"
 
         table = Table(title=title)
@@ -87,6 +92,6 @@ class ListCommand(BaseCommand):
         table.add_column("Title")
         table.add_column("Type")
         for item in items:
-            table.add_row(item.key, item.title or 'Untitled', item.item_type)
+            table.add_row(item.key, item.title or "Untitled", item.item_type)
         console.print(table)
         console.print(f"\n[dim]Showing {len(items)} items.[/dim]")

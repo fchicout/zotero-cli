@@ -75,7 +75,7 @@ class MetadataAggregatorService:
                 if current_is_upper and not candidate_is_upper:
                     best_title = p.title
                 elif not current_is_upper and candidate_is_upper:
-                    pass # Keep mixed case
+                    pass  # Keep mixed case
                 elif len(p.title) > len(best_title):
                     best_title = p.title
 

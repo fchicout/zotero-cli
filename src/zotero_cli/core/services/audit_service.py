@@ -15,6 +15,7 @@ class AuditReport:
     items_missing_pdf: List[ZoteroItem] = field(default_factory=list)
     items_missing_note: List[ZoteroItem] = field(default_factory=list)
 
+
 class CollectionAuditor:
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
@@ -23,7 +24,9 @@ class CollectionAuditor:
         collection_id = self.gateway.get_collection_id_by_name(collection_name)
         if not collection_id:
             # Maybe it's already a key
-            collection_id = collection_name if self.gateway.get_collection(collection_name) else None
+            collection_id = (
+                collection_name if self.gateway.get_collection(collection_name) else None
+            )
 
         if not collection_id:
             print(f"Collection '{collection_name}' not found.")
@@ -69,21 +72,53 @@ class CollectionAuditor:
         """
         Compares two snapshots (lists of item dicts) and returns items that changed collections.
         """
-        map_old = {i['key']: set(i.get('collections', [])) for i in snapshot_old}
-        map_new = {i['key']: set(i.get('collections', [])) for i in snapshot_new}
+        map_old = {i["key"]: set(i.get("collections", [])) for i in snapshot_old}
+        map_new = {i["key"]: set(i.get("collections", [])) for i in snapshot_new}
 
         shifts = []
+
+        # 1. Detect Changes and Additions
         for key, cols_new in map_new.items():
             if key in map_old:
                 cols_old = map_old[key]
                 if cols_new != cols_old:
-                    # Resolve collection names if possible, but IDs are fine for now
-                    shifts.append({
+                    shifts.append(
+                        {
+                            "key": key,
+                            "title": next(
+                                (i["title"] for i in snapshot_new if i["key"] == key), "Unknown"
+                            ),
+                            "from": list(cols_old),
+                            "to": list(cols_new),
+                        }
+                    )
+            else:
+                # Newly added item
+                shifts.append(
+                    {
                         "key": key,
-                        "title": next((i['title'] for i in snapshot_new if i['key'] == key), "Unknown"),
+                        "title": next(
+                            (i["title"] for i in snapshot_new if i["key"] == key), "Unknown"
+                        ),
+                        "from": [],
+                        "to": list(cols_new),
+                    }
+                )
+
+        # 2. Detect Deletions / Removals
+        for key, cols_old in map_old.items():
+            if key not in map_new:
+                shifts.append(
+                    {
+                        "key": key,
+                        "title": next(
+                            (i["title"] for i in snapshot_old if i["key"] == key), "Unknown"
+                        ),
                         "from": list(cols_old),
-                        "to": list(cols_new)
-                    })
+                        "to": [],
+                    }
+                )
+
         return shifts
 
     def _audit_children(self, item_key: str) -> tuple[bool, bool]:
@@ -93,19 +128,21 @@ class CollectionAuditor:
         has_note = False
 
         for child in children:
-            data = child.get('data', {})
-            item_type = data.get('itemType')
+            data = child.get("data", {})
+            item_type = data.get("itemType")
 
             # Check PDF
-            if item_type == 'attachment' and \
-               data.get('linkMode') == 'imported_file' and \
-               data.get('filename', '').lower().endswith('.pdf'):
+            if (
+                item_type == "attachment"
+                and data.get("linkMode") == "imported_file"
+                and data.get("filename", "").lower().endswith(".pdf")
+            ):
                 has_pdf = True
 
             # Check Screening Note (JSON)
-            if item_type == 'note':
-                note_text = data.get('note', '')
-                if 'zotero-cli' in note_text and '"decision"' in note_text:
+            if item_type == "note":
+                note_text = data.get("note", "")
+                if "zotero-cli" in note_text and '"decision"' in note_text:
                     has_note = True
 
         return has_pdf, has_note

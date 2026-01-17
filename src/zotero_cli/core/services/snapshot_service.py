@@ -10,6 +10,7 @@ from zotero_cli.core.zotero_item import ZoteroItem
 # Args: current_item_index, total_items, status_message
 ProgressCallback = Callable[[int, int, str], None]
 
+
 class SnapshotService:
     """
     Service responsible for creating immutable snapshots of Zotero collections.
@@ -20,10 +21,7 @@ class SnapshotService:
         self.gateway = gateway
 
     def freeze_collection(
-        self,
-        collection_name: str,
-        output_path: str,
-        callback: Optional[ProgressCallback] = None
+        self, collection_name: str, output_path: str, callback: Optional[ProgressCallback] = None
     ) -> bool:
         """
         Creates a JSON snapshot of the specified collection, including all child items (notes/attachments).
@@ -60,7 +58,11 @@ class SnapshotService:
         # 3. Iterate and Enrich (The "Deep Fetch")
         for index, item in enumerate(parent_items):
             if callback:
-                callback(index + 1, total_items, f"Processing: {item.title[:30] if item.title else 'Untitled'}...")
+                callback(
+                    index + 1,
+                    total_items,
+                    f"Processing: {item.title[:30] if item.title else 'Untitled'}...",
+                )
 
             try:
                 item_data = self._serialize_item(item)
@@ -69,17 +71,16 @@ class SnapshotService:
                 children_raw = self.gateway.get_item_children(item.key)
 
                 # Nest children
-                item_data['children'] = children_raw
+                item_data["children"] = children_raw
                 snapshot_data.append(item_data)
 
             except Exception as e:
                 # Capture the failure but continue processing
-                print(f"\nWarning: Failed to fetch children for item '{item.key}'. Error: {e}", file=sys.stderr)
-                failed_items.append({
-                    "key": item.key,
-                    "title": item.title,
-                    "error": str(e)
-                })
+                print(
+                    f"\nWarning: Failed to fetch children for item '{item.key}'. Error: {e}",
+                    file=sys.stderr,
+                )
+                failed_items.append({"key": item.key, "title": item.title, "error": str(e)})
 
         # 4. Construct Final Artifact
         timestamp = datetime.now(timezone.utc).isoformat()
@@ -94,10 +95,10 @@ class SnapshotService:
                 "items_failed": len(failed_items),
                 "tool_version": "zotero-cli-v1.2.0",
                 "schema_version": "1.0",
-                "status": "partial_success" if failed_items else "success"
+                "status": "partial_success" if failed_items else "success",
             },
             "failures": failed_items,
-            "items": snapshot_data
+            "items": snapshot_data,
         }
 
         # 5. Write to Disk
@@ -105,11 +106,14 @@ class SnapshotService:
             callback(total_items, total_items, "Writing snapshot to disk...")
 
         try:
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(artifact, f, indent=2, ensure_ascii=False)
 
             if failed_items:
-                print(f"\nWarning: Snapshot completed with {len(failed_items)} failures. Check 'failures' block in output.", file=sys.stderr)
+                print(
+                    f"\nWarning: Snapshot completed with {len(failed_items)} failures. Check 'failures' block in output.",
+                    file=sys.stderr,
+                )
 
             return True
         except IOError as e:
@@ -131,5 +135,5 @@ class SnapshotService:
             "date": item.date,
             "authors": item.authors,
             "collections": item.collections,
-            "tags": item.tags
+            "tags": item.tags,
         }

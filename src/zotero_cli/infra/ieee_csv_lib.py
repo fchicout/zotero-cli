@@ -8,7 +8,7 @@ from zotero_cli.core.models import ResearchPaper
 class IeeeCsvLibGateway(IeeeCsvGateway):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
         try:
-            with open(file_path, 'r', encoding='utf-8') as csv_file:
+            with open(file_path, "r", encoding="utf-8") as csv_file:
                 reader = csv.DictReader(csv_file)
                 for row in reader:
                     yield self._map_row_to_paper(row)
@@ -20,15 +20,15 @@ class IeeeCsvLibGateway(IeeeCsvGateway):
             return
 
     def _map_row_to_paper(self, row: dict) -> ResearchPaper:
-        title = row.get('Document Title', 'No Title')
-        publication = row.get('Publication Title')
-        year = row.get('Publication Year')
-        doi = row.get('DOI')
-        abstract = row.get('Abstract', '')
-        url = row.get('PDF Link')
+        title = row.get("Document Title", "No Title")
+        publication = row.get("Publication Title")
+        year = row.get("Publication Year")
+        doi = row.get("DOI")
+        abstract = row.get("Abstract", "")
+        url = row.get("PDF Link")
 
-        authors_str = row.get('Authors', '')
-        authors = [a.strip() for a in authors_str.split(';') if a.strip()]
+        authors_str = row.get("Authors", "")
+        authors = [a.strip() for a in authors_str.split(";") if a.strip()]
 
         return ResearchPaper(
             title=title,
@@ -37,5 +37,5 @@ class IeeeCsvLibGateway(IeeeCsvGateway):
             publication=publication,
             year=year,
             doi=doi,
-            url=url
+            url=url,
         )

@@ -15,20 +15,34 @@ class TuiScreeningService:
     """
     Handles the TUI interaction loop for screening papers.
     """
-    def __init__(self, service: ScreeningService, state_manager: Optional[ScreeningStateService] = None):
+
+    def __init__(
+        self, service: ScreeningService, state_manager: Optional[ScreeningStateService] = None
+    ):
         self.service = service
         self.state_manager = state_manager
         self.console = Console()
 
-    def run_screening_session(self, source_collection: str, target_included: str, target_excluded: str):
+    def run_screening_session(
+        self, source_collection: str, target_included: str, target_excluded: str
+    ):
         self.console.clear()
         self.console.print("[bold cyan]Initializing Screening Session...[/bold cyan]")
         if self.state_manager:
-            self.console.print(f"State Tracking: [green]ENABLED[/green] ({self.state_manager.state_file})")
+            self.console.print(
+                f"State Tracking: [green]ENABLED[/green] ({self.state_manager.state_file})"
+            )
 
         try:
-            persona = Prompt.ask("Enter researcher name/persona", default="unknown", console=self.console)
-            phase = Prompt.ask("Enter screening phase", choices=["title_abstract", "full_text"], default="title_abstract", console=self.console)
+            persona = Prompt.ask(
+                "Enter researcher name/persona", default="unknown", console=self.console
+            )
+            phase = Prompt.ask(
+                "Enter screening phase",
+                choices=["title_abstract", "full_text"],
+                default="title_abstract",
+                console=self.console,
+            )
         except (EOFError, StopIteration):
             self.console.print("[bold red]Input exhausted. Quitting...[/bold red]")
             return
@@ -50,10 +64,14 @@ class TuiScreeningService:
             items = self.state_manager.filter_pending(items)
             skipped = original_count - len(items)
             if skipped > 0:
-                self.console.print(f"[bold blue]Resuming session: {skipped} items already screened locally.[/bold blue]")
+                self.console.print(
+                    f"[bold blue]Resuming session: {skipped} items already screened locally.[/bold blue]"
+                )
 
         if not items:
-            self.console.print("[bold green]All items in this collection have been screened locally![/bold green]")
+            self.console.print(
+                "[bold green]All items in this collection have been screened locally![/bold green]"
+            )
             return
 
         total = len(items)
@@ -69,15 +87,15 @@ class TuiScreeningService:
 
             action = self._get_user_action()
 
-            if action == 'q':
+            if action == "q":
                 self.console.print("[bold yellow]Quitting session...[/bold yellow]")
                 break
-            elif action == 's':
+            elif action == "s":
                 self.console.print("[yellow]Skipping item...[/yellow]")
                 continue
 
-            decision = "INCLUDE" if action == 'i' else "EXCLUDE"
-            target_col = target_included if action == 'i' else target_excluded
+            decision = "INCLUDE" if action == "i" else "EXCLUDE"
+            target_col = target_included if action == "i" else target_excluded
             code = self._get_criteria_code(decision)
 
             with self.console.status(f"[bold blue]Recording decision ({decision})...[/bold blue]"):
@@ -89,7 +107,7 @@ class TuiScreeningService:
                     target_collection=target_col,
                     agent="zotero-cli-tui",
                     persona=persona,
-                    phase=phase
+                    phase=phase,
                 )
 
             if success:
@@ -106,9 +124,7 @@ class TuiScreeningService:
     def _display_item(self, item: ZoteroItem, current: int, total: int):
         layout = Layout()
         layout.split_column(
-            Layout(name="header", size=3),
-            Layout(name="body"),
-            Layout(name="footer", size=3)
+            Layout(name="header", size=3), Layout(name="body"), Layout(name="footer", size=3)
         )
 
         # Header
@@ -134,14 +150,16 @@ class TuiScreeningService:
             choice = Prompt.ask("Action", choices=["i", "e", "s", "q"], console=self.console)
             return choice
         except EOFError:
-            return 'q'
+            return "q"
         except StopIteration:
-            return 'q'
+            return "q"
 
     def _get_criteria_code(self, decision: str) -> str:
         default = "IC1" if decision == "INCLUDE" else "EC1"
         try:
-            code = Prompt.ask(f"Enter {decision} Criteria Code", default=default, console=self.console)
+            code = Prompt.ask(
+                f"Enter {decision} Criteria Code", default=default, console=self.console
+            )
             return code
         except (EOFError, StopIteration):
             return default

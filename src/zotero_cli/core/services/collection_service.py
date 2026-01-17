@@ -10,7 +10,9 @@ class CollectionService:
         self.item_repo = item_repo
         self.collection_repo = collection_repo
 
-    def move_item(self, source_col_name: Optional[str], dest_col_name: str, identifier: str) -> bool:
+    def move_item(
+        self, source_col_name: Optional[str], dest_col_name: str, identifier: str
+    ) -> bool:
         """
         Moves a paper identified by Key, DOI or arXiv ID from source collection to destiny collection.
         If source_col_name is None, attempts to infer it from the item's current collections.
@@ -25,13 +27,18 @@ class CollectionService:
         if not item:
             # Try slow lookup if key failed (only if source is provided, otherwise we can't search in it)
             if source_col_name:
-                 lookup_source_id = self.collection_repo.get_collection_id_by_name(source_col_name) or source_col_name
-                 print(f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'...")
-                 found_items = list(self.collection_repo.get_items_in_collection(lookup_source_id))
-                 for i in found_items:
-                     if self._is_match(i, identifier):
-                         item = i
-                         break
+                lookup_source_id = (
+                    self.collection_repo.get_collection_id_by_name(source_col_name)
+                    or source_col_name
+                )
+                print(
+                    f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'..."
+                )
+                found_items = list(self.collection_repo.get_items_in_collection(lookup_source_id))
+                for i in found_items:
+                    if self._is_match(i, identifier):
+                        item = i
+                        break
 
             if not item:
                 print(f"Item '{identifier}' not found.")
@@ -51,18 +58,25 @@ class CollectionService:
 
             if len(candidates) == 0:
                 # Just add to dest
-                return self.item_repo.update_item(item.key, item.version, {"collections": list(current_cols | {dest_id})})
+                return self.item_repo.update_item(
+                    item.key, item.version, {"collections": list(current_cols | {dest_id})}
+                )
             elif len(candidates) == 1:
                 source_id = list(candidates)[0]
             else:
-                print(f"Error: Ambiguous source. Item '{identifier}' is in multiple collections ({candidates}). Please specify --source to ensure correct movement.", file=sys.stderr)
+                print(
+                    f"Error: Ambiguous source. Item '{identifier}' is in multiple collections ({candidates}). Please specify --source to ensure correct movement.",
+                    file=sys.stderr,
+                )
                 return False
 
         # Verify membership
         if source_id in item.collections:
             return self._perform_move(item, source_id, dest_id)
         else:
-            print(f"Item '{identifier}' found but not in source collection '{source_col_name or source_id}'.")
+            print(
+                f"Item '{identifier}' found but not in source collection '{source_col_name or source_id}'."
+            )
             return False
 
     def _is_match(self, item: ZoteroItem, identifier: str) -> bool:
@@ -92,12 +106,48 @@ class CollectionService:
 
         return self.item_repo.update_item(key, version, {"collections": list(new_cols)})
 
-    def empty_collection(self, collection_name: str, parent_collection_name: Optional[str] = None, verbose: bool = False) -> int:
+    def get_or_create_collection_id(self, name: str) -> str:
+        col_id = self.collection_repo.get_collection_id_by_name(name)
+        if not col_id:
+            col_id = self.collection_repo.create_collection(name)
+        if not col_id:
+            raise ValueError(f"Collection '{name}' not found and could not be created.")
+        return col_id
+
+    def empty_collection(
+        self,
+        collection_name: str,
+        verbose: bool = False,
+        parent_collection_name: Optional[str] = None,
+    ) -> int:
         """
         Deletes all items within a specific collection.
         Returns the number of deleted items.
         """
-        target_id = self.collection_repo.get_collection_id_by_name(collection_name) or collection_name
+        target_id: Optional[str] = None
+
+        if parent_collection_name:
+            # Resolve parent ID
+            parent_id = (
+                self.collection_repo.get_collection_id_by_name(parent_collection_name)
+                or parent_collection_name
+            )
+
+            # Search all collections for the one with this parent
+            all_cols = self.collection_repo.get_all_collections()
+            for col in all_cols:
+                data = col.get("data", col)
+                if (
+                    data.get("name") == collection_name
+                    and data.get("parentCollection") == parent_id
+                ):
+                    target_id = col["key"]
+                    break
+        else:
+            target_id = (
+                self.collection_repo.get_collection_id_by_name(collection_name) or collection_name
+            )
+
         if not target_id:
             return 0
 
@@ -118,7 +168,9 @@ class CollectionService:
         Uses DOI/ArXiv ID for robust matching across duplicate imports.
         """
         primary_id = self.collection_repo.get_collection_id_by_name(primary_col) or primary_col
-        secondary_id = self.collection_repo.get_collection_id_by_name(secondary_col) or secondary_col
+        secondary_id = (
+            self.collection_repo.get_collection_id_by_name(secondary_col) or secondary_col
+        )
 
         # 1. Map Identifiers in Primary
         primary_identifiers: Set[str] = set()
@@ -155,7 +207,9 @@ class CollectionService:
                     current_cols = set(item.collections)
                     if secondary_id in current_cols:
                         current_cols.remove(secondary_id)
-                        if self.item_repo.update_item(item.key, item.version, {"collections": list(current_cols)}):
+                        if self.item_repo.update_item(
+                            item.key, item.version, {"collections": list(current_cols)}
+                        ):
                             pruned_count += 1
                 else:
                     # Different object (Duplicate import) -> Delete secondary item entirely

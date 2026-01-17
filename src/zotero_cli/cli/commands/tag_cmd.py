@@ -26,7 +26,8 @@ class TagCommand(BaseCommand):
 
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
-        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, 'user', False))
+
+        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
         service = TagService(gateway)
 
         if args.verb == "list":
@@ -34,7 +35,7 @@ class TagCommand(BaseCommand):
             for t in sorted(tags):
                 print(t)
         elif args.verb == "add":
-            tags = [t.strip() for t in args.tags.split(',')]
+            tags = [t.strip() for t in args.tags.split(",")]
             item = gateway.get_item(args.item)
             if item and service.add_tags_to_item(args.item, item, tags):
                 print(f"Added tags to {args.item}")

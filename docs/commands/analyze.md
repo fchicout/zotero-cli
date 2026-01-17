@@ -31,3 +31,13 @@ Generate a Mermaid/Graphviz citation graph for one or more collections.
 ```bash
 zotero-cli analyze graph --collections "Included" > graph.dot
 ```
+
+---
+
+### `shift`
+Detect items that moved between collections by comparing two snapshots.
+
+**Usage:**
+```bash
+zotero-cli analyze shift --old snapshot_v1.json --new snapshot_v2.json
+```
