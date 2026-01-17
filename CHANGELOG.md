@@ -2,23 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.0-dev] - 2026-01-16
+## [2.0.0] - 2026-01-17
 
-### Added
-- **Noun-Verb Architecture:** Completely reorganized the CLI into a logically scoped structure (e.g., `item`, `collection`, `review`).
-- **Command: `review audit`:** Programmatic verification of collection completeness (Identifiers, PDFs, Screening Notes).
-- **Command: `item pdf attach`:** Support for uploading local files (PDF, PostScript, DVI) with automatic MIME detection.
-- **Pre-Flight Protocol:** Mandatory System Integration Test suite (`tests/integration/test_slr_workflow.py`).
-- **Modular Documentation:** Detailed documentation for every command noun in `docs/commands/`.
-- **Guided Tours:** Narrative-based user stories for common SLR tasks.
+### 🚀 Major Architectural Shift (v2.0)
+- **Service-Oriented Logic:** Completely decomposed the monolithic legacy `client.py` into specialized services (`ImportService`, `AttachmentService`, `CollectionService`).
+- **Repository Pattern:** Solidified the persistence layer with a strict Repository Pattern, decoupling business logic from the Zotero API implementation.
+- **Legacy Purge:** Successfully "liquidated" all remnants of the `paper2zotero` project name and associated garbage code.
 
-### Changed
-- **Scoping Fix:** Moved bulk PDF operations from `item` to `collection` namespace.
-- **Improved PDF Upload:** Fully aligned with Zotero v3 API specification for reliable multi-step file registration.
-- **Test Automation:** Enhanced documentation consistency tests to verify 100% parity between CLI and Markdown.
+### ✨ Features & Improvements
+- **Automated Quality Dashboard:** Implemented `scripts/generate_badges.py` providing real-time quality visualization (Coverage, Lint, Types) in `README.md`.
+- **System Maintenance:** Added `system normalize` to convert external CSV formats (IEEE, Springer) into the CLI's Canonical Research Schema.
+- **Advanced Operations:** Implemented `review prune` for enforcing mutual exclusivity between collections and `analyze shift` for tracking collection drift.
+- **Robust Backup:** Introduced `.zaf` (LZMA-compressed ZIP) system-wide and collection-scoped backup/restore capabilities.
 
-### Removed
-- **Legacy Routing:** Deleted `manage` and `maint` top-level commands and their associated legacy routing logic.
+### 🛡️ Quality & Testing
+- **The Iron Gauntlet:** Established a comprehensive 221-test suite split into three deterministic categories:
+    - `unit`: Fast, isolated logic tests (80% qualitative coverage).
+    - `e2e`: Full-stack "Iron Gauntlet" tests against real Zotero API instances.
+    - `docs`: Automated consistency checks between CLI help and Markdown documentation.
+- **Zero-Tolerance Quality:** Achieved 100% Green status on `ruff check` and `mypy` strict type checking.
+- **Automated Test Runner:** Created `scripts/test_runner.sh` for unified, categorized test execution.
+
+### ⚠️ Breaking Changes
+- Monolithic `PaperImporterClient` has been removed. Integration must now use `GatewayFactory` to obtain specific services.
+- Version `2.0.0` is now the stable baseline for all future systematic review automation.
+
+## [2.0.0-rc1] - 2026-01-16 (Release Candidate)
 
 ## [1.2.0] - 2026-01-15
 

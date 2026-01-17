@@ -1,5 +1,5 @@
 <!-- BADGES_START -->
-![Version](https://img.shields.io/badge/version-2.0.0-dev-blue) ![Coverage](https://img.shields.io/badge/coverage-79%25-yellow) ![Lint](https://img.shields.io/badge/ruff-passing-brightgreen) ![Types](https://img.shields.io/badge/mypy-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-lightgrey) ![Python](https://img.shields.io/badge/python-3.10+-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue) ![Coverage](https://img.shields.io/badge/coverage-79%25-yellow) ![Lint](https://img.shields.io/badge/ruff-passing-brightgreen) ![Types](https://img.shields.io/badge/mypy-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-lightgrey) ![Python](https://img.shields.io/badge/python-3.10+-blue)
 <!-- BADGES_END -->
 
 # zotero-cli
