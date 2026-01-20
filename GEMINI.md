@@ -27,29 +27,41 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 
 **Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`.
 
-## Accomplishments (Session: 2026-01-17)
+## Accomplishments (Session: 2026-01-20)
 
-### Phase 13: Test Reorganization & Coverage Restoration
-*   **[ARCH] Test Reorganization:** Split tests into `unit`, `e2e` (renamed from integration), and `docs` categories.
-*   **[FEAT] Test Runner Script:** Created `scripts/test_runner.sh` to support categorized execution and combined coverage.
-*   **[QUALITY] Coverage Restoration:** Verified total coverage at **81%**.
-    *   Resolved coverage gaps in `infra/canonical_csv_lib.py` (boosted to 100%) and `infra/repositories.py` (boosted to 75%).
-*   **[BUGFIX] Test Failures:** Fixed 2 failing unit tests in `system normalize` and path errors in E2E tests after reorganization.
-*   **[QUALITY] Zero Tolerance Pass:** Achieved 100% Green status across Ruff (lint) and Mypy (types) after manual fixes for 14 remaining errors.
-*   **[PURGE] Legacy Liquidation:** Deleted monolithic `client.py` and legacy `paper2zotero` artifacts. Decomposed logic into services.
+### Phase 17: Usability & Configuration (v2.1)
+*   **[FEAT] Interactive Wizard (Issue #28):** Implemented a comprehensive `init` command with:
+    *   Prompts for all `ZoteroConfig` fields (Zotero, Semantic Scholar, Unpaywall).
+    *   Real-time credential verification against the Zotero API.
+    *   Improved TUI using `rich` for better user experience.
+*   **[TEST] Quality Assurance:** Added unit tests for the `init` wizard, achieving 100% pass rate.
+*   **[QUALITY] Valerius Review:** Evolved tests to cover user overrides, overwrite scenarios, and edge cases (I/O errors). Fixed a `TypeError` in `rich` console usage.
+*   **[DOCS] Documentation:** Created `docs/commands/init.md` and updated `USER_GUIDE.md` and `Getting Started` tutorials.
+*   **[OPS] Process Hardening:** Standardized the GitHub workflow (assigning/closing issues via `gh`).
+
+## Accomplishments (Session: 2026-01-19)
+
+### Phase 16: Roadmap Definition (v2.1 - v2.2)
+*   **[PLANNING] Infrastructure Hardening:**
+    *   **Issue #28 (Init):** Defined Interactive Configuration Wizard.
+    *   **Issue #30 (Offline):** Defined High-Performance SQLite Reader Mode.
+    *   **Issue #31 (Local API):** Defined Local HTTP Adapter (`--backend local`).
+*   **[PLANNING] Advanced Workflows:**
+    *   **Issue #29 (Checkout/Check-in):** Designed "Storage Offloading" workflow using Source ID tracking.
+    *   **Issue #32 (Enrichment):** Designed Retroactive CSV Import for multi-researcher SDB injection.
+    *   **Issue #33 (Purge):** Designed maintenance command for batch cleaning of notes/attachments.
+*   **[OPS] Repository Hygiene:** Standardized GitHub labels using the "Golden Set" taxonomy across all issues.
 
 ### Phase 15: Stable Release (v2.0.0)
 *   **[RELEASE] v2.0.0 Stable:** Published the official stable release.
-*   **[BUGFIX] CI/CD Pipeline:** Resolved test failures in GitHub Actions by restricting execution to unit tests (avoiding environment-dependent E2E failures).
-*   **[BUGFIX] Release Assets:** Fixed path mapping in `release.yml` to ensure the raw linux binary is correctly included in the release.
 
 ## Current State
 
 *   **Version:** `v2.0.0` (Stable)
-*   **Quality:** 100% Unit Test Pass in CI. 100% Quad-Gate pass locally (including E2E).
-*   **Coverage:** **81% Total**.
-*   **Status:** **DEPLOYED.**
+*   **Quality:** 100% Unit Test Pass in CI. 100% Quad-Gate pass locally.
+*   **Status:** **PLANNING v2.1**
 
 ## Next Actions (Immediate)
-1.  **Audit Feature:** Implement Issue #18 (Audit Command) as the first v2.1 feature.
-2.  **Backlog Reconciliation:** Continue Phase 11.
+1.  **Usability:** Implement Issue #28 (`init` wizard).
+2.  **Infrastructure:** Implement Issue #30 (`--offline` mode) and #31 (Local API).
+3.  **Workflow:** Implement Issue #29 (`move` checkout/check-in) and #32 (CSV Import).
