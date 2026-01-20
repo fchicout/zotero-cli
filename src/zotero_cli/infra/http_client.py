@@ -35,13 +35,13 @@ class ZoteroHttpClient:
         self.last_library_version = 0
 
     def get(
-        self, endpoint: str, params: Optional[Dict] = None, use_prefix: bool = True
+        self, endpoint: str, params: Optional[Dict] = None, use_prefix: bool = True, **kwargs: Any
     ) -> requests.Response:
         url = f"{self.api_prefix}/{endpoint}" if use_prefix else f"{self.BASE_URL}/{endpoint}"
         # Strip leading slash if present in endpoint to avoid double slash issues?
         # requests handles it mostly, but let's be clean.
 
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, **kwargs)
         self._update_version(response)
         response.raise_for_status()
         return response
@@ -57,7 +57,7 @@ class ZoteroHttpClient:
         self, endpoint: str, json_data: Any, version_check: bool = False
     ) -> requests.Response:
         url = f"{self.api_prefix}/{endpoint}"
-        headers = self.session.headers.copy()
+        headers = dict(self.session.headers).copy()
 
         # Concurrency Control
         if version_check:
@@ -78,7 +78,7 @@ class ZoteroHttpClient:
         self, endpoint: str, params: Optional[Dict] = None, version_check: bool = True
     ) -> requests.Response:
         url = f"{self.api_prefix}/{endpoint}"
-        headers = self.session.headers.copy()
+        headers = dict(self.session.headers).copy()
         if version_check:
             headers["If-Unmodified-Since-Version"] = str(self.last_library_version)
 
@@ -104,7 +104,7 @@ class ZoteroHttpClient:
         For multipart/form-data or urlencoded posts (like attachment authorization).
         """
         url = f"{self.api_prefix}/{endpoint}"
-        h = self.session.headers.copy()
+        h = dict(self.session.headers).copy()
         if headers:
             h.update(headers)
 
