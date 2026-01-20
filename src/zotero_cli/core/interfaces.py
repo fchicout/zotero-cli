@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterator, List, Optional
 
-from .models import ResearchPaper
+from .models import ResearchPaper, ZoteroQuery
 from .zotero_item import ZoteroItem
 
 
@@ -102,6 +102,14 @@ class AttachmentRepository(ABC):
     ) -> bool:
         pass
 
+    @abstractmethod
+    def download_attachment(self, item_key: str, save_path: str) -> bool:
+        pass
+
+    @abstractmethod
+    def update_attachment_link(self, item_key: str, version: int, new_path: str) -> bool:
+        pass
+
 
 class MetadataProvider(ABC):
     @abstractmethod
@@ -159,4 +167,6 @@ class ZoteroGateway(
     Inherits from specific repositories to enforce contract.
     """
 
-    pass
+    @abstractmethod
+    def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
+        pass
