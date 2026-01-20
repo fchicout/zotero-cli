@@ -18,7 +18,8 @@ class ImportService:
         success_count = 0
         for paper in papers:
             if verbose:
-                print(f"Adding: {paper.title}...")
+                doi_info = f" [DOI: {paper.doi}]" if paper.doi else ""
+                print(f"Adding: {paper.title}{doi_info}...")
 
             if self.item_repo.create_item(paper, col_id):
                 success_count += 1

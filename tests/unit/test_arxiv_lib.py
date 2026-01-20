@@ -66,3 +66,53 @@ def test_search_returns_papers(MockSearch, MockClient):
         sort_by=arxiv.SortCriterion.Relevance,
         sort_order=arxiv.SortOrder.Descending,
     )
+
+
+@patch("zotero_cli.infra.arxiv_lib.arxiv.Client")
+@patch("zotero_cli.infra.arxiv_lib.arxiv.Search")
+def test_search_extracts_doi_from_comment(MockSearch, MockClient):
+    mock_client_instance = MockClient.return_value
+
+    mock_result = MagicMock()
+    mock_result.get_short_id.return_value = "2103.10433"
+    mock_result.title = "Title"
+    mock_result.summary = "Summary"
+    mock_result.authors = []
+    mock_result.published = None
+    mock_result.doi = None  # Missing DOI field
+    mock_result.comment = "Accepted at NeurIPS 2021. DOI: 10.1145/3442188.3445922"
+    mock_result.journal_ref = None
+    mock_result.pdf_url = "http://pdf"
+
+    mock_client_instance.results.return_value = iter([mock_result])
+
+    gateway = ArxivLibGateway()
+    papers = list(gateway.search("query", limit=1))
+
+    assert len(papers) == 1
+    assert papers[0].doi == "10.1145/3442188.3445922"
+
+
+@patch("zotero_cli.infra.arxiv_lib.arxiv.Client")
+@patch("zotero_cli.infra.arxiv_lib.arxiv.Search")
+def test_search_extracts_doi_from_journal_ref(MockSearch, MockClient):
+    mock_client_instance = MockClient.return_value
+
+    mock_result = MagicMock()
+    mock_result.get_short_id.return_value = "2103.10433"
+    mock_result.title = "Title"
+    mock_result.summary = "Summary"
+    mock_result.authors = []
+    mock_result.published = None
+    mock_result.doi = None
+    mock_result.comment = None
+    mock_result.journal_ref = "Nature 2021, doi:10.1038/s41586-021-03354-4"
+    mock_result.pdf_url = "http://pdf"
+
+    mock_client_instance.results.return_value = iter([mock_result])
+
+    gateway = ArxivLibGateway()
+    papers = list(gateway.search("query", limit=1))
+
+    assert len(papers) == 1
+    assert papers[0].doi == "10.1038/s41586-021-03354-4"
