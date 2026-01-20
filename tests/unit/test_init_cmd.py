@@ -2,6 +2,7 @@ import sys
 from unittest.mock import Mock, patch
 
 import pytest
+
 from zotero_cli.cli.main import main
 
 
@@ -94,7 +95,9 @@ def test_init_command_overwrite_existing(tmp_path, capsys):
 
     with (
         patch("rich.prompt.Prompt.ask", side_effect=inputs),
-        patch("rich.prompt.Confirm.ask", side_effect=[True, True]),  # Overwrite? -> Yes, Verify? -> Yes
+        patch(
+            "rich.prompt.Confirm.ask", side_effect=[True, True]
+        ),  # Overwrite? -> Yes, Verify? -> Yes
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
     ):
         mock_gw = mock_gw_get.return_value
@@ -109,67 +112,28 @@ def test_init_command_overwrite_existing(tmp_path, capsys):
 
 
 def test_init_command_write_error(tmp_path, capsys):
-
-
     config_file = tmp_path / "config.toml"
-
-
-
-
 
     inputs = ["key", "user", "123", "", ""]
 
-
-
-
-
     with (
-
-
         patch("rich.prompt.Prompt.ask", side_effect=inputs),
-
-
         patch("rich.prompt.Confirm.ask", return_value=True),
-
-
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
-
-
     ):
-
-
         mock_gw = mock_gw_get.return_value
-
 
         mock_gw.http.get.return_value = Mock()
 
-
-
-
-
         # Mock open to raise IOError
 
-
         with patch("builtins.open", side_effect=IOError("Permission denied")):
-
-
             test_args = ["zotero-cli", "--config", str(config_file), "init"]
 
-
             with patch.object(sys, "argv", test_args):
-
-
                 with pytest.raises(SystemExit):
-
-
                     main()
-
-
-
-
 
     captured = capsys.readouterr()
 
-
     assert "Failed to save config: Permission denied" in captured.out
-

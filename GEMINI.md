@@ -22,6 +22,15 @@ This document preserves the context, memory, and task history of the `zotero-cli
 3.  **Traceability:** No "WIP" commits. Code must be runnable/testable at every commit.
 4.  **Verification:** Verify status and diffs before committing.
 
+**Quality Assurance (The Valerius Protocol):**
+1.  **Baseline Verification:** Before any changes, run the existing Quality Gate to establish a clean baseline.
+2.  **Test Expansion:** Features are not complete without tests. You must update or create Unit Tests AND Feature-Based E2E Tests.
+3.  **Final Gate:** Run the Quality Gate again after implementation.
+4.  **Approval Criteria:**
+    *   **Pass Rate:** 100% (Zero tolerance for failure).
+    *   **Coverage:** Must remain above 80%.
+    *   **Type Safety:** Zero Mypy errors.
+
 ## Project Overview: `zotero-cli`
 A "Systematic Review Engine" CLI tool to import, manage, and screen research papers in Zotero libraries.
 

@@ -369,7 +369,7 @@ class ZoteroAPIClient(ZoteroGateway):
             # Note: Zotero API redirects to Amazon S3 for file content
             response = self.http.get(f"items/{item_key}/file", stream=True)
             response.raise_for_status()
-            
+
             with open(save_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
@@ -380,9 +380,5 @@ class ZoteroAPIClient(ZoteroGateway):
 
     def update_attachment_link(self, item_key: str, version: int, new_path: str) -> bool:
         # Changes linkMode to 'linked_file' and sets the path
-        payload = {
-            "linkMode": "linked_file",
-            "path": new_path,
-            "version": version
-        }
+        payload = {"linkMode": "linked_file", "path": new_path, "version": version}
         return self.update_item(item_key, version, payload)

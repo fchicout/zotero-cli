@@ -114,5 +114,3 @@ class InitCommand(BaseCommand):
         except Exception as e:
             console.print(f"[bold red]Failed to save config: {e}[/]")
             sys.exit(1)
-
-        

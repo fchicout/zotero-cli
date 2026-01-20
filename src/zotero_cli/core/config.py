@@ -64,7 +64,7 @@ class ConfigLoader:
             "semantic_scholar_api_key"
         )
         up_email = os.environ.get("UNPAYWALL_EMAIL") or file_config.get("unpaywall_email")
-        
+
         storage_path = os.environ.get("ZOTERO_STORAGE_PATH") or file_config.get("storage_path")
 
         return ZoteroConfig(

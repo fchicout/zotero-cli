@@ -13,6 +13,9 @@ dependencies = [
     "rispy>=0.4.0",
 ]
 
+[project.scripts]
+zotero-cli = "zotero_cli.cli.main:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest-cov>=4.1.0",

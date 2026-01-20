@@ -13,9 +13,11 @@ class StorageCommand(BaseCommand):
 
     def register_args(self, parser: argparse.ArgumentParser):
         subparsers = parser.add_subparsers(dest="subcommand", help="Storage subcommands")
-        
+
         # checkout
-        checkout_parser = subparsers.add_parser("checkout", help="Move stored files to local storage")
+        checkout_parser = subparsers.add_parser(
+            "checkout", help="Move stored files to local storage"
+        )
         checkout_parser.add_argument("--limit", type=int, default=50, help="Max items to process")
         # checkout_parser.add_argument("--sort", choices=["size", "date"], default="size", help="Sort order")
 
@@ -35,7 +37,7 @@ class StorageCommand(BaseCommand):
 
         gateway = GatewayFactory.get_zotero_gateway(config)
         service = StorageService(config, gateway)
-        
+
         print(f"Starting storage checkout (Limit: {args.limit})...")
         count = service.checkout_items(limit=args.limit)
         print(f"Checkout complete. Processed {count} items.")

@@ -37,6 +37,7 @@ Detailed documentation is available for each command noun:
 
 | Noun | Description | Key Verbs |
 | :--- | :--- | :--- |
+| **[`init`](docs/commands/init.md)** | Configuration | `(default)` |
 | **[`review`](docs/commands/review.md)** | SLR Workflow | `screen`, `decide`, `audit`, `prune`, `migrate` |
 | **[`item`](docs/commands/item.md)** | Paper/Item Ops | `inspect`, `move`, `update`, `delete`, `pdf` |
 | **[`collection`](docs/commands/collection.md)** | Folder Ops | `list`, `create`, `rename`, `delete`, `backup` |
@@ -45,6 +46,7 @@ Detailed documentation is available for each command noun:
 | **[`analyze`](docs/commands/analyze.md)** | Analytics | `audit`, `lookup`, `graph`, `shift` |
 | **[`tag`](docs/commands/tag.md)** | Taxonomy | `list`, `add`, `remove`, `purge` |
 | **[`list`](docs/commands/list.md)** | Generic List | `items`, `collections`, `groups` |
+| **[`storage`](docs/commands/storage.md)** | Maintenance | `checkout` |
 | **[`system`](docs/commands/system.md)** | Maintenance | `backup`, `restore`, `normalize`, `info` |
 
 ## 🚀 Key v2.0 Features
