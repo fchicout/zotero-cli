@@ -6,86 +6,89 @@
 ---
 
 ## 1. What is this tool?
-Think of `zotero-cli` as a "Super Plugin" that lives outside of Zotero. It helps you:
-*   **Screen papers** faster (using keyboard shortcuts).
-*   **Clean up** your metadata.
-*   **Generate reports** automatically.
+Think of `zotero-cli` as a "Systematic Review Engine" that lives outside of Zotero. It helps you:
+*   **Screen papers** faster (using a dedicated interface).
+*   **Clean up** your metadata and find duplicates.
+*   **Generate PRISMA reports** automatically.
 
-It runs in a black window called the **Terminal**, but don't worry—we'll guide you through every keystroke.
+It runs in a window called the **Terminal**, but don't worry—we'll guide you through every step.
 
-## 2. Prerequisites (The Boring Stuff)
+## 2. Prerequisites
 Before we start, you need two things from the Zotero website:
 
-### Step A: Get your User ID
+### Step A: Get your Library ID
 1. Log into [zotero.org](https://www.zotero.org/settings/keys).
 2. Go to **Settings > Feeds/API**.
-3. Look for `Your userID` (it's a number like `1234567`).
-4. **Write this down.**
+3. Look for `Your userID` (it's a number like `1234567`). If you are using a group, you'll need the Group ID found in the group's URL on the Zotero website.
 
-### Step B: Create a Key
+### Step B: Create an API Key
 1. On that same page, click **[Create new private key]**.
 2. Name it `ZoteroCLI`.
 3. Check the boxes:
     *   [x] Personal Library: **Read/Write**
     *   [x] Default Group Permissions: **Read/Write**
 4. Click **Save Key**.
-5. You will see a long string of random characters (e.g., `H8d9...`). **Copy this immediately**—you won't see it again!
+5. You will see a long string of random characters. **Copy this immediately**—you won't see it again!
 
 ---
 
 ## 3. Installation
-(Ask your IT friend or use the installer provided by the developer).
-*Assuming you have the tool installed and opened the terminal:*
-
-Type this command and press **Enter**:
+Verify the tool is installed by typing this command and pressing **Enter**:
 ```bash
 zotero-cli --version
 ```
-You should see: `zotero-cli v0.4.0`. If yes, you are ready!
+You should see: `zotero-cli v2.0.0`. If yes, you are ready!
 
 ---
 
-## 4. The First Connection
-Now, let's introduce the tool to your library. We will set the "Environment Variables" (a fancy way of saving your password).
+## 4. The Easy Setup (Recommended)
+The simplest way to connect is using the built-in configuration wizard.
 
-**Mac/Linux:**
+Type this command:
 ```bash
-export ZOTERO_USER_ID="1234567"
-export ZOTERO_API_KEY="your_long_key_here"
+zotero-cli init
 ```
 
-**Windows (PowerShell):**
-```powershell
-$env:ZOTERO_USER_ID="1234567"
-$env:ZOTERO_API_KEY="your_long_key_here"
+The wizard will ask for:
+1.  **Zotero API Key**: Paste the key you copied in Step B.
+2.  **Library Type**: Choose `user` (for your own library) or `group` (for a shared group).
+3.  **Library ID**: Enter your User ID or Group ID.
+4.  **Optional Settings**: You can skip these by pressing Enter.
+
+The tool will **verify** your connection automatically. If everything is correct, it will save your settings.
+
+### Alternative: Environment Variables
+For advanced users or temporary sessions, you can still use:
+```bash
+export ZOTERO_API_KEY="your_key"
+export ZOTERO_LIBRARY_ID="12345"
 ```
 
-### Test it!
-Run this command to check your library info:
+---
+
+## 5. Verify your Setup
+Run this command to check your library status:
 ```bash
-zotero-cli info
+zotero-cli system info
 ```
 
 **Success looks like this:**
 ```text
-Zotero Library Info:
---------------------
-User ID: 1234567
-Type:    user
-Items:   1,420
-Groups:  Research Team A, Thesis Group
+--- Zotero CLI Info ---
+Config Path: /home/user/.config/zotero-cli/config.toml
+Library ID:  1234567
+Library Type: user
+API Key:     ********
 ```
 
 ---
 
-## 5. Your First "Magic Trick"
-Let's find the stats of your library report.
+## 6. Your First List
+Let's see your collections:
 
 ```bash
-zotero-cli report
+zotero-cli collection list
 ```
 
-The tool will scan your screening decisions (if any) and show you a table. Since you are new, it might say "No screening data found"—and that's okay! It proves the connection works.
-
 ### Next Step
-Ready to do real work? Go to **[Tutorial 2: Screening Papers](./02-slr-workflow.md)**.
+Ready to start a Systematic Review? Go to **[Tutorial 2: SLR Workflow](./02-slr-workflow.md)**.

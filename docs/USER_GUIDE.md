@@ -1,55 +1,41 @@
-# User Guide (v1.2.0)
+# User Guide (v2.0.0)
 
 ## Table of Contents
 1.  [Getting Started](#getting-started)
-2.  [Context & Configuration](#context--configuration)
+2.  [Setup & Configuration](#setup--configuration)
 3.  [Workflow (Screening & Reporting)](#workflow)
 4.  [Ingestion (Import)](#ingestion)
-5.  [Management (Tags, PDFs, Cleaning)](#management)
-6.  [Analysis & Discovery](#analysis)
+5.  [Management (Collections, Tags, Items)](#management)
+6.  [Analysis & System](#analysis)
 
 ## Getting Started
 
-Ensure you have your environment variables set:
+The fastest way to get started is using the interactive configuration wizard:
 ```bash
-export ZOTERO_API_KEY="key"
-export ZOTERO_USER_ID="123456"
-# Optional: Set a default group URL
-export ZOTERO_TARGET_GROUP="https://zotero.org/groups/123"
+zotero-cli init
 ```
 
 ## 1. Setup and Configuration
 
 ### 1.1 Authentication
-The `zotero-cli` requires your Zotero API Key and Library information. You can provide these via Environment Variables or a Persistent Configuration file.
+The `zotero-cli` requires your Zotero API Key and Library information.
 
-#### Option A: Persistent Configuration (Recommended)
-Create a `config.toml` file in the standard configuration directory:
+#### Option A: Configuration Wizard (Recommended)
+Run the following command and follow the prompts:
+```bash
+zotero-cli init
+```
+This generates a `config.toml` file in the standard directory:
 - **Linux/macOS:** `~/.config/zotero-cli/config.toml`
 - **Windows:** `%APPDATA%\zotero-cli\config.toml`
-
-Example `config.toml`:
-```toml
-[zotero]
-api_key = "YOUR_API_KEY"
-library_id = "6287212"
-library_type = "group"
-user_id = "1909172"
-```
-
-You can also specify a custom config path using the global `--config` flag:
-```bash
-zotero-cli --config ./my-project-config.toml info
-```
 
 #### Option B: Environment Variables
 For CI/CD or ephemeral sessions, use these variables:
 - `ZOTERO_API_KEY`: Your secret API key.
 - `ZOTERO_LIBRARY_ID`: The ID of the group or user library.
 - `ZOTERO_LIBRARY_TYPE`: Either `group` (default) or `user`.
-- `ZOTERO_TARGET_GROUP`: Full URL (e.g., `https://www.zotero.org/groups/123/name`) to derive ID.
 - `ZOTERO_USER_ID`: Your personal Zotero User ID.
-
+- `ZOTERO_TARGET_GROUP`: Full URL to derive ID.
 
 ## Workflow
 
@@ -57,36 +43,22 @@ For CI/CD or ephemeral sessions, use these variables:
 **Interactive (TUI):**
 The core feature. Launch the "Tinder-for-Papers" interface.
 ```bash
-zotero-cli screen --source "raw_arXiv" --include "screened" --exclude "excluded"
+zotero-cli review screen --source "raw_arXiv" --include "screened" --exclude "excluded"
 ```
 *   **[I]**: Include
 *   **[E]**: Exclude (Select reason code)
 *   **[S]**: Skip
 
 **Single Decision (CLI):**
-Record a decision directly from the terminal without entering the TUI.
+Record a decision directly from the terminal.
 ```bash
-zotero-cli decide --item "ITEM_KEY" --vote "include"
-zotero-cli decide --item "ITEM_KEY" --vote "exclude" --reason "E1"
-```
-
-**Bulk Import (CSV):**
-Import decisions from a spreadsheet (e.g., from a distributed team).
-CSV must have `Key` and `Vote` columns. `Reason` is optional.
-```bash
-zotero-cli screen --file team_decisions.csv --source "raw_arXiv" --include "screened" --exclude "excluded"
+zotero-cli review decide --key "ITEM_KEY" --vote "include"
 ```
 
 ### 2. Reporting (PRISMA)
-Generate a PRISMA 2020 statistics report and flowchart.
+Generate a PRISMA 2020 statistics report.
 ```bash
-zotero-cli report prisma --collection "screened" --output-chart "prisma.png"
-```
-
-### 3. Snapshotting
-Create an immutable JSON audit trail of your review state.
-```bash
-zotero-cli report snapshot --collection "screened" --output "audit_trail.json"
+zotero-cli report prisma --collection "screened"
 ```
 
 ---
@@ -97,7 +69,6 @@ zotero-cli report snapshot --collection "screened" --output "audit_trail.json"
 Supports BibTeX (`.bib`), RIS (`.ris`), and CSV (Springer/IEEE).
 ```bash
 zotero-cli import file papers.bib --collection "Imported"
-zotero-cli import file ieee_export.csv --collection "IEEE"
 ```
 
 ### Online Query (arXiv)
@@ -106,99 +77,41 @@ Import directly from arXiv using a query.
 zotero-cli import arxiv --query "LLM AND Security" --limit 50 --collection "AI Security"
 ```
 
-### Manual Entry
-Add a single paper.
-```bash
-zotero-cli import manual --arxiv-id "2301.00001" --title "Paper Title" --abstract "Abstract..." --collection "My List"
-```
-
 ---
 
 ## Management
 
+### Collections
+```bash
+zotero-cli collection list
+zotero-cli collection clean --collection "Trash"
+```
+
 ### Tags
 ```bash
-zotero-cli manage tags list
-zotero-cli manage tags rename --old "ai" --new "artificial-intelligence"
-zotero-cli manage tags delete --tag "junk"
-zotero-cli manage tags add --item "KEY123" --tags "review,prio"
+zotero-cli tag list
+zotero-cli tag purge --tag "junk"
 ```
 
-### PDFs
-**Fetch:** Find missing PDFs via Unpaywall.
+### Items
 ```bash
-zotero-cli manage pdfs fetch --collection "Reading List"
-```
-**Strip:** Remove all attachments to save space.
-```bash
-zotero-cli manage pdfs strip --collection "Old Papers"
-```
-
-### Hygiene
-**Duplicates:** Find duplicate titles/DOIs.
-```bash
-zotero-cli manage duplicates --collections "Inbox, Archive"
-```
-**Move:** Transfer an item.
-```bash
-zotero-cli manage move --item-id "10.1234/doi" --source "Inbox" --target "Read"
-```
-**Clean:** Empty a collection (Destructive!).
-```bash
-zotero-cli manage clean --collection "Trash"
-```
-**Migrate:** Upgrade audit notes to Standardized Decision Block (SDB) v1.1.
-```bash
-zotero-cli manage migrate --collection "raw_arXiv"
-```
-
-**Sync-CSV:** Recover screening state from Zotero notes back to a CSV file.
-```bash
-zotero-cli manage sync-csv --collection "screened" --output "screening_recovery.csv"
+zotero-cli item list --collection "MyCol"
+zotero-cli item inspect BQPLL87F
+zotero-cli item move --item-id "KEY" --target "Read"
 ```
 
 ---
 
-## Analysis
+## Analysis & System
 
-### Discovery
-**Info:** Check configuration.
+### System Info
+Check your configuration and connection status.
 ```bash
-zotero-cli info
-```
-
-**List:**
-```bash
-zotero-cli list collections   # See what you have
-zotero-cli list groups        # Find your Group IDs
-zotero-cli list items --collection "MyCol" # Lists papers (hides attachments/notes)
-```
-
-**Inspect:** Deep dive into a specific item (shows metadata, children, notes).
-```bash
-zotero-cli inspect --key "BQPLL87F"
+zotero-cli system info
 ```
 
 ### Audit
 Check for missing metadata (Abstracts, DOIs, PDFs).
 ```bash
 zotero-cli analyze audit --collection "Critical Review"
-```
-
-### Lookup
-Bulk fetch metadata for a list of Item Keys (useful for synthesis tables).
-```bash
-zotero-cli analyze lookup --keys "K1,K2,K3" --format table
-```
-
-### Graph
-Generate a Graphviz DOT file of citation networks.
-```bash
-zotero-cli analyze graph --collections "AI Security" > graph.dot
-```
-
-### Find (Read-Only)
-Search arXiv without importing.
-```bash
-zotero-cli find arxiv --query "terms: title=LLM; size: 10"
 ```
