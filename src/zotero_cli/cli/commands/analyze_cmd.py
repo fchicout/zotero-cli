@@ -40,6 +40,14 @@ class AnalyzeCommand(BaseCommand):
         shift_p.add_argument("--old", required=True, help="Old Snapshot JSON")
         shift_p.add_argument("--new", required=True, help="New Snapshot JSON")
 
+        # Import CSV (Retroactive Enrichment)
+        import_csv_p = sub.add_parser("import-csv", help="Retroactive SDB enrichment from CSV")
+        import_csv_p.add_argument("file", help="CSV file with screening decisions")
+        import_csv_p.add_argument("--reviewer", required=True, help="Reviewer name (persona)")
+        import_csv_p.add_argument(
+            "--force", action="store_true", help="Actually write to Zotero (Default is Dry-Run)"
+        )
+
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
 
@@ -53,6 +61,44 @@ class AnalyzeCommand(BaseCommand):
             self._handle_graph(gateway, args)
         elif args.analyze_type == "shift":
             self._handle_shift(gateway, args)
+        elif args.analyze_type == "import-csv":
+            self._handle_import_csv(gateway, args)
+
+    def _handle_import_csv(self, gateway, args):
+        service = CollectionAuditor(gateway)
+        dry_run = not args.force
+
+        print(f"Importing SDB data from {args.file} (Reviewer: {args.reviewer})...")
+        if dry_run:
+            print("[bold yellow]DRY RUN MODE ENABLED. No changes will be written.[/bold yellow]")
+
+        results = service.enrich_from_csv(
+            csv_path=args.file, reviewer=args.reviewer, dry_run=dry_run, force=args.force
+        )
+
+        if "error" in results:
+            console.print(f"[bold red]Error:[/] {results['error']}")
+            return
+
+        table = Table(title="Import CSV Results")
+        table.add_column("Metric")
+        table.add_column("Value", justify="right")
+
+        table.add_row("Total Rows", str(results["total_rows"]))
+        table.add_row("Matched Items", f"[green]{results['matched']}[/]")
+        table.add_row("Unmatched Rows", f"[red]{len(results['unmatched'])}[/]")
+        table.add_row("Notes Updated", str(results["updated"]))
+        table.add_row("Notes Created", str(results["created"]))
+        table.add_row("Skipped (Dry Run)", str(results["skipped"]))
+
+        console.print(table)
+
+        if results["unmatched"]:
+            print("\n[bold red]Unmatched Titles:[/]")
+            for t in results["unmatched"][:10]:
+                print(f"  - {t}")
+            if len(results["unmatched"]) > 10:
+                print(f"  ... and {len(results['unmatched']) - 10} more.")
 
     def _handle_shift(self, gateway, args):
         service = CollectionAuditor(gateway)
