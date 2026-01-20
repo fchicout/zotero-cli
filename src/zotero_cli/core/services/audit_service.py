@@ -1,8 +1,14 @@
 import concurrent.futures
+import csv
+import json
+import sys
 from dataclasses import dataclass, field
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from rapidfuzz import fuzz
+
+from zotero_cli.core.interfaces import NoteRepository, ZoteroGateway
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -120,6 +126,178 @@ class CollectionAuditor:
                 )
 
         return shifts
+
+    def enrich_from_csv(
+        self, csv_path: str, reviewer: str, dry_run: bool = True, force: bool = False
+    ) -> dict:
+        """
+        Retroactive SDB Enrichment from CSV.
+        """
+        # 1. Load CSV
+        rows = []
+        try:
+            with open(csv_path, "r", encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                rows = list(reader)
+        except Exception as e:
+            print(f"Error reading CSV: {e}")
+            return {"error": str(e)}
+
+        if not rows:
+            return {"count": 0, "matched": 0, "unmatched": 0}
+
+        # 2. Cache Library Items for Matching
+        print("Caching library items for matching...")
+        # For performance, we fetch all items. If library is huge, this might be slow.
+        # Use a generator if needed, but for matching we need a look-up table.
+        # We can use ZoteroQuery() to fetch all items.
+        from zotero_cli.core.models import ZoteroQuery
+
+        all_items = list(self.gateway.search_items(ZoteroQuery()))
+        
+        # Build lookup maps
+        items_by_key = {i.key: i for i in all_items}
+        items_by_doi = {self._normalize_doi(i.doi): i for i in all_items if i.doi}
+        # Title map for exact matches, fuzzy used later
+        items_by_title = {self._normalize_title(i.title): i for i in all_items if i.title}
+
+        results = {
+            "total_rows": len(rows),
+            "matched": 0,
+            "unmatched": [],
+            "updated": 0,
+            "created": 0,
+            "skipped": 0,
+        }
+
+        for row in rows:
+            item = self._find_item_cascade(row, items_by_key, items_by_doi, items_by_title, all_items)
+            
+            if not item:
+                title = row.get("Title") or row.get("title") or "Unknown"
+                results["unmatched"].append(title)
+                continue
+
+            results["matched"] += 1
+            
+            # 3. Construct SDB Payload
+            sdb_payload = self._build_sdb_payload(row, reviewer)
+            
+            if dry_run:
+                old_doi = item.doi or "N/A"
+                new_doi = row.get("DOI") or row.get("doi") or "N/A"
+                print(f"[DRY RUN] Match: {item.key} | {item.title[:40]}... | {reviewer}")
+                results["skipped"] += 1
+                continue
+
+            if not force:
+                results["skipped"] += 1
+                continue
+
+            # 4. Inject/Update Note
+            action = self._inject_sdb_note(item.key, reviewer, sdb_payload)
+            if action == "updated":
+                results["updated"] += 1
+            elif action == "created":
+                results["created"] += 1
+            else:
+                results["skipped"] += 1
+
+        return results
+
+    def _find_item_cascade(self, row, by_key, by_doi, by_title, all_items) -> Optional[ZoteroItem]:
+        # 1. Key
+        key = row.get("key") or row.get("zotero_key")
+        if key and key in by_key:
+            return by_key[key]
+
+        # 2. DOI
+        doi = row.get("DOI") or row.get("doi")
+        if doi:
+            norm_doi = self._normalize_doi(doi)
+            if norm_doi in by_doi:
+                return by_doi[norm_doi]
+
+        # 3. Title (Exact)
+        title = row.get("Title") or row.get("title")
+        if title:
+            norm_title = self._normalize_title(title)
+            if norm_title in by_title:
+                return by_title[norm_title]
+
+            # 4. Title (Fuzzy)
+            # This is slow, so we only do it if Title is present
+            for item in all_items:
+                if not item.title:
+                    continue
+                score = fuzz.ratio(norm_title, self._normalize_title(item.title))
+                if score >= 95:
+                    return item
+
+        return None
+
+    def _build_sdb_payload(self, row, reviewer) -> dict:
+        status = row.get("Status") or row.get("Decision") or row.get("decision", "")
+        status = status.lower()
+        decision = "accepted" if "include" in status else ("rejected" if "exclude" in status else "unknown")
+        
+        reason_code = row.get("Reason") or row.get("reason_code") or ""
+        reason_text = row.get("Comment") or row.get("reason_text") or row.get("comment", "")
+        
+        return {
+            "audit_version": "1.1",
+            "decision": decision,
+            "reason_code": [c.strip() for c in reason_code.split(",")] if reason_code else [],
+            "reason_text": reason_text,
+            "persona": reviewer,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "agent": "zotero-cli",
+            "action": "screening_decision"
+        }
+
+    def _inject_sdb_note(self, item_key: str, reviewer: str, payload: dict) -> str:
+        """
+        Injects or updates the SDB note. Returns 'created', 'updated', or 'error'.
+        """
+        children = self.gateway.get_item_children(item_key)
+        existing_note_key = None
+        existing_version = None
+
+        for child in children:
+            data = child.get("data", child)
+            if data.get("itemType") == "note":
+                content = data.get("note", "")
+                if "audit_version" in content and f'"persona": "{reviewer}"' in content:
+                    existing_note_key = data.get("key")
+                    existing_version = data.get("version")
+                    break
+
+        note_content = f"<div>{json.dumps(payload, indent=2)}</div>"
+
+        if existing_note_key:
+            success = self.gateway.update_note(existing_note_key, existing_version, note_content)
+            return "updated" if success else "error"
+        else:
+            success = self.gateway.create_note(item_key, note_content)
+            return "created" if success else "error"
+
+    def _normalize_doi(self, doi: Optional[str]) -> str:
+        if not doi:
+            return ""
+        doi = doi.strip().lower()
+        # Remove common prefixes
+        for prefix in ["https://doi.org/", "http://doi.org/", "doi:"]:
+            if doi.startswith(prefix):
+                doi = doi[len(prefix) :]
+        return doi
+
+    def _normalize_title(self, title: Optional[str]) -> str:
+        if not title:
+            return ""
+        # Remove non-alphanumeric and extra whitespace
+        import re
+        title = re.sub(r"[^\w\s]", "", title.lower())
+        return " ".join(title.split())
 
     def _audit_children(self, item_key: str) -> tuple[bool, bool]:
         """Returns (has_pdf, has_screening_note)"""
