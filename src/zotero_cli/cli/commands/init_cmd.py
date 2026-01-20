@@ -112,4 +112,7 @@ class InitCommand(BaseCommand):
             console.print("3. Happy researching!")
 
         except Exception as e:
-            console.print(f"[bold red]Failed to save config: {e}[/]", file=sys.stderr)
+            console.print(f"[bold red]Failed to save config: {e}[/]")
+            sys.exit(1)
+
+        
