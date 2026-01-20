@@ -11,6 +11,8 @@ dependencies = [
     "arxiv>=2.1.0",
     "bibtexparser>=1.4.0",
     "rispy>=0.4.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
 ]
 
 [project.scripts]
