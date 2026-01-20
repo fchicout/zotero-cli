@@ -25,6 +25,7 @@ dev = [
     "mypy>=1.5.0",
     "types-requests",
     "types-toml",
+    "httpx>=0.27.0",
 ]
 
 [tool.ruff]

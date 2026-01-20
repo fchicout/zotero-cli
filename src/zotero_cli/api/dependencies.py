@@ -1,7 +1,5 @@
 from typing import Optional
 
-from fastapi import Depends
-
 from zotero_cli.core.config import get_config
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.infra.factory import GatewayFactory
@@ -21,7 +19,7 @@ def get_gateway() -> ZoteroGateway:
             config = get_config()
             return GatewayFactory.get_zotero_gateway(config)
         except Exception:
-             raise RuntimeError("ZoteroGateway is not initialized.")
+            raise RuntimeError("ZoteroGateway is not initialized.")
     return _GATEWAY
 
 

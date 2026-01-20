@@ -47,6 +47,7 @@ Detailed documentation is available for each command noun:
 | **[`tag`](docs/commands/tag.md)** | Taxonomy | `list`, `add`, `remove`, `purge` |
 | **[`list`](docs/commands/list.md)** | Generic List | `items`, `collections`, `groups` |
 | **[`storage`](docs/commands/storage.md)** | Maintenance | `checkout` |
+| **[`serve`](docs/commands/serve.md)** | Integration | `(default)` |
 | **[`system`](docs/commands/system.md)** | Maintenance | `backup`, `restore`, `normalize`, `info` |
 
 ## 🚀 Key v2.0 Features

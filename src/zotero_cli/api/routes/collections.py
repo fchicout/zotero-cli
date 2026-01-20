@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import List
 
 from fastapi import APIRouter, Depends
 
@@ -20,9 +20,7 @@ async def list_collections(
     serialized = []
     for c in cols:
         data = c.get("data", {})
-        serialized.append({
-            "key": c.get("key"),
-            "name": data.get("name"),
-            "parent": data.get("parentCollection")
-        })
+        serialized.append(
+            {"key": c.get("key"), "name": data.get("name"), "parent": data.get("parentCollection")}
+        )
     return serialized

@@ -16,20 +16,12 @@ This document preserves the context, memory, and task history of the `zotero-cli
 **Scientific Advisor:**
 *   **Dr. Silas:** Research Methodology, Bibliographic Rigor, Kitchenham/Wohlin Standards.
 
-**Modus Operandi (The Argentis Protocol):**
-1.  **Atomic Commits:** Every logical change (feature, refactor, doc) must be a separate commit.
-2.  **Strict Semantic Versioning:** Commit messages must follow Conventional Commits (feat, fix, refactor, docs, chore, test).
-3.  **Traceability:** No "WIP" commits. Code must be runnable/testable at every commit.
-4.  **Verification:** Verify status and diffs before committing.
+**Modus Operandi:**
+We follow **[The Argentis Protocol](@gem-ctx/knowledge/PATTERNS.md#pattern-the-argentis-protocol-code-hygiene--lifecycle)** for all repository operations.
 
-**Quality Assurance (The Valerius Protocol):**
-1.  **Baseline Verification:** Before any changes, run the existing Quality Gate to establish a clean baseline.
-2.  **Test Expansion:** Features are not complete without tests. You must update or create Unit Tests AND Feature-Based E2E Tests.
-3.  **Final Gate:** Run the Quality Gate again after implementation.
-4.  **Approval Criteria:**
-    *   **Pass Rate:** 100% (Zero tolerance for failure).
-    *   **Coverage:** Must remain above 80%.
-    *   **Type Safety:** Zero Mypy errors.
+**Quality Assurance:**
+All development must strictly adhere to **[The Valerius Protocol](@gem-ctx/knowledge/PATTERNS.md#pattern-the-valerius-protocol-quality-gate)**.
+- **Criteria:** 100% Pass / >80% Coverage / Zero Mypy Errors.
 
 ## Project Overview: `zotero-cli`
 A "Systematic Review Engine" CLI tool to import, manage, and screen research papers in Zotero libraries.
