@@ -7,7 +7,7 @@ from zotero_cli import __version__
 from zotero_cli.core.config import get_config
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.api.dependencies import set_gateway_instance
-from zotero_cli.api.routes import items
+from zotero_cli.api.routes import items, collections
 
 
 @asynccontextmanager
@@ -35,6 +35,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(items.router)
+    app.include_router(collections.router)
 
     @app.get("/health")
     async def health_check() -> Dict[str, str]:
