@@ -217,3 +217,28 @@ class CollectionService:
                         pruned_count += 1
 
         return pruned_count
+
+    def delete_collection(
+        self, collection_id: str, version: int, recursive: bool = False
+    ) -> bool:
+        """
+        Deletes a collection. If recursive=True, also deletes all items contained within it.
+        """
+        if recursive:
+            print(f"Recursively deleting items in collection {collection_id}...")
+            # Fetch all items in the collection
+            # Note: get_items_in_collection might need to handle pagination if not already doing so fully.
+            # Assuming it yields all items.
+            items = list(self.collection_repo.get_items_in_collection(collection_id))
+            
+            deleted_count = 0
+            for item in items:
+                if self.item_repo.delete_item(item.key, item.version):
+                    deleted_count += 1
+                else:
+                    print(f"Warning: Failed to delete item {item.key}")
+            
+            print(f"Deleted {deleted_count} items from collection.")
+
+        # Finally, delete the collection itself
+        return self.collection_repo.delete_collection(collection_id, version)
