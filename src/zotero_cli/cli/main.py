@@ -1,9 +1,35 @@
-import argparse
 import sys
 
-from zotero_cli.cli import commands  # noqa: F401 (Trigger registration)
-from zotero_cli.cli.base import CommandRegistry
-from zotero_cli.core.config import get_config
+
+def verify_environment():
+    """
+    Ensure the runtime environment meets minimum requirements before loading dependencies.
+    """
+    if sys.version_info < (3, 10):
+        error_msg = (
+            "Incompatible Environment Detected\n\n"
+            "Zotero CLI requires Python 3.10 or higher.\n"
+            f"Current version: {sys.version}."
+        )
+        try:
+            from rich.console import Console
+            from rich.panel import Panel
+
+            console = Console(stderr=True)
+            console.print(Panel(f"[bold red]{error_msg}[/bold red]", border_style="red"))
+        except ImportError:
+            print(f"ERROR: {error_msg}", file=sys.stderr)
+        sys.exit(1)
+
+
+# Run pre-flight checks before importing internal modules
+verify_environment()
+
+import argparse  # noqa: E402
+
+from zotero_cli.cli import commands  # noqa: F401, E402 (Trigger registration)
+from zotero_cli.cli.base import CommandRegistry  # noqa: E402
+from zotero_cli.core.config import get_config  # noqa: E402
 
 # --- Global State ---
 FORCE_USER = False
