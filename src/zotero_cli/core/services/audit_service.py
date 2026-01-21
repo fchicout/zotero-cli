@@ -127,7 +127,12 @@ class CollectionAuditor:
         return shifts
 
     def enrich_from_csv(
-        self, csv_path: str, reviewer: str, dry_run: bool = True, force: bool = False
+        self,
+        csv_path: str,
+        reviewer: str,
+        dry_run: bool = True,
+        force: bool = False,
+        phase: str = "title_abstract",
     ) -> Dict[str, Any]:
         """
         Retroactive SDB Enrichment from CSV.
@@ -186,10 +191,12 @@ class CollectionAuditor:
             results["matched"] += 1
 
             # 3. Construct SDB Payload
-            sdb_payload = self._build_sdb_payload(row, reviewer)
+            sdb_payload = self._build_sdb_payload(row, reviewer, phase)
 
             if dry_run:
-                print(f"[DRY RUN] Match: {item.key} | {(item.title or '')[:40]}... | {reviewer}")
+                print(
+                    f"[DRY RUN] Match: {item.key} | {(item.title or '')[:40]}... | {reviewer} | {phase}"
+                )
                 results["skipped"] += 1
                 continue
 
@@ -198,7 +205,7 @@ class CollectionAuditor:
                 continue
 
             # 4. Inject/Update Note
-            action = self._inject_sdb_note(item.key, reviewer, sdb_payload)
+            action = self._inject_sdb_note(item.key, reviewer, phase, sdb_payload)
             if action == "updated":
                 results["updated"] += 1
             elif action == "created":
@@ -246,7 +253,7 @@ class CollectionAuditor:
 
         return None
 
-    def _build_sdb_payload(self, row: Dict[str, str], reviewer: str) -> dict:
+    def _build_sdb_payload(self, row: Dict[str, str], reviewer: str, phase: str) -> dict:
         status = row.get("Status") or row.get("Decision") or row.get("decision", "")
         status = status.lower()
         decision = (
@@ -257,19 +264,22 @@ class CollectionAuditor:
 
         reason_code = row.get("Reason") or row.get("reason_code") or ""
         reason_text = row.get("Comment") or row.get("reason_text") or row.get("comment", "")
+        evidence = row.get("Evidence") or row.get("evidence") or ""
 
         return {
-            "audit_version": "1.1",
+            "audit_version": "1.2",
             "decision": decision,
             "reason_code": [c.strip() for c in reason_code.split(",")] if reason_code else [],
             "reason_text": reason_text,
+            "evidence": evidence,
             "persona": reviewer,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "agent": "zotero-cli",
+            "phase": phase,
             "action": "screening_decision",
         }
 
-    def _inject_sdb_note(self, item_key: str, reviewer: str, payload: dict) -> str:
+    def _inject_sdb_note(self, item_key: str, reviewer: str, phase: str, payload: dict) -> str:
         """
         Injects or updates the SDB note. Returns 'created', 'updated', or 'error'.
         """
@@ -281,7 +291,11 @@ class CollectionAuditor:
             data = child.get("data", child)
             if data.get("itemType") == "note":
                 content = data.get("note", "")
-                if "audit_version" in content and f'"persona": "{reviewer}"' in content:
+                if (
+                    "audit_version" in content
+                    and f'"persona": "{reviewer}"' in content
+                    and f'"phase": "{phase}"' in content
+                ):
                     existing_note_key = child.get("key") or data.get("key")
                     # Ensure we have a version
                     existing_version = int(child.get("version") or data.get("version") or 0)

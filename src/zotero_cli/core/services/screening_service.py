@@ -44,10 +44,11 @@ class ScreeningService:
         agent: str = "zotero-cli",
         persona: str = "unknown",
         phase: str = "title_abstract",
+        evidence: Optional[str] = None,
     ) -> bool:
         """
         Records a screening decision for a Zotero item.
-        1. Creates a child note with the decision metadata (JSON).
+        1. Finds or creates a child note with the decision metadata (JSON).
         2. Applies semantic tags (e.g., rsl:exclude:EC1).
         3. Optionally moves the item from source to target collection.
         """
@@ -62,27 +63,50 @@ class ScreeningService:
         # Map internal decision to SDB decision
         sdb_decision = "accepted" if decision_upper == "INCLUDE" else "rejected"
 
-        # 1. Create the Audit Note using SDB v1.1
+        # 1. Check for existing note by persona AND phase
+        children = self.note_repo.get_item_children(item_key)
+        existing_note_key: Optional[str] = None
+        existing_version: int = 0
+
+        for child in children:
+            data = child.get("data", child)
+            if data.get("itemType") == "note":
+                content = data.get("note", "")
+                if (
+                    "audit_version" in content
+                    and f'"persona": "{persona}"' in content
+                    and f'"phase": "{phase}"' in content
+                ):
+                    existing_note_key = child.get("key") or data.get("key")
+                    existing_version = int(child.get("version") or data.get("version") or 0)
+                    break
+
+        # 2. Create the Audit Note using SDB v1.2
         decision_data = {
-            "audit_version": "1.1",
+            "audit_version": "1.2",
             "decision": sdb_decision,
             "reason_code": [code.strip() for code in code.split(",")] if code else [],
             "reason_text": reason if reason else "",
+            "evidence": evidence if evidence else "",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "agent": agent,
             "persona": persona,
             "phase": phase,
-            "action": "screening_decision",  # Keep for backward compatibility/filtering
+            "action": "screening_decision",
         }
 
         note_content = f"<div>{json.dumps(decision_data, indent=2)}</div>"
 
-        success = self.note_repo.create_note(item_key, note_content)
+        if existing_note_key:
+            success = self.note_repo.update_note(existing_note_key, existing_version, note_content)
+        else:
+            success = self.note_repo.create_note(item_key, note_content)
+
         if not success:
-            print(f"Error: Failed to create audit note for item {item_key}.", file=sys.stderr)
+            print(f"Error: Failed to record audit note for item {item_key}.", file=sys.stderr)
             return False
 
-        # 2. Apply Tags
+        # 3. Apply Tags
         tags_to_add = []
         # Phase Tag
         tags_to_add.append(f"rsl:phase:{phase}")
@@ -103,7 +127,7 @@ class ScreeningService:
                     file=sys.stderr,
                 )
 
-        # 3. Collection Movement (Optional)
+        # 4. Collection Movement (Optional)
         if source_collection and target_collection:
             move_success = self.collection_service.move_item(
                 source_collection, target_collection, item_key
