@@ -30,51 +30,34 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 1.  **The Engine (Management):** Direct manipulation of the Zotero database (items, collections, tags, storage).
 2.  **The Protocol (SLR):** Advanced workflow support for Systematic Literature Reviews (Kitchenham/Wohlin).
 
-### Rigid Feature Set (SLR Conformance)
+## Rigid Feature Set (SLR Conformance)
 | SLR Phase | CLI Implementation | Status |
 | :--- | :--- | :--- |
 | **Search & Collect** | `import arxiv`, `import file (RIS/BibTeX/CSV)` | [DONE] |
-| **Title/Abstract Screening** | `review screen` (TUI), `review decide` (CLI), `audit import-csv` | [DONE] |
+| **Title/Abstract Screening** | `slr screen` (TUI), `slr decide` (CLI), `slr load` | [DONE] |
+| **Full-Text Screening** | `slr decide --phase full_text --evidence "..."` | [DONE] |
 | **Data Extraction** | (Future scope: Structured JSON extraction forms) | [PLANNED] |
-| **Synthesis & Reporting** | `report prisma`, `report snapshot`, `analyze graph` | [DONE] |
+| **Synthesis & Reporting** | `report prisma`, `report snapshot`, `slr graph` | [DONE] |
 
 **Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`.
 
-## Accomplishments (Session: 2026-01-20)
+## Accomplishments (Session: 2026-01-21)
 
-### Phase 17: Usability & Configuration (v2.1)
-*   **[FEAT] Interactive Wizard (Issue #28):** Implemented a comprehensive `init` command with:
-    *   Prompts for all `ZoteroConfig` fields (Zotero, Semantic Scholar, Unpaywall).
-    *   Real-time credential verification against the Zotero API.
-    *   Improved TUI using `rich` for better user experience.
-*   **[TEST] Quality Assurance:** Added unit tests for the `init` wizard, achieving 100% pass rate.
-*   **[QUALITY] Valerius Review:** Evolved tests to cover user overrides, overwrite scenarios, and edge cases (I/O errors). Fixed a `TypeError` in `rich` console usage.
-*   **[DOCS] Documentation:** Created `docs/commands/init.md` and updated `USER_GUIDE.md` and `Getting Started` tutorials.
-*   **[OPS] Process Hardening:** Standardized the GitHub workflow (assigning/closing issues via `gh`).
-
-## Accomplishments (Session: 2026-01-19)
-
-### Phase 16: Roadmap Definition (v2.1 - v2.2)
-*   **[PLANNING] Infrastructure Hardening:**
-    *   **Issue #28 (Init):** Defined Interactive Configuration Wizard.
-    *   **Issue #30 (Offline):** Defined High-Performance SQLite Reader Mode.
-    *   **Issue #31 (Local API):** Defined Local HTTP Adapter (`--backend local`).
-*   **[PLANNING] Advanced Workflows:**
-    *   **Issue #29 (Checkout/Check-in):** Designed "Storage Offloading" workflow using Source ID tracking.
-    *   **Issue #32 (Enrichment):** Designed Retroactive CSV Import for multi-researcher SDB injection.
-    *   **Issue #33 (Purge):** Designed maintenance command for batch cleaning of notes/attachments.
-*   **[OPS] Repository Hygiene:** Standardized GitHub labels using the "Golden Set" taxonomy across all issues.
-
-### Phase 15: Stable Release (v2.0.0)
-*   **[RELEASE] v2.0.0 Stable:** Published the official stable release.
+### Phase 18: Semantic Consolidation & Full-Text (v2.2)
+*   **[ARCH] Semantic CLI Consolidation (Issue #38, #40):** Unified all scientific/review commands under the `slr` namespace. Legacy aliases (`review`, `analyze`, `audit`) were purged after a deprecation cycle.
+*   **[FEAT] Pre-flight Environment Checks (Issue #46):** Implemented "Boot Guard" pattern to enforce Python 3.10+ and handle dependency failures gracefully at the entry point.
+*   **[FEAT] SLR Protocol Refinement (Issue #48):** Flattened the `slr` subcommand tree for better ergonomics (`slr load`, `slr validate`).
+*   **[FEAT] SDB v1.2 & Phase Isolation (Issue #49, #50):** Added support for `full_text` screening phase with `evidence` capture. Notes are now isolated by persona AND phase to prevent data loss.
+*   **[QUALITY] Valerius Review:** Synchronized the entire test suite (Unit/E2E) with the new CLI structure. Resolved pre-existing type safety violations in `slr_service.py`.
+*   **[DOCS] Documentation Rewrite:** Completely updated `docs/commands/slr.md` and `USER_GUIDE.md` to reflect the new flat tree.
 
 ## Current State
 
-*   **Version:** `v2.0.0` (Stable)
-*   **Quality:** 100% Unit Test Pass in CI. 100% Quad-Gate pass locally.
-*   **Status:** **PLANNING v2.1**
+*   **Version:** `v2.2.0-rc1`
+*   **Quality:** 100% Core/CLI Unit Test Pass. 100% E2E Pass.
+*   **Status:** **STABILIZATION v2.2**
 
 ## Next Actions (Immediate)
-1.  **Usability:** Implement Issue #28 (`init` wizard).
-2.  **Infrastructure:** Implement Issue #30 (`--offline` mode) and #31 (Local API).
-3.  **Workflow:** Implement Issue #29 (`move` checkout/check-in) and #32 (CSV Import).
+1.  **Infrastructure:** Implement Issue #30 (`--offline` mode).
+2.  **Workflow:** Implement Issue #29 (`move` checkout/check-in).
+3.  **Refactoring:** Refactor API `GET /items` to use native Zotero pagination.
