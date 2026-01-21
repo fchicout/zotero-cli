@@ -97,18 +97,9 @@ jobs:
         run: |
           pyinstaller --onefile --name zotero-cli --clean src/zotero_cli/cli/main.py
 
-      - name: Install Wix Toolset
-        run: dotnet tool install --global wix
-
-      - name: Create MSI Package
+      - name: Create Windows ZIP
         shell: pwsh
         run: |
-          # Simple Wix v4/v5 logic to wrap the exe
-          wix extension add WixToolset.UI.Extension
-          wix extension add WixToolset.Util.Extension
-          # (Simplified for v2.1 fix - ideally needs a .wxs file, but we will use a basic wrapper strategy or simple zip for now if Wix setup is too complex for ad-hoc)
-          # For now, let's provide the EXE and a ZIP as requested, MSI evolution will follow in a dedicated commit if Wix template is missing.
-          # To fulfill the 'Evolve to MSI' request, I'll attempt a basic 'wix build' if template exists or just create the ZIP first.
           Compress-Archive -Path dist/zotero-cli.exe -DestinationPath zotero-cli-windows-amd64.zip
 
       - name: Upload Artifacts
