@@ -19,6 +19,7 @@ def test_record_decision_applies_tags():
     )
 
     mock_note_repo.create_note.return_value = True
+    mock_note_repo.get_item_children.return_value = []
 
     # Act
     service.record_decision(item_key="K1", decision="EXCLUDE", code="EC5", reason="Short Paper")

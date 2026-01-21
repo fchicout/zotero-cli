@@ -455,7 +455,7 @@ def test_audit_check(mock_clients, env_vars, capsys):
         mock_report.items_missing_pdf = []
         mock_report.items_missing_note = []
         mock_auditor.audit_collection.return_value = mock_report
-        test_args = ["zotero-cli", "slr", "audit", "check", "--collection", "C"]
+        test_args = ["zotero-cli", "slr", "validate", "--collection", "C"]
         with patch.object(sys, "argv", test_args):
             main()
         assert "Auditing collection: C" in capsys.readouterr().out

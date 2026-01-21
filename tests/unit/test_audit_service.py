@@ -162,9 +162,13 @@ def test_enrich_from_csv_update_existing(auditor, mock_gateway, tmp_path):
         {
             "key": "NOTE1",
             "version": 1,
-            "data": {"itemType": "note", "note": '{"audit_version": "1.1", "persona": "Orion"}'},
+            "data": {
+                "itemType": "note",
+                "note": '{"audit_version": "1.2", "persona": "Orion", "phase": "title_abstract"}',
+            },
         }
     ]
+
     mock_gateway.update_note.return_value = True
 
     results = auditor.enrich_from_csv(str(csv_file), reviewer="Orion", dry_run=False, force=True)

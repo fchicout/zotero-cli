@@ -24,6 +24,7 @@ def screening_service(mock_gateway):
 def test_record_decision_success(screening_service, mock_gateway):
     item_key = "ITEM123"
     mock_gateway.create_note.return_value = True
+    mock_gateway.get_item_children.return_value = []
 
     success = screening_service.record_decision(
         item_key=item_key, decision="INCLUDE", code="IC1", reason="Relevant study"
@@ -39,7 +40,7 @@ def test_record_decision_success(screening_service, mock_gateway):
     assert "IC1" in note_content
     assert "Relevant study" in note_content
     assert "audit_version" in note_content
-    assert "1.1" in note_content
+    assert "1.2" in note_content
 
 
 def test_record_decision_with_move(screening_service, mock_gateway):
@@ -48,6 +49,7 @@ def test_record_decision_with_move(screening_service, mock_gateway):
     target_col = "Screened"
 
     mock_gateway.create_note.return_value = True
+    mock_gateway.get_item_children.return_value = []
 
     # Mock the internal collection service
     screening_service.collection_service.move_item.return_value = True
