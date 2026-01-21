@@ -16,36 +16,140 @@ from zotero_cli.infra.factory import GatewayFactory
 console = Console()
 
 
-class SLRAuditCommand:
-    """Helper for slr audit subcommands."""
+@CommandRegistry.register
+class SLRCommand(BaseCommand):
+    name = "slr"
+    help = "Systematic Literature Review lifecycle management"
 
     def register_args(self, parser: argparse.ArgumentParser):
-        sub = parser.add_subparsers(dest="audit_verb", required=True)
+        sub = parser.add_subparsers(dest="verb", required=True)
 
-        # Check
-        check_p = sub.add_parser("check", help="Check collection for missing data")
-        check_p.add_argument("--collection", required=True, help="Collection name or key")
-        check_p.add_argument("--verbose", action="store_true", help="Show exact items missing data")
+        # --- Screening ---
+        screen_p = sub.add_parser("screen", help="Interactive Screening Interface (TUI)")
+        screen_p.add_argument("--source", required=True, help="Source collection")
+        screen_p.add_argument("--include", required=True, help="Target for inclusion")
+        screen_p.add_argument("--exclude", required=True, help="Target for exclusion")
+        screen_p.add_argument("--file", help="CSV file for bulk decisions (Headless mode)")
+        screen_p.add_argument("--state", help="Local CSV file to track screening state")
 
-        # Import CSV
-        import_csv_p = sub.add_parser("import-csv", help="Retroactive SDB enrichment from CSV")
-        import_csv_p.add_argument("file", help="CSV file with screening decisions")
-        import_csv_p.add_argument("--reviewer", required=True, help="Reviewer name (persona)")
-        import_csv_p.add_argument(
+        decide_p = sub.add_parser("decide", help="Record a single decision (CLI mode)")
+        decide_p.add_argument("--key", required=True)
+        decide_p.add_argument(
+            "--vote",
+            choices=["INCLUDE", "EXCLUDE"],
+            help="Decision vote (required unless flag used)",
+        )
+        decide_p.add_argument(
+            "--code", help="Exclusion/Inclusion criteria code (required unless flag used)"
+        )
+        decide_p.add_argument("--reason", help="Detailed reason text")
+        decide_p.add_argument("--evidence", help="Evidence extracted from text (SDB v1.2)")
+        decide_p.add_argument("--source")
+        decide_p.add_argument("--target")
+        decide_p.add_argument("--agent-led", action="store_true")
+        decide_p.add_argument("--persona")
+        decide_p.add_argument(
+            "--phase",
+            choices=["title_abstract", "full_text"],
+            default="title_abstract",
+            help="Screening phase (Isolation enabled)",
+        )
+
+        # Decide Exclusion presets
+        decide_p.add_argument(
+            "--short-paper", metavar="CODE", help="Exclude as Short Paper with EC code"
+        )
+        decide_p.add_argument(
+            "--not-english", metavar="CODE", help="Exclude as Non-English with EC code"
+        )
+        decide_p.add_argument(
+            "--is-survey", metavar="CODE", help="Exclude as Survey/SLR with EC code"
+        )
+        decide_p.add_argument(
+            "--no-pdf", metavar="CODE", help="Exclude due to missing PDF with EC code"
+        )
+
+        # --- Data Loading (formerly audit import-csv) ---
+        load_p = sub.add_parser("load", help="Retroactive SDB enrichment from CSV")
+        load_p.add_argument("file", help="CSV file with screening decisions")
+        load_p.add_argument("--reviewer", required=True, help="Reviewer name (persona)")
+        load_p.add_argument(
+            "--phase",
+            choices=["title_abstract", "full_text"],
+            default="title_abstract",
+            help="Target phase for imported decisions",
+        )
+        load_p.add_argument(
             "--force", action="store_true", help="Actually write to Zotero (Default is Dry-Run)"
+        )
+
+        # --- Validation (formerly audit check) ---
+        val_p = sub.add_parser("validate", help="Check collection for metadata completeness")
+        val_p.add_argument("--collection", required=True, help="Collection name or key")
+        val_p.add_argument("--verbose", action="store_true", help="Show exact items missing data")
+
+        # --- Analysis ---
+        lookup_p = sub.add_parser("lookup", help="Bulk metadata fetch")
+        lookup_p.add_argument("--keys")
+        lookup_p.add_argument("--file")
+        lookup_p.add_argument("--fields", default="key,arxiv_id,title,date,url")
+        lookup_p.add_argument("--format", default="table")
+
+        graph_p = sub.add_parser("graph", help="Citation Graph")
+        graph_p.add_argument("--collections", required=True)
+
+        shift_p = sub.add_parser("shift", help="Detect items that moved between collections")
+        shift_p.add_argument("--old", required=True, help="Old Snapshot JSON")
+        shift_p.add_argument("--new", required=True, help="New Snapshot JSON")
+
+        # --- Utilities ---
+        mig_p = sub.add_parser("migrate", help="Migrate audit notes to newer schema versions")
+        mig_p.add_argument("--collection", required=True, help="Collection name or key")
+        mig_p.add_argument("--dry-run", action="store_true", help="Show changes without applying")
+
+        sync_p = sub.add_parser(
+            "sync-csv", help="Recover/Sync local CSV from Zotero screening notes"
+        )
+        sync_p.add_argument("--collection", required=True, help="Collection name or key")
+        sync_p.add_argument("--output", required=True, help="Path to output CSV")
+
+        prune_p = sub.add_parser("prune", help="Enforce mutual exclusivity between two collections")
+        prune_p.add_argument("--included", required=True, help="Primary collection (Winner)")
+        prune_p.add_argument(
+            "--excluded",
+            required=True,
+            help="Secondary collection (Loser - items removed from here)",
         )
 
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
+
+        if args.verb == "screen":
+            self._handle_screen(args)
+        elif args.verb == "decide":
+            self._handle_decide(args)
+        elif args.verb == "load":
+            self._handle_load(gateway, args)
+        elif args.verb == "validate":
+            self._handle_validate(gateway, args)
+        elif args.verb == "lookup":
+            self._handle_lookup(gateway, args)
+        elif args.verb == "graph":
+            self._handle_graph(gateway, args)
+        elif args.verb == "shift":
+            self._handle_shift(gateway, args)
+        elif args.verb == "migrate":
+            self._handle_migrate(gateway, args)
+        elif args.verb == "sync-csv":
+            self._handle_sync_csv(gateway, args)
+        elif args.verb == "prune":
+            self._handle_prune(args)
+
+    # --- Handlers ---
+
+    def _handle_validate(self, gateway, args: argparse.Namespace):
         service = CollectionAuditor(gateway)
-
-        if args.audit_verb == "check":
-            self._handle_check(service, args)
-        elif args.audit_verb == "import-csv":
-            self._handle_import_csv(service, args)
-
-    def _handle_check(self, service: CollectionAuditor, args: argparse.Namespace):
         print(f"Auditing collection: {args.collection}...")
         report = service.audit_collection(args.collection)
 
@@ -95,7 +199,8 @@ class SLRAuditCommand:
         else:
             print("\n[bold green]Audit PASSED.[/bold green] All items are submission-ready.")
 
-    def _handle_import_csv(self, service: CollectionAuditor, args: argparse.Namespace):
+    def _handle_load(self, gateway, args: argparse.Namespace):
+        service = CollectionAuditor(gateway)
         dry_run = not args.force
 
         print(f"Importing SDB data from {args.file} (Reviewer: {args.reviewer})...")
@@ -103,11 +208,15 @@ class SLRAuditCommand:
             print("[bold yellow]DRY RUN MODE ENABLED. No changes will be written.[/bold yellow]")
 
         results = service.enrich_from_csv(
-            csv_path=args.file, reviewer=args.reviewer, dry_run=dry_run, force=args.force
+            csv_path=args.file,
+            reviewer=args.reviewer,
+            dry_run=dry_run,
+            force=args.force,
+            phase=args.phase,
         )
 
         if "error" in results:
-            console.print(f"[bold red]Error:[/] {results['error']}")
+            console.print(f"[bold red]Error:[/bold red] {results['error']}")
             return
 
         table = Table(title="Import CSV Results")
@@ -129,116 +238,6 @@ class SLRAuditCommand:
                 print(f"  - {t}")
             if len(results["unmatched"]) > 10:
                 print(f"  ... and {len(results['unmatched']) - 10} more.")
-
-
-@CommandRegistry.register
-class SLRCommand(BaseCommand):
-    name = "slr"
-    help = "Systematic Literature Review lifecycle management"
-
-    def register_args(self, parser: argparse.ArgumentParser):
-        sub = parser.add_subparsers(dest="verb", required=True)
-
-        # --- Screening ---
-        screen_p = sub.add_parser("screen", help="Interactive Screening Interface (TUI)")
-        screen_p.add_argument("--source", required=True, help="Source collection")
-        screen_p.add_argument("--include", required=True, help="Target for inclusion")
-        screen_p.add_argument("--exclude", required=True, help="Target for exclusion")
-        screen_p.add_argument("--file", help="CSV file for bulk decisions (Headless mode)")
-        screen_p.add_argument("--state", help="Local CSV file to track screening state")
-
-        decide_p = sub.add_parser("decide", help="Record a single decision (CLI mode)")
-        decide_p.add_argument("--key", required=True)
-        decide_p.add_argument(
-            "--vote",
-            choices=["INCLUDE", "EXCLUDE"],
-            help="Decision vote (required unless flag used)",
-        )
-        decide_p.add_argument(
-            "--code", help="Exclusion/Inclusion criteria code (required unless flag used)"
-        )
-        decide_p.add_argument("--reason")
-        decide_p.add_argument("--source")
-        decide_p.add_argument("--target")
-        decide_p.add_argument("--agent-led", action="store_true")
-        decide_p.add_argument("--persona")
-        decide_p.add_argument("--phase", default="title_abstract")
-
-        # Decide Exclusion presets
-        decide_p.add_argument(
-            "--short-paper", metavar="CODE", help="Exclude as Short Paper with EC code"
-        )
-        decide_p.add_argument(
-            "--not-english", metavar="CODE", help="Exclude as Non-English with EC code"
-        )
-        decide_p.add_argument(
-            "--is-survey", metavar="CODE", help="Exclude as Survey/SLR with EC code"
-        )
-        decide_p.add_argument(
-            "--no-pdf", metavar="CODE", help="Exclude due to missing PDF with EC code"
-        )
-
-        # --- Auditing ---
-        audit_p = sub.add_parser("audit", help="Audit & SDB Enrichment")
-        SLRAuditCommand().register_args(audit_p)
-
-        # --- Analysis ---
-        lookup_p = sub.add_parser("lookup", help="Bulk metadata fetch")
-        lookup_p.add_argument("--keys")
-        lookup_p.add_argument("--file")
-        lookup_p.add_argument("--fields", default="key,arxiv_id,title,date,url")
-        lookup_p.add_argument("--format", default="table")
-
-        graph_p = sub.add_parser("graph", help="Citation Graph")
-        graph_p.add_argument("--collections", required=True)
-
-        shift_p = sub.add_parser("shift", help="Detect items that moved between collections")
-        shift_p.add_argument("--old", required=True, help="Old Snapshot JSON")
-        shift_p.add_argument("--new", required=True, help="New Snapshot JSON")
-
-        # --- Utilities ---
-        mig_p = sub.add_parser("migrate", help="Migrate audit notes to newer schema versions")
-        mig_p.add_argument("--collection", required=True, help="Collection name or key")
-        mig_p.add_argument("--dry-run", action="store_true", help="Show changes without applying")
-
-        sync_p = sub.add_parser(
-            "sync-csv", help="Recover/Sync local CSV from Zotero screening notes"
-        )
-        sync_p.add_argument("--collection", required=True, help="Collection name or key")
-        sync_p.add_argument("--output", required=True, help="Path to output CSV")
-
-        prune_p = sub.add_parser("prune", help="Enforce mutual exclusivity between two collections")
-        prune_p.add_argument("--included", required=True, help="Primary collection (Winner)")
-        prune_p.add_argument(
-            "--excluded",
-            required=True,
-            help="Secondary collection (Loser - items removed from here)",
-        )
-
-    def execute(self, args: argparse.Namespace):
-        force_user = getattr(args, "user", False)
-        gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
-
-        if args.verb == "screen":
-            self._handle_screen(args)
-        elif args.verb == "decide":
-            self._handle_decide(args)
-        elif args.verb == "audit":
-            SLRAuditCommand().execute(args)
-        elif args.verb == "lookup":
-            self._handle_lookup(gateway, args)
-        elif args.verb == "graph":
-            self._handle_graph(gateway, args)
-        elif args.verb == "shift":
-            self._handle_shift(gateway, args)
-        elif args.verb == "migrate":
-            self._handle_migrate(gateway, args)
-        elif args.verb == "sync-csv":
-            self._handle_sync_csv(gateway, args)
-        elif args.verb == "prune":
-            self._handle_prune(args)
-
-    # --- Handlers (Migrated) ---
 
     def _handle_screen(self, args):
         if args.file:
@@ -314,6 +313,7 @@ class SLRCommand(BaseCommand):
             agent="zotero-cli",
             persona=agent_name,
             phase=args.phase,
+            evidence=args.evidence,
         )
         if success:
             print(f"Successfully recorded decision for {args.key} ({vote}: {reason})")

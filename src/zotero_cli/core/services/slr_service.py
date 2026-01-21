@@ -63,6 +63,7 @@ class ScreeningPhase(SLRPhase):
             agent=str(kwargs.get("agent", "zotero-cli")),
             persona=str(kwargs.get("persona", "unknown")),
             phase=str(kwargs.get("phase", "title_abstract")),
+            evidence=str(kwargs.get("evidence")) if kwargs.get("evidence") is not None else None,
         )
 
     def validate(self) -> bool:
