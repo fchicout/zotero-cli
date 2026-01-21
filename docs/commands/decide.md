@@ -4,7 +4,7 @@ Record a screening decision for a single item via CLI.
 
 **Usage:**
 ```bash
-zotero-cli review decide --key ITEM_KEY --vote INCLUDE --code "IC1"
+zotero-cli slr decide --key ITEM_KEY --vote INCLUDE --code "IC1"
 ```
 
 **Options:**

@@ -1,5 +1,5 @@
 import sys
-from typing import Optional, Set
+from typing import Any, Dict, List, Optional, Set, cast
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -219,26 +219,50 @@ class CollectionService:
         return pruned_count
 
     def delete_collection(
-        self, collection_id: str, version: int, recursive: bool = False
+        self,
+        collection_id: str,
+        version: int,
+        recursive: bool = False,
+        all_cols: Optional[List[Dict[str, Any]]] = None,
     ) -> bool:
         """
-        Deletes a collection. If recursive=True, also deletes all items contained within it.
+        Deletes a collection. If recursive=True, also deletes all items contained within it
+        and all sub-collections (and their items).
         """
         if recursive:
-            print(f"Recursively deleting items in collection {collection_id}...")
-            # Fetch all items in the collection
-            # Note: get_items_in_collection might need to handle pagination if not already doing so fully.
-            # Assuming it yields all items.
+            print(f"Recursively processing collection {collection_id}...")
+
+            # 1. Fetch all collections once if not provided (to avoid redundant API calls in recursion)
+            if all_cols is None:
+                all_cols = self.collection_repo.get_all_collections()
+
+            # 2. Handle sub-collections (Depth-first)
+            sub_cols = [
+                c for c in all_cols if c.get("data", {}).get("parentCollection") == collection_id
+            ]
+
+            for sc in sub_cols:
+                sc_key = sc["key"]
+                sc_version = sc.get("version")
+                if sc_version is None:
+                    # Fetch detailed sc if version is missing
+                    full_sc = self.collection_repo.get_collection(sc_key)
+                    sc_version = full_sc.get("version") if full_sc else 0
+
+                version_int = cast(int, sc_version)
+                self.delete_collection(sc_key, version_int, recursive=True, all_cols=all_cols)
+
+            # 3. Delete items in this specific collection
             items = list(self.collection_repo.get_items_in_collection(collection_id))
-            
             deleted_count = 0
             for item in items:
                 if self.item_repo.delete_item(item.key, item.version):
                     deleted_count += 1
                 else:
                     print(f"Warning: Failed to delete item {item.key}")
-            
-            print(f"Deleted {deleted_count} items from collection.")
+
+            if deleted_count > 0:
+                print(f"Deleted {deleted_count} items from collection {collection_id}.")
 
         # Finally, delete the collection itself
         return self.collection_repo.delete_collection(collection_id, version)

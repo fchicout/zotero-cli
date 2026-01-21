@@ -54,11 +54,11 @@ def env_vars(monkeypatch):
 
 # --- 1. SCREEN ---
 def test_screen_tui_invocation(mock_clients, env_vars):
-    with patch("zotero_cli.cli.commands.review_cmd.TuiScreeningService") as mock_tui_cls:
+    with patch("zotero_cli.cli.commands.slr_cmd.TuiScreeningService") as mock_tui_cls:
         mock_tui = mock_tui_cls.return_value
         test_args = [
             "zotero-cli",
-            "review",
+            "slr",
             "screen",
             "--source",
             "S",
@@ -83,7 +83,7 @@ def test_screen_bulk_csv(mock_clients, env_vars, capsys):
         with patch("builtins.open", mock_open(read_data=csv_content)):
             test_args = [
                 "zotero-cli",
-                "review",
+                "slr",
                 "screen",
                 "--source",
                 "S",
@@ -110,7 +110,7 @@ def test_decide_cli_invocation(mock_clients, env_vars, capsys):
         mock_service.record_decision.return_value = True
         test_args = [
             "zotero-cli",
-            "review",
+            "slr",
             "decide",
             "--key",
             "K1",
@@ -430,51 +430,55 @@ def test_item_move(mock_clients, env_vars, capsys):
 
 # --- 9. REVIEW ---
 def test_review_migrate(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.review_cmd.MigrationService") as mock_migrate_cls:
-        mock_service = mock_migrate_cls.return_value
-        mock_service.migrate_collection_notes.return_value = {
-            "processed": 10,
-            "migrated": 5,
+    with patch("zotero_cli.cli.commands.slr_cmd.MigrationService") as mock_migrate_cls:
+        mock_migrate = mock_migrate_cls.return_value
+        mock_migrate.migrate_collection_notes.return_value = {
+            "processed": 1,
+            "migrated": 1,
             "failed": 0,
         }
-        test_args = ["zotero-cli", "review", "migrate", "--collection", "C"]
+        test_args = ["zotero-cli", "slr", "migrate", "--collection", "C"]
         with patch.object(sys, "argv", test_args):
             main()
-        assert "Processed: 10" in capsys.readouterr().out
+        assert "Migration results for C" in capsys.readouterr().out
 
 
 # --- 7. ANALYZE ---
-def test_analyze_audit(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.analyze_cmd.CollectionAuditor") as mock_auditor_cls:
+def test_audit_check(mock_clients, env_vars, capsys):
+    with patch("zotero_cli.cli.commands.slr_cmd.CollectionAuditor") as mock_auditor_cls:
         mock_auditor = mock_auditor_cls.return_value
         mock_report = Mock()
+        mock_report.total_items = 0
         mock_report.items_missing_id = []
+        mock_report.items_missing_title = []
+        mock_report.items_missing_abstract = []
         mock_report.items_missing_pdf = []
+        mock_report.items_missing_note = []
         mock_auditor.audit_collection.return_value = mock_report
-        test_args = ["zotero-cli", "analyze", "audit", "--collection", "C"]
+        test_args = ["zotero-cli", "slr", "audit", "check", "--collection", "C"]
         with patch.object(sys, "argv", test_args):
             main()
-        assert "Audit Report" in capsys.readouterr().out
+        assert "Auditing collection: C" in capsys.readouterr().out
 
 
 def test_analyze_lookup(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.analyze_cmd.LookupService") as mock_lookup_cls:
+    with patch("zotero_cli.cli.commands.slr_cmd.LookupService") as mock_lookup_cls:
         mock_lookup = mock_lookup_cls.return_value
-        mock_lookup.lookup_items.return_value = "Result"
-        test_args = ["zotero-cli", "analyze", "lookup", "--keys", "K1"]
+        mock_lookup.lookup_items.return_value = "Lookup Result"
+        test_args = ["zotero-cli", "slr", "lookup", "--keys", "K1"]
         with patch.object(sys, "argv", test_args):
             main()
-        assert "Result" in capsys.readouterr().out
+        assert "Lookup Result" in capsys.readouterr().out
 
 
 def test_analyze_graph(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.analyze_cmd.CitationGraphService") as mock_graph_cls:
+    with patch("zotero_cli.cli.commands.slr_cmd.CitationGraphService") as mock_graph_cls:
         mock_graph = mock_graph_cls.return_value
-        mock_graph.build_graph.return_value = "digraph"
-        test_args = ["zotero-cli", "analyze", "graph", "--collections", "C"]
+        mock_graph.build_graph.return_value = "digraph {}"
+        test_args = ["zotero-cli", "slr", "graph", "--collections", "C"]
         with patch.object(sys, "argv", test_args):
             main()
-        assert "digraph" in capsys.readouterr().out
+        assert "digraph {}" in capsys.readouterr().out
 
 
 # --- 8. FIND ---

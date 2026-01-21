@@ -81,8 +81,33 @@ zotero-cli item delete "ITEMKEY"
 
 ---
 
+### `hydrate`
+
+Retroactively fetches latest metadata (DOI and Journal/Publication) for items originating from ArXiv. This is useful for "hydrating" pre-prints that were published in a peer-reviewed journal after they were added to Zotero.
+
+**Usage:**
+
+```bash
+zotero-cli item hydrate "ITEMKEY" [--dry-run]
+zotero-cli item hydrate --collection "COLLECTION_NAME"
+zotero-cli item hydrate --all
+```
+
+**Options:**
+
+*   `--dry-run`: Show what would be updated without applying changes.
+*   `--collection`: Hydrate all ArXiv items within a specific collection.
+*   `--all`: Scan the entire library for ArXiv items and attempt hydration.
+
+**Example:**
+
+```bash
+zotero-cli item hydrate "ABCD1234"
+```
+
 ### `pdf`
-PDF attachment operations for a specific item.
+
+Operations related to PDF attachments.
 
 #### `pdf fetch`
 Attempt to fetch and attach a missing PDF for a single item.

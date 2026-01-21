@@ -24,7 +24,7 @@ def env_vars(monkeypatch):
 
 def test_decide_short_paper(mock_clients, env_vars, capsys):
     mock_clients["screening"].record_decision.return_value = True
-    test_args = ["zotero-cli", "review", "decide", "--key", "K1", "--short-paper", "EC5"]
+    test_args = ["zotero-cli", "slr", "decide", "--key", "K1", "--short-paper", "EC5"]
 
     with patch.object(sys, "argv", test_args):
         main()
@@ -38,7 +38,7 @@ def test_decide_short_paper(mock_clients, env_vars, capsys):
 
 def test_decide_not_english(mock_clients, env_vars, capsys):
     mock_clients["screening"].record_decision.return_value = True
-    test_args = ["zotero-cli", "review", "decide", "--key", "K1", "--not-english", "EC2"]
+    test_args = ["zotero-cli", "slr", "decide", "--key", "K1", "--not-english", "EC2"]
 
     with patch.object(sys, "argv", test_args):
         main()
@@ -50,7 +50,7 @@ def test_decide_not_english(mock_clients, env_vars, capsys):
 
 
 def test_decide_missing_args_error(mock_clients, env_vars, capsys):
-    test_args = ["zotero-cli", "review", "decide", "--key", "K1"]
+    test_args = ["zotero-cli", "slr", "decide", "--key", "K1"]
 
     with patch.object(sys, "argv", test_args):
         with pytest.raises(SystemExit):

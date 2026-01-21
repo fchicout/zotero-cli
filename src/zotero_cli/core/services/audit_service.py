@@ -1,14 +1,13 @@
 import concurrent.futures
 import csv
 import json
-import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from rapidfuzz import fuzz
 
-from zotero_cli.core.interfaces import NoteRepository, ZoteroGateway
+from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -129,12 +128,12 @@ class CollectionAuditor:
 
     def enrich_from_csv(
         self, csv_path: str, reviewer: str, dry_run: bool = True, force: bool = False
-    ) -> dict:
+    ) -> Dict[str, Any]:
         """
         Retroactive SDB Enrichment from CSV.
         """
         # 1. Load CSV
-        rows = []
+        rows: List[Dict[str, str]] = []
         try:
             with open(csv_path, "r", encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
@@ -144,24 +143,28 @@ class CollectionAuditor:
             return {"error": str(e)}
 
         if not rows:
-            return {"count": 0, "matched": 0, "unmatched": 0}
+            return {
+                "total_rows": 0,
+                "matched": 0,
+                "unmatched": [],
+                "updated": 0,
+                "created": 0,
+                "skipped": 0,
+            }
 
         # 2. Cache Library Items for Matching
         print("Caching library items for matching...")
-        # For performance, we fetch all items. If library is huge, this might be slow.
-        # Use a generator if needed, but for matching we need a look-up table.
-        # We can use ZoteroQuery() to fetch all items.
         from zotero_cli.core.models import ZoteroQuery
 
         all_items = list(self.gateway.search_items(ZoteroQuery()))
-        
+
         # Build lookup maps
         items_by_key = {i.key: i for i in all_items}
         items_by_doi = {self._normalize_doi(i.doi): i for i in all_items if i.doi}
         # Title map for exact matches, fuzzy used later
         items_by_title = {self._normalize_title(i.title): i for i in all_items if i.title}
 
-        results = {
+        results: Dict[str, Any] = {
             "total_rows": len(rows),
             "matched": 0,
             "unmatched": [],
@@ -171,22 +174,22 @@ class CollectionAuditor:
         }
 
         for row in rows:
-            item = self._find_item_cascade(row, items_by_key, items_by_doi, items_by_title, all_items)
-            
+            item = self._find_item_cascade(
+                row, items_by_key, items_by_doi, items_by_title, all_items
+            )
+
             if not item:
                 title = row.get("Title") or row.get("title") or "Unknown"
                 results["unmatched"].append(title)
                 continue
 
             results["matched"] += 1
-            
+
             # 3. Construct SDB Payload
             sdb_payload = self._build_sdb_payload(row, reviewer)
-            
+
             if dry_run:
-                old_doi = item.doi or "N/A"
-                new_doi = row.get("DOI") or row.get("doi") or "N/A"
-                print(f"[DRY RUN] Match: {item.key} | {item.title[:40]}... | {reviewer}")
+                print(f"[DRY RUN] Match: {item.key} | {(item.title or '')[:40]}... | {reviewer}")
                 results["skipped"] += 1
                 continue
 
@@ -205,7 +208,14 @@ class CollectionAuditor:
 
         return results
 
-    def _find_item_cascade(self, row, by_key, by_doi, by_title, all_items) -> Optional[ZoteroItem]:
+    def _find_item_cascade(
+        self,
+        row: Dict[str, str],
+        by_key: Dict[str, ZoteroItem],
+        by_doi: Dict[str, ZoteroItem],
+        by_title: Dict[str, ZoteroItem],
+        all_items: List[ZoteroItem],
+    ) -> Optional[ZoteroItem]:
         # 1. Key
         key = row.get("key") or row.get("zotero_key")
         if key and key in by_key:
@@ -236,14 +246,18 @@ class CollectionAuditor:
 
         return None
 
-    def _build_sdb_payload(self, row, reviewer) -> dict:
+    def _build_sdb_payload(self, row: Dict[str, str], reviewer: str) -> dict:
         status = row.get("Status") or row.get("Decision") or row.get("decision", "")
         status = status.lower()
-        decision = "accepted" if "include" in status else ("rejected" if "exclude" in status else "unknown")
-        
+        decision = (
+            "accepted"
+            if "include" in status
+            else ("rejected" if "exclude" in status else "unknown")
+        )
+
         reason_code = row.get("Reason") or row.get("reason_code") or ""
         reason_text = row.get("Comment") or row.get("reason_text") or row.get("comment", "")
-        
+
         return {
             "audit_version": "1.1",
             "decision": decision,
@@ -252,7 +266,7 @@ class CollectionAuditor:
             "persona": reviewer,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "agent": "zotero-cli",
-            "action": "screening_decision"
+            "action": "screening_decision",
         }
 
     def _inject_sdb_note(self, item_key: str, reviewer: str, payload: dict) -> str:
@@ -260,16 +274,17 @@ class CollectionAuditor:
         Injects or updates the SDB note. Returns 'created', 'updated', or 'error'.
         """
         children = self.gateway.get_item_children(item_key)
-        existing_note_key = None
-        existing_version = None
+        existing_note_key: Optional[str] = None
+        existing_version: int = 0
 
         for child in children:
             data = child.get("data", child)
             if data.get("itemType") == "note":
                 content = data.get("note", "")
                 if "audit_version" in content and f'"persona": "{reviewer}"' in content:
-                    existing_note_key = data.get("key")
-                    existing_version = data.get("version")
+                    existing_note_key = child.get("key") or data.get("key")
+                    # Ensure we have a version
+                    existing_version = int(child.get("version") or data.get("version") or 0)
                     break
 
         note_content = f"<div>{json.dumps(payload, indent=2)}</div>"
@@ -296,6 +311,7 @@ class CollectionAuditor:
             return ""
         # Remove non-alphanumeric and extra whitespace
         import re
+
         title = re.sub(r"[^\w\s]", "", title.lower())
         return " ".join(title.split())
 

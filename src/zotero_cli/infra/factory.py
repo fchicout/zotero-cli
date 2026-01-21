@@ -23,6 +23,7 @@ from zotero_cli.infra.zotero_api import ZoteroAPIClient
 if TYPE_CHECKING:
     from zotero_cli.core.services.attachment_service import AttachmentService
     from zotero_cli.core.services.collection_service import CollectionService
+    from zotero_cli.core.services.enrichment_service import EnrichmentService
     from zotero_cli.core.services.import_service import ImportService
     from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
     from zotero_cli.core.services.screening_service import ScreeningService
@@ -189,6 +190,23 @@ class GatewayFactory:
         from zotero_cli.core.services.collection_service import CollectionService
 
         return CollectionService(item_repo, col_repo)
+
+    @staticmethod
+    def get_enrichment_service(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> "EnrichmentService":
+        if not config:
+            from zotero_cli.core.config import get_config as main_get_config
+
+            config = main_get_config()
+
+        item_repo = GatewayFactory.get_item_repository(config, force_user)
+        col_repo = GatewayFactory.get_collection_repository(config, force_user)
+        arxiv_gateway = GatewayFactory.get_arxiv_gateway()
+
+        from zotero_cli.core.services.enrichment_service import EnrichmentService
+
+        return EnrichmentService(item_repo, col_repo, arxiv_gateway)
 
     @staticmethod
     def get_screening_service(

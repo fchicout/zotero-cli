@@ -43,7 +43,7 @@ For CI/CD or ephemeral sessions, use these variables:
 **Interactive (TUI):**
 The core feature. Launch the "Tinder-for-Papers" interface.
 ```bash
-zotero-cli review screen --source "raw_arXiv" --include "screened" --exclude "excluded"
+zotero-cli slr screen --source "raw_arXiv" --include "screened" --exclude "excluded"
 ```
 *   **[I]**: Include
 *   **[E]**: Exclude (Select reason code)
@@ -52,7 +52,7 @@ zotero-cli review screen --source "raw_arXiv" --include "screened" --exclude "ex
 **Single Decision (CLI):**
 Record a decision directly from the terminal.
 ```bash
-zotero-cli review decide --key "ITEM_KEY" --vote "include"
+zotero-cli slr decide --key "ITEM_KEY" --vote "include"
 ```
 
 ### 2. Reporting (PRISMA)
@@ -113,5 +113,5 @@ zotero-cli system info
 ### Audit
 Check for missing metadata (Abstracts, DOIs, PDFs).
 ```bash
-zotero-cli analyze audit --collection "Critical Review"
+zotero-cli slr audit check --collection "Critical Review"
 ```

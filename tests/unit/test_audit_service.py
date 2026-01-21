@@ -105,3 +105,70 @@ def test_audit_collection_not_found(auditor, mock_gateway):
     report = auditor.audit_collection("Non Existent Collection")
 
     assert report is None
+
+
+# --- CSV Enrichment Tests ---
+
+
+def test_enrich_from_csv_success(auditor, mock_gateway, tmp_path):
+    csv_file = tmp_path / "decisions.csv"
+    csv_file.write_text(
+        "title,status,reason,comment\n"
+        "Paper A,Included,EC1,Looks good\n"
+        "Paper B,Excluded,EC2,Out of scope\n"
+    )
+
+    # Mock items in library
+    item1 = create_mock_item({}, "KEY1", title="Paper A")
+    item2 = create_mock_item({}, "KEY2", title="Paper B")
+
+    mock_gateway.search_items.return_value = iter([item1, item2])
+    mock_gateway.get_item_children.return_value = []
+    mock_gateway.create_note.return_value = True
+
+    results = auditor.enrich_from_csv(str(csv_file), reviewer="Orion", dry_run=False, force=True)
+
+    assert results["matched"] == 2
+    assert results["created"] == 2
+    assert mock_gateway.create_note.call_count == 2
+
+
+def test_enrich_from_csv_match_by_doi(auditor, mock_gateway, tmp_path):
+    csv_file = tmp_path / "decisions.csv"
+    csv_file.write_text("doi,status,reason,comment\n10.1234/5678,Included,EC1,Matches DOI\n")
+
+    # Item has DOI but different title
+    item1 = create_mock_item({}, "KEY1", title="Random Title", doi="10.1234/5678")
+
+    mock_gateway.search_items.return_value = iter([item1])
+    mock_gateway.get_item_children.return_value = []
+    mock_gateway.create_note.return_value = True
+
+    results = auditor.enrich_from_csv(str(csv_file), reviewer="Orion", dry_run=False, force=True)
+
+    assert results["matched"] == 1
+    assert results["created"] == 1
+
+
+def test_enrich_from_csv_update_existing(auditor, mock_gateway, tmp_path):
+    csv_file = tmp_path / "decisions.csv"
+    csv_file.write_text("key,status,reason,comment\nKEY1,Included,EC1,Update\n")
+
+    item1 = create_mock_item({}, "KEY1", title="Paper A")
+
+    mock_gateway.search_items.return_value = iter([item1])
+    # Mock existing SDB note for Orion
+    mock_gateway.get_item_children.return_value = [
+        {
+            "key": "NOTE1",
+            "version": 1,
+            "data": {"itemType": "note", "note": '{"audit_version": "1.1", "persona": "Orion"}'},
+        }
+    ]
+    mock_gateway.update_note.return_value = True
+
+    results = auditor.enrich_from_csv(str(csv_file), reviewer="Orion", dry_run=False, force=True)
+
+    assert results["matched"] == 1
+    assert results["updated"] == 1
+    mock_gateway.update_note.assert_called_once()

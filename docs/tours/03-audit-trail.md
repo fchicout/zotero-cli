@@ -24,7 +24,7 @@ zotero-cli report snapshot --collection "Included" --output "audit_v1.json"
 Visualize how the included papers cite each other (if metadata is available).
 
 ```bash
-zotero-cli analyze graph --collections "Included" > network.dot
+zotero-cli slr graph --collections "Included" > network.dot
 # Use Graphviz or Mermaid to render the .dot file
 ```
 

@@ -26,6 +26,18 @@ All development must strictly adhere to **[The Valerius Protocol](@gem-ctx/knowl
 ## Project Overview: `zotero-cli`
 A "Systematic Review Engine" CLI tool to import, manage, and screen research papers in Zotero libraries.
 
+### Dual-Domain Architecture
+1.  **The Engine (Management):** Direct manipulation of the Zotero database (items, collections, tags, storage).
+2.  **The Protocol (SLR):** Advanced workflow support for Systematic Literature Reviews (Kitchenham/Wohlin).
+
+### Rigid Feature Set (SLR Conformance)
+| SLR Phase | CLI Implementation | Status |
+| :--- | :--- | :--- |
+| **Search & Collect** | `import arxiv`, `import file (RIS/BibTeX/CSV)` | [DONE] |
+| **Title/Abstract Screening** | `review screen` (TUI), `review decide` (CLI), `audit import-csv` | [DONE] |
+| **Data Extraction** | (Future scope: Structured JSON extraction forms) | [PLANNED] |
+| **Synthesis & Reporting** | `report prisma`, `report snapshot`, `analyze graph` | [DONE] |
+
 **Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`.
 
 ## Accomplishments (Session: 2026-01-20)

@@ -1,43 +1,18 @@
-# Command: `analyze`
+# Command: `analyze` (Deprecated)
 
-Deep analysis and visualization of your research data.
+This command is deprecated and has been consolidated into the **[`slr`](slr.md)** command.
 
-## Verbs
+Please use `zotero-cli slr` for all analysis workflows.
 
-### `audit`
-Check a collection for items with missing metadata (DOI, ArXiv ID) or missing PDF attachments.
+## Consolidated Verbs
 
-**Usage:**
-```bash
-zotero-cli analyze audit --collection "SLR-Core"
-```
-
----
-
-### `lookup`
-Perform bulk metadata retrieval for a list of Zotero keys or from a file.
-
-**Usage:**
-```bash
-zotero-cli analyze lookup --keys "KEY1,KEY2" --fields "title,doi"
-```
-
----
-
-### `graph`
-Generate a Mermaid/Graphviz citation graph for one or more collections.
-
-**Usage:**
-```bash
-zotero-cli analyze graph --collections "Included" > graph.dot
-```
-
----
-
-### `shift`
-Detect items that moved between collections by comparing two snapshots.
-
-**Usage:**
-```bash
-zotero-cli analyze shift --old snapshot_v1.json --new snapshot_v2.json
-```
+The following verbs have been moved to the `slr` command:
+* `screen`
+* `decide`
+* `audit`
+* `lookup`
+* `graph`
+* `shift`
+* `migrate`
+* `sync-csv`
+* `prune`

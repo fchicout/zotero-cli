@@ -119,6 +119,21 @@ class ItemCommand(BaseCommand):
         attach_p.add_argument("key", help="Item Key")
         attach_p.add_argument("path", help="Path to local file")
 
+        # Hydrate
+        hydrate_p = sub.add_parser(
+            "hydrate", help="Enrich metadata from external sources (e.g. ArXiv -> DOI)"
+        )
+        hydrate_p.add_argument(
+            "key", nargs="?", help="Item Key (optional if --collection or --all)"
+        )
+        hydrate_p.add_argument("--collection", help="Hydrate all items in a collection")
+        hydrate_p.add_argument(
+            "--all", action="store_true", help="Scan entire library for hydration"
+        )
+        hydrate_p.add_argument(
+            "--dry-run", action="store_true", help="Show changes without applying"
+        )
+
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -137,6 +152,52 @@ class ItemCommand(BaseCommand):
             self._handle_delete(gateway, args)
         elif args.verb == "pdf":
             self._handle_pdf_ops(args)
+        elif args.verb == "hydrate":
+            self._handle_hydrate(args)
+
+    def _handle_hydrate(self, args):
+        from rich.table import Table
+
+        force_user = getattr(args, "user", False)
+        service = GatewayFactory.get_enrichment_service(force_user=force_user)
+
+        results = []
+        if args.key:
+            res = service.hydrate_item(args.key, dry_run=args.dry_run)
+            if res:
+                results.append(res)
+        elif args.collection:
+            print(f"Hydrating collection '{args.collection}'...")
+            results = service.hydrate_collection(args.collection, dry_run=args.dry_run)
+        elif args.all:
+            print("Hydrating entire library (ArXiv items)...")
+            results = service.hydrate_all(dry_run=args.dry_run)
+        else:
+            print("Error: Specify an item Key, --collection, or --all.")
+            return
+
+        if not results:
+            print("No items needed hydration.")
+            return
+
+        table = Table(title="Hydration Report" + (" (DRY RUN)" if args.dry_run else ""))
+        table.add_column("Key")
+        table.add_column("Title", overflow="fold")
+        table.add_column("Old DOI")
+        table.add_column("New DOI")
+        table.add_column("New Journal")
+
+        for r in results:
+            table.add_row(
+                r["key"],
+                r["title"],
+                r["old_doi"],
+                r["new_doi"],
+                r["new_journal"],
+            )
+
+        console.print(table)
+        print(f"\nTotal items hydrated: {len(results)}")
 
     def _handle_pdf_ops(self, args):
         force_user = getattr(args, "user", False)

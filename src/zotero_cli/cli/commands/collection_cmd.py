@@ -112,7 +112,7 @@ class CollectionCommand(BaseCommand):
                     print(
                         f"[bold red]WARNING: Performing recursive deletion of collection '{args.key}' ({col_id})...[/bold red]"
                     )
-                
+
                 # Use CollectionService for delete to handle recursive logic
                 service = GatewayFactory.get_collection_service(force_user=force_user)
                 if service.delete_collection(col_id, version, recursive=args.recursive):

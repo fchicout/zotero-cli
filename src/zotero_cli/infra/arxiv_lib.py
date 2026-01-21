@@ -13,7 +13,7 @@ class ArxivLibGateway(ArxivGateway):
     def search(
         self,
         query: str,
-        limit: int = 100,
+        max_results: int = 100,
         sort_by: str = "relevance",
         sort_order: str = "descending",
     ) -> Iterator[ResearchPaper]:
@@ -36,7 +36,9 @@ class ArxivLibGateway(ArxivGateway):
         order = order_map.get(sort_order, arxiv.SortOrder.Descending)
 
         # Construct the arXiv search object
-        search = arxiv.Search(query=query, max_results=limit, sort_by=criterion, sort_order=order)
+        search = arxiv.Search(
+            query=query, max_results=max_results, sort_by=criterion, sort_order=order
+        )
 
         # Use the arxiv Client to execute the search
         client = arxiv.Client()

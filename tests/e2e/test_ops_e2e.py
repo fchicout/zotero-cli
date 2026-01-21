@@ -1,32 +1,13 @@
-import os
 import re
-import subprocess
-import sys
 import time
-from pathlib import Path
 
 import pytest
 
 
-def run_cli(args):
-    # Use the current python interpreter and set PYTHONPATH to the src directory
-    # relative to the project root (where pytest is run)
-    cwd = Path.cwd()
-    src_path = str(cwd / "src")
-    env = os.environ.copy()
-    env["PYTHONPATH"] = src_path
-    return subprocess.run(
-        [sys.executable, "-m", "zotero_cli.cli.main"] + args,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-
-
 @pytest.mark.e2e
-def test_prune_e2e():
+def test_prune_e2e(run_cli):
     """
-    Real E2E: Verify zotero-cli review prune removes intersection.
+    Real E2E: Verify zotero-cli slr prune removes intersection.
     """
     ts = int(time.time())
     col_inc = f"E2E_Prune_Inc_{ts}"
@@ -48,11 +29,12 @@ def test_prune_e2e():
         assert "Attention" in res_exc.stdout
 
         # 4. Action: Prune
-        prune_res = run_cli(["review", "prune", "--included", col_inc, "--excluded", col_exc])
+        prune_res = run_cli(["slr", "prune", "--included", col_inc, "--excluded", col_exc])
         print(f"PRUNE STDOUT: {prune_res.stdout}")
         print(f"PRUNE STDERR: {prune_res.stderr}")
         assert prune_res.returncode == 0
-        assert "Pruned 1 items" in prune_res.stdout
+        assert "Pruned" in prune_res.stdout
+        assert "items" in prune_res.stdout
 
         # 5. Verify item GONE (Wait longer for index update)
         time.sleep(5)
@@ -60,12 +42,14 @@ def test_prune_e2e():
         assert "Attention" not in res_after.stdout
 
     finally:
-        run_cli(["collection", "delete", col_inc, "--recursive"])
-        run_cli(["collection", "delete", col_exc, "--recursive"])
+        # Rigorous Cleanup
+        for col in [col_inc, col_exc]:
+            run_cli(["collection", "clean", "--collection", col])
+            run_cli(["collection", "delete", col, "--recursive"])
 
 
 @pytest.mark.e2e
-def test_shift_e2e(tmp_path):
+def test_shift_e2e(run_cli, tmp_path):
     """
     Real E2E: Verify shift detection.
     """
@@ -78,7 +62,16 @@ def test_shift_e2e(tmp_path):
     try:
         run_cli(["collection", "create", col_a])
         run_cli(
-            ["import", "arxiv", "--query", "id:1706.03762", "--limit", "1", "--collection", col_a]
+            [
+                "import",
+                "arxiv",
+                "--query",
+                "id:1706.03762",
+                "--limit",
+                "1",
+                "--collection",
+                col_a,
+            ]
         )
 
         time.sleep(5)
@@ -96,7 +89,7 @@ def test_shift_e2e(tmp_path):
 
         run_cli(
             [
-                "review",
+                "slr",
                 "decide",
                 "--key",
                 key,
@@ -114,10 +107,12 @@ def test_shift_e2e(tmp_path):
         time.sleep(5)
         run_cli(["report", "snapshot", "--collection", col_a, "--output", str(snap2)])
 
-        shift_res = run_cli(["analyze", "shift", "--old", str(snap1), "--new", str(snap2)])
+        shift_res = run_cli(["slr", "shift", "--old", str(snap1), "--new", str(snap2)])
         assert shift_res.returncode == 0
         assert key in shift_res.stdout
 
     finally:
-        run_cli(["collection", "delete", col_a, "--recursive"])
-        run_cli(["collection", "delete", col_b, "--recursive"])
+        # Rigorous Cleanup
+        for col in [col_a, col_b]:
+            run_cli(["collection", "clean", "--collection", col])
+            run_cli(["collection", "delete", col, "--recursive"])

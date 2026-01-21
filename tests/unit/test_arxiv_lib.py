@@ -40,7 +40,7 @@ def test_search_returns_papers(MockSearch, MockClient):
 
     # Action
     gateway = ArxivLibGateway()
-    papers = list(gateway.search("test query", limit=2))
+    papers = list(gateway.search("test query", max_results=2))
 
     # Assertion
     assert len(papers) == 2
@@ -87,7 +87,7 @@ def test_search_extracts_doi_from_comment(MockSearch, MockClient):
     mock_client_instance.results.return_value = iter([mock_result])
 
     gateway = ArxivLibGateway()
-    papers = list(gateway.search("query", limit=1))
+    papers = list(gateway.search("query", max_results=1))
 
     assert len(papers) == 1
     assert papers[0].doi == "10.1145/3442188.3445922"
@@ -112,7 +112,7 @@ def test_search_extracts_doi_from_journal_ref(MockSearch, MockClient):
     mock_client_instance.results.return_value = iter([mock_result])
 
     gateway = ArxivLibGateway()
-    papers = list(gateway.search("query", limit=1))
+    papers = list(gateway.search("query", max_results=1))
 
     assert len(papers) == 1
     assert papers[0].doi == "10.1038/s41586-021-03354-4"

@@ -17,7 +17,7 @@ zotero-cli collection create "Excluded"
 Launch the interactive screening interface. This is where **zotero-cli** shines.
 
 ```bash
-zotero-cli review screen --source "LLM Search" --include "Included" --exclude "Excluded"
+zotero-cli slr screen --source "LLM Search" --include "Included" --exclude "Excluded"
 ```
 
 ### Controls:
@@ -30,7 +30,7 @@ zotero-cli review screen --source "LLM Search" --include "Included" --exclude "E
 If you already know a specific paper's fate, use the `decide` command for a quick strike.
 
 ```bash
-zotero-cli review decide --key "ABC12345" --vote "INCLUDE" --code "RELEVANT"
+zotero-cli slr decide --key "ABC12345" --vote "INCLUDE" --code "RELEVANT"
 ```
 
 ## Visualizing the Flow

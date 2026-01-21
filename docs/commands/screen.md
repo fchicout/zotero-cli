@@ -4,7 +4,7 @@ Interactive Terminal User Interface (TUI) for screening papers.
 
 **Usage:**
 ```bash
-zotero-cli review screen --source "Raw" --include "Accepted" --exclude "Rejected"
+zotero-cli slr screen --source "Raw" --include "Accepted" --exclude "Rejected"
 ```
 
 **Options:**

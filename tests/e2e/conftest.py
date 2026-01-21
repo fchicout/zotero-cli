@@ -46,3 +46,30 @@ def extract_keys():
 def timestamp():
     """Return a unique timestamp for collection naming."""
     return int(time.time())
+
+
+@pytest.fixture
+def temp_collection(run_cli, timestamp):
+    """
+    Yields a temporary collection name.
+    Ensures rigorous teardown (Clean Items -> Delete Collection) to prevent
+    'Unfiled' orphans in the Zotero Library.
+    """
+    col_name = f"E2E_Temp_{timestamp}"
+
+    # 1. Create
+    run_cli(["collection", "create", col_name])
+
+    yield col_name
+
+    # 2. Teardown: Clean then Delete
+    # Clean deletes the actual items, preventing orphans.
+    print(f"\n[Teardown] Cleaning collection: {col_name}")
+    clean_res = run_cli(["collection", "clean", "--collection", col_name])
+    if clean_res.returncode != 0:
+        print(f"Warning: Clean failed: {clean_res.stderr}")
+
+    print(f"[Teardown] Deleting collection: {col_name}")
+    del_res = run_cli(["collection", "delete", col_name, "--recursive"])
+    if del_res.returncode != 0:
+        print(f"Warning: Delete failed: {del_res.stderr}")

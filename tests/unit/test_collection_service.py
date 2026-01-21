@@ -58,6 +58,7 @@ def test_move_item_not_found(service, mock_gateway):
     assert result is False
     mock_gateway.update_item.assert_not_called()
 
+
 def test_move_item_success_arxiv(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = (
         lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
@@ -74,6 +75,7 @@ def test_move_item_success_arxiv(service, mock_gateway):
 
     result = service.move_item("Source", "Dest", "2301.00001")
     assert result is True
+
 
 def test_collections_not_found(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = (
@@ -104,6 +106,7 @@ def test_move_item_success_key(service, mock_gateway):
     mock_gateway.get_items_in_collection.assert_not_called()  # Optimization verified!
     mock_gateway.update_item.assert_called()
 
+
 def test_empty_collection_success_simple(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.return_value = "COLL_ID"
 
@@ -123,6 +126,7 @@ def test_empty_collection_success_simple(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.assert_called_with("TargetCol")
     mock_gateway.get_items_in_collection.assert_called_with("COLL_ID")
     assert mock_gateway.delete_item.call_count == 2
+
 
 def test_empty_collection_with_parent_success(service, mock_gateway):
     mock_gateway.get_all_collections.return_value = [
@@ -145,6 +149,7 @@ def test_empty_collection_with_parent_success(service, mock_gateway):
     assert count == 1
     mock_gateway.get_items_in_collection.assert_called_with("TARGET_ID")
     mock_gateway.delete_item.assert_called_once()
+
 
 def test_empty_collection_parent_not_found(service, mock_gateway):
     mock_gateway.get_all_collections.return_value = []
@@ -180,6 +185,7 @@ def test_move_item_auto_source_success(service, mock_gateway):
     assert "ID_DEST" in args[0][2]["collections"]
     assert "ID_SRC" not in args[0][2]["collections"]
 
+
 def test_move_item_auto_source_ambiguous(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = (
         lambda name: "ID_DEST" if name == "Dest" else None
@@ -199,6 +205,7 @@ def test_move_item_auto_source_ambiguous(service, mock_gateway):
 
     assert result is False
     mock_gateway.update_item.assert_not_called()
+
 
 def test_move_item_auto_source_already_in_dest_only(service, mock_gateway):
     mock_gateway.get_collection_id_by_name.side_effect = (
@@ -222,10 +229,12 @@ def test_move_item_auto_source_already_in_dest_only(service, mock_gateway):
     args = mock_gateway.update_item.call_args
     assert args[0][2]["collections"] == ["ID_DEST"]
 
+
 def test_move_item_auto_source_not_found(service, mock_gateway):
     mock_gateway.get_item.return_value = None
     result = service.move_item(None, "Dest", "MISSING")
     assert result is False
+
 
 def test_delete_collection_non_recursive(service, mock_gateway):
     mock_gateway.delete_collection.return_value = True
@@ -246,6 +255,7 @@ def test_delete_collection_recursive(service, mock_gateway):
     item2.key = "K2"
     item2.version = 2
 
+    mock_gateway.get_all_collections.return_value = []  # No sub-collections
     mock_gateway.get_items_in_collection.return_value = iter([item1, item2])
     mock_gateway.delete_item.return_value = True
     mock_gateway.delete_collection.return_value = True
