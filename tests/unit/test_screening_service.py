@@ -43,6 +43,25 @@ def test_record_decision_success(screening_service, mock_gateway):
     assert "1.2" in note_content
 
 
+def test_record_decision_with_evidence(screening_service, mock_gateway):
+    item_key = "ITEM123"
+    mock_gateway.create_note.return_value = True
+    mock_gateway.get_item_children.return_value = []
+
+    success = screening_service.record_decision(
+        item_key=item_key,
+        decision="INCLUDE",
+        code="IC1",
+        evidence="Found direct quote on page 5: 'Performance improved by 20%'.",
+    )
+
+    assert success is True
+    args, _ = mock_gateway.create_note.call_args
+    note_content = args[1]
+    assert "Found direct quote on page 5" in note_content
+    assert '"evidence":' in note_content
+
+
 def test_record_decision_with_move(screening_service, mock_gateway):
     item_key = "ITEM123"
     source_col = "Raw"

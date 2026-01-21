@@ -176,3 +176,23 @@ def test_enrich_from_csv_update_existing(auditor, mock_gateway, tmp_path):
     assert results["matched"] == 1
     assert results["updated"] == 1
     mock_gateway.update_note.assert_called_once()
+
+
+def test_enrich_from_csv_with_evidence(auditor, mock_gateway, tmp_path):
+    csv_file = tmp_path / "decisions_with_evidence.csv"
+    csv_file.write_text("key,status,reason,evidence\nKEY1,Included,EC1,Found evidence on page 10\n")
+
+    item1 = create_mock_item({}, "KEY1", title="Paper A")
+    mock_gateway.search_items.return_value = iter([item1])
+    mock_gateway.get_item_children.return_value = []
+    mock_gateway.create_note.return_value = True
+
+    results = auditor.enrich_from_csv(str(csv_file), reviewer="Orion", dry_run=False, force=True)
+
+    assert results["matched"] == 1
+    assert results["created"] == 1
+
+    args, _ = mock_gateway.create_note.call_args
+    note_content = args[1]
+    assert "Found evidence on page 10" in note_content
+    assert '"evidence":' in note_content

@@ -57,6 +57,46 @@ def test_slr_prune_dispatch(mock_gateway, mock_coll_service_get, slr_cmd):
     mock_service.prune_intersection.assert_called_once_with("INC", "EXC")
 
 
+@patch("zotero_cli.infra.factory.GatewayFactory.get_screening_service")
+@patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")
+def test_slr_decide_dispatch_full(mock_gateway, mock_screening_get, slr_cmd):
+    mock_service = mock_screening_get.return_value
+    mock_service.record_decision.return_value = True
+
+    args = argparse.Namespace(
+        verb="decide",
+        key="K1",
+        vote="INCLUDE",
+        code="IC1",
+        reason="Good",
+        source="S",
+        target="T",
+        agent_led=True,
+        persona="Pythias",
+        phase="full_text",
+        evidence="Evidence text",
+        short_paper=None,
+        not_english=None,
+        is_survey=None,
+        no_pdf=None,
+        user=False,
+    )
+
+    slr_cmd.execute(args)
+    mock_service.record_decision.assert_called_once_with(
+        item_key="K1",
+        decision="INCLUDE",
+        code="IC1",
+        reason="Good",
+        source_collection="S",
+        target_collection="T",
+        agent="zotero-cli",
+        persona="Pythias",
+        phase="full_text",
+        evidence="Evidence text",
+    )
+
+
 @patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")
 @patch("zotero_cli.cli.commands.slr_cmd.CollectionAuditor")
 def test_slr_validate_dispatch(mock_auditor_cls, mock_gateway, slr_cmd):
