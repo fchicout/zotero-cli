@@ -1,7 +1,6 @@
 import json
 import os
 import shutil
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -269,3 +268,4 @@ class ExtractionService:
             row_vals = [str(row.get(h, "")) for h in headers]
             lines.append("| " + " | ".join(row_vals) + " |")
         return "\n".join(lines)
+

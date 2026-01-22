@@ -41,29 +41,33 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 2.  **The Protocol (SLR):** Advanced workflow support for Systematic Literature Reviews (Kitchenham/Wohlin).
 
 ## Rigid Feature Set (SLR Conformance)
+(See [ROADMAP.md](ROADMAP.md) for execution state and release planning)
+
 | SLR Phase | CLI Implementation | Status |
 | :--- | :--- | :--- |
 | **Search & Collect** | `import arxiv`, `import file (RIS/BibTeX/CSV)` | [DONE] |
 | **Title/Abstract Screening** | `slr screen` (TUI), `slr decide` (CLI), `slr load` | [DONE] |
 | **Full-Text Screening** | `slr decide --phase full_text --evidence "..."` | [DONE] |
-| **Data Extraction** | (Future scope: Structured JSON extraction forms) | [PLANNED] |
+| **Data Extraction** | `slr extract` (TUI + Export) | [DONE] |
 | **Synthesis & Reporting** | `report prisma`, `report snapshot`, `slr graph` | [DONE] |
 
 **Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`.
 
-### Phase 21: Data Extraction Spec & Handoff
+## Accomplishments (Session: 2026-01-22)
 
-*   **[SPEC] SDB-Extraction v1.0:** Defined the protocol for structured data extraction within Zotero Notes (`docs/specs/SDB_EXTRACTION_v1.0.md`).
-*   **[HANDOFF] Issue #42:** Delegated the Schema Validator implementation to the Dev Squad.
-*   **[HANDOFF] Issue #43:** Delegated the Extraction TUI implementation (with "Try-Then-Link" opener strategy).
-*   **[CHORE] Dependencies:** Added `PyYAML` to `pyproject.toml`.
+### Phase 21: Data Extraction Workflow (v2.3.0 Milestone)
+*   **[QUALITY] CI/CD Rescue:** Fixed release blocker by creating `MANIFEST.in` and patching `release.yml` to bundle YAML templates in PyInstaller builds.
+*   **[VERIFIED] Issue #42 (Schema Validator):** Validated `slr extract --init/--validate` logic.
+*   **[VERIFIED] Issue #43 (Extraction TUI):** Implemented unit tests for `ExtractionTUI` and `OpenerService`. Resolved `ImportError` regressions in TUI test suite.
+*   **[VERIFIED] Issue #44 (Synthesis Matrix):** Validated export logic for CSV, Markdown, and JSON formats. Reached **91% coverage** for `extraction_service.py`.
+*   **[QUALITY] Hard Coverage Gate (80%):** Successfully expanded tests to maintain the 80% global coverage threshold after adding new features.
 
 ## Current State
 
 *   **Version:** `v2.3.0`
-*   **Quality:** 100% Pass Rate (272 tests). Global coverage: **81%**.
-*   **Status:** **RELEASED**
+*   **Quality:** 100% Pass Rate (296 tests). Global coverage: **80%**.
+*   **Status:** **RELEASE READY (Stabilized)**
 
 ## Next Actions (Immediate)
-1.  **Workflow:** Implement Issue #29 (`move` checkout/check-in).
-2.  **Refactoring:** Refactor API `GET /items` to use native Zotero pagination.
+1.  **Release:** Final push and tag `v2.3.0`.
+2.  **Feature:** Implement Issue #39 (Snowballing Engine).
