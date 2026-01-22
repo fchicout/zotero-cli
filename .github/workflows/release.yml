@@ -27,7 +27,7 @@ jobs:
 
       - name: Build Binary with PyInstaller
         run: |
-          pyinstaller --onefile --name zotero-cli --clean src/zotero_cli/cli/main.py
+          pyinstaller --onefile --name zotero-cli --add-data "src/zotero_cli/templates/extraction_schema.yaml:zotero_cli/templates" --clean src/zotero_cli/cli/main.py
 
       - name: Install FPM
         run: |
@@ -95,7 +95,7 @@ jobs:
 
       - name: Build Binary with PyInstaller
         run: |
-          pyinstaller --onefile --name zotero-cli --clean src/zotero_cli/cli/main.py
+          pyinstaller --onefile --name zotero-cli --add-data "src/zotero_cli/templates/extraction_schema.yaml;zotero_cli/templates" --clean src/zotero_cli/cli/main.py
 
       - name: Get Version
         id: get_version

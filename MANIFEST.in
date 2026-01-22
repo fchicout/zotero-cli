@@ -1,0 +1,4 @@
+include src/zotero_cli/templates/*.yaml
+include README.md
+include LICENSE
+include CHANGELOG.md
