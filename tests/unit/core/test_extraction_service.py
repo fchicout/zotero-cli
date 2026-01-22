@@ -6,17 +6,41 @@ from zotero_cli.core.services.extraction_service import ExtractionSchemaValidato
 class TestExtractionSchemaValidator:
 
     def test_init_schema(self, tmp_path):
-        # Change cwd to tmp_path for isolation
-        os.chdir(tmp_path)
+        target_file = tmp_path / "new_schema.yaml"
+        validator = ExtractionSchemaValidator(str(target_file))
         
-        validator = ExtractionSchemaValidator()
-        # Mocking the template location logic is tricky because it relies on __file__
-        # Instead, we test if it fails gracefully if template missing (or verify logic if we can point it to a dummy)
-        # But wait, the code uses relative path from source. Unit tests run from root.
-        # This integration test might fail if it can't find src/zotero_cli/templates
+        # Test 1: Successful Init
+        # We rely on the actual template file existing in the source tree.
+        # If this fails in CI, we might need to mock the template path, 
+        # but for this environment, it should work.
+        result = validator.init_schema()
+        assert result is True
+        assert target_file.exists()
         
-        # Actually, let's just test the validate logic primarily.
-        pass
+        # Verify content briefly
+        with open(target_file) as f:
+            content = f.read()
+            assert "SLR Extraction Protocol Template" in content
+
+        # Test 2: File exists (Should fail)
+        result_exists = validator.init_schema()
+        assert result_exists is False
+
+    def test_load_schema_errors(self, tmp_path):
+        # Test 1: File Not Found
+        validator = ExtractionSchemaValidator(str(tmp_path / "non_existent.yaml"))
+        with pytest.raises(FileNotFoundError):
+            validator.load_schema()
+            
+        # Test 2: Invalid YAML
+        bad_yaml = tmp_path / "bad.yaml"
+        with open(bad_yaml, "w") as f:
+            f.write("key: : value") # Invalid YAML syntax
+        
+        validator = ExtractionSchemaValidator(str(bad_yaml))
+        with pytest.raises(ValueError) as excinfo:
+            validator.load_schema()
+        assert "Invalid YAML format" in str(excinfo.value)
 
     def test_validate_valid_schema(self, tmp_path):
         schema_file = tmp_path / "schema.yaml"

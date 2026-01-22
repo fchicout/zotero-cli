@@ -89,3 +89,15 @@ Enforces mutual exclusivity between an 'Included' and 'Excluded' collection by r
 ```bash
 zotero-cli slr prune --included "Accepted" --excluded "Rejected"
 ```
+
+### `extract`
+Manages data extraction schemas and operations. Supports initializing a new schema and validating an existing one.
+
+**Usage:**
+```bash
+# Initialize a new schema template
+zotero-cli slr extract --init [--output schema.yaml]
+
+# Validate an existing schema
+zotero-cli slr extract --validate [--schema schema.yaml]
+```

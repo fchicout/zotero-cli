@@ -51,21 +51,11 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 
 **Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`.
 
-## Accomplishments (Session: 2026-01-22)
+### Phase 21: Data Extraction Spec & Handoff
 
-
-
-### Phase 20: Release v2.3 Preparation & MSI Finalization
-
-*   **[BUMP] Version 2.3.0:** Formally bumped project version in `pyproject.toml`.
-
-*   **[FIX] MSI Versioning Compliance:** Patched `.github/workflows/release.yml` to sanitize semantic version tags for WiX compatibility (stripping non-numeric suffixes).
-
-*   **[DOCS] Changelog v2.3.0:** Consolidated all v2.3 improvements and semantic consolidation into `CHANGELOG.md`.
-
-*   **[QUALITY] Valerius Final Gate:** Re-verified the entire suite (272 tests) with 81% coverage, zero Ruff errors, and zero Mypy errors.
-
-
+*   **[SPEC] SDB-Extraction v1.0:** Defined the protocol for structured data extraction within Zotero Notes (`docs/specs/SDB_EXTRACTION_v1.0.md`).
+*   **[HANDOFF] Issue #42:** Delegated the Schema Validator implementation to the Dev Squad.
+*   **[CHORE] Dependencies:** Added `PyYAML` to `pyproject.toml`.
 
 ## Current State
 
@@ -74,6 +64,5 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 *   **Status:** **RELEASED**
 
 ## Next Actions (Immediate)
-1.  **Infrastructure:** Implement Issue #30 (`--offline` mode).
-2.  **Workflow:** Implement Issue #29 (`move` checkout/check-in).
-3.  **Refactoring:** Refactor API `GET /items` to use native Zotero pagination.
+1.  **Workflow:** Implement Issue #29 (`move` checkout/check-in).
+2.  **Refactoring:** Refactor API `GET /items` to use native Zotero pagination.

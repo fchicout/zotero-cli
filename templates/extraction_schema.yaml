@@ -1,0 +1,29 @@
+# SLR Extraction Schema
+# Define the variables you want to extract from each paper.
+
+title: "My Systematic Review"
+version: "1.0"
+variables:
+  - key: "study_type"
+    label: "Study Type"
+    type: "select"
+    description: "The primary research method."
+    required: true
+    options:
+      - "Case Study"
+      - "Experiment"
+      - "Survey"
+      - "Systematic Review"
+      - "Opinion/Position"
+
+  - key: "sample_size"
+    label: "Sample Size"
+    type: "number"
+    description: "Number of subjects/systems analyzed."
+    required: false
+
+  - key: "main_finding"
+    label: "Main Finding"
+    type: "text"
+    required: true
+    description: "Summary of the core result."
