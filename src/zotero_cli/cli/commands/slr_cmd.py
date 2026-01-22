@@ -131,6 +131,13 @@ class SLRCommand(BaseCommand):
         ext_p = sub.add_parser("extract", help="Data Extraction management")
         ext_p.add_argument("--init", action="store_true", help="Initialize schema.yaml from template")
         ext_p.add_argument("--validate", action="store_true", help="Validate current schema.yaml")
+        ext_p.add_argument(
+            "--export",
+            choices=["csv", "markdown", "json"],
+            nargs="?",
+            const="csv",
+            help="Export synthesis matrix (Default: csv)",
+        )
         ext_p.add_argument("target", nargs="?", help="Collection Name OR Item Key to extract from")
         ext_p.add_argument("--agent", default="zotero-cli", help="Agent name")
         ext_p.add_argument("--persona", default="unknown", help="Reviewer persona")
@@ -434,22 +441,16 @@ class SLRCommand(BaseCommand):
                 console.print("[bold green]Schema is valid![/bold green]")
             return
 
-        # 2. Extraction Session
+        # 2. Extraction Session or Export
         if not args.target:
-            console.print("[yellow]Please specify a Target (Collection or Item Key) to start extraction.[/yellow]")
+            console.print("[yellow]Please specify a Target (Collection or Item Key) to start extraction or export.[/yellow]")
             return
 
         # Initialize Service Stack
         force_user = getattr(args, "user", False)
-        # Note: ExtractionService needs NoteRepository. We can get it via factory or construct it.
-        # Ideally, we should add get_extraction_service to GatewayFactory, but for now we manually assemble.
-        # Actually, let's update factory later for cleaner code, but here:
         note_repo = GatewayFactory.get_note_repository(force_user=force_user)
         ext_service = ExtractionService(note_repo)
-        opener = OpenerService()
         
-        tui = ExtractionTUI(ext_service, opener)
-
         # Resolve Target
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
         
@@ -466,4 +467,13 @@ class SLRCommand(BaseCommand):
                 console.print(f"[bold red]Error:[/bold red] Could not find item or collection '{args.target}'")
                 sys.exit(1)
 
+        if args.export:
+            console.print(f"Exporting synthesis matrix ({args.export}) for target '{args.target}'...")
+            path = ext_service.export_matrix(items, output_format=args.export, persona=args.persona)
+            console.print(f"[bold green]Matrix exported to: {path}[/bold green]")
+            return
+
+        # 3. Launch TUI
+        opener = OpenerService()
+        tui = ExtractionTUI(ext_service, opener)
         tui.run_extraction(items, agent=args.agent, persona=args.persona)

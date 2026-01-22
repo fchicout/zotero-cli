@@ -91,3 +91,85 @@ class TestExtractionSchemaValidator:
         assert any("snake_case" in e.lower() for e in errors)
         assert any("invalid type 'magic'" in e.lower() for e in errors)
         assert any("must have a non-empty 'options'" in e.lower() for e in errors)
+
+
+class TestExtractionService:
+
+    @pytest.fixture
+    def mock_note_repo(self):
+        from unittest.mock import MagicMock
+        return MagicMock()
+
+    def test_export_matrix_csv(self, tmp_path, mock_note_repo):
+        from zotero_cli.core.services.extraction_service import ExtractionService
+        from zotero_cli.core.zotero_item import ZoteroItem
+        import json
+
+        # 1. Setup Schema
+        schema_file = tmp_path / "schema.yaml"
+        schema_data = {
+            "title": "Test",
+            "version": "1.0",
+            "variables": [
+                {"key": "method", "label": "Methodology", "type": "text"}
+            ]
+        }
+        with open(schema_file, "w") as f:
+            yaml.dump(schema_data, f)
+
+        # 2. Setup Mock Item and Note
+        item = ZoteroItem(key="ABC", version=1, item_type="journalArticle", title="Paper 1", date="2024")
+        
+        note_payload = {
+            "action": "data_extraction",
+            "persona": "tester",
+            "data": {
+                "method": {"value": "Case Study"}
+            }
+        }
+        mock_note_repo.get_item_children.return_value = [
+            {"data": {"itemType": "note", "note": f"<div>{json.dumps(note_payload)}</div>"}}
+        ]
+
+        service = ExtractionService(mock_note_repo, schema_path=str(schema_file))
+        
+        # Change cwd to tmp_path for output
+        os.chdir(tmp_path)
+        output_path = service.export_matrix([item], output_format="csv", persona="tester")
+        
+        assert os.path.exists(output_path)
+        with open(output_path) as f:
+            content = f.read()
+            assert "Item Key,Title,Year,Methodology" in content
+            assert "ABC,Paper 1,2024,Case Study" in content
+
+    def test_export_matrix_markdown(self, tmp_path, mock_note_repo):
+        from zotero_cli.core.services.extraction_service import ExtractionService
+        from zotero_cli.core.zotero_item import ZoteroItem
+        import json
+
+        schema_file = tmp_path / "schema.yaml"
+        schema_data = {
+            "title": "Test",
+            "version": "1.0",
+            "variables": [
+                {"key": "design", "label": "Design", "type": "text"}
+            ]
+        }
+        with open(schema_file, "w") as f:
+            yaml.dump(schema_data, f)
+
+        item = ZoteroItem(key="K1", version=1, item_type="art", title="T1", date="2023")
+        note_payload = {"action": "data_extraction", "persona": "p1", "data": {"design": {"value": "Exp"}}}
+        mock_note_repo.get_item_children.return_value = [
+            {"data": {"itemType": "note", "note": f"<div>{json.dumps(note_payload)}</div>"}}
+        ]
+
+        service = ExtractionService(mock_note_repo, schema_path=str(schema_file))
+        os.chdir(tmp_path)
+        path = service.export_matrix([item], output_format="markdown", persona="p1", output_path="matrix.md")
+        
+        with open(path) as f:
+            lines = f.readlines()
+            assert "| Item Key | Title | Year | Design |" in lines[0]
+            assert "| K1 | T1 | 2023 | Exp |" in lines[2]

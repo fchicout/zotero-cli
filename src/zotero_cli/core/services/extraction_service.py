@@ -162,3 +162,110 @@ class ExtractionService:
             return self.note_repo.update_note(existing_note_key, existing_version, note_content)
         else:
             return self.note_repo.create_note(item_key, note_content)
+
+    def export_matrix(
+        self,
+        items: List[Any],
+        output_format: str = "csv",
+        persona: str = "unknown",
+        output_path: Optional[str] = None,
+    ) -> str:
+        """
+        Exports extraction data for a list of items into a synthesis matrix.
+        """
+        # 1. Load Schema for headers
+        schema = self.validator.load_schema()
+        variables = schema.get("variables", [])
+        var_labels = [v["label"] for v in variables]
+
+        headers = ["Item Key", "Title", "Year"] + var_labels
+        matrix_data = []
+
+        for item in items:
+            row = {
+                "Item Key": item.key,
+                "Title": item.title,
+                "Year": item.date or "",
+            }
+
+            # Find extraction note
+            children = self.note_repo.get_item_children(item.key)
+            extracted_values = {}
+
+            for child in children:
+                child_data = child.get("data", child)
+                if child_data.get("itemType") == "note":
+                    content = child_data.get("note", "")
+                    if (
+                        '"action": "data_extraction"' in content
+                        and f'"persona": "{persona}"' in content
+                    ):
+                        try:
+                            # Extract JSON from <div>...</div>
+                            json_str = content.strip()
+                            if json_str.startswith("<div>"):
+                                json_str = json_str[5:]
+                            if json_str.endswith("</div>"):
+                                json_str = json_str[:-6]
+
+                            note_payload = json.loads(json_str)
+                            extracted_values = note_payload.get("data", {})
+                            break
+                        except Exception:
+                            continue
+
+            # Map extracted values to row
+            for var in variables:
+                key = var["key"]
+                label = var["label"]
+                val_obj = extracted_values.get(key, {})
+                val = val_obj.get("value", "")
+
+                # Format multi-select or lists
+                if isinstance(val, list):
+                    val = "; ".join(map(str, val))
+
+                row[label] = val
+
+            matrix_data.append(row)
+
+        # 2. Format Output
+        if output_format == "json":
+            result = json.dumps(matrix_data, indent=2)
+            ext = "json"
+        elif output_format == "markdown":
+            result = self._format_markdown_table(headers, matrix_data)
+            ext = "md"
+        else:  # csv
+            result = self._format_csv(headers, matrix_data)
+            ext = "csv"
+
+        # 3. Save to file
+        final_path = output_path or f"synthesis_matrix.{ext}"
+        with open(final_path, "w", encoding="utf-8") as f:
+            f.write(result)
+
+        return final_path
+
+    def _format_csv(self, headers: List[str], data: List[Dict[str, Any]]) -> str:
+        import csv
+        import io
+
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=headers)
+        writer.writeheader()
+        for row in data:
+            writer.writerow(row)
+        return output.getvalue()
+
+    def _format_markdown_table(self, headers: List[str], data: List[Dict[str, Any]]) -> str:
+        lines = []
+        # Header
+        lines.append("| " + " | ".join(headers) + " |")
+        # Separator
+        lines.append("| " + " | ".join(["---"] * len(headers)) + " |")
+        # Rows
+        for row in data:
+            row_vals = [str(row.get(h, "")) for h in headers]
+            lines.append("| " + " | ".join(row_vals) + " |")
+        return "\n".join(lines)
