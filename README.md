@@ -1,12 +1,12 @@
 <!-- BADGES_START -->
-![Version](https://img.shields.io/badge/version-2.0.0-blue) ![Coverage](https://img.shields.io/badge/coverage-79%25-yellow) ![Lint](https://img.shields.io/badge/ruff-passing-brightgreen) ![Types](https://img.shields.io/badge/mypy-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-lightgrey) ![Python](https://img.shields.io/badge/python-3.10+-blue)
+![Version](https://img.shields.io/badge/version-2.3.0-blue) ![Coverage](https://img.shields.io/badge/coverage-87%25-green) ![Lint](https://img.shields.io/badge/ruff-passing-brightgreen) ![Types](https://img.shields.io/badge/mypy-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-lightgrey) ![Python](https://img.shields.io/badge/python-3.10+-blue)
 <!-- BADGES_END -->
 
 # Zotero CLI: The Systematic Review Forge
 
 ![Build Status](https://github.com/fchicout/zotero-cli/actions/workflows/release.yml/badge.svg)
 ![Tests](https://github.com/fchicout/zotero-cli/actions/workflows/tests.yml/badge.svg)
-![Coverage](https://img.shields.io/badge/coverage-81%25-green)
+![Coverage](https://img.shields.io/badge/coverage-87%25-green)
 ![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Semantic Version](https://img.shields.io/badge/semver-2.0.0-orange)
