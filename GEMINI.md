@@ -23,6 +23,16 @@ We follow **[The Argentis Protocol](@gem-ctx/knowledge/PATTERNS.md#pattern-the-a
 All development must strictly adhere to **[The Valerius Protocol](@gem-ctx/knowledge/PATTERNS.md#pattern-the-valerius-protocol-quality-gate)**.
 - **Criteria:** 100% Pass / >80% Coverage / Zero Mypy Errors.
 
+## Team Activation Protocol (Workflow Accelerators)
+To switch context instantly, use these trigger phrases:
+
+*   **"Bring the council on"** -> Loads `.team/ARCH_MGMT.md`
+    *   *Action:* Reads Backlog & Architect Inbox.
+*   **"Activate Dev Squad"** -> Loads `.team/DEV_SQUAD.md`
+    *   *Action:* Reads Dev Inbox & Source Code.
+*   **"Call the QA Force"** -> Loads `.team/QA_FORCE.md`
+    *   *Action:* Reads QA Inbox & runs `pytest`.
+
 ## Project Overview: `zotero-cli`
 A "Systematic Review Engine" CLI tool to import, manage, and screen research papers in Zotero libraries.
 
@@ -41,32 +51,29 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 
 **Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`.
 
-## Accomplishments (Session: 2026-01-21)
+## Accomplishments (Session: 2026-01-22)
 
-### Phase 19: Technical Debt & Bug Remediation (v2.3)
-*   **[QUALITY] Hard Coverage Gate (80%):** Successfully expanded the test suite to reach the mandatory 80% global coverage threshold (up from 77%).
-*   **[FIX] Recursive Deletion (Issue #37):** Refactored `CollectionService` to implement true depth-first recursive deletion, preventing orphaned items in the Zotero Library Root.
-*   **[FIX] ArXiv DOI Fallback (Issue #35):** Enhanced ArXiv metadata ingestion with regex-based DOI extraction from comments and journal references.
-*   **[FEAT] Retroactive SDB Injection (Issue #32):** Implemented `slr load` (formerly `audit import-csv`) using `rapidfuzz` for robust title matching across library snapshots.
-*   **[TEST] E2E Modularization:** Decoupled the monolithic "Storyline" test into feature-based suites (`test_feat_*`) for better failure isolation and coverage analysis.
-*   **[INFRA] Test Hygiene (Issue #36):** Hardened the E2E cleanup fixtures to perform a clean-then-delete cycle, ensuring 100% resource reclamation after every run.
 
-### Phase 18: Semantic Consolidation & Full-Text (v2.2)
-*   **[ARCH] Semantic CLI Consolidation (Issue #38, #40):** Unified all scientific/review commands under the `slr` namespace. Legacy aliases (`review`, `analyze`, `audit`) were purged after a deprecation cycle.
-*   **[FEAT] Pre-flight Environment Checks (Issue #46):** Implemented "Boot Guard" pattern to enforce Python 3.10+ and handle dependency failures gracefully at the entry point.
-*   **[FEAT] SLR Protocol Refinement (Issue #48):** Flattened the `slr` subcommand tree for better ergonomics (`slr load`, `slr validate`).
-*   **[FEAT] SDB v1.2 & Phase Isolation (Issue #49, #50):** Added support for `full_text` screening phase with `evidence` capture. Notes are now isolated by persona AND phase to prevent data loss.
-*   **[QUALITY] Valerius Review:** Synchronized the entire test suite (Unit/E2E) with the new CLI structure. Resolved pre-existing type safety violations in `slr_service.py`.
-*   **[DOCS] Documentation Rewrite:** Completely updated `docs/commands/slr.md` and `USER_GUIDE.md` to reflect the new flat tree.
+
+### Phase 20: Release v2.3 Preparation & MSI Finalization
+
+*   **[BUMP] Version 2.3.0:** Formally bumped project version in `pyproject.toml`.
+
+*   **[FIX] MSI Versioning Compliance:** Patched `.github/workflows/release.yml` to sanitize semantic version tags for WiX compatibility (stripping non-numeric suffixes).
+
+*   **[DOCS] Changelog v2.3.0:** Consolidated all v2.3 improvements and semantic consolidation into `CHANGELOG.md`.
+
+*   **[QUALITY] Valerius Final Gate:** Re-verified the entire suite (272 tests) with 81% coverage, zero Ruff errors, and zero Mypy errors.
+
+
 
 ## Current State
 
-*   **Version:** `v2.3.0-rc1`
+*   **Version:** `v2.3.0`
 *   **Quality:** 100% Pass Rate (272 tests). Global coverage: **81%**.
-*   **Status:** **READY FOR RELEASE v2.3**
+*   **Status:** **RELEASED**
 
 ## Next Actions (Immediate)
-1.  **Release:** Tag and publish `v2.3.0`.
-2.  **Infrastructure:** Implement Issue #30 (`--offline` mode).
-3.  **Workflow:** Implement Issue #29 (`move` checkout/check-in).
-4.  **Refactoring:** Refactor API `GET /items` to use native Zotero pagination.
+1.  **Infrastructure:** Implement Issue #30 (`--offline` mode).
+2.  **Workflow:** Implement Issue #29 (`move` checkout/check-in).
+3.  **Refactoring:** Refactor API `GET /items` to use native Zotero pagination.

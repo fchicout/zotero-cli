@@ -97,6 +97,26 @@ jobs:
         run: |
           pyinstaller --onefile --name zotero-cli --clean src/zotero_cli/cli/main.py
 
+      - name: Get Version
+        id: get_version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace '^v', ''
+          $numericVersion = $version -replace '-.*$', ''
+          if ($numericVersion -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {
+            $numericVersion = "0.0.0"
+          }
+          echo "VERSION=$numericVersion" >> $env:GITHUB_OUTPUT
+
+      - name: Install WiX Toolset
+        run: dotnet tool install --global wix
+
+      - name: Build MSI Installer
+        run: |
+          $ver = "${{ steps.get_version.outputs.VERSION }}".Split("-")[0]
+          wix build -d Version=$ver scripts/windows/installer.wxs -o zotero-cli-windows-amd64.msi
+
       - name: Create Windows ZIP
         shell: pwsh
         run: |
@@ -109,6 +129,7 @@ jobs:
           path: |
             dist/zotero-cli.exe
             zotero-cli-windows-amd64.zip
+            zotero-cli-windows-amd64.msi
 
   release:
     needs: [build-linux, build-windows]
@@ -139,5 +160,6 @@ jobs:
             assets/*.rpm
             assets/zotero-cli.exe
             assets/*.zip
+            assets/*.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,23 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="zotero-cli"
+           Manufacturer="Fabio Chicout"
+           Version="$(var.Version)"
+           UpgradeCode="524957e1-8559-4f7d-8b6b-4f9e3c9e9e9e">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="INSTALLFOLDER" Name="zotero-cli">
+        <Component Id="ZoteroCliExecutable" Guid="d9c0e3a1-7c5b-4b1a-9a9a-9a9a9a9a9a9a">
+          <File Source="dist\zotero-cli.exe" KeyPath="yes" />
+          <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]" Permanent="no" Part="last" Action="set" System="no" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="Main">
+      <ComponentRef Id="ZoteroCliExecutable" />
+    </Feature>
+  </Package>
+</Wix>

@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.0] - 2026-01-22
+
+### ✨ Features & Improvements
+- **Semantic CLI Consolidation (Issue #38, #40):** Unified all systematic review commands under the `slr` namespace for improved ergonomics.
+- **SLR Protocol Refinement (Issue #48):** Flattened the `slr` command tree (e.g., `slr load`, `slr validate`).
+- **SDB v1.2 & Phase Isolation (Issue #49, #50):** Added support for `full_text` screening phase with evidence capture and phase-isolated notes.
+- **Retroactive SDB Injection (Issue #32):** New `slr load` command with fuzzy matching for importing external decisions into the library.
+- **Pre-flight Environment Checks (Issue #46):** Implemented "Boot Guard" pattern to enforce environment requirements at startup.
+
+### 🛡️ Quality & Infrastructure
+- **MSI Installer Support (Issue #45):** Added official Windows MSI installer infrastructure using WiX v4.
+- **Hard Coverage Gate (80%):** Successfully reached and enforced the 80% global test coverage threshold.
+- **Recursive Deletion (Issue #37):** Refactored collection deletion to be truly recursive, preventing orphaned items.
+- **ArXiv DOI Fallback (Issue #35):** Enhanced DOI extraction logic for ArXiv imports using regex on comments and references.
+- **Test Hygiene (Issue #36):** Hardened E2E cleanup fixtures to ensure 100% resource reclamation.
+
 ## [2.0.0] - 2026-01-17
 
 ### 🚀 Major Architectural Shift (v2.0)
