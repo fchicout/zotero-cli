@@ -6,13 +6,18 @@ from rich.console import Console
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.tui import TuiScreeningService
+from zotero_cli.cli.tui.extraction_tui import ExtractionTUI
+from zotero_cli.cli.tui.screening_tui import TuiScreeningService
 from zotero_cli.core.services.audit_service import CollectionAuditor
-from zotero_cli.core.services.extraction_service import ExtractionSchemaValidator
+from zotero_cli.core.services.extraction_service import (
+    ExtractionSchemaValidator,
+    ExtractionService,
+)
 from zotero_cli.core.services.graph_service import CitationGraphService
 from zotero_cli.core.services.lookup_service import LookupService
 from zotero_cli.core.services.migration_service import MigrationService
 from zotero_cli.infra.factory import GatewayFactory
+from zotero_cli.infra.opener import OpenerService
 
 console = Console()
 
@@ -126,6 +131,9 @@ class SLRCommand(BaseCommand):
         ext_p = sub.add_parser("extract", help="Data Extraction management")
         ext_p.add_argument("--init", action="store_true", help="Initialize schema.yaml from template")
         ext_p.add_argument("--validate", action="store_true", help="Validate current schema.yaml")
+        ext_p.add_argument("target", nargs="?", help="Collection Name OR Item Key to extract from")
+        ext_p.add_argument("--agent", default="zotero-cli", help="Agent name")
+        ext_p.add_argument("--persona", default="unknown", help="Reviewer persona")
 
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
@@ -401,6 +409,7 @@ class SLRCommand(BaseCommand):
             print("No intersection found. Sets are disjoint.")
 
     def _handle_extract(self, args):
+        # 1. Schema Management
         validator = ExtractionSchemaValidator()
 
         if args.init:
@@ -424,7 +433,37 @@ class SLRCommand(BaseCommand):
             else:
                 console.print("[bold green]Schema is valid![/bold green]")
             return
-            
-        # Fallback if no args (should be handled by argparse/TUI later)
-        if not args.init and not args.validate:
-            console.print("[yellow]Please specify --init or --validate (Extraction TUI coming in Issue #43)[/yellow]")
+
+        # 2. Extraction Session
+        if not args.target:
+            console.print("[yellow]Please specify a Target (Collection or Item Key) to start extraction.[/yellow]")
+            return
+
+        # Initialize Service Stack
+        force_user = getattr(args, "user", False)
+        # Note: ExtractionService needs NoteRepository. We can get it via factory or construct it.
+        # Ideally, we should add get_extraction_service to GatewayFactory, but for now we manually assemble.
+        # Actually, let's update factory later for cleaner code, but here:
+        note_repo = GatewayFactory.get_note_repository(force_user=force_user)
+        ext_service = ExtractionService(note_repo)
+        opener = OpenerService()
+        
+        tui = ExtractionTUI(ext_service, opener)
+
+        # Resolve Target
+        gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
+        
+        # Try as Item Key first
+        item = gateway.get_item(args.target)
+        if item:
+            items = [item]
+        else:
+            # Try as Collection
+            col_id = gateway.get_collection_id_by_name(args.target)
+            if col_id:
+                items = list(gateway.get_items_in_collection(col_id))
+            else:
+                console.print(f"[bold red]Error:[/bold red] Could not find item or collection '{args.target}'")
+                sys.exit(1)
+
+        tui.run_extraction(items, agent=args.agent, persona=args.persona)
