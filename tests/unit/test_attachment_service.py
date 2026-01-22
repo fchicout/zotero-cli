@@ -6,6 +6,7 @@ from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.core.services.attachment_service import AttachmentService
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+from zotero_cli.core.services.purge_service import PurgeService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -20,10 +21,15 @@ def mock_aggregator():
 
 
 @pytest.fixture
-def service(mock_gateway, mock_aggregator):
+def mock_purge_service():
+    return MagicMock(spec=PurgeService)
+
+
+@pytest.fixture
+def service(mock_gateway, mock_aggregator, mock_purge_service):
     # Pass mock_gateway for all repo interfaces since it implements them all
     return AttachmentService(
-        mock_gateway, mock_gateway, mock_gateway, mock_gateway, mock_aggregator
+        mock_gateway, mock_gateway, mock_gateway, mock_gateway, mock_aggregator, mock_purge_service
     )
 
 
@@ -146,3 +152,26 @@ def test_download_failure(mock_get, service, mock_gateway, mock_aggregator):
 
     assert count == 0
     mock_gateway.upload_attachment.assert_not_called()
+
+
+def test_remove_attachments_from_item(service, mock_purge_service):
+    mock_purge_service.purge_attachments.return_value = {"deleted": 2, "skipped": 0, "errors": 0}
+
+    count = service.remove_attachments_from_item("KEY1", dry_run=False)
+
+    assert count == 2
+    mock_purge_service.purge_attachments.assert_called_once_with(["KEY1"], dry_run=False)
+
+
+def test_remove_attachments_from_collection(service, mock_gateway, mock_purge_service):
+    mock_gateway.get_collection_id_by_name.return_value = "COL1"
+    item1 = create_item("K1")
+    item2 = create_item("K2")
+    mock_gateway.get_items_in_collection.return_value = iter([item1, item2])
+
+    mock_purge_service.purge_attachments.return_value = {"deleted": 0, "skipped": 2, "errors": 0}
+
+    count = service.remove_attachments_from_collection("TestCol", dry_run=True)
+
+    assert count == 2
+    mock_purge_service.purge_attachments.assert_called_once_with(["K1", "K2"], dry_run=True)

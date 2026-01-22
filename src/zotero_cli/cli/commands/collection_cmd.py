@@ -69,6 +69,7 @@ class CollectionCommand(BaseCommand):
 
         strip_p = pdf_sub.add_parser("strip", help="Remove all PDF attachments from a collection")
         strip_p.add_argument("--collection", required=True, help="Collection name or key")
+        strip_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
         strip_p.add_argument("--verbose", action="store_true")
 
         # Backup
@@ -147,8 +148,12 @@ class CollectionCommand(BaseCommand):
             print(f"Fetched {count} PDFs for collection '{args.collection}'.")
         elif args.pdf_verb == "strip":
             service = GatewayFactory.get_attachment_service(force_user=force_user)
-            count = service.remove_attachments_from_collection(args.collection, args.verbose)
-            print(f"Removed {count} attachments from collection '{args.collection}'.")
+            dry_run = not args.execute
+            count = service.remove_attachments_from_collection(args.collection, dry_run=dry_run)
+            if dry_run:
+                print(f"[yellow]DRY RUN:[/yellow] Would remove {count} attachments from collection '{args.collection}'.")
+            else:
+                print(f"Removed {count} attachments from collection '{args.collection}'.")
 
     def _handle_duplicates(self, gateway, args):
         service = DuplicateFinder(gateway)

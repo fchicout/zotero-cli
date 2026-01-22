@@ -1,12 +1,14 @@
-from typing import List
+from typing import List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.services.purge_service import PurgeService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
 class TagService:
-    def __init__(self, gateway: ZoteroGateway):
+    def __init__(self, gateway: ZoteroGateway, purge_service: Optional[PurgeService] = None):
         self.gateway = gateway
+        self.purge_service = purge_service or PurgeService(gateway)
 
     def list_tags(self) -> List[str]:
         """Returns a list of all unique tags in the library."""
@@ -57,21 +59,19 @@ class TagService:
                     count += 1
         return count
 
-    def delete_tag(self, tag: str) -> int:
+    def delete_tag(self, tag: str, dry_run: bool = False) -> int:
         """
         Deletes a tag from all items in the library.
         Returns the number of items updated.
         """
-        count = 0
-        for item in self.gateway.get_items_by_tag(tag):
-            current_tags = set(item.tags)
-            if tag in current_tags:
-                current_tags.remove(tag)
-                if self._update_tags(item.key, item.version, list(current_tags)):
-                    count += 1
-        return count
+        item_keys = [item.key for item in self.gateway.get_items_by_tag(tag)]
+        if not item_keys:
+            return 0
 
-    def purge_tags_from_collection(self, collection_name: str) -> int:
+        stats = self.purge_service.purge_tags(item_keys, tag_name=tag, dry_run=dry_run)
+        return stats["deleted"] if not dry_run else stats["skipped"]
+
+    def purge_tags_from_collection(self, collection_name: str, dry_run: bool = False) -> int:
         """
         Removes all tags from all items in a specific collection.
         """
@@ -79,12 +79,12 @@ class TagService:
         if not col_id:
             return 0
 
-        count = 0
-        for item in self.gateway.get_items_in_collection(col_id):
-            if item.tags:
-                if self._update_tags(item.key, item.version, []):
-                    count += 1
-        return count
+        item_keys = [item.key for item in self.gateway.get_items_in_collection(col_id)]
+        if not item_keys:
+            return 0
+
+        stats = self.purge_service.purge_tags(item_keys, tag_name=None, dry_run=dry_run)
+        return stats["deleted"] if not dry_run else stats["skipped"]
 
     def _update_tags(self, item_key: str, version: int, tags: List[str]) -> bool:
         # Zotero API expects tags as a list of objects: [{"tag": "name"}, ...]

@@ -11,6 +11,7 @@ from zotero_cli.core.interfaces import (
     NoteRepository,
 )
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+from zotero_cli.core.services.purge_service import PurgeService
 
 
 class AttachmentService:
@@ -21,12 +22,23 @@ class AttachmentService:
         attachment_repo: AttachmentRepository,
         note_repo: NoteRepository,
         metadata_aggregator: MetadataAggregatorService,
+        purge_service: Optional[PurgeService] = None,
     ):
         self.item_repo = item_repo
         self.collection_repo = collection_repo
         self.attachment_repo = attachment_repo
         self.note_repo = note_repo
         self.metadata_aggregator = metadata_aggregator
+        self.purge_service = purge_service
+
+    def _get_purge_service(self) -> PurgeService:
+        if not self.purge_service:
+            # This is a bit hacky but avoids refactoring all factory calls at once if needed,
+            # though we will update the factory.
+            from zotero_cli.infra.factory import GatewayFactory
+
+            self.purge_service = GatewayFactory.get_purge_service()
+        return self.purge_service
 
     def attach_pdfs_to_collection(self, collection_name: str) -> int:
         col_id = self.collection_repo.get_collection_id_by_name(collection_name)
@@ -90,29 +102,23 @@ class AttachmentService:
         return success
 
     def remove_attachments_from_collection(
-        self, collection_name: str, verbose: bool = False
+        self, collection_name: str, dry_run: bool = True
     ) -> int:
         col_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not col_id:
             print(f"Collection '{collection_name}' not found.")
             return 0
 
-        items = self.collection_repo.get_items_in_collection(col_id)
-        count = 0
-        for item in items:
-            count += self.remove_attachments_from_item(item.key, verbose)
-        return count
+        item_keys = [item.key for item in self.collection_repo.get_items_in_collection(col_id)]
+        if not item_keys:
+            return 0
 
-    def remove_attachments_from_item(self, item_key: str, verbose: bool = False) -> int:
-        children = self.note_repo.get_item_children(item_key)
-        count = 0
-        for child in children:
-            if child.get("data", {}).get("itemType") == "attachment":
-                if self.item_repo.delete_item(child["key"], child["version"]):
-                    count += 1
-                    if verbose:
-                        print(f"Removed attachment: {child['key']}")
-        return count
+        stats = self._get_purge_service().purge_attachments(item_keys, dry_run=dry_run)
+        return stats["deleted"] if not dry_run else stats["skipped"]
+
+    def remove_attachments_from_item(self, item_key: str, dry_run: bool = True) -> int:
+        stats = self._get_purge_service().purge_attachments([item_key], dry_run=dry_run)
+        return stats["deleted"] if not dry_run else stats["skipped"]
 
     def _has_pdf_attachment(self, item_key: str) -> bool:
         children = self.note_repo.get_item_children(item_key)

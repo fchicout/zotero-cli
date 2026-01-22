@@ -85,6 +85,43 @@ def test_offline_veto(purge_service, mock_gateway):
     with pytest.raises(RuntimeError, match="Offline Veto"):
         purge_service.purge_attachments(["K1"])
 
+def test_purge_attachments_error(purge_service, mock_gateway):
+    mock_gateway.get_item_children.side_effect = Exception("API Error")
+    stats = purge_service.purge_attachments(["P1"], dry_run=False)
+    assert stats["errors"] == 1
+
+def test_purge_notes_malformed_json(purge_service, mock_gateway):
+    mock_gateway.get_item_children.return_value = [
+        {"key": "N1", "data": {"itemType": "note", "note": '{"bad json...', "version": 1}}
+    ]
+    # Should not crash, just skip/ignore as not SDB
+    stats = purge_service.purge_notes(["P1"], sdb_only=True, dry_run=False)
+    assert stats["deleted"] == 0
+    assert stats["skipped"] == 0
+
+def test_purge_tags_item_not_found(purge_service, mock_gateway):
+    mock_gateway.get_item.return_value = None
+    stats = purge_service.purge_tags(["K1"], dry_run=False)
+    assert stats["errors"] == 1
+
+def test_purge_tags_api_failure(purge_service, mock_gateway):
+    item = ZoteroItem(key="K1", version=1, item_type="journalArticle", tags=["t1"])
+    mock_gateway.get_item.return_value = item
+    mock_gateway.update_item_metadata.return_value = False
+    
+    stats = purge_service.purge_tags(["K1"], dry_run=False)
+    assert stats["errors"] == 1
+
+def test_parse_sdb_info_no_json(purge_service):
+    is_sdb, phase = purge_service._parse_sdb_info("Just plain text")
+    assert is_sdb is False
+    assert phase is None
+
+def test_parse_sdb_info_sdb_version(purge_service):
+    is_sdb, phase = purge_service._parse_sdb_info('{"sdb_version": "1.0", "phase": "test"}')
+    assert is_sdb is True
+    assert phase == "test"
+
 def test_purge_attachments_error_handling(purge_service, mock_gateway):
     mock_gateway.get_item_children.side_effect = Exception("Network error")
     stats = purge_service.purge_attachments(["P1"], dry_run=False)

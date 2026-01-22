@@ -1,8 +1,9 @@
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.services.purge_service import PurgeService
 from zotero_cli.core.services.tag_service import TagService
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -13,8 +14,13 @@ def mock_gateway():
 
 
 @pytest.fixture
-def service(mock_gateway):
-    return TagService(mock_gateway)
+def mock_purge_service():
+    return MagicMock(spec=PurgeService)
+
+
+@pytest.fixture
+def service(mock_gateway, mock_purge_service):
+    return TagService(mock_gateway, mock_purge_service)
 
 
 def create_item(key, tags):
@@ -75,14 +81,13 @@ def test_rename_tag(service, mock_gateway):
     assert tags1 == {"new", "other"}
 
 
-def test_delete_tag(service, mock_gateway):
+def test_delete_tag(service, mock_gateway, mock_purge_service):
     item1 = create_item("KEY1", ["delete_me", "stay"])
     mock_gateway.get_items_by_tag.return_value = iter([item1])
-    mock_gateway.update_item_metadata.return_value = True
+    
+    mock_purge_service.purge_tags.return_value = {"deleted": 1, "skipped": 0, "errors": 0}
 
-    count = service.delete_tag("delete_me")
+    count = service.delete_tag("delete_me", dry_run=False)
 
     assert count == 1
-    call1 = mock_gateway.update_item_metadata.call_args_list[0]
-    tags1 = {t["tag"] for t in call1[0][2]["tags"]}
-    assert tags1 == {"stay"}
+    mock_purge_service.purge_tags.assert_called_once_with(["KEY1"], tag_name="delete_me", dry_run=False)

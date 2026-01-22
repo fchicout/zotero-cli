@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
     from zotero_cli.core.services.purge_service import PurgeService
     from zotero_cli.core.services.screening_service import ScreeningService
+    from zotero_cli.core.services.tag_service import TagService
 
 
 class GatewayFactory:
@@ -138,7 +139,7 @@ class GatewayFactory:
     @staticmethod
     def get_attachment_repository(
         config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
-    ):
+    ) -> AttachmentRepository:
         from zotero_cli.infra.repositories import ZoteroAttachmentRepository
 
         gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
@@ -190,10 +191,11 @@ class GatewayFactory:
         att_repo = GatewayFactory.get_attachment_repository(config, force_user, offline=offline)
         note_repo = GatewayFactory.get_note_repository(config, force_user, offline=offline)
         aggregator = GatewayFactory.get_metadata_aggregator(config)
+        purge_service = GatewayFactory.get_purge_service(config, force_user, offline=offline)
 
         from zotero_cli.core.services.attachment_service import AttachmentService
 
-        return AttachmentService(item_repo, col_repo, att_repo, note_repo, aggregator)
+        return AttachmentService(item_repo, col_repo, att_repo, note_repo, aggregator, purge_service)
 
     @staticmethod
     def get_collection_service(
@@ -277,6 +279,22 @@ class GatewayFactory:
         from zotero_cli.core.services.purge_service import PurgeService
 
         return PurgeService(gateway)
+
+    @staticmethod
+    def get_tag_service(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+    ) -> "TagService":
+        if not config:
+            from zotero_cli.core.config import get_config as main_get_config
+
+            config = main_get_config()
+
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+        purge_service = GatewayFactory.get_purge_service(config, force_user, offline=offline)
+
+        from zotero_cli.core.services.tag_service import TagService
+
+        return TagService(gateway, purge_service)
 
     @staticmethod
     def get_arxiv_gateway() -> ArxivLibGateway:

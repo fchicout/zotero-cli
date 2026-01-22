@@ -373,15 +373,14 @@ def test_tag_list(mock_clients, env_vars, capsys):
 
 
 # --- 7. COLLECTION ---
-def test_collection_pdfs_strip(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_attachment_service") as mock_att_get:
-        mock_att = mock_att_get.return_value
-        mock_att.remove_attachments_from_collection.return_value = 10
-        test_args = ["zotero-cli", "collection", "pdf", "strip", "--collection", "F"]
-        with patch.object(sys, "argv", test_args):
-            main()
-        assert "Removed 10 attachments" in capsys.readouterr().out
-
+    def test_collection_pdfs_strip(mock_clients, env_vars, capsys):
+        with patch("zotero_cli.infra.factory.GatewayFactory.get_attachment_service") as mock_att_get:
+            mock_att = mock_att_get.return_value
+            mock_att.remove_attachments_from_collection.return_value = 10
+            test_args = ["zotero-cli", "collection", "pdf", "strip", "--collection", "F"]
+            with patch.object(sys, "argv", test_args):
+                main()
+            assert "Would remove 10 attachments" in capsys.readouterr().out
 
 def test_collection_duplicates(mock_clients, env_vars, capsys):
     with patch("zotero_cli.core.services.duplicate_service.DuplicateFinder") as mock_finder_cls:

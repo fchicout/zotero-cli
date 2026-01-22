@@ -113,6 +113,7 @@ class ItemCommand(BaseCommand):
 
         strip_p = pdf_sub.add_parser("strip", help="Remove PDF attachments from a specific item")
         strip_p.add_argument("key", help="Item Key")
+        strip_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
         strip_p.add_argument("--verbose", action="store_true")
 
         attach_p = pdf_sub.add_parser("attach", help="Attach a local file to an item")
@@ -209,8 +210,12 @@ class ItemCommand(BaseCommand):
                 print(f"Failed to attach PDF to {args.key}")
         elif args.pdf_verb == "strip":
             service = GatewayFactory.get_attachment_service(force_user=force_user)
-            count = service.remove_attachments_from_item(args.key, args.verbose)
-            print(f"Removed {count} attachments from {args.key}.")
+            dry_run = not args.execute
+            count = service.remove_attachments_from_item(args.key, dry_run=dry_run)
+            if dry_run:
+                print(f"[yellow]DRY RUN:[/yellow] Would remove {count} attachments from {args.key}.")
+            else:
+                print(f"Removed {count} attachments from {args.key}.")
         elif args.pdf_verb == "attach":
             gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
             self._handle_pdf_attach(gateway, args)

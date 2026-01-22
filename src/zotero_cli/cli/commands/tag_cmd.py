@@ -23,12 +23,13 @@ class TagCommand(BaseCommand):
         # Purge
         purge_p = sub.add_parser("purge", help="Remove all tags from a collection")
         purge_p.add_argument("--collection", required=True, help="Collection name or key")
+        purge_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
 
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
 
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
-        service = TagService(gateway)
+        service = GatewayFactory.get_tag_service(force_user=getattr(args, "user", False))
 
         if args.verb == "list":
             tags = gateway.get_tags()
@@ -42,8 +43,12 @@ class TagCommand(BaseCommand):
             else:
                 print(f"Failed to add tags to {args.item}")
         elif args.verb == "purge":
-            count = service.purge_tags_from_collection(args.collection)
+            dry_run = not args.execute
+            count = service.purge_tags_from_collection(args.collection, dry_run=dry_run)
             if count >= 0:
-                print(f"Purged {count} tags.")
+                if dry_run:
+                    print(f"[yellow]DRY RUN:[/yellow] Would purge {count} tags.")
+                else:
+                    print(f"Purged {count} tags.")
             else:
                 print("Failed to purge tags.")
