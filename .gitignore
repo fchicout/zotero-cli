@@ -19,3 +19,4 @@ test_config.toml
 tests/integration/*.csv
 tests/integration/*.json
 tests/integration/*.md
+RELEASE_DRAFT.md
