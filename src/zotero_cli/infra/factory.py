@@ -17,6 +17,7 @@ from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
 from zotero_cli.infra.ris_lib import RisLibGateway
 from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient
 from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
+from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
 from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
@@ -37,12 +38,28 @@ class GatewayFactory:
 
     @staticmethod
     def get_zotero_gateway(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, require_group: bool = True
-    ) -> ZoteroAPIClient:
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        require_group: bool = True,
+        offline: Optional[bool] = None,
+    ) -> "ZoteroGateway":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
 
             config = main_get_config()
+
+        if offline is None:
+            try:
+                from zotero_cli.cli.main import OFFLINE_MODE
+                offline = OFFLINE_MODE
+            except ImportError:
+                offline = False
+
+        if offline:
+            if not config.database_path:
+                print("Error: Offline mode requires 'database_path' in config.", file=sys.stderr)
+                sys.exit(1)
+            return SqliteZoteroGateway(config.database_path)
 
         api_key = config.api_key
         if not api_key:
@@ -83,45 +100,47 @@ class GatewayFactory:
 
     @staticmethod
     def get_item_repository(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
     ) -> ItemRepository:
         from zotero_cli.infra.repositories import ZoteroItemRepository
 
-        gateway = GatewayFactory.get_zotero_gateway(config, force_user)
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
         return ZoteroItemRepository(gateway)
 
     @staticmethod
     def get_collection_repository(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
     ) -> CollectionRepository:
         from zotero_cli.infra.repositories import ZoteroCollectionRepository
 
-        gateway = GatewayFactory.get_zotero_gateway(config, force_user)
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
         return ZoteroCollectionRepository(gateway)
 
     @staticmethod
     def get_tag_repository(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
     ) -> TagRepository:
         from zotero_cli.infra.repositories import ZoteroTagRepository
 
-        gateway = GatewayFactory.get_zotero_gateway(config, force_user)
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
         return ZoteroTagRepository(gateway)
 
     @staticmethod
     def get_note_repository(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
     ) -> NoteRepository:
         from zotero_cli.infra.repositories import ZoteroNoteRepository
 
-        gateway = GatewayFactory.get_zotero_gateway(config, force_user)
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
         return ZoteroNoteRepository(gateway)
 
     @staticmethod
-    def get_attachment_repository(config: Optional[ZoteroConfig] = None, force_user: bool = False):
+    def get_attachment_repository(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+    ):
         from zotero_cli.infra.repositories import ZoteroAttachmentRepository
 
-        gateway = GatewayFactory.get_zotero_gateway(config, force_user)
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
         return ZoteroAttachmentRepository(gateway)
 
     @staticmethod
@@ -158,17 +177,17 @@ class GatewayFactory:
 
     @staticmethod
     def get_attachment_service(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
     ) -> "AttachmentService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
 
             config = main_get_config()
 
-        item_repo = GatewayFactory.get_item_repository(config, force_user)
-        col_repo = GatewayFactory.get_collection_repository(config, force_user)
-        att_repo = GatewayFactory.get_attachment_repository(config, force_user)
-        note_repo = GatewayFactory.get_note_repository(config, force_user)
+        item_repo = GatewayFactory.get_item_repository(config, force_user, offline=offline)
+        col_repo = GatewayFactory.get_collection_repository(config, force_user, offline=offline)
+        att_repo = GatewayFactory.get_attachment_repository(config, force_user, offline=offline)
+        note_repo = GatewayFactory.get_note_repository(config, force_user, offline=offline)
         aggregator = GatewayFactory.get_metadata_aggregator(config)
 
         from zotero_cli.core.services.attachment_service import AttachmentService
@@ -177,15 +196,15 @@ class GatewayFactory:
 
     @staticmethod
     def get_collection_service(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
     ) -> "CollectionService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
 
             config = main_get_config()
 
-        item_repo = GatewayFactory.get_item_repository(config, force_user)
-        col_repo = GatewayFactory.get_collection_repository(config, force_user)
+        item_repo = GatewayFactory.get_item_repository(config, force_user, offline=offline)
+        col_repo = GatewayFactory.get_collection_repository(config, force_user, offline=offline)
 
         from zotero_cli.core.services.collection_service import CollectionService
 
@@ -193,15 +212,15 @@ class GatewayFactory:
 
     @staticmethod
     def get_enrichment_service(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
     ) -> "EnrichmentService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
 
             config = main_get_config()
 
-        item_repo = GatewayFactory.get_item_repository(config, force_user)
-        col_repo = GatewayFactory.get_collection_repository(config, force_user)
+        item_repo = GatewayFactory.get_item_repository(config, force_user, offline=offline)
+        col_repo = GatewayFactory.get_collection_repository(config, force_user, offline=offline)
         arxiv_gateway = GatewayFactory.get_arxiv_gateway()
 
         from zotero_cli.core.services.enrichment_service import EnrichmentService
@@ -210,18 +229,18 @@ class GatewayFactory:
 
     @staticmethod
     def get_screening_service(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
     ) -> "ScreeningService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
 
             config = main_get_config()
 
-        item_repo = GatewayFactory.get_item_repository(config, force_user)
-        col_repo = GatewayFactory.get_collection_repository(config, force_user)
-        note_repo = GatewayFactory.get_note_repository(config, force_user)
-        tag_repo = GatewayFactory.get_tag_repository(config, force_user)
-        col_service = GatewayFactory.get_collection_service(config, force_user)
+        item_repo = GatewayFactory.get_item_repository(config, force_user, offline=offline)
+        col_repo = GatewayFactory.get_collection_repository(config, force_user, offline=offline)
+        note_repo = GatewayFactory.get_note_repository(config, force_user, offline=offline)
+        tag_repo = GatewayFactory.get_tag_repository(config, force_user, offline=offline)
+        col_service = GatewayFactory.get_collection_service(config, force_user, offline=offline)
 
         from zotero_cli.core.services.screening_service import ScreeningService
 
@@ -229,15 +248,15 @@ class GatewayFactory:
 
     @staticmethod
     def get_import_service(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
     ) -> "ImportService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
 
             config = main_get_config()
 
-        item_repo = GatewayFactory.get_item_repository(config, force_user)
-        col_service = GatewayFactory.get_collection_service(config, force_user)
+        item_repo = GatewayFactory.get_item_repository(config, force_user, offline=offline)
+        col_service = GatewayFactory.get_collection_service(config, force_user, offline=offline)
 
         from zotero_cli.core.services.import_service import ImportService
 
