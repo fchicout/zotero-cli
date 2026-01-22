@@ -55,6 +55,7 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 
 *   **[SPEC] SDB-Extraction v1.0:** Defined the protocol for structured data extraction within Zotero Notes (`docs/specs/SDB_EXTRACTION_v1.0.md`).
 *   **[HANDOFF] Issue #42:** Delegated the Schema Validator implementation to the Dev Squad.
+*   **[HANDOFF] Issue #43:** Delegated the Extraction TUI implementation (with "Try-Then-Link" opener strategy).
 *   **[CHORE] Dependencies:** Added `PyYAML` to `pyproject.toml`.
 
 ## Current State

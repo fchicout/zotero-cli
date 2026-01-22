@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zotero_cli.cli.tui import TuiScreeningService
+from zotero_cli.cli.tui.screening_tui import TuiScreeningService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -13,8 +13,13 @@ def mock_service():
 
 @pytest.fixture
 def mock_console():
-    with patch("zotero_cli.cli.tui.Console") as mock:
-        yield mock.return_value
+    with patch("zotero_cli.cli.tui.screening_tui.Console") as mock:
+        yield mock
+
+@pytest.fixture
+def mock_prompt():
+    with patch("zotero_cli.cli.tui.screening_tui.Prompt") as mock:
+        yield mock
 
 
 @pytest.fixture
@@ -30,7 +35,7 @@ def test_run_session_no_items(tui, mock_service, mock_console):
     mock_service.get_pending_items.return_value = []
 
     # Mock persona and phase input
-    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["test_persona", "title_abstract"]):
+    with patch("zotero_cli.cli.tui.screening_tui.Prompt.ask", side_effect=["test_persona", "title_abstract"]):
         # Execute
         tui.run_screening_session("Source", "Inc", "Exc")
 
@@ -46,7 +51,7 @@ def test_run_session_quit_immediately(tui, mock_service, mock_console):
 
     # Mock user input: persona, phase, [Enter to start], 'q' to quit
     with patch(
-        "zotero_cli.cli.tui.Prompt.ask", side_effect=["test_persona", "title_abstract", "q"]
+        "zotero_cli.cli.tui.screening_tui.Prompt.ask", side_effect=["test_persona", "title_abstract", "q"]
     ):
         tui.run_screening_session("Source", "Inc", "Exc")
 
@@ -65,7 +70,7 @@ def test_run_session_skip_then_quit(tui, mock_service, mock_console):
     mock_service.get_pending_items.return_value = items
 
     # Mock user input: persona, phase, 's' (skip item 1), then 'q' (quit at item 2)
-    with patch("zotero_cli.cli.tui.Prompt.ask", side_effect=["p", "title_abstract", "s", "q"]):
+    with patch("zotero_cli.cli.tui.screening_tui.Prompt.ask", side_effect=["p", "title_abstract", "s", "q"]):
         tui.run_screening_session("Source", "Inc", "Exc")
 
     # Verify
@@ -86,7 +91,7 @@ def test_run_session_include_item(tui, mock_service, mock_console):
     # 4. Code: 'IC2' (Custom code)
     # 5. Action: 'q' (Next item action - Quit if no more items)
     with patch(
-        "zotero_cli.cli.tui.Prompt.ask", side_effect=["p", "title_abstract", "i", "IC2", "q"]
+        "zotero_cli.cli.tui.screening_tui.Prompt.ask", side_effect=["p", "title_abstract", "i", "IC2", "q"]
     ):
         tui.run_screening_session("Source", "Inc", "Exc")
 
@@ -112,7 +117,7 @@ def test_run_session_exclude_item_default_code(tui, mock_service, mock_console):
 
     # Mock user input: persona, phase, action 'e', code 'EC1', quit
     with patch(
-        "zotero_cli.cli.tui.Prompt.ask", side_effect=["p", "title_abstract", "e", "EC1", "q"]
+        "zotero_cli.cli.tui.screening_tui.Prompt.ask", side_effect=["p", "title_abstract", "e", "EC1", "q"]
     ):
         tui.run_screening_session("Source", "Inc", "Exc")
 
@@ -137,7 +142,7 @@ def test_run_session_record_failure(tui, mock_service, mock_console):
 
     # Mock user input: persona, phase, action 'i', code 'IC1', then quit
     with patch(
-        "zotero_cli.cli.tui.Prompt.ask", side_effect=["p", "title_abstract", "i", "IC1", "q"]
+        "zotero_cli.cli.tui.screening_tui.Prompt.ask", side_effect=["p", "title_abstract", "i", "IC1", "q"]
     ):
         tui.run_screening_session("Source", "Inc", "Exc")
 
