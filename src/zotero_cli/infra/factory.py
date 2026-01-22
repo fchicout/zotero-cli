@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.enrichment_service import EnrichmentService
     from zotero_cli.core.services.import_service import ImportService
     from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+    from zotero_cli.core.services.purge_service import PurgeService
     from zotero_cli.core.services.screening_service import ScreeningService
 
 
@@ -261,6 +262,21 @@ class GatewayFactory:
         from zotero_cli.core.services.import_service import ImportService
 
         return ImportService(item_repo, col_service)
+
+    @staticmethod
+    def get_purge_service(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+    ) -> "PurgeService":
+        if not config:
+            from zotero_cli.core.config import get_config as main_get_config
+
+            config = main_get_config()
+
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+
+        from zotero_cli.core.services.purge_service import PurgeService
+
+        return PurgeService(gateway)
 
     @staticmethod
     def get_arxiv_gateway() -> ArxivLibGateway:
