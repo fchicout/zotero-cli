@@ -8,6 +8,7 @@ from rich.table import Table
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.tui import TuiScreeningService
 from zotero_cli.core.services.audit_service import CollectionAuditor
+from zotero_cli.core.services.extraction_service import ExtractionSchemaValidator
 from zotero_cli.core.services.graph_service import CitationGraphService
 from zotero_cli.core.services.lookup_service import LookupService
 from zotero_cli.core.services.migration_service import MigrationService
@@ -121,6 +122,11 @@ class SLRCommand(BaseCommand):
             help="Secondary collection (Loser - items removed from here)",
         )
 
+        # --- Extraction (Issue #42) ---
+        ext_p = sub.add_parser("extract", help="Data Extraction management")
+        ext_p.add_argument("--init", action="store_true", help="Initialize schema.yaml from template")
+        ext_p.add_argument("--validate", action="store_true", help="Validate current schema.yaml")
+
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -145,6 +151,8 @@ class SLRCommand(BaseCommand):
             self._handle_sync_csv(gateway, args)
         elif args.verb == "prune":
             self._handle_prune(args)
+        elif args.verb == "extract":
+            self._handle_extract(args)
 
     # --- Handlers ---
 
@@ -391,3 +399,32 @@ class SLRCommand(BaseCommand):
             print(f"[bold green]Pruned {count} items from '{args.excluded}'.")
         else:
             print("No intersection found. Sets are disjoint.")
+
+    def _handle_extract(self, args):
+        validator = ExtractionSchemaValidator()
+
+        if args.init:
+            try:
+                if validator.init_schema():
+                    console.print("[bold green]Created schema.yaml from template.[/bold green]")
+                else:
+                    console.print("[bold yellow]schema.yaml already exists. Skipping init.[/bold yellow]")
+            except Exception as e:
+                console.print(f"[bold red]Error initializing schema:[/bold red] {e}")
+                sys.exit(1)
+            return
+
+        if args.validate:
+            errors = validator.validate()
+            if errors:
+                console.print("[bold red]Schema Validation Failed:[/bold red]")
+                for err in errors:
+                    console.print(f" - {err}")
+                sys.exit(1)
+            else:
+                console.print("[bold green]Schema is valid![/bold green]")
+            return
+            
+        # Fallback if no args (should be handled by argparse/TUI later)
+        if not args.init and not args.validate:
+            console.print("[yellow]Please specify --init or --validate (Extraction TUI coming in Issue #43)[/yellow]")

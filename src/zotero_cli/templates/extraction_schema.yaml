@@ -1,0 +1,31 @@
+title: "SLR Extraction Protocol Template"
+version: "1.0"
+variables:
+  - key: "study_design"
+    label: "Study Design"
+    type: "select"
+    options:
+      - "Case Study"
+      - "Experiment"
+      - "Survey"
+      - "SLR"
+      - "Other"
+    required: true
+    description: "The primary methodology used in the paper."
+
+  - key: "sample_size"
+    label: "Sample Size"
+    type: "number"
+    required: false
+    description: "Number of participants or subjects."
+
+  - key: "proposed_solution"
+    label: "Proposed Solution"
+    type: "text"
+    required: true
+    description: "Brief description of the proposed tool/method."
+
+  - key: "is_open_source"
+    label: "Open Source?"
+    type: "boolean"
+    required: true
