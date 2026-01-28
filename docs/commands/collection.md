@@ -105,3 +105,21 @@ zotero-cli collection backup --name "My Review" --output "review_backup.zaf"
 **Parameters:**
 *   `--name`: (Required) Collection name or key.
 *   `--output`: (Required) Output .zaf file path.
+
+---
+
+### `purge`
+Purge specific assets (files, notes, tags) from all items in a collection.
+
+**Usage:**
+```bash
+zotero-cli collection purge "COLLECTION_NAME" --files --notes --tags --recursive
+```
+
+**Parameters:**
+*   `name`: (Positional, Required) The collection Name or Key.
+*   `--files`: Purge attachments/files from all items in the collection.
+*   `--notes`: Purge notes from all items in the collection.
+*   `--tags`: Purge tags from all items in the collection.
+*   `--recursive`: Apply the purge to sub-collections as well.
+*   `--force`: Skip interactive confirmation.

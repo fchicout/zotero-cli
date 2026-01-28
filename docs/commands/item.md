@@ -105,6 +105,21 @@ zotero-cli item hydrate --all
 zotero-cli item hydrate "ABCD1234"
 ```
 
+### `purge`
+Purge specific assets (files, notes, tags) from an item without deleting the item itself.
+
+**Usage:**
+```bash
+zotero-cli item purge "ITEMKEY" --files --notes --tags
+```
+
+**Parameters:**
+*   `key`: (Positional, Required) The Zotero Item Key.
+*   `--files`: Purge all child attachments/files.
+*   `--notes`: Purge all child notes.
+*   `--tags`: Purge all tags associated with the item.
+*   `--force`: Skip interactive confirmation.
+
 ### `pdf`
 
 Operations related to PDF attachments.
