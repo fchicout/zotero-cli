@@ -72,6 +72,10 @@ class SystemCommand(BaseCommand):
         norm_p.add_argument("file", help="Input CSV file")
         norm_p.add_argument("--output", required=True, help="Output Canonical CSV path")
 
+        # Switch Context
+        switch_p = sub.add_parser("switch", help="Switch active group context")
+        switch_p.add_argument("query", help="Group ID or Name (partial match)")
+
     def execute(self, args: argparse.Namespace):
         if args.verb == "info":
             InfoCommand().execute(args)
@@ -84,8 +88,53 @@ class SystemCommand(BaseCommand):
             print("Restore functionality is pending implementation.")
         elif args.verb == "normalize":
             self._handle_normalize(args)
+        elif args.verb == "switch":
+            self._handle_switch(args)
 
-    def _handle_normalize(self, args):
+    def _handle_switch(self, args):
+        from rich.prompt import Confirm
+        from zotero_cli.core.config import ConfigManager, get_config
+        from zotero_cli.infra.factory import GatewayFactory
+
+        config = get_config()
+        if not config.user_id:
+            print("Error: ZOTERO_USER_ID not configured. Cannot fetch user groups.")
+            return
+
+        gateway = GatewayFactory.get_zotero_gateway(force_user=True)
+        groups = gateway.get_user_groups(config.user_id)
+        
+        query = args.query.lower()
+        matches = []
+        
+        for g in groups:
+            gid = str(g.get("id"))
+            name = g.get("data", {}).get("name", "").lower()
+            if query == gid or query in name:
+                matches.append(g)
+        
+        if not matches:
+            print(f"No groups found matching '{args.query}'.")
+            return
+        
+        if len(matches) > 1:
+            print(f"Multiple groups found matching '{args.query}':")
+            for g in matches:
+                print(f" - {g.get('data', {}).get('name')} ({g.get('id')})")
+            print("Please be more specific.")
+            return
+        
+        target = matches[0]
+        target_name = target.get("data", {}).get("name")
+        target_id = str(target.get("id"))
+        
+        if Confirm.ask(f"Switch context to group '{target_name}' ({target_id})?"):
+            try:
+                manager = ConfigManager()
+                manager.save_group_context(target_id)
+                print(f"[green]Switched context to group: {target_name} ({target_id})[/green]")
+            except Exception as e:
+                print(f"[red]Failed to save configuration: {e}[/red]")
         ext = os.path.splitext(args.file)[1].lower()
         strategy: Any = None
         gateway: Any = None
