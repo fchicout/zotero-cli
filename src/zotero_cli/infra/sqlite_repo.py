@@ -205,6 +205,9 @@ class SqliteZoteroGateway(ZoteroGateway):
     def delete_collection(self, collection_key: str, version: int) -> bool:
         raise ConfigurationError("Offline mode is read-only")
 
+    def rename_collection(self, collection_key: str, version: int, name: str) -> bool:
+        raise ConfigurationError("Offline mode is read-only")
+
     def add_tags(self, item_key: str, tags: List[str]) -> bool:
         raise ConfigurationError("Offline mode is read-only")
 
@@ -234,3 +237,9 @@ class SqliteZoteroGateway(ZoteroGateway):
         for item in self.search_items(ZoteroQuery()):
             if tag in item.tags:
                 yield item
+
+    def verify_credentials(self) -> bool:
+        """
+        Verifies that the database file exists and is accessible.
+        """
+        return os.path.exists(self.original_db_path)

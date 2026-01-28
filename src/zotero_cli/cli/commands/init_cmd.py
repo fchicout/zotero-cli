@@ -73,9 +73,10 @@ class InitCommand(BaseCommand):
         try:
             client = GatewayFactory.get_zotero_gateway(config=temp_config)
             # Try a simple request to verify
-            # We use items with limit 1 as a lightweight check
-            client.http.get("items", params={"limit": 1})
-            console.print("[green]✔ Credentials verified successfully![/]")
+            if client.verify_credentials():
+                console.print("[green]✔ Credentials verified successfully![/]")
+            else:
+                raise Exception("API request returned failure status")
         except Exception as e:
             console.print(f"[bold red]✘ Verification failed:[/] {e}")
             if not Confirm.ask("Do you want to save the configuration anyway?"):

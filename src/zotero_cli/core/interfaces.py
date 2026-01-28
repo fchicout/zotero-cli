@@ -53,6 +53,10 @@ class CollectionRepository(ABC):
         pass
 
     @abstractmethod
+    def rename_collection(self, collection_key: str, version: int, name: str) -> bool:
+        pass
+
+    @abstractmethod
     def get_all_collections(self) -> List[Dict[str, Any]]:
         pass
 
@@ -169,4 +173,8 @@ class ZoteroGateway(
 
     @abstractmethod
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
+        pass
+
+    @abstractmethod
+    def verify_credentials(self) -> bool:
         pass

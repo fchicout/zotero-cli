@@ -111,6 +111,17 @@ class ZoteroAPIClient(ZoteroGateway):
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
         return self._paginate_items("items", params=query.to_params())
 
+    def verify_credentials(self) -> bool:
+        """
+        Verifies that the API key and Library ID are valid by making a lightweight request.
+        """
+        try:
+            # We use items with limit 1 as a lightweight check
+            self.http.get("items", params={"limit": 1})
+            return True
+        except Exception:
+            return False
+
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
         return self.search_items(ZoteroQuery(tag=tag))
 
