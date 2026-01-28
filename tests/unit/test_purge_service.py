@@ -316,7 +316,7 @@ def test_purge_collection_assets(purge_service, mock_gateway):
     assert stats["deleted"] == 2
     
     mock_gateway.get_collection_id_by_name.assert_called_with("TestCollection")
-    mock_gateway.get_items_in_collection.assert_called_with("C1", recursive=False)
+    mock_gateway.get_items_in_collection.assert_called_with("C1", top_only=True)
 
 def test_purge_collection_not_found(purge_service, mock_gateway):
     mock_gateway.get_collection_id_by_name.return_value = None

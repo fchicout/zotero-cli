@@ -22,12 +22,10 @@ class OpenerService:
             print(f"Error: File not found: {path}", file=sys.stderr)
             return False
 
-        system_platform = platform.system()
-        
         try:
-            if system_platform == "Windows":
-                os.startfile(path)
-            elif system_platform == "Darwin":  # macOS
+            if sys.platform == "win32":
+                os.startfile(path)  # type: ignore
+            elif sys.platform == "darwin":  # macOS
                 subprocess.run(["open", path], check=True)
             else:  # Linux/Unix
                 # Check for xdg-open or similar

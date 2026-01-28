@@ -50,7 +50,7 @@ class PurgeService:
         self,
         item_keys: List[str],
         sdb_only: bool = False,
-        phase: str = None,
+        phase: Optional[str] = None,
         dry_run: bool = True,
     ) -> Dict[str, int]:
         """
@@ -91,7 +91,7 @@ class PurgeService:
         return stats
 
     def purge_tags(
-        self, item_keys: List[str], tag_name: str = None, dry_run: bool = True
+        self, item_keys: List[str], tag_name: Optional[str] = None, dry_run: bool = True
     ) -> Dict[str, int]:
         """
         Removes tags from the given items.
@@ -171,7 +171,10 @@ class PurgeService:
             combined_stats["errors"] += 1
             return combined_stats
 
-        items = self.gateway.get_items_in_collection(col_id, recursive=recursive)
+        # Invert recursive to match interface 'top_only'
+        # recursive=True -> top_only=False
+        # recursive=False -> top_only=True
+        items = self.gateway.get_items_in_collection(col_id, top_only=not recursive)
         if not items:
             return combined_stats
 

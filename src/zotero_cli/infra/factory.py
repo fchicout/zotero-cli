@@ -4,10 +4,12 @@ from typing import TYPE_CHECKING, Optional
 
 from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.interfaces import (
+    AttachmentRepository,
     CollectionRepository,
     ItemRepository,
     NoteRepository,
     TagRepository,
+    ZoteroGateway,
 )
 from zotero_cli.infra.arxiv_lib import ArxivLibGateway
 from zotero_cli.infra.bibtex_lib import BibtexLibGateway
