@@ -142,6 +142,30 @@ class SLRCommand(BaseCommand):
         ext_p.add_argument("--agent", default="zotero-cli", help="Agent name")
         ext_p.add_argument("--persona", default="unknown", help="Reviewer persona")
 
+        # --- SDB Management (Issue #60) ---
+        sdb_p = sub.add_parser("sdb", help="Screening Database (SDB) maintenance")
+        sdb_sub = sdb_p.add_subparsers(dest="sdb_verb", required=True)
+
+        # sdb inspect
+        sdb_insp = sdb_sub.add_parser("inspect", help="Inspect SDB entries for an item")
+        sdb_insp.add_argument("key", help="Item Key")
+
+        # sdb edit
+        sdb_edit = sdb_sub.add_parser("edit", help="Surgically edit an SDB entry")
+        sdb_edit.add_argument("key", help="Item Key")
+        sdb_edit.add_argument("--persona", required=True, help="Target Persona")
+        sdb_edit.add_argument("--phase", required=True, help="Target Phase")
+        sdb_edit.add_argument("--set-decision", choices=["accepted", "rejected"], help="Update decision")
+        sdb_edit.add_argument("--set-criteria", help="Update criteria codes (comma-separated)")
+        sdb_edit.add_argument("--set-reason", help="Update reason text")
+        sdb_edit.add_argument("--set-reviewer", help="Update reviewer/persona name")
+        sdb_edit.add_argument("--execute", action="store_true", help="Apply changes (Default: Dry-Run)")
+
+        # sdb upgrade
+        sdb_upg = sdb_sub.add_parser("upgrade", help="Upgrade SDB notes to latest schema (v1.2)")
+        sdb_upg.add_argument("--collection", required=True, help="Target collection")
+        sdb_upg.add_argument("--execute", action="store_true", help="Apply changes (Default: Dry-Run)")
+
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -168,6 +192,50 @@ class SLRCommand(BaseCommand):
             self._handle_prune(args)
         elif args.verb == "extract":
             self._handle_extract(args)
+        elif args.verb == "sdb":
+            self._handle_sdb(gateway, args)
+
+    def _handle_sdb(self, gateway, args):
+        from zotero_cli.core.services.sdb.sdb_service import SDBService
+        service = SDBService(gateway)
+
+        if args.sdb_verb == "inspect":
+            entries = service.inspect_item_sdb(args.key)
+            if not entries:
+                console.print(f"[yellow]No SDB entries found for item {args.key}[/yellow]")
+                return
+            table = service.build_inspect_table(args.key, entries)
+            console.print(table)
+
+        elif args.sdb_verb == "edit":
+            dry_run = not args.execute
+            updates = {}
+            if args.set_decision:
+                updates["decision"] = args.set_decision
+            if args.set_criteria:
+                updates["reason_code"] = [c.strip() for c in args.set_criteria.split(",")]
+            if args.set_reason:
+                updates["reason_text"] = args.set_reason
+            if args.set_reviewer:
+                updates["persona"] = args.set_reviewer
+            
+            if not updates:
+                console.print("[red]Error: No updates specified. Use --set-* flags.[/red]")
+                return
+
+            success, msg = service.edit_sdb_entry(
+                args.key, args.persona, args.phase, updates, dry_run=dry_run
+            )
+            style = "green" if success else "red"
+            console.print(f"[{style}]{msg}[/{style}]")
+
+        elif args.sdb_verb == "upgrade":
+            dry_run = not args.execute
+            if dry_run:
+                console.print("[yellow]Running SDB Upgrade in DRY-RUN mode. Use --execute to apply.[/yellow]")
+            
+            stats = service.upgrade_sdb_entries(args.collection, dry_run=dry_run)
+            console.print(f"Scanned: {stats['scanned']}, Upgraded: {stats['upgraded']}, Skipped: {stats['skipped']}, Errors: {stats['errors']}")
 
     # --- Handlers ---
 
@@ -450,10 +518,10 @@ class SLRCommand(BaseCommand):
         force_user = getattr(args, "user", False)
         note_repo = GatewayFactory.get_note_repository(force_user=force_user)
         ext_service = ExtractionService(note_repo)
-        
+
         # Resolve Target
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
-        
+
         # Try as Item Key first
         item = gateway.get_item(args.target)
         if item:
