@@ -65,7 +65,7 @@ class ListCommand(BaseCommand):
         table.add_column("URL")
         for g in groups:
             gid = str(g.get("id", "N/A"))
-            name = g.get("name", "N/A")
+            name = g.get("data", {}).get("name", "N/A")
             url = f"https://www.zotero.org/groups/{gid}"
             table.add_row(gid, name, url)
         console.print(table)
