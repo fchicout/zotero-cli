@@ -101,3 +101,41 @@ zotero-cli slr extract --init [--output schema.yaml]
 # Validate an existing schema
 zotero-cli slr extract --validate [--schema schema.yaml]
 ```
+
+---
+
+### `sdb`
+Management and maintenance of the Screening Database (SDB) layer embedded in Zotero notes.
+
+#### `sdb inspect`
+Visualizes all SDB entries (decisions, criteria, personas) attached to an item in a detailed table.
+
+**Usage:**
+```bash
+zotero-cli slr sdb inspect "ITEMKEY"
+```
+
+#### `sdb edit`
+Surgically updates a specific SDB entry matched by persona and phase. Defaults to Dry-Run mode.
+
+**Usage:**
+```bash
+zotero-cli slr sdb edit "ITEMKEY" --persona "Name" --phase "title_abstract" --set-decision "accepted"
+```
+
+**Parameters:**
+*   `--persona`: (Required) The reviewer identity to match.
+*   `--phase`: (Required) The screening phase to match.
+*   `--set-decision`: Update decision to `accepted` or `rejected`.
+*   `--set-criteria`: Update comma-separated reason codes.
+*   `--set-reason`: Update detailed reason text.
+*   `--set-reviewer`: Change the persona name on the record.
+*   `--execute`: Actually commit changes to Zotero.
+
+#### `sdb upgrade`
+Batch upgrades legacy SDB notes within a collection to the latest schema (v1.2).
+
+**Usage:**
+```bash
+zotero-cli slr sdb upgrade --collection "My Collection" [--execute]
+```
