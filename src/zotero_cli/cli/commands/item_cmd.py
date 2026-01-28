@@ -135,6 +135,14 @@ class ItemCommand(BaseCommand):
             "--dry-run", action="store_true", help="Show changes without applying"
         )
 
+        # Purge
+        purge_p = sub.add_parser("purge", help="Purge assets (files, notes, tags) from an item")
+        purge_p.add_argument("key", help="Item Key")
+        purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
+        purge_p.add_argument("--notes", action="store_true", help="Purge notes")
+        purge_p.add_argument("--tags", action="store_true", help="Purge tags")
+        purge_p.add_argument("--force", action="store_true", help="Skip confirmation")
+
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -155,6 +163,34 @@ class ItemCommand(BaseCommand):
             self._handle_pdf_ops(args)
         elif args.verb == "hydrate":
             self._handle_hydrate(args)
+        elif args.verb == "purge":
+            self._handle_purge(args)
+
+    def _handle_purge(self, args):
+        from rich.prompt import Confirm
+        
+        types = []
+        if args.files:
+            types.append("files")
+        if args.notes:
+            types.append("notes")
+        if args.tags:
+            types.append("tags")
+
+        if not types:
+            console.print("[red]Error: Specify what to purge using --files, --notes, or --tags.[/]")
+            return
+
+        if not args.force:
+            msg = f"Are you sure you want to purge {', '.join(types)} from item '{args.key}'?"
+            if not Confirm.ask(msg):
+                console.print("[yellow]Aborted.[/]")
+                return
+
+        service = GatewayFactory.get_purge_service(force_user=getattr(args, "user", False))
+        stats = service.purge_item_assets(args.key, types=types, dry_run=False)
+        
+        console.print(f"[green]Purge Complete:[/green] Deleted: {stats['deleted']}, Errors: {stats['errors']}")
 
     def _handle_hydrate(self, args):
         from rich.table import Table

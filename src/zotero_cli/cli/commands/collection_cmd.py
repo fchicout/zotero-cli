@@ -77,6 +77,15 @@ class CollectionCommand(BaseCommand):
         backup_p.add_argument("--name", required=True, help="Collection name or key")
         backup_p.add_argument("--output", required=True, help="Output file path")
 
+        # Purge
+        purge_p = sub.add_parser("purge", help="Purge assets (files, notes, tags) from a collection")
+        purge_p.add_argument("name", help="Collection name")
+        purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
+        purge_p.add_argument("--notes", action="store_true", help="Purge notes")
+        purge_p.add_argument("--tags", action="store_true", help="Purge tags")
+        purge_p.add_argument("--recursive", action="store_true", help="Apply to sub-collections")
+        purge_p.add_argument("--force", action="store_true", help="Skip confirmation")
+
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -133,6 +142,40 @@ class CollectionCommand(BaseCommand):
             self._handle_pdf(args)
         elif args.verb == "backup":
             self._handle_backup(gateway, args)
+        elif args.verb == "purge":
+            self._handle_purge(args)
+
+    def _handle_purge(self, args):
+        from rich.prompt import Confirm
+        
+        types = []
+        if args.files:
+            types.append("files")
+        if args.notes:
+            types.append("notes")
+        if args.tags:
+            types.append("tags")
+
+        if not types:
+            console.print("[red]Error: Specify what to purge using --files, --notes, or --tags.[/]")
+            return
+
+        if not args.force:
+            msg = f"Are you sure you want to purge {', '.join(types)} from collection '{args.name}'"
+            if args.recursive:
+                msg += " and its sub-collections"
+            msg += "?"
+            
+            if not Confirm.ask(msg):
+                console.print("[yellow]Aborted.[/]")
+                return
+
+        service = GatewayFactory.get_purge_service(force_user=getattr(args, "user", False))
+        stats = service.purge_collection_assets(
+            args.name, types=types, recursive=args.recursive, dry_run=False
+        )
+        
+        console.print(f"[green]Purge Complete:[/green] Deleted: {stats['deleted']}, Errors: {stats['errors']}")
 
     def _handle_clean(self, args):
         force_user = getattr(args, "user", False)
