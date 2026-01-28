@@ -1,3 +1,4 @@
+import warnings
 from typing import List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
@@ -63,7 +64,14 @@ class TagService:
         """
         Deletes a tag from all items in the library.
         Returns the number of items updated.
+        
+        Deprecated: Use PurgeService.purge_item_assets or PurgeService.purge_collection_assets instead.
         """
+        warnings.warn(
+            "TagService.delete_tag is deprecated and will be removed in Phase B. Use PurgeService directly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         item_keys = [item.key for item in self.gateway.get_items_by_tag(tag)]
         if not item_keys:
             return 0
@@ -74,7 +82,14 @@ class TagService:
     def purge_tags_from_collection(self, collection_name: str, dry_run: bool = False) -> int:
         """
         Removes all tags from all items in a specific collection.
+        
+        Deprecated: Use PurgeService.purge_collection_assets instead.
         """
+        warnings.warn(
+            "TagService.purge_tags_from_collection is deprecated and will be removed in Phase B. Use PurgeService.purge_collection_assets instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         col_id = self.gateway.get_collection_id_by_name(collection_name)
         if not col_id:
             return 0

@@ -131,6 +131,73 @@ class PurgeService:
                 stats["errors"] += 1
         return stats
 
+    def purge_item_assets(
+        self, item_key: str, types: List[str] = ["files", "notes", "tags"], dry_run: bool = True
+    ) -> Dict[str, int]:
+        """
+        Atomic method to purge specified assets from a single item.
+        Types can be 'files', 'notes', 'tags'.
+        """
+        combined_stats = {"deleted": 0, "skipped": 0, "errors": 0}
+        
+        # We pass a list of one key
+        keys = [item_key]
+
+        if "files" in types:
+            s = self.purge_attachments(keys, dry_run=dry_run)
+            self._merge_stats(combined_stats, s)
+        
+        if "notes" in types:
+            s = self.purge_notes(keys, dry_run=dry_run)
+            self._merge_stats(combined_stats, s)
+
+        if "tags" in types:
+            s = self.purge_tags(keys, dry_run=dry_run)
+            self._merge_stats(combined_stats, s)
+
+        return combined_stats
+
+    def purge_collection_assets(
+        self, col_name: str, types: List[str] = ["files", "notes", "tags"], recursive: bool = False, dry_run: bool = True
+    ) -> Dict[str, int]:
+        """
+        Purges assets from all items in a collection.
+        Requires gateway to support collection lookup.
+        """
+        combined_stats = {"deleted": 0, "skipped": 0, "errors": 0}
+
+        col_id = self.gateway.get_collection_id_by_name(col_name)
+        if not col_id:
+            combined_stats["errors"] += 1
+            return combined_stats
+
+        items = self.gateway.get_items_in_collection(col_id, recursive=recursive)
+        if not items:
+            return combined_stats
+
+        item_keys = [item.key for item in items]
+
+        # Bulk operations where possible for efficiency, 
+        # though underlying methods currently iterate one by one.
+        if "files" in types:
+            s = self.purge_attachments(item_keys, dry_run=dry_run)
+            self._merge_stats(combined_stats, s)
+        
+        if "notes" in types:
+            s = self.purge_notes(item_keys, dry_run=dry_run)
+            self._merge_stats(combined_stats, s)
+
+        if "tags" in types:
+            s = self.purge_tags(item_keys, dry_run=dry_run)
+            self._merge_stats(combined_stats, s)
+
+        return combined_stats
+
+    def _merge_stats(self, target: Dict[str, int], source: Dict[str, int]):
+        """Helper to merge stats dictionaries."""
+        for k in target:
+            target[k] += source.get(k, 0)
+
     def _parse_sdb_info(self, content: str) -> tuple[bool, Optional[str]]:
         """Parses note content for SDB markers and returns (is_sdb, phase)."""
         # Strip HTML if present

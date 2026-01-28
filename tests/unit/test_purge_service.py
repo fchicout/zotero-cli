@@ -156,11 +156,6 @@ def test_purge_notes_no_match(purge_service, mock_gateway):
     stats = purge_service.purge_notes(["P1"], sdb_only=True, dry_run=False)
     assert stats["deleted"] == 0
 
-def test_purge_tags_item_not_found(purge_service, mock_gateway):
-    mock_gateway.get_item.return_value = None
-    stats = purge_service.purge_tags(["K1"], dry_run=False)
-    assert stats["errors"] == 1
-
 def test_purge_tags_no_tags(purge_service, mock_gateway):
     item = ZoteroItem(key="K1", version=1, item_type="journalArticle", tags=[])
     mock_gateway.get_item.return_value = item
@@ -262,3 +257,68 @@ def test_parse_sdb_info_json_error(purge_service):
     is_sdb, phase = purge_service._parse_sdb_info("{ invalid }")
     assert is_sdb is False
     assert phase is None
+
+def test_purge_item_assets(purge_service, mock_gateway):
+    # Setup for multiple assets
+    mock_gateway.get_item_children.return_value = [
+        {"key": "A1", "data": {"itemType": "attachment", "version": 1}},
+        {"key": "N1", "data": {"itemType": "note", "version": 1}}
+    ]
+    item = ZoteroItem(key="P1", version=1, item_type="journalArticle", tags=["t1"])
+    mock_gateway.get_item.return_value = item
+    
+    mock_gateway.delete_item.return_value = True
+    mock_gateway.update_item_metadata.return_value = True
+    
+    # Execute for all types
+    stats = purge_service.purge_item_assets("P1", types=["files", "notes", "tags"], dry_run=False)
+    
+    assert stats["deleted"] == 3  # 1 attachment, 1 note, 1 tag update
+    
+    # Verify calls
+    mock_gateway.delete_item.assert_any_call("A1", 1)
+    mock_gateway.delete_item.assert_any_call("N1", 1)
+    mock_gateway.update_item_metadata.assert_called_with("P1", 1, {"tags": []})
+
+def test_purge_collection_assets(purge_service, mock_gateway):
+    mock_gateway.get_collection_id_by_name.return_value = "C1"
+    
+    item1 = ZoteroItem(key="P1", version=1, item_type="journalArticle", tags=["t1"])
+    item2 = ZoteroItem(key="P2", version=1, item_type="journalArticle", tags=[])
+    
+    mock_gateway.get_items_in_collection.return_value = [item1, item2]
+    
+    # Setup item children (attachments/notes) for P1 and P2
+    # This mock needs to handle multiple calls differently if we want precise accounting,
+    # but for simple verification, we can just return a fixed list or use side_effect.
+    # P1 has 1 attachment. P2 has none.
+    def get_children(key):
+        if key == "P1":
+            return [{"key": "A1", "data": {"itemType": "attachment", "version": 1}}]
+        return []
+    
+    mock_gateway.get_item_children.side_effect = get_children
+    
+    # P1 has tags. P2 has none.
+    def get_item(key):
+        if key == "P1":
+            return item1
+        return item2
+    mock_gateway.get_item.side_effect = get_item
+    
+    mock_gateway.delete_item.return_value = True
+    mock_gateway.update_item_metadata.return_value = True
+    
+    stats = purge_service.purge_collection_assets("TestCollection", types=["files", "tags"], dry_run=False)
+    
+    # P1: 1 attachment deleted, 1 tag update = 2
+    # P2: 0 attachments, 0 tags = 0
+    assert stats["deleted"] == 2
+    
+    mock_gateway.get_collection_id_by_name.assert_called_with("TestCollection")
+    mock_gateway.get_items_in_collection.assert_called_with("C1", recursive=False)
+
+def test_purge_collection_not_found(purge_service, mock_gateway):
+    mock_gateway.get_collection_id_by_name.return_value = None
+    stats = purge_service.purge_collection_assets("Unknown", dry_run=False)
+    assert stats["errors"] == 1

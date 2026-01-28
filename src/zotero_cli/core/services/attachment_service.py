@@ -1,5 +1,6 @@
 import os
 import tempfile
+import warnings
 from typing import Optional
 
 import requests
@@ -104,6 +105,11 @@ class AttachmentService:
     def remove_attachments_from_collection(
         self, collection_name: str, dry_run: bool = True
     ) -> int:
+        warnings.warn(
+            "AttachmentService.remove_attachments_from_collection is deprecated and will be removed in Phase B. Use PurgeService.purge_collection_assets instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         col_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not col_id:
             print(f"Collection '{collection_name}' not found.")
@@ -117,6 +123,11 @@ class AttachmentService:
         return stats["deleted"] if not dry_run else stats["skipped"]
 
     def remove_attachments_from_item(self, item_key: str, dry_run: bool = True) -> int:
+        warnings.warn(
+            "AttachmentService.remove_attachments_from_item is deprecated and will be removed in Phase B. Use PurgeService.purge_item_assets instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         stats = self._get_purge_service().purge_attachments([item_key], dry_run=dry_run)
         return stats["deleted"] if not dry_run else stats["skipped"]
 
