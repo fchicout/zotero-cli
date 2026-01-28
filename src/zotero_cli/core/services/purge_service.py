@@ -1,8 +1,7 @@
-import json
-import re
 from typing import Dict, List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 
 
 class PurgeService:
@@ -16,7 +15,7 @@ class PurgeService:
 
     def _is_offline(self) -> bool:
         # Check if gateway is an instance of SqliteZoteroGateway
-        # We use string check to avoid circular imports if any, 
+        # We use string check to avoid circular imports if any,
         # or just check the class name.
         return self.gateway.__class__.__name__ == "SqliteZoteroGateway"
 
@@ -139,14 +138,14 @@ class PurgeService:
         Types can be 'files', 'notes', 'tags'.
         """
         combined_stats = {"deleted": 0, "skipped": 0, "errors": 0}
-        
+
         # We pass a list of one key
         keys = [item_key]
 
         if "files" in types:
             s = self.purge_attachments(keys, dry_run=dry_run)
             self._merge_stats(combined_stats, s)
-        
+
         if "notes" in types:
             s = self.purge_notes(keys, dry_run=dry_run)
             self._merge_stats(combined_stats, s)
@@ -180,12 +179,12 @@ class PurgeService:
 
         item_keys = [item.key for item in items]
 
-        # Bulk operations where possible for efficiency, 
+        # Bulk operations where possible for efficiency,
         # though underlying methods currently iterate one by one.
         if "files" in types:
             s = self.purge_attachments(item_keys, dry_run=dry_run)
             self._merge_stats(combined_stats, s)
-        
+
         if "notes" in types:
             s = self.purge_notes(item_keys, dry_run=dry_run)
             self._merge_stats(combined_stats, s)
@@ -203,19 +202,7 @@ class PurgeService:
 
     def _parse_sdb_info(self, content: str) -> tuple[bool, Optional[str]]:
         """Parses note content for SDB markers and returns (is_sdb, phase)."""
-        # Strip HTML if present
-        json_match = re.search(r"\{.*\}", content, re.DOTALL)
-        if not json_match:
+        data = parse_sdb_note(content)
+        if not data:
             return False, None
-
-        try:
-            data = json.loads(json_match.group(0))
-            is_sdb = (
-                data.get("action") == "screening_decision"
-                or "audit_version" in data
-                or "sdb_version" in data
-            )
-            phase = data.get("phase")
-            return is_sdb, phase
-        except json.JSONDecodeError:
-            return False, None
+        return True, data.get("phase")

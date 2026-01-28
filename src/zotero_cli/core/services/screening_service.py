@@ -10,6 +10,7 @@ from zotero_cli.core.interfaces import (
     TagRepository,
 )
 from zotero_cli.core.services.collection_service import CollectionService
+from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -63,7 +64,7 @@ class ScreeningService:
         # Map internal decision to SDB decision
         sdb_decision = "accepted" if decision_upper == "INCLUDE" else "rejected"
 
-        # 1. Check for existing note by persona AND phase
+        # 1. Check for existing note by persona AND phase using robust parsing
         children = self.note_repo.get_item_children(item_key)
         existing_note_key: Optional[str] = None
         existing_version: int = 0
@@ -72,14 +73,17 @@ class ScreeningService:
             data = child.get("data", child)
             if data.get("itemType") == "note":
                 content = data.get("note", "")
-                if (
-                    "audit_version" in content
-                    and f'"persona": "{persona}"' in content
-                    and f'"phase": "{phase}"' in content
-                ):
-                    existing_note_key = child.get("key") or data.get("key")
-                    existing_version = int(child.get("version") or data.get("version") or 0)
-                    break
+                parsed_data = parse_sdb_note(content)
+                
+                if parsed_data:
+                    # Robust check: does this note belong to the same persona/phase?
+                    if (
+                        parsed_data.get("persona") == persona
+                        and parsed_data.get("phase") == phase
+                    ):
+                        existing_note_key = child.get("key") or data.get("key")
+                        existing_version = int(child.get("version") or data.get("version") or 0)
+                        break
 
         # 2. Create the Audit Note using SDB v1.2
         decision_data = {
