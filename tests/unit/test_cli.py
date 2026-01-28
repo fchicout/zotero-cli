@@ -217,7 +217,7 @@ def test_list_collections(mock_clients, env_vars, capsys):
 
 def test_list_groups(mock_clients, env_vars, capsys):
     mock_clients["zotero"].get_user_groups.return_value = [
-        {"id": 123, "name": "Research Group", "url": "..."}
+        {"id": 123, "data": {"name": "Research Group"}, "url": "..."}
     ]
     test_args = ["zotero-cli", "list", "groups"]
     with patch.object(sys, "argv", test_args):
