@@ -54,6 +54,9 @@ class ZoteroCollectionRepository(CollectionRepository):
     def delete_collection(self, collection_key: str, version: int) -> bool:
         return self.gateway.delete_collection(collection_key, version)
 
+    def rename_collection(self, collection_key: str, version: int, name: str) -> bool:
+        return self.gateway.rename_collection(collection_key, version, name)
+
     def get_all_collections(self) -> List[Dict[str, Any]]:
         return self.gateway.get_all_collections()
 
