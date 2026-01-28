@@ -135,6 +135,8 @@ class SystemCommand(BaseCommand):
                 print(f"[green]Switched context to group: {target_name} ({target_id})[/green]")
             except Exception as e:
                 print(f"[red]Failed to save configuration: {e}[/red]")
+
+    def _handle_normalize(self, args):
         ext = os.path.splitext(args.file)[1].lower()
         strategy: Any = None
         gateway: Any = None

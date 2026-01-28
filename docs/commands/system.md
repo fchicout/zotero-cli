@@ -24,6 +24,22 @@ zotero-cli system groups
 
 ---
 
+### `switch`
+Switch the active library context to a specific Zotero Group.
+This updates the local configuration to point to the selected group's library.
+
+**Usage:**
+```bash
+zotero-cli system switch "My Research Group"
+# OR use ID
+zotero-cli system switch 1234567
+```
+
+**Parameters:**
+*   `query`: (Positional, Required) Group Name (partial match supported) or Group ID.
+
+---
+
 ### `backup`
 Create a full backup of the entire library (System Scope).
 Produces a `.zaf` (Zotero Archive Format) file, which is a ZIP archive (LZMA compressed) containing `manifest.json` and `data.json`.

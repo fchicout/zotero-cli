@@ -65,6 +65,8 @@ class ListCommand(BaseCommand):
         table.add_column("URL")
         for g in groups:
             gid = str(g.get("id", "N/A"))
+            # Zotero API v3 structure for /users/{id}/groups:
+            # [ { "id": 123, "data": { "name": "Group Name", ... }, ... }, ... ]
             name = g.get("data", {}).get("name", "N/A")
             url = f"https://www.zotero.org/groups/{gid}"
             table.add_row(gid, name, url)
