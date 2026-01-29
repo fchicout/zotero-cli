@@ -124,6 +124,47 @@ def test_decide_cli_invocation(mock_clients, env_vars, capsys):
         assert "Successfully recorded decision" in capsys.readouterr().out
 
 
+def test_decide_include_no_code(mock_clients, env_vars, capsys):
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_screening_service") as mock_factory_get:
+        mock_service = mock_factory_get.return_value
+        mock_service.record_decision.return_value = True
+        test_args = [
+            "zotero-cli",
+            "slr",
+            "decide",
+            "--key",
+            "K1",
+            "--vote",
+            "INCLUDE",
+        ]
+        with patch.object(sys, "argv", test_args):
+            main()
+        
+        # Should succeed without --code
+        assert "Successfully recorded decision" in capsys.readouterr().out
+        # Verify service called with code=None (or empty string depending on impl, 
+        # but the command passes the arg directly)
+        call_args = mock_service.record_decision.call_args[1]
+        assert call_args["decision"] == "INCLUDE"
+
+
+def test_decide_exclude_requires_code(mock_clients, env_vars, capsys):
+    test_args = [
+        "zotero-cli",
+        "slr",
+        "decide",
+        "--key",
+        "K1",
+        "--vote",
+        "EXCLUDE",
+    ]
+    with patch.object(sys, "argv", test_args):
+        with pytest.raises(SystemExit):
+            main()
+    
+    assert "Error: You must provide --code for EXCLUDE decisions." in capsys.readouterr().out
+
+
 # --- 3. IMPORT ---
 def test_import_manual(mock_clients, env_vars, capsys):
     test_args = [

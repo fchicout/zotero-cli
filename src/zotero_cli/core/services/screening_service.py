@@ -89,7 +89,7 @@ class ScreeningService:
         decision_data = {
             "audit_version": "1.2",
             "decision": sdb_decision,
-            "reason_code": [code.strip() for code in code.split(",")] if code else [],
+            "reason_code": [] if sdb_decision == "accepted" else ([code.strip() for code in code.split(",")] if code else []),
             "reason_text": reason if reason else "",
             "evidence": evidence if evidence else "",
             "timestamp": datetime.now(timezone.utc).isoformat(),

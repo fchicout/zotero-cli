@@ -384,12 +384,16 @@ class SLRCommand(BaseCommand):
             vote, code, reason = "EXCLUDE", args.not_english, "Not English"
         elif args.is_survey:
             vote, code, reason = "EXCLUDE", args.is_survey, "SLR/Survey"
-        elif args.no_pdf:
+        if args.no_pdf:
             vote, code, reason = "EXCLUDE", args.no_pdf, "No PDF"
 
-        if not vote or not code:
+        if not vote:
+            console.print("[bold red]Error:[/bold red] You must provide --vote.")
+            sys.exit(1)
+
+        if vote == "EXCLUDE" and not code:
             console.print(
-                "[bold red]Error:[/bold red] You must provide --vote and --code OR use one of the exclusion flags."
+                "[bold red]Error:[/bold red] You must provide --code for EXCLUDE decisions."
             )
             sys.exit(1)
 

@@ -96,7 +96,11 @@ class TuiScreeningService:
 
             decision = "INCLUDE" if action == "i" else "EXCLUDE"
             target_col = target_included if action == "i" else target_excluded
-            code = self._get_criteria_code(decision)
+            
+            if decision == "EXCLUDE":
+                code = self._get_criteria_code(decision)
+            else:
+                code = "" # Inclusion implies all criteria met
 
             with self.console.status(f"[bold blue]Recording decision ({decision})...[/bold blue]"):
                 success = self.service.record_decision(
