@@ -56,14 +56,15 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 ## Accomplishments (Session: 2026-01-29)
 
 ### Phase 23: SDB Intelligence & Workflow Automation
+*   **[VERIFIED] Issue #52 (Safe Reset):** Implemented \`slr reset\` with phase and persona isolation using enhanced \`PurgeService\`.
 *   **[VERIFIED] Issue #55 (Auto-Move on Load):** Implemented \`--move-to-included\` and \`--move-to-excluded\` in \`slr load\`.
 *   **[VERIFIED] Issue #56 (SDB-Aware Listing):** Enhanced \`list items\` with SDB filters and dynamic metadata columns.
-*   **[RELEASE] v2.4.0:** Bumped version and released with full quality gate passing (100% tests).
-*   **[COMMUNICATION]** Registered post-mortems on GitHub Issues #55 and #56.
+*   **[RELEASE] v2.4.1:** Bumped version and released safe reset capability.
+*   **[COMMUNICATION]** Registered post-mortems on GitHub Issues #52, #55, and #56.
 
 ## Current State
 
-*   **Version:** \`v2.4.0\`
+*   **Version:** \`v2.4.1\`
 *   **Quality:** 100% Pass Rate.
 *   **Status:** **ENHANCED & STABLE**
 
