@@ -27,6 +27,15 @@ class ListCommand(BaseCommand):
         li_p.add_argument("--collection", required=False, help="Collection name or key")
         li_p.add_argument("--trash", action="store_true", help="List items in the trash")
         li_p.add_argument("--top-only", action="store_true", help="Fetch only top-level items")
+        li_p.add_argument(
+            "--included", action="store_true", help="Filter for items with decision 'accepted'"
+        )
+        li_p.add_argument(
+            "--excluded", action="store_true", help="Filter for items with decision 'rejected'"
+        )
+        li_p.add_argument("--criteria", help="Filter for items with specific exclusion code, e.g., EC4")
+        li_p.add_argument("--persona", help="Filter by reviewer persona")
+        li_p.add_argument("--phase", help="Filter by screening phase")
 
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
@@ -73,6 +82,10 @@ class ListCommand(BaseCommand):
         console.print(table)
 
     def _handle_items(self, gateway, args):
+        is_sdb_filter = any(
+            [args.included, args.excluded, args.criteria, args.persona, args.phase]
+        )
+
         if args.trash:
             items = list(gateway.get_trash_items())
             title = "Trash Items"
@@ -89,11 +102,84 @@ class ListCommand(BaseCommand):
             )
             title = f"Items in {args.collection}"
 
-        table = Table(title=title)
-        table.add_column("Key", style="cyan")
-        table.add_column("Title")
-        table.add_column("Type")
-        for item in items:
-            table.add_row(item.key, item.title or "Untitled", item.item_type)
+        if is_sdb_filter:
+            from zotero_cli.core.services.sdb.sdb_service import SDBService
+
+            sdb_service = SDBService(gateway)
+            filtered_items = []
+            sdb_data = {}
+
+            for item in items:
+                # 1. Fast Filter (Tags)
+                if args.included and "rsl:include" not in item.tags:
+                    continue
+                if args.excluded and not any(t.startswith("rsl:exclude:") for t in item.tags):
+                    continue
+                if args.criteria and f"rsl:exclude:{args.criteria}" not in item.tags:
+                    continue
+                if args.phase and f"rsl:phase:{args.phase}" not in item.tags:
+                    # Optional: We could be more lenient here if tags are missing
+                    pass
+
+                # 2. Deep Filter (Notes)
+                entries = sdb_service.inspect_item_sdb(item.key)
+                matched_entry = None
+                for entry in entries:
+                    match = True
+                    if args.included and entry.get("decision") != "accepted":
+                        match = False
+                    if args.excluded and entry.get("decision") != "rejected":
+                        match = False
+                    if args.criteria:
+                        codes = entry.get("reason_code", [])
+                        if args.criteria not in codes:
+                            match = False
+                    if args.persona and entry.get("persona") != args.persona:
+                        match = False
+                    if args.phase and entry.get("phase") != args.phase:
+                        match = False
+
+                    if match:
+                        matched_entry = entry
+                        break
+
+                if matched_entry:
+                    filtered_items.append(item)
+                    sdb_data[item.key] = matched_entry
+
+            if not filtered_items:
+                console.print(
+                    "[yellow]No items found matching criteria. Ensure SDB metadata is populated.[/yellow]"
+                )
+                return
+
+            items = filtered_items
+            table = Table(title=f"{title} (SDB Filtered)")
+            table.add_column("Key", style="cyan")
+            table.add_column("Title")
+            table.add_column("Decision")
+            table.add_column("Criteria")
+            table.add_column("Persona")
+
+            for item in items:
+                entry = sdb_data[item.key]
+                decision = entry.get("decision", "N/A")
+                color = "green" if decision == "accepted" else "red"
+                criteria = ", ".join(entry.get("reason_code", []))
+                table.add_row(
+                    item.key,
+                    (item.title or "Untitled")[:50],
+                    f"[{color}]{decision}[/{color}]",
+                    criteria,
+                    entry.get("persona", "N/A"),
+                )
+        else:
+            table = Table(title=title)
+            table.add_column("Key", style="cyan")
+            table.add_column("Title")
+            table.add_column("Type")
+            for item in items:
+                table.add_row(item.key, item.title or "Untitled", item.item_type)
+
         console.print(table)
         console.print(f"\n[dim]Showing {len(items)} items.[/dim]")
