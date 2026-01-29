@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.1] - 2026-01-29
+
+### ✨ Features & Improvements
+- **Safe Reset Engine (Issue #52):** Introduced \`slr reset\` command for phase-aware clearing of screening and extraction progress.
+- **Granular Purging:** Enhanced \`PurgeService\` to support filtering by reviewer persona and screening phase, ensuring high-fidelity data management.
+- **Tag Auto-Cleanup:** Automatic removal of phase-specific tags during reset operations.
+
 ## [2.4.0] - 2026-01-29
 
 ### ✨ Features & Improvements
