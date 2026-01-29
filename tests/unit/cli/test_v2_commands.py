@@ -56,7 +56,7 @@ def test_decide_missing_args_error(mock_clients, env_vars, capsys):
         with pytest.raises(SystemExit):
             main()
 
-    assert "You must provide --vote and --code" in capsys.readouterr().out
+    assert "Error: You must provide --vote." in capsys.readouterr().out
 
 
 def test_report_status_dashboard(mock_clients, env_vars, capsys):

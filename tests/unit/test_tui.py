@@ -87,11 +87,10 @@ def test_run_session_include_item(tui, mock_service, mock_console):
     # Mock user input:
     # 1. Persona: 'p'
     # 2. Phase: 'title_abstract'
-    # 3. Action: 'i' (Include)
-    # 4. Code: 'IC2' (Custom code)
-    # 5. Action: 'q' (Next item action - Quit if no more items)
+    # 3. Action: 'i' (Include) - No code prompt should happen
+    # 4. Action: 'q' (Next item action - Quit)
     with patch(
-        "zotero_cli.cli.tui.screening_tui.Prompt.ask", side_effect=["p", "title_abstract", "i", "IC2", "q"]
+        "zotero_cli.cli.tui.screening_tui.Prompt.ask", side_effect=["p", "title_abstract", "i", "q"]
     ):
         tui.run_screening_session("Source", "Inc", "Exc")
 
@@ -99,7 +98,7 @@ def test_run_session_include_item(tui, mock_service, mock_console):
     mock_service.record_decision.assert_called_once_with(
         item_key="1",
         decision="INCLUDE",
-        code="IC2",
+        code="",
         source_collection="Source",
         target_collection="Inc",
         agent="zotero-cli-tui",
@@ -140,9 +139,9 @@ def test_run_session_record_failure(tui, mock_service, mock_console):
     mock_service.get_pending_items.return_value = items
     mock_service.record_decision.return_value = False
 
-    # Mock user input: persona, phase, action 'i', code 'IC1', then quit
+    # Mock user input: persona, phase, action 'i', then quit
     with patch(
-        "zotero_cli.cli.tui.screening_tui.Prompt.ask", side_effect=["p", "title_abstract", "i", "IC1", "q"]
+        "zotero_cli.cli.tui.screening_tui.Prompt.ask", side_effect=["p", "title_abstract", "i", "q"]
     ):
         tui.run_screening_session("Source", "Inc", "Exc")
 
