@@ -83,14 +83,20 @@ class ListCommand(BaseCommand):
 
     def _handle_items(self, gateway, args):
         is_sdb_filter = any(
-            [args.included, args.excluded, args.criteria, args.persona, args.phase]
+            [
+                getattr(args, "included", False),
+                getattr(args, "excluded", False),
+                getattr(args, "criteria", None),
+                getattr(args, "persona", None),
+                getattr(args, "phase", None),
+            ]
         )
 
-        if args.trash:
+        if getattr(args, "trash", False):
             items = list(gateway.get_trash_items())
             title = "Trash Items"
         else:
-            if not args.collection:
+            if not getattr(args, "collection", None):
                 print("Error: --collection required for non-trash listings.")
                 return
             col_id = gateway.get_collection_id_by_name(args.collection)
@@ -109,15 +115,21 @@ class ListCommand(BaseCommand):
             filtered_items = []
             sdb_data = {}
 
+            incl = getattr(args, "included", False)
+            excl = getattr(args, "excluded", False)
+            crit = getattr(args, "criteria", None)
+            pers = getattr(args, "persona", None)
+            phas = getattr(args, "phase", None)
+
             for item in items:
                 # 1. Fast Filter (Tags)
-                if args.included and "rsl:include" not in item.tags:
+                if incl and "rsl:include" not in item.tags:
                     continue
-                if args.excluded and not any(t.startswith("rsl:exclude:") for t in item.tags):
+                if excl and not any(t.startswith("rsl:exclude:") for t in item.tags):
                     continue
-                if args.criteria and f"rsl:exclude:{args.criteria}" not in item.tags:
+                if crit and f"rsl:exclude:{crit}" not in item.tags:
                     continue
-                if args.phase and f"rsl:phase:{args.phase}" not in item.tags:
+                if phas and f"rsl:phase:{phas}" not in item.tags:
                     # Optional: We could be more lenient here if tags are missing
                     pass
 
@@ -126,17 +138,17 @@ class ListCommand(BaseCommand):
                 matched_entry = None
                 for entry in entries:
                     match = True
-                    if args.included and entry.get("decision") != "accepted":
+                    if incl and entry.get("decision") != "accepted":
                         match = False
-                    if args.excluded and entry.get("decision") != "rejected":
+                    if excl and entry.get("decision") != "rejected":
                         match = False
-                    if args.criteria:
+                    if crit:
                         codes = entry.get("reason_code", [])
-                        if args.criteria not in codes:
+                        if crit not in codes:
                             match = False
-                    if args.persona and entry.get("persona") != args.persona:
+                    if pers and entry.get("persona") != pers:
                         match = False
-                    if args.phase and entry.get("phase") != args.phase:
+                    if phas and entry.get("phase") != phas:
                         match = False
 
                     if match:

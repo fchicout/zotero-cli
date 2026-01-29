@@ -77,3 +77,47 @@ def test_list_items_sdb_filter_no_results(mock_gateway, env_vars, capsys):
 
     out = capsys.readouterr().out
     assert "No items found matching criteria" in out
+
+def test_list_items_missing_collection(mock_gateway, env_vars, capsys):
+    test_args = ["zotero-cli", "list", "items"]
+    with patch.object(sys, "argv", test_args):
+        # We don't raise error, we print it
+        main()
+    out = capsys.readouterr().out
+    assert "Error: --collection required" in out
+
+def test_list_items_sdb_filter_criteria_and_persona(mock_gateway, env_vars, capsys):
+    item = Mock()
+    item.key = "K1"
+    item.title = "Target Paper"
+    item.tags = ["rsl:exclude:EC4"]
+    
+    mock_gateway.get_collection_id_by_name.return_value = "COL1"
+    mock_gateway.get_items_in_collection.return_value = iter([item])
+    
+    with patch("zotero_cli.core.services.sdb.sdb_service.SDBService.inspect_item_sdb") as mock_inspect:
+        mock_inspect.return_value = [
+            {"decision": "rejected", "reason_code": ["EC4"], "persona": "Dr. Silas", "phase": "title_abstract"}
+        ]
+
+        test_args = ["zotero-cli", "list", "items", "--collection", "MyCol", "--criteria", "EC4", "--persona", "Dr. Silas"]
+        with patch.object(sys, "argv", test_args):
+            main()
+
+    out = capsys.readouterr().out
+    assert "Target Paper" in out
+    assert "Dr. Silas" in out
+    assert "EC4" in out
+
+def test_list_groups(mock_gateway, env_vars, capsys):
+    mock_gateway.get_user_groups.return_value = [
+        {"id": 123, "data": {"name": "Group Alpha"}}
+    ]
+    
+    test_args = ["zotero-cli", "list", "groups"]
+    with patch.object(sys, "argv", test_args):
+        main()
+        
+    out = capsys.readouterr().out
+    assert "Group Alpha" in out
+    assert "123" in out

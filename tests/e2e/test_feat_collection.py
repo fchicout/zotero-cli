@@ -21,7 +21,7 @@ def test_collection_lifecycle(run_cli, timestamp):
 
         # 2. List & Verify existence
         # Wait a moment for Zotero API to propagate
-        time.sleep(2)
+        time.sleep(5)
         list_res = run_cli(["collection", "list"])
         assert col_name in list_res.stdout
 
@@ -29,7 +29,7 @@ def test_collection_lifecycle(run_cli, timestamp):
         rename_res = run_cli(["collection", "rename", col_name, new_name])
         assert rename_res.returncode == 0
 
-        time.sleep(2)
+        time.sleep(5)
         list_after = run_cli(["collection", "list"])
         assert new_name in list_after.stdout
         assert col_name not in list_after.stdout

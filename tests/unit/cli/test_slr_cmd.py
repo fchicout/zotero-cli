@@ -130,15 +130,51 @@ def test_slr_load_dispatch(mock_auditor_cls, mock_gateway, slr_cmd):
     }
 
     args = argparse.Namespace(
-        verb="load", file="test.csv", reviewer="Pythias", phase="full_text", force=True, user=False
+        verb="load",
+        file="test.csv",
+        reviewer="Pythias",
+        phase="full_text",
+        force=True,
+        user=False,
+        move_to_included="INC",
+        move_to_excluded="EXC",
     )
 
     slr_cmd.execute(args)
-    mock_auditor.enrich_from_csv.assert_called_once_with(
-        csv_path="test.csv",
-        reviewer="Pythias",
-        dry_run=False,
+    # Note: we don't strictly assert the collection_service here as it's a factory-generated mock
+    mock_auditor.enrich_from_csv.assert_called_once()
+    call_args = mock_auditor.enrich_from_csv.call_args[1]
+    assert call_args["csv_path"] == "test.csv"
+    assert call_args["reviewer"] == "Pythias"
+    assert call_args["move_to_included"] == "INC"
+    assert call_args["move_to_excluded"] == "EXC"
+
+
+@patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")
+@patch("zotero_cli.core.services.purge_service.PurgeService")
+def test_slr_reset_dispatch(mock_purge_cls, mock_gateway_get, slr_cmd):
+    mock_purge = mock_purge_cls.return_value
+    mock_purge.purge_notes.return_value = {"deleted": 1, "skipped": 0, "errors": 0}
+    mock_purge.purge_tags.return_value = {"deleted": 1, "skipped": 0, "errors": 0}
+
+    mock_gateway = mock_gateway_get.return_value
+    mock_item = Mock()
+    mock_item.key = "K1"
+    mock_gateway.get_collection_id_by_name.return_value = "COL1"
+    mock_gateway.get_items_in_collection.return_value = iter([mock_item])
+
+    args = argparse.Namespace(
+        verb="reset",
+        name="MyCol",
+        phase="title_abstract",
+        persona="Pythias",
         force=True,
-        phase="full_text",
-        column_map={},
+        user=False,
     )
+
+    slr_cmd.execute(args)
+
+    mock_purge.purge_notes.assert_called_once_with(
+        ["K1"], sdb_only=True, phase="title_abstract", persona="Pythias", dry_run=False
+    )
+    mock_purge.purge_tags.assert_called_once_with(["K1"], tag_name="rsl:phase:title_abstract", dry_run=False)

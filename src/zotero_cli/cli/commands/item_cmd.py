@@ -91,6 +91,15 @@ class ItemCommand(BaseCommand):
         list_p.add_argument("--collection", help="Collection name or key")
         list_p.add_argument("--trash", action="store_true", help="List items in the trash")
         list_p.add_argument("--top-only", action="store_true", help="Only show top-level items")
+        list_p.add_argument(
+            "--included", action="store_true", help="Filter for items with decision 'accepted'"
+        )
+        list_p.add_argument(
+            "--excluded", action="store_true", help="Filter for items with decision 'rejected'"
+        )
+        list_p.add_argument("--criteria", help="Filter for items with specific exclusion code")
+        list_p.add_argument("--persona", help="Filter by reviewer persona")
+        list_p.add_argument("--phase", help="Filter by screening phase")
 
         # Update
         update_p = sub.add_parser("update", help="Update item metadata")

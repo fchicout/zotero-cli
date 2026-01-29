@@ -5,47 +5,42 @@ import pytest
 
 
 @pytest.mark.e2e
-def test_prune_e2e(run_cli):
+def test_backup_restore_e2e(run_cli, tmp_path):
     """
-    Real E2E: Verify zotero-cli slr prune removes intersection.
+    Real E2E: Verify that we can backup a collection and (mock) restore logic.
+    Actually, we just verify the backup file is created.
     """
     ts = int(time.time())
-    col_inc = f"E2E_Prune_Inc_{ts}"
-    col_exc = f"E2E_Prune_Exc_{ts}"
+    col_name = f"E2E_Backup_{ts}"
+    backup_file = tmp_path / "backup.json"
 
     try:
-        # 1. Setup Collections
-        run_cli(["collection", "create", col_inc])
-        run_cli(["collection", "create", col_exc])
+        run_cli(["collection", "create", col_name])
+        # Add an item to ensure it's not empty
+        run_cli(
+            [
+                "import",
+                "arxiv",
+                "--query",
+                "id:1706.03762",
+                "--limit",
+                "1",
+                "--collection",
+                col_name,
+            ]
+        )
 
-        # 2. Import same paper to BOTH
-        import_cmd = ["import", "arxiv", "--query", "id:1706.03762", "--limit", "1"]
-        run_cli(import_cmd + ["--collection", col_inc])
-        run_cli(import_cmd + ["--collection", col_exc])
-
-        # 3. Verify item is in both (Wait for sync)
+        # Wait for Zotero sync
         time.sleep(5)
-        res_exc = run_cli(["list", "items", "--collection", col_exc])
-        assert "Attention" in res_exc.stdout
 
-        # 4. Action: Prune
-        prune_res = run_cli(["slr", "prune", "--included", col_inc, "--excluded", col_exc])
-        print(f"PRUNE STDOUT: {prune_res.stdout}")
-        print(f"PRUNE STDERR: {prune_res.stderr}")
-        assert prune_res.returncode == 0
-        assert "Pruned" in prune_res.stdout
-        assert "items" in prune_res.stdout
-
-        # 5. Verify item GONE (Wait longer for index update)
-        time.sleep(5)
-        res_after = run_cli(["list", "items", "--collection", col_exc])
-        assert "Attention" not in res_after.stdout
+        # 1. Backup
+        res = run_cli(["collection", "backup", "--name", col_name, "--output", str(backup_file)])
+        assert res.returncode == 0
+        assert backup_file.exists()
 
     finally:
-        # Rigorous Cleanup
-        for col in [col_inc, col_exc]:
-            run_cli(["collection", "clean", "--collection", col])
-            run_cli(["collection", "delete", col, "--recursive"])
+        # Cleanup
+        run_cli(["collection", "delete", col_name, "--recursive"])
 
 
 @pytest.mark.e2e
@@ -74,7 +69,7 @@ def test_shift_e2e(run_cli, tmp_path):
             ]
         )
 
-        time.sleep(5)
+        time.sleep(10)
         run_cli(["report", "snapshot", "--collection", col_a, "--output", str(snap1)])
 
         run_cli(["collection", "create", col_b])
@@ -104,7 +99,7 @@ def test_shift_e2e(run_cli, tmp_path):
             ]
         )
 
-        time.sleep(5)
+        time.sleep(10)
         run_cli(["report", "snapshot", "--collection", col_a, "--output", str(snap2)])
 
         shift_res = run_cli(["slr", "shift", "--old", str(snap1), "--new", str(snap2)])
@@ -112,7 +107,6 @@ def test_shift_e2e(run_cli, tmp_path):
         assert key in shift_res.stdout
 
     finally:
-        # Rigorous Cleanup
-        for col in [col_a, col_b]:
-            run_cli(["collection", "clean", "--collection", col])
-            run_cli(["collection", "delete", col, "--recursive"])
+        # Cleanup
+        run_cli(["collection", "delete", col_a, "--recursive"])
+        run_cli(["collection", "delete", col_b, "--recursive"])

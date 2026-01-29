@@ -2,7 +2,7 @@ import csv
 import subprocess
 
 
-def test_system_normalize_e2e(tmp_path):
+def test_system_normalize_e2e(run_cli, tmp_path):
     """
     E2E Test: Verify the 'system normalize' CLI command.
     """
@@ -26,10 +26,8 @@ def test_system_normalize_e2e(tmp_path):
         writer.writerow(row)
 
     # Action: Run CLI
-    result = subprocess.run(
-        ["zotero-cli", "system", "normalize", str(input_file), "--output", str(output_file)],
-        capture_output=True,
-        text=True,
+    result = run_cli(
+        ["system", "normalize", str(input_file), "--output", str(output_file)]
     )
 
     # Assert

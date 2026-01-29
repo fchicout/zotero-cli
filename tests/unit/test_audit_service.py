@@ -265,3 +265,63 @@ def test_enrich_from_csv_no_move_without_flags(auditor, mock_gateway, tmp_path):
         collection_service=mock_col_service,
     )
     assert mock_col_service.move_item.call_count == 0
+
+
+def test_detect_shifts(auditor):
+    old_snap = [
+        {"key": "K1", "title": "T1", "collections": ["A"]},
+        {"key": "K2", "title": "T2", "collections": ["A", "B"]},
+        {"key": "K3", "title": "T3", "collections": ["C"]},
+    ]
+    new_snap = [
+        {"key": "K1", "title": "T1", "collections": ["A", "B"]},  # Shifted
+        {"key": "K2", "title": "T2", "collections": ["A", "B"]},  # Stable
+        {"key": "K4", "title": "T4", "collections": ["D"]},       # Added
+    ]
+
+    shifts = auditor.detect_shifts(old_snap, new_snap)
+
+    assert len(shifts) == 3
+    keys = [s["key"] for s in shifts]
+    assert "K1" in keys  # Changed
+    assert "K4" in keys  # Added
+    assert "K3" in keys  # Deleted
+
+
+def test_enrich_from_csv_missing_columns(auditor, tmp_path):
+    csv_file = tmp_path / "bad.csv"
+    csv_file.write_text("wrong_col,status\nKEY1,Included\n")
+
+    # If we map 'key' to 'Key' but it's not there
+    results = auditor.enrich_from_csv(
+        str(csv_file), reviewer="O", column_map={"key": "Key"}
+    )
+    assert "error" in results
+    assert "Missing required columns" in results["error"]
+
+
+def test_enrich_from_csv_file_not_found(auditor):
+    results = auditor.enrich_from_csv("non_existent.csv", reviewer="O")
+    assert "error" in results
+
+
+def test_audit_children_logic(auditor, mock_gateway):
+    mock_gateway.get_item_children.return_value = [
+        {
+            "data": {
+                "itemType": "attachment",
+                "linkMode": "imported_file",
+                "filename": "paper.pdf",
+            }
+        },
+        {
+            "data": {
+                "itemType": "note",
+                "note": "zotero-cli screening note: {\"decision\": \"accepted\"}",
+            }
+        },
+    ]
+
+    has_pdf, has_note = auditor._audit_children("KEY1")
+    assert has_pdf is True
+    assert has_note is True

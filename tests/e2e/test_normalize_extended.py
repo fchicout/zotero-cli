@@ -22,15 +22,15 @@ CSV_MISSING_ID = """title,abstract,authors,year
 """
 
 
-def test_normalize_ris(tmp_path):
+def test_normalize_ris(run_cli, tmp_path):
     input_file = tmp_path / "input.ris"
     output_file = tmp_path / "output_ris.csv"
     input_file.write_text(RIS_CONTENT, encoding="utf-8")
 
-    subprocess.run(
-        ["zotero-cli", "system", "normalize", str(input_file), "--output", str(output_file)],
-        check=True,
+    result = run_cli(
+        ["system", "normalize", str(input_file), "--output", str(output_file)]
     )
+    assert result.returncode == 0
 
     with open(output_file, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -39,15 +39,15 @@ def test_normalize_ris(tmp_path):
         assert row["doi"] == "10.ris/test"
 
 
-def test_normalize_bib(tmp_path):
+def test_normalize_bib(run_cli, tmp_path):
     input_file = tmp_path / "input.bib"
     output_file = tmp_path / "output_bib.csv"
     input_file.write_text(BIB_CONTENT, encoding="utf-8")
 
-    subprocess.run(
-        ["zotero-cli", "system", "normalize", str(input_file), "--output", str(output_file)],
-        check=True,
+    result = run_cli(
+        ["system", "normalize", str(input_file), "--output", str(output_file)]
     )
+    assert result.returncode == 0
 
     with open(output_file, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -56,7 +56,7 @@ def test_normalize_bib(tmp_path):
         assert row["doi"] == "10.bib/test"
 
 
-def test_normalize_csv_missing_ids(tmp_path):
+def test_normalize_csv_missing_ids(run_cli, tmp_path):
     """
     Test robust handling of canonical CSVs that lack ID columns (or have empty ones).
     We treat the input as a "Canonical" CSV (title exists), even if partial.
@@ -87,10 +87,10 @@ def test_normalize_csv_missing_ids(tmp_path):
         writer.writeheader()
         writer.writerow(row)
 
-    subprocess.run(
-        ["zotero-cli", "system", "normalize", str(input_file), "--output", str(output_file)],
-        check=True,
+    result = run_cli(
+        ["system", "normalize", str(input_file), "--output", str(output_file)]
     )
+    assert result.returncode == 0
 
     with open(output_file, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
