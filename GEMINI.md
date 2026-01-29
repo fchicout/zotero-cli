@@ -53,26 +53,21 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 
 **Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`.
 
-## Accomplishments (Session: 2026-01-27)
+## Accomplishments (Session: 2026-01-29)
 
-### Phase 22: SDB Management & Core Hygiene
-*   **[CENTRALIZATION]** Moved team files to \`@gem-ctx/teams/\`.
-*   **[VERIFIED] Issue #51 (Purge Unification):** Unified destructive logic under \`PurgeService\`. Added \`item purge\` and \`collection purge\` commands. 90%+ coverage.
-*   **[VERIFIED] Issue #57 (Versioning):** Added \`--version\` and injected version into all help headers.
-*   **[VERIFIED] Issue #63 (Groups UX):** Fixed missing group names and added \`system switch\` context switching.
-*   **[VERIFIED] Issue #59 (SDB Identity):** Implemented robust JSON parsing for SDB notes to prevent duplicate entries.
-*   **[VERIFIED] Issue #60 (SDB CRUD):** Added \`slr sdb\` sub-commands for \`inspect\`, \`edit\`, and \`upgrade\`.
-*   **[VERIFIED] Issue #61 (Implicit Inclusion):** Refactored TUI/CLI to skip redundant criteria prompts for inclusion votes.
-*   **[VERIFIED] Issue #62 (CSV Adapter):** Added column mapping (\`--col-*\`) to \`slr load\` for arbitrary CSV schemas.
+### Phase 23: SDB Intelligence & Workflow Automation
+*   **[VERIFIED] Issue #55 (Auto-Move on Load):** Implemented \`--move-to-included\` and \`--move-to-excluded\` in \`slr load\`.
+*   **[VERIFIED] Issue #56 (SDB-Aware Listing):** Enhanced \`list items\` with SDB filters and dynamic metadata columns.
+*   **[RELEASE] v2.4.0:** Bumped version and released with full quality gate passing (100% tests).
+*   **[COMMUNICATION]** Registered post-mortems on GitHub Issues #55 and #56.
 
 ## Current State
 
-*   **Version:** \`v2.3.0\`
-*   **Quality:** 100% Pass Rate. Coverage maintained at **80%** floor, with critical services (\`Purge\`, \`SDB\`) >90%.
-*   **Status:** **STABILIZED & ENHANCED**
+*   **Version:** \`v2.4.0\`
+*   **Quality:** 100% Pass Rate.
+*   **Status:** **ENHANCED & STABLE**
 
 ## Next Actions (Immediate)
-1.  **Feature:** Implement Issue #56 (SDB-Aware Listing).
-2.  **Feature:** Implement Issue #55 (Auto-Move on Load).
-3.  **Release:** Final push and tag \`v2.3.0\`.
+1. **Maintenance:** Monitor for feedback on v2.4.0.
+2. **Planning:** Review v2.5.0 objectives (Snowballing support).
 
