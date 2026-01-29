@@ -134,6 +134,9 @@ class CollectionAuditor:
         force: bool = False,
         phase: str = "title_abstract",
         column_map: Optional[Dict[str, str]] = None,
+        move_to_included: Optional[str] = None,
+        move_to_excluded: Optional[str] = None,
+        collection_service: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
         Retroactive SDB Enrichment from CSV.
@@ -247,6 +250,23 @@ class CollectionAuditor:
             else:
                 results["skipped"] += 1
 
+            # 5. Handle Movement (Issue #55)
+            if action != "error":
+                target = None
+                if sdb_payload["decision"] == "accepted":
+                    target = move_to_included
+                elif sdb_payload["decision"] == "rejected":
+                    target = move_to_excluded
+
+                if target and collection_service:
+                    if not dry_run and force:
+                        print(f"Moving item {item.key} to '{target}'...")
+                        collection_service.move_item(
+                            source_col_name=None, dest_col_name=target, identifier=item.key
+                        )
+                    else:
+                        print(f"[DRY RUN] Would move item {item.key} to '{target}'")
+
         return results
 
     def _find_item_cascade(
@@ -293,7 +313,7 @@ class CollectionAuditor:
 
     def _build_sdb_payload(self, row: Dict[str, str], reviewer: str, phase: str, column_map: Dict[str, str]) -> dict:
         vote_col = column_map.get("vote", "Vote")
-        status = row.get(vote_col) or row.get("Status") or row.get("Decision") or row.get("decision", "")
+        status = row.get(vote_col) or row.get("Status") or row.get("status") or row.get("Decision") or row.get("decision", "")
         status = status.lower()
         decision = (
             "accepted"
