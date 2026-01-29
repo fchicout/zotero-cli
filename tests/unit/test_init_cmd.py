@@ -1,12 +1,10 @@
 import sys
-from unittest.mock import Mock, patch
-
-import pytest
+from unittest.mock import patch
 
 from zotero_cli.cli.main import main
 
 
-def test_init_command_success(tmp_path, capsys):
+def test_init_command_basic(tmp_path, capsys):
     config_file = tmp_path / "config.toml"
 
     # api_key, lib_type, lib_id, user_id, target_group, ss_key, up_email
@@ -14,11 +12,11 @@ def test_init_command_success(tmp_path, capsys):
 
     with (
         patch("rich.prompt.Prompt.ask", side_effect=inputs),
-        patch("rich.prompt.Confirm.ask", return_value=True),
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
     ):
         mock_gw = mock_gw_get.return_value
-        mock_gw.http.get.return_value = Mock()
+        # Mock verify_credentials to return True
+        mock_gw.verify_credentials.return_value = True
 
         test_args = ["zotero-cli", "--config", str(config_file), "init"]
         with patch.object(sys, "argv", test_args):
@@ -27,29 +25,30 @@ def test_init_command_success(tmp_path, capsys):
     captured = capsys.readouterr()
     assert "Configuration saved to" in captured.out
     assert config_file.exists()
+
     content = config_file.read_text()
     assert 'api_key = "test_api_key"' in content
     assert 'library_id = "12345"' in content
     assert 'library_type = "group"' in content
     assert 'user_id = "67890"' in content
     assert 'target_group = "my-group"' in content
+    assert 'semantic_scholar_api_key = "ss_key"' in content
+    assert 'unpaywall_email = "up@email.com"' in content
 
 
-def test_init_command_user_library_path(tmp_path, capsys):
+def test_init_command_user_library(tmp_path, capsys):
     config_file = tmp_path / "config.toml"
 
     # api_key, lib_type, lib_id, ss_key, up_email
     # Note: user_id and target_group should be skipped for 'user' type in current implementation
-    # Actually, current implementation asks for user_id/target_group ONLY if lib_type == 'group'
-    inputs = ["user_key", "user", "my_user_id", "ss_val", "up_val"]
+    inputs = ["user_key", "user", "my_uid", "ss_key", ""]
 
     with (
         patch("rich.prompt.Prompt.ask", side_effect=inputs),
-        patch("rich.prompt.Confirm.ask", return_value=True),
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
     ):
         mock_gw = mock_gw_get.return_value
-        mock_gw.http.get.return_value = Mock()
+        mock_gw.verify_credentials.return_value = True
 
         test_args = ["zotero-cli", "--config", str(config_file), "init"]
         with patch.object(sys, "argv", test_args):
@@ -57,8 +56,8 @@ def test_init_command_user_library_path(tmp_path, capsys):
 
     content = config_file.read_text()
     assert 'library_type = "user"' in content
-    assert 'library_id = "my_user_id"' in content
-    assert "user_id =" not in content  # Not prompted for 'user' type
+    assert 'library_id = "my_uid"' in content
+    assert "user_id =" not in content
     assert "target_group =" not in content
 
 
@@ -74,7 +73,7 @@ def test_init_command_verification_failure_save_anyway(tmp_path, capsys):
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
     ):
         mock_gw = mock_gw_get.return_value
-        mock_gw.http.get.side_effect = Exception("Unauthorized")
+        mock_gw.verify_credentials.return_value = False
 
         test_args = ["zotero-cli", "--config", str(config_file), "init"]
         with patch.object(sys, "argv", test_args):
@@ -95,45 +94,31 @@ def test_init_command_overwrite_existing(tmp_path, capsys):
 
     with (
         patch("rich.prompt.Prompt.ask", side_effect=inputs),
-        patch(
-            "rich.prompt.Confirm.ask", side_effect=[True, True]
-        ),  # Overwrite? -> Yes, Verify? -> Yes
+        patch("rich.prompt.Confirm.ask", return_value=True),  # Overwrite? -> Yes
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
     ):
         mock_gw = mock_gw_get.return_value
-        mock_gw.http.get.return_value = Mock()
+        mock_gw.verify_credentials.return_value = True
 
         test_args = ["zotero-cli", "--config", str(config_file), "init"]
         with patch.object(sys, "argv", test_args):
             main()
 
-    assert "Configuration saved to" in capsys.readouterr().out
-    assert 'api_key = "new_key"' in config_file.read_text()
+    content = config_file.read_text()
+    assert 'api_key = "new_key"' in content
+    assert 'library_id = "456"' in content
 
 
-def test_init_command_write_error(tmp_path, capsys):
+def test_init_command_abort_overwrite(tmp_path, capsys):
     config_file = tmp_path / "config.toml"
-
-    inputs = ["key", "user", "123", "", ""]
+    config_file.write_text("should remain")
 
     with (
-        patch("rich.prompt.Prompt.ask", side_effect=inputs),
-        patch("rich.prompt.Confirm.ask", return_value=True),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
+        patch("rich.prompt.Confirm.ask", return_value=False),  # Overwrite? -> No
     ):
-        mock_gw = mock_gw_get.return_value
+        test_args = ["zotero-cli", "--config", str(config_file), "init"]
+        with patch.object(sys, "argv", test_args):
+            main()
 
-        mock_gw.http.get.return_value = Mock()
-
-        # Mock open to raise IOError
-
-        with patch("builtins.open", side_effect=IOError("Permission denied")):
-            test_args = ["zotero-cli", "--config", str(config_file), "init"]
-
-            with patch.object(sys, "argv", test_args):
-                with pytest.raises(SystemExit):
-                    main()
-
-    captured = capsys.readouterr()
-
-    assert "Failed to save config: Permission denied" in captured.out
+    assert config_file.read_text() == "should remain"
+    assert "Aborted" in capsys.readouterr().out

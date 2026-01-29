@@ -1,8 +1,7 @@
 import os
 import subprocess
 import sys
-import platform
-from typing import Optional
+
 
 class OpenerService:
     """
@@ -31,7 +30,7 @@ class OpenerService:
                 # Check for xdg-open or similar
                 subprocess.run(["xdg-open", path], check=True)
             return True
-        except Exception as e:
+        except Exception:
             # Fallback
             OpenerService.print_link(path)
             return False
@@ -45,5 +44,5 @@ class OpenerService:
         # Handle Windows paths for file URI
         if os.name == 'nt':
             abs_path = abs_path.replace('\\', '/')
-        
+
         print(f"\n[Unable to open natively. Click to open]: file://{abs_path}\n")

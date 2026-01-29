@@ -1,22 +1,25 @@
 import os
+
 import pytest
 import yaml
+
 from zotero_cli.core.services.extraction_service import ExtractionSchemaValidator
+
 
 class TestExtractionSchemaValidator:
 
     def test_init_schema(self, tmp_path):
         target_file = tmp_path / "new_schema.yaml"
         validator = ExtractionSchemaValidator(str(target_file))
-        
+
         # Test 1: Successful Init
         # We rely on the actual template file existing in the source tree.
-        # If this fails in CI, we might need to mock the template path, 
+        # If this fails in CI, we might need to mock the template path,
         # but for this environment, it should work.
         result = validator.init_schema()
         assert result is True
         assert target_file.exists()
-        
+
         # Verify content briefly
         with open(target_file) as f:
             content = f.read()
@@ -31,12 +34,12 @@ class TestExtractionSchemaValidator:
         validator = ExtractionSchemaValidator(str(tmp_path / "non_existent.yaml"))
         with pytest.raises(FileNotFoundError):
             validator.load_schema()
-            
+
         # Test 2: Invalid YAML
         bad_yaml = tmp_path / "bad.yaml"
         with open(bad_yaml, "w") as f:
             f.write("key: : value") # Invalid YAML syntax
-        
+
         validator = ExtractionSchemaValidator(str(bad_yaml))
         with pytest.raises(ValueError) as excinfo:
             validator.load_schema()
@@ -54,7 +57,7 @@ class TestExtractionSchemaValidator:
         }
         with open(schema_file, "w") as f:
             yaml.dump(data, f)
-            
+
         validator = ExtractionSchemaValidator(str(schema_file))
         errors = validator.validate()
         assert len(errors) == 0
@@ -64,7 +67,7 @@ class TestExtractionSchemaValidator:
         data = {"title": "Test"} # Missing version and variables
         with open(schema_file, "w") as f:
             yaml.dump(data, f)
-            
+
         validator = ExtractionSchemaValidator(str(schema_file))
         errors = validator.validate()
         assert any("missing required top-level field: 'version'" in e.lower() for e in errors)
@@ -83,10 +86,10 @@ class TestExtractionSchemaValidator:
         }
         with open(schema_file, "w") as f:
             yaml.dump(data, f)
-            
+
         validator = ExtractionSchemaValidator(str(schema_file))
         errors = validator.validate()
-        
+
         assert any("missing 'key'" in e.lower() for e in errors)
         assert any("snake_case" in e.lower() for e in errors)
         assert any("invalid type 'magic'" in e.lower() for e in errors)
@@ -101,9 +104,10 @@ class TestExtractionService:
         return MagicMock()
 
     def test_export_matrix_csv(self, tmp_path, mock_note_repo):
+        import json
+
         from zotero_cli.core.services.extraction_service import ExtractionService
         from zotero_cli.core.zotero_item import ZoteroItem
-        import json
 
         # 1. Setup Schema
         schema_file = tmp_path / "schema.yaml"
@@ -119,7 +123,7 @@ class TestExtractionService:
 
         # 2. Setup Mock Item and Note
         item = ZoteroItem(key="ABC", version=1, item_type="journalArticle", title="Paper 1", date="2024")
-        
+
         note_payload = {
             "action": "data_extraction",
             "persona": "tester",
@@ -132,11 +136,11 @@ class TestExtractionService:
         ]
 
         service = ExtractionService(mock_note_repo, schema_path=str(schema_file))
-        
+
         # Change cwd to tmp_path for output
         os.chdir(tmp_path)
         output_path = service.export_matrix([item], output_format="csv", persona="tester")
-        
+
         assert os.path.exists(output_path)
         with open(output_path) as f:
             content = f.read()
@@ -144,9 +148,10 @@ class TestExtractionService:
             assert "ABC,Paper 1,2024,Case Study" in content
 
     def test_export_matrix_markdown(self, tmp_path, mock_note_repo):
+        import json
+
         from zotero_cli.core.services.extraction_service import ExtractionService
         from zotero_cli.core.zotero_item import ZoteroItem
-        import json
 
         schema_file = tmp_path / "schema.yaml"
         schema_data = {
@@ -168,16 +173,17 @@ class TestExtractionService:
         service = ExtractionService(mock_note_repo, schema_path=str(schema_file))
         os.chdir(tmp_path)
         path = service.export_matrix([item], output_format="markdown", persona="p1", output_path="matrix.md")
-        
+
         with open(path) as f:
             lines = f.readlines()
             assert "| Item Key | Title | Year | Design |" in lines[0]
             assert "| K1 | T1 | 2023 | Exp |" in lines[2]
 
     def test_export_matrix_json(self, tmp_path, mock_note_repo):
+        import json
+
         from zotero_cli.core.services.extraction_service import ExtractionService
         from zotero_cli.core.zotero_item import ZoteroItem
-        import json
 
         schema_file = tmp_path / "schema.yaml"
         schema_data = {
@@ -199,7 +205,7 @@ class TestExtractionService:
         service = ExtractionService(mock_note_repo, schema_path=str(schema_file))
         os.chdir(tmp_path)
         path = service.export_matrix([item], output_format="json", persona="pj", output_path="matrix.json")
-        
+
         with open(path) as f:
             data = json.load(f)
             assert len(data) == 1
@@ -224,7 +230,7 @@ class TestExtractionService:
     def test_save_extraction_update(self, mock_note_repo):
         from zotero_cli.core.services.extraction_service import ExtractionService
         service = ExtractionService(mock_note_repo)
-        
+
         existing_note = {
             "key": "NOTE1",
             "version": 10,

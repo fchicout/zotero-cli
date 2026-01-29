@@ -26,11 +26,11 @@ All development must strictly adhere to **[The Valerius Protocol](@gem-ctx/knowl
 ## Team Activation Protocol (Workflow Accelerators)
 To switch context instantly, use these trigger phrases:
 
-*   **"Bring the council on"** -> Loads `.team/ARCH_MGMT.md`
+*   **"Bring the council on"** -> Loads `@gem-ctx/teams/ARCH_MGMT.md`
     *   *Action:* Reads Backlog & Architect Inbox.
-*   **"Activate Dev Squad"** -> Loads `.team/DEV_SQUAD.md`
+*   **"Activate Dev Squad"** -> Loads `@gem-ctx/teams/DEV_SQUAD.md`
     *   *Action:* Reads Dev Inbox & Source Code.
-*   **"Call the QA Force"** -> Loads `.team/QA_FORCE.md`
+*   **"Call the QA Force"** -> Loads `@gem-ctx/teams/QA_FORCE.md`
     *   *Action:* Reads QA Inbox & runs `pytest`.
 
 ## Project Overview: `zotero-cli`
@@ -53,21 +53,26 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 
 **Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`.
 
-## Accomplishments (Session: 2026-01-22)
+## Accomplishments (Session: 2026-01-27)
 
-### Phase 21: Data Extraction Workflow (v2.3.0 Milestone)
-*   **[QUALITY] CI/CD Rescue:** Fixed release blocker by creating `MANIFEST.in` and patching `release.yml` to bundle YAML templates in PyInstaller builds.
-*   **[VERIFIED] Issue #42 (Schema Validator):** Validated `slr extract --init/--validate` logic.
-*   **[VERIFIED] Issue #43 (Extraction TUI):** Implemented unit tests for `ExtractionTUI` and `OpenerService`. Resolved `ImportError` regressions in TUI test suite.
-*   **[VERIFIED] Issue #44 (Synthesis Matrix):** Validated export logic for CSV, Markdown, and JSON formats. Reached **91% coverage** for `extraction_service.py`.
-*   **[QUALITY] Hard Coverage Gate (80%):** Successfully expanded tests to maintain the 80% global coverage threshold after adding new features.
+### Phase 22: SDB Management & Core Hygiene
+*   **[CENTRALIZATION]** Moved team files to \`@gem-ctx/teams/\`.
+*   **[VERIFIED] Issue #51 (Purge Unification):** Unified destructive logic under \`PurgeService\`. Added \`item purge\` and \`collection purge\` commands. 90%+ coverage.
+*   **[VERIFIED] Issue #57 (Versioning):** Added \`--version\` and injected version into all help headers.
+*   **[VERIFIED] Issue #63 (Groups UX):** Fixed missing group names and added \`system switch\` context switching.
+*   **[VERIFIED] Issue #59 (SDB Identity):** Implemented robust JSON parsing for SDB notes to prevent duplicate entries.
+*   **[VERIFIED] Issue #60 (SDB CRUD):** Added \`slr sdb\` sub-commands for \`inspect\`, \`edit\`, and \`upgrade\`.
+*   **[VERIFIED] Issue #61 (Implicit Inclusion):** Refactored TUI/CLI to skip redundant criteria prompts for inclusion votes.
+*   **[VERIFIED] Issue #62 (CSV Adapter):** Added column mapping (\`--col-*\`) to \`slr load\` for arbitrary CSV schemas.
 
 ## Current State
 
-*   **Version:** `v2.3.0`
-*   **Quality:** 100% Pass Rate (296 tests). Global coverage: **80%**.
-*   **Status:** **RELEASE READY (Stabilized)**
+*   **Version:** \`v2.3.0\`
+*   **Quality:** 100% Pass Rate. Coverage maintained at **80%** floor, with critical services (\`Purge\`, \`SDB\`) >90%.
+*   **Status:** **STABILIZED & ENHANCED**
 
 ## Next Actions (Immediate)
-1.  **Release:** Final push and tag `v2.3.0`.
-2.  **Feature:** Implement Issue #39 (Snowballing Engine).
+1.  **Feature:** Implement Issue #56 (SDB-Aware Listing).
+2.  **Feature:** Implement Issue #55 (Auto-Move on Load).
+3.  **Release:** Final push and tag \`v2.3.0\`.
+

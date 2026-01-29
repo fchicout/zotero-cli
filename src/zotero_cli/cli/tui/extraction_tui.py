@@ -1,7 +1,6 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, List
 
 from rich.console import Console
-from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt, Prompt
 
 from zotero_cli.core.services.extraction_service import ExtractionService
@@ -81,10 +80,10 @@ class ExtractionTUI:
                     console.print(f"[dim]{desc}[/dim]")
 
                 value = self._prompt_variable(v_type, options, key)
-                
+
                 # Evidence Collection
                 evidence = Prompt.ask(f"Evidence for [cyan]{label}[/cyan] (optional)")
-                location = Prompt.ask(f"Location (Page/Section) (optional)")
+                location = Prompt.ask("Location (Page/Section) (optional)")
 
                 extracted_data[key] = {
                     "value": value,

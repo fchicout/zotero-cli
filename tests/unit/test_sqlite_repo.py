@@ -1,15 +1,18 @@
 import os
 import sqlite3
-import pytest
 import tempfile
-from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway, ConfigurationError
+
+import pytest
+
 from zotero_cli.core.models import ZoteroQuery
+from zotero_cli.infra.sqlite_repo import ConfigurationError, SqliteZoteroGateway
+
 
 @pytest.fixture
 def mock_db():
     fd, path = tempfile.mkstemp()
     conn = sqlite3.connect(path)
-    
+
     # Setup Zotero Schema
     conn.executescript("""
         CREATE TABLE itemTypes (itemTypeID INTEGER PRIMARY KEY, typeName TEXT);
@@ -48,7 +51,7 @@ def mock_db():
 def test_sqlite_read_items(mock_db):
     gateway = SqliteZoteroGateway(mock_db)
     items = list(gateway.search_items(ZoteroQuery()))
-    
+
     assert len(items) == 1
     assert items[0].key == 'ITEMKEY1'
     assert items[0].title == 'Test Title'
@@ -56,7 +59,7 @@ def test_sqlite_read_items(mock_db):
 def test_sqlite_read_collections(mock_db):
     gateway = SqliteZoteroGateway(mock_db)
     cols = gateway.get_all_collections()
-    
+
     assert len(cols) == 1
     assert cols[0]['key'] == 'COLKEY1'
     assert cols[0]['data']['name'] == 'Test Collection'
@@ -76,25 +79,25 @@ def test_sqlite_shadow_copy(mock_db):
     assert gateway._temp_db_path != mock_db
 
 def test_gateway_factory_offline(mock_db, monkeypatch):
-    from zotero_cli.infra.factory import GatewayFactory
     from zotero_cli.core.config import ZoteroConfig
-    
+    from zotero_cli.infra.factory import GatewayFactory
+
     config = ZoteroConfig(database_path=mock_db)
-    
+
     # Test explicit offline=True
     gateway = GatewayFactory.get_zotero_gateway(config=config, offline=True)
     assert isinstance(gateway, SqliteZoteroGateway)
-    
+
     # Test global OFFLINE_MODE
     monkeypatch.setattr("zotero_cli.cli.main.OFFLINE_MODE", True, raising=False)
     gateway = GatewayFactory.get_zotero_gateway(config=config)
     assert isinstance(gateway, SqliteZoteroGateway)
 
 def test_gateway_factory_offline_no_db(monkeypatch):
-    from zotero_cli.infra.factory import GatewayFactory
     from zotero_cli.core.config import ZoteroConfig
-    
+    from zotero_cli.infra.factory import GatewayFactory
+
     config = ZoteroConfig(database_path=None)
-    
+
     with pytest.raises(SystemExit):
         GatewayFactory.get_zotero_gateway(config=config, offline=True)

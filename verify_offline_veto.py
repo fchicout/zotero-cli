@@ -1,9 +1,10 @@
+import os
 import sqlite3
 import tempfile
-import os
-import pytest
-from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
+
 from zotero_cli.core.services.purge_service import PurgeService
+from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
+
 
 def setup_mock_db():
     fd, path = tempfile.mkstemp()
@@ -30,7 +31,7 @@ def test_offline_veto_real_object():
     try:
         gateway = SqliteZoteroGateway(path)
         service = PurgeService(gateway)
-        
+
         print("Testing Offline Veto for purge_attachments...")
         try:
             service.purge_attachments(["K1"])
@@ -38,7 +39,7 @@ def test_offline_veto_real_object():
             exit(1)
         except RuntimeError as e:
             print(f"PASSED: {e}")
-            
+
         print("Testing Offline Veto for purge_notes...")
         try:
             service.purge_notes(["K1"])

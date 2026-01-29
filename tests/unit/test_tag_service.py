@@ -84,7 +84,7 @@ def test_rename_tag(service, mock_gateway):
 def test_delete_tag(service, mock_gateway, mock_purge_service):
     item1 = create_item("KEY1", ["delete_me", "stay"])
     mock_gateway.get_items_by_tag.return_value = iter([item1])
-    
+
     mock_purge_service.purge_tags.return_value = {"deleted": 1, "skipped": 0, "errors": 0}
 
     count = service.delete_tag("delete_me", dry_run=False)

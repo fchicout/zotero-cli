@@ -32,7 +32,7 @@ class SqliteZoteroGateway(ZoteroGateway):
             temp_dir = tempfile.gettempdir()
             self._temp_db_path = os.path.join(temp_dir, f"zotero_cli_shadow_{os.getpid()}.sqlite")
             shutil.copy2(self.original_db_path, self._temp_db_path)
-        
+
         conn = sqlite3.connect(self._temp_db_path)
         conn.row_factory = sqlite3.Row
         return conn

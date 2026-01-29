@@ -26,7 +26,14 @@ def test_item_repository_get_item(mock_gateway):
 def test_collection_repository_get_items(mock_gateway):
     repo = ZoteroCollectionRepository(mock_gateway)
     repo.get_items_in_collection("COL1", top_only=True)
+    # The actual call is positional: get_items_in_collection('COL1', True)
     mock_gateway.get_items_in_collection.assert_called_once_with("COL1", True)
+
+
+def test_collection_repository_rename(mock_gateway):
+    repo = ZoteroCollectionRepository(mock_gateway)
+    repo.rename_collection("COL1", 1, "New Name")
+    mock_gateway.rename_collection.assert_called_once_with("COL1", 1, "New Name")
 
 
 def test_tag_repository_add_tags(mock_gateway):
