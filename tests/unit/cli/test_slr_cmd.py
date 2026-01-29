@@ -135,5 +135,10 @@ def test_slr_load_dispatch(mock_auditor_cls, mock_gateway, slr_cmd):
 
     slr_cmd.execute(args)
     mock_auditor.enrich_from_csv.assert_called_once_with(
-        csv_path="test.csv", reviewer="Pythias", dry_run=False, force=True, phase="full_text"
+        csv_path="test.csv",
+        reviewer="Pythias",
+        dry_run=False,
+        force=True,
+        phase="full_text",
+        column_map={},
     )

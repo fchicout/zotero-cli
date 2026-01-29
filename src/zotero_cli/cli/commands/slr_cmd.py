@@ -308,13 +308,18 @@ class SLRCommand(BaseCommand):
 
         # Construct column map
         column_map = {}
-        if args.col_key: column_map["key"] = args.col_key
-        if args.col_vote: column_map["vote"] = args.col_vote
-        if args.col_reason: column_map["reason"] = args.col_reason
-        if args.col_code: column_map["code"] = args.col_code
-        if args.col_doi: column_map["doi"] = args.col_doi
-        if args.col_title: column_map["title"] = args.col_title
-        if args.col_evidence: column_map["evidence"] = args.col_evidence
+        for internal, attr in [
+            ("key", "col_key"),
+            ("vote", "col_vote"),
+            ("reason", "col_reason"),
+            ("code", "col_code"),
+            ("doi", "col_doi"),
+            ("title", "col_title"),
+            ("evidence", "col_evidence"),
+        ]:
+            val = getattr(args, attr, None)
+            if val:
+                column_map[internal] = val
 
         results = service.enrich_from_csv(
             csv_path=args.file,
