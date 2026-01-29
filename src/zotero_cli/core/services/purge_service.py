@@ -50,11 +50,12 @@ class PurgeService:
         item_keys: List[str],
         sdb_only: bool = False,
         phase: Optional[str] = None,
+        persona: Optional[str] = None,
         dry_run: bool = True,
     ) -> Dict[str, int]:
         """
         Deletes notes for the given parent item keys.
-        Supports filtering for SDB notes and specific screening phases.
+        Supports filtering for SDB notes, specific screening phases, and personas.
         """
         if self._is_offline():
             raise RuntimeError("Offline Veto: PurgeService cannot execute in offline mode.")
@@ -69,11 +70,13 @@ class PurgeService:
                     if data.get("itemType") == "note":
                         note_content = data.get("note", "")
 
-                        if sdb_only or phase:
-                            is_sdb, note_phase = self._parse_sdb_info(note_content)
+                        if sdb_only or phase or persona:
+                            is_sdb, note_phase, note_persona = self._parse_sdb_info(note_content)
                             if sdb_only and not is_sdb:
                                 continue
                             if phase and note_phase != phase:
+                                continue
+                            if persona and note_persona != persona:
                                 continue
 
                         key = child.get("key") or data.get("key")
@@ -157,7 +160,14 @@ class PurgeService:
         return combined_stats
 
     def purge_collection_assets(
-        self, col_name: str, types: List[str] = ["files", "notes", "tags"], recursive: bool = False, dry_run: bool = True
+        self,
+        col_name: str,
+        types: List[str] = ["files", "notes", "tags"],
+        recursive: bool = False,
+        dry_run: bool = True,
+        sdb_only: bool = False,
+        phase: Optional[str] = None,
+        persona: Optional[str] = None,
     ) -> Dict[str, int]:
         """
         Purges assets from all items in a collection.
@@ -186,7 +196,9 @@ class PurgeService:
             self._merge_stats(combined_stats, s)
 
         if "notes" in types:
-            s = self.purge_notes(item_keys, dry_run=dry_run)
+            s = self.purge_notes(
+                item_keys, dry_run=dry_run, sdb_only=sdb_only, phase=phase, persona=persona
+            )
             self._merge_stats(combined_stats, s)
 
         if "tags" in types:
@@ -200,9 +212,9 @@ class PurgeService:
         for k in target:
             target[k] += source.get(k, 0)
 
-    def _parse_sdb_info(self, content: str) -> tuple[bool, Optional[str]]:
-        """Parses note content for SDB markers and returns (is_sdb, phase)."""
+    def _parse_sdb_info(self, content: str) -> tuple[bool, Optional[str], Optional[str]]:
+        """Parses note content for SDB markers and returns (is_sdb, phase, persona)."""
         data = parse_sdb_note(content)
         if not data:
-            return False, None
-        return True, data.get("phase")
+            return False, None, None
+        return True, data.get("phase"), data.get("persona")

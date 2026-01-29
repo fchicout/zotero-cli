@@ -180,6 +180,18 @@ class SLRCommand(BaseCommand):
         sdb_upg.add_argument("--collection", required=True, help="Target collection")
         sdb_upg.add_argument("--execute", action="store_true", help="Apply changes (Default: Dry-Run)")
 
+        # --- Reset (Issue #52) ---
+        reset_p = sub.add_parser("reset", help="Reset screening/extraction progress for a phase")
+        reset_p.add_argument("name", help="Collection name or key")
+        reset_p.add_argument(
+            "--phase",
+            required=True,
+            choices=["title_abstract", "full_text", "extraction"],
+            help="Target phase to reset",
+        )
+        reset_p.add_argument("--persona", help="Filter by specific reviewer persona")
+        reset_p.add_argument("--force", action="store_true", help="Skip confirmation")
+
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -208,6 +220,68 @@ class SLRCommand(BaseCommand):
             self._handle_extract(args)
         elif args.verb == "sdb":
             self._handle_sdb(gateway, args)
+        elif args.verb == "reset":
+            self._handle_reset(gateway, args)
+
+    def _handle_reset(self, gateway, args):
+        from zotero_cli.core.services.purge_service import PurgeService
+
+        dry_run = not args.force
+        if dry_run:
+            console.print(
+                "[bold yellow]DRY RUN MODE ENABLED. Use --force to execute reset.[/bold yellow]"
+            )
+
+        col_id = gateway.get_collection_id_by_name(args.name) or args.name
+        items = list(gateway.get_items_in_collection(col_id))
+        item_keys = [item.key for item in items]
+
+        if not item_keys:
+            console.print(f"[yellow]No items found in collection '{args.name}'.[/yellow]")
+            return
+
+        if not args.force:
+            from rich.prompt import Confirm
+
+            if not Confirm.ask(
+                f"Are you sure you want to reset phase '{args.phase}' for {len(item_keys)} items in '{args.name}'?"
+            ):
+                console.print("[yellow]Reset cancelled.[/yellow]")
+                return
+
+        purge_service = PurgeService(gateway)
+
+        # 1. Purge Notes
+        console.print(f"Purging SDB notes for phase '{args.phase}'...")
+        note_stats = purge_service.purge_notes(
+            item_keys, sdb_only=True, phase=args.phase, persona=args.persona, dry_run=dry_run
+        )
+
+        # 2. Purge Tags
+        # Map phase to tag
+        phase_tag = f"rsl:phase:{args.phase}"
+        console.print(f"Removing phase tag '{phase_tag}'...")
+        tag_stats = purge_service.purge_tags(item_keys, tag_name=phase_tag, dry_run=dry_run)
+
+        # Summary
+        table = Table(title=f"Reset Summary: {args.name} ({args.phase})")
+        table.add_column("Resource")
+        table.add_column("Deleted/Removed", justify="right", style="green")
+        table.add_column("Skipped", justify="right", style="yellow")
+        table.add_column("Errors", justify="right", style="red")
+
+        table.add_row(
+            "SDB Notes", str(note_stats["deleted"]), str(note_stats["skipped"]), str(note_stats["errors"])
+        )
+        table.add_row(
+            "Phase Tags", str(tag_stats["deleted"]), str(tag_stats["skipped"]), str(tag_stats["errors"])
+        )
+
+        console.print(table)
+        if dry_run:
+            console.print("[yellow]Note: No changes were applied (Dry Run).[/yellow]")
+        else:
+            console.print("[bold green]Reset complete.[/bold green]")
 
     def _handle_sdb(self, gateway, args):
         from zotero_cli.core.services.sdb.sdb_service import SDBService

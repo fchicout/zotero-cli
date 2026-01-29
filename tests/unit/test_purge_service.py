@@ -115,14 +115,16 @@ def test_purge_tags_api_failure(purge_service, mock_gateway):
     assert stats["errors"] == 1
 
 def test_parse_sdb_info_no_json(purge_service):
-    is_sdb, phase = purge_service._parse_sdb_info("Just plain text")
+    is_sdb, phase, persona = purge_service._parse_sdb_info("Just plain text")
     assert is_sdb is False
     assert phase is None
+    assert persona is None
 
 def test_parse_sdb_info_sdb_version(purge_service):
-    is_sdb, phase = purge_service._parse_sdb_info('{"sdb_version": "1.0", "phase": "test"}')
+    is_sdb, phase, persona = purge_service._parse_sdb_info('{"sdb_version": "1.0", "phase": "test", "persona": "dr_silas"}')
     assert is_sdb is True
     assert phase == "test"
+    assert persona == "dr_silas"
 
 def test_purge_attachments_error_handling(purge_service, mock_gateway):
     mock_gateway.get_item_children.side_effect = Exception("Network error")
@@ -256,9 +258,10 @@ def test_purge_tags_exception_line_131(purge_service, mock_gateway):
 
 def test_parse_sdb_info_json_error(purge_service):
     # Test lines 150-151: except json.JSONDecodeError:
-    is_sdb, phase = purge_service._parse_sdb_info("{ invalid }")
+    is_sdb, phase, persona = purge_service._parse_sdb_info("{ invalid }")
     assert is_sdb is False
     assert phase is None
+    assert persona is None
 
 def test_purge_item_assets(purge_service, mock_gateway):
     # Setup for multiple assets
@@ -319,6 +322,36 @@ def test_purge_collection_assets(purge_service, mock_gateway):
 
     mock_gateway.get_collection_id_by_name.assert_called_with("TestCollection")
     mock_gateway.get_items_in_collection.assert_called_with("C1", top_only=True)
+
+def test_purge_notes_persona_filter(purge_service, mock_gateway):
+    mock_gateway.get_item_children.return_value = [
+        {"key": "N1", "data": {"itemType": "note", "note": '{"audit_version": "1.2", "phase": "p1", "persona": "Orion"}', "version": 1}},
+        {"key": "N2", "data": {"itemType": "note", "note": '{"audit_version": "1.2", "phase": "p1", "persona": "Silas"}', "version": 1}}
+    ]
+    mock_gateway.delete_item.return_value = True
+
+    stats = purge_service.purge_notes(["P1"], persona="Orion", dry_run=False)
+    assert stats["deleted"] == 1
+    mock_gateway.delete_item.assert_called_once_with("N1", 1)
+
+def test_reset_phase_logic_isolation(purge_service, mock_gateway):
+    """
+    Verifies that:
+    - SDB notes for the target phase are deleted.
+    - SDB notes for other phases are preserved.
+    - Manual (non-SDB) notes are preserved.
+    """
+    mock_gateway.get_item_children.return_value = [
+        {"key": "TARGET", "data": {"itemType": "note", "note": '{"audit_version": "1.2", "phase": "title_abstract"}', "version": 1}},
+        {"key": "OTHER_PHASE", "data": {"itemType": "note", "note": '{"audit_version": "1.2", "phase": "full_text"}', "version": 1}},
+        {"key": "MANUAL", "data": {"itemType": "note", "note": "Researcher manual notes", "version": 1}}
+    ]
+    mock_gateway.delete_item.return_value = True
+
+    stats = purge_service.purge_notes(["P1"], phase="title_abstract", sdb_only=True, dry_run=False)
+    
+    assert stats["deleted"] == 1
+    mock_gateway.delete_item.assert_called_once_with("TARGET", 1)
 
 def test_purge_collection_not_found(purge_service, mock_gateway):
     mock_gateway.get_collection_id_by_name.return_value = None
