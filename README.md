@@ -1,17 +1,18 @@
 <!-- BADGES_START -->
-![Version](https://img.shields.io/badge/version-2.3.0-blue) ![Coverage](https://img.shields.io/badge/coverage-87%25-green) ![Lint](https://img.shields.io/badge/ruff-passing-brightgreen) ![Types](https://img.shields.io/badge/mypy-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-lightgrey) ![Python](https://img.shields.io/badge/python-3.10+-blue)
+![Version](https://img.shields.io/badge/version-2.4.1-blue)
+![Build Status](https://github.com/fchicout/zotero-cli/actions/workflows/release.yml/badge.svg)
+![Tests](https://github.com/fchicout/zotero-cli/actions/workflows/tests.yml/badge.svg)
+![Coverage](https://img.shields.io/badge/coverage-80%25-green)
+![Lint](https://img.shields.io/badge/ruff-passing-brightgreen)
+![Types](https://img.shields.io/badge/mypy-passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
+![Python](https://img.shields.io/badge/python-3.10+-blue)
 <!-- BADGES_END -->
 
 # Zotero CLI: The Systematic Review Forge
 
-![Build Status](https://github.com/fchicout/zotero-cli/actions/workflows/release.yml/badge.svg)
-![Tests](https://github.com/fchicout/zotero-cli/actions/workflows/tests.yml/badge.svg)
-![Coverage](https://img.shields.io/badge/coverage-87%25-green)
-![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Semantic Version](https://img.shields.io/badge/semver-2.0.0-orange)
-
 > **The Researcher's Command Line Interface.**
+
 > Rigorous Systematic Literature Reviews (SLR), made scriptable.
 
 `zotero-cli` is a high-performance platform built on two symbiotic pillars:
@@ -27,23 +28,23 @@ For power users who need atomic control over their library without the GUI.
 Advanced features mapped to the **Kitchenham/Wohlin** research methodology.
 *   **Search & Collect:** Direct arXiv integration and multi-source ingestion (BibTeX, RIS, CSV).
 *   **Interactive Screening:** High-velocity Title/Abstract screening via a custom TUI.
-*   **SDB v1.1 (Standardized Decision Block):** Immutable, machine-readable audit trails for every screening decision stored in Zotero notes.
+*   **SDB v1.2 (Standardized Decision Block):** Immutable, machine-readable audit trails for every screening decision stored in Zotero notes.
 *   **Hybrid Workflow:** Inject screening decisions from external researchers via CSV import.
 *   **Reporting:** Automated PRISMA 2020 statistics and Mermaid visualization.
 
-## 🌟 The SLR Workflow (v2.0)
+## 🌟 The SLR Workflow (v2.4)
 
 We support the rigorous **Kitchenham/Wohlin** review protocol.
 
 ```mermaid
 graph LR
     A[Raw Source] -->|import| B(Collection: Raw)
-    B -->|review screen| C{Screening}
-    C -->|review decide| D(Collection: Screened)
-    C -->|review decide| E(Collection: Excluded)
+    B -->|slr screen| C{Screening}
+    C -->|slr decide| D(Collection: Screened)
+    C -->|slr decide| E(Collection: Excluded)
     D -->|report snapshot| F[Audit Snapshot]
     D -->|report prisma| G[PRISMA Flow]
-    D -->|analyze lookup| H[Synthesis Table]
+    D -->|slr lookup| H[Synthesis Table]
 ```
 
 ## 📚 Command Reference
@@ -53,26 +54,25 @@ Detailed documentation is available for each command noun:
 | Noun | Description | Key Verbs |
 | :--- | :--- | :--- |
 | **[`init`](docs/commands/init.md)** | Configuration | `(default)` |
-| **[`slr`](docs/commands/slr.md)** | SLR Workflow | `screen`, `decide`, `audit`, `lookup`, `graph`, `shift` |
-| **[`analyze`](docs/commands/analyze.md)** | (Deprecated) | Use `slr` |
-| **[`review`](docs/commands/review.md)** | (Deprecated) | Use `slr` |
-| **[`audit`](docs/commands/audit.md)** | (Deprecated) | Use `slr audit` |
-| **[`item`](docs/commands/item.md)** | Paper/Item Ops | `inspect`, `move`, `update`, `delete`, `pdf`, `hydrate` |
-| **[`collection`](docs/commands/collection.md)** | Folder Ops | `list`, `create`, `rename`, `delete`, `backup`, `clean`, `duplicates` |
+| **[`slr`](docs/commands/slr.md)** | SLR Workflow | `screen`, `decide`, `load`, `reset`, `audit`, `lookup`, `graph`, `shift` |
+| **[`item`](docs/commands/item.md)** | Paper/Item Ops | `inspect`, `move`, `update`, `delete`, `pdf`, `hydrate`, `purge` |
+| **[`collection`](docs/commands/collection.md)** | Folder Ops | `list`, `create`, `rename`, `delete`, `backup`, `clean`, `duplicates`, `purge` |
 | **[`import`](docs/commands/import.md)** | Ingest | `arxiv`, `file (IEEE/Springer/Canonical)` |
 | **[`report`](docs/commands/report.md)** | Output | `prisma`, `snapshot`, `screening`, `status` |
 | **[`tag`](docs/commands/tag.md)** | Taxonomy | `list`, `add`, `remove`, `purge` |
-| **[`list`](docs/commands/list.md)** | Generic List | `items`, `collections`, `groups` |
+| **[`list`](docs/commands/list.md)** | Generic & SDB Listing | `items`, `collections`, `groups` |
 | **[`storage`](docs/commands/storage.md)** | Maintenance | `checkout` |
 | **[`serve`](docs/commands/serve.md)** | Integration | `(default)` |
 | **[`system`](docs/commands/system.md)** | Maintenance | `backup`, `restore`, `normalize`, `info` |
 
-## 🚀 Key v2.0 Features
+## 🚀 Key Features
 
-*   **Standardized CSV:** A unified canonical format for importing from IEEE, Springer, and BibTeX.
+*   **Workflow Resilience:** Safe protocol clearing via `slr reset` with explicit protection for manual notes.
+*   **Automated Relocation:** Automatic item movement to target collections during CSV import with `slr load`.
+*   **SDB v1.2 Intelligence:** Machine-readable audit trails with persona and phase-aware metadata.
 *   **System Portability:** Full library or scoped collection backup to `.zaf` (LZMA compressed).
-*   **Drift Detection:** `analyze shift` detects if items have moved between snapshots.
-*   **Set Integrity:** `review prune` ensures your Included and Excluded sets are disjoint.
+*   **Drift Detection:** `slr shift` detects if items have moved between snapshots.
+*   **Set Integrity:** `slr prune` ensures your Included and Excluded sets are disjoint.
 *   **Audit Dashboard:** `report status` provides a Rich TUI dashboard of your screening progress.
 
 ---
