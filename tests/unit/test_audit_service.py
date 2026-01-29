@@ -196,3 +196,72 @@ def test_enrich_from_csv_with_evidence(auditor, mock_gateway, tmp_path):
     note_content = args[1]
     assert "Found evidence on page 10" in note_content
     assert '"evidence":' in note_content
+
+
+def test_enrich_from_csv_with_move(auditor, mock_gateway, tmp_path):
+    csv_file = tmp_path / "move_decisions.csv"
+    csv_file.write_text("key,status\n" "KEY_INC,Included\n" "KEY_EXC,Excluded\n")
+
+    item_inc = create_mock_item({}, "KEY_INC", title="Accepted Paper")
+    item_exc = create_mock_item({}, "KEY_EXC", title="Rejected Paper")
+
+    mock_gateway.search_items.return_value = iter([item_inc, item_exc])
+    mock_gateway.get_item_children.return_value = []
+    mock_gateway.create_note.return_value = True
+
+    mock_col_service = Mock()
+
+    results = auditor.enrich_from_csv(
+        str(csv_file),
+        reviewer="Orion",
+        dry_run=False,
+        force=True,
+        move_to_included="Included_Col",
+        move_to_excluded="Excluded_Col",
+        collection_service=mock_col_service,
+    )
+
+    assert results["matched"] == 2
+    assert results["created"] == 2
+
+    # Verify move_item calls
+    assert mock_col_service.move_item.call_count == 2
+    mock_col_service.move_item.assert_any_call(
+        source_col_name=None, dest_col_name="Included_Col", identifier="KEY_INC"
+    )
+    mock_col_service.move_item.assert_any_call(
+        source_col_name=None, dest_col_name="Excluded_Col", identifier="KEY_EXC"
+    )
+
+
+def test_enrich_from_csv_no_move_without_flags(auditor, mock_gateway, tmp_path):
+    csv_file = tmp_path / "no_move.csv"
+    csv_file.write_text("key,status\nKEY1,Included\n")
+
+    item1 = create_mock_item({}, "KEY1", title="Paper A")
+    mock_gateway.search_items.return_value = iter([item1])
+    mock_gateway.get_item_children.return_value = []
+    mock_gateway.create_note.return_value = True
+
+    mock_col_service = Mock()
+
+    # Case 1: No flags
+    auditor.enrich_from_csv(
+        str(csv_file),
+        reviewer="Orion",
+        dry_run=False,
+        force=True,
+        collection_service=mock_col_service,
+    )
+    assert mock_col_service.move_item.call_count == 0
+
+    # Case 2: Dry run
+    auditor.enrich_from_csv(
+        str(csv_file),
+        reviewer="Orion",
+        dry_run=True,
+        force=True,
+        move_to_included="Included_Col",
+        collection_service=mock_col_service,
+    )
+    assert mock_col_service.move_item.call_count == 0
