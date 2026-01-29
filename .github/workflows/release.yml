@@ -154,11 +154,11 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            assets/zotero-cli
+            assets/dist/zotero-cli
             assets/*.tar.gz
             assets/*.deb
             assets/*.rpm
-            assets/zotero-cli.exe
+            assets/dist/zotero-cli.exe
             assets/*.zip
             assets/*.msi
         env:
