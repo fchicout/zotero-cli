@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.0] - 2026-01-29
+
+### ✨ Features & Improvements
+- **SDB-Aware Listing (Issue #56):** Enhanced \`list items\` with support for screening database filters (\`--included\`, \`--excluded\`, \`--criteria\`, \`--persona\`, \`--phase\`).
+- **Dynamic UX Rendering:** Active SDB filters trigger a specialized table schema showing Decisions, Criteria, and Persona metadata with color-coded status.
+- **Auto-Move on Load (Issue #55):** The \`slr load\` command now supports automatic collection movement using \`--move-to-included\` and \`--move-to-excluded\` flags.
+- **Improved CSV Matching:** Enhanced \`AuditService\` to handle case-insensitive CSV headers (\`status\`, \`decision\`) for better compatibility with external exports.
+
 ## [2.3.0] - 2026-01-22
 
 ### ✨ Features & Improvements
