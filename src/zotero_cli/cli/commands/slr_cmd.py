@@ -96,6 +96,12 @@ class SLRCommand(BaseCommand):
         load_p.add_argument("--col-doi", help="CSV column for DOI (Default: DOI)")
         load_p.add_argument("--col-title", help="CSV column for Title (Default: Title)")
         load_p.add_argument("--col-evidence", help="CSV column for Evidence (Default: Evidence)")
+        load_p.add_argument(
+            "--move-to-included", help="Target collection for items with INCLUDE/ACCEPTED decision"
+        )
+        load_p.add_argument(
+            "--move-to-excluded", help="Target collection for items with EXCLUDE/REJECTED decision"
+        )
 
         # --- Validation (formerly audit check) ---
         val_p = sub.add_parser("validate", help="Check collection for metadata completeness")
@@ -321,6 +327,7 @@ class SLRCommand(BaseCommand):
             if val:
                 column_map[internal] = val
 
+        col_service = GatewayFactory.get_collection_service(force_user=getattr(args, "user", False))
         results = service.enrich_from_csv(
             csv_path=args.file,
             reviewer=args.reviewer,
@@ -328,6 +335,9 @@ class SLRCommand(BaseCommand):
             force=args.force,
             phase=args.phase,
             column_map=column_map,
+            move_to_included=args.move_to_included,
+            move_to_excluded=args.move_to_excluded,
+            collection_service=col_service,
         )
 
         if "error" in results:
