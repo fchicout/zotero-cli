@@ -88,6 +88,14 @@ class SLRCommand(BaseCommand):
         load_p.add_argument(
             "--force", action="store_true", help="Actually write to Zotero (Default is Dry-Run)"
         )
+        # Column mapping (Issue #62)
+        load_p.add_argument("--col-key", help="CSV column for Zotero Key (Default: Key)")
+        load_p.add_argument("--col-vote", help="CSV column for Decision/Vote (Default: Vote)")
+        load_p.add_argument("--col-reason", help="CSV column for Reason Text (Default: Reason)")
+        load_p.add_argument("--col-code", help="CSV column for Criteria Code (Default: Code)")
+        load_p.add_argument("--col-doi", help="CSV column for DOI (Default: DOI)")
+        load_p.add_argument("--col-title", help="CSV column for Title (Default: Title)")
+        load_p.add_argument("--col-evidence", help="CSV column for Evidence (Default: Evidence)")
 
         # --- Validation (formerly audit check) ---
         val_p = sub.add_parser("validate", help="Check collection for metadata completeness")
@@ -298,12 +306,23 @@ class SLRCommand(BaseCommand):
         if dry_run:
             print("[bold yellow]DRY RUN MODE ENABLED. No changes will be written.[/bold yellow]")
 
+        # Construct column map
+        column_map = {}
+        if args.col_key: column_map["key"] = args.col_key
+        if args.col_vote: column_map["vote"] = args.col_vote
+        if args.col_reason: column_map["reason"] = args.col_reason
+        if args.col_code: column_map["code"] = args.col_code
+        if args.col_doi: column_map["doi"] = args.col_doi
+        if args.col_title: column_map["title"] = args.col_title
+        if args.col_evidence: column_map["evidence"] = args.col_evidence
+
         results = service.enrich_from_csv(
             csv_path=args.file,
             reviewer=args.reviewer,
             dry_run=dry_run,
             force=args.force,
             phase=args.phase,
+            column_map=column_map,
         )
 
         if "error" in results:

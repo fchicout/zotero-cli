@@ -133,15 +133,47 @@ class CollectionAuditor:
         dry_run: bool = True,
         force: bool = False,
         phase: str = "title_abstract",
+        column_map: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """
         Retroactive SDB Enrichment from CSV.
         """
+        # Default mapping
+        default_map = {
+            "key": "Key",
+            "vote": "Vote",
+            "reason": "Reason",
+            "code": "Code",
+            "doi": "DOI",
+            "title": "Title",
+            "comment": "Comment",
+            "evidence": "Evidence",
+        }
+        actual_map = default_map.copy()
+        if column_map:
+            actual_map.update(column_map)
+
         # 1. Load CSV
         rows: List[Dict[str, str]] = []
         try:
             with open(csv_path, "r", encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
+                header = reader.fieldnames or []
+                
+                # Validation: Check if required mapped columns exist in header
+                # We prioritize mapping, then fallback to defaults if not mapped.
+                # However, for 'key', 'doi', 'title' we search multiple fields usually.
+                # Let's validate the specific fields used in _build_sdb_payload and cascades.
+                missing = []
+                for internal_key, csv_col in actual_map.items():
+                    # If user provided a mapping, it MUST exist.
+                    # If using default, we are more lenient (cascading check later).
+                    if column_map and internal_key in column_map and csv_col not in header:
+                        missing.append(csv_col)
+                
+                if missing:
+                    return {"error": f"Missing required columns in CSV: {', '.join(missing)}"}
+
                 rows = list(reader)
         except Exception as e:
             print(f"Error reading CSV: {e}")
@@ -180,18 +212,20 @@ class CollectionAuditor:
 
         for row in rows:
             item = self._find_item_cascade(
-                row, items_by_key, items_by_doi, items_by_title, all_items
+                row, items_by_key, items_by_doi, items_by_title, all_items, actual_map
             )
 
             if not item:
-                title = row.get("Title") or row.get("title") or "Unknown"
+                # Use mapped title or fallback
+                title_col = actual_map.get("title", "Title")
+                title = row.get(title_col) or row.get("title") or "Unknown"
                 results["unmatched"].append(title)
                 continue
 
             results["matched"] += 1
 
             # 3. Construct SDB Payload
-            sdb_payload = self._build_sdb_payload(row, reviewer, phase)
+            sdb_payload = self._build_sdb_payload(row, reviewer, phase, actual_map)
 
             if dry_run:
                 print(
@@ -222,21 +256,25 @@ class CollectionAuditor:
         by_doi: Dict[str, ZoteroItem],
         by_title: Dict[str, ZoteroItem],
         all_items: List[ZoteroItem],
+        column_map: Dict[str, str],
     ) -> Optional[ZoteroItem]:
         # 1. Key
-        key = row.get("key") or row.get("zotero_key")
+        key_col = column_map.get("key", "Key")
+        key = row.get(key_col) or row.get("key") or row.get("zotero_key")
         if key and key in by_key:
             return by_key[key]
 
         # 2. DOI
-        doi = row.get("DOI") or row.get("doi")
+        doi_col = column_map.get("doi", "DOI")
+        doi = row.get(doi_col) or row.get("doi")
         if doi:
             norm_doi = self._normalize_doi(doi)
             if norm_doi in by_doi:
                 return by_doi[norm_doi]
 
         # 3. Title (Exact)
-        title = row.get("Title") or row.get("title")
+        title_col = column_map.get("title", "Title")
+        title = row.get(title_col) or row.get("title")
         if title:
             norm_title = self._normalize_title(title)
             if norm_title in by_title:
@@ -253,8 +291,9 @@ class CollectionAuditor:
 
         return None
 
-    def _build_sdb_payload(self, row: Dict[str, str], reviewer: str, phase: str) -> dict:
-        status = row.get("Status") or row.get("Decision") or row.get("decision", "")
+    def _build_sdb_payload(self, row: Dict[str, str], reviewer: str, phase: str, column_map: Dict[str, str]) -> dict:
+        vote_col = column_map.get("vote", "Vote")
+        status = row.get(vote_col) or row.get("Status") or row.get("Decision") or row.get("decision", "")
         status = status.lower()
         decision = (
             "accepted"
@@ -262,14 +301,21 @@ class CollectionAuditor:
             else ("rejected" if "exclude" in status else "unknown")
         )
 
-        reason_code = row.get("Reason") or row.get("reason_code") or ""
-        reason_text = row.get("Comment") or row.get("reason_text") or row.get("comment", "")
-        evidence = row.get("Evidence") or row.get("evidence") or ""
+        reason_col = column_map.get("reason", "Reason")
+        code_col = column_map.get("code", "Code")
+        
+        # SDB v1.2 usually uses 'reason_code' for the codes and 'reason_text' for the text.
+        # We try to get them from mapped columns.
+        reason_code_str = row.get(code_col) or row.get("Code") or row.get("reason_code") or ""
+        reason_text = row.get(reason_col) or row.get("Reason") or row.get("Comment") or row.get("reason_text") or row.get("comment", "")
+        
+        evidence_col = column_map.get("evidence", "Evidence")
+        evidence = row.get(evidence_col) or row.get("Evidence") or row.get("evidence") or ""
 
         return {
             "audit_version": "1.2",
             "decision": decision,
-            "reason_code": [c.strip() for c in reason_code.split(",")] if reason_code else [],
+            "reason_code": [c.strip() for c in reason_code_str.split(",")] if reason_code_str else [],
             "reason_text": reason_text,
             "evidence": evidence,
             "persona": reviewer,
