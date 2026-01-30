@@ -67,27 +67,48 @@ class AttachmentService:
         if self._has_pdf_attachment(item_key):
             return False
 
+        # 2. Try existing URL if it looks like a PDF
+        if item.url and self._looks_like_pdf(item.url):
+            print(f"Checking existing URL for PDF: {item.url}")
+            pdf_path = self._download_file(item.url)
+            if pdf_path:
+                print("  Uploading to Zotero...")
+                success = self.attachment_repo.upload_attachment(item_key, pdf_path)
+                if os.path.exists(pdf_path):
+                    os.remove(pdf_path)
+                if success:
+                    print("  Success from existing URL!")
+                    return True
+
         identifier = item.doi or item.arxiv_id
         if not identifier:
             return False
 
         print(f"Checking PDF for: {item.title} ({identifier})")
 
-        # 2. Get Metadata (PDF URL)
+        # 3. Get Metadata (PDF URL) from aggregator
         enriched = self.metadata_aggregator.get_enriched_metadata(identifier)
-        if not enriched or not enriched.pdf_url:
+        if not enriched:
+            print("  No enriched metadata found.")
+            return False
+
+        pdf_url = enriched.pdf_url
+        if not pdf_url and enriched.url and self._looks_like_pdf(enriched.url):
+            pdf_url = enriched.url
+
+        if not pdf_url:
             print("  No PDF URL found.")
             return False
 
-        print(f"  Found PDF URL: {enriched.pdf_url}")
+        print(f"  Found PDF URL: {pdf_url}")
 
-        # 3. Download
-        pdf_path = self._download_file(enriched.pdf_url)
+        # 4. Download
+        pdf_path = self._download_file(pdf_url)
         if not pdf_path:
             print("  Failed to download PDF.")
             return False
 
-        # 4. Upload
+        # 5. Upload
         print("  Uploading to Zotero...")
         success = self.attachment_repo.upload_attachment(item_key, pdf_path)
 
@@ -101,6 +122,19 @@ class AttachmentService:
             print("  Upload failed.")
 
         return success
+
+    def _looks_like_pdf(self, url: str) -> bool:
+        """Heuristic check if a URL likely points to a PDF file."""
+        if not url:
+            return False
+        url_lower = url.lower()
+        if url_lower.endswith(".pdf"):
+            return True
+        if "/pdf/" in url_lower:
+            return True
+        if "arxiv.org/pdf" in url_lower:
+            return True
+        return False
 
     def remove_attachments_from_collection(
         self, collection_name: str, dry_run: bool = True

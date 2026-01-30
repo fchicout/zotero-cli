@@ -30,7 +30,7 @@ class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider):
             pass
 
         # Fields to retrieve
-        fields = "title,abstract,authors,year,venue,externalIds,url,references.externalIds"
+        fields = "title,abstract,authors,year,venue,externalIds,url,references.externalIds,openAccessPdf"
 
         # Rate limiting: 1 request per second (keeping it polite)
         time.sleep(1.1)
@@ -59,6 +59,9 @@ class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider):
         doi = external_ids.get("DOI")
         arxiv_id = external_ids.get("ArXiv")
 
+        # Extract PDF URL
+        pdf_url = data.get("openAccessPdf", {}).get("url") if data.get("openAccessPdf") else None
+
         # Extract References (DOIs only for now)
         references = []
         for ref in data.get("references") or []:
@@ -74,6 +77,7 @@ class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider):
             year=str(data.get("year")) if data.get("year") else None,
             doi=doi,
             url=data.get("url"),
+            pdf_url=pdf_url,
             references=references,
             citation_count=len(references),  # Approximate based on fetched refs
         )

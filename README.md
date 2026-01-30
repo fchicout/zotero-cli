@@ -77,16 +77,85 @@ Detailed documentation is available for each command noun:
 
 ---
 
-## Quick Start
+## 📦 Installation
 
-### 1. Install
+### Option 1: Standalone Binaries (Recommended)
+Download the pre-compiled binary for your operating system. **No Python installation is required.**
+
+*   **Windows:** Download the `.msi` installer or `.zip` from [Latest Releases](https://github.com/fchicout/zotero-cli/releases/latest).
+*   **Linux (Ubuntu/Debian):** Download the `.deb` package.
+*   **Linux (Fedora/RHEL):** Download the `.rpm` package.
+*   **Generic Linux:** Download the `zotero-cli-linux-amd64.tar.gz`.
+
+### Option 2: Installation from Source (Python 3.10+)
+If you prefer to run the tool within a Python environment:
+
 ```bash
-pip install zotero-cli
+git clone https://github.com/fchicout/zotero-cli.git
+cd zotero-cli
+pip install .
 ```
 
-### 2. Configure
+> *Note: Official PyPI distribution is coming soon. Use source installation for the latest SLR features.*
+
+### ⚙️ Configuration
 ```bash
 zotero-cli system info  # Check if config is found
+```
+
+## 👨‍🍳 Researcher's Cookbook
+
+Translate your research intentions directly into execution.
+
+### 1. The "Clean Start" (Ingestion & Validation)
+**Intent:** *"Get everything about Deep Learning from ArXiv, put it in 'Raw', and tell me what's missing metadata or PDFs."*
+```bash
+# Ingest papers directly from ArXiv into a specific collection
+zotero-cli import arxiv "deep learning" --collection "Raw"
+
+# Audit the collection for missing PDFs, DOIs, or Abstracts
+zotero-cli slr validate --collection "Raw"
+```
+
+### 2. The "High-Velocity Screen" (Protocol Execution)
+**Intent:** *"I want to screen these 500 papers using my keyboard and record machine-readable audit trails."*
+```bash
+# Launch the interactive TUI to screen papers. 
+# Decisions are stored as immutable JSON notes (SDB v1.2) automatically.
+zotero-cli slr screen --source "Raw" --include "Phase1" --exclude "Excluded"
+```
+
+### 3. The "Smart Discovery" (Deep Search)
+**Intent:** *"List all the papers that Dr. Silas rejected specifically because they were 'Short Papers' (EC1)."*
+```bash
+# Filter your library using the SDB intelligence engine. 
+# Dynamic UI highlights the exclusion criteria and persona.
+zotero-cli item list --excluded --criteria EC1 --persona "Dr. Silas"
+```
+
+### 4. The "Retroactive Sync" (Automation)
+**Intent:** *"Import screening decisions from my colleague's CSV, update Zotero, and move the accepted items to the 'Final' folder."*
+```bash
+# Enrich metadata from CSV and automate the physical organization of items
+zotero-cli slr load results.csv --reviewer "Elena" --move-to-included "Final" --force
+```
+
+### 5. The "Scientific Evidence" (Reporting)
+**Intent:** *"Give me the exact numbers for my PRISMA flowchart and generate a citation graph."*
+```bash
+# Calculate PRISMA 2020 statistics across the entire library
+zotero-cli report prisma
+
+# Export a DOT file of the citation relationships between collections
+zotero-cli slr graph --collections "Phase1,Phase2" > graph.dot
+```
+
+### 6. The "Portable Vault" (System Backup)
+**Intent:** *"Back up my entire research project, including all those heavy PDFs, into a single compressed file I can send to my supervisor."*
+```bash
+# Create a full system backup (.zaf) containing items, collections, tags, and attachments.
+# Optimized with LZMA compression for storage portability.
+zotero-cli system backup --output my_research_2026.zaf
 ```
 
 ## Development & Contribution

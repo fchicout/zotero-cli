@@ -56,19 +56,21 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 ## Accomplishments (Session: 2026-01-29)
 
 ### Phase 23: SDB Intelligence & Workflow Automation
-*   **[VERIFIED] Issue #52 (Safe Reset):** Implemented \`slr reset\` with phase and persona isolation using enhanced \`PurgeService\`.
-*   **[VERIFIED] Issue #55 (Auto-Move on Load):** Implemented \`--move-to-included\` and \`--move-to-excluded\` in \`slr load\`.
-*   **[VERIFIED] Issue #56 (SDB-Aware Listing):** Enhanced \`list items\` with SDB filters and dynamic metadata columns.
-*   **[RELEASE] v2.4.1:** Bumped version and released safe reset capability.
-*   **[COMMUNICATION]** Registered post-mortems on GitHub Issues #52, #55, and #56.
+*   **[VERIFIED] Issue #55 (Auto-Move on Load):** Implemented `--move-to-included` and `--move-to-excluded` in `slr load`.
+*   **[VERIFIED] Issue #56 (SDB-Aware Listing):** Enhanced `list items` with SDB filters and dynamic metadata columns.
+*   **[VERIFIED] Issue #52 (Safe Reset):** Implemented phase-aware `slr reset` with manual note protection.
+*   **[INFRA] Release Fix:** Restored raw binary delivery by correcting path patterns in `.github/workflows/release.yml`.
+*   **[DOCS] README Modernization:** Integrated platform binaries and "Researcher's Cookbook".
+*   **[RELEASE] v2.4.1:** Finalized release with 100% test pass rate (353 unit tests).
 
 ## Current State
 
-*   **Version:** \`v2.4.1\`
+*   **Version:** `v2.4.1`
 *   **Quality:** 100% Pass Rate.
 *   **Status:** **ENHANCED & STABLE**
 
 ## Next Actions (Immediate)
-1. **Maintenance:** Monitor for feedback on v2.4.0.
-2. **Planning:** Review v2.5.0 objectives (Snowballing support).
-
+1.  **Operation PDF Resilience:** Implement Issue #65 (ArXiv Pivot) and Issue #64 (Traceability).
+2.  **Strategy:** REMIND USER to clone Zotero Desktop source code for "Find Full Text" analysis.
+3.  **Infrastructure:** Implement Issue #66 (HTTP Identity & Rate-limit handling).
+4.  **Integration:** Implement Issue #67 (Green OA via Unpaywall/OpenAlex).

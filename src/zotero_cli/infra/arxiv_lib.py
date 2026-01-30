@@ -67,5 +67,6 @@ class ArxivLibGateway(ArxivGateway):
                 year=str(result.published.year) if result.published else None,
                 doi=doi,
                 url=result.pdf_url,
+                pdf_url=result.pdf_url,
                 publication=result.journal_ref,
             )
