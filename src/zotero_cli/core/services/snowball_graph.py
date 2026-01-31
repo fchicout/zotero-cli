@@ -140,3 +140,59 @@ class SnowballGraphService:
             except Exception as e:
                 logger.error(f"Failed to load discovery graph: {e}")
                 self.graph = nx.DiGraph()
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Returns graph statistics."""
+        stats = {
+            "total_nodes": self.graph.number_of_nodes(),
+            "total_edges": self.graph.number_of_edges(),
+            "by_status": {
+                self.STATUS_PENDING: 0,
+                self.STATUS_ACCEPTED: 0,
+                self.STATUS_REJECTED: 0,
+                "IMPORTED": 0,
+            },
+            "by_generation": {},
+        }
+
+        for _, data in self.graph.nodes(data=True):
+            status = data.get("status", "UNKNOWN")
+            stats["by_status"][status] = stats["by_status"].get(status, 0) + 1
+
+            gen = data.get("generation", 0)
+            stats["by_generation"][gen] = stats["by_generation"].get(gen, 0) + 1
+
+        return stats
+
+    def to_mermaid(self) -> str:
+        """Generates Mermaid graph TD string."""
+        lines = ["graph TD"]
+
+        # 1. Define nodes with formatting based on status
+        for node_id, data in self.graph.nodes(data=True):
+            title = (data.get("title") or node_id)[:40].replace('"', "'")
+            status = data.get("status")
+
+            # Mermaid node syntax: ID["Label"]
+            # Formatting based on status
+            if status == self.STATUS_ACCEPTED:
+                lines.append(f'  {node_id}["{title} (ACCEPTED)"]')
+                lines.append(f"  style {node_id} fill:#dfd,stroke:#3c3")
+            elif status == self.STATUS_REJECTED:
+                lines.append(f'  {node_id}["{title} (REJECTED)"]')
+                lines.append(f"  style {node_id} fill:#fdd,stroke:#c33")
+            elif status == "IMPORTED":
+                lines.append(f'  {node_id}["{title} (IMPORTED)"]')
+                lines.append(f"  style {node_id} fill:#ddf,stroke:#33c")
+            else:
+                lines.append(f'  {node_id}["{title}"]')
+
+        # 2. Define edges
+        for u, v, data in self.graph.edges(data=True):
+            direction = data.get("direction", "forward")
+            if direction == "forward":
+                lines.append(f"  {u} --> {v}")
+            else:
+                lines.append(f"  {u} -- cited by --> {v}")
+
+        return "\n".join(lines)

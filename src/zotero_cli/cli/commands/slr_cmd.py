@@ -231,6 +231,16 @@ class SLRCommand(BaseCommand):
         import_p.add_argument("--target", required=True, help="Target collection name")
         import_p.add_argument("--create", action="store_true", help="Create collection if missing")
 
+        # snowball status
+        snow_sub.add_parser("status", help="Show discovery graph statistics")
+
+        # snowball export
+        export_p = snow_sub.add_parser("export", help="Export discovery graph")
+        export_p.add_argument(
+            "--format", choices=["json", "mermaid"], default="mermaid", help="Export format"
+        )
+        export_p.add_argument("--output", help="Output file path")
+
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -351,6 +361,52 @@ class SLRCommand(BaseCommand):
                 console.print(f" - Imported: {stats['imported']}")
                 console.print(f" - Duplicates: {stats['duplicates']}")
                 console.print(f" - Errors: {stats['errors']}")
+
+        elif args.snow_verb == "status":
+            graph_service = GatewayFactory.get_snowball_graph_service()
+            stats = graph_service.get_stats()
+
+            console.print("\n[bold blue]Snowballing Discovery Graph Status[/bold blue]\n")
+            console.print(f"Total Papers (Nodes): {stats['total_nodes']}")
+            console.print(f"Total Citations (Edges): {stats['total_edges']}")
+
+            # Status Table
+            from rich.table import Table
+
+            status_table = Table(title="By Status")
+            status_table.add_column("Status")
+            status_table.add_column("Count", justify="right")
+            for status, count in sorted(stats["by_status"].items()):
+                status_table.add_row(status, str(count))
+            console.print(status_table)
+
+            # Generation Table
+            gen_table = Table(title="By Generation")
+            gen_table.add_column("Generation")
+            gen_table.add_column("Count", justify="right")
+            for gen, count in sorted(stats["by_generation"].items()):
+                gen_table.add_row(f"Gen {gen}", str(count))
+            console.print(gen_table)
+
+        elif args.snow_verb == "export":
+            graph_service = GatewayFactory.get_snowball_graph_service()
+
+            if args.format == "json":
+                import json
+
+                import networkx as nx
+
+                data = nx.node_link_data(graph_service.graph)
+                content = json.dumps(data, indent=2)
+            else:
+                content = graph_service.to_mermaid()
+
+            if args.output:
+                with open(args.output, "w", encoding="utf-8") as f:
+                    f.write(content)
+                console.print(f"[green]Graph exported to {args.output}[/green]")
+            else:
+                console.print(content)
 
     def _handle_reset(self, gateway, args):
         from zotero_cli.core.services.purge_service import PurgeService
