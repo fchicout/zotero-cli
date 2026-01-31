@@ -36,7 +36,7 @@ def mock_db():
         INSERT INTO fields VALUES (1, 'title'), (2, 'abstractNote'), (3, 'date'), (4, 'DOI'), (5, 'url'), (6, 'extra');
         INSERT INTO itemData VALUES (1, 1, 1);
         INSERT INTO itemDataValues VALUES (1, 'Test Title');
-        
+
         INSERT INTO collections VALUES (1, 'COLKEY1', NULL);
         INSERT INTO collectionData VALUES (1, 'Test Collection');
         INSERT INTO collectionItems VALUES (1, 1);

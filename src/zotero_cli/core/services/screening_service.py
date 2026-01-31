@@ -74,7 +74,7 @@ class ScreeningService:
             if data.get("itemType") == "note":
                 content = data.get("note", "")
                 parsed_data = parse_sdb_note(content)
-                
+
                 if parsed_data:
                     # Robust check: does this note belong to the same persona/phase?
                     if (

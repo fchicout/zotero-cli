@@ -125,6 +125,11 @@ class ZoteroAPIClient(ZoteroGateway):
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
         return self.search_items(ZoteroQuery(tag=tag))
 
+    def get_items_by_doi(self, doi: str) -> Iterator[ZoteroItem]:
+        # Zotero API search by DOI
+        # Note: q search is general, but often used for DOIs
+        return self.search_items(ZoteroQuery(q=doi))
+
     def get_items_in_collection(
         self, collection_id: str, top_only: bool = False
     ) -> Iterator[ZoteroItem]:
@@ -245,7 +250,12 @@ class ZoteroAPIClient(ZoteroGateway):
 
         if paper.arxiv_id:
             item_payload["libraryCatalog"] = "arXiv"
-            item_payload["extra"] = f"arXiv: {paper.arxiv_id}"
+            extra_lines = [f"arXiv: {paper.arxiv_id}"]
+            if paper.extra:
+                extra_lines.append(paper.extra)
+            item_payload["extra"] = "\n".join(extra_lines)
+        elif paper.extra:
+            item_payload["extra"] = paper.extra
 
         if paper.doi:
             item_payload["DOI"] = paper.doi

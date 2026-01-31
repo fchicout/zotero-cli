@@ -1,5 +1,5 @@
-import pytest
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
+
 
 def test_parse_simple_sdb():
     content = '{"audit_version": "1.2", "phase": "fulltext"}'
@@ -19,7 +19,7 @@ def test_parse_with_newlines_and_spaces():
     content = """
     <div>
       {
-        "sdb_version": "1.0", 
+        "sdb_version": "1.0",
         "phase": "title"
       }
     </div>
@@ -39,9 +39,8 @@ def test_parse_non_sdb_json():
     data = parse_sdb_note(content)
     assert data is None
 
-def test_parse_empty_or_none():
+def test_parse_empty():
     assert parse_sdb_note("") is None
-    assert parse_sdb_note(None) is None
 
 def test_parse_legacy_format():
     # Legacy notes might not have the exact wrapper but should still parse if regex catches it

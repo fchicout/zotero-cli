@@ -129,21 +129,21 @@ class ConfigManager:
         try:
             with open(self.config_path, "r", encoding="utf-8") as f:
                 data = toml.load(f)
-            
+
             if "zotero" not in data:
                 data["zotero"] = {}
-            
+
             data["zotero"]["library_id"] = group_id
             data["zotero"]["library_type"] = "group"
-            # Clear target_group if it conflicts? Or keep it? 
+            # Clear target_group if it conflicts? Or keep it?
             # Instruction doesn't specify, but setting context implies ID is authority.
 
             with open(self.config_path, "w", encoding="utf-8") as f:
                 toml.dump(data, f)
-                
+
             # Invalidate global cache
             reset_config()
-            
+
         except Exception as e:
             raise RuntimeError(f"Failed to update config file: {e}")
 

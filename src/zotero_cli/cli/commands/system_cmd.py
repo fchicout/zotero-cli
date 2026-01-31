@@ -1,7 +1,11 @@
 import argparse
+import asyncio
 import os
 import sys
+import time
 from typing import Any
+
+from rich.console import Console
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.commands.list_cmd import ListCommand
@@ -19,6 +23,8 @@ from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
 from zotero_cli.infra.ris_lib import RisLibGateway
 from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
+
+console = Console()
 
 
 class InfoCommand(BaseCommand):
@@ -76,6 +82,27 @@ class SystemCommand(BaseCommand):
         switch_p = sub.add_parser("switch", help="Switch active group context")
         switch_p.add_argument("query", help="Group ID or Name (partial match)")
 
+        # Jobs (Issue #76 consolidation)
+        jobs_p = sub.add_parser("jobs", help="Manage background system jobs")
+        jobs_sub = jobs_p.add_subparsers(dest="jobs_verb", required=True)
+
+        # jobs list
+        list_p = jobs_sub.add_parser("list", help="List all background jobs")
+        list_p.add_argument("--type", help="Filter by task type")
+        list_p.add_argument("--limit", type=int, default=50, help="Max jobs to show")
+
+        # jobs retry
+        retry_p = jobs_sub.add_parser("retry", help="Retry a failed job")
+        retry_p.add_argument("id", type=int, help="Job ID")
+
+        # jobs run (Migration from find-pdf worker)
+        run_p = jobs_sub.add_parser("run", help="Run background worker to process jobs")
+        run_p.add_argument(
+            "--type", default="fetch_pdf", help="Filter by task type (Default: fetch_pdf)"
+        )
+        run_p.add_argument("--count", type=int, help="Number of jobs to process")
+        run_p.add_argument("--watch", action="store_true", help="Live progress monitor")
+
     def execute(self, args: argparse.Namespace):
         if args.verb == "info":
             InfoCommand().execute(args)
@@ -90,9 +117,135 @@ class SystemCommand(BaseCommand):
             self._handle_normalize(args)
         elif args.verb == "switch":
             self._handle_switch(args)
+        elif args.verb == "jobs":
+            self._handle_jobs(args)
+
+    def _handle_jobs(self, args):
+        from rich.table import Table
+
+        from zotero_cli.infra.factory import GatewayFactory
+
+        job_service = GatewayFactory.get_job_queue_service()
+
+        if args.jobs_verb == "list":
+            jobs = job_service.repo.list_jobs(task_type=args.type, limit=args.limit)
+            if not jobs:
+                print("No jobs found.")
+                return
+
+            table = Table(title="Background System Jobs")
+            table.add_column("ID", justify="right", style="cyan")
+            table.add_column("Type", style="magenta")
+            table.add_column("Item Key", style="green")
+            table.add_column("Status")
+            table.add_column("Attempts", justify="right")
+            table.add_column("Next Retry", style="dim")
+            table.add_column("Error", style="red", overflow="fold")
+
+            for j in jobs:
+                status_color = {
+                    "PENDING": "white",
+                    "PROCESSING": "blue",
+                    "COMPLETED": "green",
+                    "FAILED": "red",
+                    "RETRY": "yellow",
+                }.get(j.status, "white")
+
+                table.add_row(
+                    str(j.id),
+                    j.task_type,
+                    j.item_key,
+                    f"[{status_color}]{j.status}[/]",
+                    str(j.attempts),
+                    j.next_retry_at or "-",
+                    j.last_error or "",
+                )
+            console.print(table)
+
+        elif args.jobs_verb == "retry":
+            job = job_service.repo.get_job(args.id)
+            if not job:
+                print(f"Error: Job {args.id} not found.")
+                return
+
+            job.status = "PENDING"
+            job.attempts = 0
+            job.next_retry_at = None
+            if job_service.repo.update_job(job):
+                print(f"[green]Job {args.id} reset to PENDING.[/green]")
+            else:
+                print(f"[red]Failed to update job {args.id}.[/red]")
+
+        elif args.jobs_verb == "run":
+            import asyncio
+            worker_service: Any = None
+            if args.type == "fetch_pdf":
+                worker_service = GatewayFactory.get_pdf_finder_service()
+            elif args.type.startswith("discover"):
+                worker_service = GatewayFactory.get_snowball_worker()
+            else:
+                print(f"Error: Unsupported task type '{args.type}' for direct worker.")
+                return
+
+            if args.watch:
+                self._watch_jobs(job_service, args.type)
+            else:
+                console.print(f"[bold]Starting worker for task type '{args.type}'...[/bold]")
+                asyncio.run(worker_service.process_jobs(count=args.count))
+                console.print("[bold green]Done.[/bold green]")
+
+    def _watch_jobs(self, job_service, task_type):
+        from rich.live import Live
+        from rich.table import Table
+
+        def generate_table():
+            jobs = job_service.repo.list_jobs(task_type=task_type, limit=20)
+            table = Table(title=f"Live Jobs Monitor: {task_type}")
+            table.add_column("ID", justify="right")
+            table.add_column("Key")
+            table.add_column("Status")
+            table.add_column("Attempts")
+            table.add_column("Error")
+
+            for j in jobs:
+                status_color = {
+                    "PENDING": "white",
+                    "PROCESSING": "blue",
+                    "COMPLETED": "green",
+                    "FAILED": "red",
+                    "RETRY": "yellow",
+                }.get(j.status, "white")
+                table.add_row(
+                    str(j.id),
+                    j.item_key,
+                    f"[{status_color}]{j.status}[/]",
+                    str(j.attempts),
+                    j.last_error or "",
+                )
+            return table
+
+        with Live(generate_table(), refresh_per_second=1) as live:
+            while True:
+                live.update(generate_table())
+                # Check if any active jobs remain
+                jobs = job_service.repo.list_jobs(task_type=task_type, limit=100)
+                active = [j for j in jobs if j.status in ("PENDING", "PROCESSING", "RETRY")]
+                if not active:
+                    break
+
+                # Run worker for 1 job
+                svc: Any = None
+                if task_type == "fetch_pdf":
+                    svc = GatewayFactory.get_pdf_finder_service()
+                else:
+                    svc = GatewayFactory.get_snowball_worker()
+
+                asyncio.run(svc.process_jobs(count=1))
+                time.sleep(0.5)
 
     def _handle_switch(self, args):
         from rich.prompt import Confirm
+
         from zotero_cli.core.config import ConfigManager, get_config
         from zotero_cli.infra.factory import GatewayFactory
 
@@ -103,31 +256,31 @@ class SystemCommand(BaseCommand):
 
         gateway = GatewayFactory.get_zotero_gateway(force_user=True)
         groups = gateway.get_user_groups(config.user_id)
-        
+
         query = args.query.lower()
         matches = []
-        
+
         for g in groups:
             gid = str(g.get("id"))
             name = g.get("data", {}).get("name", "").lower()
             if query == gid or query in name:
                 matches.append(g)
-        
+
         if not matches:
             print(f"No groups found matching '{args.query}'.")
             return
-        
+
         if len(matches) > 1:
             print(f"Multiple groups found matching '{args.query}':")
             for g in matches:
                 print(f" - {g.get('data', {}).get('name')} ({g.get('id')})")
             print("Please be more specific.")
             return
-        
+
         target = matches[0]
         target_name = target.get("data", {}).get("name")
         target_id = str(target.get("id"))
-        
+
         if Confirm.ask(f"Switch context to group '{target_name}' ({target_id})?"):
             try:
                 manager = ConfigManager()

@@ -1,7 +1,10 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
+
 import pytest
+
 from zotero_cli.core.services.audit_service import CollectionAuditor
 from zotero_cli.core.zotero_item import ZoteroItem
+
 
 @pytest.fixture
 def mock_gateway():
@@ -44,9 +47,9 @@ def test_enrich_from_csv_custom_mapping(auditor, mock_gateway, tmp_path):
     }
 
     results = auditor.enrich_from_csv(
-        str(csv_file), 
-        reviewer="Orion", 
-        dry_run=False, 
+        str(csv_file),
+        reviewer="Orion",
+        dry_run=False,
         force=True,
         column_map=column_map
     )
@@ -54,7 +57,7 @@ def test_enrich_from_csv_custom_mapping(auditor, mock_gateway, tmp_path):
     assert "error" not in results
     assert results["matched"] == 1
     assert results["created"] == 1
-    
+
     # Verify the created note has the correct data
     args, _ = mock_gateway.create_note.call_args
     note_content = args[1]
@@ -73,8 +76,8 @@ def test_enrich_from_csv_missing_mapped_column(auditor, mock_gateway, tmp_path):
     }
 
     results = auditor.enrich_from_csv(
-        str(csv_file), 
-        reviewer="Orion", 
+        str(csv_file),
+        reviewer="Orion",
         column_map=column_map
     )
 
@@ -95,16 +98,16 @@ def test_enrich_from_csv_backward_compatibility(auditor, mock_gateway, tmp_path)
     mock_gateway.create_note.return_value = True
 
     results = auditor.enrich_from_csv(
-        str(csv_file), 
-        reviewer="Orion", 
-        dry_run=False, 
+        str(csv_file),
+        reviewer="Orion",
+        dry_run=False,
         force=True
     )
 
     assert "error" not in results
     assert results["matched"] == 1
     assert results["created"] == 1
-    
+
     args, _ = mock_gateway.create_note.call_args
     note_content = args[1]
     assert '"decision": "accepted"' in note_content

@@ -349,7 +349,7 @@ def test_reset_phase_logic_isolation(purge_service, mock_gateway):
     mock_gateway.delete_item.return_value = True
 
     stats = purge_service.purge_notes(["P1"], phase="title_abstract", sdb_only=True, dry_run=False)
-    
+
     assert stats["deleted"] == 1
     mock_gateway.delete_item.assert_called_once_with("TARGET", 1)
 

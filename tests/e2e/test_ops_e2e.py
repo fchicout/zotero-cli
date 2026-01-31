@@ -73,14 +73,16 @@ def test_shift_e2e(run_cli, tmp_path):
         run_cli(["report", "snapshot", "--collection", col_a, "--output", str(snap1)])
 
         run_cli(["collection", "create", col_b])
+        # Wait for collection B to be discoverable
+        time.sleep(5)
+
         list_res = run_cli(["list", "items", "--collection", col_a])
 
-        # Corrected Regex
-        keys = re.findall(r"\b([A-Z0-9]{8})\b", list_res.stdout)
-        item_keys = [k for k in keys if not k.isdigit()]
-        if not item_keys:
-            pytest.skip("No item key found")
-        key = item_keys[0]
+        # Filter for journalArticle to avoid picking attachments
+        matches = re.findall(r"│\s*([A-Z0-9]{8})\s*│.*│\s*journalArticle\s*│", list_res.stdout)
+        if not matches:
+            pytest.skip("No journalArticle found in collection")
+        key = matches[0]
 
         run_cli(
             [
@@ -99,7 +101,8 @@ def test_shift_e2e(run_cli, tmp_path):
             ]
         )
 
-        time.sleep(10)
+        # Wait for movement to propagate
+        time.sleep(15)
         run_cli(["report", "snapshot", "--collection", col_a, "--output", str(snap2)])
 
         shift_res = run_cli(["slr", "shift", "--old", str(snap1), "--new", str(snap2)])

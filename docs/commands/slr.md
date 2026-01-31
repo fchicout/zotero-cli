@@ -104,6 +104,35 @@ zotero-cli slr extract --validate [--schema schema.yaml]
 
 ---
 
+### `snowball`
+Citation snowballing workflow (Discovery and Review).
+
+#### `snowball seed`
+Adds seed papers to the snowballing discovery graph.
+```bash
+zotero-cli slr snowball seed KEY1 KEY2
+```
+
+#### `snowball discovery`
+Runs the background discovery worker to find citations (Forward/Backward) for pending nodes.
+```bash
+zotero-cli slr snowball discovery [--limit 10]
+```
+
+#### `snowball review`
+Starts the interactive TUI to review discovered citation candidates.
+```bash
+zotero-cli slr snowball review
+```
+
+#### `snowball import`
+Ingests all `ACCEPTED` candidates from the graph into Zotero.
+```bash
+zotero-cli slr snowball import --collection "Discovery"
+```
+
+---
+
 ### `sdb`
 Management and maintenance of the Screening Database (SDB) layer embedded in Zotero notes.
 
@@ -138,4 +167,14 @@ Batch upgrades legacy SDB notes within a collection to the latest schema (v1.2).
 **Usage:**
 ```bash
 zotero-cli slr sdb upgrade --collection "My Collection" [--execute]
+```
+
+---
+
+### `reset`
+Safely resets items by stripping all screening metadata (SDB notes, tags) and optionally moving them back to a raw collection.
+
+**Usage:**
+```bash
+zotero-cli slr reset --collection "To Reset" [--target-collection "Raw"] [--execute]
 ```

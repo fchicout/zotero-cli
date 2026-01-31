@@ -14,7 +14,7 @@ def purge_service():
 def test_purge_logic_integration_e2e(purge_service):
     """
     High-fidelity verification of PurgeService logic against real gateway structure.
-    We test dry_run=True to avoid unintended side effects in the real library 
+    We test dry_run=True to avoid unintended side effects in the real library
     during this verification phase, while still hitting the full gateway stack.
     """
     # 1. Test Attachment Discovery (Dry Run)

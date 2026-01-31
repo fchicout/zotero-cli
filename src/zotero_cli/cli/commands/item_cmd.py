@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 
 from rich.console import Console
 from rich.panel import Panel
@@ -177,7 +178,7 @@ class ItemCommand(BaseCommand):
 
     def _handle_purge(self, args):
         from rich.prompt import Confirm
-        
+
         types = []
         if args.files:
             types.append("files")
@@ -198,8 +199,10 @@ class ItemCommand(BaseCommand):
 
         service = GatewayFactory.get_purge_service(force_user=getattr(args, "user", False))
         stats = service.purge_item_assets(args.key, types=types, dry_run=False)
-        
-        console.print(f"[green]Purge Complete:[/green] Deleted: {stats['deleted']}, Errors: {stats['errors']}")
+
+        console.print(
+            f"[green]Purge Complete:[/green] Deleted: {stats['deleted']}, Errors: {stats['errors']}"
+        )
 
     def _handle_hydrate(self, args):
         from rich.table import Table
@@ -249,16 +252,31 @@ class ItemCommand(BaseCommand):
         force_user = getattr(args, "user", False)
         if args.pdf_verb == "fetch":
             service = GatewayFactory.get_attachment_service(force_user=force_user)
-            if service.attach_pdf_to_item(args.key):
-                print(f"Successfully attached PDF to {args.key}")
+            pdf_finder = GatewayFactory.get_pdf_finder_service(force_user=force_user)
+
+            # Use PDFFinderService directly for single item enqueue
+            jid = pdf_finder.enqueue_find_pdf(args.key)
+            console.print(f"[green]Enqueued discovery job {jid} for item {args.key}.[/green]")
+
+            console.print("[bold]Starting resilient PDF discovery...[/bold]")
+            asyncio.run(pdf_finder.process_jobs(count=1))
+
+            # Check if it succeeded
+            job = pdf_finder.job_queue.repo.get_job(jid)
+            if job and job.status == "COMPLETED":
+                console.print(f"[bold green]Successfully attached PDF to {args.key}[/bold green]")
             else:
-                print(f"Failed to attach PDF to {args.key}")
+                error = job.last_error if job else "Unknown error"
+                console.print(f"[bold red]Failed to attach PDF to {args.key}: {error}[/bold red]")
+
         elif args.pdf_verb == "strip":
             service = GatewayFactory.get_attachment_service(force_user=force_user)
             dry_run = not args.execute
             count = service.remove_attachments_from_item(args.key, dry_run=dry_run)
             if dry_run:
-                print(f"[yellow]DRY RUN:[/yellow] Would remove {count} attachments from {args.key}.")
+                print(
+                    f"[yellow]DRY RUN:[/yellow] Would remove {count} attachments from {args.key}."
+                )
             else:
                 print(f"Removed {count} attachments from {args.key}.")
         elif args.pdf_verb == "attach":

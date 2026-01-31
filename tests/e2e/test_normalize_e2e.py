@@ -1,5 +1,4 @@
 import csv
-import subprocess
 
 
 def test_system_normalize_e2e(run_cli, tmp_path):

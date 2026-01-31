@@ -1,5 +1,4 @@
 import argparse
-import warnings
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 

@@ -34,6 +34,9 @@ class ZoteroItemRepository(ItemRepository):
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
         return self.gateway.get_items_by_tag(tag)
 
+    def get_items_by_doi(self, doi: str) -> Iterator[ZoteroItem]:
+        return self.gateway.get_items_by_doi(doi)
+
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
         return self.gateway.update_item_metadata(item_key, version, metadata)
 

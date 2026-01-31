@@ -41,6 +41,10 @@ class ReportCommand(BaseCommand):
         status_p.add_argument("--collection", required=True)
         status_p.add_argument("--output", help="Optional path to save report (acts like screening)")
 
+        # PDF Discovery Report
+        pdf_p = sub.add_parser("pdf", help="Generate PDF Discovery Report")
+        pdf_p.add_argument("--output", required=True, help="Path to output Markdown file")
+
     def execute(self, args: argparse.Namespace):
         from zotero_cli.infra.factory import GatewayFactory
 
@@ -54,6 +58,31 @@ class ReportCommand(BaseCommand):
             self._handle_screening(gateway, args)
         elif args.report_type == "status":
             self._handle_status(gateway, args)
+        elif args.report_type == "pdf":
+            self._handle_pdf_report(gateway, args)
+
+    def _handle_pdf_report(self, gateway, args):
+        from zotero_cli.infra.factory import GatewayFactory
+
+        job_service = GatewayFactory.get_job_queue_service()
+        report_service = ReportService(gateway)
+
+        # Get all fetch_pdf jobs
+        jobs = job_service.repo.list_jobs(task_type="fetch_pdf", limit=1000)
+
+        if not jobs:
+            console.print("[yellow]No PDF discovery jobs found.[/]")
+            return
+
+        md_content = report_service.generate_pdf_report(jobs)
+
+        try:
+            with open(args.output, "w", encoding="utf-8") as f:
+                f.write(md_content)
+            console.print(f"\n[bold green]✓ PDF discovery report saved to {args.output}[/bold green]")
+        except Exception as e:
+            console.print(f"\n[bold red]✗ Failed to write report: {e}[/bold red]")
+            sys.exit(1)
 
     def _handle_prisma(self, gateway, args):
         service = ReportService(gateway)

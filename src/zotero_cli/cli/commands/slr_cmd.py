@@ -143,7 +143,9 @@ class SLRCommand(BaseCommand):
 
         # --- Extraction (Issue #42) ---
         ext_p = sub.add_parser("extract", help="Data Extraction management")
-        ext_p.add_argument("--init", action="store_true", help="Initialize schema.yaml from template")
+        ext_p.add_argument(
+            "--init", action="store_true", help="Initialize schema.yaml from template"
+        )
         ext_p.add_argument("--validate", action="store_true", help="Validate current schema.yaml")
         ext_p.add_argument(
             "--export",
@@ -169,16 +171,22 @@ class SLRCommand(BaseCommand):
         sdb_edit.add_argument("key", help="Item Key")
         sdb_edit.add_argument("--persona", required=True, help="Target Persona")
         sdb_edit.add_argument("--phase", required=True, help="Target Phase")
-        sdb_edit.add_argument("--set-decision", choices=["accepted", "rejected"], help="Update decision")
+        sdb_edit.add_argument(
+            "--set-decision", choices=["accepted", "rejected"], help="Update decision"
+        )
         sdb_edit.add_argument("--set-criteria", help="Update criteria codes (comma-separated)")
         sdb_edit.add_argument("--set-reason", help="Update reason text")
         sdb_edit.add_argument("--set-reviewer", help="Update reviewer/persona name")
-        sdb_edit.add_argument("--execute", action="store_true", help="Apply changes (Default: Dry-Run)")
+        sdb_edit.add_argument(
+            "--execute", action="store_true", help="Apply changes (Default: Dry-Run)"
+        )
 
         # sdb upgrade
         sdb_upg = sdb_sub.add_parser("upgrade", help="Upgrade SDB notes to latest schema (v1.2)")
         sdb_upg.add_argument("--collection", required=True, help="Target collection")
-        sdb_upg.add_argument("--execute", action="store_true", help="Apply changes (Default: Dry-Run)")
+        sdb_upg.add_argument(
+            "--execute", action="store_true", help="Apply changes (Default: Dry-Run)"
+        )
 
         # --- Reset (Issue #52) ---
         reset_p = sub.add_parser("reset", help="Reset screening/extraction progress for a phase")
@@ -191,6 +199,37 @@ class SLRCommand(BaseCommand):
         )
         reset_p.add_argument("--persona", help="Filter by specific reviewer persona")
         reset_p.add_argument("--force", action="store_true", help="Skip confirmation")
+
+        # --- Snowballing (Issue #76 consolidation) ---
+        snow_p = sub.add_parser("snowball", help="Citation tracking (Forward/Backward)")
+        snow_sub = snow_p.add_subparsers(dest="snow_verb", required=True)
+
+        # snowball seed (Enqueue)
+        seed_p = snow_sub.add_parser("seed", help="Enqueue discovery jobs from items/collections")
+        seed_p.add_argument("--keys", help="Comma-separated Zotero Item Keys")
+        seed_p.add_argument("--collection", help="Source collection name or key")
+        seed_p.add_argument("--backward", action="store_true", help="Fetch references (CrossRef)")
+        seed_p.add_argument(
+            "--forward", action="store_true", help="Fetch citations (Semantic Scholar)"
+        )
+        seed_p.add_argument(
+            "--generation", type=int, default=1, help="Graph generation (Default: 1)"
+        )
+
+        # snowball discovery (Process)
+        disc_p = snow_sub.add_parser("discovery", help="Run background workers to process jobs")
+        disc_p.add_argument("--count", type=int, help="Number of jobs to process")
+        disc_p.add_argument(
+            "--resume", action="store_true", help="Resume from existing pending jobs"
+        )
+
+        # snowball review
+        snow_sub.add_parser("review", help="Interactive Review Interface (TUI)")
+
+        # snowball import (Ingestion)
+        import_p = snow_sub.add_parser("import", help="Import ACCEPTED candidates to Zotero")
+        import_p.add_argument("--target", required=True, help="Target collection name")
+        import_p.add_argument("--create", action="store_true", help="Create collection if missing")
 
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
@@ -222,6 +261,96 @@ class SLRCommand(BaseCommand):
             self._handle_sdb(gateway, args)
         elif args.verb == "reset":
             self._handle_reset(gateway, args)
+        elif args.verb == "snowball":
+            self._handle_snowball(gateway, args)
+
+    def _handle_snowball(self, gateway, args):
+        import asyncio
+
+        from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
+
+        force_user = getattr(args, "user", False)
+
+        if args.snow_verb == "seed":
+            job_queue = GatewayFactory.get_job_queue_service()
+            dois = []
+            if args.keys:
+                for key in args.keys.split(","):
+                    item = gateway.get_item(key.strip())
+                    if item and item.doi:
+                        dois.append(item.doi)
+
+            if args.collection:
+                col_id = gateway.get_collection_id_by_name(args.collection)
+                if col_id:
+                    items = gateway.get_items_in_collection(col_id)
+                    for item in items:
+                        if item.doi:
+                            dois.append(item.doi)
+
+            if not dois:
+                console.print("[yellow]No items with DOIs found to process.[/yellow]")
+                return
+
+            enqueued = 0
+            for doi in dois:
+                if args.backward:
+                    job_queue.enqueue(
+                        doi, SnowballDiscoveryWorker.TASK_BACKWARD, {"generation": args.generation}
+                    )
+                    enqueued += 1
+                if args.forward:
+                    job_queue.enqueue(
+                        doi, SnowballDiscoveryWorker.TASK_FORWARD, {"generation": args.generation}
+                    )
+                    enqueued += 1
+
+            console.print(f"[green]Enqueued {enqueued} discovery jobs.[/green]")
+
+        elif args.snow_verb == "discovery":
+            worker = GatewayFactory.get_snowball_worker()
+            console.print("[bold]Starting Snowballing Discovery Workers...[/bold]")
+            asyncio.run(worker.process_jobs(count=args.count))
+            console.print("[bold green]Done.[/bold green]")
+
+        elif args.snow_verb == "review":
+            from zotero_cli.cli.tui.snowball_tui import SnowballReviewTUI
+
+            graph_service = GatewayFactory.get_snowball_graph_service()
+            tui = SnowballReviewTUI(graph_service)
+            tui.run_review_session()
+
+        elif args.snow_verb == "import":
+            service = GatewayFactory.get_snowball_ingestion_service(force_user=force_user)
+
+            # 1. Check/Create collection
+            col_id = gateway.get_collection_id_by_name(args.target)
+            if not col_id:
+                if args.create:
+                    console.print(f"Collection '{args.target}' not found. Creating...")
+                    col_id = gateway.create_collection(args.target)
+                    if not col_id:
+                        console.print("[red]Failed to create collection.[/red]")
+                        return
+                else:
+                    console.print(
+                        f"[red]Error: Collection '{args.target}' not found. Use --create to create it.[/red]"
+                    )
+                    return
+
+            # 2. Ingest
+            console.print(f"[bold]Ingesting ACCEPTED candidates into '{args.target}'...[/bold]")
+            with console.status("[bold green]Working..."):
+                stats = service.ingest_candidates(args.target)
+
+            if "error" in stats:
+                console.print(f"[red]{stats['error']}[/red]")
+            else:
+                console.print("[green]Ingestion Complete:[/green]")
+                console.print(f" - Scanned: {stats['scanned']}")
+                console.print(f" - Imported: {stats['imported']}")
+                console.print(f" - Duplicates: {stats['duplicates']}")
+                console.print(f" - Errors: {stats['errors']}")
 
     def _handle_reset(self, gateway, args):
         from zotero_cli.core.services.purge_service import PurgeService
@@ -271,10 +400,16 @@ class SLRCommand(BaseCommand):
         table.add_column("Errors", justify="right", style="red")
 
         table.add_row(
-            "SDB Notes", str(note_stats["deleted"]), str(note_stats["skipped"]), str(note_stats["errors"])
+            "SDB Notes",
+            str(note_stats["deleted"]),
+            str(note_stats["skipped"]),
+            str(note_stats["errors"]),
         )
         table.add_row(
-            "Phase Tags", str(tag_stats["deleted"]), str(tag_stats["skipped"]), str(tag_stats["errors"])
+            "Phase Tags",
+            str(tag_stats["deleted"]),
+            str(tag_stats["skipped"]),
+            str(tag_stats["errors"]),
         )
 
         console.print(table)
@@ -285,6 +420,7 @@ class SLRCommand(BaseCommand):
 
     def _handle_sdb(self, gateway, args):
         from zotero_cli.core.services.sdb.sdb_service import SDBService
+
         service = SDBService(gateway)
 
         if args.sdb_verb == "inspect":
@@ -306,7 +442,7 @@ class SLRCommand(BaseCommand):
                 updates["reason_text"] = args.set_reason
             if args.set_reviewer:
                 updates["persona"] = args.set_reviewer
-            
+
             if not updates:
                 console.print("[red]Error: No updates specified. Use --set-* flags.[/red]")
                 return
@@ -320,10 +456,14 @@ class SLRCommand(BaseCommand):
         elif args.sdb_verb == "upgrade":
             dry_run = not args.execute
             if dry_run:
-                console.print("[yellow]Running SDB Upgrade in DRY-RUN mode. Use --execute to apply.[/yellow]")
-            
+                console.print(
+                    "[yellow]Running SDB Upgrade in DRY-RUN mode. Use --execute to apply.[/yellow]"
+                )
+
             stats = service.upgrade_sdb_entries(args.collection, dry_run=dry_run)
-            console.print(f"Scanned: {stats['scanned']}, Upgraded: {stats['upgraded']}, Skipped: {stats['skipped']}, Errors: {stats['errors']}")
+            console.print(
+                f"Scanned: {stats['scanned']}, Upgraded: {stats['upgraded']}, Skipped: {stats['skipped']}, Errors: {stats['errors']}"
+            )
 
     # --- Handlers ---
 
@@ -604,7 +744,9 @@ class SLRCommand(BaseCommand):
                 if validator.init_schema():
                     console.print("[bold green]Created schema.yaml from template.[/bold green]")
                 else:
-                    console.print("[bold yellow]schema.yaml already exists. Skipping init.[/bold yellow]")
+                    console.print(
+                        "[bold yellow]schema.yaml already exists. Skipping init.[/bold yellow]"
+                    )
             except Exception as e:
                 console.print(f"[bold red]Error initializing schema:[/bold red] {e}")
                 sys.exit(1)
@@ -623,7 +765,9 @@ class SLRCommand(BaseCommand):
 
         # 2. Extraction Session or Export
         if not args.target:
-            console.print("[yellow]Please specify a Target (Collection or Item Key) to start extraction or export.[/yellow]")
+            console.print(
+                "[yellow]Please specify a Target (Collection or Item Key) to start extraction or export.[/yellow]"
+            )
             return
 
         # Initialize Service Stack
@@ -644,11 +788,15 @@ class SLRCommand(BaseCommand):
             if col_id:
                 items = list(gateway.get_items_in_collection(col_id))
             else:
-                console.print(f"[bold red]Error:[/bold red] Could not find item or collection '{args.target}'")
+                console.print(
+                    f"[bold red]Error:[/bold red] Could not find item or collection '{args.target}'"
+                )
                 sys.exit(1)
 
         if args.export:
-            console.print(f"Exporting synthesis matrix ({args.export}) for target '{args.target}'...")
+            console.print(
+                f"Exporting synthesis matrix ({args.export}) for target '{args.target}'..."
+            )
             path = ext_service.export_matrix(items, output_format=args.export, persona=args.persona)
             console.print(f"[bold green]Matrix exported to: {path}[/bold green]")
             return

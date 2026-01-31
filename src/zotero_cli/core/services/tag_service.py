@@ -64,7 +64,7 @@ class TagService:
         """
         Deletes a tag from all items in the library.
         Returns the number of items updated.
-        
+
         Deprecated: Use PurgeService.purge_item_assets or PurgeService.purge_collection_assets instead.
         """
         warnings.warn(
@@ -82,7 +82,7 @@ class TagService:
     def purge_tags_from_collection(self, collection_name: str, dry_run: bool = False) -> int:
         """
         Removes all tags from all items in a specific collection.
-        
+
         Deprecated: Use PurgeService.purge_collection_assets instead.
         """
         warnings.warn(

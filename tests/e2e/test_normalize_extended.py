@@ -1,5 +1,4 @@
 import csv
-import subprocess
 
 RIS_CONTENT = """TY  - JOUR
 TI  - RIS Paper Title

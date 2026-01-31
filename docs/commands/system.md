@@ -101,3 +101,29 @@ zotero-cli system normalize "ieee_export.csv" --output "papers_ready.csv"
 *   Maps disparate headers to a single canonical schema.
 
 *   Enables use of CSVs in `review screen` headless modes.
+
+---
+
+### `jobs`
+Centralized management for background workers and persistent tasks (Operation PDF Resilience).
+
+#### `jobs list`
+List recent jobs and their current status.
+```bash
+zotero-cli system jobs list [--limit 50] [--type fetch_pdf|discover_citations]
+```
+
+#### `jobs retry`
+Reset failed jobs back to `PENDING` state.
+```bash
+zotero-cli system jobs retry --all
+# OR
+zotero-cli system jobs retry --job-id 123
+```
+
+#### `jobs run`
+Starts the background worker to process pending jobs in the queue.
+```bash
+zotero-cli system jobs run [--limit 10]
+```
+

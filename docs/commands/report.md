@@ -41,3 +41,13 @@ Display a real-time progress dashboard of the screening process in the terminal.
 ```bash
 zotero-cli report status --collection "Raw"
 ```
+
+---
+
+### `pdf`
+Generate a report of PDF discovery jobs (success, failure, retry status).
+
+**Usage:**
+```bash
+zotero-cli report pdf --output pdf_jobs_report.md
+```

@@ -2,10 +2,13 @@ from typing import Optional
 
 from rich.console import Console
 from rich.layout import Layout
-from rich.panel import Panel
 from rich.prompt import Prompt
-from rich.text import Text
 
+from zotero_cli.cli.tui.components import (
+    create_abstract_panel,
+    create_footer_panel,
+    create_header_panel,
+)
 from zotero_cli.core.services.screening_service import ScreeningService
 from zotero_cli.core.services.screening_state import ScreeningStateService
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -96,11 +99,11 @@ class TuiScreeningService:
 
             decision = "INCLUDE" if action == "i" else "EXCLUDE"
             target_col = target_included if action == "i" else target_excluded
-            
+
             if decision == "EXCLUDE":
                 code = self._get_criteria_code(decision)
             else:
-                code = "" # Inclusion implies all criteria met
+                code = ""  # Inclusion implies all criteria met
 
             with self.console.status(f"[bold blue]Recording decision ({decision})...[/bold blue]"):
                 success = self.service.record_decision(
@@ -133,19 +136,16 @@ class TuiScreeningService:
 
         # Header
         header_text = f"Screening Item {current}/{total} | Key: {item.key}"
-        layout["header"].update(Panel(header_text, style="white on blue"))
+        layout["header"].update(create_header_panel(header_text))
 
         # Body
-        title = Text(item.title if item.title else "No Title", style="bold cyan")
-        meta = Text(f"\nYear: {item.date} | Authors: {', '.join(item.authors[:3])}", style="yellow")
-        abstract = Text(f"\n\n{item.abstract if item.abstract else 'No Abstract'}", style="white")
-
-        body_content = Text.assemble(title, meta, abstract)
-        layout["body"].update(Panel(body_content, title="Abstract", border_style="green"))
+        layout["body"].update(
+            create_abstract_panel(item.title, item.authors, item.date, item.abstract)
+        )
 
         # Footer
         controls = "[I]nclude  [E]xclude  [S]kip  [Q]uit"
-        layout["footer"].update(Panel(controls, style="white on blue"))
+        layout["footer"].update(create_footer_panel(controls))
 
         self.console.print(layout)
 

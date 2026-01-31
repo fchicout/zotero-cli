@@ -139,10 +139,10 @@ def test_decide_include_no_code(mock_clients, env_vars, capsys):
         ]
         with patch.object(sys, "argv", test_args):
             main()
-        
+
         # Should succeed without --code
         assert "Successfully recorded decision" in capsys.readouterr().out
-        # Verify service called with code=None (or empty string depending on impl, 
+        # Verify service called with code=None (or empty string depending on impl,
         # but the command passes the arg directly)
         call_args = mock_service.record_decision.call_args[1]
         assert call_args["decision"] == "INCLUDE"
@@ -161,7 +161,7 @@ def test_decide_exclude_requires_code(mock_clients, env_vars, capsys):
     with patch.object(sys, "argv", test_args):
         with pytest.raises(SystemExit):
             main()
-    
+
     assert "Error: You must provide --code for EXCLUDE decisions." in capsys.readouterr().out
 
 

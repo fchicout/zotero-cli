@@ -109,6 +109,8 @@ class StorageService:
         try:
             if not self.gateway.download_attachment(item.key, str(target_path)):
                 print("  Failed to download.")
+                if target_path.exists():
+                    target_path.unlink()
                 return False
         except Exception as e:
             print(f"  Exception downloading: {e}")

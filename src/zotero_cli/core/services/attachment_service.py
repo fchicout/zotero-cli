@@ -1,7 +1,7 @@
 import os
 import tempfile
 import warnings
-from typing import Optional
+from typing import List, Optional
 
 import requests
 
@@ -12,6 +12,7 @@ from zotero_cli.core.interfaces import (
     NoteRepository,
 )
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+from zotero_cli.core.services.pdf_finder_service import PDFFinderService
 from zotero_cli.core.services.purge_service import PurgeService
 
 
@@ -24,6 +25,7 @@ class AttachmentService:
         note_repo: NoteRepository,
         metadata_aggregator: MetadataAggregatorService,
         purge_service: Optional[PurgeService] = None,
+        pdf_finder: Optional[PDFFinderService] = None,
     ):
         self.item_repo = item_repo
         self.collection_repo = collection_repo
@@ -31,6 +33,7 @@ class AttachmentService:
         self.note_repo = note_repo
         self.metadata_aggregator = metadata_aggregator
         self.purge_service = purge_service
+        self.pdf_finder = pdf_finder
 
     def _get_purge_service(self) -> PurgeService:
         if not self.purge_service:
@@ -41,20 +44,29 @@ class AttachmentService:
             self.purge_service = GatewayFactory.get_purge_service()
         return self.purge_service
 
-    def attach_pdfs_to_collection(self, collection_name: str) -> int:
+    def _get_pdf_finder(self) -> PDFFinderService:
+        if not self.pdf_finder:
+            from zotero_cli.infra.factory import GatewayFactory
+
+            self.pdf_finder = GatewayFactory.get_pdf_finder_service()
+        return self.pdf_finder
+
+    def attach_pdfs_to_collection(self, collection_name: str) -> List[int]:
         col_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not col_id:
             print(f"Collection '{collection_name}' not found.")
-            return 0
+            return []
 
-        success_count = 0
+        job_ids = []
         items = self.collection_repo.get_items_in_collection(col_id)
+        pdf_finder = self._get_pdf_finder()
 
         for item in items:
-            if self.attach_pdf_to_item(item.key):
-                success_count += 1
+            if not self._has_pdf_attachment(item.key):
+                jid = pdf_finder.enqueue_find_pdf(item.key)
+                job_ids.append(jid)
 
-        return success_count
+        return job_ids
 
     def attach_pdf_to_item(self, item_key: str) -> bool:
         """Attempts to find and attach a PDF to a single item."""
@@ -136,9 +148,7 @@ class AttachmentService:
             return True
         return False
 
-    def remove_attachments_from_collection(
-        self, collection_name: str, dry_run: bool = True
-    ) -> int:
+    def remove_attachments_from_collection(self, collection_name: str, dry_run: bool = True) -> int:
         warnings.warn(
             "AttachmentService.remove_attachments_from_collection is deprecated and will be removed in Phase B. Use PurgeService.purge_collection_assets instead.",
             DeprecationWarning,

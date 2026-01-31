@@ -162,7 +162,7 @@ class CollectionAuditor:
             with open(csv_path, "r", encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
                 header = reader.fieldnames or []
-                
+
                 # Validation: Check if required mapped columns exist in header
                 # We prioritize mapping, then fallback to defaults if not mapped.
                 # However, for 'key', 'doi', 'title' we search multiple fields usually.
@@ -173,7 +173,7 @@ class CollectionAuditor:
                     # If using default, we are more lenient (cascading check later).
                     if column_map and internal_key in column_map and csv_col not in header:
                         missing.append(csv_col)
-                
+
                 if missing:
                     return {"error": f"Missing required columns in CSV: {', '.join(missing)}"}
 
@@ -323,12 +323,12 @@ class CollectionAuditor:
 
         reason_col = column_map.get("reason", "Reason")
         code_col = column_map.get("code", "Code")
-        
+
         # SDB v1.2 usually uses 'reason_code' for the codes and 'reason_text' for the text.
         # We try to get them from mapped columns.
         reason_code_str = row.get(code_col) or row.get("Code") or row.get("reason_code") or ""
         reason_text = row.get(reason_col) or row.get("Reason") or row.get("Comment") or row.get("reason_text") or row.get("comment", "")
-        
+
         evidence_col = column_map.get("evidence", "Evidence")
         evidence = row.get(evidence_col) or row.get("Evidence") or row.get("evidence") or ""
 

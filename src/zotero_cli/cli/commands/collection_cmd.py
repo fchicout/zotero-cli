@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import sys
 
 from rich.console import Console
@@ -78,7 +79,9 @@ class CollectionCommand(BaseCommand):
         backup_p.add_argument("--output", required=True, help="Output file path")
 
         # Purge
-        purge_p = sub.add_parser("purge", help="Purge assets (files, notes, tags) from a collection")
+        purge_p = sub.add_parser(
+            "purge", help="Purge assets (files, notes, tags) from a collection"
+        )
         purge_p.add_argument("name", help="Collection name")
         purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
         purge_p.add_argument("--notes", action="store_true", help="Purge notes")
@@ -147,7 +150,7 @@ class CollectionCommand(BaseCommand):
 
     def _handle_purge(self, args):
         from rich.prompt import Confirm
-        
+
         types = []
         if args.files:
             types.append("files")
@@ -165,7 +168,7 @@ class CollectionCommand(BaseCommand):
             if args.recursive:
                 msg += " and its sub-collections"
             msg += "?"
-            
+
             if not Confirm.ask(msg):
                 console.print("[yellow]Aborted.[/]")
                 return
@@ -174,8 +177,10 @@ class CollectionCommand(BaseCommand):
         stats = service.purge_collection_assets(
             args.name, types=types, recursive=args.recursive, dry_run=False
         )
-        
-        console.print(f"[green]Purge Complete:[/green] Deleted: {stats['deleted']}, Errors: {stats['errors']}")
+
+        console.print(
+            f"[green]Purge Complete:[/green] Deleted: {stats['deleted']}, Errors: {stats['errors']}"
+        )
 
     def _handle_clean(self, args):
         force_user = getattr(args, "user", False)
@@ -187,14 +192,28 @@ class CollectionCommand(BaseCommand):
         force_user = getattr(args, "user", False)
         if args.pdf_verb == "fetch":
             service = GatewayFactory.get_attachment_service(force_user=force_user)
-            count = service.attach_pdfs_to_collection(args.collection)
-            print(f"Fetched {count} PDFs for collection '{args.collection}'.")
+            pdf_finder = GatewayFactory.get_pdf_finder_service(force_user=force_user)
+
+            job_ids = service.attach_pdfs_to_collection(args.collection)
+            if not job_ids:
+                console.print(f"[yellow]No items in '{args.collection}' missing PDFs.[/]")
+                return
+
+            console.print(f"[green]Enqueued {len(job_ids)} discovery jobs.[/]")
+            console.print("[bold]Starting resilient PDF discovery...[/]")
+
+            # Blocking worker for transparent upgrade
+            asyncio.run(pdf_finder.process_jobs(count=len(job_ids)))
+
+            console.print(f"[bold green]Done processing collection '{args.collection}'.[/]")
         elif args.pdf_verb == "strip":
             service = GatewayFactory.get_attachment_service(force_user=force_user)
             dry_run = not args.execute
             count = service.remove_attachments_from_collection(args.collection, dry_run=dry_run)
             if dry_run:
-                print(f"[yellow]DRY RUN:[/yellow] Would remove {count} attachments from collection '{args.collection}'.")
+                print(
+                    f"[yellow]DRY RUN:[/yellow] Would remove {count} attachments from collection '{args.collection}'."
+                )
             else:
                 print(f"Removed {count} attachments from collection '{args.collection}'.")
 

@@ -1,7 +1,9 @@
-import json
 from unittest.mock import Mock
+
 import pytest
+
 from zotero_cli.core.services.sdb.sdb_service import SDBService
+
 
 @pytest.fixture
 def mock_gateway():
@@ -29,7 +31,7 @@ def test_inspect_item_sdb(service, mock_gateway):
             }
         }
     ]
-    
+
     entries = service.inspect_item_sdb("ITEM1")
     assert len(entries) == 1
     assert entries[0]["decision"] == "accepted"
@@ -56,9 +58,9 @@ def test_edit_sdb_entry_success(service, mock_gateway):
         }
     ]
     mock_gateway.update_note.return_value = True
-    
+
     success, msg = service.edit_sdb_entry("ITEM1", "P1", "ph1", {"decision": "rejected"}, dry_run=False)
-    
+
     assert success is True
     assert "Successfully updated" in msg
     mock_gateway.update_note.assert_called_once()
@@ -77,7 +79,7 @@ def test_upgrade_sdb_entries(service, mock_gateway):
     mock_item = Mock()
     mock_item.key = "ITEM1"
     mock_gateway.get_items_in_collection.return_value = [mock_item]
-    
+
     mock_gateway.get_item_children.return_value = [
         {
             "key": "N1",
@@ -89,9 +91,9 @@ def test_upgrade_sdb_entries(service, mock_gateway):
         }
     ]
     mock_gateway.update_note.return_value = True
-    
+
     stats = service.upgrade_sdb_entries("Collection1", dry_run=False)
-    
+
     assert stats["scanned"] == 1
     assert stats["upgraded"] == 1
     mock_gateway.update_note.assert_called_once()
