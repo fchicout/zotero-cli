@@ -1,6 +1,6 @@
 import re
 import sys
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.interfaces import (
@@ -24,13 +24,20 @@ from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
 if TYPE_CHECKING:
+    from zotero_cli.core.interfaces import PDFResolver, ZoteroGateway
     from zotero_cli.core.services.attachment_service import AttachmentService
     from zotero_cli.core.services.collection_service import CollectionService
     from zotero_cli.core.services.enrichment_service import EnrichmentService
     from zotero_cli.core.services.import_service import ImportService
+    from zotero_cli.core.services.job_queue_service import JobQueueService
     from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+    from zotero_cli.core.services.network_gateway import NetworkGateway
+    from zotero_cli.core.services.pdf_finder_service import PDFFinderService
     from zotero_cli.core.services.purge_service import PurgeService
     from zotero_cli.core.services.screening_service import ScreeningService
+    from zotero_cli.core.services.snowball_graph import SnowballGraphService
+    from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
+    from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
     from zotero_cli.core.services.tag_service import TagService
 
 
@@ -55,6 +62,7 @@ class GatewayFactory:
         if offline is None:
             try:
                 from zotero_cli.cli.main import OFFLINE_MODE
+
                 offline = OFFLINE_MODE
             except ImportError:
                 offline = False
@@ -104,7 +112,9 @@ class GatewayFactory:
 
     @staticmethod
     def get_item_repository(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
     ) -> ItemRepository:
         from zotero_cli.infra.repositories import ZoteroItemRepository
 
@@ -113,7 +123,9 @@ class GatewayFactory:
 
     @staticmethod
     def get_collection_repository(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
     ) -> CollectionRepository:
         from zotero_cli.infra.repositories import ZoteroCollectionRepository
 
@@ -122,7 +134,9 @@ class GatewayFactory:
 
     @staticmethod
     def get_tag_repository(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
     ) -> TagRepository:
         from zotero_cli.infra.repositories import ZoteroTagRepository
 
@@ -131,7 +145,9 @@ class GatewayFactory:
 
     @staticmethod
     def get_note_repository(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
     ) -> NoteRepository:
         from zotero_cli.infra.repositories import ZoteroNoteRepository
 
@@ -140,7 +156,9 @@ class GatewayFactory:
 
     @staticmethod
     def get_attachment_repository(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
     ) -> AttachmentRepository:
         from zotero_cli.infra.repositories import ZoteroAttachmentRepository
 
@@ -181,7 +199,9 @@ class GatewayFactory:
 
     @staticmethod
     def get_attachment_service(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
     ) -> "AttachmentService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
@@ -197,11 +217,15 @@ class GatewayFactory:
 
         from zotero_cli.core.services.attachment_service import AttachmentService
 
-        return AttachmentService(item_repo, col_repo, att_repo, note_repo, aggregator, purge_service)
+        return AttachmentService(
+            item_repo, col_repo, att_repo, note_repo, aggregator, purge_service
+        )
 
     @staticmethod
     def get_collection_service(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
     ) -> "CollectionService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
@@ -217,7 +241,9 @@ class GatewayFactory:
 
     @staticmethod
     def get_enrichment_service(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
     ) -> "EnrichmentService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
@@ -234,7 +260,9 @@ class GatewayFactory:
 
     @staticmethod
     def get_screening_service(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
     ) -> "ScreeningService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
@@ -253,7 +281,9 @@ class GatewayFactory:
 
     @staticmethod
     def get_import_service(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
     ) -> "ImportService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
@@ -269,7 +299,9 @@ class GatewayFactory:
 
     @staticmethod
     def get_purge_service(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
     ) -> "PurgeService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
@@ -284,7 +316,9 @@ class GatewayFactory:
 
     @staticmethod
     def get_tag_service(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False, offline: Optional[bool] = None
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
     ) -> "TagService":
         if not config:
             from zotero_cli.core.config import get_config as main_get_config
@@ -297,6 +331,71 @@ class GatewayFactory:
         from zotero_cli.core.services.tag_service import TagService
 
         return TagService(gateway, purge_service)
+
+    @staticmethod
+    def get_job_queue_service(config: Optional[ZoteroConfig] = None) -> "JobQueueService":
+        if not config:
+            from zotero_cli.core.config import get_config as main_get_config
+
+            config = main_get_config()
+
+        # Decouple from Zotero's main DB. Store jobs in the config directory.
+        from zotero_cli.core.config import get_config_path
+
+        config_path = get_config_path()
+        if config_path:
+            db_dir = config_path.parent
+        else:
+            # Fallback if config path isn't set (e.g. during specific test setups)
+            import os
+            from pathlib import Path
+
+            if os.name == "nt":
+                base = Path(os.environ.get("APPDATA", "~")).expanduser()
+            else:
+                base = Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
+            db_dir = base / "zotero-cli"
+
+        # Ensure directory exists
+        db_dir.mkdir(parents=True, exist_ok=True)
+        db_path = str(db_dir / "jobs.sqlite")
+
+        from zotero_cli.infra.sqlite_repo import SqliteJobRepository
+
+        repo = SqliteJobRepository(db_path)
+
+        from zotero_cli.core.services.job_queue_service import JobQueueService
+
+        return JobQueueService(repo)
+
+    @staticmethod
+    def get_pdf_finder_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "PDFFinderService":
+        if not config:
+            from zotero_cli.core.config import get_config as main_get_config
+
+            config = main_get_config()
+
+        job_queue = GatewayFactory.get_job_queue_service(config)
+        item_repo = GatewayFactory.get_item_repository(config, force_user, offline=offline)
+        att_repo = GatewayFactory.get_attachment_repository(config, force_user, offline=offline)
+
+        # Build Resolver Chain
+        resolvers = [
+            GatewayFactory.get_unpaywall_resolver(config),
+            GatewayFactory.get_openalex_resolver(),
+            GatewayFactory.get_arxiv_resolver(),
+            GatewayFactory.get_semantic_scholar_resolver(config),
+        ]
+        # Add YAML-configured scrapers
+        resolvers.extend(GatewayFactory.get_generic_resolvers())
+
+        from zotero_cli.core.services.pdf_finder_service import PDFFinderService
+
+        return PDFFinderService(job_queue, item_repo, att_repo, resolvers)
 
     @staticmethod
     def get_arxiv_gateway() -> ArxivLibGateway:
@@ -321,3 +420,151 @@ class GatewayFactory:
     @staticmethod
     def get_canonical_csv_gateway() -> CanonicalCsvLibGateway:
         return CanonicalCsvLibGateway()
+
+    @staticmethod
+    def get_network_gateway() -> "NetworkGateway":
+        from zotero_cli.core.services.identity_manager import IdentityManager
+        from zotero_cli.core.services.network_gateway import NetworkGateway
+
+        # IdentityManager is lightweight but holds state (index).
+        # ideally we singleton it, but for now we create fresh.
+        # Future optimization: cache it at class level if needed.
+        im = IdentityManager()
+        return NetworkGateway(im)
+
+    @staticmethod
+    def get_unpaywall_resolver(config: Optional[ZoteroConfig] = None) -> "PDFResolver":
+        if not config:
+            from zotero_cli.core.config import get_config
+
+            config = get_config()
+
+        from zotero_cli.core.services.resolvers.unpaywall import UnpaywallResolver
+
+        gateway = GatewayFactory.get_network_gateway()
+        return UnpaywallResolver(gateway, email=config.unpaywall_email)
+
+    @staticmethod
+    def get_openalex_resolver() -> "PDFResolver":
+        from zotero_cli.core.services.resolvers.openalex import OpenAlexResolver
+
+        gateway = GatewayFactory.get_network_gateway()
+        return OpenAlexResolver(gateway)
+
+    @staticmethod
+    def get_arxiv_resolver() -> "PDFResolver":
+        from zotero_cli.core.services.resolvers.arxiv import ArXivResolver
+
+        gateway = GatewayFactory.get_network_gateway()
+        return ArXivResolver(gateway)
+
+    @staticmethod
+    def get_semantic_scholar_resolver(config: Optional[ZoteroConfig] = None) -> "PDFResolver":
+        if not config:
+            from zotero_cli.core.config import get_config
+
+            config = get_config()
+
+        from zotero_cli.core.services.resolvers.semantic_scholar import SemanticScholarResolver
+
+        gateway = GatewayFactory.get_network_gateway()
+        return SemanticScholarResolver(gateway, api_key=config.semantic_scholar_api_key)
+
+    @staticmethod
+    def get_generic_resolvers() -> List["PDFResolver"]:
+        from zotero_cli.core.config import get_config_path
+
+        config_path = get_config_path()
+        if not config_path:
+            return []
+
+        yaml_path = config_path.parent / "resolvers.yaml"
+        if not yaml_path.exists():
+            return []
+
+        import yaml
+
+        try:
+            with open(yaml_path, "r") as f:
+                data = yaml.safe_load(f)
+
+            resolvers_config = data.get("resolvers", [])
+            from zotero_cli.core.services.resolvers.generic_scraper import GenericScraperResolver
+
+            gateway = GatewayFactory.get_network_gateway()
+
+            return [GenericScraperResolver(gateway, cfg) for cfg in resolvers_config]
+        except Exception as e:
+            print(
+                f"Warning: Failed to load generic resolvers from {yaml_path}: {e}", file=sys.stderr
+            )
+            return []
+
+    @staticmethod
+    def get_snowball_graph_service() -> "SnowballGraphService":
+        from zotero_cli.core.config import get_config_path
+
+        config_path = get_config_path()
+
+        if config_path:
+            db_dir = config_path.parent
+        else:
+            import os
+            from pathlib import Path
+
+            if os.name == "nt":
+                base = Path(os.environ.get("APPDATA", "~")).expanduser()
+            else:
+                base = Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
+            db_dir = base / "zotero-cli"
+
+        db_dir.mkdir(parents=True, exist_ok=True)
+        storage_path = db_dir / "discovery_graph.json"
+
+        from zotero_cli.core.services.snowball_graph import SnowballGraphService
+
+        return SnowballGraphService(storage_path)
+
+    @staticmethod
+    def get_snowball_worker(config: Optional[ZoteroConfig] = None) -> "SnowballDiscoveryWorker":
+        if not config:
+            from zotero_cli.core.config import get_config
+
+            config = get_config()
+
+        gateway = GatewayFactory.get_network_gateway()
+        graph_service = GatewayFactory.get_snowball_graph_service()
+        job_queue = GatewayFactory.get_job_queue_service(config)
+
+        from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
+
+        return SnowballDiscoveryWorker(
+            gateway, graph_service, job_queue, s2_api_key=config.semantic_scholar_api_key
+        )
+
+    @staticmethod
+    def get_snowball_ingestion_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "SnowballIngestionService":
+        if not config:
+            from zotero_cli.core.config import get_config
+
+            config = get_config()
+
+        graph_service = GatewayFactory.get_snowball_graph_service()
+        metadata_service = GatewayFactory.get_metadata_aggregator(config)
+        item_repo = GatewayFactory.get_item_repository(config, force_user, offline=offline)
+        col_repo = GatewayFactory.get_collection_repository(config, force_user, offline=offline)
+
+        from zotero_cli.core.services.duplicate_service import DuplicateFinder
+
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+        duplicate_finder = DuplicateFinder(gateway)
+
+        from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
+
+        return SnowballIngestionService(
+            graph_service, metadata_service, item_repo, col_repo, duplicate_finder
+        )

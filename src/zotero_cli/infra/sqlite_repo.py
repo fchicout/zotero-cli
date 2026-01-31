@@ -1,11 +1,12 @@
+import json
 import os
 import shutil
 import sqlite3
 import tempfile
 from typing import Any, Dict, Iterator, List, Optional
 
-from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.models import ResearchPaper, ZoteroQuery
+from zotero_cli.core.interfaces import JobRepository, ZoteroGateway
+from zotero_cli.core.models import Job, ResearchPaper, ZoteroQuery
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -21,10 +22,10 @@ class SqliteZoteroGateway(ZoteroGateway):
     """
 
     def __init__(self, database_path: str):
+        self._temp_db_path: Optional[str] = None
         if not database_path or not os.path.exists(database_path):
             raise ConfigurationError(f"Zotero database not found at: {database_path}")
         self.original_db_path = database_path
-        self._temp_db_path: Optional[str] = None
 
     def _get_connection(self) -> sqlite3.Connection:
         # Create shadow copy
@@ -41,7 +42,7 @@ class SqliteZoteroGateway(ZoteroGateway):
         if self._temp_db_path and os.path.exists(self._temp_db_path):
             try:
                 os.remove(self._temp_db_path)
-            except:
+            except OSError:
                 pass
 
     def _map_row_to_item(self, row: sqlite3.Row, creators: List[Dict[str, Any]], collections: List[str], tags: List[str]) -> ZoteroItem:
@@ -180,7 +181,7 @@ class SqliteZoteroGateway(ZoteroGateway):
         # Simplified: items with parentItem = itemID of item_key
         with self._get_connection() as conn:
             cursor = conn.execute("""
-                SELECT key FROM items 
+                SELECT key FROM items
                 WHERE parentItemID = (SELECT itemID FROM items WHERE key = ?)
             """, (item_key,))
             return [{"key": r["key"]} for r in cursor]
@@ -238,8 +239,139 @@ class SqliteZoteroGateway(ZoteroGateway):
             if tag in item.tags:
                 yield item
 
+    def get_items_by_doi(self, doi: str) -> Iterator[ZoteroItem]:
+        for item in self.search_items(ZoteroQuery()):
+            if item.doi == doi:
+                yield item
+
     def verify_credentials(self) -> bool:
         """
         Verifies that the database file exists and is accessible.
         """
         return os.path.exists(self.original_db_path)
+
+    def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:
+        """
+        Offline mode does not support user groups.
+        """
+        return []
+
+
+class SqliteJobRepository(JobRepository):
+    """
+    Persistent job queue implementation using SQLite.
+    """
+
+    def __init__(self, database_path: str):
+        self.database_path = database_path
+        self._init_db()
+
+    def _get_connection(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.database_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_db(self):
+        with self._get_connection() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS jobs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    item_key TEXT NOT NULL,
+                    task_type TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    attempts INTEGER DEFAULT 0,
+                    next_retry_at TEXT,
+                    payload TEXT NOT NULL,
+                    last_error TEXT
+                )
+            """)
+            conn.commit()
+
+    def enqueue(self, job: Job) -> int:
+        with self._get_connection() as conn:
+            cursor = conn.execute("""
+                INSERT INTO jobs (item_key, task_type, status, attempts, next_retry_at, payload, last_error)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                job.item_key,
+                job.task_type,
+                job.status,
+                job.attempts,
+                job.next_retry_at,
+                json.dumps(job.payload),
+                job.last_error
+            ))
+            if cursor.lastrowid is None:
+                raise sqlite3.Error("Failed to retrieve last inserted job ID")
+            return int(cursor.lastrowid)
+
+    def get_next_pending(self, task_type: str) -> Optional[Job]:
+        with self._get_connection() as conn:
+            # Atomic fetch & lock equivalent for SQLite
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                row = conn.execute("""
+                    SELECT * FROM jobs
+                    WHERE task_type = ? AND status IN ('PENDING', 'RETRY')
+                    AND (next_retry_at IS NULL OR next_retry_at <= datetime('now'))
+                    ORDER BY id ASC LIMIT 1
+                """, (task_type,)).fetchone()
+
+                if row:
+                    conn.execute("UPDATE jobs SET status = 'PROCESSING' WHERE id = ?", (row["id"],))
+                    conn.commit()
+                    job = self._map_row_to_job(row)
+                    job.status = "PROCESSING"
+                    return job
+                conn.commit()
+                return None
+            except Exception:
+                conn.rollback()
+                raise
+
+    def update_job(self, job: Job) -> bool:
+        with self._get_connection() as conn:
+            cursor = conn.execute("""
+                UPDATE jobs
+                SET status = ?, attempts = ?, next_retry_at = ?, payload = ?, last_error = ?
+                WHERE id = ?
+            """, (
+                job.status,
+                job.attempts,
+                job.next_retry_at,
+                json.dumps(job.payload),
+                job.last_error,
+                job.id
+            ))
+            return cursor.rowcount > 0
+
+    def get_job(self, job_id: int) -> Optional[Job]:
+        with self._get_connection() as conn:
+            row = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+            if row:
+                return self._map_row_to_job(row)
+            return None
+
+    def list_jobs(self, task_type: Optional[str] = None, limit: int = 100) -> List[Job]:
+        with self._get_connection() as conn:
+            if task_type:
+                cursor = conn.execute(
+                    "SELECT * FROM jobs WHERE task_type = ? ORDER BY id DESC LIMIT ?",
+                    (task_type, limit)
+                )
+            else:
+                cursor = conn.execute("SELECT * FROM jobs ORDER BY id DESC LIMIT ?", (limit,))
+            return [self._map_row_to_job(row) for row in cursor]
+
+    def _map_row_to_job(self, row: sqlite3.Row) -> Job:
+        # Re-fetch item to ensure it's not locked? No, row is already fetched.
+        return Job(
+            id=row["id"],
+            item_key=row["item_key"],
+            task_type=row["task_type"],
+            status=row["status"],
+            attempts=row["attempts"],
+            next_retry_at=row["next_retry_at"],
+            payload=json.loads(row["payload"]),
+            last_error=row["last_error"]
+        )

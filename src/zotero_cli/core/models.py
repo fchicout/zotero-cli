@@ -15,6 +15,7 @@ class ResearchPaper:
     pdf_url: Optional[str] = None
     references: List[str] = field(default_factory=list)
     citation_count: Optional[int] = None
+    extra: Optional[str] = None
 
 
 @dataclass
@@ -49,3 +50,15 @@ class ZoteroQuery:
         if self.direction:
             params["direction"] = self.direction
         return params
+
+
+@dataclass
+class Job:
+    item_key: str
+    task_type: str
+    payload: Dict[str, Any]
+    id: Optional[int] = None
+    status: str = "PENDING"
+    attempts: int = 0
+    next_retry_at: Optional[str] = None
+    last_error: Optional[str] = None

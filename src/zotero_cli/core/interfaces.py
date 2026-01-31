@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
-from .models import ResearchPaper, ZoteroQuery
+from .models import Job, ResearchPaper, ZoteroQuery
 from .zotero_item import ZoteroItem
 
 
@@ -28,6 +29,10 @@ class ItemRepository(ABC):
 
     @abstractmethod
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
+        pass
+
+    @abstractmethod
+    def get_items_by_doi(self, doi: str) -> Iterator[ZoteroItem]:
         pass
 
     @abstractmethod
@@ -115,6 +120,28 @@ class AttachmentRepository(ABC):
         pass
 
 
+class JobRepository(ABC):
+    @abstractmethod
+    def enqueue(self, job: Job) -> int:
+        pass
+
+    @abstractmethod
+    def get_next_pending(self, task_type: str) -> Optional[Job]:
+        pass
+
+    @abstractmethod
+    def update_job(self, job: Job) -> bool:
+        pass
+
+    @abstractmethod
+    def get_job(self, job_id: int) -> Optional[Job]:
+        pass
+
+    @abstractmethod
+    def list_jobs(self, task_type: Optional[str] = None, limit: int = 100) -> List[Job]:
+        pass
+
+
 class MetadataProvider(ABC):
     @abstractmethod
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:
@@ -177,4 +204,18 @@ class ZoteroGateway(
 
     @abstractmethod
     def verify_credentials(self) -> bool:
+        pass
+
+    @abstractmethod
+    def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:
+        pass
+
+
+class PDFResolver(ABC):
+    """
+    Interface for resolving and downloading PDFs from various sources.
+    """
+
+    @abstractmethod
+    async def resolve(self, item: ZoteroItem) -> Optional[Path]:
         pass
