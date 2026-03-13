@@ -178,3 +178,26 @@ Safely resets items by stripping all screening metadata (SDB notes, tags) and op
 ```bash
 zotero-cli slr reset --collection "To Reset" [--target-collection "Raw"] [--execute]
 ```
+
+---
+
+### `rag`
+Retrieval-Augmented Generation (RAG) Core. Manages semantic indexing and querying of library content.
+
+#### `rag ingest`
+Ingests all items in a collection into the local vector store for semantic search.
+```bash
+zotero-cli slr rag ingest --collection "Research"
+```
+
+#### `rag query`
+Performs a semantic search against the vector store using natural language.
+```bash
+zotero-cli slr rag query --prompt "What are the key trends in LLM safety?" [--top-k 5]
+```
+
+#### `rag context`
+Retrieves synthesized context snippets for a specific item key.
+```bash
+zotero-cli slr rag context --key "ITEMKEY"
+```

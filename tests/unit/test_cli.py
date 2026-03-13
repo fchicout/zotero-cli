@@ -29,6 +29,11 @@ def mock_clients():
         patch("zotero_cli.infra.factory.GatewayFactory.get_springer_csv_gateway") as mock_springer,
         patch("zotero_cli.infra.factory.GatewayFactory.get_ieee_csv_gateway") as mock_ieee,
         patch("zotero_cli.infra.factory.GatewayFactory.get_canonical_csv_gateway") as mock_canon,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_job_queue_service") as mock_job_get,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_vector_repository") as mock_vector_get,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_pdf_finder_service") as mock_pdf_get,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_enrichment_service") as mock_enrich_get,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_metadata_aggregator") as mock_agg_get,
     ):
         mock_importer = mock_importer_get.return_value
         mock_zotero = mock_zotero_get.return_value
@@ -42,6 +47,11 @@ def mock_clients():
             "springer": mock_springer.return_value,
             "ieee": mock_ieee.return_value,
             "canon": mock_canon.return_value,
+            "jobs": mock_job_get.return_value,
+            "vector": mock_vector_get.return_value,
+            "pdf": mock_pdf_get.return_value,
+            "enrich": mock_enrich_get.return_value,
+            "agg": mock_agg_get.return_value,
         }
 
 

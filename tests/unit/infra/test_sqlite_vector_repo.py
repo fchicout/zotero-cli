@@ -1,6 +1,8 @@
-import pytest
 import os
 import sqlite3
+from contextlib import closing
+
+import pytest
 from zotero_cli.infra.sqlite_vector_repo import SQLiteVectorRepository
 from zotero_cli.core.models import VectorChunk
 
@@ -13,9 +15,11 @@ def temp_db(tmp_path):
 def test_sqlite_vector_repo_init(temp_db):
     repo = SQLiteVectorRepository(temp_db)
     assert os.path.exists(temp_db)
-    
-    with sqlite3.connect(temp_db) as conn:
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='vector_chunks'")
+
+    with closing(sqlite3.connect(temp_db)) as conn:
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='vector_chunks'"
+        )
         assert cursor.fetchone() is not None
 
 @pytest.mark.unit
