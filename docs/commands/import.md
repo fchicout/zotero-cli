@@ -41,6 +41,21 @@ zotero-cli import arxiv --query "AI Security" --collection "ArXiv Imports"
 
 ---
 
+### `doi`
+Import a single paper directly using its DOI (Digital Object Identifier). The tool automatically enriches metadata from available providers (Semantic Scholar, CrossRef, Unpaywall).
+
+**Usage:**
+```bash
+zotero-cli import doi "10.1038/s41586-023-06222-4" --collection "DOI Imports"
+```
+
+**Parameters:**
+*   `doi`: (Positional, Required) The DOI string.
+*   `--collection`: (Required) Target collection name or key.
+*   `--verbose`: Show enrichment details during import.
+
+---
+
 ### `manual`
 Add a paper manually by providing its core metadata.
 
