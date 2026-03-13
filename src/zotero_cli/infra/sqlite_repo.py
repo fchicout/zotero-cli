@@ -12,6 +12,7 @@ from zotero_cli.core.zotero_item import ZoteroItem
 
 class ConfigurationError(Exception):
     """Raised when an operation is not permitted in the current configuration."""
+
     pass
 
 
@@ -45,7 +46,13 @@ class SqliteZoteroGateway(ZoteroGateway):
             except OSError:
                 pass
 
-    def _map_row_to_item(self, row: sqlite3.Row, creators: List[Dict[str, Any]], collections: List[str], tags: List[str]) -> ZoteroItem:
+    def _map_row_to_item(
+        self,
+        row: sqlite3.Row,
+        creators: List[Dict[str, Any]],
+        collections: List[str],
+        tags: List[str],
+    ) -> ZoteroItem:
         row_dict = dict(row)
         raw_item = {
             "key": row_dict["key"],
@@ -64,32 +71,52 @@ class SqliteZoteroGateway(ZoteroGateway):
                 "creators": creators,
                 "collections": collections,
                 "tags": [{"tag": t} for t in tags],
-            }
+            },
         }
         return ZoteroItem.from_raw_zotero_item(raw_item)
 
     # --- Read Operations ---
 
     def get_all_collections(self) -> List[Dict[str, Any]]:
-        with self._get_connection() as conn:
-            cursor = conn.execute("""
+        conn = self._get_connection()
+        try:
+            cursor = conn.execute(
+                """
                 SELECT c.key, c.parentCollection, cd.name
                 FROM collections c
                 JOIN collectionData cd ON c.collectionID = cd.collectionID
-            """)
-            return [{"key": r["key"], "data": {"name": r["name"], "parentCollection": r["parentCollection"]}} for r in cursor]
+            """
+            )
+            return [
+                {
+                    "key": r["key"],
+                    "data": {"name": r["name"], "parentCollection": r["parentCollection"]},
+                }
+                for r in cursor
+            ]
+        finally:
+            conn.close()
 
     def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
-        with self._get_connection() as conn:
-            row = conn.execute("""
+        conn = self._get_connection()
+        try:
+            row = conn.execute(
+                """
                 SELECT c.key, c.parentCollection, cd.name
                 FROM collections c
                 JOIN collectionData cd ON c.collectionID = cd.collectionID
                 WHERE c.key = ?
-            """, (collection_key,)).fetchone()
+            """,
+                (collection_key,),
+            ).fetchone()
             if row:
-                return {"key": row["key"], "data": {"name": row["name"], "parentCollection": row["parentCollection"]}}
+                return {
+                    "key": row["key"],
+                    "data": {"name": row["name"], "parentCollection": row["parentCollection"]},
+                }
             return None
+        finally:
+            conn.close()
 
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
         cols = self.get_all_collections()
@@ -99,12 +126,8 @@ class SqliteZoteroGateway(ZoteroGateway):
         return None
 
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
-        # Basic implementation of search
-        # Note: A full implementation would require complex SQL to match tags, collections, etc.
-        # For MVP, we fetch all items and filter in Python if needed, or implement specific joins.
-        with self._get_connection() as conn:
-            # This is a simplified query for the MVP
-            # It joins items with their type and basic metadata fields
+        conn = self._get_connection()
+        try:
             query_sql = """
                 SELECT i.key, i.version, i.libraryID, it.typeName,
                        MAX(CASE WHEN f.fieldName = 'title' THEN dv.value END) as title,
@@ -123,8 +146,8 @@ class SqliteZoteroGateway(ZoteroGateway):
             """
             cursor = conn.execute(query_sql)
             for row in cursor:
-                # Fetch creators for this item
-                creator_cursor = conn.execute("""
+                creator_cursor = conn.execute(
+                    """
                     SELECT cd.firstName, cd.lastName, ct.creatorType
                     FROM itemCreators ic
                     JOIN creators c ON ic.creatorID = c.creatorID
@@ -132,32 +155,47 @@ class SqliteZoteroGateway(ZoteroGateway):
                     JOIN creatorTypes ct ON ic.creatorTypeID = ct.creatorTypeID
                     WHERE ic.itemID = (SELECT itemID FROM items WHERE key = ?)
                     ORDER BY ic.orderIndex
-                """, (row["key"],))
-                creators = [{"creatorType": r["creatorType"], "firstName": r["firstName"], "lastName": r["lastName"]} for r in creator_cursor]
+                """,
+                    (row["key"],),
+                )
+                creators = [
+                    {
+                        "creatorType": r["creatorType"],
+                        "firstName": r["firstName"],
+                        "lastName": r["lastName"],
+                    }
+                    for r in creator_cursor
+                ]
 
-                # Fetch collections
-                col_cursor = conn.execute("""
+                col_cursor = conn.execute(
+                    """
                     SELECT c.key
                     FROM collectionItems ci
                     JOIN collections c ON ci.collectionID = c.collectionID
                     WHERE ci.itemID = (SELECT itemID FROM items WHERE key = ?)
-                """, (row["key"],))
+                """,
+                    (row["key"],),
+                )
                 collections = [r["key"] for r in col_cursor]
 
-                # Fetch tags
-                tag_cursor = conn.execute("""
+                tag_cursor = conn.execute(
+                    """
                     SELECT t.name
                     FROM itemTags it
                     JOIN tags t ON it.tagID = t.tagID
                     WHERE it.itemID = (SELECT itemID FROM items WHERE key = ?)
-                """, (row["key"],))
+                """,
+                    (row["key"],),
+                )
                 tags = [r["name"] for r in tag_cursor]
 
                 yield self._map_row_to_item(row, creators, collections, tags)
+        finally:
+            conn.close()
 
-    def get_items_in_collection(self, collection_id: str, top_only: bool = False) -> Iterator[ZoteroItem]:
-        # Reuse search_items but filter by collection
-        # For better performance, this should be a direct SQL query
+    def get_items_in_collection(
+        self, collection_id: str, top_only: bool = False
+    ) -> Iterator[ZoteroItem]:
         for item in self.search_items(ZoteroQuery()):
             if collection_id in item.collections:
                 yield item
@@ -169,22 +207,30 @@ class SqliteZoteroGateway(ZoteroGateway):
         return None
 
     def get_tags(self) -> List[str]:
-        with self._get_connection() as conn:
+        conn = self._get_connection()
+        try:
             cursor = conn.execute("SELECT name FROM tags")
             return [r["name"] for r in cursor]
+        finally:
+            conn.close()
 
     def get_tags_for_item(self, item_key: str) -> List[str]:
         item = self.get_item(item_key)
         return item.tags if item else []
 
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
-        # Simplified: items with parentItem = itemID of item_key
-        with self._get_connection() as conn:
-            cursor = conn.execute("""
+        conn = self._get_connection()
+        try:
+            cursor = conn.execute(
+                """
                 SELECT key FROM items
                 WHERE parentItemID = (SELECT itemID FROM items WHERE key = ?)
-            """, (item_key,))
+            """,
+                (item_key,),
+            )
             return [{"key": r["key"]} for r in cursor]
+        finally:
+            conn.close()
 
     # --- Write Operations (FORBIDDEN) ---
 
@@ -224,11 +270,12 @@ class SqliteZoteroGateway(ZoteroGateway):
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
         raise ConfigurationError("Offline mode is read-only")
 
-    def upload_attachment(self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf") -> bool:
+    def upload_attachment(
+        self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
+    ) -> bool:
         raise ConfigurationError("Offline mode is read-only")
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:
-        # Attachment download might be possible if files are local, but for now we follow 'read-only' mandate for DB
         raise ConfigurationError("Offline mode is read-only (local file access not implemented)")
 
     def update_attachment_link(self, item_key: str, version: int, new_path: str) -> bool:
@@ -245,15 +292,9 @@ class SqliteZoteroGateway(ZoteroGateway):
                 yield item
 
     def verify_credentials(self) -> bool:
-        """
-        Verifies that the database file exists and is accessible.
-        """
         return os.path.exists(self.original_db_path)
 
     def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:
-        """
-        Offline mode does not support user groups.
-        """
         return []
 
 
@@ -272,8 +313,11 @@ class SqliteJobRepository(JobRepository):
         return conn
 
     def _init_db(self):
-        with self._get_connection() as conn:
-            conn.execute("""
+        conn = self._get_connection()
+        try:
+            with conn:
+                conn.execute(
+                    """
                 CREATE TABLE IF NOT EXISTS jobs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     item_key TEXT NOT NULL,
@@ -284,87 +328,108 @@ class SqliteJobRepository(JobRepository):
                     payload TEXT NOT NULL,
                     last_error TEXT
                 )
-            """)
-            conn.commit()
+            """
+                )
+        finally:
+            conn.close()
 
     def enqueue(self, job: Job) -> int:
-        with self._get_connection() as conn:
-            cursor = conn.execute("""
+        conn = self._get_connection()
+        try:
+            with conn:
+                cursor = conn.execute(
+                    """
                 INSERT INTO jobs (item_key, task_type, status, attempts, next_retry_at, payload, last_error)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                job.item_key,
-                job.task_type,
-                job.status,
-                job.attempts,
-                job.next_retry_at,
-                json.dumps(job.payload),
-                job.last_error
-            ))
-            if cursor.lastrowid is None:
-                raise sqlite3.Error("Failed to retrieve last inserted job ID")
-            return int(cursor.lastrowid)
+            """,
+                    (
+                        job.item_key,
+                        job.task_type,
+                        job.status,
+                        job.attempts,
+                        job.next_retry_at,
+                        json.dumps(job.payload),
+                        job.last_error,
+                    ),
+                )
+                if cursor.lastrowid is None:
+                    raise sqlite3.Error("Failed to retrieve last inserted job ID")
+                return int(cursor.lastrowid)
+        finally:
+            conn.close()
 
     def get_next_pending(self, task_type: str) -> Optional[Job]:
-        with self._get_connection() as conn:
-            # Atomic fetch & lock equivalent for SQLite
-            conn.execute("BEGIN IMMEDIATE")
-            try:
-                row = conn.execute("""
+        conn = self._get_connection()
+        try:
+            with conn:
+                conn.execute("BEGIN IMMEDIATE")
+                row = conn.execute(
+                    """
                     SELECT * FROM jobs
                     WHERE task_type = ? AND status IN ('PENDING', 'RETRY')
                     AND (next_retry_at IS NULL OR next_retry_at <= datetime('now'))
                     ORDER BY id ASC LIMIT 1
-                """, (task_type,)).fetchone()
+                """,
+                    (task_type,),
+                ).fetchone()
 
                 if row:
                     conn.execute("UPDATE jobs SET status = 'PROCESSING' WHERE id = ?", (row["id"],))
-                    conn.commit()
                     job = self._map_row_to_job(row)
                     job.status = "PROCESSING"
                     return job
-                conn.commit()
                 return None
-            except Exception:
-                conn.rollback()
-                raise
+        finally:
+            conn.close()
 
     def update_job(self, job: Job) -> bool:
-        with self._get_connection() as conn:
-            cursor = conn.execute("""
+        conn = self._get_connection()
+        try:
+            with conn:
+                cursor = conn.execute(
+                    """
                 UPDATE jobs
                 SET status = ?, attempts = ?, next_retry_at = ?, payload = ?, last_error = ?
                 WHERE id = ?
-            """, (
-                job.status,
-                job.attempts,
-                job.next_retry_at,
-                json.dumps(job.payload),
-                job.last_error,
-                job.id
-            ))
-            return cursor.rowcount > 0
+            """,
+                    (
+                        job.status,
+                        job.attempts,
+                        job.next_retry_at,
+                        json.dumps(job.payload),
+                        job.last_error,
+                        job.id,
+                    ),
+                )
+                return cursor.rowcount > 0
+        finally:
+            conn.close()
 
     def get_job(self, job_id: int) -> Optional[Job]:
-        with self._get_connection() as conn:
+        conn = self._get_connection()
+        try:
             row = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
             if row:
                 return self._map_row_to_job(row)
             return None
+        finally:
+            conn.close()
 
     def list_jobs(self, task_type: Optional[str] = None, limit: int = 100) -> List[Job]:
-        with self._get_connection() as conn:
+        conn = self._get_connection()
+        try:
             if task_type:
                 cursor = conn.execute(
                     "SELECT * FROM jobs WHERE task_type = ? ORDER BY id DESC LIMIT ?",
-                    (task_type, limit)
+                    (task_type, limit),
                 )
             else:
                 cursor = conn.execute("SELECT * FROM jobs ORDER BY id DESC LIMIT ?", (limit,))
             return [self._map_row_to_job(row) for row in cursor]
+        finally:
+            conn.close()
 
     def _map_row_to_job(self, row: sqlite3.Row) -> Job:
-        # Re-fetch item to ensure it's not locked? No, row is already fetched.
         return Job(
             id=row["id"],
             item_key=row["item_key"],
@@ -373,5 +438,5 @@ class SqliteJobRepository(JobRepository):
             attempts=row["attempts"],
             next_retry_at=row["next_retry_at"],
             payload=json.loads(row["payload"]),
-            last_error=row["last_error"]
+            last_error=row["last_error"],
         )

@@ -30,7 +30,8 @@ def test_enqueue_failure(mock_db_path):
 
     with patch.object(repo, "_get_connection") as mock_get_conn:
         mock_conn = MagicMock()
-        mock_get_conn.return_value.__enter__.return_value = mock_conn
+        mock_get_conn.return_value = mock_conn
+        mock_conn.__enter__.return_value = mock_conn
 
         # Fail on INSERT
         mock_conn.execute.side_effect = sqlite3.IntegrityError("Constraint failed")
@@ -45,7 +46,8 @@ def test_enqueue_no_lastrowid(mock_db_path):
 
     with patch.object(repo, "_get_connection") as mock_get_conn:
         mock_conn = MagicMock()
-        mock_get_conn.return_value.__enter__.return_value = mock_conn
+        mock_get_conn.return_value = mock_conn
+        mock_conn.__enter__.return_value = mock_conn
 
         mock_cursor = MagicMock()
         mock_conn.execute.return_value = mock_cursor
@@ -61,7 +63,8 @@ def test_get_next_pending_transaction_failure(mock_db_path):
 
     with patch.object(repo, "_get_connection") as mock_get_conn:
         mock_conn = MagicMock()
-        mock_get_conn.return_value.__enter__.return_value = mock_conn
+        mock_get_conn.return_value = mock_conn
+        mock_conn.__enter__.return_value = mock_conn
 
         # Setup SELECT
         mock_cursor = MagicMock()
@@ -85,7 +88,11 @@ def test_get_next_pending_transaction_failure(mock_db_path):
         with pytest.raises(sqlite3.OperationalError, match="Lock error"):
             repo.get_next_pending("test")
 
-        mock_conn.rollback.assert_called_once()
+        # mock_conn.__exit__ is called by the 'with conn' block
+        # We verify it was called with an exception (the first argument to __exit__)
+        assert mock_conn.__exit__.called
+        args, _ = mock_conn.__exit__.call_args
+        assert args[0] is sqlite3.OperationalError
 
 def test_update_job_failure(mock_db_path):
     """Test failure during job update."""
@@ -94,7 +101,8 @@ def test_update_job_failure(mock_db_path):
 
     with patch.object(repo, "_get_connection") as mock_get_conn:
         mock_conn = MagicMock()
-        mock_get_conn.return_value.__enter__.return_value = mock_conn
+        mock_get_conn.return_value = mock_conn
+        mock_conn.__enter__.return_value = mock_conn
 
         mock_conn.execute.side_effect = sqlite3.OperationalError("DB Locked")
 
