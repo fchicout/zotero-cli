@@ -78,6 +78,14 @@ class CollectionCommand(BaseCommand):
         backup_p.add_argument("--name", required=True, help="Collection name or key")
         backup_p.add_argument("--output", required=True, help="Output file path")
 
+        # Export
+        export_p = sub.add_parser("export", help="Export a collection to external formats")
+        export_p.add_argument("name", help="Collection name or key")
+        export_p.add_argument("--output", required=True, help="Output file path")
+        export_p.add_argument(
+            "--format", default="bibtex", choices=["bibtex"], help="Export format (Default: bibtex)"
+        )
+
         # Purge
         purge_p = sub.add_parser(
             "purge", help="Purge assets (files, notes, tags) from a collection"
@@ -145,6 +153,8 @@ class CollectionCommand(BaseCommand):
             self._handle_pdf(args)
         elif args.verb == "backup":
             self._handle_backup(gateway, args)
+        elif args.verb == "export":
+            self._handle_export(args)
         elif args.verb == "purge":
             self._handle_purge(args)
 
@@ -251,3 +261,14 @@ class CollectionCommand(BaseCommand):
             print(f"Backup complete: {args.output}")
         except Exception as e:
             print(f"Backup failed: {e}", file=sys.stderr)
+
+    def _handle_export(self, args):
+        force_user = getattr(args, "user", False)
+        service = GatewayFactory.get_export_service(force_user=force_user)
+
+        print(f"Exporting collection '{args.name}' to {args.output} ({args.format})...")
+        if service.export_collection(args.name, args.output, args.format):
+            print(f"Export complete: {args.output}")
+        else:
+            print("Export failed.", file=sys.stderr)
+            sys.exit(1)
