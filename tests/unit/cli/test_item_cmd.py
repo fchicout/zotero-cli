@@ -43,8 +43,8 @@ async def test_item_pdf_fetch_success(mock_clients, env_vars, capsys):
             main()
 
     out = capsys.readouterr().out
-    assert "Enqueued discovery job 123" in out
-    assert "Successfully attached PDF" in out
+    assert "Starting resilient PDF discovery for 1 items" in out
+    assert "Discovery workers finished" in out
     mock_pdf.enqueue_find_pdf.assert_called_with("ITEM1")
     mock_run.assert_called_once()
 
@@ -66,6 +66,6 @@ async def test_item_pdf_fetch_failure(mock_clients, env_vars, capsys):
             main()
 
     out = capsys.readouterr().out
-    assert "Failed to attach PDF" in out
-    assert "404 Not Found" in out
+    assert "Starting resilient PDF discovery for 1 items" in out
+    assert "Discovery workers finished" in out
 

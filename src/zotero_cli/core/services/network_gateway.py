@@ -28,7 +28,9 @@ class NetworkGateway:
     async def close(self):
         await self._client.aclose()
 
-    async def get(self, url: str, headers: Optional[Dict[str, str]] = None, **kwargs: Any) -> httpx.Response:
+    async def get(
+        self, url: str, headers: Optional[Dict[str, str]] = None, **kwargs: Any
+    ) -> httpx.Response:
         """
         Performs a GET request with automatic retries and identity management.
         """
@@ -38,7 +40,7 @@ class NetworkGateway:
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         retry=retry_if_exception_type((httpx.ConnectError, httpx.ReadTimeout)),
-        reraise=True
+        reraise=True,
     )
     async def _execute_request(
         self, method: str, url: str, headers: Optional[Dict[str, str]] = None, **kwargs: Any
@@ -63,7 +65,9 @@ class NetworkGateway:
                         retry_after = int(response.headers["Retry-After"])
                     except ValueError:
                         pass
-                raise RetryableError(f"Rate limited ({response.status_code})", retry_after=retry_after)
+                raise RetryableError(
+                    f"Rate limited ({response.status_code})", retry_after=retry_after
+                )
 
             # Policy: 403 -> Rotate Identity -> Retry Once
             if response.status_code == 403:
@@ -72,7 +76,9 @@ class NetworkGateway:
                 request_headers["User-Agent"] = new_ua
 
                 # Retry once
-                response = await self._client.request(method, url, headers=request_headers, **kwargs)
+                response = await self._client.request(
+                    method, url, headers=request_headers, **kwargs
+                )
 
                 if response.status_code == 403:
                     # Fail after retry
@@ -80,7 +86,7 @@ class NetworkGateway:
                     response.raise_for_status()
 
                 if response.status_code in (429, 503):
-                     raise RetryableError(f"Rate limited after rotation ({response.status_code})")
+                    raise RetryableError(f"Rate limited after rotation ({response.status_code})")
 
             # Raise for other error codes (4xx, 5xx) that are not handled above
             response.raise_for_status()
@@ -91,8 +97,8 @@ class NetworkGateway:
             # No, we raised RetryableError manually.
             # HTTPStatusError comes from raise_for_status().
             if e.response.status_code in (429, 503):
-                 # Should be caught by the manual check, but just in case
-                 raise RetryableError(f"HTTP Error {e.response.status_code}") from e
+                # Should be caught by the manual check, but just in case
+                raise RetryableError(f"HTTP Error {e.response.status_code}") from e
             raise e
         except (httpx.ConnectError, httpx.ReadTimeout) as e:
             # Let tenacity handle these

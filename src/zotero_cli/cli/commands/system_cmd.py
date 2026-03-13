@@ -178,6 +178,7 @@ class SystemCommand(BaseCommand):
 
         elif args.jobs_verb == "run":
             import asyncio
+
             worker_service: Any = None
             if args.type == "fetch_pdf":
                 worker_service = GatewayFactory.get_pdf_finder_service()

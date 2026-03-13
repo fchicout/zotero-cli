@@ -200,3 +200,45 @@ class AttachmentService:
         except Exception as e:
             print(f"Download error: {e}")
             return None
+
+    def get_fulltext(self, item_key: str) -> Optional[str]:
+        """
+        Retrieves the full text of an item's PDF attachment as Markdown.
+        """
+        # 1. Find PDF attachment
+        attachment_key = self._get_pdf_attachment_key(item_key)
+        if not attachment_key:
+            return None
+
+        # 2. Download attachment to temp file
+        fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+        os.close(fd)
+
+        try:
+            success = self.attachment_repo.download_attachment(attachment_key, temp_path)
+            if not success:
+                return None
+
+            # 3. Extract text using markitdown
+            from markitdown import MarkItDown
+
+            md = MarkItDown()
+            result = md.convert(temp_path)
+            return result.text_content
+        except Exception as e:
+            print(f"Full-text extraction error for {item_key}: {e}")
+            return None
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def _get_pdf_attachment_key(self, item_key: str) -> Optional[str]:
+        children = self.note_repo.get_item_children(item_key)
+        for child in children:
+            data = child.get("data", {})
+            if (
+                data.get("itemType") == "attachment"
+                and data.get("contentType") == "application/pdf"
+            ):
+                return child.get("key")
+        return None

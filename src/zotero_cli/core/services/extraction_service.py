@@ -68,12 +68,12 @@ class ExtractionSchemaValidator:
         seen_keys = set()
         for idx, var in enumerate(variables):
             if not isinstance(var, dict):
-                errors.append(f"Variable #{idx+1} is not a dictionary.")
+                errors.append(f"Variable #{idx + 1} is not a dictionary.")
                 continue
 
             key = var.get("key")
             if not key:
-                errors.append(f"Variable #{idx+1} missing 'key'.")
+                errors.append(f"Variable #{idx + 1} missing 'key'.")
             else:
                 if key in seen_keys:
                     errors.append(f"Duplicate key found: '{key}'.")
@@ -82,11 +82,11 @@ class ExtractionSchemaValidator:
                     errors.append(f"Key '{key}' should be snake_case (lowercase, no spaces).")
 
             if not var.get("label"):
-                errors.append(f"Variable '{key or ('#' + str(idx+1))}' missing 'label'.")
+                errors.append(f"Variable '{key or ('#' + str(idx + 1))}' missing 'label'.")
 
             v_type = var.get("type")
             if not v_type:
-                errors.append(f"Variable '{key or ('#' + str(idx+1))}' missing 'type'.")
+                errors.append(f"Variable '{key or ('#' + str(idx + 1))}' missing 'type'.")
             elif v_type not in VALID_TYPES:
                 errors.append(
                     f"Variable '{key}' has invalid type '{v_type}'. Must be one of: {', '.join(VALID_TYPES)}"
@@ -151,9 +151,7 @@ class ExtractionService:
                     and f'"persona": "{persona}"' in content
                 ):
                     existing_note_key = child.get("key") or child_data.get("key")
-                    existing_version = int(
-                        child.get("version") or child_data.get("version") or 0
-                    )
+                    existing_version = int(child.get("version") or child_data.get("version") or 0)
                     break
 
         # 3. Save
@@ -268,4 +266,3 @@ class ExtractionService:
             row_vals = [str(row.get(h, "")) for h in headers]
             lines.append("| " + " | ".join(row_vals) + " |")
         return "\n".join(lines)
-

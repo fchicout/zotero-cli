@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from zotero_cli.core.interfaces import PDFResolver
+from zotero_cli.core.interfaces import PDFResolver, ResolutionError
 from zotero_cli.core.services.network_gateway import NetworkGateway
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -45,5 +45,6 @@ class ArXivResolver(PDFResolver):
             logger.info(f"ArXiv: Successfully downloaded PDF for {arxiv_id}")
             return dest
         except Exception as e:
-            logger.error(f"ArXiv: Failed to resolve PDF for {arxiv_id}: {e}")
-            return None
+            msg = f"ArXiv: Failed to resolve PDF for {arxiv_id}: {e}"
+            logger.error(msg)
+            raise ResolutionError(msg) from e

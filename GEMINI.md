@@ -50,27 +50,30 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 | **Full-Text Screening** | `slr decide --phase full_text --evidence "..."` | [DONE] |
 | **Data Extraction** | `slr extract` (TUI + Export) | [DONE] |
 | **Synthesis & Reporting** | `report prisma`, `report snapshot`, `slr graph` | [DONE] |
+| **Knowledge Retrieval** | `slr rag ingest/query/context` | [NEW] |
 
-**Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`.
+**Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`, `markitdown`, `numpy`.
 
-## Accomplishments (Session: 2026-01-29)
+## Accomplishments (Session: 2026-03-13)
 
-### Phase 23: SDB Intelligence & Workflow Automation
-*   **[VERIFIED] Issue #55 (Auto-Move on Load):** Implemented `--move-to-included` and `--move-to-excluded` in `slr load`.
-*   **[VERIFIED] Issue #56 (SDB-Aware Listing):** Enhanced `list items` with SDB filters and dynamic metadata columns.
-*   **[VERIFIED] Issue #52 (Safe Reset):** Implemented phase-aware `slr reset` with manual note protection.
-*   **[INFRA] Release Fix:** Restored raw binary delivery by correcting path patterns in `.github/workflows/release.yml`.
-*   **[DOCS] README Modernization:** Integrated platform binaries and "Researcher's Cookbook".
-*   **[RELEASE] v2.4.1:** Finalized release with 100% test pass rate (353 unit tests).
+### Phase 24: Systematic Knowledge Retrieval (RAG Core)
+- **[VERIFIED] Issue #93 (RAG Core):** Implemented Systematic Knowledge Retrieval for LLMs.
+  - Added `RAGService` and `VectorRepository` interfaces to `core/interfaces.py`.
+  - Implemented `SQLiteVectorRepository` with Python-native Cosine Similarity (Zero-Dependency).
+  - Implemented `OpenAIEmbeddingProvider` and `MockEmbeddingProvider`.
+  - Upgraded `AttachmentService` with `get_fulltext` capability using Microsoft's `markitdown`.
+  - Integrated full RAG stack into `GatewayFactory` for seamless dependency injection.
+  - Added `slr rag ingest`, `slr rag query`, and `slr rag context` commands to the `slr` namespace.
+  - **Verification:** 100% Pass Rate on 7 new unit/integration tests. 100% Mypy compliance.
 
 ## Current State
 
-*   **Version:** `v2.4.1`
-*   **Quality:** 100% Pass Rate.
-*   **Status:** **ENHANCED & STABLE**
+*   **Version:** `v2.5.0` (In Development)
+*   **Quality:** 100% Pass Rate (455 tests).
+*   **Status:** **EVOLVING (RAG Capable)**
 
 ## Next Actions (Immediate)
-1.  **Operation PDF Resilience:** Implement Issue #65 (ArXiv Pivot) and Issue #64 (Traceability).
+1.  **Operation PDF Resilience:** Finalize Issue #64 (Traceability) feedback in CLI.
 2.  **Strategy:** REMIND USER to clone Zotero Desktop source code for "Find Full Text" analysis.
-3.  **Infrastructure:** Implement Issue #66 (HTTP Identity & Rate-limit handling).
-4.  **Integration:** Implement Issue #67 (Green OA via Unpaywall/OpenAlex).
+3.  **Infrastructure:** Implement Issue #91 (Cross-Library Item Transfer).
+4.  **Integration:** Implement Issue #81 (Direct DOI import).

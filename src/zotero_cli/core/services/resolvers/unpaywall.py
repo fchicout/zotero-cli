@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from zotero_cli.core.interfaces import PDFResolver
+from zotero_cli.core.interfaces import PDFResolver, ResolutionError
 from zotero_cli.core.services.network_gateway import NetworkGateway
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -48,5 +48,6 @@ class UnpaywallResolver(PDFResolver):
 
             return dest
         except Exception as e:
-            logger.error(f"Unpaywall resolution failed for {item.doi}: {e}")
-            return None
+            msg = f"Unpaywall resolution failed for {item.doi}: {e}"
+            logger.error(msg)
+            raise ResolutionError(msg) from e

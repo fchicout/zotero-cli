@@ -64,17 +64,26 @@ class PDFFinderService:
         # Resolver Chain Execution
         pdf_path: Optional[Path] = None
         method_used: Optional[str] = None
+        errors: List[str] = []
+
+        from zotero_cli.core.interfaces import ResolutionError
 
         for resolver in self.resolvers:
+            resolver_name = resolver.__class__.__name__
             try:
-                resolver_name = resolver.__class__.__name__
                 logger.debug(f"Trying resolver {resolver_name} for {item_key}")
                 pdf_path = await resolver.resolve(item)
                 if pdf_path:
                     method_used = resolver_name
                     break
+            except ResolutionError as e:
+                error_msg = f"{resolver_name}: {str(e)}"
+                logger.warning(f"Resolver failed for {item_key}: {error_msg}")
+                errors.append(error_msg)
             except Exception as e:
-                logger.warning(f"Resolver {resolver.__class__.__name__} failed for {item_key}: {e}")
+                error_msg = f"{resolver_name}: Unexpected error: {str(e)}"
+                logger.error(f"Resolver crashed for {item_key}: {error_msg}")
+                errors.append(error_msg)
 
         if pdf_path:
             try:
@@ -83,7 +92,9 @@ class PDFFinderService:
                     item_key, str(pdf_path), mime_type="application/pdf"
                 )
                 if success:
-                    self.job_queue.complete_job(job_id, {"method": method_used, "path": str(pdf_path)})
+                    self.job_queue.complete_job(
+                        job_id, {"method": method_used, "path": str(pdf_path)}
+                    )
                 else:
                     self.job_queue.fail_job(job_id, "Zotero attachment upload failed")
             finally:
@@ -91,5 +102,12 @@ class PDFFinderService:
                 if pdf_path.exists():
                     pdf_path.unlink()
         else:
-            logger.info(f"Failed: No resolver could find a PDF for {item_key}")
-            self.job_queue.fail_job(job_id, "No PDF found by any resolver", retry=True)
+            if errors:
+                summary = " | ".join(errors)
+                logger.info(f"Failed: Resolver errors for {item_key}: {summary}")
+                self.job_queue.fail_job(job_id, f"Errors: {summary}", retry=True)
+            else:
+                logger.info(f"Failed: No PDF found by any resolver for {item_key}")
+                self.job_queue.fail_job(
+                    job_id, "No PDF found (All resolvers returned None)", retry=True
+                )

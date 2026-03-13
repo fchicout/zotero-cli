@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
-from .models import Job, ResearchPaper, ZoteroQuery
+from .models import Job, ResearchPaper, SearchResult, VectorChunk, ZoteroQuery
 from .zotero_item import ZoteroItem
 
 
@@ -218,4 +218,59 @@ class PDFResolver(ABC):
 
     @abstractmethod
     async def resolve(self, item: ZoteroItem) -> Optional[Path]:
+        """
+        Resolves a PDF for the given item.
+        Raises ResolutionError if a technical error occurs during resolution.
+        Returns None if the PDF could not be found via this resolver.
+        """
+        pass
+
+
+class ResolutionError(Exception):
+    """
+    Exception raised when a PDF resolution fails due to a technical error.
+    """
+
+    pass
+
+
+class EmbeddingProvider(ABC):
+    @abstractmethod
+    def embed_text(self, text: str) -> List[float]:
+        pass
+
+    @abstractmethod
+    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+        pass
+
+
+class VectorRepository(ABC):
+    @abstractmethod
+    def store_chunks(self, chunks: List[VectorChunk]) -> bool:
+        pass
+
+    @abstractmethod
+    def search(self, embedding: List[float], top_k: int = 5) -> List[SearchResult]:
+        pass
+
+    @abstractmethod
+    def get_chunks_by_item(self, item_key: str) -> List[VectorChunk]:
+        pass
+
+    @abstractmethod
+    def delete_chunks_by_item(self, item_key: str) -> bool:
+        pass
+
+
+class RAGService(ABC):
+    @abstractmethod
+    def ingest_collection(self, collection_key: str) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def query(self, prompt: str, top_k: int = 5) -> List[SearchResult]:
+        pass
+
+    @abstractmethod
+    def get_context(self, item_key: str) -> str:
         pass

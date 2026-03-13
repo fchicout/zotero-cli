@@ -79,7 +79,9 @@ class ReportCommand(BaseCommand):
         try:
             with open(args.output, "w", encoding="utf-8") as f:
                 f.write(md_content)
-            console.print(f"\n[bold green]✓ PDF discovery report saved to {args.output}[/bold green]")
+            console.print(
+                f"\n[bold green]✓ PDF discovery report saved to {args.output}[/bold green]"
+            )
         except Exception as e:
             console.print(f"\n[bold red]✗ Failed to write report: {e}[/bold red]")
             sys.exit(1)

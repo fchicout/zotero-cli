@@ -42,7 +42,7 @@ class OpenerService:
         """
         abs_path = os.path.abspath(path)
         # Handle Windows paths for file URI
-        if os.name == 'nt':
-            abs_path = abs_path.replace('\\', '/')
+        if os.name == "nt":
+            abs_path = abs_path.replace("\\", "/")
 
         print(f"\n[Unable to open natively. Click to open]: file://{abs_path}\n")

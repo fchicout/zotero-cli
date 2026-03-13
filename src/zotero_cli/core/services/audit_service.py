@@ -311,9 +311,17 @@ class CollectionAuditor:
 
         return None
 
-    def _build_sdb_payload(self, row: Dict[str, str], reviewer: str, phase: str, column_map: Dict[str, str]) -> dict:
+    def _build_sdb_payload(
+        self, row: Dict[str, str], reviewer: str, phase: str, column_map: Dict[str, str]
+    ) -> dict:
         vote_col = column_map.get("vote", "Vote")
-        status = row.get(vote_col) or row.get("Status") or row.get("status") or row.get("Decision") or row.get("decision", "")
+        status = (
+            row.get(vote_col)
+            or row.get("Status")
+            or row.get("status")
+            or row.get("Decision")
+            or row.get("decision", "")
+        )
         status = status.lower()
         decision = (
             "accepted"
@@ -327,7 +335,13 @@ class CollectionAuditor:
         # SDB v1.2 usually uses 'reason_code' for the codes and 'reason_text' for the text.
         # We try to get them from mapped columns.
         reason_code_str = row.get(code_col) or row.get("Code") or row.get("reason_code") or ""
-        reason_text = row.get(reason_col) or row.get("Reason") or row.get("Comment") or row.get("reason_text") or row.get("comment", "")
+        reason_text = (
+            row.get(reason_col)
+            or row.get("Reason")
+            or row.get("Comment")
+            or row.get("reason_text")
+            or row.get("comment", "")
+        )
 
         evidence_col = column_map.get("evidence", "Evidence")
         evidence = row.get(evidence_col) or row.get("Evidence") or row.get("evidence") or ""
@@ -335,7 +349,9 @@ class CollectionAuditor:
         return {
             "audit_version": "1.2",
             "decision": decision,
-            "reason_code": [c.strip() for c in reason_code_str.split(",")] if reason_code_str else [],
+            "reason_code": [c.strip() for c in reason_code_str.split(",")]
+            if reason_code_str
+            else [],
             "reason_text": reason_text,
             "evidence": evidence,
             "persona": reviewer,

@@ -30,7 +30,9 @@ class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider):
             pass
 
         # Fields to retrieve
-        fields = "title,abstract,authors,year,venue,externalIds,url,references.externalIds,openAccessPdf"
+        fields = (
+            "title,abstract,authors,year,venue,externalIds,url,references.externalIds,openAccessPdf"
+        )
 
         # Rate limiting: 1 request per second (keeping it polite)
         time.sleep(1.1)

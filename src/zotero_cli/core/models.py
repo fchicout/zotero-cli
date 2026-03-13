@@ -62,3 +62,20 @@ class Job:
     attempts: int = 0
     next_retry_at: Optional[str] = None
     last_error: Optional[str] = None
+
+
+@dataclass
+class VectorChunk:
+    item_key: str
+    chunk_index: int
+    text: str
+    embedding: List[float]
+    id: Optional[int] = None
+
+
+@dataclass
+class SearchResult:
+    item_key: str
+    text: str
+    score: float
+    metadata: Dict[str, Any]

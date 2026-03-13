@@ -125,7 +125,9 @@ class PurgeService:
                     stats["skipped"] += 1
                 else:
                     tag_payload = [{"tag": t} for t in new_tags]
-                    if self.gateway.update_item_metadata(item.key, item.version, {"tags": tag_payload}):
+                    if self.gateway.update_item_metadata(
+                        item.key, item.version, {"tags": tag_payload}
+                    ):
                         stats["deleted"] += 1
                     else:
                         stats["errors"] += 1

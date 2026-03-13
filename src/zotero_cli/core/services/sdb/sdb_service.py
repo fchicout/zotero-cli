@@ -58,18 +58,13 @@ class SDBService:
                 e.get("persona", "N/A"),
                 e.get("phase", "N/A"),
                 e.get("timestamp", "N/A"),
-                e.get("audit_version", "N/A")
+                e.get("audit_version", "N/A"),
             )
 
         return table
 
     def edit_sdb_entry(
-        self,
-        item_key: str,
-        persona: str,
-        phase: str,
-        updates: Dict[str, Any],
-        dry_run: bool = True
+        self, item_key: str, persona: str, phase: str, updates: Dict[str, Any], dry_run: bool = True
     ) -> Tuple[bool, str]:
         """
         Surgically edits an SDB entry matching the persona/phase pair.
@@ -88,6 +83,7 @@ class SDBService:
 
         # Apply updates to a copy
         import json
+
         new_data = target.copy()
         # Remove internal keys before saving
         note_key = new_data.pop("_note_key")

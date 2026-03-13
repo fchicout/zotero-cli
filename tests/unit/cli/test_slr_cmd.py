@@ -110,10 +110,13 @@ def test_slr_validate_dispatch(mock_auditor_cls, mock_gateway, slr_cmd):
     mock_report.total_items = 0
     mock_auditor.audit_collection.return_value = mock_report
 
-    args = argparse.Namespace(verb="validate", collection="C1", verbose=False, user=False)
+    args = argparse.Namespace(
+        verb="validate", collection="Test", verbose=False, user=False, export_missing=None
+    )
+
 
     slr_cmd.execute(args)
-    mock_auditor.audit_collection.assert_called_once_with("C1")
+    mock_auditor.audit_collection.assert_called_once_with("Test")
 
 
 @patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")

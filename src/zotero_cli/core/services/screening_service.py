@@ -77,10 +77,7 @@ class ScreeningService:
 
                 if parsed_data:
                     # Robust check: does this note belong to the same persona/phase?
-                    if (
-                        parsed_data.get("persona") == persona
-                        and parsed_data.get("phase") == phase
-                    ):
+                    if parsed_data.get("persona") == persona and parsed_data.get("phase") == phase:
                         existing_note_key = child.get("key") or data.get("key")
                         existing_version = int(child.get("version") or data.get("version") or 0)
                         break
@@ -89,7 +86,9 @@ class ScreeningService:
         decision_data = {
             "audit_version": "1.2",
             "decision": sdb_decision,
-            "reason_code": [] if sdb_decision == "accepted" else ([code.strip() for code in code.split(",")] if code else []),
+            "reason_code": []
+            if sdb_decision == "accepted"
+            else ([code.strip() for code in code.split(",")] if code else []),
             "reason_text": reason if reason else "",
             "evidence": evidence if evidence else "",
             "timestamp": datetime.now(timezone.utc).isoformat(),

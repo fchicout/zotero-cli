@@ -66,7 +66,9 @@ async def test_process_job_no_resolver_found(finder_service, mock_item_repo, moc
 
     await finder_service._process_job(job)
 
-    mock_job_queue.fail_job.assert_called_once_with(2, "No PDF found by any resolver", retry=True)
+    mock_job_queue.fail_job.assert_called_once_with(
+        2, "No PDF found (All resolvers returned None)", retry=True
+    )
 
 @pytest.mark.anyio
 async def test_process_job_item_not_found(finder_service, mock_item_repo, mock_job_queue):

@@ -107,6 +107,9 @@ class SLRCommand(BaseCommand):
         val_p = sub.add_parser("validate", help="Check collection for metadata completeness")
         val_p.add_argument("--collection", required=True, help="Collection name or key")
         val_p.add_argument("--verbose", action="store_true", help="Show exact items missing data")
+        val_p.add_argument(
+            "--export-missing", help="Path to export keys of items missing PDF or ID"
+        )
 
         # --- Analysis ---
         lookup_p = sub.add_parser("lookup", help="Bulk metadata fetch")
@@ -241,6 +244,23 @@ class SLRCommand(BaseCommand):
         )
         export_p.add_argument("--output", help="Output file path")
 
+        # --- RAG (Issue #93) ---
+        rag_p = sub.add_parser("rag", help="Retrieval-Augmented Generation (RAG) Core")
+        rag_sub = rag_p.add_subparsers(dest="rag_verb", required=True)
+
+        # rag ingest
+        ingest_p = rag_sub.add_parser("ingest", help="Ingest papers into the vector store")
+        ingest_p.add_argument("--collection", required=True, help="Collection name or key")
+
+        # rag query
+        query_p = rag_sub.add_parser("query", help="Semantic search against the vector store")
+        query_p.add_argument("prompt", help="Search prompt/query")
+        query_p.add_argument("--top-k", type=int, default=5, help="Number of results (Default: 5)")
+
+        # rag context
+        context_p = rag_sub.add_parser("context", help="Retrieve context snippets for an item")
+        context_p.add_argument("key", help="Item Key")
+
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -273,6 +293,52 @@ class SLRCommand(BaseCommand):
             self._handle_reset(gateway, args)
         elif args.verb == "snowball":
             self._handle_snowball(gateway, args)
+        elif args.verb == "rag":
+            self._handle_rag(args)
+
+    def _handle_rag(self, args):
+        force_user = getattr(args, "user", False)
+        rag_service = GatewayFactory.get_rag_service(force_user=force_user)
+
+        if args.rag_verb == "ingest":
+            console.print(
+                f"[bold]Ingesting collection '{args.collection}' into vector store...[/bold]"
+            )
+            with console.status("[bold green]Extracting text and generating embeddings..."):
+                stats = rag_service.ingest_collection(args.collection)
+            console.print(
+                f"[green]Ingestion complete. Processed {stats['processed']} items.[/green]"
+            )
+
+        elif args.rag_verb == "query":
+            console.print(f"[bold]Querying vector store for:[/bold] '{args.prompt}'")
+            results = rag_service.query(args.prompt, top_k=args.top_k)
+
+            if not results:
+                console.print("[yellow]No relevant snippets found.[/yellow]")
+                return
+
+            table = Table(title=f"Semantic Search Results (Top {args.top_k})")
+            table.add_column("Score", justify="right", style="cyan")
+            table.add_column("Item Key", style="magenta")
+            table.add_column("Snippet", overflow="fold")
+
+            for res in results:
+                # Clean snippet for display
+                snippet = res.text[:200].replace("\n", " ").strip() + "..."
+                table.add_row(f"{res.score:.4f}", res.item_key, snippet)
+
+            console.print(table)
+
+        elif args.rag_verb == "context":
+            console.print(f"[bold]Retrieving context for item {args.key}...[/bold]")
+            context = rag_service.get_context(args.key)
+            if context:
+                console.print("\n--- BEGIN CONTEXT ---\n")
+                console.print(context)
+                console.print("\n--- END CONTEXT ---\n")
+            else:
+                console.print("[yellow]No context found for this item. Run ingest first.[/yellow]")
 
     def _handle_snowball(self, gateway, args):
         import asyncio
@@ -567,6 +633,24 @@ class SLRCommand(BaseCommand):
                 print(f"Missing PDF: {', '.join([i.key for i in report.items_missing_pdf])}")
             if report.items_missing_note:
                 print(f"Missing Note: {', '.join([i.key for i in report.items_missing_note])}")
+
+        if args.export_missing:
+            # Export keys of items missing critical assets (PDF or ID)
+            missing_keys = set()
+            for item in report.items_missing_id:
+                missing_keys.add(item.key)
+            for item in report.items_missing_pdf:
+                missing_keys.add(item.key)
+
+            if missing_keys:
+                with open(args.export_missing, "w", encoding="utf-8") as f:
+                    for key in sorted(list(missing_keys)):
+                        f.write(f"{key}\n")
+                console.print(
+                    f"[green]Exported {len(missing_keys)} missing item keys to {args.export_missing}[/green]"
+                )
+            else:
+                console.print("[yellow]No missing items found to export.[/yellow]")
 
         if has_failures:
             print("\n[bold red]Audit FAILED.[/bold red] Some items are not submission-ready.")

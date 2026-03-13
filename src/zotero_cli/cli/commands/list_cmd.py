@@ -33,7 +33,9 @@ class ListCommand(BaseCommand):
         li_p.add_argument(
             "--excluded", action="store_true", help="Filter for items with decision 'rejected'"
         )
-        li_p.add_argument("--criteria", help="Filter for items with specific exclusion code, e.g., EC4")
+        li_p.add_argument(
+            "--criteria", help="Filter for items with specific exclusion code, e.g., EC4"
+        )
         li_p.add_argument("--persona", help="Filter by reviewer persona")
         li_p.add_argument("--phase", help="Filter by screening phase")
 

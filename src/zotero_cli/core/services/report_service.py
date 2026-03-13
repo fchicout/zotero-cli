@@ -174,9 +174,7 @@ class ReportService:
         for job in jobs:
             method = job.payload.get("result", {}).get("method", "-")
             info = job.last_error or job.payload.get("result", {}).get("path", "")
-            md.append(
-                f"| {job.item_key} | {job.status} | {method} | {job.attempts} | {info} |"
-            )
+            md.append(f"| {job.item_key} | {job.status} | {method} | {job.attempts} | {info} |")
 
         md.extend(
             [

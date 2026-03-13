@@ -118,7 +118,9 @@ class ItemCommand(BaseCommand):
         pdf_sub = pdf_p.add_subparsers(dest="pdf_verb", required=True)
 
         fetch_p = pdf_sub.add_parser("fetch", help="Fetch missing PDF for a specific item")
-        fetch_p.add_argument("key", help="Item Key")
+        fetch_p.add_argument("key", nargs="?", help="Item Key (optional if --collection or --file)")
+        fetch_p.add_argument("--collection", help="Fetch PDFs for all items in a collection")
+        fetch_p.add_argument("--file", help="Fetch PDFs for all items in a key-list file")
         fetch_p.add_argument("--verbose", action="store_true")
 
         strip_p = pdf_sub.add_parser("strip", help="Remove PDF attachments from a specific item")
@@ -251,23 +253,54 @@ class ItemCommand(BaseCommand):
     def _handle_pdf_ops(self, args):
         force_user = getattr(args, "user", False)
         if args.pdf_verb == "fetch":
-            service = GatewayFactory.get_attachment_service(force_user=force_user)
+            gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
             pdf_finder = GatewayFactory.get_pdf_finder_service(force_user=force_user)
 
-            # Use PDFFinderService directly for single item enqueue
-            jid = pdf_finder.enqueue_find_pdf(args.key)
-            console.print(f"[green]Enqueued discovery job {jid} for item {args.key}.[/green]")
+            keys = []
+            if args.key:
+                keys.append(args.key)
 
-            console.print("[bold]Starting resilient PDF discovery...[/bold]")
-            asyncio.run(pdf_finder.process_jobs(count=1))
+            if args.collection:
+                col_id = gateway.get_collection_id_by_name(args.collection)
+                if col_id:
+                    items = gateway.get_items_in_collection(col_id)
+                    keys.extend([i.key for i in items])
+                else:
+                    console.print(f"[red]Error: Collection '{args.collection}' not found.[/red]")
+                    return
 
-            # Check if it succeeded
-            job = pdf_finder.job_queue.repo.get_job(jid)
-            if job and job.status == "COMPLETED":
-                console.print(f"[bold green]Successfully attached PDF to {args.key}[/bold green]")
-            else:
-                error = job.last_error if job else "Unknown error"
-                console.print(f"[bold red]Failed to attach PDF to {args.key}: {error}[/bold red]")
+            if args.file:
+                import os
+
+                if not os.path.exists(args.file):
+                    console.print(f"[red]Error: File '{args.file}' not found.[/red]")
+                    return
+                with open(args.file, "r") as f:
+                    keys.extend([line.strip() for line in f if line.strip()])
+
+            if not keys:
+                console.print("[red]Error: Provide a key, --collection, or --file.[/red]")
+                return
+
+            # Deduplicate
+            unique_keys = []
+            seen = set()
+            for k in keys:
+                if k not in seen:
+                    unique_keys.append(k)
+                    seen.add(k)
+
+            # Enqueue all
+            for k in unique_keys:
+                jid = pdf_finder.enqueue_find_pdf(k)
+                if args.verbose:
+                    console.print(f"Enqueued discovery job {jid} for item {k}")
+
+            console.print(
+                f"[bold]Starting resilient PDF discovery for {len(unique_keys)} items...[/bold]"
+            )
+            asyncio.run(pdf_finder.process_jobs())
+            console.print("[bold green]Discovery workers finished.[/bold green]")
 
         elif args.pdf_verb == "strip":
             service = GatewayFactory.get_attachment_service(force_user=force_user)

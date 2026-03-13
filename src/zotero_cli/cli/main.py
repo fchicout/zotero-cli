@@ -41,7 +41,9 @@ OFFLINE_MODE = False
 def main():
     parser = argparse.ArgumentParser(description="Zotero CLI - The Systematic Review Engine")
     parser.add_argument("--user", action="store_true", help="Force Personal Library mode")
-    parser.add_argument("--offline", action="store_true", help="Use local zotero.sqlite database (read-only)")
+    parser.add_argument(
+        "--offline", action="store_true", help="Use local zotero.sqlite database (read-only)"
+    )
     parser.add_argument("--config", help="Path to a custom config.toml")
     subparsers = parser.add_subparsers(dest="command", help="Primary Commands")
 

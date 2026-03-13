@@ -42,7 +42,9 @@ class TagCommand(BaseCommand):
             else:
                 print(f"Failed to add tags to {args.item}")
         elif args.verb == "purge":
-            print("[yellow]Warning: 'tag purge' is deprecated. Use 'collection purge --tags' instead.[/yellow]")
+            print(
+                "[yellow]Warning: 'tag purge' is deprecated. Use 'collection purge --tags' instead.[/yellow]"
+            )
             dry_run = not args.execute
             count = service.purge_tags_from_collection(args.collection, dry_run=dry_run)
             if count >= 0:

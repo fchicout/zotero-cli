@@ -38,10 +38,7 @@ class GenericScraperResolver(PDFResolver):
 
         # 1. Construct URL
         query_url = self.query_pattern.format(
-            base_url=self.base_url,
-            doi=item.doi,
-            arxiv_id=item.arxiv_id,
-            key=item.key
+            base_url=self.base_url, doi=item.doi, arxiv_id=item.arxiv_id, key=item.key
         )
 
         try:
@@ -57,7 +54,9 @@ class GenericScraperResolver(PDFResolver):
             # 4. Extract PDF link
             link_tag = soup.select_one(self.pdf_selector)
             if not link_tag:
-                logger.info(f"{self.name}: PDF selector '{self.pdf_selector}' not found on {query_url}")
+                logger.info(
+                    f"{self.name}: PDF selector '{self.pdf_selector}' not found on {query_url}"
+                )
                 return None
 
             pdf_url = link_tag.get("href")

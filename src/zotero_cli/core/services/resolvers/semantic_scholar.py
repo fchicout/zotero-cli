@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from zotero_cli.core.interfaces import PDFResolver
+from zotero_cli.core.interfaces import PDFResolver, ResolutionError
 from zotero_cli.core.services.network_gateway import NetworkGateway
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -58,5 +58,6 @@ class SemanticScholarResolver(PDFResolver):
 
             return dest
         except Exception as e:
-            logger.error(f"SemanticScholar: Failed to resolve PDF for {item.doi}: {e}")
-            return None
+            msg = f"SemanticScholar: Failed to resolve PDF for {item.doi}: {e}"
+            logger.error(msg)
+            raise ResolutionError(msg) from e
