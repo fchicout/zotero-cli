@@ -9,6 +9,7 @@ from datetime import datetime
 # --- Configuration ---
 DRAFT_FILE = "RELEASE_DRAFT.md"
 
+
 def run(cmd, cwd=None, capture=True):
     """Run a shell command."""
     result = subprocess.run(
@@ -17,9 +18,10 @@ def run(cmd, cwd=None, capture=True):
         cwd=cwd,
         text=True,
         stdout=subprocess.PIPE if capture else None,
-        stderr=subprocess.PIPE if capture else None
+        stderr=subprocess.PIPE if capture else None,
     )
     return result
+
 
 def check_hygiene():
     """Ensure workspace is clean."""
@@ -31,12 +33,14 @@ def check_hygiene():
         sys.exit(1)
     print("✅ Workspace is clean.")
 
+
 def get_last_tag():
     """Get the latest tag."""
     res = run("git describe --tags --abbrev=0")
     if res.returncode != 0:
         return None
     return res.stdout.strip()
+
 
 def generate_notes(last_tag, new_version):
     """Generate release notes from git log."""
@@ -49,13 +53,7 @@ def generate_notes(last_tag, new_version):
     commits = res.stdout.splitlines()
 
     # Categorize
-    categories = {
-        "feat": [],
-        "fix": [],
-        "docs": [],
-        "chore": [],
-        "other": []
-    }
+    categories = {"feat": [], "fix": [], "docs": [], "chore": [], "other": []}
 
     for line in commits:
         match = re.match(r"^(\w+)(?:\(.*?\))?: (.*)", line)
@@ -90,6 +88,7 @@ def generate_notes(last_tag, new_version):
         lines.append("")
 
     return "\n".join(lines)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Argentis Release Wizard")
@@ -153,6 +152,7 @@ def main():
     print("✅ Done! CI/CD should trigger now.")
     # Optional: cleanup draft
     # os.remove(DRAFT_FILE)
+
 
 if __name__ == "__main__":
     main()

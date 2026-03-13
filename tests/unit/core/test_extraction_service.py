@@ -7,7 +7,6 @@ from zotero_cli.core.services.extraction_service import ExtractionSchemaValidato
 
 
 class TestExtractionSchemaValidator:
-
     def test_init_schema(self, tmp_path):
         target_file = tmp_path / "new_schema.yaml"
         validator = ExtractionSchemaValidator(str(target_file))
@@ -38,7 +37,7 @@ class TestExtractionSchemaValidator:
         # Test 2: Invalid YAML
         bad_yaml = tmp_path / "bad.yaml"
         with open(bad_yaml, "w") as f:
-            f.write("key: : value") # Invalid YAML syntax
+            f.write("key: : value")  # Invalid YAML syntax
 
         validator = ExtractionSchemaValidator(str(bad_yaml))
         with pytest.raises(ValueError) as excinfo:
@@ -52,8 +51,8 @@ class TestExtractionSchemaValidator:
             "version": "1.0",
             "variables": [
                 {"key": "v1", "label": "V1", "type": "text"},
-                {"key": "v2", "label": "V2", "type": "select", "options": ["A", "B"]}
-            ]
+                {"key": "v2", "label": "V2", "type": "select", "options": ["A", "B"]},
+            ],
         }
         with open(schema_file, "w") as f:
             yaml.dump(data, f)
@@ -64,7 +63,7 @@ class TestExtractionSchemaValidator:
 
     def test_validate_missing_fields(self, tmp_path):
         schema_file = tmp_path / "schema.yaml"
-        data = {"title": "Test"} # Missing version and variables
+        data = {"title": "Test"}  # Missing version and variables
         with open(schema_file, "w") as f:
             yaml.dump(data, f)
 
@@ -79,10 +78,10 @@ class TestExtractionSchemaValidator:
             "title": "Test",
             "version": "1.0",
             "variables": [
-                {"label": "No Key", "type": "text"}, # Missing key
-                {"key": "Bad Type", "label": "L", "type": "magic"}, # Bad type, space in key
-                {"key": "sel", "label": "S", "type": "select"} # Missing options
-            ]
+                {"label": "No Key", "type": "text"},  # Missing key
+                {"key": "Bad Type", "label": "L", "type": "magic"},  # Bad type, space in key
+                {"key": "sel", "label": "S", "type": "select"},  # Missing options
+            ],
         }
         with open(schema_file, "w") as f:
             yaml.dump(data, f)
@@ -97,10 +96,10 @@ class TestExtractionSchemaValidator:
 
 
 class TestExtractionService:
-
     @pytest.fixture
     def mock_note_repo(self):
         from unittest.mock import MagicMock
+
         return MagicMock()
 
     def test_export_matrix_csv(self, tmp_path, mock_note_repo):
@@ -114,22 +113,20 @@ class TestExtractionService:
         schema_data = {
             "title": "Test",
             "version": "1.0",
-            "variables": [
-                {"key": "method", "label": "Methodology", "type": "text"}
-            ]
+            "variables": [{"key": "method", "label": "Methodology", "type": "text"}],
         }
         with open(schema_file, "w") as f:
             yaml.dump(schema_data, f)
 
         # 2. Setup Mock Item and Note
-        item = ZoteroItem(key="ABC", version=1, item_type="journalArticle", title="Paper 1", date="2024")
+        item = ZoteroItem(
+            key="ABC", version=1, item_type="journalArticle", title="Paper 1", date="2024"
+        )
 
         note_payload = {
             "action": "data_extraction",
             "persona": "tester",
-            "data": {
-                "method": {"value": "Case Study"}
-            }
+            "data": {"method": {"value": "Case Study"}},
         }
         mock_note_repo.get_item_children.return_value = [
             {"data": {"itemType": "note", "note": f"<div>{json.dumps(note_payload)}</div>"}}
@@ -157,22 +154,26 @@ class TestExtractionService:
         schema_data = {
             "title": "Test",
             "version": "1.0",
-            "variables": [
-                {"key": "design", "label": "Design", "type": "text"}
-            ]
+            "variables": [{"key": "design", "label": "Design", "type": "text"}],
         }
         with open(schema_file, "w") as f:
             yaml.dump(schema_data, f)
 
         item = ZoteroItem(key="K1", version=1, item_type="art", title="T1", date="2023")
-        note_payload = {"action": "data_extraction", "persona": "p1", "data": {"design": {"value": "Exp"}}}
+        note_payload = {
+            "action": "data_extraction",
+            "persona": "p1",
+            "data": {"design": {"value": "Exp"}},
+        }
         mock_note_repo.get_item_children.return_value = [
             {"data": {"itemType": "note", "note": f"<div>{json.dumps(note_payload)}</div>"}}
         ]
 
         service = ExtractionService(mock_note_repo, schema_path=str(schema_file))
         os.chdir(tmp_path)
-        path = service.export_matrix([item], output_format="markdown", persona="p1", output_path="matrix.md")
+        path = service.export_matrix(
+            [item], output_format="markdown", persona="p1", output_path="matrix.md"
+        )
 
         with open(path) as f:
             lines = f.readlines()
@@ -189,22 +190,26 @@ class TestExtractionService:
         schema_data = {
             "title": "Test",
             "version": "1.0",
-            "variables": [
-                {"key": "q1", "label": "Q1", "type": "text"}
-            ]
+            "variables": [{"key": "q1", "label": "Q1", "type": "text"}],
         }
         with open(schema_file, "w") as f:
             yaml.dump(schema_data, f)
 
         item = ZoteroItem(key="J1", version=1, item_type="art", title="Paper J", date="2022")
-        note_payload = {"action": "data_extraction", "persona": "pj", "data": {"q1": {"value": "Ans J"}}}
+        note_payload = {
+            "action": "data_extraction",
+            "persona": "pj",
+            "data": {"q1": {"value": "Ans J"}},
+        }
         mock_note_repo.get_item_children.return_value = [
             {"data": {"itemType": "note", "note": f"<div>{json.dumps(note_payload)}</div>"}}
         ]
 
         service = ExtractionService(mock_note_repo, schema_path=str(schema_file))
         os.chdir(tmp_path)
-        path = service.export_matrix([item], output_format="json", persona="pj", output_path="matrix.json")
+        path = service.export_matrix(
+            [item], output_format="json", persona="pj", output_path="matrix.json"
+        )
 
         with open(path) as f:
             data = json.load(f)
@@ -214,6 +219,7 @@ class TestExtractionService:
 
     def test_save_extraction_new(self, mock_note_repo):
         from zotero_cli.core.services.extraction_service import ExtractionService
+
         service = ExtractionService(mock_note_repo)
         mock_note_repo.get_item_children.return_value = []
         mock_note_repo.create_note.return_value = True
@@ -229,6 +235,7 @@ class TestExtractionService:
 
     def test_save_extraction_update(self, mock_note_repo):
         from zotero_cli.core.services.extraction_service import ExtractionService
+
         service = ExtractionService(mock_note_repo)
 
         existing_note = {
@@ -236,8 +243,8 @@ class TestExtractionService:
             "version": 10,
             "data": {
                 "itemType": "note",
-                "note": '<div>{"action": "data_extraction", "persona": "valerius"}</div>'
-            }
+                "note": '<div>{"action": "data_extraction", "persona": "valerius"}</div>',
+            },
         }
         mock_note_repo.get_item_children.return_value = [existing_note]
         mock_note_repo.update_note.return_value = True
@@ -247,4 +254,5 @@ class TestExtractionService:
 
         assert success is True
         from unittest.mock import ANY
+
         mock_note_repo.update_note.assert_called_once_with("NOTE1", 10, ANY)

@@ -20,7 +20,7 @@ def test_rag_full_flow(tmp_path, monkeypatch):
     mock_config = ZoteroConfig(
         api_key="fake_api_key",
         library_id="fake_lib_id",
-        openai_api_key=None # This ensures MockEmbeddingProvider is used
+        openai_api_key=None,  # This ensures MockEmbeddingProvider is used
     )
 
     # Mock config retrieval
@@ -40,7 +40,9 @@ def test_rag_full_flow(tmp_path, monkeypatch):
     # Mock AttachmentService.get_fulltext
     attachment_service = MagicMock()
     attachment_service.get_fulltext.return_value = "This is a test document about RAG."
-    monkeypatch.setattr(GatewayFactory, "get_attachment_service", lambda *args, **kwargs: attachment_service)
+    monkeypatch.setattr(
+        GatewayFactory, "get_attachment_service", lambda *args, **kwargs: attachment_service
+    )
 
     # 3. Execution
     service = GatewayFactory.get_rag_service()
@@ -60,6 +62,7 @@ def test_rag_full_flow(tmp_path, monkeypatch):
     assert "test document" in context
     assert "RAG" in context
 
+
 @pytest.mark.unit
 def test_rag_persistence(tmp_path, monkeypatch):
     """
@@ -76,6 +79,7 @@ def test_rag_persistence(tmp_path, monkeypatch):
     # Store something
     repo1 = GatewayFactory.get_vector_repository()
     from zotero_cli.core.models import VectorChunk
+
     repo1.store_chunks([VectorChunk(item_key="K1", chunk_index=0, text="hello", embedding=[1.0])])
 
     # Retrieve from a new instance

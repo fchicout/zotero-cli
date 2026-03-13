@@ -12,13 +12,16 @@ from zotero_cli.core.zotero_item import ZoteroItem
 def mock_gateway():
     return MagicMock()
 
+
 @pytest.fixture
 def arxiv_item():
     return ZoteroItem(key="ABC123", version=1, item_type="journalArticle", arxiv_id="2101.12345")
 
+
 @pytest.fixture
 def doi_item():
     return ZoteroItem(key="DEF456", version=1, item_type="journalArticle", doi="10.1101/456")
+
 
 @pytest.mark.anyio
 async def test_arxiv_resolver_success(mock_gateway, arxiv_item):
@@ -40,15 +43,14 @@ async def test_arxiv_resolver_success(mock_gateway, arxiv_item):
     # Cleanup
     result.unlink()
 
+
 @pytest.mark.anyio
 async def test_semantic_scholar_resolver_success(mock_gateway, doi_item):
     resolver = SemanticScholarResolver(mock_gateway)
 
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "openAccessPdf": {"url": "http://example.com/ss.pdf"}
-    }
+    mock_response.json.return_value = {"openAccessPdf": {"url": "http://example.com/ss.pdf"}}
 
     mock_pdf_response = MagicMock()
     mock_pdf_response.status_code = 200
@@ -66,12 +68,14 @@ async def test_semantic_scholar_resolver_success(mock_gateway, doi_item):
     # Cleanup
     result.unlink()
 
+
 @pytest.mark.anyio
 async def test_arxiv_resolver_no_id(mock_gateway):
     item = ZoteroItem(key="NONE", version=1, item_type="journalArticle")
     resolver = ArXivResolver(mock_gateway)
     result = await resolver.resolve(item)
     assert result is None
+
 
 @pytest.mark.anyio
 async def test_semantic_scholar_no_oa(mock_gateway, doi_item):

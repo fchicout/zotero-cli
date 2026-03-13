@@ -6,14 +6,21 @@ def test_import_with_pdf_simple(run_cli, temp_collection):
     """
     Simpler version of import to verify PDF handling without full storage checkout.
     """
-    res = run_cli([
-        "import", "arxiv",
-        "--query", "id:1706.03762",
-        "--limit", "1",
-        "--collection", temp_collection
-    ])
+    res = run_cli(
+        [
+            "import",
+            "arxiv",
+            "--query",
+            "id:1706.03762",
+            "--limit",
+            "1",
+            "--collection",
+            temp_collection,
+        ]
+    )
     assert res.returncode == 0
     assert "Imported 1 items" in res.stdout
+
 
 @pytest.mark.e2e
 def test_storage_checkout_mocked(run_cli, tmp_path, monkeypatch):
@@ -35,6 +42,7 @@ def test_storage_checkout_mocked(run_cli, tmp_path, monkeypatch):
     # or skip if it's too slow.
 
     import os
+
     env = os.environ.copy()
     env["ZOTERO_STORAGE_PATH"] = str(test_storage_dir)
 

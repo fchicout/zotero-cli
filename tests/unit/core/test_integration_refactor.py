@@ -18,29 +18,36 @@ def temp_db():
     if os.path.exists(path):
         os.remove(path)
 
+
 @pytest.fixture
 def job_repo(temp_db):
     return SqliteJobRepository(temp_db)
+
 
 @pytest.fixture
 def item_repo():
     repo = MagicMock()
     return repo
 
+
 @pytest.fixture
 def attachment_repo():
     return MagicMock()
+
 
 @pytest.fixture
 def col_repo():
     repo = MagicMock()
     return repo
 
+
 @pytest.fixture
 def pdf_finder(job_repo, item_repo, attachment_repo):
     from zotero_cli.core.services.job_queue_service import JobQueueService
+
     jq = JobQueueService(job_repo)
     return PDFFinderService(jq, item_repo, attachment_repo, [])
+
 
 def test_attachment_service_enqueues_jobs(pdf_finder, col_repo, job_repo):
     # Setup
@@ -56,7 +63,7 @@ def test_attachment_service_enqueues_jobs(pdf_finder, col_repo, job_repo):
         attachment_repo=MagicMock(),
         note_repo=MagicMock(),
         metadata_aggregator=MagicMock(),
-        pdf_finder=pdf_finder
+        pdf_finder=pdf_finder,
     )
 
     # Execute

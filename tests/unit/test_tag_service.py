@@ -90,4 +90,6 @@ def test_delete_tag(service, mock_gateway, mock_purge_service):
     count = service.delete_tag("delete_me", dry_run=False)
 
     assert count == 1
-    mock_purge_service.purge_tags.assert_called_once_with(["KEY1"], tag_name="delete_me", dry_run=False)
+    mock_purge_service.purge_tags.assert_called_once_with(
+        ["KEY1"], tag_name="delete_me", dry_run=False
+    )

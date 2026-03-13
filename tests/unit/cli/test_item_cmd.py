@@ -16,7 +16,7 @@ def mock_clients():
         yield {
             "gateway": mock_zot_get.return_value,
             "pdf_finder": mock_pdf_get.return_value,
-            "attachment": mock_att_get.return_value
+            "attachment": mock_att_get.return_value,
         }
 
 
@@ -68,4 +68,3 @@ async def test_item_pdf_fetch_failure(mock_clients, env_vars, capsys):
     out = capsys.readouterr().out
     assert "Starting resilient PDF discovery for 1 items" in out
     assert "Discovery workers finished" in out
-

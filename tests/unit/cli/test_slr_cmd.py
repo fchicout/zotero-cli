@@ -114,7 +114,6 @@ def test_slr_validate_dispatch(mock_auditor_cls, mock_gateway, slr_cmd):
         verb="validate", collection="Test", verbose=False, user=False, export_missing=None
     )
 
-
     slr_cmd.execute(args)
     mock_auditor.audit_collection.assert_called_once_with("Test")
 
@@ -180,4 +179,6 @@ def test_slr_reset_dispatch(mock_purge_cls, mock_gateway_get, slr_cmd):
     mock_purge.purge_notes.assert_called_once_with(
         ["K1"], sdb_only=True, phase="title_abstract", persona="Pythias", dry_run=False
     )
-    mock_purge.purge_tags.assert_called_once_with(["K1"], tag_name="rsl:phase:title_abstract", dry_run=False)
+    mock_purge.purge_tags.assert_called_once_with(
+        ["K1"], tag_name="rsl:phase:title_abstract", dry_run=False
+    )

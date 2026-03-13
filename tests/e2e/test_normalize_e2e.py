@@ -25,9 +25,7 @@ def test_system_normalize_e2e(run_cli, tmp_path):
         writer.writerow(row)
 
     # Action: Run CLI
-    result = run_cli(
-        ["system", "normalize", str(input_file), "--output", str(output_file)]
-    )
+    result = run_cli(["system", "normalize", str(input_file), "--output", str(output_file)])
 
     # Assert
     assert result.returncode == 0

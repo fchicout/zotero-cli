@@ -12,11 +12,13 @@ from zotero_cli.core.services.network_gateway import NetworkGateway
 def identity_manager():
     return IdentityManager()
 
+
 @pytest.fixture
 async def gateway(identity_manager):
     gw = NetworkGateway(identity_manager)
     yield gw
     await gw.close()
+
 
 @pytest.mark.anyio
 async def test_successful_request(gateway):
@@ -32,6 +34,7 @@ async def test_successful_request(gateway):
     call_args = gateway._client.request.call_args
     assert "User-Agent" in call_args.kwargs["headers"]
 
+
 @pytest.mark.anyio
 async def test_rate_limit_429(gateway):
     mock_resp = MagicMock(spec=httpx.Response)
@@ -44,6 +47,7 @@ async def test_rate_limit_429(gateway):
         await gateway.get("http://example.com")
 
     assert exc.value.retry_after == 120
+
 
 @pytest.mark.anyio
 async def test_soft_block_403_rotation(gateway):

@@ -200,7 +200,7 @@ def test_enrich_from_csv_with_evidence(auditor, mock_gateway, tmp_path):
 
 def test_enrich_from_csv_with_move(auditor, mock_gateway, tmp_path):
     csv_file = tmp_path / "move_decisions.csv"
-    csv_file.write_text("key,status\n" "KEY_INC,Included\n" "KEY_EXC,Excluded\n")
+    csv_file.write_text("key,status\nKEY_INC,Included\nKEY_EXC,Excluded\n")
 
     item_inc = create_mock_item({}, "KEY_INC", title="Accepted Paper")
     item_exc = create_mock_item({}, "KEY_EXC", title="Rejected Paper")
@@ -276,7 +276,7 @@ def test_detect_shifts(auditor):
     new_snap = [
         {"key": "K1", "title": "T1", "collections": ["A", "B"]},  # Shifted
         {"key": "K2", "title": "T2", "collections": ["A", "B"]},  # Stable
-        {"key": "K4", "title": "T4", "collections": ["D"]},       # Added
+        {"key": "K4", "title": "T4", "collections": ["D"]},  # Added
     ]
 
     shifts = auditor.detect_shifts(old_snap, new_snap)
@@ -293,9 +293,7 @@ def test_enrich_from_csv_missing_columns(auditor, tmp_path):
     csv_file.write_text("wrong_col,status\nKEY1,Included\n")
 
     # If we map 'key' to 'Key' but it's not there
-    results = auditor.enrich_from_csv(
-        str(csv_file), reviewer="O", column_map={"key": "Key"}
-    )
+    results = auditor.enrich_from_csv(str(csv_file), reviewer="O", column_map={"key": "Key"})
     assert "error" in results
     assert "Missing required columns" in results["error"]
 
@@ -317,7 +315,7 @@ def test_audit_children_logic(auditor, mock_gateway):
         {
             "data": {
                 "itemType": "note",
-                "note": "zotero-cli screening note: {\"decision\": \"accepted\"}",
+                "note": 'zotero-cli screening note: {"decision": "accepted"}',
             }
         },
     ]

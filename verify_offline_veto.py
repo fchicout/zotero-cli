@@ -26,6 +26,7 @@ def setup_mock_db():
     conn.close()
     return fd, path
 
+
 def test_offline_veto_real_object():
     fd, path = setup_mock_db()
     try:
@@ -60,6 +61,7 @@ def test_offline_veto_real_object():
         os.close(fd)
         if os.path.exists(path):
             os.remove(path)
+
 
 if __name__ == "__main__":
     test_offline_veto_real_object()

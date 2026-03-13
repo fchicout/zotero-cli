@@ -19,13 +19,17 @@ def sample_zotero_db(tmp_path):
     conn.execute("INSERT INTO collections VALUES ('COL1', NULL, 1)")
     conn.execute("INSERT INTO collectionData VALUES (1, 'Test Collection')")
     # Add items tables
-    conn.execute("CREATE TABLE items (itemID INTEGER PRIMARY KEY, key TEXT, version INTEGER, libraryID INTEGER, itemTypeID INTEGER, parentItemID INTEGER)")
+    conn.execute(
+        "CREATE TABLE items (itemID INTEGER PRIMARY KEY, key TEXT, version INTEGER, libraryID INTEGER, itemTypeID INTEGER, parentItemID INTEGER)"
+    )
     conn.execute("CREATE TABLE itemTypes (itemTypeID INTEGER PRIMARY KEY, typeName TEXT)")
     conn.execute("CREATE TABLE itemData (itemID INTEGER, fieldID INTEGER, valueID INTEGER)")
     conn.execute("CREATE TABLE fields (fieldID INTEGER, fieldName TEXT)")
     conn.execute("CREATE TABLE itemDataValues (valueID INTEGER, value TEXT)")
     conn.execute("CREATE TABLE deletedItems (itemID INTEGER)")
-    conn.execute("CREATE TABLE itemCreators (itemID INTEGER, creatorID INTEGER, creatorTypeID INTEGER, orderIndex INTEGER)")
+    conn.execute(
+        "CREATE TABLE itemCreators (itemID INTEGER, creatorID INTEGER, creatorTypeID INTEGER, orderIndex INTEGER)"
+    )
     conn.execute("CREATE TABLE creators (creatorID INTEGER, creatorDataID INTEGER)")
     conn.execute("CREATE TABLE creatorData (creatorDataID INTEGER, firstName TEXT, lastName TEXT)")
     conn.execute("CREATE TABLE creatorTypes (creatorTypeID INTEGER, creatorType TEXT)")
@@ -35,6 +39,7 @@ def sample_zotero_db(tmp_path):
     conn.commit()
     conn.close()
     return db_path
+
 
 def test_gateway_read_ops(sample_zotero_db):
     gateway = SqliteZoteroGateway(sample_zotero_db)
@@ -50,6 +55,7 @@ def test_gateway_read_ops(sample_zotero_db):
     # get_collection_id_by_name
     assert gateway.get_collection_id_by_name("Test Collection") == "COL1"
     assert gateway.get_collection_id_by_name("Unknown") is None
+
 
 def test_gateway_forbidden_writes(sample_zotero_db):
     gateway = SqliteZoteroGateway(sample_zotero_db)
@@ -85,6 +91,7 @@ def test_gateway_forbidden_writes(sample_zotero_db):
     with pytest.raises(ConfigurationError):
         gateway.update_attachment_link("K1", 1, "path")
 
+
 def test_gateway_read_tags(sample_zotero_db):
     gateway = SqliteZoteroGateway(sample_zotero_db)
     conn = sqlite3.connect(sample_zotero_db)
@@ -100,6 +107,7 @@ def test_gateway_read_tags(sample_zotero_db):
     assert len(items) == 1
     assert items[0].key == "K1"
 
+
 def test_job_repo_list_jobs(tmp_path):
     db_path = str(tmp_path / "jobs.sqlite")
     repo = SqliteJobRepository(db_path)
@@ -109,9 +117,11 @@ def test_job_repo_list_jobs(tmp_path):
     assert len(repo.list_jobs(task_type="t1")) == 1
     assert repo.list_jobs(task_type="t1")[0].item_key == "K1"
 
+
 def test_gateway_missing_db():
     with pytest.raises(ConfigurationError, match="Zotero database not found"):
         SqliteZoteroGateway("/non/existent/path.sqlite")
+
 
 def test_gateway_verify_credentials(sample_zotero_db):
     gateway = SqliteZoteroGateway(sample_zotero_db)

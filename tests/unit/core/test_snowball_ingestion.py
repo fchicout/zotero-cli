@@ -77,7 +77,7 @@ def test_ingest_candidates_success(
 
     # Mock repos
     mock_collection_repo.get_collection_id_by_name.return_value = "COL123"
-    mock_item_repo.get_items_by_doi.return_value = iter([]) # No duplicates
+    mock_item_repo.get_items_by_doi.return_value = iter([])  # No duplicates
 
     # Mock hydration
     paper = ResearchPaper(title="Accepted Paper", abstract="Some abstract", doi=doi)
@@ -111,6 +111,7 @@ def test_ingest_candidates_duplicate_skipping(
 
     # Mock item exists in library
     from zotero_cli.core.zotero_item import ZoteroItem
+
     existing_item = ZoteroItem(key="EXIST", version=1, item_type="journalArticle", doi=doi)
     mock_item_repo.get_items_by_doi.return_value = iter([existing_item])
 

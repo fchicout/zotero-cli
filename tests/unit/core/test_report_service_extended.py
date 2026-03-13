@@ -11,10 +11,12 @@ from zotero_cli.core.zotero_item import ZoteroItem
 def mock_gateway():
     return MagicMock()
 
+
 def test_generate_prisma_report_missing_col(mock_gateway):
     service = ReportService(mock_gateway)
     mock_gateway.get_collection_id_by_name.return_value = None
     assert service.generate_prisma_report("Missing") is None
+
 
 def test_generate_mermaid_prisma():
     report = PrismaReport(
@@ -23,7 +25,7 @@ def test_generate_mermaid_prisma():
         screened_items=5,
         accepted_items=3,
         rejected_items=2,
-        rejections_by_code={"EC1": 1, "EC2": 1}
+        rejections_by_code={"EC1": 1, "EC2": 1},
     )
     service = ReportService(MagicMock())
     mermaid = service.generate_mermaid_prisma(report)
@@ -35,6 +37,7 @@ def test_generate_mermaid_prisma():
     assert "E --> E0[EC1: 1]" in mermaid
     assert "E --> E1[EC2: 1]" in mermaid
 
+
 def test_generate_screening_markdown():
     report = PrismaReport(
         collection_name="Test Collection",
@@ -42,7 +45,7 @@ def test_generate_screening_markdown():
         screened_items=5,
         accepted_items=3,
         rejected_items=2,
-        rejections_by_code={"EC1": 2}
+        rejections_by_code={"EC1": 2},
     )
     service = ReportService(MagicMock())
     md = service.generate_screening_markdown(report)
@@ -54,10 +57,24 @@ def test_generate_screening_markdown():
     assert "## 3. PRISMA 2020 Flow Diagram" in md
     assert "```mermaid" in md
 
+
 def test_generate_pdf_report():
     jobs = [
-        Job(item_key="K1", task_type="fetch_pdf", status="COMPLETED", attempts=1, payload={"result": {"method": "unpaywall", "path": "/tmp/p1.pdf"}}),
-        Job(item_key="K2", task_type="fetch_pdf", status="FAILED", attempts=3, last_error="Timeout", payload={})
+        Job(
+            item_key="K1",
+            task_type="fetch_pdf",
+            status="COMPLETED",
+            attempts=1,
+            payload={"result": {"method": "unpaywall", "path": "/tmp/p1.pdf"}},
+        ),
+        Job(
+            item_key="K2",
+            task_type="fetch_pdf",
+            status="FAILED",
+            attempts=3,
+            last_error="Timeout",
+            payload={},
+        ),
     ]
     service = ReportService(MagicMock())
     md = service.generate_pdf_report(jobs)
@@ -79,6 +96,7 @@ def test_render_diagram_success(mock_run, tmp_path):
     assert service.render_diagram("graph TD", output) is True
     mock_run.assert_called_once()
 
+
 @patch("subprocess.run")
 def test_render_diagram_failure(mock_run, tmp_path):
     mock_run.return_value.returncode = 1
@@ -88,10 +106,12 @@ def test_render_diagram_failure(mock_run, tmp_path):
 
     assert service.render_diagram("graph TD", output) is False
 
+
 def test_render_diagram_exception():
     with patch("subprocess.run", side_effect=RuntimeError("no mmdc")):
         service = ReportService(MagicMock())
         assert service.render_diagram("graph TD", "out.png") is False
+
 
 def test_process_item_notes_variations(mock_gateway):
     # Test different JSON formats in notes
@@ -100,11 +120,14 @@ def test_process_item_notes_variations(mock_gateway):
     # Note with "include" decision and audit_version instead of action
     note1 = {"itemType": "note", "note": '{"audit_version": "1.2", "decision": "include"}'}
     # Note with "exclude" and "code" instead of "reason_code"
-    note2 = {"itemType": "note", "note": 'Decision Block: {"action": "screening_decision", "decision": "exclude", "code": "EC1"}'}
+    note2 = {
+        "itemType": "note",
+        "note": 'Decision Block: {"action": "screening_decision", "decision": "exclude", "code": "EC1"}',
+    }
     # Malformed note
     note3 = {"itemType": "note", "note": '{"bad_json": '}
     # Not an SDB note
-    note4 = {"itemType": "note", "note": 'Just a regular note'}
+    note4 = {"itemType": "note", "note": "Just a regular note"}
 
     mock_gateway.get_item_children.return_value = [note1, note2, note3, note4]
 
@@ -112,9 +135,10 @@ def test_process_item_notes_variations(mock_gateway):
     service = ReportService(mock_gateway)
     service._process_item_notes(item, report)
 
-    assert report.screened_items == 1 # It breaks after finding the FIRST valid SDB note per item
+    assert report.screened_items == 1  # It breaks after finding the FIRST valid SDB note per item
     # Wait, the current logic in _process_item_notes calls break after processing ONE note.
     # Let's verify that.
+
 
 def test_process_item_notes_multiple_items(mock_gateway):
     service = ReportService(mock_gateway)
@@ -123,8 +147,18 @@ def test_process_item_notes_multiple_items(mock_gateway):
     item1 = ZoteroItem(key="K1", version=1, item_type="journalArticle")
     mock_gateway.get_item_children.side_effect = [
         [{"itemType": "note", "note": '{"audit_version": "1.2", "decision": "accepted"}'}],
-        [{"itemType": "note", "note": '{"audit_version": "1.2", "decision": "rejected", "reason_code": "EC9"}'}],
-        [{"itemType": "note", "note": '{"audit_version": "1.2", "decision": "rejected", "reason_code": ["EC1", "EC2"]}'}]
+        [
+            {
+                "itemType": "note",
+                "note": '{"audit_version": "1.2", "decision": "rejected", "reason_code": "EC9"}',
+            }
+        ],
+        [
+            {
+                "itemType": "note",
+                "note": '{"audit_version": "1.2", "decision": "rejected", "reason_code": ["EC1", "EC2"]}',
+            }
+        ],
     ]
 
     report = PrismaReport(collection_name="Test")
@@ -145,10 +179,11 @@ def test_process_item_notes_multiple_items(mock_gateway):
     assert report.rejections_by_code["EC1"] == 1
     assert report.rejections_by_code["EC2"] == 1
 
+
 def test_process_item_malformed_json(mock_gateway):
     item = ZoteroItem(key="K1", version=1, item_type="journalArticle")
     mock_gateway.get_item_children.return_value = [
-        {"itemType": "note", "note": '{ "invalid": json, }'} # Matches {.*} but invalid JSON
+        {"itemType": "note", "note": '{ "invalid": json, }'}  # Matches {.*} but invalid JSON
     ]
     report = PrismaReport(collection_name="Test")
     service = ReportService(mock_gateway)

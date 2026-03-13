@@ -26,9 +26,7 @@ def test_normalize_ris(run_cli, tmp_path):
     output_file = tmp_path / "output_ris.csv"
     input_file.write_text(RIS_CONTENT, encoding="utf-8")
 
-    result = run_cli(
-        ["system", "normalize", str(input_file), "--output", str(output_file)]
-    )
+    result = run_cli(["system", "normalize", str(input_file), "--output", str(output_file)])
     assert result.returncode == 0
 
     with open(output_file, "r", encoding="utf-8") as f:
@@ -43,9 +41,7 @@ def test_normalize_bib(run_cli, tmp_path):
     output_file = tmp_path / "output_bib.csv"
     input_file.write_text(BIB_CONTENT, encoding="utf-8")
 
-    result = run_cli(
-        ["system", "normalize", str(input_file), "--output", str(output_file)]
-    )
+    result = run_cli(["system", "normalize", str(input_file), "--output", str(output_file)])
     assert result.returncode == 0
 
     with open(output_file, "r", encoding="utf-8") as f:
@@ -86,9 +82,7 @@ def test_normalize_csv_missing_ids(run_cli, tmp_path):
         writer.writeheader()
         writer.writerow(row)
 
-    result = run_cli(
-        ["system", "normalize", str(input_file), "--output", str(output_file)]
-    )
+    result = run_cli(["system", "normalize", str(input_file), "--output", str(output_file)])
     assert result.returncode == 0
 
     with open(output_file, "r", encoding="utf-8") as f:

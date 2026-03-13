@@ -11,6 +11,7 @@ from zotero_cli.infra.sqlite_repo import SqliteJobRepository
 def mock_db_path(tmp_path):
     return str(tmp_path / "jobs.sqlite")
 
+
 def test_init_db_failure(mock_db_path):
     """Test that initialization failures are propagated."""
     with patch("zotero_cli.infra.sqlite_repo.sqlite3.connect") as mock_connect:
@@ -23,6 +24,7 @@ def test_init_db_failure(mock_db_path):
 
         with pytest.raises(sqlite3.OperationalError, match="Disk I/O error"):
             SqliteJobRepository(mock_db_path)
+
 
 def test_enqueue_failure(mock_db_path):
     """Test that enqueue failures raise appropriate errors."""
@@ -39,6 +41,7 @@ def test_enqueue_failure(mock_db_path):
         job = Job(item_key="K1", task_type="test", payload={})
         with pytest.raises(sqlite3.IntegrityError, match="Constraint failed"):
             repo.enqueue(job)
+
 
 def test_enqueue_no_lastrowid(mock_db_path):
     """Test case where cursor.lastrowid is None."""
@@ -57,6 +60,7 @@ def test_enqueue_no_lastrowid(mock_db_path):
         with pytest.raises(sqlite3.Error, match="Failed to retrieve last inserted job ID"):
             repo.enqueue(job)
 
+
 def test_get_next_pending_transaction_failure(mock_db_path):
     """Test that rollback occurs if transaction fails during get_next_pending."""
     repo = SqliteJobRepository(mock_db_path)
@@ -69,9 +73,14 @@ def test_get_next_pending_transaction_failure(mock_db_path):
         # Setup SELECT
         mock_cursor = MagicMock()
         mock_row = {
-            "id": 1, "item_key": "K1", "task_type": "test",
-            "status": "PENDING", "attempts": 0, "next_retry_at": None,
-            "payload": "{}", "last_error": None
+            "id": 1,
+            "item_key": "K1",
+            "task_type": "test",
+            "status": "PENDING",
+            "attempts": 0,
+            "next_retry_at": None,
+            "payload": "{}",
+            "last_error": None,
         }
         mock_cursor.fetchone.return_value = mock_row
 
@@ -80,9 +89,9 @@ def test_get_next_pending_transaction_failure(mock_db_path):
         # 2. SELECT
         # 3. UPDATE -> Raise Error
         mock_conn.execute.side_effect = [
-            MagicMock(), # BEGIN IMMEDIATE
-            mock_cursor, # SELECT
-            sqlite3.OperationalError("Lock error") # UPDATE
+            MagicMock(),  # BEGIN IMMEDIATE
+            mock_cursor,  # SELECT
+            sqlite3.OperationalError("Lock error"),  # UPDATE
         ]
 
         with pytest.raises(sqlite3.OperationalError, match="Lock error"):
@@ -93,6 +102,7 @@ def test_get_next_pending_transaction_failure(mock_db_path):
         assert mock_conn.__exit__.called
         args, _ = mock_conn.__exit__.call_args
         assert args[0] is sqlite3.OperationalError
+
 
 def test_update_job_failure(mock_db_path):
     """Test failure during job update."""

@@ -8,12 +8,14 @@ def test_parse_simple_sdb():
     assert data["audit_version"] == "1.2"
     assert data["phase"] == "fulltext"
 
+
 def test_parse_wrapped_in_div():
     content = '<div>{"action": "screening_decision", "persona": "Dr. Silas"}</div>'
     data = parse_sdb_note(content)
     assert data is not None
     assert data["action"] == "screening_decision"
     assert data["persona"] == "Dr. Silas"
+
 
 def test_parse_with_newlines_and_spaces():
     content = """
@@ -29,18 +31,22 @@ def test_parse_with_newlines_and_spaces():
     assert data["sdb_version"] == "1.0"
     assert data["phase"] == "title"
 
+
 def test_parse_malformed_json():
     content = '<div>{"audit_version": "1.2", "phase": "oops... missing brace"</div>'
     data = parse_sdb_note(content)
     assert data is None
+
 
 def test_parse_non_sdb_json():
     content = '<div>{"some_other_data": 123}</div>'
     data = parse_sdb_note(content)
     assert data is None
 
+
 def test_parse_empty():
     assert parse_sdb_note("") is None
+
 
 def test_parse_legacy_format():
     # Legacy notes might not have the exact wrapper but should still parse if regex catches it

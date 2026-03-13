@@ -15,7 +15,7 @@ def test_config_manager_save_group_context(tmp_path):
             "api_key": "secret",
             "library_id": "old_lib",
             "library_type": "user",
-            "user_id": "123"
+            "user_id": "123",
         }
     }
     with open(config_file, "w") as f:
@@ -32,7 +32,8 @@ def test_config_manager_save_group_context(tmp_path):
 
         assert new_data["zotero"]["library_id"] == "999"
         assert new_data["zotero"]["library_type"] == "group"
-        assert new_data["zotero"]["api_key"] == "secret" # Preserved
+        assert new_data["zotero"]["api_key"] == "secret"  # Preserved
+
 
 def test_config_manager_file_not_found():
     manager = ConfigManager(config_path=Path("/non/existent/path.toml"))

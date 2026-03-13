@@ -10,17 +10,21 @@ from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
 def mock_gateway():
     return MagicMock()
 
+
 @pytest.fixture
 def mock_graph_service():
     return MagicMock()
+
 
 @pytest.fixture
 def mock_job_queue():
     return MagicMock()
 
+
 @pytest.fixture
 def worker(mock_gateway, mock_graph_service, mock_job_queue):
     return SnowballDiscoveryWorker(mock_gateway, mock_graph_service, mock_job_queue)
+
 
 @pytest.mark.anyio
 async def test_discover_backward_success(worker, mock_gateway, mock_graph_service):
@@ -31,7 +35,7 @@ async def test_discover_backward_success(worker, mock_gateway, mock_graph_servic
         "message": {
             "reference": [
                 {"DOI": "10.1002/ref1", "article-title": "Ref 1"},
-                {"DOI": "10.1002/ref2", "unstructured": "Unstructured Ref 2"}
+                {"DOI": "10.1002/ref2", "unstructured": "Unstructured Ref 2"},
             ]
         }
     }
@@ -45,8 +49,9 @@ async def test_discover_backward_success(worker, mock_gateway, mock_graph_servic
         {"doi": "10.1002/ref1", "title": "Ref 1"},
         parent_doi=doi,
         direction="backward",
-        generation=1
+        generation=1,
     )
+
 
 @pytest.mark.anyio
 async def test_discover_forward_success(worker, mock_gateway, mock_graph_service):
@@ -59,9 +64,9 @@ async def test_discover_forward_success(worker, mock_gateway, mock_graph_service
                 "citingPaper": {
                     "externalIds": {"DOI": "10.1003/cite1"},
                     "title": "Citing Paper 1",
-                    "abstract": "Abstract 1"
+                    "abstract": "Abstract 1",
                 },
-                "isInfluential": True
+                "isInfluential": True,
             }
         ]
     }
@@ -74,16 +79,19 @@ async def test_discover_forward_success(worker, mock_gateway, mock_graph_service
             "doi": "10.1003/cite1",
             "title": "Citing Paper 1",
             "abstract": "Abstract 1",
-            "is_influential": True
+            "is_influential": True,
         },
         parent_doi=doi,
         direction="forward",
-        generation=1
+        generation=1,
     )
+
 
 @pytest.mark.anyio
 async def test_process_jobs(worker, mock_job_queue):
-    job = Job(id=1, item_key="10.1001/test", task_type=worker.TASK_BACKWARD, payload={"generation": 1})
+    job = Job(
+        id=1, item_key="10.1001/test", task_type=worker.TASK_BACKWARD, payload={"generation": 1}
+    )
 
     # Mock queue behavior: return one job then None
     mock_job_queue.pop_next_job.side_effect = [job, None, None]

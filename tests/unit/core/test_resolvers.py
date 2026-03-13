@@ -12,9 +12,11 @@ from zotero_cli.core.zotero_item import ZoteroItem
 def mock_gateway():
     return MagicMock()
 
+
 @pytest.fixture
 def zotero_item():
     return ZoteroItem(key="ABC123", version=1, item_type="journalArticle", doi="10.1000/123")
+
 
 @pytest.mark.anyio
 async def test_unpaywall_resolver_success(mock_gateway, zotero_item):
@@ -39,6 +41,7 @@ async def test_unpaywall_resolver_success(mock_gateway, zotero_item):
     # Cleanup
     result.unlink()
 
+
 @pytest.mark.anyio
 async def test_openalex_resolver_success(mock_gateway, zotero_item):
     resolver = OpenAlexResolver(mock_gateway)
@@ -46,7 +49,7 @@ async def test_openalex_resolver_success(mock_gateway, zotero_item):
     mock_response = MagicMock()
     mock_response.json.return_value = {
         "open_access": {"is_oa": True},
-        "best_oa_location": {"pdf_url": "http://example.com/paper.pdf"}
+        "best_oa_location": {"pdf_url": "http://example.com/paper.pdf"},
     }
 
     mock_pdf_response = MagicMock()
@@ -62,6 +65,7 @@ async def test_openalex_resolver_success(mock_gateway, zotero_item):
 
     # Cleanup
     result.unlink()
+
 
 @pytest.mark.anyio
 async def test_unpaywall_no_oa(mock_gateway, zotero_item):

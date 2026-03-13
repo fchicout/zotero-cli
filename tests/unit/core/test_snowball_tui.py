@@ -15,6 +15,7 @@ def mock_graph_service():
     ]
     return service
 
+
 @patch("zotero_cli.cli.tui.snowball_tui.Prompt.ask")
 @patch("zotero_cli.cli.tui.snowball_tui.Console")
 def test_snowball_tui_accept(mock_console, mock_prompt, mock_graph_service):
@@ -28,7 +29,10 @@ def test_snowball_tui_accept(mock_console, mock_prompt, mock_graph_service):
     tui.run_review_session()
 
     # Verify update_status was called
-    mock_graph_service.update_status.assert_called_once_with("10.1001/test1", SnowballGraphService.STATUS_ACCEPTED)
+    mock_graph_service.update_status.assert_called_once_with(
+        "10.1001/test1", SnowballGraphService.STATUS_ACCEPTED
+    )
+
 
 @patch("zotero_cli.cli.tui.snowball_tui.Prompt.ask")
 @patch("zotero_cli.cli.tui.snowball_tui.Console")
@@ -43,6 +47,7 @@ def test_snowball_tui_quit(mock_console, mock_prompt, mock_graph_service):
     # Verify save_graph was called on quit
     mock_graph_service.save_graph.assert_called_once()
 
+
 @patch("zotero_cli.cli.tui.snowball_tui.Prompt.ask")
 @patch("zotero_cli.cli.tui.snowball_tui.Console")
 def test_snowball_tui_reject(mock_console, mock_prompt, mock_graph_service):
@@ -53,4 +58,6 @@ def test_snowball_tui_reject(mock_console, mock_prompt, mock_graph_service):
 
     tui.run_review_session()
 
-    mock_graph_service.update_status.assert_called_once_with("10.1001/test1", SnowballGraphService.STATUS_REJECTED)
+    mock_graph_service.update_status.assert_called_once_with(
+        "10.1001/test1", SnowballGraphService.STATUS_REJECTED
+    )

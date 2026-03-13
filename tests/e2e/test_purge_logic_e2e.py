@@ -10,6 +10,7 @@ def purge_service():
     gateway = GatewayFactory.get_zotero_gateway()
     return PurgeService(gateway)
 
+
 @pytest.mark.e2e
 def test_purge_logic_integration_e2e(purge_service):
     """
@@ -48,6 +49,7 @@ def test_purge_logic_integration_e2e(purge_service):
     assert "skipped" in stats_tags
     assert stats_tags["deleted"] == 0, "SAFETY VETO: E2E test attempted a real deletion!"
     assert stats_tags["errors"] == 0
+
 
 @pytest.mark.e2e
 def test_purge_offline_veto_e2e(purge_service):

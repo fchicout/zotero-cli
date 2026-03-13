@@ -40,7 +40,7 @@ def service(mock_gateway, mock_aggregator, mock_purge_service, mock_pdf_finder):
         mock_gateway,
         mock_aggregator,
         mock_purge_service,
-        pdf_finder=mock_pdf_finder
+        pdf_finder=mock_pdf_finder,
     )
 
 
@@ -100,8 +100,8 @@ def test_multiple_items_mixed(service, mock_gateway, mock_pdf_finder):
     """Test a mix of items needing PDF and items already having PDF."""
     mock_gateway.get_collection_id_by_name.return_value = "COL1"
 
-    item1 = create_item(key="KEY1") # Needs PDF
-    item2 = create_item(key="KEY2") # Has PDF
+    item1 = create_item(key="KEY1")  # Needs PDF
+    item2 = create_item(key="KEY2")  # Has PDF
 
     mock_gateway.get_items_in_collection.return_value = iter([item1, item2])
 

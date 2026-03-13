@@ -13,6 +13,7 @@ def temp_db(tmp_path):
     db_path = tmp_path / "test_vector.db"
     return str(db_path)
 
+
 @pytest.mark.unit
 def test_sqlite_vector_repo_init(temp_db):
     SQLiteVectorRepository(temp_db)
@@ -23,6 +24,7 @@ def test_sqlite_vector_repo_init(temp_db):
             "SELECT name FROM sqlite_master WHERE type='table' AND name='vector_chunks'"
         )
         assert cursor.fetchone() is not None
+
 
 @pytest.mark.unit
 def test_sqlite_vector_repo_store_and_get(temp_db):
@@ -37,6 +39,7 @@ def test_sqlite_vector_repo_store_and_get(temp_db):
     assert len(retrieved) == 2
     assert retrieved[0].text == "chunk1"
     assert retrieved[1].embedding == [0.3, 0.4]
+
 
 @pytest.mark.unit
 def test_sqlite_vector_repo_search(temp_db):

@@ -48,27 +48,31 @@ def mock_db():
     if os.path.exists(path):
         os.remove(path)
 
+
 def test_sqlite_read_items(mock_db):
     gateway = SqliteZoteroGateway(mock_db)
     items = list(gateway.search_items(ZoteroQuery()))
 
     assert len(items) == 1
-    assert items[0].key == 'ITEMKEY1'
-    assert items[0].title == 'Test Title'
+    assert items[0].key == "ITEMKEY1"
+    assert items[0].title == "Test Title"
+
 
 def test_sqlite_read_collections(mock_db):
     gateway = SqliteZoteroGateway(mock_db)
     cols = gateway.get_all_collections()
 
     assert len(cols) == 1
-    assert cols[0]['key'] == 'COLKEY1'
-    assert cols[0]['data']['name'] == 'Test Collection'
+    assert cols[0]["key"] == "COLKEY1"
+    assert cols[0]["data"]["name"] == "Test Collection"
+
 
 def test_sqlite_write_fails(mock_db):
     gateway = SqliteZoteroGateway(mock_db)
     with pytest.raises(ConfigurationError) as excinfo:
         gateway.create_collection("New Col")
     assert "read-only" in str(excinfo.value)
+
 
 def test_sqlite_shadow_copy(mock_db):
     gateway = SqliteZoteroGateway(mock_db)
@@ -77,6 +81,7 @@ def test_sqlite_shadow_copy(mock_db):
     assert gateway._temp_db_path is not None
     assert os.path.exists(gateway._temp_db_path)
     assert gateway._temp_db_path != mock_db
+
 
 def test_gateway_factory_offline(mock_db, monkeypatch):
     from zotero_cli.core.config import ZoteroConfig
@@ -92,6 +97,7 @@ def test_gateway_factory_offline(mock_db, monkeypatch):
     monkeypatch.setattr("zotero_cli.cli.main.OFFLINE_MODE", True, raising=False)
     gateway = GatewayFactory.get_zotero_gateway(config=config)
     assert isinstance(gateway, SqliteZoteroGateway)
+
 
 def test_gateway_factory_offline_no_db(monkeypatch):
     from zotero_cli.core.config import ZoteroConfig

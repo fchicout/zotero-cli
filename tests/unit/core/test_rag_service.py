@@ -33,6 +33,7 @@ def test_rag_ingest_collection():
     assert result["processed"] == 1
     assert vector_repo.store_chunks.called
 
+
 @pytest.mark.unit
 def test_rag_query():
     gateway = MagicMock(spec=ZoteroGateway)

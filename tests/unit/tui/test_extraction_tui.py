@@ -13,25 +13,36 @@ def mock_service():
         "version": "1.0",
         "variables": [
             {"key": "v1", "label": "Label 1", "type": "text"},
-            {"key": "v2", "label": "Label 2", "type": "boolean"}
-        ]
+            {"key": "v2", "label": "Label 2", "type": "boolean"},
+        ],
     }
     return service
+
 
 @pytest.fixture
 def mock_opener():
     return MagicMock()
 
+
 @pytest.fixture
 def tui(mock_service, mock_opener):
     return ExtractionTUI(mock_service, mock_opener)
 
+
 @patch("zotero_cli.cli.tui.extraction_tui.console")
 @patch("zotero_cli.cli.tui.extraction_tui.Prompt.ask")
 @patch("zotero_cli.cli.tui.extraction_tui.Confirm.ask")
-def test_run_extraction_single_item(mock_confirm, mock_prompt, mock_console, tui, mock_service, mock_opener):
+def test_run_extraction_single_item(
+    mock_confirm, mock_prompt, mock_console, tui, mock_service, mock_opener
+):
     # Setup Item
-    item = ZoteroItem(key="ITEM1", version=1, item_type="journalArticle", title="Test Paper", url="http://example.com")
+    item = ZoteroItem(
+        key="ITEM1",
+        version=1,
+        item_type="journalArticle",
+        title="Test Paper",
+        url="http://example.com",
+    )
 
     # Mock Interactions
     # 1. Open URL? -> Yes
@@ -43,8 +54,8 @@ def test_run_extraction_single_item(mock_confirm, mock_prompt, mock_console, tui
     # 7. Location V2 -> ""
     # 8. Save? -> Yes
 
-    mock_confirm.side_effect = [True, True, True] # Open URL, Boolean Var, Save
-    mock_prompt.side_effect = ["Answer 1", "Ev 1", "Loc 1", "", ""] # Text Var, Ev, Loc, Ev, Loc
+    mock_confirm.side_effect = [True, True, True]  # Open URL, Boolean Var, Save
+    mock_prompt.side_effect = ["Answer 1", "Ev 1", "Loc 1", "", ""]  # Text Var, Ev, Loc, Ev, Loc
 
     # Execute
     tui.run_extraction([item], agent="test-agent", persona="tester")
@@ -65,6 +76,7 @@ def test_run_extraction_single_item(mock_confirm, mock_prompt, mock_console, tui
     assert data["v1"]["evidence"] == "Ev 1"
     assert data["v2"]["value"] is True
 
+
 @patch("zotero_cli.cli.tui.extraction_tui.console")
 def test_run_extraction_no_schema(mock_console, tui, mock_service):
     mock_service.validator.load_schema.side_effect = Exception("Missing file")
@@ -72,6 +84,7 @@ def test_run_extraction_no_schema(mock_console, tui, mock_service):
     tui.run_extraction([ZoteroItem(key="1", version=1, item_type="note")])
 
     mock_console.print.assert_any_call("[bold red]Error loading schema:[/bold red] Missing file")
+
 
 @patch("zotero_cli.cli.tui.extraction_tui.console")
 @patch("zotero_cli.cli.tui.extraction_tui.Prompt.ask")
@@ -88,7 +101,7 @@ def test_run_extraction_skip_save(mock_confirm, mock_prompt, mock_console, tui, 
     # 6. Save? -> No
 
     mock_prompt.side_effect = ["A", "", "", "", ""]
-    mock_confirm.side_effect = [True, False] # Boolean Var, Save=False
+    mock_confirm.side_effect = [True, False]  # Boolean Var, Save=False
 
     tui.run_extraction([item])
 
