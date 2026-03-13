@@ -24,7 +24,13 @@ from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
 if TYPE_CHECKING:
-    from zotero_cli.core.interfaces import PDFResolver, ZoteroGateway
+    from zotero_cli.core.interfaces import (
+        EmbeddingProvider,
+        PDFResolver,
+        RAGService,
+        VectorRepository,
+        ZoteroGateway,
+    )
     from zotero_cli.core.services.attachment_service import AttachmentService
     from zotero_cli.core.services.collection_service import CollectionService
     from zotero_cli.core.services.enrichment_service import EnrichmentService
@@ -568,3 +574,70 @@ class GatewayFactory:
         return SnowballIngestionService(
             graph_service, metadata_service, item_repo, col_repo, duplicate_finder
         )
+
+    @staticmethod
+    def get_vector_repository(config: Optional[ZoteroConfig] = None) -> "VectorRepository":
+        from zotero_cli.core.config import get_config_path
+
+        config_path = get_config_path()
+        if config_path:
+            db_dir = config_path.parent
+        else:
+            import os
+            from pathlib import Path
+
+            if os.name == "nt":
+                base = Path(os.environ.get("APPDATA", "~")).expanduser()
+            else:
+                base = Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
+            db_dir = base / "zotero-cli"
+
+        db_dir.mkdir(parents=True, exist_ok=True)
+        db_path = str(db_dir / "vector_store.sqlite")
+
+        from zotero_cli.infra.sqlite_vector_repo import SQLiteVectorRepository
+
+        return SQLiteVectorRepository(db_path)
+
+    @staticmethod
+    def get_embedding_provider(config: Optional[ZoteroConfig] = None) -> "EmbeddingProvider":
+        if not config:
+            from zotero_cli.core.config import get_config
+
+            config = get_config()
+
+        from zotero_cli.core.services.embedding_provider import (
+            GeminiEmbeddingProvider,
+            MockEmbeddingProvider,
+            OpenAIEmbeddingProvider,
+        )
+
+        if config.gemini_api_key:
+            return GeminiEmbeddingProvider(config.gemini_api_key)
+
+        if config.openai_api_key:
+            return OpenAIEmbeddingProvider(config.openai_api_key)
+
+        return MockEmbeddingProvider()
+
+    @staticmethod
+    def get_rag_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "RAGService":
+        if not config:
+            from zotero_cli.core.config import get_config
+
+            config = get_config()
+
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+        vector_repo = GatewayFactory.get_vector_repository(config)
+        embedding_provider = GatewayFactory.get_embedding_provider(config)
+        attachment_service = GatewayFactory.get_attachment_service(
+            config, force_user, offline=offline
+        )
+
+        from zotero_cli.core.services.rag_service import RAGServiceBase
+
+        return RAGServiceBase(gateway, vector_repo, embedding_provider, attachment_service)

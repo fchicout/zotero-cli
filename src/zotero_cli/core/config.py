@@ -21,6 +21,8 @@ class ZoteroConfig:
     unpaywall_email: Optional[str] = None
     storage_path: Optional[str] = None
     database_path: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    gemini_api_key: Optional[str] = None
 
     def is_valid(self) -> bool:
         return bool(self.api_key and self.library_id)
@@ -65,6 +67,8 @@ class ConfigLoader:
             "semantic_scholar_api_key"
         )
         up_email = os.environ.get("UNPAYWALL_EMAIL") or file_config.get("unpaywall_email")
+        openai_key = os.environ.get("OPENAI_API_KEY") or file_config.get("openai_api_key")
+        gemini_key = os.environ.get("GEMINI_API_KEY") or file_config.get("gemini_api_key")
 
         storage_path = os.environ.get("ZOTERO_STORAGE_PATH") or file_config.get("storage_path")
         database_path = os.environ.get("ZOTERO_DATABASE_PATH") or file_config.get("database_path")
@@ -79,6 +83,8 @@ class ConfigLoader:
             unpaywall_email=up_email,
             storage_path=storage_path,
             database_path=database_path,
+            openai_api_key=openai_key,
+            gemini_api_key=gemini_key,
         )
 
     def _load_from_file(self) -> Dict[str, Any]:
