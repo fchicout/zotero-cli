@@ -92,4 +92,28 @@ class BibtexLibGateway(BibtexGateway):
             entry["eprint"] = paper.arxiv_id
             entry["archivePrefix"] = "arXiv"
 
+        # SDB Metadata Enrichment
+        if paper.sdb_metadata:
+            # 1. Standard 'note' field for human readability
+            sdb_summaries = []
+            for i, sdb in enumerate(paper.sdb_metadata, 1):
+                decision = sdb.get("decision", "N/A").upper()
+                persona = sdb.get("persona", "Unknown")
+                phase = sdb.get("phase", "Unknown")
+                criteria = ", ".join(sdb.get("reason_code", []))
+                sdb_summaries.append(f"[{persona}/{phase}] {decision}: {criteria}")
+
+            entry["note"] = " | ".join(sdb_summaries)
+
+            # 2. Custom x-sdb-* fields (taking the latest/first for simplicity in flat BibTeX)
+            # If multiple exist, we suffix with index for full traceability
+            for i, sdb in enumerate(paper.sdb_metadata):
+                suffix = "" if i == 0 else f"_{i + 1}"
+                entry[f"x-sdb-decision{suffix}"] = sdb.get("decision", "")
+                entry[f"x-sdb-reviewer{suffix}"] = sdb.get("persona", "")
+                entry[f"x-sdb-reason{suffix}"] = sdb.get("reason_text", "")
+                entry[f"x-sdb-criteria{suffix}"] = ", ".join(sdb.get("reason_code", []))
+                entry[f"x-sdb-evidence{suffix}"] = sdb.get("evidence", "")
+                entry[f"x-sdb-phase{suffix}"] = sdb.get("phase", "")
+
         return entry

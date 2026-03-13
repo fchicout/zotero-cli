@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.pdf_finder_service import PDFFinderService
     from zotero_cli.core.services.purge_service import PurgeService
     from zotero_cli.core.services.screening_service import ScreeningService
+    from zotero_cli.core.services.sdb.sdb_service import SDBService
     from zotero_cli.core.services.snowball_graph import SnowballGraphService
     from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
     from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
@@ -256,7 +257,8 @@ class GatewayFactory:
 
         gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
         bibtex_gateway = GatewayFactory.get_bibtex_gateway()
-        return ExportService(gateway, bibtex_gateway)
+        sdb_service = GatewayFactory.get_sdb_service(config, force_user, offline=offline)
+        return ExportService(gateway, bibtex_gateway, sdb_service)
 
     @staticmethod
     def get_enrichment_service(
@@ -276,6 +278,17 @@ class GatewayFactory:
         from zotero_cli.core.services.enrichment_service import EnrichmentService
 
         return EnrichmentService(item_repo, col_repo, arxiv_gateway)
+
+    @staticmethod
+    def get_sdb_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "SDBService":
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+        from zotero_cli.core.services.sdb.sdb_service import SDBService
+
+        return SDBService(gateway)
 
     @staticmethod
     def get_screening_service(

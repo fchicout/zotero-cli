@@ -1,14 +1,18 @@
 from zotero_cli.core.interfaces import BibtexGateway, ZoteroGateway
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.services.sdb.sdb_service import SDBService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
 class ExportService:
     """Service for exporting Zotero items to external formats."""
 
-    def __init__(self, gateway: ZoteroGateway, bibtex_gateway: BibtexGateway):
+    def __init__(
+        self, gateway: ZoteroGateway, bibtex_gateway: BibtexGateway, sdb_service: SDBService
+    ):
         self.gateway = gateway
         self.bibtex_gateway = bibtex_gateway
+        self.sdb_service = sdb_service
 
     def export_collection(
         self, collection_name: str, output_path: str, format: str = "bibtex"
@@ -56,6 +60,9 @@ class ExportService:
         # Map publication
         publication = item.raw_data.get("data", {}).get("publicationTitle")
 
+        # Fetch SDB metadata
+        sdb_entries = self.sdb_service.inspect_item_sdb(item.key)
+
         return ResearchPaper(
             title=item.title or "No Title",
             abstract=item.abstract or "",
@@ -67,4 +74,5 @@ class ExportService:
             url=item.url,
             arxiv_id=item.arxiv_id,
             extra=item.raw_data.get("data", {}).get("extra"),
+            sdb_metadata=sdb_entries,
         )

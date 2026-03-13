@@ -17,6 +17,7 @@ class ResearchPaper:
     references: List[str] = field(default_factory=list)
     citation_count: Optional[int] = None
     extra: Optional[str] = None
+    sdb_metadata: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
