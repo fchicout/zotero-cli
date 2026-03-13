@@ -20,6 +20,8 @@ def test_info_command_execute(capsys):
         mock_config.library_id = "123"
         mock_config.library_type = "user"
         mock_config.api_key = "key"
+        mock_config.openai_api_key = "okey"
+        mock_config.gemini_api_key = "gkey"
         mock_config.target_group_url = None
         mock_get_config.return_value = mock_config
 
@@ -28,6 +30,8 @@ def test_info_command_execute(capsys):
     out, _ = capsys.readouterr()
     assert "Library ID:  123" in out
     assert "Library Type: user" in out
+    assert "OpenAI API Key: ********" in out
+    assert "Gemini API Key: ********" in out
 
 
 def test_system_backup_execute(system_cmd, capsys):
@@ -220,10 +224,10 @@ def test_system_jobs_run_watch(system_cmd, capsys):
     args = argparse.Namespace(verb="jobs", jobs_verb="run", type="fetch_pdf", watch=True)
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_job_queue_service") as mock_get_svc,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_pdf_finder_service") as mock_get_finder,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_pdf_finder_service"),
         patch("zotero_cli.cli.commands.system_cmd.asyncio.run"),
         patch("zotero_cli.cli.commands.system_cmd.time.sleep"),
-        patch("rich.live.Live") as mock_live,
+        patch("rich.live.Live"),
     ):
         mock_service = mock_get_svc.return_value
         mock_job = MagicMock(status="PENDING")

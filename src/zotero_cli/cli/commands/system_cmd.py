@@ -43,7 +43,11 @@ class InfoCommand(BaseCommand):
         print(f"Config Path: {get_config_path() or 'None (using defaults/env)'}")
         print(f"Library ID:  {config.library_id}")
         print(f"Library Type: {config.library_type}")
-        print(f"API Key:     {'********' if config.api_key else 'NOT SET'}")
+        print(f"Zotero API Key: {'********' if config.api_key else 'NOT SET'}")
+        if config.openai_api_key:
+            print("OpenAI API Key: ********")
+        if config.gemini_api_key:
+            print("Gemini API Key: ********")
         if config.target_group_url:
             print(f"Group URL:   {config.target_group_url}")
 
