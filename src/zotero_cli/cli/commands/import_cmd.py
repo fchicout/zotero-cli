@@ -28,6 +28,12 @@ class ImportCommand(BaseCommand):
         arxiv_p.add_argument("--limit", type=int, default=100)
         arxiv_p.add_argument("--verbose", action="store_true")
 
+        # DOI
+        doi_p = sub.add_parser("doi", help="Import via DOI")
+        doi_p.add_argument("doi", help="Digital Object Identifier")
+        doi_p.add_argument("--collection", required=True)
+        doi_p.add_argument("--verbose", action="store_true")
+
         # Manual
         man_p = sub.add_parser("manual", help="Manual metadata entry")
         man_p.add_argument("--arxiv-id", required=True)
@@ -42,6 +48,8 @@ class ImportCommand(BaseCommand):
             self._handle_file(import_service, args)
         elif args.import_type == "arxiv":
             self._handle_arxiv(import_service, args)
+        elif args.import_type == "doi":
+            self._handle_doi(import_service, args)
         elif args.import_type == "manual":
             self._handle_manual(import_service, args)
 
@@ -103,6 +111,15 @@ class ImportCommand(BaseCommand):
 
         strategy = ArxivImportStrategy(GatewayFactory.get_arxiv_gateway())
         papers = strategy.fetch_papers(q, limit=limit, sort_by=sort)
+        count = service.import_papers(papers, args.collection, args.verbose)
+        print(f"Imported {count} items.")
+
+    def _handle_doi(self, service, args):
+        from zotero_cli.core.strategies import DoiImportStrategy
+
+        aggregator = GatewayFactory.get_metadata_aggregator()
+        strategy = DoiImportStrategy(aggregator)
+        papers = strategy.fetch_papers(args.doi)
         count = service.import_papers(papers, args.collection, args.verbose)
         print(f"Imported {count} items.")
 

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterator
+from typing import TYPE_CHECKING, Iterator
 
 from zotero_cli.core.interfaces import (
     ArxivGateway,
@@ -10,6 +10,9 @@ from zotero_cli.core.interfaces import (
     SpringerCsvGateway,
 )
 from zotero_cli.core.models import ResearchPaper
+
+if TYPE_CHECKING:
+    from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
 
 class ImportStrategy(ABC):
@@ -70,3 +73,13 @@ class CanonicalCsvImportStrategy(ImportStrategy):
 
     def fetch_papers(self, source: str, **kwargs) -> Iterator[ResearchPaper]:
         return self.gateway.parse_file(source)
+
+
+class DoiImportStrategy(ImportStrategy):
+    def __init__(self, aggregator: "MetadataAggregatorService"):
+        self.aggregator = aggregator
+
+    def fetch_papers(self, source: str, **kwargs) -> Iterator[ResearchPaper]:
+        paper = self.aggregator.get_enriched_metadata(source)
+        if paper:
+            yield paper

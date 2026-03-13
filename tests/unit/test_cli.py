@@ -1,5 +1,5 @@
 import sys
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import MagicMock, Mock, mock_open, patch
 
 import pytest
 
@@ -224,6 +224,29 @@ def test_import_arxiv(mock_clients, env_vars, capsys):
     assert "Imported 5 items." in capsys.readouterr().out
 
 
+def test_import_doi(mock_clients, env_vars, capsys):
+    test_args = ["zotero-cli", "import", "doi", "10.1234/test", "--collection", "F"]
+    mock_aggregator = mock_clients["agg"]
+    # Return a dummy paper
+    from zotero_cli.core.models import ResearchPaper
+
+    mock_paper = ResearchPaper(title="T", abstract="A", doi="10.1234/test")
+    mock_aggregator.get_enriched_metadata.return_value = mock_paper
+
+    def side_effect(papers, collection, verbose=False):
+        list(papers)  # Consume generator
+        return 1
+
+    mock_clients["importer"].import_papers.side_effect = side_effect
+
+    with patch.object(sys, "argv", test_args):
+        main()
+
+    out = capsys.readouterr().out
+    assert "Imported 1 items." in out
+    mock_aggregator.get_enriched_metadata.assert_called_once_with("10.1234/test")
+
+
 def test_import_file_bibtex(mock_clients, env_vars, capsys):
     mock_clients["importer"].import_papers.return_value = 3
     test_args = ["zotero-cli", "import", "file", "papers.bib", "--collection", "F"]
@@ -422,16 +445,18 @@ def test_tag_list(mock_clients, env_vars, capsys):
         main()
     assert "t1" in capsys.readouterr().out
 
-
-# --- 7. COLLECTION ---
+    # --- 7. COLLECTION ---
     def test_collection_pdfs_strip(mock_clients, env_vars, capsys):
-        with patch("zotero_cli.infra.factory.GatewayFactory.get_attachment_service") as mock_att_get:
+        with patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_attachment_service"
+        ) as mock_att_get:
             mock_att = mock_att_get.return_value
             mock_att.remove_attachments_from_collection.return_value = 10
             test_args = ["zotero-cli", "collection", "pdf", "strip", "--collection", "F"]
             with patch.object(sys, "argv", test_args):
                 main()
             assert "Would remove 10 attachments" in capsys.readouterr().out
+
 
 def test_collection_duplicates(mock_clients, env_vars, capsys):
     with patch("zotero_cli.core.services.duplicate_service.DuplicateFinder") as mock_finder_cls:
