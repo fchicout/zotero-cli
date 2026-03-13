@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 class ResearchPaper:
     title: str
     abstract: str
+    key: Optional[str] = None
     arxiv_id: Optional[str] = None
     authors: List[str] = field(default_factory=list)
     publication: Optional[str] = None
