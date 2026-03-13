@@ -57,7 +57,7 @@ Detailed documentation is available for each command noun:
 | **[`slr`](docs/commands/slr.md)** | SLR Workflow | `screen`, `decide`, `load`, `reset`, `audit`, `lookup`, `graph`, `shift` |
 | **[`item`](docs/commands/item.md)** | Paper/Item Ops | `inspect`, `move`, `update`, `delete`, `pdf`, `hydrate`, `purge` |
 | **[`collection`](docs/commands/collection.md)** | Folder Ops | `list`, `create`, `rename`, `delete`, `backup`, `clean`, `duplicates`, `purge` |
-| **[`import`](docs/commands/import.md)** | Ingest | `arxiv`, `file (IEEE/Springer/Canonical)` |
+| **[`import`](docs/commands/import.md)** | Ingest | `arxiv`, `doi`, `file (IEEE/Springer/Canonical)` |
 | **[`report`](docs/commands/report.md)** | Output | `prisma`, `snapshot`, `screening`, `status`, `pdf` |
 | **[`tag`](docs/commands/tag.md)** | Taxonomy | `list`, `add`, `remove`, `purge` |
 | **[`list`](docs/commands/list.md)** | Generic & SDB Listing | `items`, `collections`, `groups` |

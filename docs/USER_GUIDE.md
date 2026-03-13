@@ -77,6 +77,12 @@ Import directly from arXiv using a query.
 zotero-cli import arxiv --query "LLM AND Security" --limit 50 --collection "AI Security"
 ```
 
+### DOI Resolution
+Import a single paper directly using its DOI.
+```bash
+zotero-cli import doi "10.1038/s41586-023-06222-4" --collection "DOI Imports"
+```
+
 ---
 
 ## Management
