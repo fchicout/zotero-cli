@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.attachment_service import AttachmentService
     from zotero_cli.core.services.collection_service import CollectionService
     from zotero_cli.core.services.enrichment_service import EnrichmentService
+    from zotero_cli.core.services.export_service import ExportService
     from zotero_cli.core.services.import_service import ImportService
     from zotero_cli.core.services.job_queue_service import JobQueueService
     from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
@@ -244,6 +245,18 @@ class GatewayFactory:
         from zotero_cli.core.services.collection_service import CollectionService
 
         return CollectionService(item_repo, col_repo)
+
+    @staticmethod
+    def get_export_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "ExportService":
+        from zotero_cli.core.services.export_service import ExportService
+
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+        bibtex_gateway = GatewayFactory.get_bibtex_gateway()
+        return ExportService(gateway, bibtex_gateway)
 
     @staticmethod
     def get_enrichment_service(
