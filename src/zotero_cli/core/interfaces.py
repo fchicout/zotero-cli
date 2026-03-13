@@ -165,6 +165,10 @@ class BibtexGateway(ABC):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
         pass
 
+    @abstractmethod
+    def write_file(self, file_path: str, papers: List[ResearchPaper]) -> bool:
+        pass
+
 
 class RisGateway(ABC):
     @abstractmethod
