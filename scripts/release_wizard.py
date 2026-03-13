@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 from datetime import datetime
+from typing import Dict, List
 
 # --- Configuration ---
 DRAFT_FILE = "RELEASE_DRAFT.md"
@@ -53,7 +54,7 @@ def generate_notes(last_tag, new_version):
     commits = res.stdout.splitlines()
 
     # Categorize
-    categories = {"feat": [], "fix": [], "docs": [], "chore": [], "other": []}
+    categories: Dict[str, List[str]] = {"feat": [], "fix": [], "docs": [], "chore": [], "other": []}
 
     for line in commits:
         match = re.match(r"^(\w+)(?:\(.*?\))?: (.*)", line)

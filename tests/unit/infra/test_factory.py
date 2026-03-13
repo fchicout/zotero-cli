@@ -333,7 +333,7 @@ def test_get_zotero_gateway_group_parsing():
     mock_config = ZoteroConfig(
         api_key="key",
         library_id=None,
-        library_type=None,
+        library_type="",
         user_id="123",
         target_group_url="https://www.zotero.org/groups/456/items",
     )
@@ -349,7 +349,7 @@ def test_get_zotero_gateway_user_id_fallback():
     mock_config = ZoteroConfig(
         api_key="key",
         library_id=None,
-        library_type=None,
+        library_type="",
         user_id="123",
         target_group_url=None,
     )
