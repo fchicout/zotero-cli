@@ -47,6 +47,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
     from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
     from zotero_cli.core.services.tag_service import TagService
+    from zotero_cli.core.services.transfer_service import TransferService
 
 
 class GatewayFactory:
@@ -259,6 +260,12 @@ class GatewayFactory:
         bibtex_gateway = GatewayFactory.get_bibtex_gateway()
         sdb_service = GatewayFactory.get_sdb_service(config, force_user, offline=offline)
         return ExportService(gateway, bibtex_gateway, sdb_service)
+
+    @staticmethod
+    def get_transfer_service() -> "TransferService":
+        from zotero_cli.core.services.transfer_service import TransferService
+
+        return TransferService()
 
     @staticmethod
     def get_enrichment_service(

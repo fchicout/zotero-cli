@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import sys
 
 from rich.console import Console
 from rich.panel import Panel
@@ -155,6 +156,16 @@ class ItemCommand(BaseCommand):
         purge_p.add_argument("--tags", action="store_true", help="Purge tags")
         purge_p.add_argument("--force", action="store_true", help="Skip confirmation")
 
+        # Transfer
+        transfer_p = sub.add_parser("transfer", help="Transfer item between different libraries")
+        transfer_p.add_argument("key", help="Zotero Item Key")
+        transfer_p.add_argument("--target-group", required=True, help="Target Group ID")
+        transfer_p.add_argument(
+            "--delete-source",
+            action="store_true",
+            help="Delete item from source library after transfer",
+        )
+
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -177,6 +188,33 @@ class ItemCommand(BaseCommand):
             self._handle_hydrate(args)
         elif args.verb == "purge":
             self._handle_purge(args)
+        elif args.verb == "transfer":
+            self._handle_transfer(args)
+
+    def _handle_transfer(self, args):
+        from dataclasses import replace
+
+        from zotero_cli.core.config import get_config
+
+        source_gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
+
+        config = get_config()
+        # Create a modified config for the destination (Target is always a group in this command)
+        dest_config = replace(config, library_id=args.target_group, library_type="group")
+        dest_gateway = GatewayFactory.get_zotero_gateway(config=dest_config, force_user=False)
+
+        service = GatewayFactory.get_transfer_service()
+
+        print(f"Transferring item {args.key} to group {args.target_group}...")
+        new_key = service.transfer_item(
+            args.key, source_gateway, dest_gateway, delete_source=args.delete_source
+        )
+
+        if new_key:
+            print(f"Transfer complete. New key in destination: {new_key}")
+        else:
+            print("Transfer failed.", file=sys.stderr)
+            sys.exit(1)
 
     def _handle_purge(self, args):
         from rich.prompt import Confirm
