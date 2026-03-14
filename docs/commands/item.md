@@ -120,6 +120,23 @@ zotero-cli item purge "ITEMKEY" --files --notes --tags
 *   `--tags`: Purge all tags associated with the item.
 *   `--force`: Skip interactive confirmation.
 
+---
+
+### `transfer`
+Transfer an item (metadata, notes, and attachments) between different Zotero libraries (e.g., from your Personal Library to a Group, or between Groups).
+
+**Usage:**
+```bash
+zotero-cli item transfer "ITEMKEY" --target-group "123456" [--delete-source]
+```
+
+**Parameters:**
+*   `key`: (Positional, Required) The Zotero Item Key to transfer.
+*   `--target-group`: (Required) The ID of the destination Zotero Group.
+*   `--delete-source`: If specified, delete the item from the source library after a successful transfer.
+
+---
+
 ### `pdf`
 
 Operations related to PDF attachments.
