@@ -383,6 +383,13 @@ class ItemCommand(BaseCommand):
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_collection_service(force_user=force_user)
         if service.move_item(args.source, args.target, args.item_id):
-            print(f"Moved item {args.item_id} from {args.source or 'auto'} to {args.target}.")
+            source_display = args.source or "auto"
+            target_display = args.target
+            if target_display.lower() in ["/", "root", "unfiled"]:
+                target_display = "Root (Unfiled Items)"
+            if source_display.lower() in ["/", "root", "unfiled"]:
+                source_display = "Root (Unfiled Items)"
+
+            print(f"Moved item {args.item_id} from {source_display} to {target_display}.")
         else:
             print("Failed to move item.")

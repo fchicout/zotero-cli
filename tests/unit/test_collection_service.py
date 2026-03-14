@@ -226,8 +226,8 @@ def test_move_item_auto_source_already_in_dest_only(service, mock_gateway):
     result = service.move_item(None, "Dest", "KEY1")
 
     assert result is True
-    args = mock_gateway.update_item.call_args
-    assert args[0][2]["collections"] == ["ID_DEST"]
+    # Should not call update_item if already in dest
+    assert mock_gateway.update_item.called is False
 
 
 def test_move_item_auto_source_not_found(service, mock_gateway):

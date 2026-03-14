@@ -18,27 +18,38 @@ class CollectionService:
         If source_col_name is None, attempts to infer it from the item's current collections.
         Returns True if successful, False if item not found, ambiguous source, or error.
         """
-        dest_id = self.collection_repo.get_collection_id_by_name(dest_col_name)
-        if not dest_id:
-            dest_id = dest_col_name
+        root_keywords = ["/", "root", "unfiled"]
+        is_dest_root = dest_col_name.lower() in root_keywords
+
+        dest_id: Optional[str] = None
+        if is_dest_root:
+            dest_id = None  # Root
+        else:
+            dest_id = self.collection_repo.get_collection_id_by_name(dest_col_name)
+            if not dest_id:
+                dest_id = dest_col_name
 
         # Fetch item first
         item = self.item_repo.get_item(identifier)
         if not item:
             # Try slow lookup if key failed (only if source is provided, otherwise we can't search in it)
             if source_col_name:
-                lookup_source_id = (
-                    self.collection_repo.get_collection_id_by_name(source_col_name)
-                    or source_col_name
-                )
-                print(
-                    f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'..."
-                )
-                found_items = list(self.collection_repo.get_items_in_collection(lookup_source_id))
-                for i in found_items:
-                    if self._is_match(i, identifier):
-                        item = i
-                        break
+                is_source_root = source_col_name.lower() in root_keywords
+                if not is_source_root:
+                    lookup_source_id = (
+                        self.collection_repo.get_collection_id_by_name(source_col_name)
+                        or source_col_name
+                    )
+                    print(
+                        f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'..."
+                    )
+                    found_items = list(
+                        self.collection_repo.get_items_in_collection(lookup_source_id)
+                    )
+                    for i in found_items:
+                        if self._is_match(i, identifier):
+                            item = i
+                            break
 
             if not item:
                 print(f"Item '{identifier}' not found.")
@@ -46,21 +57,30 @@ class CollectionService:
 
         # Resolve Source ID
         source_id: Optional[str] = None
+        is_source_root = False
+
         if source_col_name:
-            source_id = self.collection_repo.get_collection_id_by_name(source_col_name)
-            if not source_id:
-                source_id = source_col_name
+            if source_col_name.lower() in root_keywords:
+                is_source_root = True
+                source_id = None
+            else:
+                source_id = self.collection_repo.get_collection_id_by_name(source_col_name)
+                if not source_id:
+                    source_id = source_col_name
         else:
             # Auto-inference
             current_cols = set(item.collections)
             # Remove dest_id if present to see what's left
-            candidates = current_cols - {dest_id}
+            candidates = current_cols - ({dest_id} if dest_id else set())
 
             if len(candidates) == 0:
-                # Just add to dest
-                return self.item_repo.update_item(
-                    item.key, item.version, {"collections": list(current_cols | {dest_id})}
-                )
+                if not current_cols:
+                    # Item is in root
+                    is_source_root = True
+                    source_id = None
+                else:
+                    # Item is already only in dest
+                    return True
             elif len(candidates) == 1:
                 source_id = list(candidates)[0]
             else:
@@ -71,7 +91,13 @@ class CollectionService:
                 return False
 
         # Verify membership
-        if source_id in item.collections:
+        if is_source_root:
+            if not item.collections:
+                return self._perform_move(item, None, dest_id)
+            else:
+                print(f"Item '{identifier}' found but it is NOT in the root folder.")
+                return False
+        elif source_id in item.collections:
             return self._perform_move(item, source_id, dest_id)
         else:
             print(
@@ -91,18 +117,25 @@ class CollectionService:
     def _normalize_id(self, identifier: str) -> str:
         return identifier.strip().lower()
 
-    def _perform_move(self, item: ZoteroItem, source_id: str, dest_id: str) -> bool:
+    def _perform_move(self, item: ZoteroItem, source_id: Optional[str], dest_id: Optional[str]) -> bool:
         key = item.key
         version = item.version
         current_cols = set(item.collections)
 
-        if dest_id in current_cols and source_id not in current_cols:
+        if dest_id and dest_id in current_cols and source_id and source_id not in current_cols:
             return True
 
         new_cols = current_cols.copy()
-        if source_id in new_cols:
+        if source_id and source_id in new_cols:
             new_cols.remove(source_id)
-        new_cols.add(dest_id)
+
+        if dest_id:
+            new_cols.add(dest_id)
+        else:
+            # Moving to root means it should be in zero collections if it's an exclusive move
+            # However, Zotero "Unfiled" are just items with no collections.
+            # If we remove the source collection and don't add a new one, it becomes unfiled.
+            pass
 
         return self.item_repo.update_item(key, version, {"collections": list(new_cols)})
 
