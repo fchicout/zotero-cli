@@ -11,7 +11,7 @@ from zotero_cli.cli.tui.components import (
     create_footer_panel,
     create_header_panel,
 )
-from zotero_cli.core.services.snowball_graph import SnowballGraphService
+from zotero_cli.core.interfaces import SnowballGraphService
 
 
 class SnowballReviewTUI:

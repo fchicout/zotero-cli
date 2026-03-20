@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from rich.console import Console
 from rich.layout import Layout
@@ -9,12 +9,12 @@ from zotero_cli.cli.tui.components import (
     create_footer_panel,
     create_header_panel,
 )
-from zotero_cli.core.services.screening_service import ScreeningService
+from zotero_cli.core.interfaces import ScreeningService
 from zotero_cli.core.services.screening_state import ScreeningStateService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
-class TuiScreeningService:
+class ScreeningTUI:
     """
     Handles the TUI interaction loop for screening papers.
     """
@@ -25,6 +25,17 @@ class TuiScreeningService:
         self.service = service
         self.state_manager = state_manager
         self.console = Console()
+
+    def run_screening(
+        self, items: List[ZoteroItem], agent: bool = False, persona: Optional[str] = None
+    ):
+        """Simple wrapper for ScreenCommand compatibility."""
+        # This is a simplified version, the original was more complex
+        # and coupled to source/target collections.
+        self.console.print("[bold red]Extraction TUI: Minimal Mode[/bold red]")
+        for item in items:
+            self._display_item(item, 1, len(items))
+            self._get_user_action()
 
     def run_screening_session(
         self, source_collection: str, target_included: str, target_excluded: str

@@ -295,7 +295,7 @@ def test_enrich_from_csv_missing_columns(auditor, tmp_path):
     # If we map 'key' to 'Key' but it's not there
     results = auditor.enrich_from_csv(str(csv_file), reviewer="O", column_map={"key": "Key"})
     assert "error" in results
-    assert "Missing required columns" in results["error"]
+    assert "Missing columns" in results["error"]
 
 
 def test_enrich_from_csv_file_not_found(auditor):

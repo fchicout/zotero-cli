@@ -7,6 +7,7 @@ from zotero_cli.core.interfaces import (
     CollectionRepository,
     ItemRepository,
     NoteRepository,
+    ScreeningService as IScreeningService,
     TagRepository,
 )
 from zotero_cli.core.services.collection_service import CollectionService
@@ -14,7 +15,7 @@ from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
-class ScreeningService:
+class ScreeningService(IScreeningService):
     """
     Service responsible for recording screening decisions and managing item movement.
     Provides the core logic for both CLI 'decision' command and TUI 'screen' mode.

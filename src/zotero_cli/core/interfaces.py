@@ -278,3 +278,88 @@ class RAGService(ABC):
     @abstractmethod
     def get_context(self, item_key: str) -> str:
         pass
+
+
+class ExtractionService(ABC):
+    validator: Any
+
+    @abstractmethod
+    def save_extraction(
+        self,
+        item_key: str,
+        data: Dict[str, Any],
+        schema_version: str,
+        agent: str = "zotero-cli",
+        persona: str = "unknown",
+    ) -> bool:
+        pass
+
+    @abstractmethod
+    def export_matrix(
+        self,
+        items: List[Any],
+        output_format: str = "csv",
+        persona: str = "unknown",
+        output_path: Optional[str] = None,
+    ) -> str:
+        pass
+
+
+class ScreeningService(ABC):
+    @abstractmethod
+    def get_pending_items(self, collection_id: str) -> List[ZoteroItem]:
+        pass
+
+    @abstractmethod
+    def record_decision(
+        self,
+        item_key: str,
+        decision: str,
+        code: str,
+        reason: str = "",
+        source_collection: Optional[str] = None,
+        target_collection: Optional[str] = None,
+        agent: str = "zotero-cli",
+        persona: str = "unknown",
+        phase: str = "title_abstract",
+        evidence: Optional[str] = None,
+    ) -> bool:
+        pass
+
+
+class SnowballGraphService(ABC):
+    STATUS_ACCEPTED = "ACCEPTED"
+    STATUS_REJECTED = "REJECTED"
+    graph: Any
+
+    @abstractmethod
+    def get_ranked_candidates(self) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def update_status(self, doi: str, status: str):
+        pass
+
+    @abstractmethod
+    def save_graph(self):
+        pass
+
+    @abstractmethod
+    def get_stats(self) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def to_mermaid(self) -> str:
+        pass
+
+
+class OpenerService(ABC):
+    @abstractmethod
+    def open_file(self, path: str) -> bool:
+        pass
+
+
+class AuditService(ABC):
+    @abstractmethod
+    def audit_manuscript(self, path: Path) -> Dict[str, Any]:
+        pass

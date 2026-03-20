@@ -3,9 +3,8 @@ from typing import Any, List
 from rich.console import Console
 from rich.prompt import Confirm, IntPrompt, Prompt
 
-from zotero_cli.core.services.extraction_service import ExtractionService
+from zotero_cli.core.interfaces import ExtractionService, OpenerService
 from zotero_cli.core.zotero_item import ZoteroItem
-from zotero_cli.infra.opener import OpenerService
 
 console = Console()
 

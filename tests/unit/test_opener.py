@@ -6,6 +6,11 @@ from zotero_cli.infra.opener import OpenerService
 
 
 @pytest.fixture
+def opener():
+    return OpenerService()
+
+
+@pytest.fixture
 def mock_platform():
     with patch("platform.system") as m:
         yield m
@@ -23,45 +28,45 @@ def mock_os_exists():
         yield m
 
 
-def test_open_file_not_found(mock_os_exists):
+def test_open_file_not_found(opener, mock_os_exists):
     mock_os_exists.return_value = False
-    assert OpenerService.open_file("non_existent.txt") is False
+    assert opener.open_file("non_existent.txt") is False
 
 
 @patch("os.startfile", create=True)
-def test_open_file_windows(mock_startfile, mock_os_exists):
+def test_open_file_windows(mock_startfile, opener, mock_os_exists):
     mock_os_exists.return_value = True
     with patch("sys.platform", "win32"):
-        assert OpenerService.open_file("test.pdf") is True
+        assert opener.open_file("test.pdf") is True
         mock_startfile.assert_called_once_with("test.pdf")
 
 
-def test_open_file_macos(mock_subprocess, mock_os_exists):
+def test_open_file_macos(mock_subprocess, opener, mock_os_exists):
     mock_os_exists.return_value = True
     with patch("sys.platform", "darwin"):
-        assert OpenerService.open_file("test.pdf") is True
+        assert opener.open_file("test.pdf") is True
         mock_subprocess.assert_called_once_with(["open", "test.pdf"], check=True)
 
 
-def test_open_file_linux(mock_subprocess, mock_os_exists):
+def test_open_file_linux(mock_subprocess, opener, mock_os_exists):
     mock_os_exists.return_value = True
     with patch("sys.platform", "linux"):
-        assert OpenerService.open_file("test.pdf") is True
+        assert opener.open_file("test.pdf") is True
         mock_subprocess.assert_called_once_with(["xdg-open", "test.pdf"], check=True)
 
 
-def test_open_file_failure_fallback(mock_subprocess, mock_os_exists):
+def test_open_file_failure_fallback(mock_subprocess, opener, mock_os_exists):
     mock_os_exists.return_value = True
     with patch("sys.platform", "linux"):
         mock_subprocess.side_effect = Exception("Fail")
 
         with patch("zotero_cli.infra.opener.OpenerService.print_link") as mock_print:
-            assert OpenerService.open_file("test.pdf") is False
+            assert opener.open_file("test.pdf") is False
             mock_print.assert_called_once_with("test.pdf")
 
 
-def test_print_link(capsys):
-    OpenerService.print_link("test.pdf")
+def test_print_link(capsys, opener):
+    opener.print_link("test.pdf")
     captured = capsys.readouterr()
     assert "file://" in captured.out
     assert "test.pdf" in captured.out

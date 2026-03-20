@@ -5,10 +5,12 @@ from typing import Any, Dict, List, Optional
 
 import networkx as nx
 
+from zotero_cli.core.interfaces import SnowballGraphService as ISnowballGraphService
+
 logger = logging.getLogger(__name__)
 
 
-class SnowballGraphService:
+class SnowballGraphService(ISnowballGraphService):
     """
     Manages the discovery graph for snowballing (citation tracking).
     Provides relevance ranking based on graph topology.

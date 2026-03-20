@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zotero_cli.cli.tui.screening_tui import TuiScreeningService
+from zotero_cli.cli.tui.screening_tui import ScreeningTUI
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -25,7 +25,7 @@ def mock_prompt():
 
 @pytest.fixture
 def tui(mock_service, mock_console):
-    tui_instance = TuiScreeningService(mock_service)
+    tui_instance = ScreeningTUI(mock_service)
     # We need to ensure the tui uses our mock console
     tui_instance.console = mock_console
     return tui_instance

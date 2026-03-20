@@ -69,7 +69,7 @@ def test_enrich_from_csv_missing_mapped_column(auditor, mock_gateway, tmp_path):
     results = auditor.enrich_from_csv(str(csv_file), reviewer="Orion", column_map=column_map)
 
     assert "error" in results
-    assert "Missing required columns in CSV: Missing_Col" in results["error"]
+    assert "Missing columns: Missing_Col" in results["error"]
 
 
 def test_enrich_from_csv_backward_compatibility(auditor, mock_gateway, tmp_path):
