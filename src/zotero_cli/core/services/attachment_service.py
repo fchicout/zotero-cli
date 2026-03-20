@@ -1,7 +1,9 @@
 import os
 import tempfile
 import warnings
-from typing import List, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 import requests
 
@@ -14,6 +16,8 @@ from zotero_cli.core.interfaces import (
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 from zotero_cli.core.services.pdf_finder_service import PDFFinderService
 from zotero_cli.core.services.purge_service import PurgeService
+from zotero_cli.core.utils.slugify import slugify
+from zotero_cli.core.zotero_item import ZoteroItem
 
 
 class AttachmentService:
@@ -242,3 +246,60 @@ class AttachmentService:
             ):
                 return child.get("key")
         return None
+
+    def bulk_export_markdown(
+        self, items: List[ZoteroItem], output_dir: Path, max_workers: int = 5
+    ) -> Dict[str, Any]:
+        """
+        Bulk converts PDF attachments of given items to Markdown.
+        """
+        output_dir.mkdir(parents=True, exist_ok=True)
+        stats = {"total": len(items), "success": 0, "failed": 0, "skipped": 0}
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_item = {
+                executor.submit(self._export_item_markdown, item, output_dir): item
+                for item in items
+            }
+
+            for future in as_completed(future_to_item):
+                item = future_to_item[future]
+                try:
+                    result = future.result()
+                    if result == "success":
+                        stats["success"] += 1
+                    elif result == "skipped":
+                        stats["skipped"] += 1
+                    else:
+                        stats["failed"] += 1
+                except Exception as e:
+                    print(f"Error exporting {item.key}: {e}")
+                    stats["failed"] += 1
+
+        return stats
+
+    def _export_item_markdown(self, item: ZoteroItem, output_dir: Path) -> str:
+        """Helper for bulk export."""
+        # 1. Check for PDF
+        if not self._get_pdf_attachment_key(item.key):
+            return "skipped"
+
+        # 2. Extract text
+        text = self.get_fulltext(item.key)
+        if not text:
+            return "failed"
+
+        # 3. Save to file
+        title_slug = slugify(item.title or "Untitled")
+        if len(title_slug) > 50:
+            title_slug = title_slug[:50]
+        filename = f"{item.key}_{title_slug}.md"
+        file_path = output_dir / filename
+
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(text)
+            return "success"
+        except Exception as e:
+            print(f"File write error for {item.key}: {e}")
+            return "failed"
