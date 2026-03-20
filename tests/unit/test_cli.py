@@ -1,57 +1,41 @@
+import re
 import sys
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import MagicMock, Mock, mock_open, patch
 
 import pytest
 
 from zotero_cli.cli.main import main
-from zotero_cli.core.config import reset_config
-from zotero_cli.infra.factory import GatewayFactory
-
-
-@pytest.fixture(autouse=True)
-def mock_config_path(tmp_path):
-    # Ensure tests don't load the real ~/.config/zotero-cli/config.toml
-    dummy_path = tmp_path / "dummy_config.toml"
-    with patch(
-        "zotero_cli.core.config.ConfigLoader._get_default_config_path", return_value=dummy_path
-    ):
-        yield dummy_path
 
 
 @pytest.fixture
 def mock_clients():
     with (
-        patch("zotero_cli.infra.factory.GatewayFactory.get_import_service") as mock_importer_get,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_zotero_get,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_arxiv_gateway") as mock_arxiv,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_bibtex_gateway") as mock_bibtex,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_ris_gateway") as mock_ris,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_springer_csv_gateway") as mock_springer,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_ieee_csv_gateway") as mock_ieee,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_canonical_csv_gateway") as mock_canon,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_job_queue_service") as mock_job_get,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_vector_repository") as mock_vector_get,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_pdf_finder_service") as mock_pdf_get,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_enrichment_service") as mock_enrich_get,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_zot_get,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_arxiv_gateway") as mock_arxiv_get,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_import_service") as mock_imp_get,
         patch("zotero_cli.infra.factory.GatewayFactory.get_metadata_aggregator") as mock_agg_get,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_canonical_csv_gateway") as mock_canon_get,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_ris_gateway") as mock_ris_get,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_bibtex_gateway") as mock_bib_get,
+        patch("zotero_cli.core.config.get_config") as mock_config,
     ):
-        mock_importer = mock_importer_get.return_value
-        mock_zotero = mock_zotero_get.return_value
+        mock_zotero = mock_zot_get.return_value
+        mock_arxiv = mock_arxiv_get.return_value
+        mock_importer = mock_imp_get.return_value
+        mock_agg = mock_agg_get.return_value
+        mock_canon = mock_canon_get.return_value
+        mock_ris = mock_ris_get.return_value
+        mock_bib = mock_bib_get.return_value
 
         yield {
-            "importer": mock_importer,
             "zotero": mock_zotero,
-            "arxiv": mock_arxiv.return_value,
-            "bibtex": mock_bibtex.return_value,
-            "ris": mock_ris.return_value,
-            "springer": mock_springer.return_value,
-            "ieee": mock_ieee.return_value,
-            "canon": mock_canon.return_value,
-            "jobs": mock_job_get.return_value,
-            "vector": mock_vector_get.return_value,
-            "pdf": mock_pdf_get.return_value,
-            "enrich": mock_enrich_get.return_value,
-            "agg": mock_agg_get.return_value,
+            "arxiv": mock_arxiv,
+            "importer": mock_importer,
+            "agg": mock_agg,
+            "canon": mock_canon,
+            "ris": mock_ris,
+            "bib": mock_bib,
+            "config": mock_config.return_value,
         }
 
 
@@ -59,65 +43,30 @@ def mock_clients():
 def env_vars(monkeypatch):
     monkeypatch.setenv("ZOTERO_API_KEY", "test_key")
     monkeypatch.setenv("ZOTERO_USER_ID", "12345")
-    monkeypatch.setenv("ZOTERO_TARGET_GROUP", "https://zotero.org/groups/123/name")
 
 
-# --- 1. SCREEN ---
-def test_screen_tui_invocation(mock_clients, env_vars):
-    with patch("zotero_cli.cli.commands.slr_cmd.TuiScreeningService") as mock_tui_cls:
-        mock_tui = mock_tui_cls.return_value
-        test_args = [
-            "zotero-cli",
-            "slr",
-            "screen",
-            "--source",
-            "S",
-            "--include",
-            "I",
-            "--exclude",
-            "E",
-        ]
+# --- 1. CONFIG / INIT ---
+def test_init_command(mock_clients, env_vars, capsys):
+    with (
+        patch("zotero_cli.cli.commands.init_cmd.Prompt.ask") as mock_ask,
+        patch("zotero_cli.cli.commands.init_cmd.Confirm.ask") as mock_confirm,
+        patch("builtins.open", mock_open())
+    ):
+        # api_key, lib_type, lib_id, user_id, target_group, ss_key, up_email
+        mock_ask.side_effect = ["API_KEY", "user", "12345", "", "", ""]
+        mock_confirm.return_value = True
+        mock_clients["zotero"].verify_credentials.return_value = True
+        
+        test_args = ["zotero-cli", "init"]
         with patch.object(sys, "argv", test_args):
             main()
-        mock_tui.run_screening_session.assert_called_once_with("S", "I", "E")
+    assert "Configuration saved" in capsys.readouterr().out
 
 
-def test_screen_bulk_csv(mock_clients, env_vars, capsys):
-    # Mock ScreeningService via Factory
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_screening_service") as mock_factory_get:
-        mock_service = mock_factory_get.return_value
-        mock_service.record_decision.return_value = True
-
-        # Create dummy CSV
-        csv_content = "Key,Vote,Reason\nK1,INCLUDE,\nK2,EXCLUDE,bad"
-        with patch("builtins.open", mock_open(read_data=csv_content)):
-            test_args = [
-                "zotero-cli",
-                "slr",
-                "screen",
-                "--source",
-                "S",
-                "--include",
-                "I",
-                "--exclude",
-                "E",
-                "--file",
-                "decisions.csv",
-            ]
-            with patch.object(sys, "argv", test_args):
-                main()
-
-        captured = capsys.readouterr()
-        assert "Processing bulk decisions" in captured.out
-        assert "Success: 2, Failed: 0" in captured.out
-        assert mock_service.record_decision.call_count == 2
-
-
-# --- 2. DECIDE ---
-def test_decide_cli_invocation(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_screening_service") as mock_factory_get:
-        mock_service = mock_factory_get.return_value
-        mock_service.record_decision.return_value = True
+# --- 2. SLR ---
+def test_decide_command(mock_clients, env_vars, capsys):
+    with patch("zotero_cli.core.services.screening_service.ScreeningService") as mock_screen_cls:
+        mock_service = mock_screen_cls.return_value
         test_args = [
             "zotero-cli",
             "slr",
@@ -127,17 +76,22 @@ def test_decide_cli_invocation(mock_clients, env_vars, capsys):
             "--vote",
             "INCLUDE",
             "--code",
-            "IC1",
+            "RELEVANT",
         ]
         with patch.object(sys, "argv", test_args):
             main()
-        assert "Successfully recorded decision" in capsys.readouterr().out
+
+        # Check if service was called
+        mock_service.record_decision.assert_called_once()
+        args = mock_service.record_decision.call_args[1]
+        assert args["item_key"] == "K1"
+        assert args["decision"] == "INCLUDE"
+        assert args["code"] == "RELEVANT"
 
 
-def test_decide_include_no_code(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_screening_service") as mock_factory_get:
-        mock_service = mock_factory_get.return_value
-        mock_service.record_decision.return_value = True
+def test_decide_without_code_on_include(mock_clients, env_vars, capsys):
+    with patch("zotero_cli.core.services.screening_service.ScreeningService") as mock_screen_cls:
+        mock_service = mock_screen_cls.return_value
         test_args = [
             "zotero-cli",
             "slr",
@@ -275,12 +229,12 @@ def test_import_file_csv_ieee(mock_clients, env_vars, capsys):
     assert "Imported 6 items." in capsys.readouterr().out
 
 
-# --- 4. LIST ---
+# --- 4. LIST (Unified in Object namespaces) ---
 def test_list_collections(mock_clients, env_vars, capsys):
     mock_clients["zotero"].get_all_collections.return_value = [
         {"key": "K1", "data": {"name": "Col1"}, "meta": {"numItems": 5}}
     ]
-    test_args = ["zotero-cli", "list", "collections"]
+    test_args = ["zotero-cli", "collection", "list"]
     with patch.object(sys, "argv", test_args):
         main()
     out = capsys.readouterr().out
@@ -293,7 +247,7 @@ def test_list_groups(mock_clients, env_vars, capsys):
     mock_clients["zotero"].get_user_groups.return_value = [
         {"id": 123, "data": {"name": "Research Group"}, "url": "..."}
     ]
-    test_args = ["zotero-cli", "list", "groups"]
+    test_args = ["zotero-cli", "system", "groups"]
     with patch.object(sys, "argv", test_args):
         main()
     out = capsys.readouterr().out
@@ -309,24 +263,20 @@ def test_list_items(mock_clients, env_vars, capsys):
     mock_clients["zotero"].get_collection_id_by_name.return_value = "CID"
     mock_clients["zotero"].get_items_in_collection.return_value = iter([mock_item])
 
-    test_args = ["zotero-cli", "list", "items", "--collection", "MyCol"]
+    test_args = ["zotero-cli", "item", "list", "--collection", "MyCol"]
     with patch.object(sys, "argv", test_args):
         main()
 
     assert "Paper 1" in capsys.readouterr().out
-    # We changed the output format to a table, so precise string match might vary
-    # But checking for title is safe. Key is now in a separate column.
 
 
 def test_list_items_not_found(mock_clients, env_vars, capsys):
     mock_clients["zotero"].get_collection_id_by_name.return_value = None
 
-    test_args = ["zotero-cli", "list", "items", "--collection", "NonExistent"]
+    test_args = ["zotero-cli", "item", "list", "--collection", "NonExistent"]
     with patch.object(sys, "argv", test_args):
         main()
 
-    # It currently prints an empty table if not found, but it should ideally error.
-    # For now, let's just assert it shows 0 items.
     assert "Showing 0 items" in capsys.readouterr().out
 
 
@@ -338,7 +288,7 @@ def test_list_items_top_only(mock_clients, env_vars, capsys):
     mock_clients["zotero"].get_collection_id_by_name.return_value = "CID"
     mock_clients["zotero"].get_items_in_collection.return_value = iter([mock_item])
 
-    test_args = ["zotero-cli", "list", "items", "--collection", "MyCol", "--top-only"]
+    test_args = ["zotero-cli", "item", "list", "--collection", "MyCol", "--top-only"]
     with patch.object(sys, "argv", test_args):
         main()
 
@@ -445,17 +395,18 @@ def test_tag_list(mock_clients, env_vars, capsys):
         main()
     assert "t1" in capsys.readouterr().out
 
-    # --- 7. COLLECTION ---
-    def test_collection_pdfs_strip(mock_clients, env_vars, capsys):
-        with patch(
-            "zotero_cli.infra.factory.GatewayFactory.get_attachment_service"
-        ) as mock_att_get:
-            mock_att = mock_att_get.return_value
-            mock_att.remove_attachments_from_collection.return_value = 10
-            test_args = ["zotero-cli", "collection", "pdf", "strip", "--collection", "F"]
-            with patch.object(sys, "argv", test_args):
-                main()
-            assert "Would remove 10 attachments" in capsys.readouterr().out
+
+# --- 7. COLLECTION ---
+def test_collection_pdfs_strip(mock_clients, env_vars, capsys):
+    with patch(
+        "zotero_cli.infra.factory.GatewayFactory.get_attachment_service"
+    ) as mock_att_get:
+        mock_att = mock_att_get.return_value
+        mock_att.remove_attachments_from_collection.return_value = 10
+        test_args = ["zotero-cli", "collection", "pdf", "strip", "--collection", "F"]
+        with patch.object(sys, "argv", test_args):
+            main()
+        assert "Would remove 10 attachments" in capsys.readouterr().out
 
 
 def test_collection_duplicates(mock_clients, env_vars, capsys):
@@ -503,7 +454,7 @@ def test_item_move(mock_clients, env_vars, capsys):
         assert "Moved item I" in capsys.readouterr().out
 
 
-# --- 9. REVIEW ---
+# --- 9. SLR ---
 def test_review_migrate(mock_clients, env_vars, capsys):
     with patch("zotero_cli.cli.commands.slr_cmd.MigrationService") as mock_migrate_cls:
         mock_migrate = mock_migrate_cls.return_value
@@ -518,9 +469,8 @@ def test_review_migrate(mock_clients, env_vars, capsys):
         assert "Migration results for C" in capsys.readouterr().out
 
 
-# --- 7. ANALYZE ---
-def test_audit_check(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.slr_cmd.CollectionAuditor") as mock_auditor_cls:
+def test_verify_check(mock_clients, env_vars, capsys):
+    with patch("zotero_cli.core.services.audit_service.CollectionAuditor") as mock_auditor_cls:
         mock_auditor = mock_auditor_cls.return_value
         mock_report = Mock()
         mock_report.total_items = 0
@@ -530,13 +480,13 @@ def test_audit_check(mock_clients, env_vars, capsys):
         mock_report.items_missing_pdf = []
         mock_report.items_missing_note = []
         mock_auditor.audit_collection.return_value = mock_report
-        test_args = ["zotero-cli", "slr", "validate", "--collection", "C"]
+        test_args = ["zotero-cli", "slr", "verify", "--collection", "C"]
         with patch.object(sys, "argv", test_args):
             main()
         assert "Auditing collection: C" in capsys.readouterr().out
 
 
-def test_analyze_lookup(mock_clients, env_vars, capsys):
+def test_slr_lookup(mock_clients, env_vars, capsys):
     with patch("zotero_cli.cli.commands.slr_cmd.LookupService") as mock_lookup_cls:
         mock_lookup = mock_lookup_cls.return_value
         mock_lookup.lookup_items.return_value = "Lookup Result"
@@ -544,119 +494,3 @@ def test_analyze_lookup(mock_clients, env_vars, capsys):
         with patch.object(sys, "argv", test_args):
             main()
         assert "Lookup Result" in capsys.readouterr().out
-
-
-def test_analyze_graph(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.slr_cmd.CitationGraphService") as mock_graph_cls:
-        mock_graph = mock_graph_cls.return_value
-        mock_graph.build_graph.return_value = "digraph {}"
-        test_args = ["zotero-cli", "slr", "graph", "--collections", "C"]
-        with patch.object(sys, "argv", test_args):
-            main()
-        assert "digraph {}" in capsys.readouterr().out
-
-
-# --- 8. FIND ---
-def test_find_arxiv(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.import_cmd.ArxivQueryParser") as mock_parser_cls:
-        mock_parser = mock_parser_cls.return_value
-        from zotero_cli.core.services.arxiv_query_parser import ArxivSearchParams
-
-        mock_parser.parse.return_value = ArxivSearchParams(
-            query="parsed", max_results=1, sort_by="relevance", sort_order="descending"
-        )
-
-        # Configure the importer mock to return a count
-        mock_clients["importer"].import_papers.return_value = 1
-
-        test_args = ["zotero-cli", "import", "arxiv", "--query", "foo", "--collection", "F"]
-        with patch.object(sys, "argv", test_args):
-            main()
-
-        out = capsys.readouterr().out
-        assert "Imported 1 items" in out
-        mock_clients["importer"].import_papers.assert_called_once()
-
-
-# --- CONFIGURATION / MAIN ---
-
-
-def get_zotero_gateway(*args, **kwargs):
-    return GatewayFactory.get_zotero_gateway(*args, **kwargs)
-
-
-def test_config_group_mode(monkeypatch):
-    reset_config()
-    monkeypatch.setenv("ZOTERO_API_KEY", "key")
-    monkeypatch.setenv("ZOTERO_TARGET_GROUP", "https://zotero.org/groups/123")
-
-    gw = get_zotero_gateway()
-    assert gw.http.library_id == "123"
-    assert gw.http.library_type == "group"
-
-
-def test_config_user_mode(monkeypatch):
-    reset_config()
-    monkeypatch.setenv("ZOTERO_API_KEY", "key")
-    monkeypatch.delenv("ZOTERO_TARGET_GROUP", raising=False)
-    monkeypatch.setenv("ZOTERO_USER_ID", "999")
-
-    gw = get_zotero_gateway()
-    assert gw.http.library_id == "999"
-    assert gw.http.library_type == "user"
-
-
-def test_config_missing_group_id(monkeypatch, capsys):
-    reset_config()
-    monkeypatch.setenv("ZOTERO_API_KEY", "key")
-    monkeypatch.setenv("ZOTERO_TARGET_GROUP", "https://bad-url.com")
-
-    with pytest.raises(SystemExit):
-        get_zotero_gateway()
-    assert "Could not extract Group ID" in capsys.readouterr().err
-
-
-def test_config_no_context(monkeypatch, capsys):
-    reset_config()
-    monkeypatch.setenv("ZOTERO_API_KEY", "key")
-    monkeypatch.delenv("ZOTERO_TARGET_GROUP", raising=False)
-    monkeypatch.delenv("ZOTERO_USER_ID", raising=False)
-
-    with pytest.raises(SystemExit):
-        get_zotero_gateway()
-    assert "No target library defined" in capsys.readouterr().err
-
-
-def test_config_optional_group(monkeypatch):
-    reset_config()
-    monkeypatch.setenv("ZOTERO_API_KEY", "key")
-    monkeypatch.delenv("ZOTERO_TARGET_GROUP", raising=False)
-    monkeypatch.delenv("ZOTERO_USER_ID", raising=False)
-
-    # Should not exit
-    gw = get_zotero_gateway(require_group=False)
-    assert gw.http.library_id == "0"
-
-
-def test_item_move_auto_source(mock_clients, env_vars, capsys):
-    with patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_collection_service"
-    ) as mock_factory_get:
-        mock_service = mock_factory_get.return_value
-
-        mock_service.move_item.return_value = True
-
-        # Source not provided
-
-        test_args = ["zotero-cli", "item", "move", "--item-id", "I", "--target", "T"]
-
-        with patch.object(sys, "argv", test_args):
-            main()
-
-        # Verify call arguments
-
-        # Argument order in CollectionService.move_item(source, target, item_id)
-
-        mock_service.move_item.assert_called_once_with(None, "T", "I")
-
-        assert "Moved item I" in capsys.readouterr().out

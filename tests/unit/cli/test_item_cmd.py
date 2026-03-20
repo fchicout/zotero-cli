@@ -37,7 +37,7 @@ async def test_item_pdf_fetch_success(mock_clients, env_vars, capsys):
     mock_job.status = "COMPLETED"
     mock_pdf.job_queue.repo.get_job.return_value = mock_job
 
-    test_args = ["zotero-cli", "item", "pdf", "fetch", "ITEM1"]
+    test_args = ["zotero-cli", "item", "pdf", "fetch", "--key", "ITEM1"]
     with patch("zotero_cli.cli.commands.item_cmd.asyncio.run") as mock_run:
         with patch.object(sys, "argv", test_args):
             main()
@@ -60,7 +60,7 @@ async def test_item_pdf_fetch_failure(mock_clients, env_vars, capsys):
     mock_job.last_error = "404 Not Found"
     mock_pdf.job_queue.repo.get_job.return_value = mock_job
 
-    test_args = ["zotero-cli", "item", "pdf", "fetch", "ITEM2"]
+    test_args = ["zotero-cli", "item", "pdf", "fetch", "--key", "ITEM2"]
     with patch("zotero_cli.cli.commands.item_cmd.asyncio.run"):
         with patch.object(sys, "argv", test_args):
             main()

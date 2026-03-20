@@ -98,9 +98,9 @@ def test_slr_decide_dispatch_full(mock_gateway, mock_screening_get, slr_cmd):
 
 
 @patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")
-@patch("zotero_cli.cli.commands.slr_cmd.CollectionAuditor")
-def test_slr_validate_dispatch(mock_auditor_cls, mock_gateway, slr_cmd):
-    mock_auditor = mock_auditor_cls.return_value
+@patch("zotero_cli.cli.commands.slr.verify_cmd.IntegrityService")
+def test_slr_verify_collection_dispatch(mock_integrity_cls, mock_gateway, slr_cmd):
+    mock_integrity = mock_integrity_cls.return_value
     mock_report = Mock()
     mock_report.items_missing_id = []
     mock_report.items_missing_title = []
@@ -108,29 +108,47 @@ def test_slr_validate_dispatch(mock_auditor_cls, mock_gateway, slr_cmd):
     mock_report.items_missing_pdf = []
     mock_report.items_missing_note = []
     mock_report.total_items = 0
-    mock_auditor.audit_collection.return_value = mock_report
+    mock_integrity.audit_collection.return_value = mock_report
 
     args = argparse.Namespace(
-        verb="validate", collection="Test", verbose=False, user=False, export_missing=None
+        verb="verify",
+        collection="Test",
+        latex=None,
+        verbose=False,
+        user=False,
+        export_missing=None,
     )
 
     slr_cmd.execute(args)
-    mock_auditor.audit_collection.assert_called_once_with("Test")
+    mock_integrity.audit_collection.assert_called_once_with("Test")
+
+
+@patch("zotero_cli.infra.factory.GatewayFactory.get_audit_service")
+@patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")
+def test_slr_verify_latex_dispatch(mock_gateway, mock_audit_service_get, slr_cmd):
+    mock_service = mock_audit_service_get.return_value
+    mock_service.audit_manuscript.return_value = {
+        "path": "test.tex",
+        "total_citations": 0,
+        "items": {},
+    }
+
+    args = argparse.Namespace(
+        verb="verify",
+        latex="test.tex",
+        collection=None,
+        verbose=False,
+        user=False,
+        export_missing=None,
+    )
+
+    slr_cmd.execute(args)
+    mock_service.audit_manuscript.assert_called_once()
 
 
 @patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")
-@patch("zotero_cli.cli.commands.slr_cmd.CollectionAuditor")
-def test_slr_load_dispatch(mock_auditor_cls, mock_gateway, slr_cmd):
-    mock_auditor = mock_auditor_cls.return_value
-    mock_auditor.enrich_from_csv.return_value = {
-        "total_rows": 0,
-        "matched": 0,
-        "unmatched": [],
-        "updated": 0,
-        "created": 0,
-        "skipped": 0,
-    }
-
+@patch("zotero_cli.cli.commands.slr.LoadCommand.execute")
+def test_slr_load_dispatch(mock_load_execute, mock_gateway, slr_cmd):
     args = argparse.Namespace(
         verb="load",
         file="test.csv",
@@ -143,13 +161,7 @@ def test_slr_load_dispatch(mock_auditor_cls, mock_gateway, slr_cmd):
     )
 
     slr_cmd.execute(args)
-    # Note: we don't strictly assert the collection_service here as it's a factory-generated mock
-    mock_auditor.enrich_from_csv.assert_called_once()
-    call_args = mock_auditor.enrich_from_csv.call_args[1]
-    assert call_args["csv_path"] == "test.csv"
-    assert call_args["reviewer"] == "Pythias"
-    assert call_args["move_to_included"] == "INC"
-    assert call_args["move_to_excluded"] == "EXC"
+    mock_load_execute.assert_called_once_with(mock_gateway.return_value, args)
 
 
 @patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")

@@ -163,12 +163,29 @@ def test_system_jobs_run(system_cmd, capsys):
 
 
 def test_system_groups(system_cmd, capsys):
+    from zotero_cli.core.config import ZoteroConfig
+
     args = argparse.Namespace(verb="groups", user=False)
-    with patch("zotero_cli.cli.commands.system_cmd.ListCommand") as mock_list_cmd_cls:
-        mock_list_cmd = mock_list_cmd_cls.return_value
+    mock_config = ZoteroConfig(api_key="key", library_id="123", user_id="user1")
+
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get_gw,
+        patch("zotero_cli.core.config.get_config", return_value=mock_config),
+    ):
+        mock_gw = mock_get_gw.return_value
+        mock_gw.get_user_groups.return_value = [
+            {"id": 456, "data": {"name": "Group A"}},
+            {"id": 789, "data": {"name": "Group B"}},
+        ]
+
         system_cmd.execute(args)
-        assert args.list_type == "groups"
-        mock_list_cmd.execute.assert_called_once_with(args)
+
+        out = capsys.readouterr().out
+        assert "Zotero Groups" in out
+        assert "Group A" in out
+        assert "456" in out
+        assert "Group B" in out
+        assert "789" in out
 
 
 def test_system_switch(system_cmd, capsys):

@@ -35,7 +35,7 @@ def test_item_hydrate_dry_run(run_cli, temp_collection):
 
     # 3. Action: Hydrate (Dry Run)
     # Note: If it already has DOI/Journal, it might say "No items needed hydration"
-    res = run_cli(["item", "hydrate", item_key, "--dry-run"])
+    res = run_cli(["item", "hydrate", "--key", item_key, "--dry-run"])
 
     assert res.returncode == 0
     # Either it shows the report table or the "No items needed" message.

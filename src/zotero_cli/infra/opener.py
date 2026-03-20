@@ -3,7 +3,9 @@ import subprocess
 import sys
 
 
-class OpenerService:
+from zotero_cli.core.interfaces import OpenerService as IOpenerService
+
+class OpenerService(IOpenerService):
     """
     Cross-platform file opener service.
     Implements 'Try-Then-Link' protocol:
@@ -11,8 +13,7 @@ class OpenerService:
     2. If fail (or headless), fallback to printing file:// link.
     """
 
-    @staticmethod
-    def open_file(path: str) -> bool:
+    def open_file(self, path: str) -> bool:
         """
         Attempts to open the file at `path` using the default application.
         Returns True if the command was successfully dispatched.

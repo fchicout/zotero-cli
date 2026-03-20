@@ -14,7 +14,7 @@ def test_collection_lifecycle(run_cli, timestamp):
 
     try:
         # 1. Create
-        res = run_cli(["collection", "create", col_name])
+        res = run_cli(["collection", "create", "--name", col_name])
         assert res.returncode == 0
         # CLI Output: Created collection 'Name' (Key: XXXXX)
         assert f"Created collection '{col_name}'" in res.stdout
@@ -26,7 +26,8 @@ def test_collection_lifecycle(run_cli, timestamp):
         assert col_name in list_res.stdout
 
         # 3. Rename
-        rename_res = run_cli(["collection", "rename", col_name, new_name])
+        rename_res = run_cli(["collection", "rename", "--key", col_name, "--name", new_name])
+
         assert rename_res.returncode == 0
 
         time.sleep(5)
@@ -36,8 +37,8 @@ def test_collection_lifecycle(run_cli, timestamp):
 
     finally:
         # 4. Cleanup (Delete)
-        run_cli(["collection", "delete", col_name, "--recursive"])
-        run_cli(["collection", "delete", new_name, "--recursive"])
+        run_cli(["collection", "delete", "--key", col_name, "--recursive"])
+        run_cli(["collection", "delete", "--key", new_name, "--recursive"])
 
 
 @pytest.mark.e2e

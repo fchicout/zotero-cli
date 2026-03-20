@@ -15,7 +15,7 @@ def test_backup_restore_e2e(run_cli, tmp_path):
     backup_file = tmp_path / "backup.json"
 
     try:
-        run_cli(["collection", "create", col_name])
+        run_cli(["collection", "create", "--name", col_name])
         # Add an item to ensure it's not empty
         run_cli(
             [
@@ -40,7 +40,7 @@ def test_backup_restore_e2e(run_cli, tmp_path):
 
     finally:
         # Cleanup
-        run_cli(["collection", "delete", col_name, "--recursive"])
+        run_cli(["collection", "delete", "--key", col_name, "--recursive"])
 
 
 @pytest.mark.e2e
@@ -55,7 +55,7 @@ def test_shift_e2e(run_cli, tmp_path):
     snap2 = tmp_path / "snap2.json"
 
     try:
-        run_cli(["collection", "create", col_a])
+        run_cli(["collection", "create", "--name", col_a])
         run_cli(
             [
                 "import",
@@ -69,12 +69,13 @@ def test_shift_e2e(run_cli, tmp_path):
             ]
         )
 
-        time.sleep(10)
+        # Wait for import to stabilize
+        time.sleep(15)
         run_cli(["report", "snapshot", "--collection", col_a, "--output", str(snap1)])
 
-        run_cli(["collection", "create", col_b])
+        run_cli(["collection", "create", "--name", col_b])
         # Wait for collection B to be discoverable
-        time.sleep(5)
+        time.sleep(10)
 
         list_res = run_cli(["list", "items", "--collection", col_a])
 
@@ -102,7 +103,7 @@ def test_shift_e2e(run_cli, tmp_path):
         )
 
         # Wait for movement to propagate
-        time.sleep(15)
+        time.sleep(20)
         run_cli(["report", "snapshot", "--collection", col_a, "--output", str(snap2)])
 
         shift_res = run_cli(["slr", "shift", "--old", str(snap1), "--new", str(snap2)])
@@ -111,5 +112,5 @@ def test_shift_e2e(run_cli, tmp_path):
 
     finally:
         # Cleanup
-        run_cli(["collection", "delete", col_a, "--recursive"])
-        run_cli(["collection", "delete", col_b, "--recursive"])
+        run_cli(["collection", "delete", "--key", col_a, "--recursive"])
+        run_cli(["collection", "delete", "--key", col_b, "--recursive"])

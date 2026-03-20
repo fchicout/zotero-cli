@@ -4,9 +4,9 @@ import sys
 
 from rich.console import Console
 from rich.panel import Panel
+from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.commands.list_cmd import ListCommand
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -105,7 +105,7 @@ class ItemCommand(BaseCommand):
 
         # Update
         update_p = sub.add_parser("update", help="Update item metadata")
-        update_p.add_argument("key", help="Item Key")
+        update_p.add_argument("--key", required=True, help="Item Key")
         update_p.add_argument("--doi", help="Update DOI")
         update_p.add_argument("--title", help="Update Title")
         update_p.add_argument("--abstract", help="Update Abstract")
@@ -119,27 +119,25 @@ class ItemCommand(BaseCommand):
         pdf_sub = pdf_p.add_subparsers(dest="pdf_verb", required=True)
 
         fetch_p = pdf_sub.add_parser("fetch", help="Fetch missing PDF for a specific item")
-        fetch_p.add_argument("key", nargs="?", help="Item Key (optional if --collection or --file)")
+        fetch_p.add_argument("--key", help="Item Key")
         fetch_p.add_argument("--collection", help="Fetch PDFs for all items in a collection")
         fetch_p.add_argument("--file", help="Fetch PDFs for all items in a key-list file")
         fetch_p.add_argument("--verbose", action="store_true")
 
         strip_p = pdf_sub.add_parser("strip", help="Remove PDF attachments from a specific item")
-        strip_p.add_argument("key", help="Item Key")
+        strip_p.add_argument("--key", required=True, help="Item Key")
         strip_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
         strip_p.add_argument("--verbose", action="store_true")
 
         attach_p = pdf_sub.add_parser("attach", help="Attach a local file to an item")
-        attach_p.add_argument("key", help="Item Key")
-        attach_p.add_argument("path", help="Path to local file")
+        attach_p.add_argument("--key", required=True, help="Item Key")
+        attach_p.add_argument("--file", required=True, help="Path to local file")
 
         # Hydrate
         hydrate_p = sub.add_parser(
             "hydrate", help="Enrich metadata from external sources (e.g. ArXiv -> DOI)"
         )
-        hydrate_p.add_argument(
-            "key", nargs="?", help="Item Key (optional if --collection or --all)"
-        )
+        hydrate_p.add_argument("--key", help="Item Key")
         hydrate_p.add_argument("--collection", help="Hydrate all items in a collection")
         hydrate_p.add_argument(
             "--all", action="store_true", help="Scan entire library for hydration"
@@ -150,7 +148,7 @@ class ItemCommand(BaseCommand):
 
         # Purge
         purge_p = sub.add_parser("purge", help="Purge assets (files, notes, tags) from an item")
-        purge_p.add_argument("key", help="Item Key")
+        purge_p.add_argument("--key", required=True, help="Item Key")
         purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
         purge_p.add_argument("--notes", action="store_true", help="Purge notes")
         purge_p.add_argument("--tags", action="store_true", help="Purge tags")
@@ -158,13 +156,21 @@ class ItemCommand(BaseCommand):
 
         # Transfer
         transfer_p = sub.add_parser("transfer", help="Transfer item between different libraries")
-        transfer_p.add_argument("key", help="Zotero Item Key")
+        transfer_p.add_argument("--key", required=True, help="Zotero Item Key")
         transfer_p.add_argument("--target-group", required=True, help="Target Group ID")
         transfer_p.add_argument(
             "--delete-source",
             action="store_true",
             help="Delete item from source library after transfer",
         )
+
+        # Export
+        export_p = sub.add_parser("export", help="Export item metadata or content")
+        export_p.add_argument("--key", required=True, help="Item Key")
+        export_p.add_argument(
+            "--format", default="bibtex", choices=["bibtex", "ris", "md"], help="Export format"
+        )
+        export_p.add_argument("--output", help="Output file path or directory (for md)")
 
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
@@ -175,9 +181,7 @@ class ItemCommand(BaseCommand):
         elif args.verb == "move":
             self._handle_move(args)
         elif args.verb == "list":
-            # Adapt args for ListCommand
-            args.list_type = "items"
-            ListCommand().execute(args)
+            self._handle_list(gateway, args)
         elif args.verb == "update":
             self._handle_update(gateway, args)
         elif args.verb == "delete":
@@ -190,6 +194,120 @@ class ItemCommand(BaseCommand):
             self._handle_purge(args)
         elif args.verb == "transfer":
             self._handle_transfer(args)
+        elif args.verb == "export":
+            self._handle_export(args)
+
+    def _handle_list(self, gateway, args):
+        from zotero_cli.core.services.sdb.sdb_service import SDBService
+
+        is_sdb_filter = any(
+            [
+                getattr(args, "included", False),
+                getattr(args, "excluded", False),
+                getattr(args, "criteria", None),
+                getattr(args, "persona", None),
+                getattr(args, "phase", None),
+            ]
+        )
+
+        if getattr(args, "trash", False):
+            items = list(gateway.get_trash_items())
+            title = "Trash Items"
+        else:
+            if not getattr(args, "collection", None):
+                console.print("[red]Error: --collection required for non-trash listings.[/red]")
+                return
+            col_id = gateway.get_collection_id_by_name(args.collection)
+            if not col_id:
+                col_id = args.collection  # Try Key
+
+            items = list(
+                gateway.get_items_in_collection(col_id, top_only=getattr(args, "top_only", False))
+            )
+            title = f"Items in {args.collection}"
+
+        if is_sdb_filter:
+            sdb_service = SDBService(gateway)
+            filtered_items = []
+            sdb_data = {}
+
+            incl = getattr(args, "included", False)
+            excl = getattr(args, "excluded", False)
+            crit = getattr(args, "criteria", None)
+            pers = getattr(args, "persona", None)
+            phas = getattr(args, "phase", None)
+
+            for item in items:
+                # 1. Fast Filter (Tags)
+                if incl and "rsl:include" not in item.tags:
+                    continue
+                if excl and not any(t.startswith("rsl:exclude:") for t in item.tags):
+                    continue
+                if crit and f"rsl:exclude:{crit}" not in item.tags:
+                    continue
+
+                # 2. Deep Filter (Notes)
+                entries = sdb_service.inspect_item_sdb(item.key)
+                matched_entry = None
+                for entry in entries:
+                    match = True
+                    if incl and entry.get("decision") != "accepted":
+                        match = False
+                    if excl and entry.get("decision") != "rejected":
+                        match = False
+                    if crit:
+                        codes = entry.get("reason_code", [])
+                        if crit not in codes:
+                            match = False
+                    if pers and entry.get("persona") != pers:
+                        match = False
+                    if phas and entry.get("phase") != phas:
+                        match = False
+
+                    if match:
+                        matched_entry = entry
+                        break
+
+                if matched_entry:
+                    filtered_items.append(item)
+                    sdb_data[item.key] = matched_entry
+
+            if not filtered_items:
+                console.print(
+                    "[yellow]No items found matching criteria. Ensure SDB metadata is populated.[/yellow]"
+                )
+                return
+
+            items = filtered_items
+            table = Table(title=f"{title} (SDB Filtered)")
+            table.add_column("Key", style="cyan")
+            table.add_column("Title")
+            table.add_column("Decision")
+            table.add_column("Criteria")
+            table.add_column("Persona")
+
+            for item in items:
+                entry = sdb_data[item.key]
+                decision = entry.get("decision", "N/A")
+                color = "green" if decision == "accepted" else "red"
+                criteria = ", ".join(entry.get("reason_code", []))
+                table.add_row(
+                    item.key,
+                    (item.title or "Untitled")[:50],
+                    f"[{color}]{decision}[/{color}]",
+                    criteria,
+                    entry.get("persona", "N/A"),
+                )
+        else:
+            table = Table(title=title)
+            table.add_column("Key", style="cyan")
+            table.add_column("Title")
+            table.add_column("Type")
+            for item in items:
+                table.add_row(item.key, item.title or "Untitled", item.item_type)
+
+        console.print(table)
+        console.print(f"\n[dim]Showing {len(items)} items.[/dim]")
 
     def _handle_transfer(self, args):
         from dataclasses import replace
@@ -358,7 +476,7 @@ class ItemCommand(BaseCommand):
         import mimetypes
         import os
 
-        path = args.path
+        path = args.file
         if not os.path.exists(path):
             print(f"Error: File not found: {path}")
             return
@@ -431,3 +549,43 @@ class ItemCommand(BaseCommand):
             print(f"Moved item {args.item_id} from {source_display} to {target_display}.")
         else:
             print("Failed to move item.")
+
+    def _handle_export(self, args):
+        from pathlib import Path
+
+        force_user = getattr(args, "user", False)
+        gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
+
+        item = gateway.get_item(args.key)
+        if not item:
+            console.print(f"[bold red]Error:[/bold red] Item '{args.key}' not found.")
+            return
+
+        if args.format == "md":
+            attach_service = GatewayFactory.get_attachment_service(force_user=force_user)
+            output_dir = Path(args.output) if args.output else Path("./export_md")
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            console.print(f"Exporting full-text for: [cyan]{item.title}[/cyan]...")
+            stats = attach_service.bulk_export_markdown([item], output_dir)
+
+            if stats["success"] > 0:
+                console.print(f"[bold green]Success![/bold green] Markdown saved to {output_dir}")
+            elif stats["skipped"] > 0:
+                console.print("[yellow]Skipped:[/yellow] Item has no PDF attachment.")
+            else:
+                console.print("[bold red]Failed:[/bold red] Could not extract text from PDF.")
+        else:
+            # BibTeX / RIS
+            if not args.output:
+                console.print("[red]Error: --output required for metadata export.[/red]")
+                return
+
+            export_service = GatewayFactory.get_export_service(force_user=force_user)
+            console.print(
+                f"Exporting item [cyan]{args.key}[/cyan] to [green]{args.output}[/green] ({args.format})..."
+            )
+            if export_service.export_items([item], args.output, args.format):
+                console.print("[bold green]Export complete.[/bold green]")
+            else:
+                console.print("[bold red]Export failed.[/bold red]")

@@ -6,7 +6,6 @@ from rich.console import Console
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.commands.list_cmd import ListCommand
 from zotero_cli.core.services.backup_service import BackupService
 from zotero_cli.core.services.duplicate_service import DuplicateFinder
 from zotero_cli.infra.factory import GatewayFactory
@@ -27,12 +26,12 @@ class CollectionCommand(BaseCommand):
 
         # Create
         create_p = sub.add_parser("create", help="Create a new collection")
-        create_p.add_argument("name")
+        create_p.add_argument("--name", required=True, help="Collection name")
         create_p.add_argument("--parent", help="Parent collection name or key")
 
         # Delete
         delete_p = sub.add_parser("delete", help="Delete a collection")
-        delete_p.add_argument("key", help="Collection name or key")
+        delete_p.add_argument("--key", required=True, help="Collection name or key")
         delete_p.add_argument(
             "--version", type=int, help="Collection version (optional if recursive)"
         )
@@ -42,8 +41,8 @@ class CollectionCommand(BaseCommand):
 
         # Rename
         rename_p = sub.add_parser("rename", help="Rename a collection")
-        rename_p.add_argument("key", help="Current name or key")
-        rename_p.add_argument("name", help="New name")
+        rename_p.add_argument("--key", required=True, help="Current name or key")
+        rename_p.add_argument("--name", required=True, help="New name")
         rename_p.add_argument("--version", type=int, help="Collection version")
 
         # Clean
@@ -79,31 +78,19 @@ class CollectionCommand(BaseCommand):
         backup_p.add_argument("--output", required=True, help="Output file path")
 
         # Export
-        export_p = sub.add_parser("export", help="Export a collection to external formats")
-        export_p.add_argument("name", help="Collection name or key")
-        export_p.add_argument("--output", required=True, help="Output file path")
+        export_p = sub.add_parser("export", help="Export collection metadata or content")
+        export_p.add_argument("--name", required=True, help="Collection name or key")
         export_p.add_argument(
-            "--format", default="bibtex", choices=["bibtex"], help="Export format (Default: bibtex)"
+            "--format", default="bibtex", choices=["bibtex", "ris", "md"], help="Export format"
         )
-
-        # Purge
-        purge_p = sub.add_parser(
-            "purge", help="Purge assets (files, notes, tags) from a collection"
-        )
-        purge_p.add_argument("name", help="Collection name")
-        purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
-        purge_p.add_argument("--notes", action="store_true", help="Purge notes")
-        purge_p.add_argument("--tags", action="store_true", help="Purge tags")
-        purge_p.add_argument("--recursive", action="store_true", help="Apply to sub-collections")
-        purge_p.add_argument("--force", action="store_true", help="Skip confirmation")
+        export_p.add_argument("--output", help="Output file path or directory (for md)")
 
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
         if args.verb == "list":
-            args.list_type = "collections"
-            ListCommand().execute(args)
+            self._handle_list(gateway, args)
         elif args.verb == "create":
             parent_id = None
             if args.parent:
@@ -157,6 +144,16 @@ class CollectionCommand(BaseCommand):
             self._handle_export(args)
         elif args.verb == "purge":
             self._handle_purge(args)
+
+    def _handle_list(self, gateway, args):
+        cols = gateway.get_all_collections()
+        table = Table(title="Zotero Collections")
+        table.add_column("Name")
+        table.add_column("Key", style="cyan")
+        table.add_column("Items", justify="right")
+        for c in cols:
+            table.add_row(c["data"]["name"], c["key"], str(c["meta"].get("numItems", 0)))
+        console.print(table)
 
     def _handle_purge(self, args):
         from rich.prompt import Confirm
@@ -263,8 +260,18 @@ class CollectionCommand(BaseCommand):
             print(f"Backup failed: {e}", file=sys.stderr)
 
     def _handle_export(self, args):
+        if args.format == "md":
+            self._handle_export_markdown(args)
+        else:
+            self._handle_export_metadata(args)
+
+    def _handle_export_metadata(self, args):
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_export_service(force_user=force_user)
+
+        if not args.output:
+            console.print("[red]Error: --output required for metadata export.[/red]")
+            return
 
         print(f"Exporting collection '{args.name}' to {args.output} ({args.format})...")
         if service.export_collection(args.name, args.output, args.format):
@@ -272,3 +279,70 @@ class CollectionCommand(BaseCommand):
         else:
             print("Export failed.", file=sys.stderr)
             sys.exit(1)
+
+    def _handle_export_markdown(self, args):
+        from pathlib import Path
+
+        from rich.progress import (
+            BarColumn,
+            MofNCompleteColumn,
+            Progress,
+            TextColumn,
+            TimeRemainingColumn,
+        )
+
+        force_user = getattr(args, "user", False)
+        gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
+        attach_service = GatewayFactory.get_attachment_service(force_user=force_user)
+
+        # 1. Resolve Collection
+        col_id = gateway.get_collection_id_by_name(args.name)
+        if not col_id:
+            col_id = args.name  # Try as raw key
+
+        if not gateway.get_collection(col_id):
+            console.print(f"[bold red]Error:[/bold red] Collection '{args.name}' not found.")
+            return
+
+        # 2. Get Items
+        items = list(gateway.get_items_in_collection(col_id))
+        if not items:
+            console.print(f"[yellow]No items found in collection '{args.name}'.[/yellow]")
+            return
+
+        output_dir = Path(args.output) if args.output else Path("./export_md")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        console.print(
+            f"Exporting [bold]{len(items)}[/bold] items from '[cyan]{args.name}[/cyan]' to [green]{output_dir}[/green]..."
+        )
+
+        # 3. Bulk Export with Progress
+        with Progress(
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeRemainingColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Converting PDFs...", total=len(items))
+
+            stats = {"total": len(items), "success": 0, "failed": 0, "skipped": 0}
+
+            for item in items:
+                progress.update(task, description=f"Processing: {item.key}")
+                result = attach_service._export_item_markdown(item, output_dir)
+                if result == "success":
+                    stats["success"] += 1
+                elif result == "skipped":
+                    stats["skipped"] += 1
+                else:
+                    stats["failed"] += 1
+                progress.advance(task)
+
+        # 4. Report
+        console.print("\n[bold]Export Summary:[/bold]")
+        console.print(f"  - [green]Success:[/green] {stats['success']}")
+        console.print(f"  - [yellow]Skipped (No PDF):[/yellow] {stats['skipped']}")
+        console.print(f"  - [red]Failed:[/red] {stats['failed']}")
+        console.print(f"\nFiles saved to: [bold]{output_dir.absolute()}[/bold]")

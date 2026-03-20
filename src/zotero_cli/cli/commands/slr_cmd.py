@@ -6,18 +6,20 @@ from rich.console import Console
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.tui.extraction_tui import ExtractionTUI
-from zotero_cli.cli.tui.screening_tui import TuiScreeningService
-from zotero_cli.core.services.audit_service import CollectionAuditor
-from zotero_cli.core.services.extraction_service import (
-    ExtractionSchemaValidator,
-    ExtractionService,
+from zotero_cli.cli.commands.slr import (
+    DecideCommand,
+    ExtractionCommand,
+    LoadCommand,
+    SDBCommand,
+    ScreenCommand,
+    SnowballCommand,
+    VerifyCommand,
 )
+from zotero_cli.core.services.audit_service import CollectionAuditor
 from zotero_cli.core.services.graph_service import CitationGraphService
 from zotero_cli.core.services.lookup_service import LookupService
 from zotero_cli.core.services.migration_service import MigrationService
 from zotero_cli.infra.factory import GatewayFactory
-from zotero_cli.infra.opener import OpenerService
 
 console = Console()
 
@@ -25,91 +27,38 @@ console = Console()
 @CommandRegistry.register
 class SLRCommand(BaseCommand):
     name = "slr"
-    help = "Systematic Literature Review lifecycle management"
+    help = "Systematic Literature Review (SLR) tools"
 
     def register_args(self, parser: argparse.ArgumentParser):
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # --- Screening ---
         screen_p = sub.add_parser("screen", help="Interactive Screening Interface (TUI)")
-        screen_p.add_argument("--source", required=True, help="Source collection")
-        screen_p.add_argument("--include", required=True, help="Target for inclusion")
-        screen_p.add_argument("--exclude", required=True, help="Target for exclusion")
-        screen_p.add_argument("--file", help="CSV file for bulk decisions (Headless mode)")
-        screen_p.add_argument("--state", help="Local CSV file to track screening state")
+        ScreenCommand.register_args(screen_p)
+        # Compatibility for --file in screen (Issue #97 legacy)
+        screen_p.add_argument("--file", help="Bulk process decisions from CSV")
 
-        decide_p = sub.add_parser("decide", help="Record a single decision (CLI mode)")
-        decide_p.add_argument("--key", required=True)
-        decide_p.add_argument(
-            "--vote",
-            choices=["INCLUDE", "EXCLUDE"],
-            help="Decision vote (required unless flag used)",
-        )
-        decide_p.add_argument(
-            "--code", help="Exclusion/Inclusion criteria code (required unless flag used)"
-        )
-        decide_p.add_argument("--reason", help="Detailed reason text")
-        decide_p.add_argument("--evidence", help="Evidence extracted from text (SDB v1.2)")
-        decide_p.add_argument("--source")
-        decide_p.add_argument("--target")
-        decide_p.add_argument("--agent-led", action="store_true")
-        decide_p.add_argument("--persona")
-        decide_p.add_argument(
-            "--phase",
-            choices=["title_abstract", "full_text"],
-            default="title_abstract",
-            help="Screening phase (Isolation enabled)",
-        )
+        decide_p = sub.add_parser("decide", help="Record a single screening decision")
+        DecideCommand.register_args(decide_p)
 
-        # Decide Exclusion presets
-        decide_p.add_argument(
-            "--short-paper", metavar="CODE", help="Exclude as Short Paper with EC code"
-        )
-        decide_p.add_argument(
-            "--not-english", metavar="CODE", help="Exclude as Non-English with EC code"
-        )
-        decide_p.add_argument(
-            "--is-survey", metavar="CODE", help="Exclude as Survey/SLR with EC code"
-        )
-        decide_p.add_argument(
-            "--no-pdf", metavar="CODE", help="Exclude due to missing PDF with EC code"
-        )
+        load_p = sub.add_parser("load", help="Import screening decisions from CSV")
+        LoadCommand.register_args(load_p)
 
-        # --- Data Loading (formerly audit import-csv) ---
-        load_p = sub.add_parser("load", help="Retroactive SDB enrichment from CSV")
-        load_p.add_argument("file", help="CSV file with screening decisions")
-        load_p.add_argument("--reviewer", required=True, help="Reviewer name (persona)")
-        load_p.add_argument(
-            "--phase",
-            choices=["title_abstract", "full_text"],
-            default="title_abstract",
-            help="Target phase for imported decisions",
-        )
-        load_p.add_argument(
-            "--force", action="store_true", help="Actually write to Zotero (Default is Dry-Run)"
-        )
-        # Column mapping (Issue #62)
-        load_p.add_argument("--col-key", help="CSV column for Zotero Key (Default: Key)")
-        load_p.add_argument("--col-vote", help="CSV column for Decision/Vote (Default: Vote)")
-        load_p.add_argument("--col-reason", help="CSV column for Reason Text (Default: Reason)")
-        load_p.add_argument("--col-code", help="CSV column for Criteria Code (Default: Code)")
-        load_p.add_argument("--col-doi", help="CSV column for DOI (Default: DOI)")
-        load_p.add_argument("--col-title", help="CSV column for Title (Default: Title)")
-        load_p.add_argument("--col-evidence", help="CSV column for Evidence (Default: Evidence)")
-        load_p.add_argument(
-            "--move-to-included", help="Target collection for items with INCLUDE/ACCEPTED decision"
-        )
-        load_p.add_argument(
-            "--move-to-excluded", help="Target collection for items with EXCLUDE/REJECTED decision"
-        )
+        # --- Verification ---
+        verify_p = sub.add_parser("verify", help="Unified verification (Collection or LaTeX)")
+        VerifyCommand.register_args(verify_p)
 
-        # --- Validation (formerly audit check) ---
-        val_p = sub.add_parser("validate", help="Check collection for metadata completeness")
-        val_p.add_argument("--collection", required=True, help="Collection name or key")
-        val_p.add_argument("--verbose", action="store_true", help="Show exact items missing data")
-        val_p.add_argument(
-            "--export-missing", help="Path to export keys of items missing PDF or ID"
-        )
+        # --- Snowballing ---
+        snow_p = sub.add_parser("snowball", help="Citation tracking (Snowballing) tools")
+        SnowballCommand.register_args(snow_p)
+
+        # --- SDB Maintenance ---
+        sdb_p = sub.add_parser("sdb", help="Screening DB (SDB) maintenance")
+        SDBCommand.register_args(sdb_p)
+
+        # --- Extraction ---
+        ext_p = sub.add_parser("extract", help="Data Extraction tools")
+        ExtractionCommand.register_args(ext_p)
 
         # --- Analysis ---
         lookup_p = sub.add_parser("lookup", help="Bulk metadata fetch")
@@ -144,135 +93,28 @@ class SLRCommand(BaseCommand):
             help="Secondary collection (Loser - items removed from here)",
         )
 
-        # --- Extraction (Issue #42) ---
-        ext_p = sub.add_parser("extract", help="Data Extraction management")
-        ext_p.add_argument(
-            "--init", action="store_true", help="Initialize schema.yaml from template"
-        )
-        ext_p.add_argument("--validate", action="store_true", help="Validate current schema.yaml")
-        ext_p.add_argument(
-            "--export",
-            choices=["csv", "markdown", "json"],
-            nargs="?",
-            const="csv",
-            help="Export synthesis matrix (Default: csv)",
-        )
-        ext_p.add_argument("target", nargs="?", help="Collection Name OR Item Key to extract from")
-        ext_p.add_argument("--agent", default="zotero-cli", help="Agent name")
-        ext_p.add_argument("--persona", default="unknown", help="Reviewer persona")
-
-        # --- SDB Management (Issue #60) ---
-        sdb_p = sub.add_parser("sdb", help="Screening Database (SDB) maintenance")
-        sdb_sub = sdb_p.add_subparsers(dest="sdb_verb", required=True)
-
-        # sdb inspect
-        sdb_insp = sdb_sub.add_parser("inspect", help="Inspect SDB entries for an item")
-        sdb_insp.add_argument("key", help="Item Key")
-
-        # sdb edit
-        sdb_edit = sdb_sub.add_parser("edit", help="Surgically edit an SDB entry")
-        sdb_edit.add_argument("key", help="Item Key")
-        sdb_edit.add_argument("--persona", required=True, help="Target Persona")
-        sdb_edit.add_argument("--phase", required=True, help="Target Phase")
-        sdb_edit.add_argument(
-            "--set-decision", choices=["accepted", "rejected"], help="Update decision"
-        )
-        sdb_edit.add_argument("--set-criteria", help="Update criteria codes (comma-separated)")
-        sdb_edit.add_argument("--set-reason", help="Update reason text")
-        sdb_edit.add_argument("--set-reviewer", help="Update reviewer/persona name")
-        sdb_edit.add_argument(
-            "--execute", action="store_true", help="Apply changes (Default: Dry-Run)"
-        )
-
-        # sdb upgrade
-        sdb_upg = sdb_sub.add_parser("upgrade", help="Upgrade SDB notes to latest schema (v1.2)")
-        sdb_upg.add_argument("--collection", required=True, help="Target collection")
-        sdb_upg.add_argument(
-            "--execute", action="store_true", help="Apply changes (Default: Dry-Run)"
-        )
-
-        # --- Reset (Issue #52) ---
-        reset_p = sub.add_parser("reset", help="Reset screening/extraction progress for a phase")
-        reset_p.add_argument("name", help="Collection name or key")
-        reset_p.add_argument(
-            "--phase",
-            required=True,
-            choices=["title_abstract", "full_text", "extraction"],
-            help="Target phase to reset",
-        )
-        reset_p.add_argument("--persona", help="Filter by specific reviewer persona")
+        # --- Reset ---
+        reset_p = sub.add_parser("reset", help="Reset screening/audit metadata for a collection")
+        reset_p.add_argument("--name", required=True, help="Collection name or key")
+        reset_p.add_argument("--phase", required=True, help="Target phase to reset")
+        reset_p.add_argument("--persona", help="Reviewer persona to reset (Optional)")
         reset_p.add_argument("--force", action="store_true", help="Skip confirmation")
-
-        # --- Snowballing (Issue #76 consolidation) ---
-        snow_p = sub.add_parser("snowball", help="Citation tracking (Forward/Backward)")
-        snow_sub = snow_p.add_subparsers(dest="snow_verb", required=True)
-
-        # snowball seed (Enqueue)
-        seed_p = snow_sub.add_parser("seed", help="Enqueue discovery jobs from items/collections")
-        seed_p.add_argument("--keys", help="Comma-separated Zotero Item Keys")
-        seed_p.add_argument("--collection", help="Source collection name or key")
-        seed_p.add_argument("--backward", action="store_true", help="Fetch references (CrossRef)")
-        seed_p.add_argument(
-            "--forward", action="store_true", help="Fetch citations (Semantic Scholar)"
-        )
-        seed_p.add_argument(
-            "--generation", type=int, default=1, help="Graph generation (Default: 1)"
-        )
-
-        # snowball discovery (Process)
-        disc_p = snow_sub.add_parser("discovery", help="Run background workers to process jobs")
-        disc_p.add_argument("--count", type=int, help="Number of jobs to process")
-        disc_p.add_argument(
-            "--resume", action="store_true", help="Resume from existing pending jobs"
-        )
-
-        # snowball review
-        snow_sub.add_parser("review", help="Interactive Review Interface (TUI)")
-
-        # snowball import (Ingestion)
-        import_p = snow_sub.add_parser("import", help="Import ACCEPTED candidates to Zotero")
-        import_p.add_argument("--target", required=True, help="Target collection name")
-        import_p.add_argument("--create", action="store_true", help="Create collection if missing")
-
-        # snowball status
-        snow_sub.add_parser("status", help="Show discovery graph statistics")
-
-        # snowball export
-        export_p = snow_sub.add_parser("export", help="Export discovery graph")
-        export_p.add_argument(
-            "--format", choices=["json", "mermaid"], default="mermaid", help="Export format"
-        )
-        export_p.add_argument("--output", help="Output file path")
-
-        # --- RAG (Issue #93) ---
-        rag_p = sub.add_parser("rag", help="Retrieval-Augmented Generation (RAG) Core")
-        rag_sub = rag_p.add_subparsers(dest="rag_verb", required=True)
-
-        # rag ingest
-        ingest_p = rag_sub.add_parser("ingest", help="Ingest papers into the vector store")
-        ingest_p.add_argument("--collection", required=True, help="Collection name or key")
-
-        # rag query
-        query_p = rag_sub.add_parser("query", help="Semantic search against the vector store")
-        query_p.add_argument("prompt", help="Search prompt/query")
-        query_p.add_argument("--top-k", type=int, default=5, help="Number of results (Default: 5)")
-
-        # rag context
-        context_p = rag_sub.add_parser("context", help="Retrieve context snippets for an item")
-        context_p.add_argument("key", help="Item Key")
 
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
         if args.verb == "screen":
-            self._handle_screen(args)
+            if getattr(args, "file", None):
+                self._handle_bulk_decide(args)
+            else:
+                ScreenCommand.execute(args)
         elif args.verb == "decide":
-            self._handle_decide(args)
+            DecideCommand.execute(args)
         elif args.verb == "load":
-            self._handle_load(gateway, args)
-        elif args.verb == "validate":
-            self._handle_validate(gateway, args)
+            LoadCommand.execute(gateway, args)
+        elif args.verb == "verify":
+            VerifyCommand.execute(gateway, args)
         elif args.verb == "lookup":
             self._handle_lookup(gateway, args)
         elif args.verb == "graph":
@@ -286,449 +128,15 @@ class SLRCommand(BaseCommand):
         elif args.verb == "prune":
             self._handle_prune(args)
         elif args.verb == "extract":
-            self._handle_extract(args)
+            ExtractionCommand.execute(args)
         elif args.verb == "sdb":
-            self._handle_sdb(gateway, args)
+            SDBCommand.execute(gateway, args)
         elif args.verb == "reset":
             self._handle_reset(gateway, args)
         elif args.verb == "snowball":
-            self._handle_snowball(gateway, args)
-        elif args.verb == "rag":
-            self._handle_rag(args)
+            SnowballCommand.execute(gateway, args)
 
-    def _handle_rag(self, args):
-        force_user = getattr(args, "user", False)
-        rag_service = GatewayFactory.get_rag_service(force_user=force_user)
-
-        if args.rag_verb == "ingest":
-            console.print(
-                f"[bold]Ingesting collection '{args.collection}' into vector store...[/bold]"
-            )
-            with console.status("[bold green]Extracting text and generating embeddings..."):
-                stats = rag_service.ingest_collection(args.collection)
-            console.print(
-                f"[green]Ingestion complete. Processed {stats['processed']} items.[/green]"
-            )
-
-        elif args.rag_verb == "query":
-            console.print(f"[bold]Querying vector store for:[/bold] '{args.prompt}'")
-            results = rag_service.query(args.prompt, top_k=args.top_k)
-
-            if not results:
-                console.print("[yellow]No relevant snippets found.[/yellow]")
-                return
-
-            table = Table(title=f"Semantic Search Results (Top {args.top_k})")
-            table.add_column("Score", justify="right", style="cyan")
-            table.add_column("Item Key", style="magenta")
-            table.add_column("Snippet", overflow="fold")
-
-            for res in results:
-                # Clean snippet for display
-                snippet = res.text[:200].replace("\n", " ").strip() + "..."
-                table.add_row(f"{res.score:.4f}", res.item_key, snippet)
-
-            console.print(table)
-
-        elif args.rag_verb == "context":
-            console.print(f"[bold]Retrieving context for item {args.key}...[/bold]")
-            context = rag_service.get_context(args.key)
-            if context:
-                console.print("\n--- BEGIN CONTEXT ---\n")
-                console.print(context)
-                console.print("\n--- END CONTEXT ---\n")
-            else:
-                console.print("[yellow]No context found for this item. Run ingest first.[/yellow]")
-
-    def _handle_snowball(self, gateway, args):
-        import asyncio
-
-        from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
-
-        force_user = getattr(args, "user", False)
-
-        if args.snow_verb == "seed":
-            job_queue = GatewayFactory.get_job_queue_service()
-            dois = []
-            if args.keys:
-                for key in args.keys.split(","):
-                    item = gateway.get_item(key.strip())
-                    if item and item.doi:
-                        dois.append(item.doi)
-
-            if args.collection:
-                col_id = gateway.get_collection_id_by_name(args.collection)
-                if col_id:
-                    items = gateway.get_items_in_collection(col_id)
-                    for item in items:
-                        if item.doi:
-                            dois.append(item.doi)
-
-            if not dois:
-                console.print("[yellow]No items with DOIs found to process.[/yellow]")
-                return
-
-            enqueued = 0
-            for doi in dois:
-                if args.backward:
-                    job_queue.enqueue(
-                        doi, SnowballDiscoveryWorker.TASK_BACKWARD, {"generation": args.generation}
-                    )
-                    enqueued += 1
-                if args.forward:
-                    job_queue.enqueue(
-                        doi, SnowballDiscoveryWorker.TASK_FORWARD, {"generation": args.generation}
-                    )
-                    enqueued += 1
-
-            console.print(f"[green]Enqueued {enqueued} discovery jobs.[/green]")
-
-        elif args.snow_verb == "discovery":
-            worker = GatewayFactory.get_snowball_worker()
-            console.print("[bold]Starting Snowballing Discovery Workers...[/bold]")
-            asyncio.run(worker.process_jobs(count=args.count))
-            console.print("[bold green]Done.[/bold green]")
-
-        elif args.snow_verb == "review":
-            from zotero_cli.cli.tui.snowball_tui import SnowballReviewTUI
-
-            graph_service = GatewayFactory.get_snowball_graph_service()
-            tui = SnowballReviewTUI(graph_service)
-            tui.run_review_session()
-
-        elif args.snow_verb == "import":
-            service = GatewayFactory.get_snowball_ingestion_service(force_user=force_user)
-
-            # 1. Check/Create collection
-            col_id = gateway.get_collection_id_by_name(args.target)
-            if not col_id:
-                if args.create:
-                    console.print(f"Collection '{args.target}' not found. Creating...")
-                    col_id = gateway.create_collection(args.target)
-                    if not col_id:
-                        console.print("[red]Failed to create collection.[/red]")
-                        return
-                else:
-                    console.print(
-                        f"[red]Error: Collection '{args.target}' not found. Use --create to create it.[/red]"
-                    )
-                    return
-
-            # 2. Ingest
-            console.print(f"[bold]Ingesting ACCEPTED candidates into '{args.target}'...[/bold]")
-            with console.status("[bold green]Working..."):
-                stats = service.ingest_candidates(args.target)
-
-            if "error" in stats:
-                console.print(f"[red]{stats['error']}[/red]")
-            else:
-                console.print("[green]Ingestion Complete:[/green]")
-                console.print(f" - Scanned: {stats['scanned']}")
-                console.print(f" - Imported: {stats['imported']}")
-                console.print(f" - Duplicates: {stats['duplicates']}")
-                console.print(f" - Errors: {stats['errors']}")
-
-        elif args.snow_verb == "status":
-            graph_service = GatewayFactory.get_snowball_graph_service()
-            stats = graph_service.get_stats()
-
-            console.print("\n[bold blue]Snowballing Discovery Graph Status[/bold blue]\n")
-            console.print(f"Total Papers (Nodes): {stats['total_nodes']}")
-            console.print(f"Total Citations (Edges): {stats['total_edges']}")
-
-            # Status Table
-            from rich.table import Table
-
-            status_table = Table(title="By Status")
-            status_table.add_column("Status")
-            status_table.add_column("Count", justify="right")
-            for status, count in sorted(stats["by_status"].items()):
-                status_table.add_row(status, str(count))
-            console.print(status_table)
-
-            # Generation Table
-            gen_table = Table(title="By Generation")
-            gen_table.add_column("Generation")
-            gen_table.add_column("Count", justify="right")
-            for gen, count in sorted(stats["by_generation"].items()):
-                gen_table.add_row(f"Gen {gen}", str(count))
-            console.print(gen_table)
-
-        elif args.snow_verb == "export":
-            graph_service = GatewayFactory.get_snowball_graph_service()
-
-            if args.format == "json":
-                import json
-
-                import networkx as nx
-
-                data = nx.node_link_data(graph_service.graph)
-                content = json.dumps(data, indent=2)
-            else:
-                content = graph_service.to_mermaid()
-
-            if args.output:
-                with open(args.output, "w", encoding="utf-8") as f:
-                    f.write(content)
-                console.print(f"[green]Graph exported to {args.output}[/green]")
-            else:
-                console.print(content)
-
-    def _handle_reset(self, gateway, args):
-        from zotero_cli.core.services.purge_service import PurgeService
-
-        dry_run = not args.force
-        if dry_run:
-            console.print(
-                "[bold yellow]DRY RUN MODE ENABLED. Use --force to execute reset.[/bold yellow]"
-            )
-
-        col_id = gateway.get_collection_id_by_name(args.name) or args.name
-        items = list(gateway.get_items_in_collection(col_id))
-        item_keys = [item.key for item in items]
-
-        if not item_keys:
-            console.print(f"[yellow]No items found in collection '{args.name}'.[/yellow]")
-            return
-
-        if not args.force:
-            from rich.prompt import Confirm
-
-            if not Confirm.ask(
-                f"Are you sure you want to reset phase '{args.phase}' for {len(item_keys)} items in '{args.name}'?"
-            ):
-                console.print("[yellow]Reset cancelled.[/yellow]")
-                return
-
-        purge_service = PurgeService(gateway)
-
-        # 1. Purge Notes
-        console.print(f"Purging SDB notes for phase '{args.phase}'...")
-        note_stats = purge_service.purge_notes(
-            item_keys, sdb_only=True, phase=args.phase, persona=args.persona, dry_run=dry_run
-        )
-
-        # 2. Purge Tags
-        # Map phase to tag
-        phase_tag = f"rsl:phase:{args.phase}"
-        console.print(f"Removing phase tag '{phase_tag}'...")
-        tag_stats = purge_service.purge_tags(item_keys, tag_name=phase_tag, dry_run=dry_run)
-
-        # Summary
-        table = Table(title=f"Reset Summary: {args.name} ({args.phase})")
-        table.add_column("Resource")
-        table.add_column("Deleted/Removed", justify="right", style="green")
-        table.add_column("Skipped", justify="right", style="yellow")
-        table.add_column("Errors", justify="right", style="red")
-
-        table.add_row(
-            "SDB Notes",
-            str(note_stats["deleted"]),
-            str(note_stats["skipped"]),
-            str(note_stats["errors"]),
-        )
-        table.add_row(
-            "Phase Tags",
-            str(tag_stats["deleted"]),
-            str(tag_stats["skipped"]),
-            str(tag_stats["errors"]),
-        )
-
-        console.print(table)
-        if dry_run:
-            console.print("[yellow]Note: No changes were applied (Dry Run).[/yellow]")
-        else:
-            console.print("[bold green]Reset complete.[/bold green]")
-
-    def _handle_sdb(self, gateway, args):
-        from zotero_cli.core.services.sdb.sdb_service import SDBService
-
-        service = SDBService(gateway)
-
-        if args.sdb_verb == "inspect":
-            entries = service.inspect_item_sdb(args.key)
-            if not entries:
-                console.print(f"[yellow]No SDB entries found for item {args.key}[/yellow]")
-                return
-            table = service.build_inspect_table(args.key, entries)
-            console.print(table)
-
-        elif args.sdb_verb == "edit":
-            dry_run = not args.execute
-            updates = {}
-            if args.set_decision:
-                updates["decision"] = args.set_decision
-            if args.set_criteria:
-                updates["reason_code"] = [c.strip() for c in args.set_criteria.split(",")]
-            if args.set_reason:
-                updates["reason_text"] = args.set_reason
-            if args.set_reviewer:
-                updates["persona"] = args.set_reviewer
-
-            if not updates:
-                console.print("[red]Error: No updates specified. Use --set-* flags.[/red]")
-                return
-
-            success, msg = service.edit_sdb_entry(
-                args.key, args.persona, args.phase, updates, dry_run=dry_run
-            )
-            style = "green" if success else "red"
-            console.print(f"[{style}]{msg}[/{style}]")
-
-        elif args.sdb_verb == "upgrade":
-            dry_run = not args.execute
-            if dry_run:
-                console.print(
-                    "[yellow]Running SDB Upgrade in DRY-RUN mode. Use --execute to apply.[/yellow]"
-                )
-
-            stats = service.upgrade_sdb_entries(args.collection, dry_run=dry_run)
-            console.print(
-                f"Scanned: {stats['scanned']}, Upgraded: {stats['upgraded']}, Skipped: {stats['skipped']}, Errors: {stats['errors']}"
-            )
-
-    # --- Handlers ---
-
-    def _handle_validate(self, gateway, args: argparse.Namespace):
-        service = CollectionAuditor(gateway)
-        print(f"Auditing collection: {args.collection}...")
-        report = service.audit_collection(args.collection)
-
-        if not report:
-            sys.exit(1)
-
-        table = Table(title=f"Audit Report: {args.collection}")
-        table.add_column("Rule", style="cyan")
-        table.add_column("Status", justify="right")
-        table.add_column("Missing", justify="right", style="red")
-
-        def add_row(name, items):
-            status = "[green]PASS[/green]" if not items else "[red]FAIL[/red]"
-            table.add_row(name, status, str(len(items)))
-
-        add_row("DOI / arXiv ID", report.items_missing_id)
-        add_row("Title", report.items_missing_title)
-        add_row("Abstract", report.items_missing_abstract)
-        add_row("PDF Attachment", report.items_missing_pdf)
-        add_row("Screening Note", report.items_missing_note)
-
-        console.print(table)
-        print(f"Total items analyzed: {report.total_items}")
-
-        has_failures = any(
-            [
-                report.items_missing_id,
-                report.items_missing_pdf,
-                report.items_missing_note,
-                report.items_missing_title,
-                report.items_missing_abstract,
-            ]
-        )
-
-        if args.verbose and has_failures:
-            print("\n--- Failure Details ---")
-            if report.items_missing_id:
-                print(f"Missing ID: {', '.join([i.key for i in report.items_missing_id])}")
-            if report.items_missing_pdf:
-                print(f"Missing PDF: {', '.join([i.key for i in report.items_missing_pdf])}")
-            if report.items_missing_note:
-                print(f"Missing Note: {', '.join([i.key for i in report.items_missing_note])}")
-
-        if args.export_missing:
-            # Export keys of items missing critical assets (PDF or ID)
-            missing_keys = set()
-            for item in report.items_missing_id:
-                missing_keys.add(item.key)
-            for item in report.items_missing_pdf:
-                missing_keys.add(item.key)
-
-            if missing_keys:
-                with open(args.export_missing, "w", encoding="utf-8") as f:
-                    for key in sorted(list(missing_keys)):
-                        f.write(f"{key}\n")
-                console.print(
-                    f"[green]Exported {len(missing_keys)} missing item keys to {args.export_missing}[/green]"
-                )
-            else:
-                console.print("[yellow]No missing items found to export.[/yellow]")
-
-        if has_failures:
-            print("\n[bold red]Audit FAILED.[/bold red] Some items are not submission-ready.")
-            sys.exit(1)
-        else:
-            print("\n[bold green]Audit PASSED.[/bold green] All items are submission-ready.")
-
-    def _handle_load(self, gateway, args: argparse.Namespace):
-        service = CollectionAuditor(gateway)
-        dry_run = not args.force
-
-        print(f"Importing SDB data from {args.file} (Reviewer: {args.reviewer})...")
-        if dry_run:
-            print("[bold yellow]DRY RUN MODE ENABLED. No changes will be written.[/bold yellow]")
-
-        # Construct column map
-        column_map = {}
-        for internal, attr in [
-            ("key", "col_key"),
-            ("vote", "col_vote"),
-            ("reason", "col_reason"),
-            ("code", "col_code"),
-            ("doi", "col_doi"),
-            ("title", "col_title"),
-            ("evidence", "col_evidence"),
-        ]:
-            val = getattr(args, attr, None)
-            if val:
-                column_map[internal] = val
-
-        col_service = GatewayFactory.get_collection_service(force_user=getattr(args, "user", False))
-        results = service.enrich_from_csv(
-            csv_path=args.file,
-            reviewer=args.reviewer,
-            dry_run=dry_run,
-            force=args.force,
-            phase=args.phase,
-            column_map=column_map,
-            move_to_included=args.move_to_included,
-            move_to_excluded=args.move_to_excluded,
-            collection_service=col_service,
-        )
-
-        if "error" in results:
-            console.print(f"[bold red]Error:[/bold red] {results['error']}")
-            return
-
-        table = Table(title="Import CSV Results")
-        table.add_column("Metric")
-        table.add_column("Value", justify="right")
-
-        table.add_row("Total Rows", str(results["total_rows"]))
-        table.add_row("Matched Items", f"[green]{results['matched']}[/]")
-        table.add_row("Unmatched Rows", f"[red]{len(results['unmatched'])}[/]")
-        table.add_row("Notes Updated", str(results["updated"]))
-        table.add_row("Notes Created", str(results["created"]))
-        table.add_row("Skipped (Dry Run)", str(results["skipped"]))
-
-        console.print(table)
-
-        if results["unmatched"]:
-            print("\n[bold red]Unmatched Titles:[/]")
-            for t in results["unmatched"][:10]:
-                print(f"  - {t}")
-            if len(results["unmatched"]) > 10:
-                print(f"  ... and {len(results['unmatched']) - 10} more.")
-
-    def _handle_screen(self, args):
-        if args.file:
-            self._handle_bulk_decide(args)
-        else:
-            from zotero_cli.core.services.screening_state import ScreeningStateService
-
-            state_manager = ScreeningStateService(args.state) if args.state else None
-            service = GatewayFactory.get_screening_service(force_user=getattr(args, "user", False))
-            tui = TuiScreeningService(service, state_manager)
-            tui.run_screening_session(args.source, args.include, args.exclude)
-
+    # Temporary handlers until full decomposition
     def _handle_bulk_decide(self, args):
         import csv
 
@@ -750,8 +158,10 @@ class SLRCommand(BaseCommand):
                         decision=vote,
                         code="bulk",
                         reason=reason,
-                        source_collection=args.source,
-                        target_collection=args.include if vote == "INCLUDE" else args.exclude,
+                        source_collection=args.source if hasattr(args, "source") else None,
+                        target_collection=(
+                            args.include if vote == "INCLUDE" else args.exclude
+                        ) if hasattr(args, "include") else None,
                     ):
                         success_count += 1
                     else:
@@ -759,50 +169,6 @@ class SLRCommand(BaseCommand):
             print(f"Done. Success: {success_count}, Failed: {fail_count}")
         except Exception as e:
             print(f"Error processing CSV: {e}")
-
-    def _handle_decide(self, args):
-        service = GatewayFactory.get_screening_service(force_user=getattr(args, "user", False))
-        vote = args.vote
-        code = args.code
-        reason = args.reason
-
-        if args.short_paper:
-            vote, code, reason = "EXCLUDE", args.short_paper, "Short Paper"
-        elif args.not_english:
-            vote, code, reason = "EXCLUDE", args.not_english, "Not English"
-        elif args.is_survey:
-            vote, code, reason = "EXCLUDE", args.is_survey, "SLR/Survey"
-        if args.no_pdf:
-            vote, code, reason = "EXCLUDE", args.no_pdf, "No PDF"
-
-        if not vote:
-            console.print("[bold red]Error:[/bold red] You must provide --vote.")
-            sys.exit(1)
-
-        if vote == "EXCLUDE" and not code:
-            console.print(
-                "[bold red]Error:[/bold red] You must provide --code for EXCLUDE decisions."
-            )
-            sys.exit(1)
-
-        agent_name = args.persona if args.agent_led else "human"
-        success = service.record_decision(
-            item_key=args.key,
-            decision=vote,
-            code=code,
-            reason=reason,
-            source_collection=args.source,
-            target_collection=args.target,
-            agent="zotero-cli",
-            persona=agent_name,
-            phase=args.phase,
-            evidence=args.evidence,
-        )
-        if success:
-            print(f"Successfully recorded decision for {args.key} ({vote}: {reason})")
-        else:
-            print(f"Failed to record decision for {args.key}")
-            sys.exit(1)
 
     def _handle_lookup(self, gateway, args):
         service = LookupService(gateway)
@@ -875,73 +241,43 @@ class SLRCommand(BaseCommand):
         else:
             print("No intersection found. Sets are disjoint.")
 
-    def _handle_extract(self, args):
-        # 1. Schema Management
-        validator = ExtractionSchemaValidator()
+    def _handle_reset(self, gateway, args):
+        from rich.prompt import Confirm
 
-        if args.init:
-            try:
-                if validator.init_schema():
-                    console.print("[bold green]Created schema.yaml from template.[/bold green]")
-                else:
-                    console.print(
-                        "[bold yellow]schema.yaml already exists. Skipping init.[/bold yellow]"
-                    )
-            except Exception as e:
-                console.print(f"[bold red]Error initializing schema:[/bold red] {e}")
-                sys.exit(1)
+        from zotero_cli.core.services.purge_service import PurgeService
+
+        # 1. Resolve Items
+        col_id = gateway.get_collection_id_by_name(args.name)
+        if not col_id:
+            col_id = args.name
+        items = list(gateway.get_items_in_collection(col_id))
+        if not items:
+            console.print(f"[yellow]No items found in '{args.name}'.[/yellow]")
             return
 
-        if args.validate:
-            errors = validator.validate()
-            if errors:
-                console.print("[bold red]Schema Validation Failed:[/bold red]")
-                for err in errors:
-                    console.print(f" - {err}")
-                sys.exit(1)
-            else:
-                console.print("[bold green]Schema is valid![/bold green]")
-            return
+        keys = [i.key for i in items]
 
-        # 2. Extraction Session or Export
-        if not args.target:
-            console.print(
-                "[yellow]Please specify a Target (Collection or Item Key) to start extraction or export.[/yellow]"
-            )
-            return
+        # 2. Confirmation
+        if not args.force:
+            if not Confirm.ask(
+                f"Are you sure you want to reset {args.phase} metadata for {len(keys)} items in '{args.name}'?"
+            ):
+                return
 
-        # Initialize Service Stack
-        force_user = getattr(args, "user", False)
-        note_repo = GatewayFactory.get_note_repository(force_user=force_user)
-        ext_service = ExtractionService(note_repo)
+        # 3. Purge
+        service = PurgeService(gateway)
+        dry_run = not args.force
 
-        # Resolve Target
-        gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
+        note_stats = service.purge_notes(
+            keys, sdb_only=True, phase=args.phase, persona=args.persona, dry_run=dry_run
+        )
+        tag_name = f"rsl:phase:{args.phase}"
+        tag_stats = service.purge_tags(keys, tag_name=tag_name, dry_run=dry_run)
 
-        # Try as Item Key first
-        item = gateway.get_item(args.target)
-        if item:
-            items = [item]
+        console.print(f"\n[bold]Reset results for '{args.name}' (Phase: {args.phase}):[/bold]")
+        console.print(f" - Notes purged: {note_stats['deleted']}")
+        console.print(f" - Tags purged:  {tag_stats['deleted']}")
+        if dry_run:
+            console.print("[yellow]DRY RUN COMPLETE. No changes applied.[/yellow]")
         else:
-            # Try as Collection
-            col_id = gateway.get_collection_id_by_name(args.target)
-            if col_id:
-                items = list(gateway.get_items_in_collection(col_id))
-            else:
-                console.print(
-                    f"[bold red]Error:[/bold red] Could not find item or collection '{args.target}'"
-                )
-                sys.exit(1)
-
-        if args.export:
-            console.print(
-                f"Exporting synthesis matrix ({args.export}) for target '{args.target}'..."
-            )
-            path = ext_service.export_matrix(items, output_format=args.export, persona=args.persona)
-            console.print(f"[bold green]Matrix exported to: {path}[/bold green]")
-            return
-
-        # 3. Launch TUI
-        opener = OpenerService()
-        tui = ExtractionTUI(ext_service, opener)
-        tui.run_extraction(items, agent=args.agent, persona=args.persona)
+            console.print("[bold green]Reset complete.[/bold green]")

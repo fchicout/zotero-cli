@@ -6,9 +6,9 @@ import time
 from typing import Any
 
 from rich.console import Console
+from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.commands.list_cmd import ListCommand
 from zotero_cli.core.services.backup_service import BackupService
 from zotero_cli.core.strategies import (
     BibtexImportStrategy,
@@ -111,8 +111,7 @@ class SystemCommand(BaseCommand):
         if args.verb == "info":
             InfoCommand().execute(args)
         elif args.verb == "groups":
-            args.list_type = "groups"
-            ListCommand().execute(args)
+            self._handle_groups(args)
         elif args.verb == "backup":
             self._handle_backup(args)
         elif args.verb == "restore":
@@ -123,6 +122,34 @@ class SystemCommand(BaseCommand):
             self._handle_switch(args)
         elif args.verb == "jobs":
             self._handle_jobs(args)
+
+    def _handle_groups(self, args):
+        from zotero_cli.core.config import get_config
+        from zotero_cli.infra.factory import GatewayFactory
+
+        force_user = getattr(args, "user", False)
+        gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
+
+        config = get_config()
+        if not config.user_id:
+            console.print(
+                "[red]Error: ZOTERO_USER_ID not configured. Cannot fetch user groups.[/red]"
+            )
+            return
+
+        groups = gateway.get_user_groups(config.user_id)
+        table = Table(title="Zotero Groups")
+        table.add_column("ID", style="cyan")
+        table.add_column("Name")
+        table.add_column("URL")
+        for g in groups:
+            gid = str(g.get("id", "N/A"))
+            # Zotero API v3 structure for /users/{id}/groups:
+            # [ { "id": 123, "data": { "name": "Group Name", ... }, ... }, ... ]
+            name = g.get("data", {}).get("name", "N/A")
+            url = f"https://www.zotero.org/groups/{gid}"
+            table.add_row(gid, name, url)
+        console.print(table)
 
     def _handle_jobs(self, args):
         from rich.table import Table

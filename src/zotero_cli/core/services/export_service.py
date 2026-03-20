@@ -1,3 +1,5 @@
+from typing import List
+
 from zotero_cli.core.interfaces import BibtexGateway, ZoteroGateway
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.core.services.sdb.sdb_service import SDBService
@@ -32,12 +34,22 @@ class ExportService:
             print(f"Warning: Collection '{collection_name}' is empty.")
             return False
 
+        return self.export_items(items, output_path, format)
+
+    def export_items(self, items: List[ZoteroItem], output_path: str, format: str = "bibtex") -> bool:
+        """
+        Exports specific items to a file.
+        """
         # 3. Filter for papers (exclude attachments, notes)
         papers = [
             self._map_item_to_paper(item)
             for item in items
             if item.item_type not in ["attachment", "note"]
         ]
+
+        if not papers:
+            print("Warning: No valid papers to export.")
+            return False
 
         # 4. Delegate to gateway
         if format.lower() == "bibtex":
