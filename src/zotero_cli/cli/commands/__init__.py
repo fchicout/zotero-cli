@@ -2,8 +2,9 @@ from .collection_cmd import CollectionCommand
 from .import_cmd import ImportCommand
 from .init_cmd import InitCommand
 from .item_cmd import ItemCommand
-from .list_cmd import ListCommand
+from .rag_cmd import RAGCommand
 from .report_cmd import ReportCommand
+from .search_cmd import SearchCommand
 from .serve_cmd import ServeCommand
 from .slr_cmd import SLRCommand
 from .storage_cmd import StorageCommand
@@ -13,7 +14,6 @@ from .tag_cmd import TagCommand
 __all__ = [
     "ImportCommand",
     "ReportCommand",
-    "ListCommand",
     "ItemCommand",
     "CollectionCommand",
     "TagCommand",
@@ -22,4 +22,6 @@ __all__ = [
     "StorageCommand",
     "ServeCommand",
     "SLRCommand",
+    "SearchCommand",
+    "RAGCommand",
 ]
