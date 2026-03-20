@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.0] - 2026-03-14
+
+### ✨ Features & Improvements
+- **RAG Core (Issue #93):** Introduced Systematic Knowledge Retrieval. Allows building a local vector store from PDF full-texts and metadata for LLM context injection.
+- **BibTeX Engine (Issue #94, #95):** Added direct collection export to `.bib` format. Includes phase-aware screening notes and criteria in the metadata.
+- **Universal Item Transfer (Issue #91, #90):** Implemented high-fidelity cross-library move operations. Supports transferring items between personal and group libraries while preserving metadata and unfiled items.
+- **Direct DOI Import (Issue #81):** Added `import doi <DOI>` command for instant bibliographic resolution and PDF discovery.
+- **Full-Text Resilience:** Integrated `markitdown` for improved PDF-to-Markdown extraction, powering the RAG pipeline.
+
 ## [2.4.1] - 2026-01-29
 
 ### ✨ Features & Improvements

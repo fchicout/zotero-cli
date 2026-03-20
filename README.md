@@ -53,18 +53,19 @@ Detailed documentation is available for each command noun:
 
 | Noun | Description | Key Verbs |
 | :--- | :--- | :--- |
-| **[`init`](docs/commands/init.md)** | Configuration | `(default)` |
-| **[`slr`](docs/commands/slr.md)** | SLR Workflow | `screen`, `decide`, `load`, `reset`, `audit`, `lookup`, `graph`, `shift` |
-| **[`item`](docs/commands/item.md)** | Paper/Item Ops | `inspect`, `move`, `update`, `delete`, `pdf`, `hydrate`, `purge` |
-| **[`collection`](docs/commands/collection.md)** | Folder Ops | `list`, `create`, `rename`, `delete`, `backup`, `clean`, `duplicates`, `purge` |
+| **[`init`](docs/commands/init.md)** | Config | `(default)` |
+| **[`item`](docs/commands/item.md)** | Items | `list`, `inspect`, `export`, `pdf`, `hydrate`, `purge` |
+| **[`collection`](docs/commands/collection.md)** | Folders | `list`, `create`, `delete`, `export`, `clean`, `duplicates`, `backup` |
+| **[`rag`](docs/commands/rag.md)** | Knowledge | `ingest`, `query`, `context` |
 | **[`import`](docs/commands/import.md)** | Ingest | `arxiv`, `doi`, `file (IEEE/Springer/Canonical)` |
+| **[`search`](docs/commands/search.md)** | Finder | `(default)`, `--doi`, `--title` |
 | **[`report`](docs/commands/report.md)** | Output | `prisma`, `snapshot`, `screening`, `status`, `pdf` |
+| **[`slr`](docs/commands/slr.md)** | SLR | `screen`, `decide`, `load`, `verify`, `extract`, `snowball`, `sdb` |
+| **[`system`](docs/commands/system.md)** | Operations | `info`, `groups`, `backup`, `restore` |
 | **[`tag`](docs/commands/tag.md)** | Taxonomy | `list`, `add`, `remove`, `purge` |
-| **[`list`](docs/commands/list.md)** | Generic & SDB Listing | `items`, `collections`, `groups` |
 | **[`find-pdf`](docs/commands/find-pdf.md)** | PDF Resilience | `(default)` |
 | **[`storage`](docs/commands/storage.md)** | Maintenance | `checkout` |
 | **[`serve`](docs/commands/serve.md)** | Integration | `(default)` |
-| **[`system`](docs/commands/system.md)** | Maintenance | `backup`, `restore`, `normalize`, `info` |
 
 ## 🚀 Key Features
 

@@ -105,6 +105,21 @@ zotero-cli item hydrate --all
 zotero-cli item hydrate "ABCD1234"
 ```
 
+### `export`
+Exports an item to a specified format (BibTeX, RIS, or Markdown).
+
+**Usage:**
+```bash
+zotero-cli item export --key "ITEMKEY" --format md [--output ./export/]
+```
+
+**Parameters:**
+*   `--key`: (Required) The Zotero Item Key.
+*   `--format`: Output format. Supported: `bibtex`, `ris`, `md`.
+*   `--output`: Destination directory or file path.
+
+---
+
 ### `purge`
 Purge specific assets (files, notes, tags) from an item without deleting the item itself.
 

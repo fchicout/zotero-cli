@@ -23,6 +23,10 @@ We follow **[The Argentis Protocol](@gem-ctx/knowledge/PATTERNS.md#pattern-the-a
 All development must strictly adhere to **[The Valerius Protocol](@gem-ctx/knowledge/PATTERNS.md#pattern-the-valerius-protocol-quality-gate)**.
 - **Criteria:** 100% Pass / >80% Coverage / Zero Mypy Errors.
 
+## GitHub Integration Mandate
+- **Tooling:** Always use the `gh` (GitHub CLI) tool for all GitHub-related interactions (issues, PRs, comments) in the `fchicout/zotero-cli` repository.
+- **Reporting:** Register task completed reports as comments in each GitHub Issue immediately after implementation and verification.
+
 ## Team Activation Protocol (Workflow Accelerators)
 To switch context instantly, use these trigger phrases:
 
@@ -53,8 +57,70 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 | **Knowledge Retrieval** | `slr rag ingest/query/context` | [NEW] |
 
 **Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`, `markitdown`, `numpy`.
+## Accomplishments (Session: 2026-03-18)
+### Phase 25: Infrastructure, Metadata & UX Evolution
+- **[VERIFIED] Issue #96 (Core Refactor):** Decomposed monolithic SLR logic into specialized services.
+  - Split `CollectionAuditor` into `IntegrityService`, `SnapshotService`, and `CSVInboundService`.
+  - Implemented Strategy pattern for item matching in CSV imports.
+  - Decentralized `slr_cmd.py` into subcommand modules.
+  - Introduced `TUIFactory` for UI decoupling.
+- **[VERIFIED] Issue #97 (CLI Refactor):** Consolidated command tree and improved UX.
+  - Flattened hierarchy: Promoted `rag` to top-level, abolished `list` (merged into `item/collection/system`).
+  - Unified `export` polymorphic command (Metadata + Markdown).
+  - Unified `slr verify` (Collections + LaTeX).
+- **[VERIFIED] Issue #79 (CLI Harmonization):** Standardized positional arguments to named parameters.
+  - Refactored `item` and `collection` namespaces for consistency.
+  - Migrated to `--key`, `--name`, and `--file` patterns.
+  - Updated unit tests to reflect new CLI schema.
+- **[VERIFIED] Issue #88 (DBLP Support):** Implemented DBLP Metadata Provider.
+  - Created `DBLPAPIClient` for computer science bibliography.
+  - Supported search-based and DOI lookups.
+  - Integrated into `MetadataAggregatorService` and `GatewayFactory`.
+- **[VERIFIED] Issue #87 (INSPIRE-HEP Support):** Implemented INSPIRE-HEP Metadata Provider.
+  - Created `InspireHEPAPIClient` for High-Energy Physics literature.
+  - Supported DOI, arXiv, and INSPIRE ID lookups.
+  - Integrated into `MetadataAggregatorService` and `GatewayFactory`.
+- **[VERIFIED] Issue #86 (HAL Support):** Implemented HAL Metadata Provider.
+  - Created `HALAPIClient` for the French open-access archive.
+  - Supported HAL ID and DOI lookups.
+  - Integrated into `MetadataAggregatorService` and `GatewayFactory`.
+- **[VERIFIED] Issue #85 (ERIC Support):** Implemented ERIC Metadata Provider.
+  - Created `ERICAPIClient` for education research metadata.
+  - Supported ERIC Accession Number lookups.
+  - Integrated into `MetadataAggregatorService` and `GatewayFactory`.
+- **[VERIFIED] Issue #84 (zbMATH Support):** Implemented zbMATH Metadata Provider.
+  - Created `zbMATHAPIClient` for mathematical literature indexing.
+  - Supported Zbl and DOI lookups.
+  - Integrated into `MetadataAggregatorService` and `GatewayFactory`.
+- **[VERIFIED] Issue #83 (PubMed Support):** Implemented PubMed Metadata Provider.
+  - Created `PubMedAPIClient` using NCBI E-utils (XML parsing).
+  - Supported PMID/PMCID lookups with automatic resolution.
+  - Integrated into `MetadataAggregatorService` and `GatewayFactory`.
+  - Added support for `ncbi_api_key` in configuration.
+- **[VERIFIED] Issue #82 (OpenAlex Support):** Implemented full Metadata Provider for OpenAlex.
+...
 
-## Accomplishments (Session: 2026-03-13)
+  - Created `OpenAlexAPIClient` with abstract reconstruction logic.
+  - Integrated OpenAlex into `MetadataAggregatorService` for transparent enrichment.
+  - Refactored `OpenAlexResolver` to leverage the new client architecture.
+- **[VERIFIED] Issue #80 (Markdown Export):** Implemented bulk PDF-to-Markdown conversion.
+  - Enhanced `AttachmentService` with `bulk_export_markdown` (Parallel).
+  - Added `item export-md` and `collection export-md` commands.
+  - Integrated `markitdown` for high-fidelity text extraction.
+  - Implemented readable filename slugification.
+- **[VERIFIED] Issue #92 (Search UX):** Implemented dedicated `search` command.
+...
+
+  - Added `SearchCommand` to `cli/commands/search_cmd.py`.
+  - Supports keyword, title, and DOI search with Rich table output.
+  - **Verification:** 100% functional via live API. Linted and Mypy verified.
+- **[VERIFIED] Issue #89 (SLR Audit):** Integrated Citation Guard into SLR Core.
+  - Implemented `AuditService.audit_manuscript` in `core/services/audit_service.py`.
+  - Added `slr audit` command for recursive LaTeX manuscript verification.
+  - **Verification:** Successfully audited test LaTeX files against Zotero + SDB state.
+- **[PROTOCOL] GitHub Integration:** Registered `gh` CLI as the mandatory tool for issue reporting.
+
+### Accomplishments (Session: 2026-03-13)
 
 ### Phase 24: Systematic Knowledge Retrieval (RAG Core)
 - **[VERIFIED] Issue #93 (RAG Core):** Implemented Systematic Knowledge Retrieval for LLMs.

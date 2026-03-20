@@ -34,20 +34,29 @@ Retroactively imports screening decisions from a CSV file. Matches items by Key,
 zotero-cli slr load "decisions.csv" --reviewer "Persona" --phase "title_abstract" --force
 ```
 
-### `validate`
-Checks a collection for metadata completeness (DOI, Title, Abstract) and presence of required artifacts (PDFs, SDB notes).
+### `verify`
+Performs verification tasks for the SLR. Supports both LaTeX manuscript citation auditing and collection completeness validation.
 
 **Usage:**
 ```bash
-zotero-cli slr validate --collection "SCREENED_COLLECTION" [--verbose]
+# Verify LaTeX citations
+zotero-cli slr verify --latex "manuscript.tex"
+
+# Verify collection completeness
+zotero-cli slr verify --collection "SCREENED_COLLECTION" [--verbose]
 ```
 
+**Parameters:**
+*   `--latex`: Path to the main LaTeX file to audit.
+*   `--collection`: Collection Name or Key to validate.
+*   `--verbose`: Show detailed validation results for collections.
+
 ### `lookup`
-Performs bulk metadata lookup for Zotero items using external APIs (Semantic Scholar, CrossRef).
+Performs bulk metadata lookup for Zotero items using external APIs (Semantic Scholar, CrossRef, PubMed, zbMATH, ERIC, HAL).
 
 **Usage:**
 ```bash
-zotero-cli slr lookup --keys "KEY1,KEY2"
+zotero-cli slr lookup --keys \"KEY1,KEY2\"
 ```
 
 ### `graph`
@@ -179,25 +188,4 @@ Safely resets items by stripping all screening metadata (SDB notes, tags) and op
 zotero-cli slr reset --collection "To Reset" [--target-collection "Raw"] [--execute]
 ```
 
----
 
-### `rag`
-Retrieval-Augmented Generation (RAG) Core. Manages semantic indexing and querying of library content.
-
-#### `rag ingest`
-Ingests all items in a collection into the local vector store for semantic search.
-```bash
-zotero-cli slr rag ingest --collection "Research"
-```
-
-#### `rag query`
-Performs a semantic search against the vector store using natural language.
-```bash
-zotero-cli slr rag query --prompt "What are the key trends in LLM safety?" [--top-k 5]
-```
-
-#### `rag context`
-Retrieves synthesized context snippets for a specific item key.
-```bash
-zotero-cli slr rag context --key "ITEMKEY"
-```

@@ -109,17 +109,17 @@ zotero-cli collection backup --name "My Review" --output "review_backup.zaf"
 ---
 
 ### `export`
-Export all items in a collection to external bibliographic formats (e.g., BibTeX).
+Exports all items in a collection to a specified format (BibTeX, RIS, or Markdown).
 
 **Usage:**
 ```bash
-zotero-cli collection export "My Review" --output "review.bib" --format bibtex
+zotero-cli collection export --name "COLLECTION_NAME" --format bibtex [--output ./export/]
 ```
 
 **Parameters:**
-*   `name`: (Positional, Required) Collection name or key.
-*   `--output`: (Required) Path to the output file.
-*   `--format`: Output format. Supported: `bibtex` (Default).
+*   `--name`: (Required) The collection Name or Key.
+*   `--format`: Output format. Supported: `bibtex`, `ris`, `md`.
+*   `--output`: Destination directory or file path.
 
 ---
 
