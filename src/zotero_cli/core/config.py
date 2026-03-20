@@ -19,6 +19,7 @@ class ZoteroConfig:
     user_id: Optional[str] = None
     semantic_scholar_api_key: Optional[str] = None
     unpaywall_email: Optional[str] = None
+    ncbi_api_key: Optional[str] = None
     storage_path: Optional[str] = None
     database_path: Optional[str] = None
     openai_api_key: Optional[str] = None
@@ -66,6 +67,7 @@ class ConfigLoader:
         ss_key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY") or file_config.get(
             "semantic_scholar_api_key"
         )
+        ncbi_key = os.environ.get("NCBI_API_KEY") or file_config.get("ncbi_api_key")
         up_email = os.environ.get("UNPAYWALL_EMAIL") or file_config.get("unpaywall_email")
         openai_key = os.environ.get("OPENAI_API_KEY") or file_config.get("openai_api_key")
         gemini_key = os.environ.get("GEMINI_API_KEY") or file_config.get("gemini_api_key")
@@ -81,6 +83,7 @@ class ConfigLoader:
             user_id=user_id,
             semantic_scholar_api_key=ss_key,
             unpaywall_email=up_email,
+            ncbi_api_key=ncbi_key,
             storage_path=storage_path,
             database_path=database_path,
             openai_api_key=openai_key,

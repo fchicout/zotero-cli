@@ -12,6 +12,13 @@ class MetadataAggregatorService:
         self.semantic_scholar: Optional[MetadataProvider] = None
         self.crossref: Optional[MetadataProvider] = None
         self.unpaywall: Optional[MetadataProvider] = None
+        self.openalex: Optional[MetadataProvider] = None
+        self.pubmed: Optional[MetadataProvider] = None
+        self.zbmath: Optional[MetadataProvider] = None
+        self.eric: Optional[MetadataProvider] = None
+        self.hal: Optional[MetadataProvider] = None
+        self.inspire_hep: Optional[MetadataProvider] = None
+        self.dblp: Optional[MetadataProvider] = None
 
     def get_enriched_metadata(self, identifier: str) -> Optional[ResearchPaper]:
         """

@@ -15,12 +15,19 @@ from zotero_cli.infra.arxiv_lib import ArxivLibGateway
 from zotero_cli.infra.bibtex_lib import BibtexLibGateway
 from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
 from zotero_cli.infra.crossref_api import CrossRefAPIClient
+from zotero_cli.infra.dblp_api import DBLPAPIClient
+from zotero_cli.infra.eric_api import ERICAPIClient
+from zotero_cli.infra.hal_api import HALAPIClient
 from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
+from zotero_cli.infra.inspire_hep_api import InspireHEPAPIClient
+from zotero_cli.infra.openalex_api import OpenAlexAPIClient
+from zotero_cli.infra.pubmed_api import PubMedAPIClient
 from zotero_cli.infra.ris_lib import RisLibGateway
 from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient
 from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
 from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
 from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
+from zotero_cli.infra.zbmath_api import zbMATHAPIClient
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
 if TYPE_CHECKING:
@@ -32,8 +39,10 @@ if TYPE_CHECKING:
         ZoteroGateway,
     )
     from zotero_cli.core.services.attachment_service import AttachmentService
+    from zotero_cli.core.services.audit_service import AuditService
     from zotero_cli.core.services.collection_service import CollectionService
     from zotero_cli.core.services.enrichment_service import EnrichmentService
+    from zotero_cli.core.services.extraction_service import ExtractionService
     from zotero_cli.core.services.export_service import ExportService
     from zotero_cli.core.services.import_service import ImportService
     from zotero_cli.core.services.job_queue_service import JobQueueService
@@ -43,6 +52,9 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.purge_service import PurgeService
     from zotero_cli.core.services.screening_service import ScreeningService
     from zotero_cli.core.services.sdb.sdb_service import SDBService
+    from zotero_cli.core.services.slr.csv_inbound import CSVInboundService
+    from zotero_cli.core.services.slr.integrity import IntegrityService
+    from zotero_cli.core.services.slr.snapshot import SnapshotService
     from zotero_cli.core.services.snowball_graph import SnowballGraphService
     from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
     from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
@@ -175,6 +187,42 @@ class GatewayFactory:
         return ZoteroAttachmentRepository(gateway)
 
     @staticmethod
+    def get_openalex_client(config: Optional[ZoteroConfig] = None) -> OpenAlexAPIClient:
+        if not config:
+            from zotero_cli.core.config import get_config
+
+            config = get_config()
+        return OpenAlexAPIClient(email=config.unpaywall_email)
+
+    @staticmethod
+    def get_pubmed_client(config: Optional[ZoteroConfig] = None) -> PubMedAPIClient:
+        if not config:
+            from zotero_cli.core.config import get_config
+
+            config = get_config()
+        return PubMedAPIClient(api_key=config.ncbi_api_key)
+
+    @staticmethod
+    def get_zbmath_client() -> zbMATHAPIClient:
+        return zbMATHAPIClient()
+
+    @staticmethod
+    def get_eric_client() -> ERICAPIClient:
+        return ERICAPIClient()
+
+    @staticmethod
+    def get_dblp_client() -> DBLPAPIClient:
+        return DBLPAPIClient()
+
+    @staticmethod
+    def get_hal_client() -> HALAPIClient:
+        return HALAPIClient()
+
+    @staticmethod
+    def get_inspire_hep_client() -> InspireHEPAPIClient:
+        return InspireHEPAPIClient()
+
+    @staticmethod
     def get_metadata_aggregator(
         config: Optional[ZoteroConfig] = None,
     ) -> "MetadataAggregatorService":
@@ -194,15 +242,42 @@ class GatewayFactory:
             if config.unpaywall_email
             else UnpaywallAPIClient()
         )
+        oa_client = GatewayFactory.get_openalex_client(config)
+        pm_client = GatewayFactory.get_pubmed_client(config)
+        zm_client = GatewayFactory.get_zbmath_client()
+        eric_client = GatewayFactory.get_eric_client()
+        hal_client = GatewayFactory.get_hal_client()
+        ih_client = GatewayFactory.get_inspire_hep_client()
+        dblp_client = GatewayFactory.get_dblp_client()
 
         from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
-        aggregator = MetadataAggregatorService([ss_client, cr_client, up_client])
+        aggregator = MetadataAggregatorService(
+            [
+                ss_client,
+                cr_client,
+                up_client,
+                oa_client,
+                pm_client,
+                zm_client,
+                eric_client,
+                hal_client,
+                ih_client,
+                dblp_client,
+            ]
+        )
 
         # Assign attributes for compatibility with PaperImporterClient
         aggregator.semantic_scholar = ss_client
         aggregator.crossref = cr_client
         aggregator.unpaywall = up_client
+        aggregator.openalex = oa_client
+        aggregator.pubmed = pm_client
+        aggregator.zbmath = zm_client
+        aggregator.eric = eric_client
+        aggregator.hal = hal_client
+        aggregator.inspire_hep = ih_client
+        aggregator.dblp = dblp_client
 
         return aggregator
 
@@ -298,6 +373,45 @@ class GatewayFactory:
         return SDBService(gateway)
 
     @staticmethod
+    def get_audit_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "AuditService":
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+        from zotero_cli.core.services.audit_service import AuditService
+
+        return AuditService(gateway)
+
+    @staticmethod
+    def get_integrity_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "IntegrityService":
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+        from zotero_cli.core.services.slr.integrity import IntegrityService
+
+        return IntegrityService(gateway)
+
+    @staticmethod
+    def get_snapshot_service() -> "SnapshotService":
+        from zotero_cli.core.services.slr.snapshot import SnapshotService
+
+        return SnapshotService()
+
+    @staticmethod
+    def get_csv_inbound_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "CSVInboundService":
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+        from zotero_cli.core.services.slr.csv_inbound import CSVInboundService
+
+        return CSVInboundService(gateway)
+
+    @staticmethod
     def get_screening_service(
         config: Optional[ZoteroConfig] = None,
         force_user: bool = False,
@@ -317,6 +431,17 @@ class GatewayFactory:
         from zotero_cli.core.services.screening_service import ScreeningService
 
         return ScreeningService(item_repo, col_repo, note_repo, tag_repo, col_service)
+
+    @staticmethod
+    def get_extraction_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "ExtractionService":
+        note_repo = GatewayFactory.get_note_repository(config, force_user, offline=offline)
+        from zotero_cli.core.services.extraction_service import ExtractionService
+
+        return ExtractionService(note_repo)
 
     @staticmethod
     def get_import_service(
@@ -487,8 +612,8 @@ class GatewayFactory:
     def get_openalex_resolver() -> "PDFResolver":
         from zotero_cli.core.services.resolvers.openalex import OpenAlexResolver
 
-        gateway = GatewayFactory.get_network_gateway()
-        return OpenAlexResolver(gateway)
+        client = GatewayFactory.get_openalex_client()
+        return OpenAlexResolver(client)
 
     @staticmethod
     def get_arxiv_resolver() -> "PDFResolver":

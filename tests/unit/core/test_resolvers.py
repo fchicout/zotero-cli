@@ -1,5 +1,5 @@
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -43,21 +43,25 @@ async def test_unpaywall_resolver_success(mock_gateway, zotero_item):
 
 
 @pytest.mark.anyio
-async def test_openalex_resolver_success(mock_gateway, zotero_item):
-    resolver = OpenAlexResolver(mock_gateway)
+async def test_openalex_resolver_success(zotero_item):
+    from zotero_cli.core.models import ResearchPaper
+    mock_client = MagicMock()
+    resolver = OpenAlexResolver(mock_client)
 
-    mock_response = MagicMock()
-    mock_response.json.return_value = {
-        "open_access": {"is_oa": True},
-        "best_oa_location": {"pdf_url": "http://example.com/paper.pdf"},
-    }
+    paper = ResearchPaper(
+        title="Test Paper",
+        abstract="Test Abstract",
+        doi="10.1000/123",
+        pdf_url="http://example.com/paper.pdf"
+    )
+    mock_client.get_paper_metadata.return_value = paper
 
     mock_pdf_response = MagicMock()
     mock_pdf_response.content = b"%PDF-1.4 test alex"
+    mock_pdf_response.status_code = 200
 
-    mock_gateway.get = AsyncMock(side_effect=[mock_response, mock_pdf_response])
-
-    result = await resolver.resolve(zotero_item)
+    with patch("requests.get", return_value=mock_pdf_response):
+        result = await resolver.resolve(zotero_item)
 
     assert isinstance(result, Path)
     assert result.exists()
