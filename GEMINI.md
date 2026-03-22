@@ -59,6 +59,10 @@ A "Systematic Review Engine" CLI tool to import, manage, and screen research pap
 **Key Technologies:** Python 3.10+, `requests`, `rich`, `pytest`, `markitdown`, `numpy`.
 ## Accomplishments (Session: 2026-03-18)
 ### Phase 25: Infrastructure, Metadata & UX Evolution
+- **[VERIFIED] Issue #98 (Manual Item Creation):** Added `item add` command.
+  - Implemented manual creation via `item add --collection <COL> --title <TITLE>`.
+  - Integrated Zotero API template resolver for robust schema compliance.
+  - Supported multi-author parsing and custom item types.
 - **[VERIFIED] Issue #96 (Core Refactor):** Decomposed monolithic SLR logic into specialized services.
   - Split `CollectionAuditor` into `IntegrityService`, `SnapshotService`, and `CSVInboundService`.
   - Implemented Strategy pattern for item matching in CSV imports.
