@@ -22,6 +22,9 @@ class ZoteroItemRepository(ItemRepository):
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
         return self.gateway.create_item(paper, collection_id)
 
+    def get_item_template(self, item_type: str) -> Dict[str, Any]:
+        return self.gateway.get_item_template(item_type)
+
     def create_generic_item(self, item_data: Dict[str, Any]) -> Optional[str]:
         return self.gateway.create_generic_item(item_data)
 

@@ -237,6 +237,9 @@ class SqliteZoteroGateway(ZoteroGateway):
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
         raise ConfigurationError("Offline mode is read-only")
 
+    def get_item_template(self, item_type: str) -> Dict[str, Any]:
+        raise ConfigurationError("Offline mode is read-only")
+
     def create_generic_item(self, item_data: Dict[str, Any]) -> Optional[str]:
         raise ConfigurationError("Offline mode is read-only")
 

@@ -49,6 +49,24 @@ zotero-cli item list --collection "My Papers" --top-only
 
 ---
 
+### `add`
+Manually create a new item within a specific collection.
+
+**Usage:**
+```bash
+zotero-cli item add --collection "My Review" --title "Manually Added Paper" --authors "Doe, John, Smith, Jane"
+```
+
+**Parameters:**
+*   `--collection`: (Required) Name or Key of the destination collection.
+*   `--title`: (Required) The title of the new item.
+*   `--type`: The Zotero item type (Default: `journalArticle`).
+*   `--authors`: Comma-separated list of authors.
+*   `--date`: Publication date.
+*   `--abstract`: Abstract note content.
+
+---
+
 ### `update`
 Update specific metadata fields of an item.
 
