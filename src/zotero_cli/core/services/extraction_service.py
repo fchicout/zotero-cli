@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from zotero_cli.core.interfaces import NoteRepository
+from zotero_cli.core.interfaces import ExtractionService as IExtractionService, NoteRepository
 
 # Valid types as per SDB-Extraction v1.0
 VALID_TYPES = {"text", "number", "boolean", "select", "multi-select", "date"}
@@ -102,7 +102,7 @@ class ExtractionSchemaValidator:
         return errors
 
 
-class ExtractionService:
+class ExtractionService(IExtractionService):
     """
     Core service for Data Extraction.
     Handles Schema Validation and Persistence (Note Saving).
