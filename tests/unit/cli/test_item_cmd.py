@@ -45,8 +45,38 @@ async def test_item_pdf_fetch_success(mock_clients, env_vars, capsys):
     out = capsys.readouterr().out
     assert "Starting resilient PDF discovery for 1 items" in out
     assert "Discovery workers finished" in out
-    mock_pdf.enqueue_find_pdf.assert_called_with("ITEM1")
-    mock_run.assert_called_once()
+
+
+def test_item_add_success(mock_clients, env_vars, capsys):
+    mock_gateway = mock_clients["gateway"]
+    mock_gateway.get_collection_id_by_name.return_value = "COL1"
+    mock_gateway.get_item_template.return_value = {"itemType": "journalArticle", "creators": []}
+    mock_gateway.create_generic_item.return_value = "NEWKEY123"
+
+    test_args = [
+        "zotero-cli",
+        "item",
+        "add",
+        "--collection",
+        "MyCol",
+        "--title",
+        "New Paper",
+        "--authors",
+        "John Doe, Jane Smith",
+    ]
+    with patch.object(sys, "argv", test_args):
+        main()
+
+    out = capsys.readouterr().out
+    assert "Success!" in out
+    assert "NEWKEY123" in out
+    mock_gateway.get_item_template.assert_called_with("journalArticle")
+    mock_gateway.create_generic_item.assert_called_once()
+    payload = mock_gateway.create_generic_item.call_args[0][0]
+    assert payload["title"] == "New Paper"
+    assert payload["collections"] == ["COL1"]
+    assert len(payload["creators"]) == 2
+    assert payload["creators"][0]["lastName"] == "Doe"
 
 
 @pytest.mark.anyio

@@ -172,6 +172,15 @@ class ItemCommand(BaseCommand):
         )
         export_p.add_argument("--output", help="Output file path or directory (for md)")
 
+        # Add
+        add_p = sub.add_parser("add", help="Manually add a new item to a collection")
+        add_p.add_argument("--collection", required=True, help="Collection name or key")
+        add_p.add_argument("--title", required=True, help="Item Title")
+        add_p.add_argument("--type", default="journalArticle", help="Item Type (Default: journalArticle)")
+        add_p.add_argument("--authors", help="Comma-separated authors (e.g. 'John Doe, Jane Smith')")
+        add_p.add_argument("--date", help="Publication Date")
+        add_p.add_argument("--abstract", help="Abstract/Note")
+
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -196,6 +205,8 @@ class ItemCommand(BaseCommand):
             self._handle_transfer(args)
         elif args.verb == "export":
             self._handle_export(args)
+        elif args.verb == "add":
+            self._handle_add(gateway, args)
 
     def _handle_list(self, gateway, args):
         from zotero_cli.core.services.sdb.sdb_service import SDBService
@@ -589,3 +600,51 @@ class ItemCommand(BaseCommand):
                 console.print("[bold green]Export complete.[/bold green]")
             else:
                 console.print("[bold red]Export failed.[/bold red]")
+
+    def _handle_add(self, gateway, args):
+        # 1. Resolve Collection
+        col_id = gateway.get_collection_id_by_name(args.collection)
+        if not col_id:
+            col_id = args.collection  # Try as Key
+
+        # 2. Get Template
+        template = gateway.get_item_template(args.type)
+        if not template:
+            console.print(f"[bold red]Error:[/bold red] Could not fetch template for type '{args.type}'.")
+            return
+
+        # 3. Populate Template
+        template["title"] = args.title
+        template["collections"] = [col_id]
+
+        if args.abstract:
+            # Zotero uses abstractNote for most items
+            if "abstractNote" in template:
+                template["abstractNote"] = args.abstract
+            elif "note" in template:
+                template["note"] = args.abstract
+
+        if args.date and "date" in template:
+            template["date"] = args.date
+
+        if args.authors and "creators" in template:
+            creators = []
+            author_list = [a.strip() for i, a in enumerate(args.authors.split(",")) if a.strip()]
+            for author in author_list:
+                parts = author.rsplit(" ", 1)
+                if len(parts) == 2:
+                    creators.append(
+                        {"creatorType": "author", "firstName": parts[0], "lastName": parts[1]}
+                    )
+                else:
+                    creators.append({"creatorType": "author", "name": author})
+            template["creators"] = creators
+
+        # 4. Create Item
+        console.print(f"Creating new [cyan]{args.type}[/cyan]: [bold]{args.title}[/bold]...")
+        new_key = gateway.create_generic_item(template)
+
+        if new_key:
+            console.print(f"[bold green]Success![/bold green] Item created with key: [magenta]{new_key}[/magenta]")
+        else:
+            console.print("[bold red]Error:[/bold red] Failed to create item.")

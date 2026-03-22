@@ -271,6 +271,16 @@ class ZoteroAPIClient(ZoteroGateway):
             print(f"Error creating item: {e}")
             return False
 
+    def get_item_template(self, item_type: str) -> Dict[str, Any]:
+        return self._safe_execute(
+            f"fetching template for {item_type}",
+            {},
+            lambda: cast(
+                Dict[str, Any],
+                self.http.get("items/new", params={"itemType": item_type}, use_prefix=False).json(),
+            ),
+        )
+
     def create_generic_item(self, item_data: Dict[str, Any]) -> Optional[str]:
         try:
             response = self.http.post("items", json_data=[item_data])

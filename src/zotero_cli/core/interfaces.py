@@ -16,6 +16,10 @@ class ItemRepository(ABC):
         pass
 
     @abstractmethod
+    def get_item_template(self, item_type: str) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
     def create_generic_item(self, item_data: Dict[str, Any]) -> Optional[str]:
         pass
 
