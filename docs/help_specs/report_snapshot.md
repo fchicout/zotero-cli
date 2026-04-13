@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Snapshot] --> B[Fetch Target Collection Key]
-    B --> C[Retrieve Full Metadata for All Items]
-    C --> D[Extract Audit History and Screening Decisions]
-    D --> E[Serialize to Structured JSON]
-    E --> F[Write to Local File]
-    F --> G[End: Snapshot Saved]
+    A["Start Snapshot"] --> B["Fetch Target Collection Key"]
+    B --> C["Retrieve Full Metadata for All Items"]
+    C --> D["Extract Audit History and Screening Decisions"]
+    D --> E["Serialize to Structured JSON"]
+    E --> F["Write to Local File"]
+    F --> G["End: Snapshot Saved"]
 ```
 
 ## 3. Synopsis
