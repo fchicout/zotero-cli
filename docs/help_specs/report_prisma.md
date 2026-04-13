@@ -7,14 +7,14 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start PRISMA Report] --> B[Fetch Target Collection Key]
-    B --> C[Analyze Item Decisions: Accepted, Rejected, Pending]
-    C --> D[Calculate Flow Metrics: Identification, Screening, Eligibility, Inclusion]
-    D --> E[Format Results as Text Table]
-    E --> F{Output Chart Path?}
-    F -- Yes --> G[Generate Mermaid PRISMA Diagram]
-    F -- No --> H[Skip Chart Generation]
-    G --> I[End: Report Summary Displayed]
+    A["Start PRISMA Report"] --> B["Fetch Target Collection Key"]
+    B --> C["Analyze Item Decisions: Accepted, Rejected, Pending"]
+    C --> D["Calculate Flow Metrics: Identification, Screening, Eligibility, Inclusion"]
+    D --> E["Format Results as Text Table"]
+    E --> F{"Output Chart Path?"}
+    F -- "Yes" --> G["Generate Mermaid PRISMA Diagram"]
+    F -- "No" --> H["Skip Chart Generation"]
+    G --> I["End: Report Summary Displayed"]
     H --> I
 ```
 
