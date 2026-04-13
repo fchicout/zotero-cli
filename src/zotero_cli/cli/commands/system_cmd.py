@@ -84,7 +84,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
         # Groups
-        sub.add_parser("groups", help="List user groups and IDs")
+        sub.add_parser(
+            "groups",
+            help="List user groups and IDs",
+            description="Lists all Zotero groups that your account belongs to, displaying their names, unique numeric IDs, and your access permissions.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Finding a lab's Group ID for a new project
+Problem: I need to move papers into my lab's shared library, but I don't know the numeric ID for the "AI Ethics Lab" group.
+Action:  zotero-cli system groups
+Result:  The table lists all my groups, and I can see that "AI Ethics Lab" has ID 1234567.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to run the command with an expired or invalid API key.
+• Safety Tips: Use this command in combination with system switch to move between different project contexts quickly.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_groups.md
+""",
+        )
 
         # Backup
         backup_p = sub.add_parser("backup", help="Create a full system backup (.zaf)")
