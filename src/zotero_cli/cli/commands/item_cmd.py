@@ -346,7 +346,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
         # Export
-        export_p = sub.add_parser("export", help="Export item metadata or content")
+        export_p = sub.add_parser(
+            "export",
+            help="Export item metadata or content",
+            description="Exports the metadata of a single Zotero item into standard formats (bibtex, ris, or md), either to a local file or directly to the terminal output.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Getting a BibTeX entry for a specific citation
+Problem: I'm writing a paper and I just need the BibTeX code for the item with key VA12345.
+Action:  zotero-cli item export --key "VA12345" --format bibtex
+Result:  The CLI prints the formatted BibTeX entry directly to the terminal.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to export an item key that doesn't exist or for which metadata is incomplete.
+• Safety Tips: Use the md format to generate a local Markdown "Digital Twin" of your Zotero item.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_export.md
+""",
+        )
         export_p.add_argument("--key", required=True, help="Item Key")
         export_p.add_argument(
             "--format", default="bibtex", choices=["bibtex", "ris", "md"], help="Export format"
