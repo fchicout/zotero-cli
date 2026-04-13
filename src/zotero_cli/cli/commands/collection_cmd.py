@@ -100,7 +100,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
         # Rename
-        rename_p = sub.add_parser("rename", help="Rename a collection")
+        rename_p = sub.add_parser(
+            "rename",
+            help="Rename a collection",
+            description="Changes the display name of an existing collection in your library without affecting its contents or hierarchical position.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Evolving a research focus
+Problem: My collection "Machine Learning Basic" (Key: ML_01) needs a more professional name for a publication.
+Action:  zotero-cli collection rename --key "ML_01" --name "Fundamentals of Reinforcement Learning"
+Result:  The folder is renamed, but all internal items and its unique key (ML_01) remain unchanged.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to rename a collection using an outdated version number (if --version is provided). This will result in a synchronization error.
+• Safety Tips: If you have multiple folders with the same name across different parents, always use the Collection Key for a guaranteed deterministic rename.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_rename.md
+""",
+        )
         rename_p.add_argument("--key", required=True, help="Current name or key")
         rename_p.add_argument("--name", required=True, help="New name")
         rename_p.add_argument("--version", type=int, help="Collection version")
