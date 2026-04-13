@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Checkout] --> B[Identify Items with 'Stored' PDFs]
-    B --> C[Retrieve File Content from Zotero API]
-    C --> D[Identify Target Local Storage Path]
-    D --> E[Write File to Local Disk]
-    E --> F[Update Zotero Link from 'Stored' to 'Linked File']
-    F --> G[End: File Relocation Success]
+    A["Start Checkout"] --> B["Identify Items with 'Stored' PDFs"]
+    B --> C["Retrieve File Content from Zotero API"]
+    C --> D["Identify Target Local Storage Path"]
+    D --> E["Write File to Local Disk"]
+    E --> F["Update Zotero Link from 'Stored' to 'Linked File'"]
+    F --> G["End: File Relocation Success"]
 ```
 
 ## 3. Synopsis
