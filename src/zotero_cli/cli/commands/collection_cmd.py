@@ -45,7 +45,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
         # Create
-        create_p = sub.add_parser("create", help="Create a new collection")
+        create_p = sub.add_parser(
+            "create",
+            help="Create a new collection",
+            description="Creates a new collection (folder) in your library, either at the root level or nested within an existing collection.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Organizing papers for a specific study
+Problem: I need a new folder named "Reinforcement Learning" under my existing "Artificial Intelligence" (Key: AI_CORE) folder.
+Action:  zotero-cli collection create --name "Reinforcement Learning" --parent "AI_CORE"
+Result:  A new sub-folder is created, and the CLI returns its unique key (e.g., RL_ROOT).
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to create a collection with a name that contains special characters that might conflict with shell environment variables. Use double quotes around the name.
+• Safety Tips: Always verify that the parent key is correct by running collection list first. Creating deep nested structures can lead to complex workflows.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_create.md
+""",
+        )
         create_p.add_argument("--name", required=True, help="Collection name")
         create_p.add_argument("--parent", help="Parent collection name or key")
 
