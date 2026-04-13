@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Inspect] --> B[Fetch Item Metadata from API]
-    B --> C[Fetch Child Attachments and Notes]
-    C --> D{Output Mode?}
-    D -- Standard --> E[Rich Formatted View]
-    D -- Raw --> F[Raw JSON Output]
-    E --> G[End: Terminal Display]
+    A["Start Inspect"] --> B["Fetch Item Metadata from API"]
+    B --> C["Fetch Child Attachments and Notes"]
+    C --> D{"Output Mode?"}
+    D -- "Standard" --> E["Rich Formatted View"]
+    D -- "Raw" --> F["Raw JSON Output"]
+    E --> G["End: Terminal Display"]
     F --> G
 ```
 
