@@ -15,7 +15,27 @@ class ImportCommand(BaseCommand):
         sub = parser.add_subparsers(dest="import_type", required=True)
 
         # File
-        file_p = sub.add_parser("file", help="Import .bib, .ris, .csv")
+        file_p = sub.add_parser(
+            "file",
+            help="Import .bib, .ris, .csv",
+            description="Bulk-imports research items from external bibliographic files (.bib, .ris, .csv) directly into a specified Zotero collection.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Importing search results from IEEE Xplore
+Problem: I've downloaded a results.ris file from IEEE and I want to import all 50 papers into my "Primary Search" folder (Key: PRI_01).
+Action:  zotero-cli import file "results.ris" --collection "PRI_01"
+Result:  All 50 items are uploaded to Zotero and linked to that collection.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to import files with malformed syntax or missing mandatory fields (like Title). Large files may hit Zotero API rate limits.
+• Safety Tips: Always verify your .bib or .ris encoding (UTF-8 preferred) to prevent character corruption.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/import_file.md
+""",
+        )
         file_p.add_argument("file", help="Path to input file")
         file_p.add_argument("--collection", required=True)
         file_p.add_argument("--verbose", action="store_true")
