@@ -21,7 +21,27 @@ class ReportCommand(BaseCommand):
         sub = parser.add_subparsers(dest="report_type", required=True)
 
         # PRISMA
-        prisma_p = sub.add_parser("prisma", help="PRISMA Statistics")
+        prisma_p = sub.add_parser(
+            "prisma",
+            help="PRISMA Statistics",
+            description="Generates quantitative data and visual flowcharts following the PRISMA (Preferred Reporting Items for Systematic Reviews and Meta-Analyses) standard for a specific collection.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Preparing the methodology section of a paper
+Problem: I need to report exactly how many papers were screened and why they were excluded for my SLR.
+Action:  zotero-cli report prisma --collection "SLR_MASTER" --output-chart "prisma_flow.mmd"
+Result:  The terminal shows the counts for each phase, and prisma_flow.mmd is created with the visual flowchart data.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to generate a report for a collection that has not yet undergone a screening process (no decisions recorded).
+• Safety Tips: Ensure that exclusion criteria are consistently applied across items to get accurate "Reason for Exclusion" breakdowns.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/report_prisma.md
+""",
+        )
         prisma_p.add_argument("--collection", required=True)
         prisma_p.add_argument("--output-chart")
         prisma_p.add_argument("--verbose", action="store_true")
