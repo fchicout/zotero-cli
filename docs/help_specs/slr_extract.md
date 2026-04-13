@@ -7,20 +7,20 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Extraction] --> B{Extraction Scope?}
-    B -- Collection --> C[Identify All Items in Collection]
-    B -- Key --> D[Identify Single Item Key]
-    C --> E[Fetch Item Fulltext and Metadata]
+    A["Start Extraction"] --> B{"Extraction Scope?"}
+    B -- "Collection" --> C["Identify All Items in Collection"]
+    B -- "Key" --> D["Identify Single Item Key"]
+    C --> E["Fetch Item Fulltext and Metadata"]
     D --> E
-    E --> F{Agent Mode?}
-    F -- Yes --> G[Trigger AI Extraction of Research Variables]
-    F -- No --> H["Wait for Human Input (If implemented)"]
+    E --> F{"Agent Mode?"}
+    F -- "Yes" --> G["Trigger AI Extraction of Research Variables"]
+    F -- "No" --> H[""Wait for Human Input (If implemented")"]
     G --> I["Format Extraction Matrix: Sample Size, Method, Results"]
     H --> I
-    I --> J{Export to File?}
-    J -- Yes --> K[Write to JSON/BibTeX Archive]
-    J -- No --> L[Display in Terminal]
-    K --> M[End: Extraction Success]
+    I --> J{"Export to File?"}
+    J -- "Yes" --> K["Write to JSON/BibTeX Archive"]
+    J -- "No" --> L["Display in Terminal"]
+    K --> M["End: Extraction Success"]
     L --> M
 ```
 
