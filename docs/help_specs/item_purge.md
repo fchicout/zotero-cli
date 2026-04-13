@@ -7,18 +7,18 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Purge] --> B[Fetch Item Key]
-    B --> C{Assets to Purge?}
-    C -- files --> D[Identify All File Attachments]
-    C -- notes --> E[Identify All Child Notes]
-    C -- tags --> F[Identify All Item Tags]
-    D --> G{Force Flag?}
+    A["Start Purge"] --> B["Fetch Item Key"]
+    B --> C{"Assets to Purge?"}
+    C -- "files" --> D["Identify All File Attachments"]
+    C -- "notes" --> E["Identify All Child Notes"]
+    C -- "tags" --> F["Identify All Item Tags"]
+    D --> G{"Force Flag?"}
     E --> G
     F --> G
-    G -- No --> H[Wait for User Confirmation]
-    G -- Yes --> I[Execute Bulk API Deletion Request]
-    H -- Confirmed --> I
-    I --> J[End: Assets Purged]
+    G -- "No" --> H["Wait for User Confirmation"]
+    G -- "Yes" --> I["Execute Bulk API Deletion Request"]
+    H -- "Confirmed" --> I
+    I --> J["End: Assets Purged"]
 ```
 
 ## 3. Synopsis
