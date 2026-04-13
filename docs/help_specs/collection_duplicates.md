@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Duplicates] --> B[Parse List of Target Collections]
-    B --> C[Retrieve All Items for All Collections]
-    C --> D[Compare Metadata: DOI, Title, Year]
-    D --> E[Identify Overlapping Items]
-    E --> F[Display Grouped Duplicates Table]
-    F --> G[End: Output Result Summary]
+    A["Start Duplicates"] --> B["Parse List of Target Collections"]
+    B --> C["Retrieve All Items for All Collections"]
+    C --> D["Compare Metadata: DOI, Title, Year"]
+    D --> E["Identify Overlapping Items"]
+    E --> F["Display Grouped Duplicates Table"]
+    F --> G["End: Output Result Summary"]
 ```
 
 ## 3. Synopsis
