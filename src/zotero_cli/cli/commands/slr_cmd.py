@@ -147,7 +147,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         SnowballCommand.register_args(snow_p)
 
         # --- SDB Maintenance ---
-        sdb_p = sub.add_parser("sdb", help="Screening DB (SDB) maintenance")
+        sdb_p = sub.add_parser(
+            "sdb",
+            help="Screening DB (SDB) maintenance",
+            description="Manages the internal Screening Database (SDB) notes associated with Zotero items, allowing for inspection, modification, or schema migration of the audit trail.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Verifying the audit history of a controversial paper
+Problem: I want to see how many different reviewers screened paper ABCD1234 and what their final consensus was.
+Action:  zotero-cli slr sdb inspect --key "ABCD1234"
+Result:  The CLI displays a table showing every decision entry for that paper, timestamped and attributed to individual personas.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to edit a note that doesn't exist.
+• Safety Tips: Use upgrade before running major reports (like report prisma) to ensure data consistency.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_sdb.md
+"""
+        )
         SDBCommand.register_args(sdb_p)
 
         # --- Extraction ---
