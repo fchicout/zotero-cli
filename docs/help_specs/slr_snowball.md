@@ -7,13 +7,13 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Snowballing] --> B[Seed: Provide Initial DOIs]
-    B --> C[Discovery: Crawl Citations & References via APIs]
-    C --> D[Review: Interactive TUI for Discovery Candidates]
-    D --> E{Action?}
-    E -- Accept --> F[Import: Bulk Upload to Zotero Collection]
-    E -- Reject --> G[Mark as Excluded in Graph]
-    F --> H[End: Expanded Library]
+    A["Start Snowballing"] --> B["Seed: Provide Initial DOIs"]
+    B --> C["Discovery: Crawl Citations & References via APIs"]
+    C --> D["Review: Interactive TUI for Discovery Candidates"]
+    D --> E{"Action?"}
+    E -- "Accept" --> F["Import: Bulk Upload to Zotero Collection"]
+    E -- "Reject" --> G["Mark as Excluded in Graph"]
+    F --> H["End: Expanded Library"]
     G --> H
 ```
 
