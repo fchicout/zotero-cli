@@ -181,7 +181,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         norm_p.add_argument("--output", required=True, help="Output Canonical CSV path")
 
         # Switch Context
-        switch_p = sub.add_parser("switch", help="Switch active group context")
+        switch_p = sub.add_parser(
+            "switch",
+            help="Switch active group context",
+            description="Switches the active library context of the zotero-cli, allowing you to target different research groups or your personal library.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Moving from personal research to a team project
+Problem: I've finished my private search and now I want to run a screening TUI on our lab's shared collection.
+Action:  zotero-cli system switch "AI Lab"
+Result:  The CLI context is updated to the "AI Lab" group library.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to switch to a group you don't belong to or providing an ambiguous name.
+• Safety Tips: Run system info after switching to confirm the "Active Library ID" is correct.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_switch.md
+""",
+        )
         switch_p.add_argument("query", help="Group ID or Name (partial match)")
 
         # Jobs (Issue #76 consolidation)
