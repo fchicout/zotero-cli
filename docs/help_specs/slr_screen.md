@@ -7,18 +7,18 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start TUI Screening] --> B[Fetch Pending Items from Source Collection]
-    B --> C[Display Item: Title, Authors, Abstract]
-    C --> D{User/Agent Decision?}
-    D -- Accept --> E[Record 'accepted' in SDB Note]
-    D -- Reject --> F[Record 'rejected' + Exclusion Code]
-    E --> G{Target Collections Set?}
+    A["Start TUI Screening"] --> B["Fetch Pending Items from Source Collection"]
+    B --> C["Display Item: Title, Authors, Abstract"]
+    C --> D{"User/Agent Decision?"}
+    D -- "Accept" --> E["Record 'accepted' in SDB Note"]
+    D -- "Reject" --> F["Record 'rejected' + Exclusion Code"]
+    E --> G{"Target Collections Set?"}
     F --> G
-    G -- Yes --> H[Move Item to Include/Exclude Folder]
-    G -- No --> I[Keep in Current Folder]
-    H --> J[Display Next Item]
+    G -- "Yes" --> H["Move Item to Include/Exclude Folder"]
+    G -- "No" --> I["Keep in Current Folder"]
+    H --> J["Display Next Item"]
     I --> J
-    J --> K[End: Session Summary]
+    J --> K["End: Session Summary"]
 ```
 
 ## 3. Synopsis
