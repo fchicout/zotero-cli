@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start ArXiv Import] --> B[Parse DSL Query]
-    B --> C[Execute Search via ArXiv API]
-    C --> D[Retrieve All Matching Metadata]
-    D --> E[Check for Duplicates in Zotero]
-    E --> F[Execute API Upload to Target Collection]
-    F --> G[End: Import Stats and Sync Results]
+    A["Start ArXiv Import"] --> B["Parse DSL Query"]
+    B --> C["Execute Search via ArXiv API"]
+    C --> D["Retrieve All Matching Metadata"]
+    D --> E["Check for Duplicates in Zotero"]
+    E --> F["Execute API Upload to Target Collection"]
+    F --> G["End: Import Stats and Sync Results"]
 ```
 
 ## 3. Synopsis
