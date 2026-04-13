@@ -7,15 +7,15 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Load] --> B[Parse Input CSV File]
-    B --> C[Match CSV Rows to Zotero Items via Key/DOI]
-    C --> D[Validate Column Mappings: Vote, Code, Reason]
-    D --> E{Force Flag?}
-    E -- No --> F[Dry Run: Display Match Summary Table]
-    E -- Yes --> G[Bulk Execute API Note Updates]
-    G --> H{Target Folders Set?}
-    H -- Yes --> I[Bulk Move Items to Include/Exclude Folders]
-    H -- No --> J[End: Load Results Stats]
+    A["Start Load"] --> B["Parse Input CSV File"]
+    B --> C["Match CSV Rows to Zotero Items via Key/DOI"]
+    C --> D["Validate Column Mappings: Vote, Code, Reason"]
+    D --> E{"Force Flag?"}
+    E -- "No" --> F["Dry Run: Display Match Summary Table"]
+    E -- "Yes" --> G["Bulk Execute API Note Updates"]
+    G --> H{"Target Folders Set?"}
+    H -- "Yes" --> I["Bulk Move Items to Include/Exclude Folders"]
+    H -- "No" --> J["End: Load Results Stats"]
     F --> J
     I --> J
 ```
