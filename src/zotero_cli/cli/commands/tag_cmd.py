@@ -35,7 +35,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
         # Add
-        add_p = sub.add_parser("add", help="Add tags to an item")
+        add_p = sub.add_parser(
+            "add",
+            help="Add tags to an item",
+            description="Appends one or more new tags to a specific research item in your Zotero library.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Categorizing a paper for a specific project
+Problem: I've just finished reading a paper (Key: READ_123) and I want to tag it with "SLR_2024" and "Must_Cite."
+Action:  zotero-cli tag add --item "READ_123" --tags "SLR_2024,Must_Cite"
+Result:  The paper now includes both tags in Zotero.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to add tags to an item key that does not exist.
+• Safety Tips: Use quotes around your tags if they contain spaces.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/tag_add.md
+""",
+        )
         add_p.add_argument("--item", required=True, help="Item Key")
         add_p.add_argument("--tags", required=True, help="Comma-separated tags")
 
