@@ -7,13 +7,13 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start PDF Discovery Report] --> B[Fetch All Items from Zotero API]
-    B --> C[Identify PDF Attachment Status for Every Item]
-    C --> D[Identify Provider Source: ArXiv, IEEE, etc.]
-    D --> E[Generate Markdown Summary Table]
-    E --> F[List Detailed File Info per Item]
-    F --> G[Write to Local Markdown File]
-    G --> H[End: Report Generated]
+    A["Start PDF Discovery Report"] --> B["Fetch All Items from Zotero API"]
+    B --> C["Identify PDF Attachment Status for Every Item"]
+    C --> D["Identify Provider Source: ArXiv, IEEE, etc."]
+    D --> E["Generate Markdown Summary Table"]
+    E --> F["List Detailed File Info per Item"]
+    F --> G["Write to Local Markdown File"]
+    G --> H["End: Report Generated"]
 ```
 
 ## 3. Synopsis
