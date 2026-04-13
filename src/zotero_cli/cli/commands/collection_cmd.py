@@ -70,7 +70,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         create_p.add_argument("--parent", help="Parent collection name or key")
 
         # Delete
-        delete_p = sub.add_parser("delete", help="Delete a collection")
+        delete_p = sub.add_parser(
+            "delete",
+            help="Delete a collection",
+            description="Removes a specified collection from your library. This operation is irreversible and can include recursive deletion of sub-folders and items.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Cleaning up an old project
+Problem: I have a folder "Obsolete_SLR_2023" (Key: OLD_123) that I no longer need.
+Action:  zotero-cli collection delete --key "OLD_123" --recursive
+Result:  The folder and all its contents are permanently removed from the library.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to delete a folder without the --recursive flag when it still contains items. This will result in an API error.
+• Safety Tips: ALWAYS run collection list before deletion to verify the key and ensure you are not deleting a critical parent folder. Deletion is irreversible.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_delete.md
+""",
+        )
         delete_p.add_argument("--key", required=True, help="Collection name or key")
         delete_p.add_argument(
             "--version", type=int, help="Collection version (optional if recursive)"
