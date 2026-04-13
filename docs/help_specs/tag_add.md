@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Tag Add] --> B[Fetch Item Key and Tag List]
-    B --> C[Retrieve Current Tags for Item]
-    C --> D[Merge New Tags with Existing Tags]
-    D --> E[Prepare Zotero API Update Request]
-    E --> F[Execute API Request to Update Item]
-    F --> G[End: Tags Added to Item]
+    A["Start Tag Add"] --> B["Fetch Item Key and Tag List"]
+    B --> C["Retrieve Current Tags for Item"]
+    C --> D["Merge New Tags with Existing Tags"]
+    D --> E["Prepare Zotero API Update Request"]
+    E --> F["Execute API Request to Update Item"]
+    F --> G["End: Tags Added to Item"]
 ```
 
 ## 3. Synopsis
