@@ -33,19 +33,93 @@ class SLRCommand(BaseCommand):
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # --- Screening ---
-        screen_p = sub.add_parser("screen", help="Interactive Screening Interface (TUI)")
+        screen_p = sub.add_parser(
+            "screen",
+            help="[🟡 MODIFICATION] Interactive Screening Interface (TUI)",
+            description="Initializes a text-based user interface for rapid item screening. Fetches pending items and records decisions automatically to SDB notes.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Rapid Abstract Screening
+Problem: I have 200 papers in my "Unscreened" folder and I need to review their abstracts quickly.
+Action:  zotero-cli slr screen --source "Unscreened" --include "Accepted" --exclude "Rejected"
+Result:  The TUI launches, displaying the first abstract. Decisions will automatically move items into the Accepted or Rejected folders.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Forgetting to specify --include or --exclude. The decision is recorded, but the item isn't moved.
+• Safety Tips: Always define your target collections to ensure your workflow is continuous and items are properly triaged.
+"""
+        )
         ScreenCommand.register_args(screen_p)
         # Compatibility for --file in screen (Issue #97 legacy)
         screen_p.add_argument("--file", help="Bulk process decisions from CSV")
 
-        decide_p = sub.add_parser("decide", help="Record a single screening decision")
+        decide_p = sub.add_parser(
+            "decide",
+            help="[🟡 MODIFICATION] Record a single screening decision",
+            description="Records a single screening decision (Include/Exclude) for an item, updating Screening Database (SDB) notes and optionally moving the item between collections. Ensures traceability of persona, phase, and rationale.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Manually excluding a paper during Abstract Review
+Problem: I am reading an abstract and realized it's a survey paper, which violates my inclusion criteria.
+Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" --reason "Is a survey paper" --phase "title_abstract"
+Result:  The item "ABCD1234" gets a new child note recording the exclusion by the human persona, timestamped and categorized under the title_abstract phase.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Forgetting the --code when excluding. The command will fail fast to prevent incomplete audit trails.
+• Safety Tips: Use quick flags like --is-survey or --not-english to streamline frequent, repetitive exclusion reasons and avoid typos.
+"""
+        )
         DecideCommand.register_args(decide_p)
 
-        load_p = sub.add_parser("load", help="Import screening decisions from CSV")
+        load_p = sub.add_parser(
+            "load",
+            help="[🟡 MODIFICATION] Bulk-import screening decisions from CSV",
+            description="Bulk-imports screening decisions from an external CSV file into your Zotero library. Performs a Matching Phase (Key/DOI) and updates metadata notes. Always run without --force first for a dry-run.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Importing Rayyan Decisions
+Problem: I screened 500 papers in Rayyan and exported a CSV. I need these decisions reflected in Zotero for my final audit.
+Action:  zotero-cli slr load --file "rayyan_export.csv" --reviewer "Chicout" --phase "full_text" --move-to-included "Accepted" --force
+Result:  500 papers have their Zotero notes updated with "Chicout", "full_text", and "Accepted" status.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: CSV column headers not matching the default expectations ('Key', 'Vote', 'Reason'). Use --col-* flags to override mappings.
+• Safety Tips: Always perform a dry run (omit --force) and review the results table for "Matched Items" before applying.
+"""
+        )
         LoadCommand.register_args(load_p)
 
         # --- Verification ---
-        verify_p = sub.add_parser("verify", help="Unified verification (Collection or LaTeX)")
+        verify_p = sub.add_parser(
+            "verify",
+            help="Unified verification (Collection or LaTeX)",
+            description="Unified tool for verifying the metadata completeness of a collection or ensuring that all citations in a LaTeX manuscript exist within your Zotero library.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Pre-submission check of a LaTeX paper
+Problem: I'm finishing my paper and want to make sure I haven't cited any papers that are missing from my Master Zotero Library.
+Action:  zotero-cli slr verify --latex "main.tex"
+Result:  The CLI lists citation keys found in the .tex file that do not have matching entries in Zotero.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to verify a LaTeX file using citation keys that don't match the Zotero extra field or CitationKey metadata.
+• Safety Tips: Use --collection during the review phase to maintain metadata quality, and --latex during the writing phase to prevent technical errors.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_verify.md
+""",
+        )
         VerifyCommand.register_args(verify_p)
 
         # --- Snowballing ---
@@ -85,12 +159,30 @@ class SLRCommand(BaseCommand):
         sync_p.add_argument("--collection", required=True, help="Collection name or key")
         sync_p.add_argument("--output", required=True, help="Path to output CSV")
 
-        prune_p = sub.add_parser("prune", help="Enforce mutual exclusivity between two collections")
-        prune_p.add_argument("--included", required=True, help="Primary collection (Winner)")
+        prune_p = sub.add_parser(
+            "prune",
+            help="[🔴 DESTRUCTIVE] Enforce mutual exclusivity between two collections",
+            description="Removes items from the '--excluded' collection if they already exist in the '--included' collection. Ensures datasets are disjoint for PRISMA reporting. Does not delete items from the library, only unlinks them from the excluded collection.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Cleaning the Excluded set after Full Text Review
+Problem: During the screening, some papers were accidentally left in the "Excluded" folder after being promoted to the "Included" folder. This is skewing my PRISMA statistics.
+Action:  zotero-cli slr prune --included "Full Text Included" --excluded "Full Text Excluded"
+Result:  Any paper found in both folders is removed from "Full Text Excluded," leaving the folders perfectly disjoint.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Providing the wrong collection name. If the name is ambiguous (multiple collections with the same name), use the Zotero Collection Key instead.
+• Safety Tips: Always run a `report status` or `report prisma` before and after pruning to verify the count changes as expected.
+"""
+        )
+        prune_p.add_argument("--included", required=True, help="Primary collection (Winner/Included)")
         prune_p.add_argument(
             "--excluded",
             required=True,
-            help="Secondary collection (Loser - items removed from here)",
+            help="Secondary collection (Loser/Excluded - items removed from here)",
         )
 
         # --- Reset ---
