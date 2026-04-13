@@ -8,14 +8,14 @@
 
 ```mermaid
 graph TD
-    A[Start Query] --> B[Generate Query Embedding]
-    B --> C[Search Vector DB]
-    C --> D[Retrieve Top-K Results]
-    D --> E[Hydrate with Zotero Metadata]
-    E --> F{Output Format?}
-    F -- Human --> G["Rich Table (Title, Authors, Snippet)"]
-    F -- Machine --> H["JSON (Full Data)"]
-    G --> I[End: Display Results]
+    A["Start Query"] --> B["Generate Query Embedding"]
+    B --> C["Search Vector DB"]
+    C --> D["Retrieve Top-K Results"]
+    D --> E["Hydrate with Zotero Metadata"]
+    E --> F{"Output Format?"}
+    F -- "Human" --> G[""Rich Table (Title, Authors, Snippet")"]
+    F -- "Machine" --> H[""JSON (Full Data")"]
+    G --> I["End: Display Results"]
     H --> I
 ```
 
