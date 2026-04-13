@@ -251,7 +251,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         backup_p.add_argument("--output", required=True, help="Output file path")
 
         # Export
-        export_p = sub.add_parser("export", help="Export collection metadata or content")
+        export_p = sub.add_parser(
+            "export",
+            help="Export collection metadata or content",
+            description="Exports the metadata and (optionally) content of a collection into various standard formats for use in citation managers, LaTeX documents, or research notes.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Syncing literature with a LaTeX project
+Problem: I need to update the .bib file for my paper with the latest items in my "Final Selection" folder (Key: FIN_01).
+Action:  zotero-cli collection export --name "FIN_01" --format bibtex --output "references.bib"
+Result:  The file references.bib is created/updated with the metadata from that folder.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to export to a restricted directory or choosing a format that doesn't support specific metadata fields.
+• Safety Tips: Use the md format to generate a searchable "Digital Library" in Markdown. This enables you to link papers and notes locally.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_export.md
+""",
+        )
         export_p.add_argument("--name", required=True, help="Collection name or key")
         export_p.add_argument(
             "--format", default="bibtex", choices=["bibtex", "ris", "md"], help="Export format"
