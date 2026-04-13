@@ -7,14 +7,14 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Create] --> B[Fetch Name and Optional Parent Key]
-    B --> C{Parent Provided?}
-    C -- Yes --> D[Resolve Parent Key/Name]
-    C -- No --> E[Set Root as Parent]
-    D --> F[Prepare Creation Request]
+    A["Start Create"] --> B["Fetch Name and Optional Parent Key"]
+    B --> C{"Parent Provided?"}
+    C -- "Yes" --> D["Resolve Parent Key/Name"]
+    C -- "No" --> E["Set Root as Parent"]
+    D --> F["Prepare Creation Request"]
     E --> F
-    F --> G[Execute API Request to Zotero]
-    G --> H[End: New Collection Key Displayed]
+    F --> G["Execute API Request to Zotero"]
+    G --> H["End: New Collection Key Displayed"]
 ```
 
 ## 3. Synopsis
