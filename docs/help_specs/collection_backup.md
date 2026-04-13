@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Backup] --> B[Fetch Target Collection Key]
-    B --> C[Retrieve All Metadata and Attachments]
-    C --> D[Generate Local Temporary Snapshot]
-    D --> E[Package into Compressed .zaf Archive]
-    E --> F[Verify Integrity]
-    F --> G[End: Backup Path Displayed]
+    A["Start Backup"] --> B["Fetch Target Collection Key"]
+    B --> C["Retrieve All Metadata and Attachments"]
+    C --> D["Generate Local Temporary Snapshot"]
+    D --> E["Package into Compressed .zaf Archive"]
+    E --> F["Verify Integrity"]
+    F --> G["End: Backup Path Displayed"]
 ```
 
 ## 3. Synopsis
