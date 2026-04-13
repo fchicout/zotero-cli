@@ -171,7 +171,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         SDBCommand.register_args(sdb_p)
 
         # --- Extraction ---
-        ext_p = sub.add_parser("extract", help="Data Extraction tools")
+        ext_p = sub.add_parser(
+            "extract",
+            help="Data Extraction tools",
+            description="Systematically extracts research variables, methodologies, and quantitative results from the full text of research papers, optionally using AI agents.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Building a summary table of research methods
+Problem: I have 30 included papers and I want to know the primary research method used in each without re-reading all of them.
+Action:  zotero-cli slr extract --collection "INCLUDED_PAPERS" --agent --export "methods_matrix.json"
+Result:  The CLI processes the papers and generates a JSON file summarizing the methodologies discovered by the AI agent.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting extraction on items that haven't been processed by rag ingest.
+• Safety Tips: AI extraction is a heuristic process. Always manually verify a subset of the extracted data.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_extract.md
+"""
+        )
         ExtractionCommand.register_args(ext_p)
 
         # --- Analysis ---
