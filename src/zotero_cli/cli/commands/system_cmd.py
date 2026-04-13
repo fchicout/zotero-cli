@@ -157,7 +157,25 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         # Normalize CSV
         norm_p = sub.add_parser(
-            "normalize", help="Convert external CSV (IEEE, Springer) to Canonical format"
+            "normalize",
+            help="Convert external CSV (IEEE, Springer) to Canonical format",
+            description="Converts raw search result CSV files from academic databases into a 'Canonical' format optimized for import into Zotero.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Preparing search results from multiple databases
+Problem: I have a CSV from IEEE and another from Springer, and their headers are completely different.
+Action:  zotero-cli system normalize "ieee_results.csv" --output "canonical_results.csv"
+Result:  The IEEE data is transformed into the standard format, ready for easy import.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to normalize a CSV from an unsupported provider or a file with corrupted formatting.
+• Safety Tips: Always check the normalized CSV in a spreadsheet viewer before importing.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_normalize.md
+""",
         )
         norm_p.add_argument("file", help="Input CSV file")
         norm_p.add_argument("--output", required=True, help="Output Canonical CSV path")
