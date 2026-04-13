@@ -44,7 +44,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         ingest_p.add_argument("--collection", required=True, help="Collection name or key")
 
         # query
-        query_p = sub.add_parser("query", help="Semantic search against the vector store")
+        query_p = sub.add_parser(
+            "query",
+            help="Semantic search against the vector store",
+            description="Performs a semantic search across your indexed Zotero library to find the most relevant text snippets based on a natural language prompt.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Finding implementation details across a library
+Problem: I know I have papers that discuss "Layer Normalization" in Transformers, but I don't remember which ones.
+Action:  zotero-cli rag query "How is Layer Normalization applied in Transformer blocks?" --top-k 3
+Result:  The CLI returns the 3 most relevant paragraphs from different papers with source citations.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Running a query before ingesting any data.
+• Safety Tips: Semantic search is probabilistic. High scores indicate strong matches, but always verify context.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/rag_query.md
+""",
+        )
         query_p.add_argument("prompt", help="Search prompt/query")
         query_p.add_argument("--top-k", type=int, default=5, help="Number of results (Default: 5)")
         query_p.add_argument("--json", action="store_true", help="Output results in JSON format")
