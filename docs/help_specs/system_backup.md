@@ -7,13 +7,13 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start System Backup] --> B[Read config.toml]
-    B --> C[Retrieve All Collections and Items from API]
-    C --> D[Identify All Local and Cloud PDF Attachments]
-    D --> E[Collect Audit Metadata and SDB Notes]
-    E --> F[Generate Integrated Local Database Snapshot]
-    F --> G[Package All Data and Files into Compressed .zaf Archive]
-    G --> H[End: Full Backup Success]
+    A["Start System Backup"] --> B["Read config.toml"]
+    B --> C["Retrieve All Collections and Items from API"]
+    C --> D["Identify All Local and Cloud PDF Attachments"]
+    D --> E["Collect Audit Metadata and SDB Notes"]
+    E --> F["Generate Integrated Local Database Snapshot"]
+    F --> G["Package All Data and Files into Compressed .zaf Archive"]
+    G --> H["End: Full Backup Success"]
 ```
 
 ## 3. Synopsis
