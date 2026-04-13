@@ -13,8 +13,8 @@ graph TD
     C --> D[Retrieve Top-K Results]
     D --> E[Hydrate with Zotero Metadata]
     E --> F{Output Format?}
-    F -- Human --> G[Rich Table (Title, Authors, Snippet)]
-    F -- Machine --> H[JSON (Full Data)]
+    F -- Human --> G["Rich Table (Title, Authors, Snippet)"]
+    F -- Machine --> H["JSON (Full Data)"]
     G --> I[End: Display Results]
     H --> I
 ```
