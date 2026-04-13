@@ -14,8 +14,8 @@ graph TD
     D --> E
     E --> F{Agent Mode?}
     F -- Yes --> G[Trigger AI Extraction of Research Variables]
-    F -- No --> H[Wait for Human Input (If implemented)]
-    G --> I[Format Extraction Matrix: Sample Size, Method, Results]
+    F -- No --> H["Wait for Human Input (If implemented)"]
+    G --> I["Format Extraction Matrix: Sample Size, Method, Results"]
     H --> I
     I --> J{Export to File?}
     J -- Yes --> K[Write to JSON/BibTeX Archive]
