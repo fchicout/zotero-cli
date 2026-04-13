@@ -1,4 +1,6 @@
 import argparse
+import json
+from dataclasses import asdict
 
 from rich.console import Console
 from rich.table import Table
@@ -18,13 +20,34 @@ class RAGCommand(BaseCommand):
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # ingest
-        ingest_p = sub.add_parser("ingest", help="Ingest papers into the vector store")
+        ingest_p = sub.add_parser(
+            "ingest",
+            help="Ingest papers into the vector store",
+            description="Populates the local vector database with the text content of papers from a Zotero collection, enabling semantic search and context retrieval.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Preparing a collection for semantic analysis
+Problem: I have a collection of 50 papers and I want to ask questions about their specific implementation details.
+Action:  zotero-cli rag ingest --collection "Transformer Papers"
+Result:  The CLI extracts text, generates embeddings, and indexes them. They are now searchable via rag query.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to ingest items without local PDF attachments.
+• Safety Tips: Ingestion is computationally expensive. For very large collections, process in batches.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/rag_ingest.md
+""",
+        )
         ingest_p.add_argument("--collection", required=True, help="Collection name or key")
 
         # query
         query_p = sub.add_parser("query", help="Semantic search against the vector store")
         query_p.add_argument("prompt", help="Search prompt/query")
         query_p.add_argument("--top-k", type=int, default=5, help="Number of results (Default: 5)")
+        query_p.add_argument("--json", action="store_true", help="Output results in JSON format")
 
         # context
         context_p = sub.add_parser("context", help="Retrieve context snippets for an item")
@@ -45,22 +68,41 @@ class RAGCommand(BaseCommand):
             )
 
         elif args.verb == "query":
-            console.print(f"[bold]Querying vector store for:[/bold] '{args.prompt}'")
+            if not args.json:
+                console.print(f"[bold]Querying vector store for:[/bold] '{args.prompt}'")
+
             results = rag_service.query(args.prompt, top_k=args.top_k)
 
             if not results:
-                console.print("[yellow]No relevant snippets found.[/yellow]")
+                if not args.json:
+                    console.print("[yellow]No relevant snippets found.[/yellow]")
+                else:
+                    print(json.dumps([]))
+                return
+
+            if args.json:
+                # Issue #110: Serialize full untruncated text and item metadata
+                output = []
+                for res in results:
+                    res_dict = asdict(res)
+                    # asdict might be recursive, but let's be safe with ZoteroItem
+                    output.append(res_dict)
+                print(json.dumps(output, indent=2))
                 return
 
             table = Table(title=f"Semantic Search Results (Top {args.top_k})")
             table.add_column("Score", justify="right", style="cyan")
-            table.add_column("Item Key", style="magenta")
+            table.add_column("Title", style="green")
+            table.add_column("Authors", style="yellow")
             table.add_column("Snippet", overflow="fold")
 
             for res in results:
                 # Clean snippet for display
                 snippet = res.text[:200].replace("\n", " ").strip() + "..."
-                table.add_row(f"{res.score:.4f}", res.item_key, snippet)
+                title = res.item.title if res.item else "Unknown Title"
+                authors = ", ".join(res.item.authors) if res.item and res.item.authors else "Unknown"
+
+                table.add_row(f"{res.score:.4f}", title, authors, snippet)
 
             console.print(table)
 
