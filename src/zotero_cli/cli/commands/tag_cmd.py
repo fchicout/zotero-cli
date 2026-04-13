@@ -12,7 +12,27 @@ class TagCommand(BaseCommand):
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # List
-        sub.add_parser("list", help="List all unique tags")
+        sub.add_parser(
+            "list",
+            help="List all unique tags",
+            description="Displays an alphabetical list of all unique tags used across your Zotero library, including usage counts.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Auditing library categories
+Problem: I want to know which research topics I have the most papers on, based on my tagging system.
+Action:  zotero-cli tag list
+Result:  The CLI displays all tags, and I can see counts for each.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to run on a library with thousands of unique tags, which may result in long terminal output.
+• Safety Tips: Use this list to identify tags that should be merged using the Zotero desktop client.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/tag_list.md
+""",
+        )
 
         # Add
         add_p = sub.add_parser("add", help="Add tags to an item")
