@@ -7,13 +7,13 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Ingest] --> B[Fetch Zotero Collection]
-    B --> C{Attachment Found?}
-    C -- No --> D[Skip Item]
-    C -- "Yes (PDF/Text)" --> E[Extract Text Content]
-    E --> F[Chunking Logic]
-    F --> G[Generate Embeddings]
-    G --> H[Update Vector DB]
+    A["Start Ingest"] --> B["Fetch Zotero Collection"]
+    B --> C{"Attachment Found?"}
+    C -- "No" --> D["Skip Item"]
+    C -- "Yes (PDF/Text)" --> E["Extract Text Content"]
+    E --> F["Chunking Logic"]
+    F --> G["Generate Embeddings"]
+    G --> H["Update Vector DB"]
     H --> I["End: Ingestion Stats"]
 ```
 
