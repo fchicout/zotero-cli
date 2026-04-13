@@ -9,23 +9,23 @@ console = Console()
 class LoadCommand:
     @staticmethod
     def register_args(parser: argparse.ArgumentParser):
-        parser.add_argument("--file", required=True, help="Input CSV path")
-        parser.add_argument("--reviewer", required=True, help="Reviewer persona/name")
-        parser.add_argument("--phase", default="title_abstract", help="Review phase")
-        parser.add_argument("--force", action="store_true", help="Apply changes (not dry-run)")
+        parser.add_argument("--file", required=True, help="Path to the input CSV file. Must contain a 'Key' or 'DOI' column.")
+        parser.add_argument("--reviewer", required=True, help="Reviewer persona/name (e.g., 'Chicout') for audit tracking.")
+        parser.add_argument("--phase", default="title_abstract", help="Review phase identifier (e.g., 'title_abstract', 'full_text').")
+        parser.add_argument("--force", action="store_true", help="Apply changes to the Zotero library. Omit for a non-destructive dry-run.")
         # Column mapping
-        parser.add_argument("--col-key", help="CSV column for Zotero Key (Default: Key)")
-        parser.add_argument("--col-vote", help="CSV column for Decision (Default: Vote)")
-        parser.add_argument("--col-reason", help="CSV column for Reason (Default: Reason)")
-        parser.add_argument("--col-code", help="CSV column for Exclusion Code (Default: Code)")
-        parser.add_argument("--col-doi", help="CSV column for DOI (Default: DOI)")
-        parser.add_argument("--col-title", help="CSV column for Title (Default: Title)")
-        parser.add_argument("--col-evidence", help="CSV column for Evidence (Default: Evidence)")
+        parser.add_argument("--col-key", help="CSV column mapping for Zotero Key (Default: 'Key').")
+        parser.add_argument("--col-vote", help="CSV column mapping for Decision/Vote (Default: 'Vote'). Expected: INCLUDE/EXCLUDE.")
+        parser.add_argument("--col-reason", help="CSV column mapping for the Reason for decision (Default: 'Reason').")
+        parser.add_argument("--col-code", help="CSV column mapping for Exclusion Code (Default: 'Code').")
+        parser.add_argument("--col-doi", help="CSV column mapping for DOI (Default: 'DOI'). Used for matching if Key is missing.")
+        parser.add_argument("--col-title", help="CSV column mapping for Item Title (Default: 'Title'). Used as a secondary anchor.")
+        parser.add_argument("--col-evidence", help="CSV column mapping for Evidence or snippets (Default: 'Evidence').")
         parser.add_argument(
-            "--move-to-included", help="Target collection for items with INCLUDE/ACCEPTED decision"
+            "--move-to-included", help="Target collection for items with an 'INCLUDE' or 'ACCEPTED' decision."
         )
         parser.add_argument(
-            "--move-to-excluded", help="Target collection for items with EXCLUDE/REJECTED decision"
+            "--move-to-excluded", help="Target collection for items with an 'EXCLUDE' or 'REJECTED' decision."
         )
 
     @staticmethod

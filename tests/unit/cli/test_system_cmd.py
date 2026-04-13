@@ -44,7 +44,9 @@ def test_system_backup_execute(system_cmd, capsys):
         mock_service = mock_backup_service_cls.return_value
         system_cmd.execute(args)
 
-        mock_service.backup_system.assert_called_once_with("test.zaf")
+        # Use any_order=True or check just the first arg if callback is present
+        mock_service.backup_system.assert_called_once()
+        assert mock_service.backup_system.call_args[0][0] == "test.zaf"
 
     out, _ = capsys.readouterr()
     assert "Backup complete: test.zaf" in out

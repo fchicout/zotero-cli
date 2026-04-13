@@ -1,0 +1,112 @@
+Key,Vote,Reason,Code,DOI,Title
+6SFQN6EN,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC2,10.1007/978-3-030-78428-7_5,An Approach to Detect Cyberbullying on Social Media
+5UDGVW2J,EXCLUDE,"Excluded due to IC1 violation. The LLM plays an auxiliary role (e.g., preprocessing, interface, query processing) but does not directly perform threat detection or classification.",EC4,10.1007/s11417-025-09474-0,An Artificial Intelligence-Driven Temporal Network Analysis of Myanmar’s Cyber Scam Ecosystem
+XPUSXLHC,EXCLUDE,Excluded: The study does not address cybersecurity threat detection. It focuses on a different application domain.,EC1,10.1007/978-3-031-85930-4_31,An Edge AI Course Template
+TLDS8NCC,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC2,10.1007/s11042-023-16402-w,An efficient automated multi-modal cyberbullying detection using decision fusion classifier on social media platforms
+BZUARYMA,EXCLUDE,"Excluded: While the study mentions LLMs in a cybersecurity context, the specific role and application of the LLM in threat detection is unclear from the title and abstract.","EC2, EC1",10.1007/s11277-022-09646-6,An Efficient Fake News Identification System Using A-SQUARE CNN Algorithm
+5EC5Q59J,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,"EC2, EC1",10.1038/s41598-025-08870-x,An elegant intellectual engine towards automation of blockchain smart contract vulnerability detection
+AJ7WHRX7,INCLUDE,Excluded: Does not meet inclusion criteria IC1 or IC2.,"IC1, IC2",10.1007/978-3-031-97629-2_12,An Empirical Assessment of LLM-Based Approaches to Malicious Webpage Detection
+9BIA4MT6,EXCLUDE,"Excluded: While the study mentions LLMs in a cybersecurity context, the specific role and application of the LLM in threat detection is unclear from the title and abstract.",EC4,10.1007/978-981-96-6008-7_22,An Empirical Review of the Effectiveness of Different Language Processing Approaches in Software Code Vulnerability Detection
+ZBPEQ7EF,EXCLUDE,"Excluded due to IC1 violation. The LLM plays an auxiliary role (e.g., preprocessing, interface, query processing) but does not directly perform threat detection or classification.",EC1,10.1007/s00170-024-13492-0,An experimental hybrid customized AI and generative AI chatbot human machine interface to improve a factory troubleshooting downtime in the context of Industry 5.0
+ELPB6YX6,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC1,10.1007/s42496-025-00293-1,An Explainability-Based Framework for Evaluating Space Mission Architectures Using Sandbox Games
+CR4A2ZHU,EXCLUDE,Excluded: Secondary study (survey/review) without primary research contribution.,EC4,10.1007/978-981-19-3679-1_45,An Exploration of Machine Learning and Deep Learning Techniques for Offensive Text Detection in Social Media—A Systematic Review
+WDQE87W5,EXCLUDE,Excluded: Not in cybersecurity context. The study focuses on healthcare/medical domain.,EC1,10.1007/s11227-025-07021-3,An extensive bibliometric analysis of artificial intelligence techniques from 2013 to 2023
+XKBAYJS8,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC2,10.1007/978-981-96-9245-3_7,An Improved Model for Deep Dive Phishing Detection
+RQAEWNUD,EXCLUDE,Excluded: The study does not address cybersecurity threat detection. It focuses on a different application domain.,EC1,10.1007/s12647-025-00821-1,An Integrated Analysis of Digitalization in Metrology: Insights from Researchers and Industry Professionals on Enablers and Barriers
+9L9SAFI4,INCLUDE,Excluded: Does not meet inclusion criteria IC1 or IC2.,"IC1, IC2",10.1007/978-3-031-20309-1_14,An Integrated Chinese Malicious Webpages Detection Method Based on Pre-trained Language Models and Feature Fusion
+A7ZUQUQI,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,"EC1, EC2",10.1007/s00170-025-16751-w,An integrated fourfold automation framework for digital twin services in intelligent CNC machining
+N3ABQQLV,EXCLUDE,"Excluded due to IC1 violation. The LLM plays an auxiliary role (e.g., preprocessing, interface, query processing) but does not directly perform threat detection or classification.",EC1,10.1007/978-3-032-00644-8_13,An Intelligent Network Fuzzer for Protocol Testing in Healthcare Systems
+97I4EZGL,EXCLUDE,The study applies deep learning models (LSTM with multi-head attention) for ransomware detection without utilizing Large Language Models (LLMs).,EC2,10.1038/s41598-025-92711-4,An intelligent ransomware based cyberthreat detection model using multi head attention-based recurrent neural networks with optimization algorithm in IoT environment
+FPQZYNSC,INCLUDE,Excluded: Does not meet inclusion criteria IC1 or IC2.,"IC1, IC2",10.1007/978-981-96-4589-3_14,An Intrusion Detection System for Heterogeneous OT-Enabled Networks Using Hybrid Deep Learning Model
+6EBLFGX8,EXCLUDE,"Excluded: While the study mentions LLMs in a cybersecurity context, the specific role and application of the LLM in threat detection is unclear from the title and abstract.",EC1,10.1007/978-3-031-84517-8_29,An Investigative Study on Anomaly Detection Techniques Utilizing Interactive Language Models
+6RE3GKIS,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC2,10.1007/978-3-030-78612-0_24,An N-gram Based Deep Learning Method for Network Traffic Classification
+K9BP2JI6,EXCLUDE,"Excluded due to IC1 violation. The LLM operates in a post-detection phase (e.g., alert aggregation, incident response, forensic analysis) rather than performing the primary threat detection task.",,10.1007/s10207-025-01144-7,Analysing the role of LLMs in cybersecurity incident management
+3UKJAD2L,EXCLUDE,"Excluded: While the study mentions LLMs in a cybersecurity context, the specific role and application of the LLM in threat detection is unclear from the title and abstract.",EC4,10.1007/978-981-96-6008-7_23,Analysis of Artificial Intelligence Solutions in Offensive Cybersecurity Domains
+KU5WMZBD,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC1,10.1007/978-981-16-1480-4_11,Analysis of Socio-political Content of Internet Resources Based on Hybrid Neural Network Technologies
+XGTQJDXX,INCLUDE,Excluded: Does not meet inclusion criteria IC1 or IC2.,"IC1, IC2",10.1007/978-3-032-07715-8_9,Analyzing Adversarial Strategies and Countermeasures for Cyberbullying Detection
+EIK6L4EM,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC1,10.1007/s44196-024-00536-2,Anomaly Detection in Weather Phenomena: News and Numerical Data-Driven Insights into the Climate Change in Romania’s Historical Regions
+WFQN54CZ,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC2,10.1007/978-981-19-2225-1_10,Anomaly Detection of Unstructured Logs Generated from Complex Micro-service Based Architecture Using One-Class SVM
+KURSDBLU,EXCLUDE,Excluded: Not in cybersecurity context. The study focuses on healthcare/medical domain.,"EC4, EC2",10.1007/978-3-031-86293-9_11,Anthology of ML Based Data Science Applications
+KKIVDLC7,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC1,10.1007/s43681-024-00497-4,Anticipating impacts: using large-scale scenario-writing to explore diverse implications of generative AI in the news environment
+F3MGSETW,EXCLUDE,"Excluded due to IC1 violation. The LLM plays an auxiliary role (e.g., preprocessing, interface, query processing) but does not directly perform threat detection or classification.",EC1,10.1007/978-3-031-94892-3_27,Application of Large Language Models (LLMs) in Data Classification and Grading Within Universities
+YVWKI4NA,INCLUDE,Excluded: Does not meet inclusion criteria IC1 or IC2.,"IC1, IC2",10.1007/978-3-031-51630-6_6,Application of Large Language Models to DDoS Attack Detection
+654LFPLU,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC4,10.1186/s40163-025-00248-8,Applications of AI-Based Models for Online Fraud Detection and Analysis
+XD3EKB6D,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC1,10.1007/978-3-032-07370-9_31,Applying the AI Framework to Albania’s Tourism Sector: A Regional Case Study
+63AQWHMJ,EXCLUDE,"Excluded: While the study mentions LLMs in a cybersecurity context, the specific role and application of the LLM in threat detection is unclear from the title and abstract.",EC2,10.1007/978-3-031-89363-6_10,APTChaser: Cyber Threat Attribution via Attack Technique Modeling
+5DIXZAVG,EXCLUDE,Excluded: Secondary study (survey/review) without primary research contribution.,EC4,10.1007/s10489-023-04992-9,Arabic text detection: a survey of recent progress challenges and opportunities
+IVNFJMGS,EXCLUDE,"EXCLUIR - Fora do escopo da revisão. O artigo NÃO trata de DETECÇÃO de ameaças 
+(threat detection), mas sim de AVALIAÇÃO DE RISCO e predição de alvos (risk 
+assessment / threat intelligence). Tarefa: ""predict the likelihood of an entity 
+being targeted by a specific ransomware variant"" e ""prioritizing ransomware 
+threats"". LLM é usada para analisar bulletins, threat reports e news para criar 
+perfis SKRAM de adversários (análise de documentos de threat intelligence), não 
+para detectar ransomware em sistemas/redes. Output é ""probabilidade de ser alvo"" 
+não ""ataque detectado"". Trata-se de planejamento estratégico pré-ataque, não 
+detecção operacional. Não atende IC1: paper não investiga aplicação de LLMs a 
+""threat detection tasks"" mas sim a ""risk assessment tasks"". Similar a excluir 
+papers sobre predição de tendências de ataques ou análise de CTI - são threat 
+intelligence, não threat detection.",,10.1007/978-3-032-00630-1_2,ARCeR: An Agentic RAG for the Automated Definition of Cyber Ranges
+6RE2IGK8,EXCLUDE,The study addresses AI/data analytics and system architecture for cyber threat hunting without utilizing Large Language Models (LLMs).,EC2,10.1007/s11227-022-04808-6,Architecting threat hunting system based on the DODAF framework
+ERPQV8HR,EXCLUDE,"Foco em INCIDENT RESPONSE, não THREAT DETECTION
+""Post-incident response time""
+""Post-attack analysis""
+""From identification to correlation to eradication""
+
+LLM age PÓS-detecção:
+Classifiers detectam primeiro
+LLM correlaciona/analisa/reporta depois.",,10.1007/978-981-96-5751-3_20,Architectural Framework for Automated Incident Response: Leveraging LLMs and Classifiers for Rapid Postattack Analysis and Reporting
+KKJEFZSX,EXCLUDE,Excluded: The study does not address cybersecurity threat detection. It focuses on a different application domain.,"EC1, EC4",10.1007/978-3-031-54053-0_28,Are K-16 Educators Prepared to Address the Educational and Ethical Ramifications of Artificial Intelligence Software?
+4LEB45FT,EXCLUDE,"Excluded: While the study mentions LLMs in a cybersecurity context, the specific role and application of the LLM in threat detection is unclear from the title and abstract.",EC4,10.1007/s11934-024-01252-2,Artificial Intelligence (AI) and Men’s Health Clinic Efficiency and Clinic Billing
+6328RHCJ,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC4,10.1007/978-3-031-82481-4_8,Artificial Intelligence and Cyber Security
+4TXG32XR,EXCLUDE,"Excluded due to IC1 violation. The LLM plays an auxiliary role (e.g., preprocessing, interface, query processing) but does not directly perform threat detection or classification.",EC4,10.1007/978-3-031-67511-9_4,Artificial Intelligence and the ‘Data Act’ in the European Union: A Legal and Economic Analysis of New Digital Regulations and Their Impact on Citizens’ Rights and Business Innovation
+VTRXDDHC,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC1,10.1057/s41599-025-05984-5,Artificial intelligence and the Gulf Cooperation Council workforce: adapting to the future of work
+HPEEKAXC,EXCLUDE,Excluded: Not in cybersecurity context. The study focuses on healthcare/medical domain.,EC4,10.1007/s12559-023-10153-4,"Artificial Intelligence for Cognitive Health Assessment: State-of-the-Art, Open Challenges and Future Directions"
+QERQIVHK,EXCLUDE,"Excluded: While the study mentions LLMs in a cybersecurity context, the specific role and application of the LLM in threat detection is unclear from the title and abstract.",EC4,10.1007/s10462-025-11320-9,Artificial intelligence for secure and sustainable industrial control systems - A Survey of challenges and solutions
+DLBIRHXB,EXCLUDE,Excluded: Secondary study (survey/review) without primary research contribution.,EC4,10.1007/s10207-024-00959-0,Artificial intelligence for system security assurance: A systematic literature review
+YZFMS24L,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC4,10.1007/s10916-025-02286-w,"Artificial Intelligence in Ambulatory Surgery: Current Applications, Challenges, and Future Directions"
+WDHFX6HW,EXCLUDE,Excluded: Not in cybersecurity context. The study focuses on healthcare/medical domain.,EC4,10.1007/s44395-025-00007-3,Artificial intelligence in drug discovery and development: transforming challenges into opportunities
+ALBIFDI5,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC4,10.1007/s13198-023-02111-y,Artificial intelligence in forensic psychiatry: admissibility and relevance before courts
+NUZTV8P6,EXCLUDE,Excluded: Not in cybersecurity context. The study focuses on healthcare/medical domain.,EC4,10.1007/s40290-024-00536-9,Artificial Intelligence in Medical Affairs: A New Paradigm with Novel Opportunities
+GKWA9LHD,EXCLUDE,Excluded: Secondary study (survey/review) without primary research contribution.,EC4,10.1007/s44372-025-00455-2,Artificial intelligence in sustainable horticultural production: a systematic review
+Q259F4L3,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,"EC1, EC4",10.1007/s10462-023-10641-x,"Artificial intelligence powered Metaverse: analysis, challenges and future perspectives"
+FF5TGAY4,EXCLUDE,Excluded: Secondary study (survey/review) without primary research contribution.,EC4,10.1007/s11432-025-4388-5,Artificial intelligence security and privacy: a survey
+2GL7832A,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC1,10.1007/s42380-022-00117-x,"Artificial Intelligence to Address Cyberbullying, Harassment and Abuse: New Directions in the Midst of Complexity"
+4FVYCA79,EXCLUDE,"EXCLUIR - Fora do escopo da revisão. O artigo NÃO trata de DETECÇÃO de ameaças 
+(threat detection), mas sim de AVALIAÇÃO DE RISCO e predição de alvos (risk 
+assessment / threat intelligence). Tarefa: ""predict the likelihood of an entity 
+being targeted by a specific ransomware variant"" e ""prioritizing ransomware 
+threats"". LLM é usada para analisar bulletins, threat reports e news para criar 
+perfis SKRAM de adversários (análise de documentos de threat intelligence), não 
+para detectar ransomware em sistemas/redes. Output é ""probabilidade de ser alvo"" 
+não ""ataque detectado"". Trata-se de planejamento estratégico pré-ataque, não 
+detecção operacional. Não atende IC1: paper não investiga aplicação de LLMs a 
+""threat detection tasks"" mas sim a ""risk assessment tasks"". Similar a excluir 
+papers sobre predição de tendências de ataques ou análise de CTI - são threat 
+intelligence, não threat detection.",,10.1007/978-3-031-94458-1_17,Assessing and Prioritizing Ransomware Risk Based on Historical Victim Data
+KASI8Z78,EXCLUDE,"Excluded: While the study mentions LLMs in a cybersecurity context, the specific role and application of the LLM in threat detection is unclear from the title and abstract.",EC2,10.1007/978-3-031-70924-1_1,Assessing Cybersecurity Threats: The Application of NLP in Advanced Threat Intelligence Systems
+DWS5GEVR,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC1,10.1007/978-3-031-65894-5_16,Assessing Trustworthy Artificial Intelligence of Voice-Enabled Intelligent Assistants for the Operator 5.0
+8ZD6ZEUJ,EXCLUDE,"The study focuses on the creation of a named entity recognition dataset for cyber-attack attribution and evaluates traditional NLP methods. Although it discusses the potential of Large Language Models, it does not propose or evaluate an LLM-based approach for threat detection or attribution.",EC2,10.1007/978-981-96-0576-7_20,AttackER: Towards Enhancing Cyber-Attack Attribution with a Named Entity Recognition Dataset
+JLM92P63,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC2,10.1007/978-3-032-02853-2_20,Attackers Leveraging AI: Challenges and Countermeasures
+87JTC77D,EXCLUDE,Excluded: Not in cybersecurity context. The study focuses on healthcare/medical domain.,"EC4, EC2",10.1007/s44230-025-00103-8,Augmented Intelligence Framework for Human–Artificial Intelligence Teaming in Cybersecurity
+8AJ3TTFM,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC1,10.1007/978-3-032-05681-8_13,Augmented Reality-Based Human-AI Remote Collaboration Model for Industry 5.0
+593U9TQS,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC2,10.1007/978-3-032-06170-6_2,Auto Adaptive Fuzzy Logic Powered IoT Phishing Detection Engine*
+JW6ZXXTL,EXCLUDE,"Justificativa:
+
+GERAÇÃO de modelos de ameaças, não DETECÇÃO
+Similar a NETLAM (geração de Trojans)
+Threat modeling ≠ threat detection
+Cria representações para análise de risco, não detecta ataques reais.",,10.1007/978-3-031-89350-6_9,Automated Attack Tree Generation Using Artificial Intelligence and Natural Language Processing
+HFNJIUIZ,INCLUDE,Excluded: Does not meet inclusion criteria IC1 or IC2.,"IC1, IC2",10.1007/s10515-025-00540-6,Automated detection of affected libraries from vulnerability reports
+EZZCWEDL,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC1,10.1007/978-3-031-82703-7_8,Automated Flaw Detection for Industrial Robot RESTful Service
+GIWDEML8,EXCLUDE,"Excluded: While the study mentions LLMs in a cybersecurity context, the specific role and application of the LLM in threat detection is unclear from the title and abstract.",EC1,10.1007/978-3-031-82031-1_22,Automated Penetration Testing Using Generative Artificial
+EWTVN27Q,INCLUDE,Excluded: Does not meet inclusion criteria IC1 or IC2.,"IC1, IC2",10.1007/978-3-031-89350-6_11,Automated Risk Assessment of Shell-Based Attacks Using a LLM
+JHBICHDP,EXCLUDE,Excluded: Does not involve Large Language Models or transformer-based approaches.,EC1,10.1007/s10515-024-00462-9,Automated system-level testing of unmanned aerial systems
+X97DTD6B,EXCLUDE,Excluded: Secondary study (survey/review) without primary research contribution.,EC4,10.1007/s10515-025-00551-3,Automatic Code Generation Techniques: A Systematic Literature Review
+HU3744EB,EXCLUDE,"Excluded due to IC1 violation. The LLM plays an auxiliary role (e.g., preprocessing, interface, query processing) but does not directly perform threat detection or classification.",EC1,10.1007/978-3-031-93418-6_15,Automatic Detection of AI-Generated Text from LLMs Using Feature-Driven Transformer Networks
+HVAKE9PI,EXCLUDE,Excluded: The study does not address cybersecurity threat detection. It focuses on a different application domain.,EC4,10.1007/978-3-031-78338-8_14,Automatic Extraction and Formalization of Temporal Requirements from Text: A Survey
+Q9Y2E7J5,EXCLUDE,"The study proposes a deep learning approach for binary vulnerability detection using CodeBERT embeddings and BiLSTM models. Although transformer-based embeddings are employed, the work does not utilize or investigate Large Language Models for threat detection, thus failing to meet the inclusion criteria.",EC2,10.1007/978-981-96-4566-4_11,Automatic Software Vulnerability Detection in Binary Code
+H87PKIL2,EXCLUDE,"Justificativa:
+
+Foca em EXTRACTION, não DETECTION
+NER para extrair entidades, não classificar ameaças
+Similar a PhishCoder (caso 8 anterior) - feature extraction

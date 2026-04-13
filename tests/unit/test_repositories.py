@@ -23,6 +23,21 @@ def test_item_repository_get_item(mock_gateway):
     mock_gateway.get_item.assert_called_once_with("KEY1")
 
 
+def test_item_repository_get_template(mock_gateway):
+    repo = ZoteroItemRepository(mock_gateway)
+    mock_gateway.get_item_template.return_value = {"itemType": "journalArticle"}
+    template = repo.get_item_template("journalArticle")
+    assert template["itemType"] == "journalArticle"
+    mock_gateway.get_item_template.assert_called_once_with("journalArticle")
+
+
+def test_item_repository_create_item(mock_gateway):
+    repo = ZoteroItemRepository(mock_gateway)
+    mock_paper = MagicMock()
+    repo.create_item(mock_paper, "COL1")
+    mock_gateway.create_item.assert_called_once_with(mock_paper, "COL1")
+
+
 def test_collection_repository_get_items(mock_gateway):
     repo = ZoteroCollectionRepository(mock_gateway)
     repo.get_items_in_collection("COL1", top_only=True)

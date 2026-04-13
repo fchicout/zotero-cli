@@ -1,0 +1,77 @@
+│ VMKRHCSH │ Phishing detection in IoT: an integrated CNN-LSTM framework with explainable AI and LLM-enhanced analysis                        │ journalArticle  │
+│ H4VJLMF7 │ Peeler: Profiling Kernel-Level Events to Detect Ransomware                                                                       │ conferencePaper │
+│ 37MQ5LLX │ A hybrid framework for malware determination: generative pre-trained transformer-inspired approach                               │ journalArticle  │
+│ 8UBG9SUE │ Encoder-Based Multimodal Ensemble Learning for High Compatibility and Accuracy<span class="nocase"></span> in Phishing Website   │ conferencePaper │
+│ 2XJM8UJ9 │ High-performance network attack detection in unknown scenarios based on improved vertical model                                  │ journalArticle  │
+│ 6ES43WQW │ Large Language Model XAI approach for illicit activity Investigation in Bitcoin                                                  │ journalArticle  │
+│ DEM6S635 │ Towards Establishing the Role of LLMs in Botnet Detection: Effective Prompts for Source Code Analysis                            │ conferencePaper │
+│ YVWKI4NA │ Application of Large Language Models to DDoS Attack Detection                                                                    │ conferencePaper │
+│ DWGU86UM │ LSF-IDM: Deep learning-based lightweight semantic fusion intrusion detection model for automotive                                │ journalArticle  │
+│ C6ALFIZG │ Benchmarking Large Language Models for Log Analysis, Security, and Interpretation                                                │ journalArticle  │
+│ 7T7Y6KRG │ Smart vehicles networks: BERT self-attention mechanisms for cyber-physical system security                                       │ journalArticle  │
+│ PBVWMZDU │ Vulnerability Classification Based on Fine-Tuned BERT and Deep Neural Network Approaches                                         │ conferencePaper │
+│ 9L9SAFI4 │ An Integrated Chinese Malicious Webpages Detection Method Based on Pre-trained Language Models and Feature Fusion                │ conferencePaper │
+│ YJ59BHLU │ Detecting URL Phishing Using BERT and DistilBERT Classifiers                                                                     │ conferencePaper │
+│ 6RGGL76N │ EM-BERT: A Language Model Based Method to Detect Encrypted Malicious Network Traffic                                             │ conferencePaper │
+│ XMW9S7KY │ ProRLearn: boosting prompt tuning-based vulnerability detection by reinforcement learning                                        │ journalArticle  │
+│ VIDZ95P3 │ CoTSentry: Advanced Network Attack Detection with Chain-of-Thought Reasoning                                                     │ conferencePaper │
+│ 52LGFWVU │ An Agent-Based Cybersecurity Framework Enhanced by Large Language Models: Integrating Retrieval-Augmented Generation and Monte   │ conferencePaper │
+│ A4SEVJNF │ ChatSpamDetector: Leveraging Large Language Models for Effective Phishing Email Detection                                        │ conferencePaper │
+│ IX56GCIC │ System for Automatic Bug Detection in Code and Programs Using LLMs and AI Agents                                                 │ conferencePaper │
+│ QEYG3RX2 │ Evaluating AI Agents for Cyber Defense: A Comparison of Deep Reinforcement Learning and LLM Approaches                           │ conferencePaper │
+│ GMRY4VI8 │ Large Language Model Framework for Log Sequence Anomaly Detection                                                                │ conferencePaper │
+│ MVXUNP9S │ HyLLM-IDS: A Conceptual Hybrid LLM-Assisted Intrusion Detection Framework for Cyber-Physical Systems                             │ conferencePaper │
+│ XGTQJDXX │ Analyzing Adversarial Strategies and Countermeasures for Cyberbullying Detection                                                 │ conferencePaper │
+│ NCFWF2KN │ Towards Context-Aware Log Anomaly Detection Using Fine-Tuned Large Language Models                                               │ conferencePaper │
+│ JQWC57JU │ Few-Shot Retrieval-Augmented LLMs for Anomaly Detection in Network Traffic                                                       │ conferencePaper │
+│ SNSUQ3C7 │ Detecting Jailbreaking Prompts: an Anti-Persuasion Filter Framework                                                              │ conferencePaper │
+│ 5LL6ZA7X │ A Large-Scale Pretrained Model for Malicious URL Detection                                                                       │ conferencePaper │
+│ WMPHJN72 │ Explainable few-shot learning with modern BERT for detecting emerging phishing attacks using XF PhishBERT                        │ journalArticle  │
+│ I3TNQTXM │ An accurate spam email detection mechanism using XLNet                                                                           │ journalArticle  │
+│ 8I9NR7VV │ AC_MAPPER: a robust approach to ATT&CK technique classification using input augmentation and class rebalancing                   │ journalArticle  │
+│ LKK6LXNW │ Defense-optimized BERT architecture against digital arrest attacks in intelligent systems                                        │ journalArticle  │
+│ HFNJIUIZ │ Automated detection of affected libraries from vulnerability reports                                                             │ journalArticle  │
+│ E75HEXQL │ MCL-VD: Multi-modal contrastive learning with LoRA-enhanced GraphCodeBERT for effective vulnerability detection                  │ journalArticle  │
+│ Q5V35BU4 │ Optimization for threat classification of various data types-based on ML model and LLM                                           │ journalArticle  │
+│ Q84M4ZFW │ Fraud-BERT: transformer based context aware online recruitment fraud detection                                                   │ journalArticle  │
+│ 5LDDVAXP │ Efficient anomaly detection in tabular cybersecurity data using large language models                                            │ journalArticle  │
+│ N83RMXVG │ Large Language Model-Based Network Intrusion Detection                                                                           │ conferencePaper │
+│ ZQYEDR5U │ DBSFT: A High-Precision Database Anomaly Detection and Analysis via Task-Tune Based LLM                                          │ conferencePaper │
+│ JTH84Y4G │ Evaluating Large Language Models for Vulnerability Detection Under Realistic Conditions                                          │ conferencePaper │
+│ R7HYIXDW │ Empirical Evaluation of Machine Learning Algorithms and T5 Language Model for Advanced Phishing Email Detection                  │ conferencePaper │
+│ 88JKAXLV │ Leveraging Large Language Models for Reducing False Positives and Prioritizing Alerts in Intrusion Detection Systems             │ conferencePaper │
+│ B8CPDDGP │ DRILL: Dual-Reasoning Large Language Models for Phishing Email Detection with Limited Data                                       │ conferencePaper │
+│ ZRB6XKNK │ Utilizing LLM Embedding Technique for Intrusion Detection                                                                        │ conferencePaper │
+│ DAJTLS55 │ Using Ensembles of LLMs to Detect Phishing Emails                                                                                │ conferencePaper │
+│ K7ANL2Z3 │ Towards AI-Based Identification of Publicly Known Vulnerabilities                                                                │ conferencePaper │
+│ 8GBXNQVK │ TTP Classification with Minimal Labeled Data: A Retrieval-Based Few-Shot Learning Approach                                       │ conferencePaper │
+│ FRJ4IE36 │ MENTOR: Malicious Network Traffic Detection Through Optimized LLM-Based Recognition                                              │ conferencePaper │
+│ DGZNFCE7 │ Improving Android Malware Detection in Imbalanced Data Scenarios                                                                 │ conferencePaper │
+│ RDDVRUNT │ LSAST: Enhancing Cybersecurity Through LLM-Supported Static Application Security Testing                                         │ conferencePaper │
+│ S3WCFHFU │ Poster: Exploring the Zero-Shot Potential of Large Language Models for Detecting Algorithmically Generated Domains               │ conferencePaper │
+│ YKL3QEN6 │ ScamFerret: Detecting Scam Websites Autonomously with Large Language Models                                                      │ conferencePaper │
+│ ZN6BNVUX │ LLM-Enhanced Intrusion Detection for Containerized Applications: A Two-Tier Strategy for SDN and Kubernetes Environments         │ conferencePaper │
+│ FPQZYNSC │ An Intrusion Detection System for Heterogeneous OT-Enabled Networks Using Hybrid Deep Learning Model                             │ conferencePaper │
+│ LAE7C2EH │ Leveraging Generative AI for Proactive Security and Automated Remediation in Cloud-Native CI/CD Pipelines                        │ conferencePaper │
+│ MB9HZJTN │ Towards combining chain-of-thought and code static analysis for buffer overflow vulnerability detection                          │ journalArticle  │
+│ MZAQ5RP4 │ Multi-agent Collaborative Framework with Few-Shot CoT for Threat Detection                                                       │ conferencePaper │
+│ JTI9LRRS │ FedPhishLLM: A privacy-preserving and explainable phishing detection mechanism using federated learning and LLMs                 │ journalArticle  │
+│ 9A85HULZ │ Improving phishing email detection performance through deep learning with adaptive optimization                                  │ journalArticle  │
+│ ARUCIDCM │ Evaluating large transformer models for anomaly detection of resource-constrained IoT devices for intrusion detection system     │ journalArticle  │
+│ 7AFIFUJ3 │ A multi-label visualisation approach for malware behaviour analysis                                                              │ journalArticle  │
+│ 35IDB4PK │ XGV-BERT: Leveraging contextualized language model and graph neural network for efficient software vulnerability detection       │ journalArticle  │
+│ 5WYIF3RI │ Let RFF do the talking: large language model enabled lightweight RFFI for 6G edge intelligence                                   │ journalArticle  │
+│ T364VKT5 │ Evaluation of the maturity of LLMs in the cybersecurity domain                                                                   │ journalArticle  │
+│ 9DM6AUER │ GPTVD: vulnerability detection and analysis method based on LLM’s chain of thoughts                                              │ journalArticle  │
+│ 6YENCQ6X │ Is this Site Legit?: LLMs for Scam Website Detection                                                                             │ conferencePaper │
+│ SW6IA9AZ │ The Dual-Edged Sword of Large Language Models in Phishing                                                                        │ conferencePaper │
+│ 2SNRDTWQ │ Large Language Models Are Unreliable for Cyber Threat Intelligence                                                               │ conferencePaper │
+│ EWTVN27Q │ Automated Risk Assessment of Shell-Based Attacks Using a LLM                                                                     │ conferencePaper │
+│ XCAJ96AW │ Benchmarking Out of the Box Open-Source LLMs for Malware Detection Based on API Calls Sequences                                  │ conferencePaper │
+│ IQ83GQS8 │ On the Properness of Large Language Models for Malware Detection                                                                 │ conferencePaper │
+│ 4IJ9LW6D │ Real-Time Voice Phishing Detection Using BERT                                                                                    │ conferencePaper │
+│ R8FSTNPQ │ Enhanced Cybersecurity: AI-Driven Phishing Fraud Detection Approach                                                              │ conferencePaper │
+│ 6PZ63D88 │ To Ensemble or Not: Assessing Majority Voting Strategies for Phishing Detection with Large Language Models                       │ conferencePaper │
+│ A2FA8T87 │ The Emotional Lens of Cybersecurity: A Study on Sentiment Analysis Enhanced Phishing Detection via Large Language Models         │ conferencePaper │
+│ AJ7WHRX7 │ An Empirical Assessment of LLM-Based Approaches to Malicious Webpage Detection                                                   │ conferencePaper │
+│ ICDIZZ8F │ NLP-Driven Cyber Threat Classification Leveraging the MITRE ATT&CK Framework                                                     │ conferencePaper │

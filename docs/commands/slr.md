@@ -13,26 +13,84 @@ The `slr` command is organized into a flat 2-level structure:
 ### `screen`
 Starts the interactive Terminal User Interface (TUI) for screening items.
 
+**Logic Flow:**
+```mermaid
+graph TD
+    A[Start Screen] --> B{Fetch Pending Items}
+    B --> C[Launch Interactive TUI]
+    C --> D[User reads Abstract/Metadata]
+    D --> E{User Decision}
+    E -- INCLUDE --> F[Update SDB Note & Move]
+    E -- EXCLUDE --> G[Prompt for Reason Code]
+    G --> H[Update SDB Note & Move]
+    E -- SKIP --> I[Next Item]
+    E -- QUIT --> J[Exit]
+    F --> C
+    H --> C
+```
+
 **Usage:**
 ```bash
 zotero-cli slr screen --source "RAW_COLLECTION" --include "INC_COLLECTION" --exclude "EXC_COLLECTION"
 ```
 
+**Scenario-Based Example:**
+- **Problem:** I have 200 papers in "Unscreened" and need to review them quickly.
+- **Action:** `zotero-cli slr screen --source "Unscreened" --include "Accepted" --exclude "Rejected"`
+
 ### `decide`
 Records a single screening decision for an item via CLI. Supports SDB v1.2 with phase isolation and evidence capture.
+
+**Logic Flow:**
+```mermaid
+graph TD
+    A[Start Decide] --> B{Determine Vote/Reason}
+    B --> C[Explicit --vote / --code]
+    B --> D[Quick Flags e.g., --short-paper]
+    C --> E[Validate Input]
+    D --> E
+    E -- EXCLUDE without code? --> F[Error]
+    E -- Valid --> G[Update SDB Note]
+    G --> H{Move item?}
+    H -- Yes --> I[Move from Source to Target]
+    H -- No --> J[End: Decision Recorded]
+    I --> J
+```
 
 **Usage:**
 ```bash
 zotero-cli slr decide --key "ITEMKEY" --vote "INCLUDE|EXCLUDE" --code "REASON_CODE" [--phase "full_text"] [--evidence "Found text about X..."]
 ```
 
+**Scenario-Based Example:**
+- **Problem:** I am reading an abstract and realized it's a survey paper.
+- **Action:** `zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" --reason "Is a survey paper" --phase "title_abstract"`
+
 ### `load`
 Retroactively imports screening decisions from a CSV file. Matches items by Key, DOI, or Title.
+
+**Logic Flow:**
+```mermaid
+graph TD
+    A[Start Load] --> B[Read CSV]
+    B --> C{Find Zotero Item?}
+    C -- Matched by Key/DOI? --> D[Update Screening Notes]
+    C -- Not Found? --> E[Skip / Log Unmatched]
+    D --> F{Move Item?}
+    F -- --move-to-included? --> G[Add to 'Included' Collection]
+    F -- --move-to-excluded? --> H[Add to 'Excluded' Collection]
+    G --> I[End: Status Updated]
+    H --> I
+```
 
 **Usage:**
 ```bash
 zotero-cli slr load "decisions.csv" --reviewer "Persona" --phase "title_abstract" --force
 ```
+
+**Scenario-Based Example:**
+- **Problem:** Screened 500 papers in Rayyan and exported a CSV. Need decisions reflected in Zotero.
+- **Action:** `zotero-cli slr load --file "rayyan_export.csv" --reviewer "Chicout" --phase "full_text" --move-to-included "Accepted" --force`
 
 ### `verify`
 Performs verification tasks for the SLR. Supports both LaTeX manuscript citation auditing and collection completeness validation.
@@ -94,10 +152,28 @@ zotero-cli slr sync-csv --collection "COLLECTION" --output "synced.csv"
 ### `prune`
 Enforces mutual exclusivity between an 'Included' and 'Excluded' collection by removing intersections from the excluded set.
 
+**Logic Flow:**
+```mermaid
+graph TD
+    A[Start Prune] --> B{Identify Items}
+    B --> C[Primary Collection: 'Included']
+    B --> D[Secondary Collection: 'Excluded']
+    C --> E{Find Intersection}
+    D --> E
+    E -- Found in both? --> F[Remove from 'Excluded']
+    E -- Unique to 'Excluded'? --> G[Keep in 'Excluded']
+    F --> H[End: Sets are now Disjoint]
+    G --> H
+```
+
 **Usage:**
 ```bash
 zotero-cli slr prune --included "Accepted" --excluded "Rejected"
 ```
+
+**Scenario-Based Example:**
+- **Problem:** During the screening, some papers were accidentally left in the "Excluded" folder after being promoted. This skews PRISMA statistics.
+- **Action:** `zotero-cli slr prune --included "Full Text Included" --excluded "Full Text Excluded"`
 
 ### `extract`
 Manages data extraction schemas and operations. Supports initializing a new schema and validating an existing one.

@@ -439,18 +439,48 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         console.print(table)
 
     def _handle_backup(self, gateway, args):
+        from rich.progress import (
+            BarColumn,
+            MofNCompleteColumn,
+            Progress,
+            TextColumn,
+            TimeRemainingColumn,
+        )
+
         # Resolve collection ID
         col_id = gateway.get_collection_id_by_name(args.name)
         if not col_id:
             col_id = args.name
 
+        col = gateway.get_collection(col_id)
+        if not col:
+            console.print(f"[bold red]Error:[/bold red] Collection '{args.name}' not found.")
+            return
+
+        total_items = col.get("meta", {}).get("numItems")
+
         service = BackupService(gateway)
-        print(f"Starting Backup for Collection '{args.name}' ({col_id})...")
+        console.print(f"Starting Backup for Collection '[cyan]{args.name}[/cyan]' ({col_id}) to [green]{args.output}[/green]...")
+        
         try:
-            service.backup_collection(col_id, args.output)
-            print(f"Backup complete: {args.output}")
+            with Progress(
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                MofNCompleteColumn(),
+                TimeRemainingColumn(),
+                console=console,
+            ) as progress:
+                task = progress.add_task("Backing up items...", total=total_items)
+                
+                def on_item(item):
+                    progress.update(task, advance=1, description=f"Backing up: {item.key}")
+
+                service.backup_collection(col_id, args.output, on_item_processed=on_item)
+                progress.update(task, description="Finalizing .zaf container...")
+
+            console.print(f"[bold green]Backup complete:[/bold green] {args.output}")
         except Exception as e:
-            print(f"Backup failed: {e}", file=sys.stderr)
+            console.print(f"[bold red]Backup failed:[/bold red] {e}")
 
     def _handle_export(self, args):
         if args.format == "md":

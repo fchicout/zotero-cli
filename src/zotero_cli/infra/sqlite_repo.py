@@ -294,6 +294,14 @@ class SqliteZoteroGateway(ZoteroGateway):
             if item.doi == doi:
                 yield item
 
+    def get_all_items(self) -> Iterator[ZoteroItem]:
+        return self.search_items(ZoteroQuery())
+
+    def get_orphan_items(self) -> Iterator[ZoteroItem]:
+        for item in self.search_items(ZoteroQuery()):
+            if not item.collections:
+                yield item
+
     def verify_credentials(self) -> bool:
         return os.path.exists(self.original_db_path)
 

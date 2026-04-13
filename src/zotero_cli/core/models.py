@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from .zotero_item import ZoteroItem
+
 
 @dataclass
 class ResearchPaper:
@@ -81,3 +83,4 @@ class SearchResult:
     text: str
     score: float
     metadata: Dict[str, Any]
+    item: Optional[ZoteroItem] = None

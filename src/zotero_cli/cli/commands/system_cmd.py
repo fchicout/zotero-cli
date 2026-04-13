@@ -515,13 +515,45 @@ Cognitive Safeguards
         print(f"Normalization complete. Saved {len(papers)} items to {args.output}")
 
     def _handle_backup(self, args):
+        from rich.progress import (
+            BarColumn,
+            MofNCompleteColumn,
+            Progress,
+            TextColumn,
+            TimeRemainingColumn,
+        )
+
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
         service = BackupService(gateway)
 
-        print(f"Starting System Backup to {args.output}...")
+        console.print(f"Starting System Backup to [green]{args.output}[/green]...")
+        
         try:
-            service.backup_system(args.output)
-            print(f"Backup complete: {args.output}")
+            with Progress(
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                MofNCompleteColumn(),
+                TimeRemainingColumn(),
+                console=console,
+            ) as progress:
+                # 1. First we need to know the total items if possible
+                # For full system backup, get_all_items is used. 
+                # Converting to list in Service already, but we need the count here for total.
+                # However, since we don't want to double-fetch, we'll let the service drive progress.
+                
+                task = progress.add_task("Backing up items...", total=None) # Indeterminate initially
+                
+                def on_item(item):
+                    progress.update(task, advance=1, description=f"Backing up: {item.key}")
+
+                # For system backup, we might not know total easily without a pre-fetch.
+                # Let's check if we can get a quick count.
+                # If not, it stays indeterminate until we find a way.
+                
+                service.backup_system(args.output, on_item_processed=on_item)
+                progress.update(task, description="Finalizing .zaf container...")
+
+            console.print(f"[bold green]Backup complete:[/bold green] {args.output}")
         except Exception as e:
-            print(f"Backup failed: {e}", file=sys.stderr)
+            console.print(f"[bold red]Backup failed:[/bold red] {e}")

@@ -130,6 +130,12 @@ class ZoteroAPIClient(ZoteroGateway):
         # Note: q search is general, but often used for DOIs
         return self.search_items(ZoteroQuery(q=doi))
 
+    def get_all_items(self) -> Iterator[ZoteroItem]:
+        return self.search_items(ZoteroQuery())
+
+    def get_orphan_items(self) -> Iterator[ZoteroItem]:
+        return self._paginate_items("items", params={"collection": "none"})
+
     def get_items_in_collection(
         self, collection_id: str, top_only: bool = False
     ) -> Iterator[ZoteroItem]:
@@ -365,7 +371,12 @@ class ZoteroAPIClient(ZoteroGateway):
             # 2. Get Upload Authorization
             auth_data = {"md5": md5, "filename": filename, "filesize": filesize, "mtime": mtime}
             # Important: If-None-Match: * ensures we don't overwrite if not needed
-            headers = {"If-None-Match": "*", "Content-Type": "application/x-www-form-urlencoded"}
+            # Issue #79: Zotero may require If-Unmodified-Since-Version for these posts
+            headers = {
+                "If-None-Match": "*",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "If-Unmodified-Since-Version": str(self.http.last_library_version),
+            }
 
             # Add params=1 as query param to get upload parameters
             auth_res = self.http.post_form(

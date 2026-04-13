@@ -27,3 +27,13 @@ Retrieves synthesized context snippets for a specific item key.
 ```bash
 zotero-cli rag context --key "ITEMKEY"
 ```
+
+### `purge`
+Removes indexed data from the local vector store.
+
+**Usage:**
+```bash
+zotero-cli rag purge --all
+zotero-cli rag purge --key "ITEM_KEY"
+zotero-cli rag purge --collection "COLLECTION_NAME/KEY"
+```

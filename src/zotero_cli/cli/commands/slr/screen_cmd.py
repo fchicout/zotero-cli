@@ -10,7 +10,9 @@ console = Console()
 class ScreenCommand:
     @staticmethod
     def register_args(parser: argparse.ArgumentParser):
-        parser.add_argument("--collection", help="Collection name or key to screen")
+        parser.add_argument("--collection", "--source", dest="collection", help="Collection name or key to screen")
+        parser.add_argument("--include", help="Target collection for inclusions (Optional)")
+        parser.add_argument("--exclude", help="Target collection for exclusions (Optional)")
         parser.add_argument("--agent", action="store_true", help="Run in Agent-led mode")
         parser.add_argument("--persona", help="Reviewer persona (for Agent-led mode)")
 
