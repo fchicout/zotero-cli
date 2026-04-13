@@ -7,16 +7,16 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start List] --> B[Fetch Target Collection Key]
-    B --> C[Fetch Metadata for All Items]
-    C --> D{Filter Results?}
-    D -- included --> E[Filter: decision == accepted]
-    D -- excluded --> F[Filter: decision == rejected]
-    D -- criteria --> G[Filter: exclusion_code == criteria]
-    E --> H[Format: Key, Title, Decision, Code]
+    A["Start List"] --> B["Fetch Target Collection Key"]
+    B --> C["Fetch Metadata for All Items"]
+    C --> D{"Filter Results?"}
+    D -- "included" --> E["Filter: decision == accepted"]
+    D -- "excluded" --> F["Filter: decision == rejected"]
+    D -- "criteria" --> G["Filter: exclusion_code == criteria"]
+    E --> H["Format: Key, Title, Decision, Code"]
     F --> H
     G --> H
-    H --> I[End: Display Formatted Table]
+    H --> I["End: Display Formatted Table"]
 ```
 
 ## 3. Synopsis
