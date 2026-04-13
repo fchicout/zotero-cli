@@ -7,14 +7,14 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Transfer] --> B[Fetch Item Key and Target Group ID]
-    B --> C[Retrieve Full Metadata and Attachments from Source]
-    C --> D[Prepare Multi-Part Upload for Target Library]
-    D --> E[Execute API Creation in Target Group]
-    E --> F{Delete Source?}
-    F -- Yes --> G[Execute API Deletion in Source Library]
-    F -- No --> H[Keep Source Item]
-    G --> I[End: Transfer Complete]
+    A["Start Transfer"] --> B["Fetch Item Key and Target Group ID"]
+    B --> C["Retrieve Full Metadata and Attachments from Source"]
+    C --> D["Prepare Multi-Part Upload for Target Library"]
+    D --> E["Execute API Creation in Target Group"]
+    E --> F{"Delete Source?"}
+    F -- "Yes" --> G["Execute API Deletion in Source Library"]
+    F -- "No" --> H["Keep Source Item"]
+    G --> I["End: Transfer Complete"]
     H --> I
 ```
 
