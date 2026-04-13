@@ -7,14 +7,14 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start PDF Ops] --> B[Fetch Target Collection Key]
-    B --> C{Action?}
-    C -- fetch --> D[Identify Items Missing PDFs]
-    C -- strip --> E[Identify All PDF Attachments]
-    D --> F[Execute Bulk PDF Fetch from Online Sources]
-    E --> G[Execute API Request to Delete Attachments]
-    F --> H[End: Download Stats]
-    G --> I[End: Cleanup Stats]
+    A["Start PDF Ops"] --> B["Fetch Target Collection Key"]
+    B --> C{"Action?"}
+    C -- "fetch" --> D["Identify Items Missing PDFs"]
+    C -- "strip" --> E["Identify All PDF Attachments"]
+    D --> F["Execute Bulk PDF Fetch from Online Sources"]
+    E --> G["Execute API Request to Delete Attachments"]
+    F --> H["End: Download Stats"]
+    G --> I["End: Cleanup Stats"]
 ```
 
 ## 3. Synopsis
