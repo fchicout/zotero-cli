@@ -122,7 +122,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         status_p.add_argument("--output", help="Optional path to save report (acts like screening)")
 
         # PDF Discovery Report
-        pdf_p = sub.add_parser("pdf", help="Generate PDF Discovery Report")
+        pdf_p = sub.add_parser(
+            "pdf",
+            help="Generate PDF Discovery Report",
+            description="Generates a detailed 'Discovery Report' in Markdown that catalogs the availability and provenance of PDF attachments across your entire library.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Auditing storage usage before a cleanup
+Problem: My Zotero storage is almost full and I want to know which folders or providers are contributing most to the disk usage.
+Action:  zotero-cli report pdf --output "library_file_audit.md"
+Result:  A Markdown file is generated that lists every item and the size of its associated PDF.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to run without an active internet connection (metadata must be fetched from the API).
+• Safety Tips: Use this report in conjunction with collection pdf strip to surgically clean up folders.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/report_pdf.md
+""",
+        )
         pdf_p.add_argument("--output", required=True, help="Path to output Markdown file")
 
     def execute(self, args: argparse.Namespace):
