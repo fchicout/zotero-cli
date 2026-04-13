@@ -107,7 +107,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
         # Backup
-        backup_p = sub.add_parser("backup", help="Create a full system backup (.zaf)")
+        backup_p = sub.add_parser(
+            "backup",
+            help="Create a full system backup (.zaf)",
+            description="Creates a complete, self-contained backup archive (.zaf) of your entire Zotero library, including all collections, metadata, and attachments.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Migrating research data to a new workstation
+Problem: I've bought a new computer and I want to move my entire zotero-cli environment and library state.
+Action:  zotero-cli system backup --output "Master_Research_Backup_2024.zaf"
+Result:  A single portable file is created that can be used with system restore on the new machine.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting backup on a very large library (>5000 items) without sufficient disk space.
+• Safety Tips: Run this command regularly and store the .zaf file in a secure, off-site location.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_backup.md
+""",
+        )
         backup_p.add_argument("--output", required=True, help="Output file path (e.g., backup.zaf)")
 
         # Restore (Placeholder for now, implemented logic pending)
