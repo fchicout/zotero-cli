@@ -177,15 +177,50 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
         # PDF operations
-        pdf_p = sub.add_parser("pdf", help="Bulk PDF attachment operations")
+        pdf_p = sub.add_parser(
+            "pdf",
+            help="Bulk PDF attachment operations",
+            description="Performs bulk operations on PDF attachments across an entire collection, either fetching missing files from online sources or stripping all existing attachments.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_pdf.md
+""",
+        )
         pdf_sub = pdf_p.add_subparsers(dest="pdf_verb", required=True)
 
         fetch_p = pdf_sub.add_parser(
-            "fetch", help="Fetch missing PDFs for all items in a collection"
+            "fetch",
+            help="Fetch missing PDFs for all items in a collection",
+            description="Scans the specified collection for items without PDF attachments and attempts to retrieve them using DOIs and other metadata through integrated providers (like ArXiv, CrossRef).",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Mass retrieval of papers for reading
+Problem: I've imported 200 items into my "Reading List" (Key: READ_123) but they only have metadata and no PDFs.
+Action:  zotero-cli collection pdf fetch --collection "READ_123"
+Result:  The CLI attempts to find and download PDFs for all 200 items automatically.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting fetch without a working internet connection or with items that lack a DOI/ArXiv ID.
+• Safety Tips: Always ensure you have sufficient disk space before running fetch on large collections.
+""",
         )
         fetch_p.add_argument("--collection", required=True, help="Collection name or key")
 
-        strip_p = pdf_sub.add_parser("strip", help="Remove all PDF attachments from a collection")
+        strip_p = pdf_sub.add_parser(
+            "strip",
+            help="Remove all PDF attachments from a collection",
+            description="Permanently removes all PDF attachments from every item in a collection.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: strip is irreversible and will permanently delete files from your Zotero storage.
+• Safety Tips: Use strip with extreme caution. Always backup your library before mass deletion.
+""",
+        )
         strip_p.add_argument("--collection", required=True, help="Collection name or key")
         strip_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
         strip_p.add_argument("--verbose", action="store_true")
