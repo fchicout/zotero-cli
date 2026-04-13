@@ -7,14 +7,14 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Jobs Manager] --> B{Action?}
-    B -- list --> C[Read Local Jobs Database]
-    B -- retry --> D[Identify Failed Job ID]
-    B -- run --> E[Initialize Background Worker]
-    C --> F[Display Status Table: ID, Task, Status]
-    D --> G[Reset Job Status to PENDING]
-    E --> H[Process PENDING Jobs in Sequence]
-    F --> I[End: Jobs Summary]
+    A["Start Jobs Manager"] --> B{"Action?"}
+    B -- "list" --> C["Read Local Jobs Database"]
+    B -- "retry" --> D["Identify Failed Job ID"]
+    B -- "run" --> E["Initialize Background Worker"]
+    C --> F["Display Status Table: ID, Task, Status"]
+    D --> G["Reset Job Status to PENDING"]
+    E --> H["Process PENDING Jobs in Sequence"]
+    F --> I["End: Jobs Summary"]
     G --> I
     H --> I
 ```
