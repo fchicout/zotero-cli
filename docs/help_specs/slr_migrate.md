@@ -7,13 +7,13 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Migration] --> B[Fetch Target Collection Key]
-    B --> C[Identify Items with Audit Notes]
-    C --> D[Compare Note Format against Latest Schema]
-    D --> E{Dry Run?}
-    E -- Yes --> F[Display Pending Format Changes]
-    E -- No --> G[Execute API Updates to Upgrade Note Schema]
-    F --> H[End: Migration Result]
+    A["Start Migration"] --> B["Fetch Target Collection Key"]
+    B --> C["Identify Items with Audit Notes"]
+    C --> D["Compare Note Format against Latest Schema"]
+    D --> E{"Dry Run?"}
+    E -- "Yes" --> F["Display Pending Format Changes"]
+    E -- "No" --> G["Execute API Updates to Upgrade Note Schema"]
+    F --> H["End: Migration Result"]
     G --> H
 ```
 
