@@ -7,13 +7,13 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Tag Purge] --> B[Fetch Target Collection Key]
-    B --> C[Identify All Items in Collection]
-    C --> D[Identify All Tags for those Items]
-    D --> E{Execute Flag?}
-    E -- No --> F[Display Summary of Tags to be Removed]
-    E -- Yes --> G[Bulk Execute API Requests to Clear Tags]
-    F --> H[End: Purge Result]
+    A["Start Tag Purge"] --> B["Fetch Target Collection Key"]
+    B --> C["Identify All Items in Collection"]
+    C --> D["Identify All Tags for those Items"]
+    D --> E{"Execute Flag?"}
+    E -- "No" --> F["Display Summary of Tags to be Removed"]
+    E -- "Yes" --> G["Bulk Execute API Requests to Clear Tags"]
+    F --> H["End: Purge Result"]
     G --> H
 ```
 
