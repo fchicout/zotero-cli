@@ -97,7 +97,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         screen_p.add_argument("--output", required=True, help="Path to output Markdown file")
 
         # Status (Progress Dashboard)
-        status_p = sub.add_parser("status", help="Show Progress Dashboard")
+        status_p = sub.add_parser(
+            "status",
+            help="Show Progress Dashboard",
+            description="Displays a real-time dashboard of your collection's health and progress, highlighting the number of items with attachments, metadata completeness, and screening status.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Checking if a collection is ready for reading
+Problem: I've imported 500 papers and run a bulk PDF fetch. I want to know if every item now has its PDF before I disconnect for a flight.
+Action:  zotero-cli report status --collection "TRAVEL_READING"
+Result:  The CLI shows that 495 items have PDFs and 5 are still missing, allowing me to target those 5 specifically.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to run on a collection that is completely empty.
+• Safety Tips: Use this command frequently during the "Preparation" phase to ensure data health before starting time-consuming phases.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/report_status.md
+""",
+        )
         status_p.add_argument("--collection", required=True)
         status_p.add_argument("--output", help="Optional path to save report (acts like screening)")
 
