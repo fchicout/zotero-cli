@@ -7,10 +7,10 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Clean] --> B[Fetch Target Collection Key]
-    B --> C[Identify All Items in Collection]
-    C --> D[Execute API Request to Remove Items]
-    D --> E[End: Collection Emptied]
+    A["Start Clean"] --> B["Fetch Target Collection Key"]
+    B --> C["Identify All Items in Collection"]
+    C --> D["Execute API Request to Remove Items"]
+    D --> E["End: Collection Emptied"]
 ```
 
 ## 3. Synopsis
