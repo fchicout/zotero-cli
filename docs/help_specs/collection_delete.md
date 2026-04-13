@@ -7,13 +7,13 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Delete] --> B[Fetch Target Key]
-    B --> C{Recursive?}
-    C -- Yes --> D[Identify All Children]
-    C -- No --> E[Direct Deletion Attempt]
-    D --> F[Execute Recursive API Requests]
-    E --> G[Execute Single API Request]
-    F --> H[End: Deletion Result]
+    A["Start Delete"] --> B["Fetch Target Key"]
+    B --> C{"Recursive?"}
+    C -- "Yes" --> D["Identify All Children"]
+    C -- "No" --> E["Direct Deletion Attempt"]
+    D --> F["Execute Recursive API Requests"]
+    E --> G["Execute Single API Request"]
+    F --> H["End: Deletion Result"]
     G --> H
 ```
 
