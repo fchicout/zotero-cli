@@ -7,13 +7,13 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Screening Report] --> B[Fetch Target Collection Key]
-    B --> C[Retrieve Items and Decisions from Zotero]
-    C --> D[Group Items by Inclusion/Exclusion]
-    D --> E[Generate Markdown Summary Table]
-    E --> F[List Detailed Decisions per Item]
-    F --> G[Write to Local Markdown File]
-    G --> H[End: Report Generated]
+    A["Start Screening Report"] --> B["Fetch Target Collection Key"]
+    B --> C["Retrieve Items and Decisions from Zotero"]
+    C --> D["Group Items by Inclusion/Exclusion"]
+    D --> E["Generate Markdown Summary Table"]
+    E --> F["List Detailed Decisions per Item"]
+    F --> G["Write to Local Markdown File"]
+    G --> H["End: Report Generated"]
 ```
 
 ## 3. Synopsis
