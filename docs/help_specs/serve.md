@@ -7,14 +7,14 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Serve] --> B[Initialize FastAPI App]
-    B --> C[Establish Authenticated Gateway to Zotero API]
-    C --> D[Connect to Local Vector Store]
-    D --> E[Bind to Specified Host and Port]
-    E --> F[Listen for HTTP Requests]
-    F --> G[Endpoint: /items - Proxy Zotero Data]
-    F --> H[Endpoint: /search - Proxy Semantic Search]
-    G --> I[End: Continuous Service]
+    A["Start Serve"] --> B["Initialize FastAPI App"]
+    B --> C["Establish Authenticated Gateway to Zotero API"]
+    C --> D["Connect to Local Vector Store"]
+    D --> E["Bind to Specified Host and Port"]
+    E --> F["Listen for HTTP Requests"]
+    F --> G["Endpoint: /items - Proxy Zotero Data"]
+    F --> H["Endpoint: /search - Proxy Semantic Search"]
+    G --> I["End: Continuous Service"]
     H --> I
 ```
 
