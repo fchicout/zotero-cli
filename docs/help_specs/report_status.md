@@ -7,14 +7,14 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Status] --> B[Fetch Target Collection Key]
-    B --> C[Analyze Collection Contents]
-    C --> D[Identify: Items with PDFs, Metadata Health, Decisions Made]
-    D --> E[Generate Real-Time Dashboard View]
-    E --> F{Output Path?}
-    F -- Yes --> G[Generate Markdown Status File]
-    F -- No --> H[Display in Terminal]
-    G --> I[End: Progress Summary]
+    A["Start Status"] --> B["Fetch Target Collection Key"]
+    B --> C["Analyze Collection Contents"]
+    C --> D["Identify: Items with PDFs, Metadata Health, Decisions Made"]
+    D --> E["Generate Real-Time Dashboard View"]
+    E --> F{"Output Path?"}
+    F -- "Yes" --> G["Generate Markdown Status File"]
+    F -- "No" --> H["Display in Terminal"]
+    G --> I["End: Progress Summary"]
     H --> I
 ```
 
