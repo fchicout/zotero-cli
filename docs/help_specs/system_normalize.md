@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Normalize] --> B[Parse Input CSV: IEEE, Springer, ACM, etc.]
-    B --> C[Identify Source Provider Schema]
-    C --> D[Map Fields to Canonical Schema: DOI, Title, Authors, Year]
-    D --> E[Clean and Standardize Metadata Formats]
-    E --> F[Generate New Standardized CSV]
-    F --> G[End: Canonical CSV Created]
+    A["Start Normalize"] --> B["Parse Input CSV: IEEE, Springer, ACM, etc."]
+    B --> C["Identify Source Provider Schema"]
+    C --> D["Map Fields to Canonical Schema: DOI, Title, Authors, Year"]
+    D --> E["Clean and Standardize Metadata Formats"]
+    E --> F["Generate New Standardized CSV"]
+    F --> G["End: Canonical CSV Created"]
 ```
 
 ## 3. Synopsis
