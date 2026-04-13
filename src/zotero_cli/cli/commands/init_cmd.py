@@ -16,6 +16,23 @@ class InitCommand(BaseCommand):
     help = "Interactive configuration wizard"
 
     def register_args(self, parser: argparse.ArgumentParser):
+        parser.description = "Launches an interactive setup wizard to configure the Zotero CLI, establishing connection credentials and local storage paths."
+        parser.formatter_class = argparse.RawDescriptionHelpFormatter
+        parser.epilog = """
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: First-time setup of the CLI
+Problem: I've just installed the zotero-cli and I need to connect it to my Zotero account.
+Action:  zotero-cli init
+Result:  The CLI asks for my API key and Library ID, then creates the configuration file.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Providing an incorrect API key or ID during the wizard. The CLI will attempt to validate these via a heartbeat request to the API.
+• Safety Tips: Keep your API key private. The init command stores it in a plain-text config.toml file by default, so ensure your configuration directory has restricted access permissions.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/init.md
+"""
         parser.add_argument("--force", action="store_true", help="Overwrite existing config")
 
     def execute(self, args: argparse.Namespace):
