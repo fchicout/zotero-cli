@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Move] --> B[Fetch Item Key, Source, and Target Keys]
-    B --> C[Fetch Current Collections for Item]
-    C --> D[Identify Source Collection for Link Removal]
-    D --> E[Prepare Link Creation for Target Collection]
-    E --> F[Execute API Update Request]
-    F --> G[End: Item Relocation Success]
+    A["Start Move"] --> B["Fetch Item Key, Source, and Target Keys"]
+    B --> C["Fetch Current Collections for Item"]
+    C --> D["Identify Source Collection for Link Removal"]
+    D --> E["Prepare Link Creation for Target Collection"]
+    E --> F["Execute API Update Request"]
+    F --> G["End: Item Relocation Success"]
 ```
 
 ## 3. Synopsis
