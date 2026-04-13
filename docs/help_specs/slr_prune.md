@@ -1,43 +1,40 @@
 # DOC-SPEC: slr prune
 
 ## 1. Classification
-- **Level:** 🔴 DESTRUCTIVE (Library Modification)
-- **Target Audience:** SLR Lead / Auditor
+- **Level:** 🔴 DESTRUCTIVE (Item-Collection Unlinking)
+- **Target Audience:** Researcher / SLR Lead
 
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Prune] --> B{Identify Items}
-    B --> C[Primary Collection: 'Included']
-    B --> D[Secondary Collection: 'Excluded']
-    C --> E{Find Intersection}
-    D --> E
-    E -- Found in both? --> F[Remove from 'Excluded']
-    E -- Unique to 'Excluded'? --> G[Keep in 'Excluded']
-    F --> H[End: Sets are now Disjoint]
-    G --> H
+    A[Start Pruning] --> B[Fetch 'Included' and 'Excluded' Collection Keys]
+    B --> C[Retrieve Items for Both Collections]
+    C --> D[Identify Items existing in BOTH Collections]
+    D --> E[Prepare Unlink Requests for 'Excluded' Collection]
+    E --> F[Execute API Requests to Remove Overlaps]
+    F --> G[End: Collections are now Mutually Exclusive]
 ```
 
 ## 3. Synopsis
-Enforces mutual exclusivity between two collections by removing items from the 'Excluded' collection that already exist in the 'Included' collection.
+Ensures that two collections (typically your "Included" and "Excluded" sets) are mutually exclusive by removing any overlapping items from the specified excluded collection.
 
 ## 4. Description (Instructional Architecture)
-In a Systematic Literature Review (SLR), items should not simultaneously reside in both the 'Included' and 'Excluded' collections. The `slr prune` command identifies this intersection and "prunes" (removes) the redundant items from the secondary collection (`--excluded`). 
+The `slr prune` command is a "Data Hygiene" tool designed to fix errors in library organization. During rapid screening, it is common for a paper to be accidentally left in an "Excluded" folder after it has been promoted to "Included." This redundancy can skew scientific reports and PRISMA flowcharts. 
 
-This command is typically used after a screening phase to ensure the final datasets used for PRISMA reporting are strictly separated. It does **not** delete the items from your Zotero library entirely; it only unlinks them from the specified collection.
+The command identifies items that are present in both the `--included` (winner) and `--excluded` (loser) collections and automatically removes the link to the excluded folder. It's important to note that the item itself is not deleted from Zotero; it is merely unlinked from the redundant folder to ensure your datasets are disjoint and ready for reporting.
 
 ## 5. Parameter Matrix
 | Flag | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--included` | String | Name or Key of the "Master" collection. | Items here are NEVER removed. |
-| `--excluded` | String | Name or Key of the collection to be cleaned. | Items found in both will be removed from here. |
+| `--included` | String | Name or Key of the primary (winner) collection. | Required. |
+| `--excluded` | String | Name or Key of the secondary (loser) collection. | Required. Items removed from here. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
-### Scenario: Cleaning the Excluded set after Full Text Review
-**Problem:** During the screening, some papers were accidentally left in the "Excluded" folder after being promoted to the "Included" folder. This is skewing my PRISMA statistics.
-**Action:** `zotero-cli slr prune --included "Full Text Included" --excluded "Full Text Excluded"`
-**Result:** Any paper found in both folders is removed from "Full Text Excluded," leaving the folders perfectly disjoint.
+### Scenario: Fixing overlapping folders before a PRISMA report
+**Problem:** I've noticed that my "Rejected" folder still contains 5 papers that I decided to "Accept" later. My counts are incorrect.
+**Action:** `zotero-cli slr prune --included "Accepted_Papers" --excluded "Rejected_Papers"`
+**Result:** The 5 overlapping papers are removed from "Rejected_Papers," ensuring that each paper exists in only one of the two folders.
 
 ## 7. Cognitive Safeguards
-- **Common Failure Modes:** Providing the wrong collection name. If the name is ambiguous (multiple collections with the same name), use the Zotero Collection Key instead.
-- **Safety Tips:** Always run a `report status` or `report prisma` before and after pruning to verify the count changes as expected.
+- **Common Failure Modes:** Providing collection names that are shared by multiple folders in your library. For deterministic results, always use the unique `Collection Key`. 
+- **Safety Tips:** Run `report status` on both folders before and after pruning to verify the exact number of items removed.
