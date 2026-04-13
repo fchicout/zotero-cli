@@ -151,7 +151,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         clean_p.add_argument("--verbose", action="store_true")
 
         # Duplicates
-        dupe_p = sub.add_parser("duplicates", help="Find duplicate items across collections")
+        dupe_p = sub.add_parser(
+            "duplicates",
+            help="Find duplicate items across collections",
+            description="Identifies duplicate items that exist across multiple specified collections, facilitating library cleanup and systematic review consistency.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Identifying overlaps between search databases
+Problem: I've imported search results from IEEE (Key: IEEE_01) and Springer (Key: SPR_01) and want to see which papers are duplicates.
+Action:  zotero-cli collection duplicates --collections "IEEE_01,SPR_01"
+Result:  The CLI displays a table showing papers that were found in both collections, including their titles and keys.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Providing collection names that include commas or special characters without quoting.
+• Safety Tips: This command only identifies duplicates; it does not automatically merge or delete them. Use the item delete or slr prune commands to act on the findings.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_duplicates.md
+""",
+        )
         dupe_p.add_argument(
             "--collections", required=True, help="Comma-separated list of collection names or keys"
         )
