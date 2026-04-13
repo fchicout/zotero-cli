@@ -221,7 +221,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         lookup_p.add_argument("--fields", default="key,arxiv_id,title,date,url")
         lookup_p.add_argument("--format", default="table")
 
-        graph_p = sub.add_parser("graph", help="Citation Graph")
+        graph_p = sub.add_parser(
+            "graph",
+            help="Citation Graph",
+            description="Generates a visual citation graph (network map) representing the relationships between papers across one or more collections.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Visualizing the structure of a research field
+Problem: I have two folders, "Transformers" and "CNNs," and I want to see how much these two fields cite each other.
+Action:  zotero-cli slr graph --collections "TRANS_01,CNN_01"
+Result:  The CLI outputs Mermaid code that, when rendered, shows a network of nodes (papers) and edges (citations).
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to graph very large collections (>200 items) which can lead to a "Spaghetti Graph."
+• Safety Tips: Use this command on smaller, curated "Selection" folders to maintain visual clarity.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_graph.md
+"""
+        )
         graph_p.add_argument("--collections", required=True)
 
         shift_p = sub.add_parser("shift", help="Detect items that moved between collections")
