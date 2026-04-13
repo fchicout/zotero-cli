@@ -95,7 +95,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         doi_p.add_argument("--verbose", action="store_true")
 
         # Manual
-        man_p = sub.add_parser("manual", help="Manual metadata entry")
+        man_p = sub.add_parser(
+            "manual",
+            help="Manual metadata entry",
+            description="Allows for manual creation of a research item in Zotero by providing key metadata fields like Title, ArXiv ID, and Abstract from the terminal.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Adding a pre-print discovered on social media
+Problem: I've found an interesting paper title ("Beyond GPT-4") and its ArXiv ID (2301.12345) on X and want to save it to my "AI Trends" folder (Key: AI_TRENDS).
+Action:  zotero-cli import manual --title "Beyond GPT-4" --arxiv-id "2301.12345" --collection "AI_TRENDS"
+Result:  The item is created in Zotero with the provided information.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to run without providing mandatory --title or --arxiv-id flags.
+• Safety Tips: This command is best for single items. For multiple items, prefer import file or import arxiv for efficiency.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/import_manual.md
+""",
+        )
         man_p.add_argument("--arxiv-id", required=True)
         man_p.add_argument("--title", required=True)
         man_p.add_argument("--abstract", default="")
