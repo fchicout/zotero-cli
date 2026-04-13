@@ -7,15 +7,15 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start SDB Ops] --> B[Fetch Item Key]
-    B --> C{Action?}
-    C -- inspect --> D[Retrieve and Parse All SDB Notes]
-    C -- edit --> E[Provide New Decision/Reason Metadata]
-    C -- upgrade --> F[Identify Outdated SDB Schema Versions]
-    D --> G[Display Audit History Table]
-    E --> H[Execute API Update for Specific Note]
-    F --> I[Batch Execute API Updates to Latest Schema]
-    G --> J[End: SDB Result]
+    A["Start SDB Ops"] --> B["Fetch Item Key"]
+    B --> C{"Action?"}
+    C -- "inspect" --> D["Retrieve and Parse All SDB Notes"]
+    C -- "edit" --> E["Provide New Decision/Reason Metadata"]
+    C -- "upgrade" --> F["Identify Outdated SDB Schema Versions"]
+    D --> G["Display Audit History Table"]
+    E --> H["Execute API Update for Specific Note"]
+    F --> I["Batch Execute API Updates to Latest Schema"]
+    G --> J["End: SDB Result"]
     H --> J
     I --> J
 ```
