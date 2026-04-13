@@ -7,17 +7,17 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Item Export] --> B[Fetch Item Metadata from API]
-    B --> C{Format Selection?}
-    C -- bibtex --> D[Generate BibTeX String]
-    C -- ris --> E[Generate RIS String]
-    C -- md --> F[Generate Markdown Page]
-    D --> G{Output to?}
+    A["Start Item Export"] --> B["Fetch Item Metadata from API"]
+    B --> C{"Format Selection?"}
+    C -- "bibtex" --> D["Generate BibTeX String"]
+    C -- "ris" --> E["Generate RIS String"]
+    C -- "md" --> F["Generate Markdown Page"]
+    D --> G{"Output to?"}
     E --> G
     F --> G
-    G -- file --> H[Write to Local File]
-    G -- stdout --> I[Display in Terminal]
-    H --> J[End: Export Success]
+    G -- "file" --> H["Write to Local File"]
+    G -- "stdout" --> I["Display in Terminal"]
+    H --> J["End: Export Success"]
     I --> J
 ```
 
