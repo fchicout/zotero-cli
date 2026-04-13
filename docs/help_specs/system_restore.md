@@ -11,7 +11,7 @@ graph TD
     B --> C[Read config.toml for Target Environment]
     C --> D{Dry Run?}
     D -- Yes --> E[Display Summary of Items to be Restored]
-    D -- No --> F[Purge Current Library State (If required)]
+    D -- No --> F["Purge Current Library State (If required)"]
     F --> G[Reconstruct Collections and Items via API]
     G --> H[Upload PDF Attachments to Cloud/Local Storage]
     H --> I[Restore Audit Metadata and SDB Notes]
