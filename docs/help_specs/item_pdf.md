@@ -7,17 +7,17 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Item PDF Ops] --> B[Fetch Item Key]
-    B --> C{Action?}
-    C -- fetch --> D[Identify Missing PDF for Item]
-    C -- strip --> E[Identify PDF Attachments for Item]
-    C -- attach --> F[Provide Local File Path]
-    D --> G[Execute Online PDF Retrieval]
-    E --> H[Execute API Deletion Request]
-    F --> I[Upload Local File to Zotero Storage]
-    G --> J[End: Retrieval Stats]
-    H --> K[End: Cleanup Confirmation]
-    I --> L[End: Attachment Success]
+    A["Start Item PDF Ops"] --> B["Fetch Item Key"]
+    B --> C{"Action?"}
+    C -- "fetch" --> D["Identify Missing PDF for Item"]
+    C -- "strip" --> E["Identify PDF Attachments for Item"]
+    C -- "attach" --> F["Provide Local File Path"]
+    D --> G["Execute Online PDF Retrieval"]
+    E --> H["Execute API Deletion Request"]
+    F --> I["Upload Local File to Zotero Storage"]
+    G --> J["End: Retrieval Stats"]
+    H --> K["End: Cleanup Confirmation"]
+    I --> L["End: Attachment Success"]
 ```
 
 ## 3. Synopsis
