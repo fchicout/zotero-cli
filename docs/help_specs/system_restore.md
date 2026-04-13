@@ -7,15 +7,15 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start System Restore] --> B[Validate .zaf Archive Integrity]
-    B --> C[Read config.toml for Target Environment]
-    C --> D{Dry Run?}
-    D -- Yes --> E[Display Summary of Items to be Restored]
-    D -- No --> F["Purge Current Library State (If required)"]
-    F --> G[Reconstruct Collections and Items via API]
-    G --> H[Upload PDF Attachments to Cloud/Local Storage]
-    H --> I[Restore Audit Metadata and SDB Notes]
-    E --> J[End: Restore Process Summary]
+    A["Start System Restore"] --> B["Validate .zaf Archive Integrity"]
+    B --> C["Read config.toml for Target Environment"]
+    C --> D{"Dry Run?"}
+    D -- "Yes" --> E["Display Summary of Items to be Restored"]
+    D -- "No" --> F[""Purge Current Library State (If required")"]
+    F --> G["Reconstruct Collections and Items via API"]
+    G --> H["Upload PDF Attachments to Cloud/Local Storage"]
+    H --> I["Restore Audit Metadata and SDB Notes"]
+    E --> J["End: Restore Process Summary"]
     I --> J
 ```
 
