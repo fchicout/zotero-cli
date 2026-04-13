@@ -7,17 +7,17 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Decide] --> B[Fetch Item Key and Decision Details]
-    B --> C{Vote?}
-    C -- INCLUDE --> D[Set Decision: accepted]
-    C -- EXCLUDE --> E[Set Decision: rejected + Exclusion Code]
-    D --> F[Prepare SDB Audit Note with Metadata]
+    A["Start Decide"] --> B["Fetch Item Key and Decision Details"]
+    B --> C{"Vote?"}
+    C -- "INCLUDE" --> D["Set Decision: accepted"]
+    C -- "EXCLUDE" --> E["Set Decision: rejected + Exclusion Code"]
+    D --> F["Prepare SDB Audit Note with Metadata"]
     E --> F
-    F --> G[Execute API Request to Create/Update Note]
-    G --> H{Source & Target Folders Set?}
-    H -- Yes --> I[Move Item from Source to Target]
-    H -- No --> J[Keep Item Position]
-    I --> K[End: Decision Recorded]
+    F --> G["Execute API Request to Create/Update Note"]
+    G --> H{"Source & Target Folders Set?"}
+    H -- "Yes" --> I["Move Item from Source to Target"]
+    H -- "No" --> J["Keep Item Position"]
+    I --> K["End: Decision Recorded"]
     J --> K
 ```
 
