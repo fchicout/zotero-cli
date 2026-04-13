@@ -116,6 +116,18 @@ class SQLiteVectorRepository(VectorRepository):
         finally:
             conn.close()
 
+    def purge_all(self) -> bool:
+        """
+        Delete all chunks from the vector store.
+        """
+        conn = self._get_connection()
+        try:
+            with conn:
+                conn.execute("DELETE FROM vector_chunks")
+            return True
+        finally:
+            conn.close()
+
     def _cosine_similarity(self, v1: List[float], v2: List[float]) -> float:
         """
         Calculates Cosine Similarity between two vectors.

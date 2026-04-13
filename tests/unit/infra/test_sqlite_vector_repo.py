@@ -57,3 +57,21 @@ def test_sqlite_vector_repo_search(temp_db):
 
     results_none = repo.search([0.0, 1.0], top_k=1)
     assert results_none[0].item_key == "KEY2"
+
+
+@pytest.mark.unit
+def test_sqlite_vector_repo_purge_all(temp_db):
+    repo = SQLiteVectorRepository(temp_db)
+    chunks = [
+        VectorChunk(item_key="KEY1", chunk_index=0, text="chunk1", embedding=[0.1]),
+        VectorChunk(item_key="KEY2", chunk_index=0, text="chunk2", embedding=[0.2]),
+    ]
+    repo.store_chunks(chunks)
+
+    assert len(repo.get_chunks_by_item("KEY1")) == 1
+    assert len(repo.get_chunks_by_item("KEY2")) == 1
+
+    repo.purge_all()
+
+    assert len(repo.get_chunks_by_item("KEY1")) == 0
+    assert len(repo.get_chunks_by_item("KEY2")) == 0

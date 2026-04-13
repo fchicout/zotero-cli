@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from .models import Job, ResearchPaper, SearchResult, VectorChunk, ZoteroQuery
 from .zotero_item import ZoteroItem
@@ -218,6 +218,14 @@ class ZoteroGateway(
     def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:
         pass
 
+    @abstractmethod
+    def get_all_items(self) -> Iterator[ZoteroItem]:
+        pass
+
+    @abstractmethod
+    def get_orphan_items(self) -> Iterator[ZoteroItem]:
+        pass
+
 
 class PDFResolver(ABC):
     """
@@ -269,10 +277,36 @@ class VectorRepository(ABC):
     def delete_chunks_by_item(self, item_key: str) -> bool:
         pass
 
+    @abstractmethod
+    def purge_all(self) -> bool:
+        pass
+
 
 class RAGService(ABC):
     @abstractmethod
-    def ingest_collection(self, collection_key: str) -> Dict[str, Any]:
+    def ingest_collection(
+        self,
+        collection_key: str,
+        on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
+    ) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def ingest_item(
+        self, item_key: str, on_item_processed: Optional[Callable[[ZoteroItem], None]] = None
+    ) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def ingest_approved(
+        self, on_item_processed: Optional[Callable[[ZoteroItem], None]] = None
+    ) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def ingest_by_qa_score(
+        self, min_score: float, on_item_processed: Optional[Callable[[ZoteroItem], None]] = None
+    ) -> Dict[str, Any]:
         pass
 
     @abstractmethod
@@ -281,6 +315,15 @@ class RAGService(ABC):
 
     @abstractmethod
     def get_context(self, item_key: str) -> str:
+        pass
+
+    @abstractmethod
+    def purge(
+        self,
+        purge_all: bool = False,
+        item_key: Optional[str] = None,
+        collection_key: Optional[str] = None,
+    ) -> Dict[str, Any]:
         pass
 
 
