@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Info] --> B[Read config.toml]
-    B --> C[Verify Zotero API Connectivity]
-    C --> D[Identify Active Group/Library ID]
-    D --> E[Collect OS and Environment Details]
-    E --> F[Identify Data and Cache Paths]
-    F --> G[End: System Configuration Displayed]
+    A["Start Info"] --> B["Read config.toml"]
+    B --> C["Verify Zotero API Connectivity"]
+    C --> D["Identify Active Group/Library ID"]
+    D --> E["Collect OS and Environment Details"]
+    E --> F["Identify Data and Cache Paths"]
+    F --> G["End: System Configuration Displayed"]
 ```
 
 ## 3. Synopsis
