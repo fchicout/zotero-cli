@@ -7,16 +7,16 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Lookup] --> B{Input Source?}
-    B -- Comma-separated Keys --> C[Identify Target Item Keys]
-    B -- File Path --> D[Read Keys from Text File]
-    C --> E[Fetch Metadata from Zotero API]
+    A["Start Lookup"] --> B{"Input Source?"}
+    B -- Comma-separated Keys --> C["Identify Target Item Keys"]
+    B -- "File Path" --> D["Read Keys from Text File"]
+    C --> E["Fetch Metadata from Zotero API"]
     D --> E
-    E --> F[Extract Specific Fields: DOI, Title, etc.]
-    F --> G{Output Format?}
-    G -- Table --> H[Display Formatted Results Table]
-    G -- JSON --> I[Display Raw JSON Results]
-    H --> J[End: Lookup Result]
+    E --> F["Extract Specific Fields: DOI, Title, etc."]
+    F --> G{"Output Format?"}
+    G -- "Table" --> H["Display Formatted Results Table"]
+    G -- "JSON" --> I["Display Raw JSON Results"]
+    H --> J["End: Lookup Result"]
     I --> J
 ```
 
