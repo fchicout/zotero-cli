@@ -72,7 +72,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         snap_p.add_argument("--output", required=True)
 
         # Screening (Markdown)
-        screen_p = sub.add_parser("screening", help="Generate Markdown Screening Report (PRISMA)")
+        screen_p = sub.add_parser(
+            "screening",
+            help="Generate Markdown Screening Report (PRISMA)",
+            description="Generates a human-readable Markdown report summarizing the results of a screening phase, including inclusion/exclusion counts and detailed notes for each item.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Reviewing screening decisions with a colleague
+Problem: I've finished screening 100 abstracts and I want a document that lists all the ones I rejected and why, so I can review them with my co-author.
+Action:  zotero-cli report screening --collection "PHASE_1_SEARCH" --output "screening_results_v1.md"
+Result:  A Markdown file is created with a clean table of all decisions and detailed notes for the rejected items.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to generate a report for a collection where no items have been assigned a decision.
+• Safety Tips: Use this report as a "Living Document" throughout your SLR to maintain clarity on your reasoning.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/report_screening.md
+""",
+        )
         screen_p.add_argument("--collection", required=True)
         screen_p.add_argument("--output", required=True, help="Path to output Markdown file")
 
