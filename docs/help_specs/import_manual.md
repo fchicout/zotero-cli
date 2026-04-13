@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Manual Import] --> B[Collect User Parameters]
-    B --> C[Validate Mandatory Fields]
-    C --> D[Prepare Zotero API Item Model]
-    D --> E[Check for Duplicate via Title/ArXiv-ID]
-    E --> F[Execute API Upload to Target Collection]
-    F --> G[End: Import Result]
+    A["Start Manual Import"] --> B["Collect User Parameters"]
+    B --> C["Validate Mandatory Fields"]
+    C --> D["Prepare Zotero API Item Model"]
+    D --> E["Check for Duplicate via Title/ArXiv-ID"]
+    E --> F["Execute API Upload to Target Collection"]
+    F --> G["End: Import Result"]
 ```
 
 ## 3. Synopsis
