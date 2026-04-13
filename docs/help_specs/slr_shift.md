@@ -7,13 +7,13 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Shift Analysis] --> B[Load Old Snapshot JSON]
-    B --> C[Load New Snapshot JSON]
-    C --> D[Identify Items present in both Snapshots]
-    D --> E[Compare Parent Collection Keys for each Item]
-    E --> F[Highlight Items that Moved Folders]
-    F --> G[Generate Movement Report Table]
-    G --> H[End: Shift Analysis Success]
+    A["Start Shift Analysis"] --> B["Load Old Snapshot JSON"]
+    B --> C["Load New Snapshot JSON"]
+    C --> D["Identify Items present in both Snapshots"]
+    D --> E["Compare Parent Collection Keys for each Item"]
+    E --> F["Highlight Items that Moved Folders"]
+    F --> G["Generate Movement Report Table"]
+    G --> H["End: Shift Analysis Success"]
 ```
 
 ## 3. Synopsis
