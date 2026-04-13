@@ -22,7 +22,27 @@ class CollectionCommand(BaseCommand):
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # List
-        sub.add_parser("list", help="List all collections")
+        sub.add_parser(
+            "list",
+            help="List all collections",
+            description="Displays a structured list of all collections (folders) available in the active Zotero library, including their unique keys and hierarchical relationships.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Finding a collection key for a new task
+Problem: I need to run a RAG ingestion on a specific folder, but I only know its name is "Deep Learning."
+Action:  zotero-cli collection list
+Result:  The table displays all collections. I locate "Deep Learning" and find its key is G5H6J7K8.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to run in offline mode without a pre-existing local database synchronization.
+• Safety Tips: If your library has a very deep hierarchy, the table will display parent keys. Use these keys to distinguish between collections with the same name.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_list.md
+""",
+        )
 
         # Create
         create_p = sub.add_parser("create", help="Create a new collection")
