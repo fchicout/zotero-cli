@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Pruning] --> B[Fetch 'Included' and 'Excluded' Collection Keys]
-    B --> C[Retrieve Items for Both Collections]
-    C --> D[Identify Items existing in BOTH Collections]
-    D --> E[Prepare Unlink Requests for 'Excluded' Collection]
-    E --> F[Execute API Requests to Remove Overlaps]
-    F --> G[End: Collections are now Mutually Exclusive]
+    A["Start Pruning"] --> B["Fetch 'Included' and 'Excluded' Collection Keys"]
+    B --> C["Retrieve Items for Both Collections"]
+    C --> D["Identify Items existing in BOTH Collections"]
+    D --> E["Prepare Unlink Requests for 'Excluded' Collection"]
+    E --> F["Execute API Requests to Remove Overlaps"]
+    F --> G["End: Collections are now Mutually Exclusive"]
 ```
 
 ## 3. Synopsis
