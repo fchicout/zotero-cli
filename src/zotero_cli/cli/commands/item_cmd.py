@@ -258,7 +258,25 @@ Cognitive Safeguards
 
         # Hydrate
         hydrate_p = sub.add_parser(
-            "hydrate", help="Enrich metadata from external sources (e.g. ArXiv -> DOI)"
+            "hydrate",
+            help="Enrich metadata from external sources (e.g. ArXiv -> DOI)",
+            description="Automatically enriches the metadata of items by retrieving missing fields (like DOIs, abstracts, and publication dates) from online sources.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Enriching a collection after an ArXiv import
+Problem: I've imported 50 items from ArXiv, but many of them are missing their formal DOI identifiers and abstracts.
+Action:  zotero-cli item hydrate --collection "ARXIV_FOLDER" --dry-run
+Result:  The CLI shows a summary of which items can be updated with verified DOIs and dates from CrossRef.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting hydration for items that have no existing metadata (like unfiled PDF attachments). Hydration requires a baseline Title or Identifier to pivot.
+• Safety Tips: Always use --dry-run when running on an entire collection to ensure updates are accurate.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_hydrate.md
+""",
         )
         hydrate_p.add_argument("--key", help="Item Key")
         hydrate_p.add_argument("--collection", help="Hydrate all items in a collection")
