@@ -60,7 +60,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         add_p.add_argument("--tags", required=True, help="Comma-separated tags")
 
         # Purge
-        purge_p = sub.add_parser("purge", help="Remove all tags from a collection (Deprecated)")
+        purge_p = sub.add_parser(
+            "purge",
+            help="Remove all tags from a collection (Deprecated)",
+            description="Removes all tags from every item within a specific collection.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Resetting tags for a new project phase
+Problem: I've imported a collection that came with messy tags and I want to start fresh with my own codes.
+Action:  zotero-cli tag purge --collection "NEW_01" --execute
+Result:  All items in the collection are now tag-free.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to purge tags from a folder that doesn't exist.
+• Safety Tips: ALWAYS run without --execute first to ensure you are not accidentally clearing tags from a larger set.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/tag_purge.md
+""",
+        )
         purge_p.add_argument("--collection", required=True, help="Collection name or key")
         purge_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
 
