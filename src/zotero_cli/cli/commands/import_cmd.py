@@ -41,7 +41,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         file_p.add_argument("--verbose", action="store_true")
 
         # ArXiv
-        arxiv_p = sub.add_parser("arxiv", help="Import from ArXiv")
+        arxiv_p = sub.add_parser(
+            "arxiv",
+            help="Import from ArXiv",
+            description="Directly imports research papers from the arXiv repository into a Zotero collection using a powerful Domain Specific Language (DSL) query.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Automated tracking of new papers on a topic
+Problem: I want to import all recent papers by "Vaswani" in the category "cs.LG" into my "Deep Learning Tracking" (Key: DL_01) folder.
+Action:  zotero-cli import arxiv --query "au:Vaswani AND cat:cs.LG" --collection "DL_01" --limit 10
+Result:  The CLI finds the 10 most relevant matches and imports them into Zotero.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Providing an invalid DSL syntax causing API errors. arXiv API rate limits can trigger failures if multiple imports run in quick succession.
+• Safety Tips: Use the --limit flag wisely. arXiv search results can be vast; importing thousands may lead to library clutter and API throttling.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/import_arxiv.md
+""",
+        )
         arxiv_p.add_argument("--query", required=True, help="DSL Search Query")
         arxiv_p.add_argument("--file", help="Path to file containing DSL query")
         arxiv_p.add_argument("--collection", required=True)
