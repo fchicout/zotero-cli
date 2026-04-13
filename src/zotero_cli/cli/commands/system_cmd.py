@@ -131,7 +131,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         backup_p.add_argument("--output", required=True, help="Output file path (e.g., backup.zaf)")
 
         # Restore (Placeholder for now, implemented logic pending)
-        restore_p = sub.add_parser("restore", help="Restore from a .zaf backup")
+        restore_p = sub.add_parser(
+            "restore",
+            help="Restore from a .zaf backup",
+            description="Reconstructs an entire Zotero library or specific collections from a previously created Zotero Archive Format (.zaf) file.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Recovering from an accidental library deletion
+Problem: I've accidentally deleted a large set of folders in Zotero and I need to restore them from last week's backup.
+Action:  zotero-cli system restore --file "backup_2024_01_01.zaf" --dry-run
+Result:  The CLI shows exactly which items and folders will be recreated.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to restore a .zaf file that is corrupted or from a different account context.
+• Safety Tips: ALWAYS run with --dry-run first to understand the impact.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_restore.md
+""",
+        )
         restore_p.add_argument("--file", required=True, help="Input .zaf file")
         restore_p.add_argument("--dry-run", action="store_true", help="Simulate restore")
 
