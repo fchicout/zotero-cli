@@ -7,18 +7,18 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Hydration] --> B{Hydration Scope?}
-    B -- single --> C[Identify Target Item Key]
-    B -- collection --> D[Identify All Items in Collection]
-    B -- all --> E[Identify All Items in Library]
-    C --> F[Identify Missing Metadata: DOI, Abstract, Date]
+    A["Start Hydration"] --> B{"Hydration Scope?"}
+    B -- "single" --> C["Identify Target Item Key"]
+    B -- "collection" --> D["Identify All Items in Collection"]
+    B -- "all" --> E["Identify All Items in Library"]
+    C --> F["Identify Missing Metadata: DOI, Abstract, Date"]
     D --> F
     E --> F
-    F --> G[Execute Online Metadata Retrieval]
-    G --> H{Dry Run?}
-    H -- Yes --> I[Display Changes Only]
-    H -- No --> J[Execute API Update Request]
-    I --> K[End: Hydration Results]
+    F --> G["Execute Online Metadata Retrieval"]
+    G --> H{"Dry Run?"}
+    H -- "Yes" --> I["Display Changes Only"]
+    H -- "No" --> J["Execute API Update Request"]
+    I --> K["End: Hydration Results"]
     J --> K
 ```
 
