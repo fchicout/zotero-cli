@@ -192,21 +192,67 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
         # PDF operations
-        pdf_p = sub.add_parser("pdf", help="PDF attachment operations")
+        pdf_p = sub.add_parser(
+            "pdf",
+            help="PDF attachment operations",
+            description="Manages PDF attachments for a single item in your Zotero library, including fetching files from online sources, removing existing ones, or attaching local files.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_pdf.md
+""",
+        )
         pdf_sub = pdf_p.add_subparsers(dest="pdf_verb", required=True)
 
-        fetch_p = pdf_sub.add_parser("fetch", help="Fetch missing PDF for a specific item")
+        fetch_p = pdf_sub.add_parser(
+            "fetch",
+            help="Fetch missing PDF for a specific item",
+            description="Automatically attempts to retrieve a PDF for the item from the internet using its DOI or ArXiv ID metadata.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to fetch for an item without valid DOI metadata.
+• Safety Tips: Use fetch as your first attempt for mass metadata enrichment.
+""",
+        )
         fetch_p.add_argument("--key", help="Item Key")
         fetch_p.add_argument("--collection", help="Fetch PDFs for all items in a collection")
         fetch_p.add_argument("--file", help="Fetch PDFs for all items in a key-list file")
         fetch_p.add_argument("--verbose", action="store_true")
 
-        strip_p = pdf_sub.add_parser("strip", help="Remove PDF attachments from a specific item")
+        strip_p = pdf_sub.add_parser(
+            "strip",
+            help="Remove PDF attachments from a specific item",
+            description="Permanently deletes all existing PDF attachments linked to the item from the Zotero library.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: strip is irreversible and will permanently delete files from your Zotero storage.
+""",
+        )
         strip_p.add_argument("--key", required=True, help="Item Key")
         strip_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
         strip_p.add_argument("--verbose", action="store_true")
 
-        attach_p = pdf_sub.add_parser("attach", help="Attach a local file to an item")
+        attach_p = pdf_sub.add_parser(
+            "attach",
+            help="Attach a local file to an item",
+            description="Manually uploads a local file from your computer and links it as a child attachment to the item in Zotero.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Manually attaching a downloaded paper
+Problem: I've manually downloaded a paper ("Manual_Ref.pdf") and want to attach it to its corresponding item (Key: REF_123) in Zotero.
+Action:  zotero-cli item pdf attach "REF_123" --file "Manual_Ref.pdf"
+Result:  The PDF is uploaded and linked to the item in the Zotero cloud storage.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attaching a file that is too large for your Zotero storage quota.
+""",
+        )
         attach_p.add_argument("--key", required=True, help="Item Key")
         attach_p.add_argument("--file", required=True, help="Path to local file")
 
