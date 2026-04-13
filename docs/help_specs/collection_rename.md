@@ -7,10 +7,10 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Rename] --> B[Fetch Current Key and New Name]
-    B --> C[Prepare Update Request]
-    C --> D[Execute API Request to Zotero]
-    D --> E[End: Confirmation Result]
+    A["Start Rename"] --> B["Fetch Current Key and New Name"]
+    B --> C["Prepare Update Request"]
+    C --> D["Execute API Request to Zotero"]
+    D --> E["End: Confirmation Result"]
 ```
 
 ## 3. Synopsis
