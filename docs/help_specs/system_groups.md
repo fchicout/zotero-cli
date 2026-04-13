@@ -7,11 +7,11 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Groups List] --> B[Connect to Zotero API via API Key]
-    B --> C[Retrieve All Groups associated with Account]
-    C --> D[Identify Group Names and Numeric IDs]
-    D --> E[Identify Permissions: Read/Write]
-    E --> F[End: Groups Table Displayed]
+    A["Start Groups List"] --> B["Connect to Zotero API via API Key"]
+    B --> C["Retrieve All Groups associated with Account"]
+    C --> D["Identify Group Names and Numeric IDs"]
+    D --> E["Identify Permissions: Read/Write"]
+    E --> F["End: Groups Table Displayed"]
 ```
 
 ## 3. Synopsis
