@@ -69,7 +69,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         arxiv_p.add_argument("--verbose", action="store_true")
 
         # DOI
-        doi_p = sub.add_parser("doi", help="Import via DOI")
+        doi_p = sub.add_parser(
+            "doi",
+            help="Import via DOI",
+            description="Imports a single research item directly into a Zotero collection using its unique Digital Object Identifier (DOI).",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Adding a specific paper from a journal website
+Problem: I've found a critical paper on a journal website (DOI: 10.1038/nature12373) and want to add it to my "Climate Studies" folder (Key: CLIM_01).
+Action:  zotero-cli import doi "10.1038/nature12373" --collection "CLIM_01"
+Result:  The item is automatically created in Zotero with its full verified metadata.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to import an invalid DOI or one not yet indexed by primary providers.
+• Safety Tips: If import fails with "DOI not found", verify on doi.org. Some DOIs take a few days to propagate through major APIs.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/import_doi.md
+""",
+        )
         doi_p.add_argument("doi", help="Digital Object Identifier")
         doi_p.add_argument("--collection", required=True)
         doi_p.add_argument("--verbose", action="store_true")
