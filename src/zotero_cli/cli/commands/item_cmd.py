@@ -374,7 +374,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         export_p.add_argument("--output", help="Output file path or directory (for md)")
 
         # Add
-        add_p = sub.add_parser("add", help="Manually add a new item to a collection")
+        add_p = sub.add_parser(
+            "add",
+            help="Manually add a new item to a collection",
+            description="Manually creates a new research item in a specific Zotero collection by providing core bibliographic fields directly from the terminal.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Manually adding an internal technical report
+Problem: I have a PDF of an internal company report that isn't online and I want to add it to my "References" folder (Key: REF_01).
+Action:  zotero-cli item add --title "Advanced RAG Pipelines V2" --authors "Engineering Team" --collection "REF_01" --type report
+Result:  A new item of type "report" is created in Zotero, ready for PDF attachment.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to run without providing the mandatory --title or --collection flags.
+• Safety Tips: Use item pdf attach immediately after creation if you have a local file for the item.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_add.md
+""",
+        )
         add_p.add_argument("--collection", required=True, help="Collection name or key")
         add_p.add_argument("--title", required=True, help="Item Title")
         add_p.add_argument("--type", default="journalArticle", help="Item Type (Default: journalArticle)")
