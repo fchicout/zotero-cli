@@ -294,7 +294,25 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         mig_p.add_argument("--dry-run", action="store_true", help="Show changes without applying")
 
         sync_p = sub.add_parser(
-            "sync-csv", help="Recover/Sync local CSV from Zotero screening notes"
+            "sync-csv",
+            help="Recover/Sync local CSV from Zotero screening notes",
+            description="Exports the current state of screening decisions from Zotero into a local CSV file, effectively creating an offline 'mirror' of your research audit trail.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Preparing data for statistical analysis
+Problem: I've finished screening my papers in Zotero and I want to generate a spreadsheet showing the breakdown of exclusion reasons.
+Action:  zotero-cli slr sync-csv --collection "SCREENING_PHASE_1" --output "screening_data.csv"
+Result:  A CSV file is created that lists every paper and its corresponding decision metadata.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to sync to a file that is already open in another application (like Excel).
+• Safety Tips: Use this command as a "Backup" mechanism for your screening results.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_sync_csv.md
+"""
         )
         sync_p.add_argument("--collection", required=True, help="Collection name or key")
         sync_p.add_argument("--output", required=True, help="Path to output CSV")
