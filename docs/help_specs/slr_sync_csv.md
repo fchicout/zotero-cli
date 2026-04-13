@@ -7,13 +7,13 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start CSV Sync] --> B[Fetch Target Collection Key]
-    B --> C[Retrieve All Items and Audit Notes from Zotero]
-    C --> D[Identify Latest Decision for each Item]
-    D --> E[Map Zotero Metadata to Flat CSV Row]
-    E --> F[Include: Key, DOI, Title, Decision, Code, Reason]
-    F --> G[Write to Local CSV File]
-    G --> H[End: Sync Success]
+    A["Start CSV Sync"] --> B["Fetch Target Collection Key"]
+    B --> C["Retrieve All Items and Audit Notes from Zotero"]
+    C --> D["Identify Latest Decision for each Item"]
+    D --> E["Map Zotero Metadata to Flat CSV Row"]
+    E --> F["Include: Key, DOI, Title, Decision, Code, Reason"]
+    F --> G["Write to Local CSV File"]
+    G --> H["End: Sync Success"]
 ```
 
 ## 3. Synopsis
