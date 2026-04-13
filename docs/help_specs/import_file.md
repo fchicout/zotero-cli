@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start File Import] --> B[Parse Input File: bib, ris, csv]
-    B --> C[Validate Biblio Fields]
-    C --> D[Fetch Target Collection Key]
-    D --> E[Prepare Zotero API Items]
-    E --> F[Execute Bulk API Upload]
-    F --> G[End: Import Stats]
+    A["Start File Import"] --> B["Parse Input File: bib, ris, csv"]
+    B --> C["Validate Biblio Fields"]
+    C --> D["Fetch Target Collection Key"]
+    D --> E["Prepare Zotero API Items"]
+    E --> F["Execute Bulk API Upload"]
+    F --> G["End: Import Stats"]
 ```
 
 ## 3. Synopsis
