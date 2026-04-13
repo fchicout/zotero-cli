@@ -161,7 +161,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         list_p.add_argument("--phase", help="Filter by screening phase")
 
         # Update
-        update_p = sub.add_parser("update", help="Update item metadata")
+        update_p = sub.add_parser(
+            "update",
+            help="Update item metadata",
+            description="Corrects or enhances the metadata of an individual Zotero item, including fields such as Title, DOI, and Abstract.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Correcting a title with typos
+Problem: My paper with key ABCD1234 has a typo in the title: "Attension is all you need."
+Action:  zotero-cli item update --key "ABCD1234" --title "Attention is All You Need"
+Result:  The title is correctly updated in the Zotero library.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to update an item using a malformed JSON string. Always validate your JSON structure before running the command.
+• Safety Tips: Use the targeted flags (--title, --doi) for simple corrections. The --json flag can modify any Zotero field if correctly formatted.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_update.md
+""",
+        )
         update_p.add_argument("--key", required=True, help="Item Key")
         update_p.add_argument("--doi", help="Update DOI")
         update_p.add_argument("--title", help="Update Title")
