@@ -7,11 +7,11 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Tag List] --> B[Fetch All Tags from Zotero API]
-    B --> C[Count Occurrences of Each Unique Tag]
-    C --> D[Identify Item Membership for Tags]
-    D --> E[Format Results as Alphabetical Table]
-    E --> F[End: Tags and Usage Counts Displayed]
+    A["Start Tag List"] --> B["Fetch All Tags from Zotero API"]
+    B --> C["Count Occurrences of Each Unique Tag"]
+    C --> D["Identify Item Membership for Tags"]
+    D --> E["Format Results as Alphabetical Table"]
+    E --> F["End: Tags and Usage Counts Displayed"]
 ```
 
 ## 3. Synopsis
