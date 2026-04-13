@@ -7,11 +7,11 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Add] --> B[Collect: Title, Type, Authors, Date, Abstract]
-    B --> C[Fetch Target Collection Key]
-    C --> D[Map Metadata to Zotero API Schema]
-    D --> E[Execute API Creation Request]
-    E --> F[End: New Item Key Displayed]
+    A["Start Add"] --> B["Collect: Title, Type, Authors, Date, Abstract"]
+    B --> C["Fetch Target Collection Key"]
+    C --> D["Map Metadata to Zotero API Schema"]
+    D --> E["Execute API Creation Request"]
+    E --> F["End: New Item Key Displayed"]
 ```
 
 ## 3. Synopsis
