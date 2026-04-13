@@ -7,16 +7,16 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Init] --> B{Existing Config?}
-    B -- Yes --> C{--force Flag?}
-    B -- No --> D[Start Wizard]
-    C -- No --> E["End: Abort (Safety)"]
-    C -- Yes --> D
+    A["Start Init"] --> B{"Existing Config?"}
+    B -- "Yes" --> C{"--force Flag?"}
+    B -- "No" --> D["Start Wizard"]
+    C -- "No" --> E[""End: Abort (Safety")"]
+    C -- "Yes" --> D
     D --> F["Collect: API Key, User/Group ID"]
-    F --> G["Collect: Paths (Storage, Cache)"]
-    G --> H[Validate Credentials via API]
-    H --> I[Generate config.toml]
-    I --> J[End: Initialization Success]
+    F --> G[""Collect: Paths (Storage, Cache")"]
+    G --> H["Validate Credentials via API"]
+    H --> I["Generate config.toml"]
+    I --> J["End: Initialization Success"]
 ```
 
 ## 3. Synopsis
