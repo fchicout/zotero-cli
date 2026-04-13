@@ -344,7 +344,27 @@ Cognitive Safeguards
         )
 
         # --- Reset ---
-        reset_p = sub.add_parser("reset", help="Reset screening/audit metadata for a collection")
+        reset_p = sub.add_parser(
+            "reset",
+            help="Reset screening/audit metadata for a collection",
+            description="Permanently deletes screening decisions and audit metadata for items in a specific collection and review phase.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Re-running a screening phase after a criteria change
+Problem: My team changed our inclusion criteria after I had already screened 50 papers in the "Title_Abstract" phase. I need to clear my decisions.
+Action:  zotero-cli slr reset --name "SLR_FOLDER" --phase "Title_Abstract" --persona "Chicout"
+Result:  All decisions recorded by "Chicout" for that specific phase are deleted.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to reset a phase that does not exist.
+• Safety Tips: ALWAYS perform a report snapshot before running a reset. This command is irreversible.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_reset.md
+"""
+        )
         reset_p.add_argument("--name", required=True, help="Collection name or key")
         reset_p.add_argument("--phase", required=True, help="Target phase to reset")
         reset_p.add_argument("--persona", help="Reviewer persona to reset (Optional)")
