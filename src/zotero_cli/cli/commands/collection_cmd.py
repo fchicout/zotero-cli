@@ -226,7 +226,27 @@ Cognitive Safeguards
         strip_p.add_argument("--verbose", action="store_true")
 
         # Backup
-        backup_p = sub.add_parser("backup", help="Backup a collection to .zaf archive")
+        backup_p = sub.add_parser(
+            "backup",
+            help="Backup a collection to .zaf archive",
+            description="Creates a self-contained, portable backup archive (.zaf) of a specific collection, including all item metadata and PDF attachments.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Archiving a completed SLR project
+Problem: I have finished my SLR (Key: SLR_PROJ_2025) and I want to save a permanent, offline version of the final included items and their PDFs.
+Action:  zotero-cli collection backup --name "SLR_PROJ_2025" --output "Final_SLR_Archive.zaf"
+Result:  A single portable file is created that contains everything needed to reconstruct the project state later.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to backup to a directory without write permissions or to an external drive with insufficient space.
+• Safety Tips: Always perform a backup before using destructive commands like collection clean or collection delete. The .zaf format can be restored using the system restore command.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_backup.md
+""",
+        )
         backup_p.add_argument("--name", required=True, help="Collection name or key")
         backup_p.add_argument("--output", required=True, help="Output file path")
 
