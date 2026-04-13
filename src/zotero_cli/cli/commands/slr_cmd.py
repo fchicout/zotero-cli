@@ -269,7 +269,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         shift_p.add_argument("--new", required=True, help="New Snapshot JSON")
 
         # --- Utilities ---
-        mig_p = sub.add_parser("migrate", help="Migrate audit notes to newer schema versions")
+        mig_p = sub.add_parser(
+            "migrate",
+            help="Migrate audit notes to newer schema versions",
+            description="Upgrades the internal format of screening/audit notes for all items in a collection to match the latest standards of the zotero-cli.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Updating an old research project for a new report
+Problem: I'm trying to run a PRISMA report on an SLR I started two years ago, but the command isn't recognizing my old decisions.
+Action:  zotero-cli slr migrate --collection "OLD_SLR_FOLDER" --dry-run
+Result:  The CLI shows that it can upgrade 100 legacy notes to the new format.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to migrate items that do not have any audit metadata at all.
+• Safety Tips: Always perform a collection backup before running a migration on a critical collection.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_migrate.md
+"""
+        )
         mig_p.add_argument("--collection", required=True, help="Collection name or key")
         mig_p.add_argument("--dry-run", action="store_true", help="Show changes without applying")
 
