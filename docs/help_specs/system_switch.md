@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Switch] --> B[Fetch Group ID or Name Query]
-    B --> C[Retrieve All Groups from Zotero API]
-    C --> D[Identify Target Group via Match]
-    D --> E[Update config.toml with New Active ID]
-    E --> F[Display Switch Confirmation]
-    F --> G[End: Active Context Changed]
+    A["Start Switch"] --> B["Fetch Group ID or Name Query"]
+    B --> C["Retrieve All Groups from Zotero API"]
+    C --> D["Identify Target Group via Match"]
+    D --> E["Update config.toml with New Active ID"]
+    E --> F["Display Switch Confirmation"]
+    F --> G["End: Active Context Changed"]
 ```
 
 ## 3. Synopsis
