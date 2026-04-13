@@ -62,6 +62,7 @@ def test_backup_logic_flow_with_real_zip(tmp_path):
             {"key": "ITEM1", "data": {"title": "Paper", "version": 1, "itemType": "journalArticle"}}
         )
     ]
+    mock_gateway.get_item_children.return_value = []
 
     service = BackupService(mock_gateway)
     output_path = tmp_path / "integration.zaf"

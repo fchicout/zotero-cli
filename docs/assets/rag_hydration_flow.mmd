@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant CLI as RAGCommand
+    participant SVC as RAGService
+    participant VR as VectorRepository
+    participant GW as ZoteroGateway
+
+    CLI->>SVC: query(prompt, top_k)
+    SVC->>SVC: embed_text(prompt)
+    SVC->>VR: search(embedding, top_k)
+    VR-->>SVC: List[SearchResult] (item_keys only)
+    
+    Note over SVC, GW: Sullivan Protocol: Hydration Phase
+    loop for each result
+        SVC->>GW: get_item(item_key)
+        GW-->>SVC: ZoteroItem
+        SVC->>SVC: attach item to SearchResult
+    end
+
+    SVC-->>CLI: List[SearchResult] (with Metadata)
+    CLI->>CLI: Render Rich Table / JSON
