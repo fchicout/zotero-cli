@@ -195,7 +195,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         ExtractionCommand.register_args(ext_p)
 
         # --- Analysis ---
-        lookup_p = sub.add_parser("lookup", help="Bulk metadata fetch")
+        lookup_p = sub.add_parser(
+            "lookup",
+            help="Bulk metadata fetch",
+            description="Quickly retrieves specific metadata fields for a batch of Zotero items using their unique keys, outputting the results in a formatted table or JSON.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Verifying DOIs for a set of citations
+Problem: I have 10 item keys and I want to quickly see their DOIs to make sure they are all present.
+Action:  zotero-cli slr lookup --keys "ABCD1234,WXYZ5678" --fields "DOI,title"
+Result:  The CLI displays a clean table with the title and DOI for each of the specified keys.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to lookup keys that do not exist in the active library context.
+• Safety Tips: Use --fields to limit the output to only what you need, reducing terminal clutter.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_lookup.md
+"""
+        )
         lookup_p.add_argument("--keys")
         lookup_p.add_argument("--file")
         lookup_p.add_argument("--fields", default="key,arxiv_id,title,date,url")
