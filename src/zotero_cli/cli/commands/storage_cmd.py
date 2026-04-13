@@ -16,7 +16,25 @@ class StorageCommand(BaseCommand):
 
         # checkout
         checkout_parser = subparsers.add_parser(
-            "checkout", help="Move stored files to local storage"
+            "checkout",
+            help="Move stored files to local storage",
+            description="Moves research files (PDFs) from Zotero's internal cloud storage to your local filesystem, transforming them into 'Linked Files' to save cloud space.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Migrating a library to local storage to save cloud space
+Problem: My Zotero cloud storage is full and I want to move all my PDFs to my computer's "Documents/Zotero_PDFs" folder.
+Action:  zotero-cli storage checkout --limit 100
+Result:  The 100 oldest stored PDFs are downloaded to your local path and their links are updated in Zotero.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting a checkout without having a local storage path defined in your config.toml.
+• Safety Tips: Ensure that your local storage directory is backed up.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/storage_checkout.md
+""",
         )
         checkout_parser.add_argument("--limit", type=int, default=50, help="Max items to process")
         # checkout_parser.add_argument("--sort", choices=["size", "date"], default="size", help="Sort order")
