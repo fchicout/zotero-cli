@@ -7,17 +7,17 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Reset] --> B[Fetch Target Collection Key and Phase]
-    B --> C[Identify Items with Audit Notes for specific Phase]
-    C --> D{Persona Filtered?}
-    D -- Yes --> E[Filter Notes by Reviewer Persona]
-    D -- No --> F[Select All Phase Notes]
-    E --> G{Force Flag?}
+    A["Start Reset"] --> B["Fetch Target Collection Key and Phase"]
+    B --> C["Identify Items with Audit Notes for specific Phase"]
+    C --> D{"Persona Filtered?"}
+    D -- "Yes" --> E["Filter Notes by Reviewer Persona"]
+    D -- "No" --> F["Select All Phase Notes"]
+    E --> G{"Force Flag?"}
     F --> G
-    G -- No --> H[Wait for User Confirmation]
-    G -- Yes --> I[Execute API Requests to DELETE Audit Notes]
-    H -- Confirmed --> I
-    I --> J[End: Metadata Reset Success]
+    G -- "No" --> H["Wait for User Confirmation"]
+    G -- "Yes" --> I["Execute API Requests to DELETE Audit Notes"]
+    H -- "Confirmed" --> I
+    I --> J["End: Metadata Reset Success"]
 ```
 
 ## 3. Synopsis
