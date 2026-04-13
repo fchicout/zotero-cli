@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Graph] --> B[Parse Target Collections]
-    B --> C[Fetch Items and References for All Collections]
-    C --> D[Identify Inter-Item Citation Links]
-    D --> E[Generate Mermaid Graph Code]
-    E --> F[Display Graph in Terminal or Save to File]
-    F --> G[End: Network Map Success]
+    A["Start Graph"] --> B["Parse Target Collections"]
+    B --> C["Fetch Items and References for All Collections"]
+    C --> D["Identify Inter-Item Citation Links"]
+    D --> E["Generate Mermaid Graph Code"]
+    E --> F["Display Graph in Terminal or Save to File"]
+    F --> G["End: Network Map Success"]
 ```
 
 ## 3. Synopsis
