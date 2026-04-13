@@ -61,7 +61,27 @@ class SystemCommand(BaseCommand):
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # Info
-        sub.add_parser("info", help=InfoCommand.help)
+        sub.add_parser(
+            "info",
+            help="Display environment and configuration",
+            description="Displays the current configuration, environment variables, and connection status of your zotero-cli installation.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Verifying which Zotero group is active
+Problem: I'm not sure if my commands are currently targeting my personal library or my research group's library.
+Action:  zotero-cli system info
+Result:  The CLI displays the "Active Library ID" and the "Library Type" (User/Group).
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Running the command before initializing the CLI with init.
+• Safety Tips: Use this command to confirm your storage_path is set before running bulk fetches.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_info.md
+""",
+        )
 
         # Groups
         sub.add_parser("groups", help="List user groups and IDs")
