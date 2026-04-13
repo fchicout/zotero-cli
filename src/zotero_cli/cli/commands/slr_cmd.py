@@ -244,7 +244,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         graph_p.add_argument("--collections", required=True)
 
-        shift_p = sub.add_parser("shift", help="Detect items that moved between collections")
+        shift_p = sub.add_parser(
+            "shift",
+            help="Detect items that moved between collections",
+            description="Compares two Zotero library snapshots to identify research items that have moved between collections, facilitating the tracking of review progress over time.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Verifying papers moved during Title screening
+Problem: I want to confirm that all papers I accepted yesterday have correctly moved from my "Unscreened" folder to "Accepted."
+Action:  zotero-cli slr shift --old "yesterday.json" --new "today.json"
+Result:  The CLI displays a list of papers that shifted their collection affiliation between the two snapshots.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to compare snapshots from different libraries or using malformed JSON files.
+• Safety Tips: Use report snapshot regularly to maintain a versioned history of your library state.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_shift.md
+"""
+        )
         shift_p.add_argument("--old", required=True, help="Old Snapshot JSON")
         shift_p.add_argument("--new", required=True, help="New Snapshot JSON")
 
