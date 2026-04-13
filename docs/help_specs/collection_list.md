@@ -7,10 +7,10 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start List] --> B[Fetch All Collections from Zotero API]
-    B --> C[Format as Hierarchical Table]
+    A["Start List"] --> B["Fetch All Collections from Zotero API"]
+    B --> C["Format as Hierarchical Table"]
     C --> D["Display: Key, Name, Parent, Version"]
-    D --> E[End: Terminal Output]
+    D --> E["End: Terminal Output"]
 ```
 
 ## 3. Synopsis
