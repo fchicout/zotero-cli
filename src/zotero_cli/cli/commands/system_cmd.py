@@ -205,20 +205,56 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         switch_p.add_argument("query", help="Group ID or Name (partial match)")
 
         # Jobs (Issue #76 consolidation)
-        jobs_p = sub.add_parser("jobs", help="Manage background system jobs")
+        jobs_p = sub.add_parser(
+            "jobs",
+            help="Manage background system jobs",
+            description="Manages long-running background tasks such as PDF fetching or SLR discovery, allowing you to monitor progress, retry failures, or trigger the worker.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_jobs.md
+""",
+        )
         jobs_sub = jobs_p.add_subparsers(dest="jobs_verb", required=True)
 
         # jobs list
-        list_p = jobs_sub.add_parser("list", help="List all background jobs")
+        list_p = jobs_sub.add_parser(
+            "list",
+            help="List all background jobs",
+            description="Shows the current queue, indicating which tasks are PENDING, COMPLETED, or FAILED.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Monitoring a large snowballing discovery
+Problem: I've queued 1000 DOIs for discovery and I want to see how many are finished.
+Action:  zotero-cli system jobs list
+Result:  The CLI displays a table showing that 800 are completed and 200 are still pending.
+""",
+        )
         list_p.add_argument("--type", help="Filter by task type")
         list_p.add_argument("--limit", type=int, default=50, help="Max jobs to show")
 
         # jobs retry
-        retry_p = jobs_sub.add_parser("retry", help="Retry a failed job")
+        retry_p = jobs_sub.add_parser(
+            "retry",
+            help="Retry a failed job",
+            description="Allows you to re-attempt a specific job that failed due to network issues or API rate limits.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to retry a job that is already running.
+""",
+        )
         retry_p.add_argument("id", type=int, help="Job ID")
 
         # jobs run (Migration from find-pdf worker)
-        run_p = jobs_sub.add_parser("run", help="Run background worker to process jobs")
+        run_p = jobs_sub.add_parser(
+            "run",
+            help="Run background worker to process jobs",
+            description="Launches the background worker that actually performs the work in the queue.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
         run_p.add_argument(
             "--type", default="fetch_pdf", help="Filter by task type (Default: fetch_pdf)"
         )
