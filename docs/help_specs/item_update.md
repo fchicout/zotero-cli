@@ -7,11 +7,11 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Update] --> B[Fetch Item Key and New Metadata]
-    B --> C[Resolve Current Item State and Version]
-    C --> D[Prepare Patch Request with Updates]
-    D --> E[Execute API Request to Zotero]
-    E --> F[End: Metadata Updated]
+    A["Start Update"] --> B["Fetch Item Key and New Metadata"]
+    B --> C["Resolve Current Item State and Version"]
+    C --> D["Prepare Patch Request with Updates"]
+    D --> E["Execute API Request to Zotero"]
+    E --> F["End: Metadata Updated"]
 ```
 
 ## 3. Synopsis
