@@ -123,7 +123,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         VerifyCommand.register_args(verify_p)
 
         # --- Snowballing ---
-        snow_p = sub.add_parser("snowball", help="Citation tracking (Snowballing) tools")
+        snow_p = sub.add_parser(
+            "snowball",
+            help="Citation tracking (Snowballing) tools",
+            description="Executes Forward and Backward Snowballing (citation tracking) to recursively discover new research papers based on a set of seed articles.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Expanding a review from a single seminal paper
+Problem: I've found one "perfect" paper and I want to find everything it cites and everything that has cited it since.
+Action:  zotero-cli slr snowball seed --doi "10.1145/1234.567" then zotero-cli slr snowball discovery.
+Result:  The CLI builds a graph of related papers, which I can then review via slr snowball review.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting discovery on papers without DOIs. Snowballing relies on persistent identifiers for citation tracking.
+• Safety Tips: Snowballing can quickly lead to "Context Explosion." Use the review TUI frequently to prune irrelevant branches.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_snowball.md
+"""
+        )
         SnowballCommand.register_args(snow_p)
 
         # --- SDB Maintenance ---
