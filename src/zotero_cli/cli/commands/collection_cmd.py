@@ -127,7 +127,25 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         # Clean
         clean_p = sub.add_parser(
-            "clean", help="Empty all items from a collection (Does not delete collection)"
+            "clean",
+            help="Empty all items from a collection (Does not delete collection)",
+            description="Empties a collection by removing all associated items from it. Note that this command does not delete the items from the library, only their association with this specific collection.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Resetting a screening results folder
+Problem: My "Screened Results" folder (Key: SCR_456) has outdated data from a previous attempt and I want to start fresh.
+Action:  zotero-cli collection clean --collection "SCR_456"
+Result:  The folder is now empty and ready for a new set of items.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Confusion between clean and delete. clean keeps the folder structure intact, while delete removes the folder itself.
+• Safety Tips: Use collection list to verify the collection key before cleaning. If your items are not linked to any other collection, they will become unfiled in your main library.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_clean.md
+""",
         )
         clean_p.add_argument("--collection", required=True, help="Collection name or key")
         clean_p.add_argument("--verbose", action="store_true")
