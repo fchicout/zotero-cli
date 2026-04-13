@@ -316,7 +316,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         purge_p.add_argument("--force", action="store_true", help="Skip confirmation")
 
         # Transfer
-        transfer_p = sub.add_parser("transfer", help="Transfer item between different libraries")
+        transfer_p = sub.add_parser(
+            "transfer",
+            help="Transfer item between different libraries",
+            description="Copies or moves a research item (including its metadata and PDF attachments) from your personal library to a Zotero group library, or between different groups.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Moving a paper to a shared project group
+Problem: I've found a perfect paper in my personal library and I want to share it with my lab's Zotero group (ID: 987654).
+Action:  zotero-cli item transfer --key "ABCD1234" --target-group "987654"
+Result:  A duplicate of the paper and its PDF is created in the lab's group library.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to transfer to a group for which you do not have "Write" permissions.
+• Safety Tips: Always verify target group ID via system groups. Cross-library transfers can take time.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_transfer.md
+""",
+        )
         transfer_p.add_argument("--key", required=True, help="Zotero Item Key")
         transfer_p.add_argument("--target-group", required=True, help="Target Group ID")
         transfer_p.add_argument(
