@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Context] --> B[Fetch Item Key]
-    B --> C[Retrieve All Chunks from Vector Store]
-    C --> D[Concatenate Text Snippets]
-    D --> E["Format: --- BEGIN CONTEXT ---"]
-    E --> F[Display Full Document Text]
-    F --> G["Format: --- END CONTEXT ---"]
+    A["Start Context"] --> B["Fetch Item Key"]
+    B --> C["Retrieve All Chunks from Vector Store"]
+    C --> D["Concatenate Text Snippets"]
+    D --> E["Format: --- "BEGIN CONTEXT" ---"]
+    E --> F["Display Full Document Text"]
+    F --> G["Format: --- "END CONTEXT" ---"]
     G --> H["End: Output to Stdout"]
 ```
 
