@@ -7,15 +7,15 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Search] --> B{Search Type?}
-    B -- keyword --> C[Match: Title, Creator, Year]
-    B -- exact DOI --> D[Match: DOI Field]
-    B -- title substring --> E[Match: Title Field]
-    C --> F[Execute API Request to Zotero]
+    A["Start Search"] --> B{"Search Type?"}
+    B -- "keyword" --> C["Match: Title, Creator, Year"]
+    B -- "exact DOI" --> D["Match: DOI Field"]
+    B -- "title substring" --> E["Match: Title Field"]
+    C --> F["Execute API Request to Zotero"]
     D --> F
     E --> F
-    F --> G[Retrieve Top Matching Items]
-    G --> H[End: Results Displayed in Table]
+    F --> G["Retrieve Top Matching Items"]
+    G --> H["End: Results Displayed in Table"]
 ```
 
 ## 3. Synopsis
