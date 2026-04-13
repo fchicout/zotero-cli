@@ -47,7 +47,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         prisma_p.add_argument("--verbose", action="store_true")
 
         # Snapshot
-        snap_p = sub.add_parser("snapshot", help="JSON Audit Snapshot")
+        snap_p = sub.add_parser(
+            "snapshot",
+            help="JSON Audit Snapshot",
+            description="Generates a comprehensive, machine-readable JSON snapshot of all items in a collection, including their full metadata and associated screening decisions (the 'Audit Trail').",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Archiving the audit trail for a publication
+Problem: I'm submitting my paper and I need a machine-readable record of every decision made during the screening phase for the "Supplementary Materials."
+Action:  zotero-cli report snapshot --collection "SLR_2024" --output "screening_audit_v1.json"
+Result:  A JSON file is generated containing all metadata and the history of decisions for every paper in the collection.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to save the snapshot to a directory without write permissions.
+• Safety Tips: Run this command at the end of each major SLR phase to maintain a versioned history of your progress.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/report_snapshot.md
+""",
+        )
         snap_p.add_argument("--collection", required=True)
         snap_p.add_argument("--output", required=True)
 
