@@ -7,16 +7,16 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start Verification] --> B{Verify Mode?}
-    B -- Collection --> C[Fetch Metadata for All Items in Collection]
-    B -- LaTeX --> D["Parse LaTeX File for Citations: \cite{...}"]
+    A["Start Verification"] --> B{"Verify Mode?"}
+    B -- "Collection" --> C["Fetch Metadata for All Items in Collection"]
+    B -- "LaTeX" --> D[""Parse LaTeX File for Citations: \cite{..."}"]
     C --> E["Check for Missing Critical Fields: DOI, Abstract, Date"]
-    D --> F[Match Citation Keys against Zotero Library]
-    E --> G[Generate Consistency Report Table]
+    D --> F["Match Citation Keys against Zotero Library"]
+    E --> G["Generate Consistency Report Table"]
     F --> G
-    G --> H{Missing Items Found?}
-    H -- Yes --> I[Optionally Export Missing Keys to File]
-    H -- No --> J[End: Verification Success]
+    G --> H{"Missing Items Found?"}
+    H -- "Yes" --> I["Optionally Export Missing Keys to File"]
+    H -- "No" --> J["End: Verification Success"]
     I --> J
 ```
 
