@@ -288,7 +288,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
         # Purge
-        purge_p = sub.add_parser("purge", help="Purge assets (files, notes, tags) from an item")
+        purge_p = sub.add_parser(
+            "purge",
+            help="Purge assets (files, notes, tags) from an item",
+            description="Permanently removes specific types of child assets (PDFs, notes, or tags) from a research item without deleting the main bibliographic record itself.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Cleaning up annotations before a re-read
+Problem: I have a paper (Key: READ_456) filled with old notes and tags that are no longer relevant to my current project.
+Action:  zotero-cli item purge --key "READ_456" --notes --tags
+Result:  All notes and tags are removed from the paper, providing a clean slate for new analysis.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to purge assets without providing at least one asset type flag (--files, --notes, or --tags).
+• Safety Tips: ALWAYS verify the item key using item inspect before purging. This command is irreversible.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_purge.md
+""",
+        )
         purge_p.add_argument("--key", required=True, help="Item Key")
         purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
         purge_p.add_argument("--notes", action="store_true", help="Purge notes")
