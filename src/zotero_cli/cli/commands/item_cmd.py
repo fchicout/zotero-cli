@@ -100,7 +100,27 @@ class ItemCommand(BaseCommand):
         InspectCommand().register_args(inspect_p)
 
         # Move
-        move_p = sub.add_parser("move", help="Move item between collections")
+        move_p = sub.add_parser(
+            "move",
+            help="Move item between collections",
+            description="Moves a research item from one collection to another by updating its collection links in the Zotero library.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Categorizing a paper into a specific folder
+Problem: I have a paper in "Incoming Search" (Key: INC_01) and I want to move it to my "Methodology" folder (Key: METH_01).
+Action:  zotero-cli item move --item-id "ABCD1234" --source "INC_01" --target "METH_01"
+Result:  The item is now correctly linked to the "Methodology" folder and removed from "Incoming Search."
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to move an item using a name for the source or target that corresponds to multiple collections. This will lead to an ambiguity error.
+• Safety Tips: Always use item list or collection list to find the exact keys before moving critical items. Moving an item does not affect its metadata or attachments.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_move.md
+""",
+        )
         move_p.add_argument("--item-id", required=True)
         move_p.add_argument("--source", help="Source collection (optional if unambiguous)")
         move_p.add_argument("--target", required=True)
