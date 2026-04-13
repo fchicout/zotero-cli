@@ -5,6 +5,7 @@
 - **Target Audience:** Researcher / AI Analyst
 
 ## 2. Logic Flow (Visual Synthesis)
+
 ```mermaid
 graph TD
     A[Start Query] --> B[Generate Query Embedding]
