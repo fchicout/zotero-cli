@@ -10,11 +10,11 @@ graph TD
     A[Start Ingest] --> B[Fetch Zotero Collection]
     B --> C{Attachment Found?}
     C -- No --> D[Skip Item]
-    C -- Yes (PDF/Text) --> E[Extract Text Content]
+    C -- "Yes (PDF/Text)" --> E[Extract Text Content]
     E --> F[Chunking Logic]
     F --> G[Generate Embeddings]
     G --> H[Update Vector DB]
-    H --> I[End: Ingestion Stats]
+    H --> I["End: Ingestion Stats"]
 ```
 
 ## 3. Synopsis
