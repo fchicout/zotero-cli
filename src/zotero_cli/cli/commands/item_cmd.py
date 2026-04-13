@@ -17,6 +17,23 @@ class InspectCommand(BaseCommand):
     help = "Inspect item details"
 
     def register_args(self, parser: argparse.ArgumentParser):
+        parser.description = "Provides a comprehensive view of all metadata, attachments, and child notes associated with a specific Zotero item."
+        parser.formatter_class = argparse.RawDescriptionHelpFormatter
+        parser.epilog = """
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Verifying metadata after an import
+Problem: I've imported a paper and want to ensure the DOI was correctly captured and check for any existing notes.
+Action:  zotero-cli item inspect "ABCD1234"
+Result:  The CLI displays a detailed view of the item, including its DOI, abstract, and list of child PDF attachments.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to inspect an item key that does not exist or for which you lack read permissions.
+• Safety Tips: Use item list or search to find the correct key if you are unsure. For very large notes, the --full-notes flag may result in a lot of terminal scroll.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_inspect.md
+"""
         parser.add_argument("key", help="Zotero Item Key")
         parser.add_argument("--raw", action="store_true", help="Show raw JSON")
         parser.add_argument(
