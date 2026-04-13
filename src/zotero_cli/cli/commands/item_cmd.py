@@ -126,7 +126,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         move_p.add_argument("--target", required=True)
 
         # List (Subset of list items)
-        list_p = sub.add_parser("list", help="List items in a collection")
+        list_p = sub.add_parser(
+            "list",
+            help="List items in a collection",
+            description="Displays a table of research items within a collection, optionally filtering them based on screening decisions, exclusion criteria, or reviewer persona.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Verifying the final selection for a review
+Problem: I want to see a list of all 25 items that were accepted in my "Final Selection" folder (Key: FIN_01).
+Action:  zotero-cli item list --collection "FIN_01" --included
+Result:  The table displays only the 25 accepted items, showing their titles and unique keys.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Confusion between the --collection name and key. For deterministic results, always prefer using the unique Key.
+• Safety Tips: Use the --top-only flag if you want to exclude child attachments and notes from the list for a cleaner view.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_list.md
+""",
+        )
         list_p.add_argument("--collection", help="Collection name or key")
         list_p.add_argument("--trash", action="store_true", help="List items in the trash")
         list_p.add_argument("--top-only", action="store_true", help="Only show top-level items")
