@@ -7,12 +7,12 @@
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
 graph TD
-    A[Start DOI Import] --> B[Fetch Item Metadata from CrossRef/Datacite]
-    B --> C[Validate DOI Exists]
-    C --> D[Map Metadata to Zotero Schema]
-    D --> E[Check for Duplicate in Zotero]
-    E --> F[Execute API Upload to Target Collection]
-    F --> G[End: Import Result]
+    A["Start DOI Import"] --> B["Fetch Item Metadata from CrossRef/Datacite"]
+    B --> C["Validate DOI Exists"]
+    C --> D["Map Metadata to Zotero Schema"]
+    D --> E["Check for Duplicate in Zotero"]
+    E --> F["Execute API Upload to Target Collection"]
+    F --> G["End: Import Result"]
 ```
 
 ## 3. Synopsis
