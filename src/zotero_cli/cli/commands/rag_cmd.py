@@ -70,7 +70,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         query_p.add_argument("--json", action="store_true", help="Output results in JSON format")
 
         # context
-        context_p = sub.add_parser("context", help="Retrieve context snippets for an item")
+        context_p = sub.add_parser(
+            "context",
+            help="Retrieve context snippets for an item",
+            description="Aggregates all textual snippets and metadata belonging to a specific item to reconstruct its original context for LLM ingestion.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Summarizing a single paper via LLM
+Problem: I want to generate a 500-word summary of a specific paper in my collection using a local LLM.
+Action:  zotero-cli rag context --key "W2A3B4C5" > paper_context.txt
+Result:  The file paper_context.txt contains the full text of the paper. This can be piped to an LLM prompt.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Attempting to retrieve context for an item that has not been ingested.
+• Safety Tips: Context outputs can be very large. Ensure the total length doesn't exceed the model's token limit.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/rag_context.md
+""",
+        )
         context_p.add_argument("--key", required=True, help="Item Key")
 
     def execute(self, args: argparse.Namespace):
