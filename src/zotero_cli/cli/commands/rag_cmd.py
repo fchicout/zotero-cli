@@ -46,11 +46,13 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/rag_ingest.md
 """,
         )
-        ingest_group = ingest_p.add_mutually_exclusive_group(required=True)
+        ingest_group = ingest_p.add_mutually_exclusive_group(required=False)
         ingest_group.add_argument("--collection", help="Collection name or key")
         ingest_group.add_argument("--key", help="Single item key")
-        ingest_group.add_argument("--approved", action="store_true", help="Ingest only approved items (rsl:include)")
-        ingest_p.add_argument("--qa-limit", type=float, help="Minimum extraction QA score (0.0 to 1.0)")
+        ingest_p.add_argument("--approved", action="store_true", help="Ingest only approved items (rsl:include)")
+        ingest_p.add_argument("--qa-limit", type=float, help="Minimum extraction QA score threshold")
+        ingest_p.add_argument("--prune", action="store_true", default=False, help="Clear the vector store before ingestion")
+        ingest_p.add_argument("--no-prune", action="store_false", dest="prune", help="Append to the vector store (Default)")
 
         # query
         query_p = sub.add_parser(
@@ -147,18 +149,24 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         rag_service = GatewayFactory.get_rag_service(force_user=force_user)
 
         if args.verb == "ingest":
-            mode_desc = ""
+            mode_desc = []
             if args.collection:
-                mode_desc = f"collection '{args.collection}'"
+                mode_desc.append(f"collection '{args.collection}'")
             elif args.key:
-                mode_desc = f"item '{args.key}'"
-            elif args.approved:
-                mode_desc = "all approved items"
+                mode_desc.append(f"item '{args.key}'")
+            else:
+                mode_desc.append("entire library")
             
-            if args.qa_limit:
-                mode_desc += f" (QA limit >= {args.qa_limit})"
+            if args.approved:
+                mode_desc.append("approved items")
+            if args.qa_limit is not None:
+                mode_desc.append(f"QA limit >= {args.qa_limit}")
+            
+            final_desc = " + ".join(mode_desc)
+            if args.prune:
+                console.print("[bold red]Pruning vector store before start...[/bold red]")
 
-            console.print(f"[bold]Ingesting {mode_desc} into vector store...[/bold]")
+            console.print(f"[bold]Streaming ingestion from {final_desc}...[/bold]")
             
             with Progress(
                 TextColumn("[progress.description]{task.description}"),
@@ -167,25 +175,19 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 TimeRemainingColumn(),
                 console=console,
             ) as progress:
-                task = progress.add_task("Processing items...", total=None)
+                task = progress.add_task("Fetching & Filtering...", total=None)
                 
                 def on_item(item):
                     progress.update(task, advance=1, description=f"Ingesting: {item.key}")
 
-                if args.collection:
-                    if args.qa_limit:
-                        stats = rag_service.ingest_by_qa_score(args.qa_limit, on_item_processed=on_item)
-                    else:
-                        stats = rag_service.ingest_collection(args.collection, on_item_processed=on_item)
-                elif args.key:
-                    stats = rag_service.ingest_item(args.key, on_item_processed=on_item)
-                elif args.approved:
-                    if args.qa_limit:
-                        stats = rag_service.ingest_by_qa_score(args.qa_limit, on_item_processed=on_item)
-                    else:
-                        stats = rag_service.ingest_approved(on_item_processed=on_item)
-                else:
-                    stats = {"processed": 0}
+                stats = rag_service.ingest(
+                    collection_key=args.collection,
+                    item_key=args.key,
+                    approved_only=args.approved,
+                    min_qa_score=args.qa_limit,
+                    prune=args.prune,
+                    on_item_processed=on_item
+                )
 
             console.print(f"[green]Ingestion complete.[/green]")
             console.print(f"  - [bold]Processed:[/bold] {stats.get('processed', 0)} items")
