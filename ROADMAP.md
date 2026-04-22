@@ -11,9 +11,10 @@
 - [x] **UX:** Implement dedicated `search` command in CLI (Issue #92).
 - [x] **Methodology:** Integrate Citation Guard as `slr audit` (Issue #89).
 - [x] **Integration:** Implement direct DOI import (Issue #81).
+- [x] **Quality:** Implement RAG Verification Engine (Spec v1.1) and Fidelity Guards.
 
 ### Mandatory Release Gate
-- [ ] **Cortex Code Review Protocol (ADR-004):** Final audit for SOLID/DRY/KISS compliance after refactoring.
+- [x] **Cortex Code Review Protocol (ADR-004):** Final audit for SOLID/DRY/KISS compliance after refactoring.
 
 ## Completed Milestones
 - **v2.5.0:** Systematic Knowledge Retrieval (RAG Core), BibTeX Export, and Universal Item Transfer.
