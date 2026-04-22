@@ -42,8 +42,8 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.audit_service import AuditService
     from zotero_cli.core.services.collection_service import CollectionService
     from zotero_cli.core.services.enrichment_service import EnrichmentService
-    from zotero_cli.core.services.extraction_service import ExtractionService
     from zotero_cli.core.services.export_service import ExportService
+    from zotero_cli.core.services.extraction_service import ExtractionService
     from zotero_cli.core.services.import_service import ImportService
     from zotero_cli.core.services.job_queue_service import JobQueueService
     from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService

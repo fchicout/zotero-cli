@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
-import requests
+
+import pytest
+
 from zotero_cli.infra.hal_api import HALAPIClient
-from zotero_cli.core.models import ResearchPaper
+
 
 @pytest.fixture
 def client():
@@ -36,7 +37,7 @@ def test_get_paper_metadata_hal_id(client):
             "docs": [{"title_s": ["Paper by HAL ID"], "identifiant_s": "hal-1"}]
         }
     }
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("hal-1")
         assert paper.title == "Paper by HAL ID"
@@ -50,7 +51,7 @@ def test_get_paper_metadata_doi(client):
             "docs": [{"title_s": ["Paper by DOI"], "doi_s": ["10.1/1"]}]
         }
     }
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("10.1/1")
         assert paper.title == "Paper by DOI"
@@ -60,7 +61,7 @@ def test_get_paper_metadata_doi(client):
 def test_get_paper_metadata_not_found(client):
     mock_response = MagicMock()
     mock_response.json.return_value = {"response": {"docs": []}}
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("none")
         assert paper is None

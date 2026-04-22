@@ -79,6 +79,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         query_p.add_argument("prompt", help="Search prompt/query")
         query_p.add_argument("--top-k", type=int, default=5, help="Number of results (Default: 5)")
         query_p.add_argument("--json", action="store_true", help="Output results in JSON format")
+        query_p.add_argument("--verify", action="store_true", help="Verify results against RAG Verification Spec v1.1")
 
         # context
         context_p = sub.add_parser(
@@ -156,18 +157,18 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 mode_desc.append(f"item '{args.key}'")
             else:
                 mode_desc.append("entire library")
-            
+
             if args.approved:
                 mode_desc.append("approved items")
             if args.qa_limit is not None:
                 mode_desc.append(f"QA limit >= {args.qa_limit}")
-            
+
             final_desc = " + ".join(mode_desc)
             if args.prune:
                 console.print("[bold red]Pruning vector store before start...[/bold red]")
 
             console.print(f"[bold]Streaming ingestion from {final_desc}...[/bold]")
-            
+
             with Progress(
                 TextColumn("[progress.description]{task.description}"),
                 BarColumn(),
@@ -176,7 +177,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 console=console,
             ) as progress:
                 task = progress.add_task("Fetching & Filtering...", total=None)
-                
+
                 def on_item(item):
                     progress.update(task, advance=1, description=f"Ingesting: {item.key}")
 
@@ -189,7 +190,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                     on_item_processed=on_item
                 )
 
-            console.print(f"[green]Ingestion complete.[/green]")
+            console.print("[green]Ingestion complete.[/green]")
             console.print(f"  - [bold]Processed:[/bold] {stats.get('processed', 0)} items")
             if stats.get("skipped_no_text"):
                 console.print(f"  - [yellow]Skipped (No PDF/Text):[/yellow] {stats['skipped_no_text']}")
@@ -202,7 +203,17 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             if not args.json:
                 console.print(f"[bold]Querying vector store for:[/bold] '{args.prompt}'")
 
-            results = rag_service.query(args.prompt, top_k=args.top_k)
+            from typing import Sequence
+
+            from zotero_cli.core.models import SearchResult, VerifiedSearchResult
+
+            raw_results = rag_service.query(args.prompt, top_k=args.top_k)
+            results: Sequence[SearchResult] = raw_results
+
+            if args.verify:
+                if not args.json:
+                    console.print("[bold yellow]Verifying results...[/bold yellow]")
+                results = rag_service.verify_results(raw_results)
 
             if not results:
                 if not args.json:
@@ -221,9 +232,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 print(json.dumps(output, indent=2))
                 return
 
-            table = Table(title=f"Semantic Search Results (Top {args.top_k})")
+            table = Table(title=f"Semantic Search Results (Top {args.top_k})", min_width=120)
             table.add_column("Score", justify="right", style="cyan")
             table.add_column("Title", style="green")
+            table.add_column("Verified", justify="center")
             table.add_column("Authors", style="yellow")
             table.add_column("Snippet", overflow="fold")
 
@@ -231,9 +243,18 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 # Clean snippet for display
                 snippet = res.text[:200].replace("\n", " ").strip() + "..."
                 title = res.item.title if res.item else "Unknown Title"
-                authors = ", ".join(res.item.authors) if res.item and res.item.authors else "Unknown"
+                authors = (
+                    ", ".join(res.item.authors) if res.item and res.item.authors else "Unknown"
+                )
 
-                table.add_row(f"{res.score:.4f}", title, authors, snippet)
+                verified_str = "[green]Yes[/green]"
+                if isinstance(res, VerifiedSearchResult):
+                    if not res.is_verified:
+                        verified_str = f"[red]No ({', '.join(res.verification_errors)})[/red]"
+                else:
+                    verified_str = "[grey]N/A[/grey]"
+
+                table.add_row(f"{res.score:.4f}", title, verified_str, authors, snippet)
 
             console.print(table)
 

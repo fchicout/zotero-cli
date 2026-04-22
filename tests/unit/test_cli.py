@@ -1,6 +1,5 @@
-import re
 import sys
-from unittest.mock import MagicMock, Mock, mock_open, patch
+from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
@@ -56,7 +55,7 @@ def test_init_command(mock_clients, env_vars, capsys):
         mock_ask.side_effect = ["API_KEY", "user", "12345", "", "", ""]
         mock_confirm.return_value = True
         mock_clients["zotero"].verify_credentials.return_value = True
-        
+
         test_args = ["zotero-cli", "init"]
         with patch.object(sys, "argv", test_args):
             main()

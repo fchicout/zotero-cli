@@ -1,7 +1,7 @@
 import json
 import zipfile
 from io import BytesIO
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -34,7 +34,7 @@ def test_backup_collection_recursive_attachments(service, mock_gateway):
             "data": {"title": "Main Paper", "itemType": "journalArticle"},
         }
     )
-    
+
     child_item_raw = {
         "key": "CHILD1",
         "version": 1,
@@ -52,13 +52,13 @@ def test_backup_collection_recursive_attachments(service, mock_gateway):
     mock_gateway.get_items_in_collection.return_value = iter([parent_item])
     mock_gateway.get_item_children.return_value = [{"key": "CHILD1"}]
     mock_gateway.get_item.side_effect = lambda k: child_item if k == "CHILD1" else None
-    
+
     # Mock successful download
     def mock_download(key, path):
         with open(path, "w") as f:
             f.write("fake pdf content")
         return True
-    
+
     mock_gateway.download_attachment.side_effect = mock_download
 
     output_buffer = BytesIO()
@@ -73,10 +73,10 @@ def test_backup_collection_recursive_attachments(service, mock_gateway):
         assert "manifest.json" in namelist
         assert "data.json" in namelist
         assert "attachments/PARENT1/paper.pdf" in namelist
-        
+
         manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
         assert manifest["file_map"]["CHILD1"] == "attachments/PARENT1/paper.pdf"
-        
+
         content = zf.read("attachments/PARENT1/paper.pdf").decode("utf-8")
         assert content == "fake pdf content"
 
@@ -85,7 +85,7 @@ def test_backup_system_coverage(service, mock_gateway):
     # Setup
     item1 = ZoteroItem.from_raw_zotero_item({"key": "I1", "data": {"title": "T1", "itemType": "book"}})
     item2 = ZoteroItem.from_raw_zotero_item({"key": "I2", "data": {"title": "T2", "itemType": "thesis"}})
-    
+
     mock_gateway.get_all_items.return_value = iter([item1, item2])
     mock_gateway.get_all_collections.return_value = [
         {"key": "C1", "data": {"name": "Col 1"}},
@@ -104,10 +104,10 @@ def test_backup_system_coverage(service, mock_gateway):
         assert "manifest.json" in namelist
         assert "data.json" in namelist
         assert "collections.json" in namelist
-        
+
         data = json.loads(zf.read("data.json").decode("utf-8"))
         assert len(data) == 2
-        
+
         cols = json.loads(zf.read("collections.json").decode("utf-8"))
         assert len(cols) == 2
         assert cols[0]["key"] == "C1"
@@ -117,10 +117,10 @@ def test_backup_handles_download_failures(service, mock_gateway):
     # Setup
     item = ZoteroItem.from_raw_zotero_item({"key": "P1", "data": {"itemType": "journalArticle"}})
     att = ZoteroItem.from_raw_zotero_item({
-        "key": "A1", 
+        "key": "A1",
         "data": {"itemType": "attachment", "linkMode": "imported_file", "filename": "miss.pdf"}
     })
-    
+
     mock_gateway.get_collection.return_value = {"key": "c", "data": {"name": "n"}}
     mock_gateway.get_items_in_collection.return_value = iter([item])
     mock_gateway.get_item_children.return_value = [{"key": "A1"}]

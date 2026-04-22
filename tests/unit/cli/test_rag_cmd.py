@@ -1,6 +1,6 @@
-import sys
 import json
-from unittest.mock import patch, MagicMock
+import sys
+from unittest.mock import patch
 
 import pytest
 
@@ -32,7 +32,7 @@ def test_rag_query_table_display(mock_rag_service, env_vars, capsys):
     )
     mock_result = SearchResult(
         item_key="KEY1",
-        text="This is the snippet text that should appear.",
+        text="Short snippet",
         score=0.9876,
         metadata={"chunk": 0},
         item=mock_item
@@ -40,15 +40,54 @@ def test_rag_query_table_display(mock_rag_service, env_vars, capsys):
     mock_rag_service.query.return_value = [mock_result]
 
     test_args = ["zotero-cli", "rag", "query", "test prompt"]
-    with patch.object(sys, "argv", test_args):
-        main()
+    # Force wide console to prevent truncation
+    with patch("rich.console.Console.width", 200):
+        with patch.object(sys, "argv", test_args):
+            main()
 
     out = capsys.readouterr().out
     assert "Querying vector store for: 'test prompt'" in out
     assert "Test Title" in out
-    assert "Author One Author Two" in out or "Author One, Author Two" in out
+    assert "Author One" in out
     assert "0.9876" in out
-    assert "This is the snippet text" in out
+    assert "Short snippet" in out
+    # New column
+    assert "Verified" in out
+    assert "N/A" in out
+
+
+def test_rag_query_verify_display(mock_rag_service, env_vars, capsys):
+    from zotero_cli.core.models import ScreeningStatus, VerifiedSearchResult
+
+    mock_item = ZoteroItem(
+        key="KEY1",
+        version=1,
+        item_type="journalArticle",
+        title="Verified Paper",
+        authors=["John Doe"]
+    )
+    mock_result = VerifiedSearchResult(
+        item_key="KEY1",
+        text="Snippet text.",
+        score=0.9,
+        metadata={},
+        item=mock_item,
+        is_verified=True,
+        verification_errors=[],
+        screening_status=ScreeningStatus.ACCEPTED,
+        citation_key="Doe2024"
+    )
+    mock_rag_service.query.return_value = [mock_result]
+    mock_rag_service.verify_results.return_value = [mock_result]
+
+    test_args = ["zotero-cli", "rag", "query", "test", "--verify"]
+    with patch.object(sys, "argv", test_args):
+        main()
+
+    out = capsys.readouterr().out
+    assert "Verifying results..." in out
+    assert "Verified Paper" in out
+    assert "Yes" in out
 
 
 def test_rag_query_json_display(mock_rag_service, env_vars, capsys):

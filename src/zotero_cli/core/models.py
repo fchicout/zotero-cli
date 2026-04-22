@@ -1,7 +1,15 @@
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from .zotero_item import ZoteroItem
+
+
+class ScreeningStatus(str, Enum):
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    PENDING = "pending"
+    UNKNOWN = "unknown"
 
 
 @dataclass
@@ -84,3 +92,11 @@ class SearchResult:
     score: float
     metadata: Dict[str, Any]
     item: Optional[ZoteroItem] = None
+
+
+@dataclass
+class VerifiedSearchResult(SearchResult):
+    is_verified: bool = False
+    verification_errors: List[str] = field(default_factory=list)
+    screening_status: ScreeningStatus = ScreeningStatus.UNKNOWN
+    citation_key: Optional[str] = None

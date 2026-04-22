@@ -38,7 +38,7 @@ async def test_item_pdf_fetch_success(mock_clients, env_vars, capsys):
     mock_pdf.job_queue.repo.get_job.return_value = mock_job
 
     test_args = ["zotero-cli", "item", "pdf", "fetch", "--key", "ITEM1"]
-    with patch("zotero_cli.cli.commands.item_cmd.asyncio.run") as mock_run:
+    with patch("zotero_cli.cli.commands.item_cmd.asyncio.run") as _:
         with patch.object(sys, "argv", test_args):
             main()
 

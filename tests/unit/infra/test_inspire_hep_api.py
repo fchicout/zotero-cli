@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
-import requests
+
+import pytest
+
 from zotero_cli.infra.inspire_hep_api import InspireHEPAPIClient
-from zotero_cli.core.models import ResearchPaper
+
 
 @pytest.fixture
 def client():
@@ -39,7 +40,7 @@ def test_get_paper_metadata_doi(client):
             "hits": [{"metadata": {"titles": [{"title": "DOI Paper"}], "control_number": 1}}]
         }
     }
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("10.1/1")
         assert paper.title == "DOI Paper"
@@ -51,7 +52,7 @@ def test_get_paper_metadata_arxiv(client):
     mock_response.json.return_value = {
         "hits": {"hits": [{"metadata": {"titles": [{"title": "arXiv Paper"}]}}]}
     }
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("1207.7214")
         assert paper.title == "arXiv Paper"
@@ -63,7 +64,7 @@ def test_get_paper_metadata_recid(client):
     mock_response.json.return_value = {
         "hits": {"hits": [{"metadata": {"titles": [{"title": "Recid Paper"}]}}]}
     }
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("1124337")
         assert paper.title == "Recid Paper"
@@ -73,7 +74,7 @@ def test_get_paper_metadata_recid(client):
 def test_get_paper_metadata_not_found(client):
     mock_response = MagicMock()
     mock_response.json.return_value = {"hits": {"hits": []}}
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("none")
         assert paper is None

@@ -2,8 +2,8 @@ import os
 import subprocess
 import sys
 
-
 from zotero_cli.core.interfaces import OpenerService as IOpenerService
+
 
 class OpenerService(IOpenerService):
     """

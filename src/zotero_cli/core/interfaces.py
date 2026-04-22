@@ -2,7 +2,14 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional
 
-from .models import Job, ResearchPaper, SearchResult, VectorChunk, ZoteroQuery
+from .models import (
+    Job,
+    ResearchPaper,
+    SearchResult,
+    VectorChunk,
+    VerifiedSearchResult,
+    ZoteroQuery,
+)
 from .zotero_item import ZoteroItem
 
 
@@ -284,28 +291,14 @@ class VectorRepository(ABC):
 
 class RAGService(ABC):
     @abstractmethod
-    def ingest_collection(
+    def ingest(
         self,
-        collection_key: str,
+        collection_key: Optional[str] = None,
+        item_key: Optional[str] = None,
+        approved_only: bool = False,
+        min_qa_score: Optional[float] = None,
+        prune: bool = False,
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
-    ) -> Dict[str, Any]:
-        pass
-
-    @abstractmethod
-    def ingest_item(
-        self, item_key: str, on_item_processed: Optional[Callable[[ZoteroItem], None]] = None
-    ) -> Dict[str, Any]:
-        pass
-
-    @abstractmethod
-    def ingest_approved(
-        self, on_item_processed: Optional[Callable[[ZoteroItem], None]] = None
-    ) -> Dict[str, Any]:
-        pass
-
-    @abstractmethod
-    def ingest_by_qa_score(
-        self, min_score: float, on_item_processed: Optional[Callable[[ZoteroItem], None]] = None
     ) -> Dict[str, Any]:
         pass
 
@@ -324,6 +317,13 @@ class RAGService(ABC):
         item_key: Optional[str] = None,
         collection_key: Optional[str] = None,
     ) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def verify_results(self, results: List[SearchResult]) -> List[VerifiedSearchResult]:
+        """
+        Validates RAG search results against verification criteria (e.g. DOI/arXiv presence).
+        """
         pass
 
 

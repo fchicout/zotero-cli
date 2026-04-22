@@ -10,8 +10,8 @@ from zotero_cli.cli.commands.slr import (
     DecideCommand,
     ExtractionCommand,
     LoadCommand,
-    SDBCommand,
     ScreenCommand,
+    SDBCommand,
     SnowballCommand,
     VerifyCommand,
 )

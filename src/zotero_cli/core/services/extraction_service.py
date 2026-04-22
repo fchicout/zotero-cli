@@ -7,7 +7,8 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from zotero_cli.core.interfaces import ExtractionService as IExtractionService, NoteRepository
+from zotero_cli.core.interfaces import ExtractionService as IExtractionService
+from zotero_cli.core.interfaces import NoteRepository
 
 # Valid types as per SDB-Extraction v1.0
 VALID_TYPES = {"text", "number", "boolean", "select", "multi-select", "date"}

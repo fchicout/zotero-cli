@@ -461,7 +461,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         service = BackupService(gateway)
         console.print(f"Starting Backup for Collection '[cyan]{args.name}[/cyan]' ({col_id}) to [green]{args.output}[/green]...")
-        
+
         try:
             with Progress(
                 TextColumn("[progress.description]{task.description}"),
@@ -471,7 +471,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 console=console,
             ) as progress:
                 task = progress.add_task("Backing up items...", total=total_items)
-                
+
                 def on_item(item):
                     progress.update(task, advance=1, description=f"Backing up: {item.key}")
 

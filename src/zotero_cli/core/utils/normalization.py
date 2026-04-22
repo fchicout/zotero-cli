@@ -1,6 +1,7 @@
 import re
 import unicodedata
 
+
 def normalize_doi(doi: str) -> str:
     """
     Standardizes DOI to a clean format (no http/https prefix).

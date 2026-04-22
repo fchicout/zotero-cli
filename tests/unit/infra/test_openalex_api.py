@@ -1,8 +1,11 @@
 from unittest.mock import MagicMock, patch
+
 import pytest
 import requests
-from zotero_cli.infra.openalex_api import OpenAlexAPIClient
+
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.infra.openalex_api import OpenAlexAPIClient
+
 
 @pytest.fixture
 def client():
@@ -34,10 +37,10 @@ def test_get_paper_metadata_success(client):
         "id": "https://openalex.org/W123",
         "best_oa_location": {"pdf_url": "http://example.com/test.pdf"}
     }
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("10.1000/123")
-        
+
         assert isinstance(paper, ResearchPaper)
         assert paper.title == "Test Paper"
         assert paper.abstract == "Abstract"
@@ -50,7 +53,7 @@ def test_get_paper_metadata_not_found(client):
     mock_response = MagicMock()
     mock_response.status_code = 404
     error = requests.exceptions.HTTPError(response=mock_response)
-    
+
     with patch.object(client, "_get", side_effect=error):
         paper = client.get_paper_metadata("non-existent")
         assert paper is None

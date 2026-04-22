@@ -1,7 +1,8 @@
 import argparse
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
+
 from zotero_cli.cli.commands.search_cmd import SearchCommand
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -19,7 +20,7 @@ def search_cmd():
 
 def test_search_by_doi(search_cmd, mock_gateway):
     args = argparse.Namespace(query=None, doi="10.1234/5678", title=None, limit=50, user=False)
-    
+
     item = ZoteroItem.from_raw_zotero_item({
         "key": "KEY1",
         "data": {"title": "Test Paper", "DOI": "10.1234/5678", "creators": [], "date": "2023"}
@@ -33,7 +34,7 @@ def test_search_by_doi(search_cmd, mock_gateway):
 
 def test_search_by_title(search_cmd, mock_gateway):
     args = argparse.Namespace(query=None, doi=None, title="Transformer", limit=50, user=False)
-    
+
     item = ZoteroItem.from_raw_zotero_item({
         "key": "KEY1",
         "data": {"title": "Attention is all you need", "creators": [], "date": "2017"}
@@ -50,7 +51,7 @@ def test_search_by_title(search_cmd, mock_gateway):
 
 def test_search_by_query(search_cmd, mock_gateway):
     args = argparse.Namespace(query="Deep Learning", doi=None, title=None, limit=50, user=False)
-    
+
     item = ZoteroItem.from_raw_zotero_item({
         "key": "KEY1",
         "data": {"title": "Deep Learning Book", "creators": [], "date": "2016"}

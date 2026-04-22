@@ -7,8 +7,10 @@ from zotero_cli.core.interfaces import (
     CollectionRepository,
     ItemRepository,
     NoteRepository,
-    ScreeningService as IScreeningService,
     TagRepository,
+)
+from zotero_cli.core.interfaces import (
+    ScreeningService as IScreeningService,
 )
 from zotero_cli.core.services.collection_service import CollectionService
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note

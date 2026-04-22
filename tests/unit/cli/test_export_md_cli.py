@@ -1,8 +1,8 @@
 import sys
 from unittest.mock import MagicMock, patch
-from pathlib import Path
 
 import pytest
+
 from zotero_cli.cli.main import main
 
 
@@ -34,7 +34,7 @@ def test_item_export_md_success(mock_factory, env_vars, capsys, tmp_path):
     mock_att.bulk_export_markdown.return_value = {
         "total": 1, "success": 1, "failed": 0, "skipped": 0
     }
-    
+
     # Mock ZoteroItem
     mock_item = MagicMock()
     mock_item.key = "KEY1"
@@ -55,11 +55,11 @@ def test_collection_export_md_success(mock_factory, env_vars, capsys, tmp_path):
     mock_att = mock_factory["attachment"]
     # The collection command calls _export_item_markdown in a loop for progress
     mock_att._export_item_markdown.return_value = "success"
-    
+
     mock_gateway = mock_factory["gateway"]
     mock_gateway.get_collection_id_by_name.return_value = "COL1"
     mock_gateway.get_collection.return_value = {"key": "COL1", "data": {"name": "MyCol"}}
-    
+
     mock_item = MagicMock()
     mock_item.key = "K1"
     mock_item.title = "Paper 1"

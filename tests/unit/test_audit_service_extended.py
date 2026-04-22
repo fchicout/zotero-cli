@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
@@ -48,12 +47,14 @@ def test_audit_manuscript(audit_service, mock_gateway, tmp_path):
     })
 
     def get_item_mock(key):
-        if key == "KEY1": return item1
-        if key == "KEY3": return item3
+        if key == "KEY1":
+            return item1
+        if key == "KEY3":
+            return item3
         return None
 
     mock_gateway.get_item.side_effect = get_item_mock
-    
+
     # Mock children for SDB note check
     mock_gateway.get_item_children.side_effect = lambda k: [
         {
@@ -66,15 +67,15 @@ def test_audit_manuscript(audit_service, mock_gateway, tmp_path):
 
     with patch("zotero_cli.core.utils.sdb_parser.parse_sdb_note") as mock_parse:
         mock_parse.side_effect = lambda n: json.loads(n) if "audit_version" in n else None
-        
+
         report = audit_service.audit_manuscript(main_tex)
 
     assert report["total_citations"] == 3
     assert report["items"]["KEY1"]["exists"] is True
     assert report["items"]["KEY1"]["screened"] is True
     assert report["items"]["KEY1"]["decision"] == "accepted"
-    
+
     assert report["items"]["KEY2"]["exists"] is False
-    
+
     assert report["items"]["KEY3"]["exists"] is True
     assert report["items"]["KEY3"]["screened"] is False

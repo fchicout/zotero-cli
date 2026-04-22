@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
-import requests
+
+import pytest
+
 from zotero_cli.infra.eric_api import ERICAPIClient
-from zotero_cli.core.models import ResearchPaper
+
 
 @pytest.fixture
 def client():
@@ -38,7 +39,7 @@ def test_get_paper_metadata_ej(client):
             "docs": [{"title": "EJ Paper", "id": "EJ1"}]
         }
     }
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("EJ1")
         assert paper.title == "EJ Paper"
@@ -52,7 +53,7 @@ def test_get_paper_metadata_ed(client):
             "docs": [{"title": "ED Report", "id": "ED1"}]
         }
     }
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("ED1")
         assert paper.title == "ED Report"
@@ -64,7 +65,7 @@ def test_get_paper_metadata_invalid_format(client):
 def test_get_paper_metadata_not_found(client):
     mock_response = MagicMock()
     mock_response.json.return_value = {"response": {"docs": []}}
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("EJ404")
         assert paper is None

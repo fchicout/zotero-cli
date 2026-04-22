@@ -1,5 +1,6 @@
 import argparse
 import sys
+
 from rich.console import Console
 
 from zotero_cli.infra.factory import GatewayFactory

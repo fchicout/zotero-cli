@@ -8,6 +8,7 @@ from zotero_cli.core.interfaces import (
     SnowballGraphService,
 )
 
+
 class TUIFactory:
     """
     Decouples CLI commands from TUI instantiation logic.

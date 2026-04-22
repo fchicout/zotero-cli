@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
-import requests
+
+import pytest
+
 from zotero_cli.infra.dblp_api import DBLPAPIClient
-from zotero_cli.core.models import ResearchPaper
+
 
 @pytest.fixture
 def client():
@@ -48,7 +49,7 @@ def test_get_paper_metadata_success(client):
             }
         }
     }
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("search query")
         assert paper.title == "Found Paper"
@@ -58,7 +59,7 @@ def test_get_paper_metadata_success(client):
 def test_get_paper_metadata_not_found(client):
     mock_response = MagicMock()
     mock_response.json.return_value = {"result": {"hits": {}}}
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("none")
         assert paper is None

@@ -169,7 +169,7 @@ class CSVInboundService:
         status_val = row.get(col_map.get("vote", "Vote"))
         if status_val is None:
             status_val = row.get("status") or row.get("Vote") or ""
-        
+
         status = str(status_val).lower()
         if "include" in status or "accept" in status:
             decision = "accepted"

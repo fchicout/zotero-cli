@@ -39,7 +39,7 @@ def test_slr_screen_aliases(mock_screen_service, mock_gateway, env_vars):
         "--exclude", "MyExcCol"
     ]
 
-    with patch("zotero_cli.cli.tui.factory.TUIFactory.get_screening_tui") as mock_tui_factory:
+    with patch("zotero_cli.cli.tui.factory.TUIFactory.get_screening_tui") as _:
         with patch.object(sys, "argv", test_args):
             # We expect it to NOT throw "unrecognized arguments: --source"
             # It might print "No pending items found" because we returned []

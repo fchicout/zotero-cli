@@ -48,7 +48,8 @@ def test_rag_full_flow(tmp_path, monkeypatch):
     service = GatewayFactory.get_rag_service()
 
     # A. Ingest
-    stats = service.ingest_collection("Test")
+    stats = service.ingest(collection_key="Test")
+
     assert stats["processed"] == 1
 
     # B. Query

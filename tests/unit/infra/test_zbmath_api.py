@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
-import requests
+
+import pytest
+
 from zotero_cli.infra.zbmath_api import zbMATHAPIClient
-from zotero_cli.core.models import ResearchPaper
+
 
 @pytest.fixture
 def client():
@@ -32,7 +33,7 @@ def test_get_paper_metadata_doi(client):
     mock_response.json.return_value = {
         "results": [{"title": "Paper by DOI", "doi": "10.1/1"}]
     }
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("10.1/1")
         assert paper.title == "Paper by DOI"
@@ -45,7 +46,7 @@ def test_get_paper_metadata_zbl(client):
     mock_response.json.return_value = {
         "results": [{"title": "Paper by Zbl", "zbl_id": "123.456"}]
     }
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("123.456")
         assert paper.title == "Paper by Zbl"
@@ -55,7 +56,7 @@ def test_get_paper_metadata_zbl(client):
 def test_get_paper_metadata_not_found(client):
     mock_response = MagicMock()
     mock_response.json.return_value = {"results": []}
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("none")
         assert paper is None

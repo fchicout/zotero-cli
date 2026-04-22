@@ -1,6 +1,5 @@
-import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Iterator
+from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from zotero_cli.core.interfaces import (
     EmbeddingProvider,
@@ -8,9 +7,14 @@ from zotero_cli.core.interfaces import (
     VectorRepository,
     ZoteroGateway,
 )
-from zotero_cli.core.models import SearchResult, VectorChunk
-from zotero_cli.core.zotero_item import ZoteroItem
+from zotero_cli.core.models import (
+    ScreeningStatus,
+    SearchResult,
+    VectorChunk,
+    VerifiedSearchResult,
+)
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
+from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +78,7 @@ class RAGServiceBase(RAGService):
         for item in items_stream:
             # Progress callback for the generator loop (even if skipped)
             # This allows the progress bar to move while fetching/filtering
-            
+
             # Fetch children ONCE for all filters if needed
             children = None
             if approved_only or min_qa_score is not None:
@@ -123,7 +127,7 @@ class RAGServiceBase(RAGService):
 
             self.vector_repo.store_chunks(vector_chunks)
             stats["processed"] += 1
-            
+
             if on_item_processed:
                 on_item_processed(item)
 
@@ -132,7 +136,7 @@ class RAGServiceBase(RAGService):
     def _is_item_approved(self, item: ZoteroItem, children: Optional[List[Dict[str, Any]]] = None) -> bool:
         if "rsl:include" in item.tags:
             return True
-        
+
         if children is None:
             children = self.gateway.get_item_children(item.key)
 
@@ -177,11 +181,11 @@ class RAGServiceBase(RAGService):
         if purge_all:
             self.vector_repo.purge_all()
             return {"deleted_all": True}
-        
+
         if item_key:
             self.vector_repo.delete_chunks_by_item(item_key)
             return {"deleted_item": item_key}
-            
+
         if collection_key:
             col_id = self.gateway.get_collection_id_by_name(collection_key) or collection_key
             items = list(self.gateway.get_items_in_collection(col_id))
@@ -189,8 +193,78 @@ class RAGServiceBase(RAGService):
                 self.vector_repo.delete_chunks_by_item(item.key)
                 deleted_count += 1
             return {"deleted_collection": collection_key, "items_cleared": deleted_count}
-            
+
         return {"error": "No purge criteria provided"}
+
+    def verify_results(self, results: List[SearchResult]) -> List[VerifiedSearchResult]:
+        """
+        Verifies search results for academic integrity and metadata completeness.
+        """
+        verified_results = []
+        for res in results:
+            item = res.item or self.gateway.get_item(res.item_key)
+
+            is_verified = True
+            errors = []
+
+            if not item:
+                is_verified = False
+                errors.append("Item not found in Zotero")
+            else:
+                if not item.has_identifier():
+                    is_verified = False
+                    errors.append("Missing DOI or arXiv ID")
+                if not item.title:
+                    is_verified = False
+                    errors.append("Missing Title")
+                if not item.abstract:
+                    is_verified = False
+                    errors.append("Missing Abstract")
+
+            # Screening status
+            screening_status = ScreeningStatus.UNKNOWN
+            if item:
+                if "rsl:include" in item.tags:
+                    screening_status = ScreeningStatus.ACCEPTED
+                elif "rsl:exclude" in item.tags:
+                    screening_status = ScreeningStatus.REJECTED
+                else:
+                    # Check for screening note
+                    children = self.gateway.get_item_children(item.key)
+                    for child in children:
+                        if child.get("data", {}).get("itemType") == "note":
+                            note_text = child.get("data", {}).get("note", "")
+                            parsed = parse_sdb_note(note_text)
+                            if parsed and parsed.get("action") == "screening_decision":
+                                decision = parsed.get("decision")
+                                if decision == "accepted":
+                                    screening_status = ScreeningStatus.ACCEPTED
+                                elif decision == "rejected":
+                                    screening_status = ScreeningStatus.REJECTED
+                                break
+
+            # Citation key
+            citation_key = getattr(item, 'raw_data', {}).get('data', {}).get('citationKey')
+            if not citation_key and item and item.extra:
+                for line in item.extra.split("\n"):
+                    if line.lower().startswith("citation key:"):
+                        citation_key = line.split(":", 1)[1].strip()
+                        break
+
+            verified_results.append(
+                VerifiedSearchResult(
+                    item_key=res.item_key,
+                    text=res.text,
+                    score=res.score,
+                    metadata=res.metadata,
+                    item=item,
+                    is_verified=is_verified,
+                    verification_errors=errors,
+                    screening_status=screening_status,
+                    citation_key=citation_key
+                )
+            )
+        return verified_results
 
     def query(self, prompt: str, top_k: int = 5) -> List[SearchResult]:
         """

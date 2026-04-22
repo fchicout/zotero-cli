@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
-import requests
+
+import pytest
+
 from zotero_cli.infra.pubmed_api import PubMedAPIClient
-from zotero_cli.core.models import ResearchPaper
+
 
 @pytest.fixture
 def client():
@@ -20,7 +21,7 @@ def test_resolve_pmcid_to_pmid_success(client):
     mock_response.json.return_value = {
         "records": [{"pmcid": "PMC123", "pmid": "456"}]
     }
-    
+
     with patch("requests.get", return_value=mock_response):
         pmid = client._resolve_pmcid_to_pmid("PMC123")
         assert pmid == "456"
@@ -72,7 +73,7 @@ def test_parse_pubmed_xml(client):
 def test_get_paper_metadata_pmid(client):
     mock_response = MagicMock()
     mock_response.text = "<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>1</PMID></MedlineCitation></PubmedArticle></PubmedArticleSet>"
-    
+
     with patch.object(client, "_get", return_value=mock_response):
         with patch.object(client, "_parse_pubmed_xml") as mock_parse:
             client.get_paper_metadata("1")
@@ -81,7 +82,7 @@ def test_get_paper_metadata_pmid(client):
 def test_get_paper_metadata_pmcid(client):
     mock_response = MagicMock()
     mock_response.text = "xml"
-    
+
     with patch.object(client, "_resolve_pmcid_to_pmid", return_value="1"):
         with patch.object(client, "_get", return_value=mock_response):
             client.get_paper_metadata("PMC123")

@@ -24,9 +24,9 @@ class BackupService:
         self.version = "1.1"
 
     def backup_collection(
-        self, 
-        collection_key: str, 
-        output: Union[str, IO[bytes]], 
+        self,
+        collection_key: str,
+        output: Union[str, IO[bytes]],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None
     ):
         """
@@ -54,8 +54,8 @@ class BackupService:
         self._write_zip(output, manifest, items, on_item_processed)
 
     def backup_system(
-        self, 
-        output: Union[str, IO[bytes]], 
+        self,
+        output: Union[str, IO[bytes]],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None
     ):
         """
@@ -74,15 +74,15 @@ class BackupService:
         self._write_zip(output, manifest, items, on_item_processed)
 
     def _write_zip(
-        self, 
-        output: Union[str, IO[bytes]], 
-        manifest: dict, 
+        self,
+        output: Union[str, IO[bytes]],
+        manifest: dict,
         items: List[ZoteroItem],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None
     ):
         # Use LZMA if available (standard in Py3.3+)
         compression = zipfile.ZIP_LZMA if hasattr(zipfile, "ZIP_LZMA") else zipfile.ZIP_DEFLATED
-        
+
         errors: List[str] = []
         item_data: List[Dict[str, Any]] = []
         processed_keys: Set[str] = set()
@@ -91,13 +91,13 @@ class BackupService:
             for item in items:
                 if item.key in processed_keys:
                     continue
-                
+
                 item_data.append(item.raw_data)
                 processed_keys.add(item.key)
-                
+
                 # Process children
                 self._process_item_recursive(item, zf, manifest, errors, item_data, processed_keys)
-                
+
                 # Notify progress
                 if on_item_processed:
                     on_item_processed(item)
@@ -107,7 +107,7 @@ class BackupService:
 
             # Write Data
             zf.writestr("data.json", json.dumps(item_data, indent=2))
-            
+
             # Write collections structure for library backups
             if manifest["scope_type"] == "library":
                 collections = self.gateway.get_all_collections()
@@ -118,10 +118,10 @@ class BackupService:
                 zf.writestr("errors.log", "\n".join(errors))
 
     def _process_item_recursive(
-        self, 
-        item: ZoteroItem, 
-        zf: zipfile.ZipFile, 
-        manifest: dict, 
+        self,
+        item: ZoteroItem,
+        zf: zipfile.ZipFile,
+        manifest: dict,
         errors: List[str],
         item_data: List[Dict[str, Any]],
         processed_keys: Set[str]
@@ -137,7 +137,7 @@ class BackupService:
             child_key = child_raw.get("key")
             if not child_key or child_key in processed_keys:
                 continue
-                
+
             child = self.gateway.get_item(child_key)
             if not child:
                 errors.append(f"Could not fetch child item {child_key} for parent {item.key}")
@@ -155,19 +155,19 @@ class BackupService:
                     try:
                         with tempfile.NamedTemporaryFile(delete=False) as tf:
                             temp_path = tf.name
-                        
+
                         if self.gateway.download_attachment(child_key, temp_path):
                             zf.write(temp_path, storage_path)
                             manifest["file_map"][child_key] = storage_path
                         else:
                             errors.append(f"Failed to download attachment {child_key} ({filename})")
-                        
+
                         if os.path.exists(temp_path):
                             os.remove(temp_path)
                     except Exception as e:
                         errors.append(f"Error processing attachment {child_key}: {str(e)}")
                         if 'temp_path' in locals() and os.path.exists(temp_path):
                             os.remove(temp_path)
-            
+
             # Recurse
             self._process_item_recursive(child, zf, manifest, errors, item_data, processed_keys)
