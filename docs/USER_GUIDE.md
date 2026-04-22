@@ -1,4 +1,4 @@
-# User Guide (v2.0.0)
+# User Guide (v2.6.0)
 
 ## Table of Contents
 1.  [Getting Started](#getting-started)
@@ -16,6 +16,8 @@ zotero-cli init
 ```
 
 ## 1. Setup and Configuration
+
+For a detailed step-by-step tutorial on finding your API Key and IDs, see the [Setup Guide](SETUP_GUIDE.md).
 
 ### 1.1 Authentication
 The `zotero-cli` requires your Zotero API Key and Library information.
