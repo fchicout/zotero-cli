@@ -110,7 +110,7 @@ jobs:
           echo "VERSION=$numericVersion" >> $env:GITHUB_OUTPUT
 
       - name: Install WiX Toolset
-        run: dotnet tool install --global wix
+        run: dotnet tool install --global wix --version 4.0.1
 
       - name: Build MSI Installer
         run: |
