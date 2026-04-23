@@ -13,6 +13,7 @@ from zotero_cli.cli.commands.slr import (
     ScreenCommand,
     SDBCommand,
     SnowballCommand,
+    StatusCommand,
     VerifyCommand,
 )
 from zotero_cli.core.services.audit_service import CollectionAuditor
@@ -97,6 +98,14 @@ Cognitive Safeguards
 """
         )
         LoadCommand.register_args(load_p)
+
+        status_p = sub.add_parser(
+            "status",
+            help="Displays a quantitative summary of the SLR funnel",
+            description="Scans all raw_* collections and their phase sub-folders to report the current screening progress. Silently ensures the 4-phase hierarchy exists for every source.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
+        StatusCommand.register_args(status_p)
 
         # --- Verification ---
         verify_p = sub.add_parser(
@@ -383,6 +392,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             DecideCommand.execute(args)
         elif args.verb == "load":
             LoadCommand.execute(gateway, args)
+        elif args.verb == "status":
+            StatusCommand.execute(args)
         elif args.verb == "verify":
             VerifyCommand.execute(gateway, args)
         elif args.verb == "lookup":

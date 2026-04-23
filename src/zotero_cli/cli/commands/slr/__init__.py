@@ -4,6 +4,7 @@ from .load_cmd import LoadCommand
 from .screen_cmd import ScreenCommand
 from .sdb_cmd import SDBCommand
 from .snowball_cmd import SnowballCommand
+from .status_cmd import StatusCommand
 from .verify_cmd import VerifyCommand
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "SnowballCommand",
     "VerifyCommand",
     "SDBCommand",
+    "StatusCommand",
 ]
