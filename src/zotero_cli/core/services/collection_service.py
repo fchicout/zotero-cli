@@ -154,11 +154,18 @@ class CollectionService:
 
             # ENFORCE IDENTITY: Children must have EXACTLY the same collections as parent
             if current_cols != parent_cols:
-                update_payload.append({
+                payload = {
                     "key": key,
                     "version": version,
                     "collections": target_cols_list
-                })
+                }
+                
+                # CRITICAL: If item has a parent, it MUST be preserved in the bulk POST
+                # otherwise Zotero API clears the relationship (orphaning).
+                if fresh_item.parent_item:
+                    payload["parentItem"] = fresh_item.parent_item
+                    
+                update_payload.append(payload)
 
         if not update_payload:
             return True

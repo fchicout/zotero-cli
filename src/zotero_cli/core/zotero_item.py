@@ -8,6 +8,7 @@ class ZoteroItem:
     key: str
     version: int
     item_type: str
+    parent_item: Optional[str] = None
     collections: List[str] = field(default_factory=list)
     tags: List[str] = field(default_factory=list)
     title: Optional[str] = None
@@ -55,6 +56,7 @@ class ZoteroItem:
             key=raw_item["key"],
             version=data.get("version", 0),
             item_type=data.get("itemType", "unknown"),
+            parent_item=data.get("parentItem"),
             title=data.get("title"),
             abstract=data.get("abstractNote"),
             doi=doi,
