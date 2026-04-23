@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
+from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
 
 @dataclass
 class PhaseStats:
@@ -23,17 +24,10 @@ class SLRStatusService:
     Orchestrates SLR status reporting by analyzing the physical displacement 
     of items between phase folders and their internal SDB metadata.
     """
-    
-    # Ordered flow of the SLR protocol
-    PHASE_FLOW = [
-        {"id": "title_abstract", "folder": "1-title_abstract", "label": "1-T&A"},
-        {"id": "full_text", "folder": "2-fulltext", "label": "2-FT"},
-        {"id": "quality_assessment", "folder": "3-quality_assessment", "label": "3-QA"},
-        {"id": "data_extraction", "folder": "4-data_extraction", "label": "4-DE"}
-    ]
 
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
+        self.orchestrator = SLROrchestrator(gateway)
 
     def get_slr_status(self) -> List[SLRStatus]:
         all_collections = self.gateway.get_all_collections()
@@ -47,15 +41,15 @@ class SLRStatusService:
             source_key = raw_col["key"]
             source_name = raw_col["data"]["name"]
             
-            # Ensure hierarchy and get keys
-            phase_map = self._ensure_hierarchy(source_key, all_collections)
+            # Ensure hierarchy and get keys via orchestrator
+            phase_map = self.orchestrator.ensure_slr_hierarchy(source_key, all_collections)
             
             status = SLRStatus(source_name=source_name, source_key=source_key)
             
             # The "Root" folder is the source for the first phase
             source_for_next_phase = source_key
             
-            for phase_cfg in self.PHASE_FLOW:
+            for phase_cfg in self.orchestrator.PHASE_FLOW:
                 phase_id = phase_cfg["id"]
                 folder_name = phase_cfg["folder"]
                 folder_key = phase_map.get(folder_name)
@@ -92,24 +86,6 @@ class SLRStatusService:
             results.append(status)
             
         return results
-
-    def _ensure_hierarchy(self, parent_key: str, all_cols: List[dict]) -> Dict[str, str]:
-        existing_subfolders = {
-            c["data"]["name"]: c["key"] 
-            for c in all_cols 
-            if c["data"].get("parentCollection") == parent_key
-        }
-        
-        phase_map = {}
-        for phase_cfg in self.PHASE_FLOW:
-            name = phase_cfg["folder"]
-            if name in existing_subfolders:
-                phase_map[name] = existing_subfolders[name]
-            else:
-                new_key = self.gateway.create_collection(name, parent_key=parent_key)
-                if new_key:
-                    phase_map[name] = new_key
-        return phase_map
 
     def _get_phase_decision(self, children: List[dict], phase_id: str) -> Optional[str]:
         for child in children:
