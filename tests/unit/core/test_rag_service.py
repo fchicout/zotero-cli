@@ -16,21 +16,20 @@ def mock_deps():
     return gateway, vector_repo, embedding_provider, attachment_service
 
 @pytest.mark.unit
-def test_rag_ingest_intersection_logic(mock_deps):
+def test_rag_ingest_logic_v1_1(mock_deps):
     gateway, vector_repo, embedding_provider, attachment_service = mock_deps
 
-    # 1. Setup Items: One approved but low QA, one approved and high QA
+    # 1. Setup Items: One low QA, one high QA
     item_low_qa = MagicMock()
     item_low_qa.key = "LOW_QA"
-    item_low_qa.tags = ["rsl:include"]
     note_low = {"data": {"itemType": "note", "note": '{"action": "data_extraction", "quality_score": 0.3, "sdb_version": "1.2"}'}}
 
     item_high_qa = MagicMock()
     item_high_qa.key = "HIGH_QA"
-    item_high_qa.tags = ["rsl:include"]
     note_high = {"data": {"itemType": "note", "note": '{"action": "data_extraction", "quality_score": 0.9, "sdb_version": "1.2"}'}}
 
-    gateway.get_all_items.return_value = iter([item_low_qa, item_high_qa])
+    # Mock gateway.get_item and get_item_children
+    gateway.get_item.side_effect = lambda k: item_low_qa if k == "LOW_QA" else (item_high_qa if k == "HIGH_QA" else None)
     gateway.get_item_children.side_effect = lambda k: [note_low] if k == "LOW_QA" else ([note_high] if k == "HIGH_QA" else [])
 
     attachment_service.get_fulltext.return_value = "text"
@@ -38,8 +37,9 @@ def test_rag_ingest_intersection_logic(mock_deps):
 
     service = RAGServiceBase(gateway, vector_repo, embedding_provider, attachment_service)
 
-    # 2. Action: Ingest with BOTH approved=True AND min_qa=0.8
-    result = service.ingest(approved_only=True, min_qa_score=0.8)
+    # 2. Action: Ingest with pre-selected keys and min_qa=0.8
+    # Selection (Approved filtering) now happens at the CLI/Selection level
+    result = service.ingest(item_keys=["LOW_QA", "HIGH_QA"], min_qa_score=0.8)
 
     # 3. Verify: Only HIGH_QA should be processed
     assert result["processed"] == 1
@@ -49,12 +49,10 @@ def test_rag_ingest_intersection_logic(mock_deps):
 @pytest.mark.unit
 def test_rag_ingest_prune_logic(mock_deps):
     gateway, vector_repo, embedding_provider, attachment_service = mock_deps
-    gateway.get_all_items.return_value = iter([])
-
     service = RAGServiceBase(gateway, vector_repo, embedding_provider, attachment_service)
 
     # Prune should call purge_all
-    service.ingest(prune=True)
+    service.ingest(item_keys=[], prune=True)
     vector_repo.purge_all.assert_called_once()
 
 @pytest.mark.unit

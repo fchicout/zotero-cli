@@ -107,7 +107,7 @@ class NoteRepository(ABC):
         pass
 
     @abstractmethod
-    def update_note(self, note_key: str, version: int, note_content: str) -> bool:
+    def update_note(self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None) -> bool:
         pass
 
     @abstractmethod
@@ -289,15 +289,33 @@ class VectorRepository(ABC):
         pass
 
 
+class FullTextProvider(ABC):
+    """
+    Interface for providing full text content for research items [SPEC-RAG-003].
+    """
+
+    @abstractmethod
+    def get_fulltext(self, item_key: str) -> Optional[str]:
+        pass
+
+
+class TextSplitter(ABC):
+    """
+    Strategy interface for splitting text into chunks [SPEC-RAG-003].
+    """
+
+    @abstractmethod
+    def split_text(self, text: str) -> List[str]:
+        pass
+
+
 class RAGService(ABC):
     @abstractmethod
     def ingest(
         self,
-        collection_key: Optional[str] = None,
-        item_key: Optional[str] = None,
-        approved_only: bool = False,
-        min_qa_score: Optional[float] = None,
+        item_keys: List[str],
         prune: bool = False,
+        min_qa_score: Optional[float] = None,
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
     ) -> Dict[str, Any]:
         pass

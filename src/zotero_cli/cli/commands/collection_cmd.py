@@ -4,6 +4,7 @@ import sys
 
 from rich.console import Console
 from rich.table import Table
+from rich.tree import Tree
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.services.backup_service import BackupService
@@ -22,27 +23,26 @@ class CollectionCommand(BaseCommand):
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # List
-        sub.add_parser(
+        list_p = sub.add_parser(
             "list",
             help="List all collections",
-            description="Displays a structured list of all collections (folders) available in the active Zotero library, including their unique keys and hierarchical relationships.",
+            description="Displays a hierarchical tree of all collections available in the active Zotero library. Each node shows the collection name and its unique ZoteroID in parentheses.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
-Scenario: Finding a collection key for a new task
-Problem: I need to run a RAG ingestion on a specific folder, but I only know its name is "Deep Learning."
+Scenario: Visualizing the library structure
+Problem: I have a complex hierarchy and want to see how my "raw_" folders are organized.
 Action:  zotero-cli collection list
-Result:  The table displays all collections. I locate "Deep Learning" and find its key is G5H6J7K8.
+Result:  An ASCII tree showing the parent-child relationships.
 
-Cognitive Safeguards
---------------------
-• Common Failure Modes: Attempting to run in offline mode without a pre-existing local database synchronization.
-• Safety Tips: If your library has a very deep hierarchy, the table will display parent keys. Use these keys to distinguish between collections with the same name.
-
-Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_list.md
+Scenario: Getting a flat table view
+Problem: I need to copy-paste multiple keys into a spreadsheet.
+Action:  zotero-cli collection list --table
+Result:  A standard flat table with Name, Key, and Item count.
 """,
         )
+        list_p.add_argument("--table", action="store_true", help="Display results as a flat table instead of a tree")
 
         # Create
         create_p = sub.add_parser(
@@ -340,13 +340,54 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
     def _handle_list(self, gateway, args):
         cols = gateway.get_all_collections()
-        table = Table(title="Zotero Collections")
-        table.add_column("Name")
-        table.add_column("Key", style="cyan")
-        table.add_column("Items", justify="right")
+        
+        if args.table:
+            table = Table(title="Zotero Collections")
+            table.add_column("Name")
+            table.add_column("Key", style="cyan")
+            table.add_column("Items", justify="right")
+            for c in cols:
+                table.add_row(c["data"]["name"], c["key"], str(c["meta"].get("numItems", 0)))
+            console.print(table)
+            return
+
+        # Tree View [DEFAULT]
+        # 1. Build map of key -> children
+        by_parent = {}
+        by_key = {}
         for c in cols:
-            table.add_row(c["data"]["name"], c["key"], str(c["meta"].get("numItems", 0)))
-        console.print(table)
+            by_key[c["key"]] = c
+            parent = c["data"].get("parentCollection")
+            if not parent:
+                parent = "ROOT"
+            if parent not in by_parent:
+                by_parent[parent] = []
+            by_parent[parent].append(c)
+
+        # 2. Sort by name
+        for p in by_parent:
+            by_parent[p].sort(key=lambda x: x["data"]["name"])
+
+        # 3. Build Tree
+        tree = Tree("Zotero Library (ROOT)")
+        
+        def add_nodes(parent_tree, parent_key):
+            children = by_parent.get(parent_key, [])
+            for child in children:
+                name = child["data"]["name"]
+                key = child["key"]
+                items = child["meta"].get("numItems", 0)
+                
+                # Format node: Name (Key) [Items]
+                node_text = f"[bold green]{name}[/bold green] ([cyan]{key}[/cyan])"
+                if items > 0:
+                    node_text += f" [dim]({items} items)[/dim]"
+                
+                node = parent_tree.add(node_text)
+                add_nodes(node, key)
+
+        add_nodes(tree, "ROOT")
+        console.print(tree)
 
     def _handle_purge(self, args):
         from rich.prompt import Confirm

@@ -796,6 +796,12 @@ class GatewayFactory:
             config, force_user, offline=offline
         )
 
-        from zotero_cli.core.services.rag_service import RAGServiceBase
+        from zotero_cli.core.services.rag_service import FixedSizeChunker, RAGServiceBase
 
-        return RAGServiceBase(gateway, vector_repo, embedding_provider, attachment_service)
+        return RAGServiceBase(
+            gateway,
+            vector_repo,
+            embedding_provider,
+            attachment_service,
+            text_splitter=FixedSizeChunker(chunk_size=1000),
+        )

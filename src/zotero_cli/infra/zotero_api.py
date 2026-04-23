@@ -312,8 +312,10 @@ class ZoteroAPIClient(ZoteroGateway):
             print(f"Error creating note for {parent_item_key}: {e}")
             return False
 
-    def update_note(self, note_key: str, version: int, note_content: str) -> bool:
+    def update_note(self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None) -> bool:
         payload = {"note": note_content, "version": version}
+        if parent_item_key:
+            payload["parentItem"] = parent_item_key
         try:
             response = self.http.patch(f"items/{note_key}", json_data=payload, version_check=False)
             if response.status_code == 412:

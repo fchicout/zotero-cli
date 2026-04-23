@@ -145,29 +145,47 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             TextColumn,
             TimeRemainingColumn,
         )
+        from zotero_cli.core.models import ZoteroQuery
 
         force_user = getattr(args, "user", False)
         rag_service = GatewayFactory.get_rag_service(force_user=force_user)
+        gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
         if args.verb == "ingest":
             mode_desc = []
+            
+            # Selection Strategy [SPEC-RAG-001]
+            query = ZoteroQuery()
             if args.collection:
+                col_id = gateway.get_collection_id_by_name(args.collection) or args.collection
+                query.item_type = "-attachment" # Exclude attachments from main search
+                # Currently search_items might not support collection filter directly in ZoteroQuery 
+                # but we can get items in collection
                 mode_desc.append(f"collection '{args.collection}'")
+                items = list(gateway.get_items_in_collection(col_id))
             elif args.key:
                 mode_desc.append(f"item '{args.key}'")
+                item = gateway.get_item(args.key)
+                items = [item] if item else []
             else:
                 mode_desc.append("entire library")
+                items = list(gateway.get_all_items())
 
+            # Filter by tag if approved_only [SPEC-RAG-001]
             if args.approved:
                 mode_desc.append("approved items")
+                items = [item for item in items if "rsl:include" in item.tags]
+            
             if args.qa_limit is not None:
                 mode_desc.append(f"QA limit >= {args.qa_limit}")
 
+            item_keys = [item.key for item in items]
             final_desc = " + ".join(mode_desc)
+            
             if args.prune:
                 console.print("[bold red]Pruning vector store before start...[/bold red]")
 
-            console.print(f"[bold]Streaming ingestion from {final_desc}...[/bold]")
+            console.print(f"[bold]Streaming ingestion for {len(item_keys)} items...[/bold]")
 
             with Progress(
                 TextColumn("[progress.description]{task.description}"),
@@ -176,17 +194,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 TimeRemainingColumn(),
                 console=console,
             ) as progress:
-                task = progress.add_task("Fetching & Filtering...", total=None)
+                # Atomic Progress [SPEC-RAG-004]
+                task = progress.add_task("Ingesting...", total=len(item_keys))
 
                 def on_item(item):
                     progress.update(task, advance=1, description=f"Ingesting: {item.key}")
 
                 stats = rag_service.ingest(
-                    collection_key=args.collection,
-                    item_key=args.key,
-                    approved_only=args.approved,
-                    min_qa_score=args.qa_limit,
+                    item_keys=item_keys,
                     prune=args.prune,
+                    min_qa_score=args.qa_limit,
                     on_item_processed=on_item
                 )
 

@@ -10,6 +10,7 @@ import requests
 from zotero_cli.core.interfaces import (
     AttachmentRepository,
     CollectionRepository,
+    FullTextProvider,
     ItemRepository,
     NoteRepository,
 )
@@ -20,7 +21,7 @@ from zotero_cli.core.utils.slugify import slugify
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
-class AttachmentService:
+class AttachmentService(FullTextProvider):
     def __init__(
         self,
         item_repo: ItemRepository,
@@ -191,11 +192,18 @@ class AttachmentService:
         return False
 
     def _download_file(self, url: str) -> Optional[str]:
+        """
+        Downloads a file to a temporary location.
+        Note: The caller is responsible for moving or deleting the file 
+        if it's not within a managed TemporaryDirectory.
+        """
         try:
             response = requests.get(url, stream=True, timeout=30)
             response.raise_for_status()
 
-            # Create temp file
+            # Create temp file in a way that allows us to return the path
+            # but we should ideally use a managed dir if possible.
+            # For this internal helper, mkstemp is okay if callers cleanup.
             fd, path = tempfile.mkstemp(suffix=".pdf")
             with os.fdopen(fd, "wb") as tmp:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -208,33 +216,32 @@ class AttachmentService:
     def get_fulltext(self, item_key: str) -> Optional[str]:
         """
         Retrieves the full text of an item's PDF attachment as Markdown.
+        Ensures zero-persistence of temporary files [SPEC-RAG-005].
         """
         # 1. Find PDF attachment
         attachment_key = self._get_pdf_attachment_key(item_key)
         if not attachment_key:
             return None
 
-        # 2. Download attachment to temp file
-        fd, temp_path = tempfile.mkstemp(suffix=".pdf")
-        os.close(fd)
+        # 2. Use TemporaryDirectory for strict lifecycle control
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_path = os.path.join(tmp_dir, f"{attachment_key}.pdf")
 
-        try:
-            success = self.attachment_repo.download_attachment(attachment_key, temp_path)
-            if not success:
+            try:
+                success = self.attachment_repo.download_attachment(attachment_key, temp_path)
+                if not success:
+                    return None
+
+                # 3. Extract text using markitdown
+                from markitdown import MarkItDown
+
+                md = MarkItDown()
+                result = md.convert(temp_path)
+                return result.text_content
+            except Exception as e:
+                print(f"Full-text extraction error for {item_key}: {e}")
                 return None
-
-            # 3. Extract text using markitdown
-            from markitdown import MarkItDown
-
-            md = MarkItDown()
-            result = md.convert(temp_path)
-            return result.text_content
-        except Exception as e:
-            print(f"Full-text extraction error for {item_key}: {e}")
-            return None
-        finally:
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
+            # No finally block needed here as TemporaryDirectory cleans up on __exit__
 
     def _get_pdf_attachment_key(self, item_key: str) -> Optional[str]:
         children = self.note_repo.get_item_children(item_key)
