@@ -35,7 +35,19 @@ class ItemRepository(ABC):
         pass
 
     @abstractmethod
+    def update_items(self, items_data: List[Dict[str, Any]]) -> bool:
+        """
+        Updates multiple items in a single request.
+        Each dict must contain 'key' and 'version'.
+        """
+        pass
+
+    @abstractmethod
     def delete_item(self, item_key: str, version: int) -> bool:
+        pass
+
+    @abstractmethod
+    def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod

@@ -303,6 +303,25 @@ class ZoteroAPIClient(ZoteroGateway):
             print(f"Error updating item {item_key}: {e}")
             return False
 
+    def update_items(self, items_data: List[Dict[str, Any]]) -> bool:
+        if not items_data:
+            return True
+        try:
+            # Zotero API supports up to 50 items in a single multi-item request
+            chunk_size = 50
+            all_success = True
+            for i in range(0, len(items_data), chunk_size):
+                chunk = items_data[i : i + chunk_size]
+                response = self.http.post("items", json_data=chunk, version_check=False)
+                # Parse response to check for individual failures if needed
+                # For now, response.raise_for_status() in http.post handles errors
+                if response.status_code not in [200, 204, 207]:
+                    all_success = False
+            return all_success
+        except Exception as e:
+            print(f"Error updating bulk items: {e}")
+            return False
+
     def create_note(self, parent_item_key: str, note_content: str) -> bool:
         payload = [{"itemType": "note", "parentItem": parent_item_key, "note": note_content}]
         try:

@@ -118,26 +118,52 @@ class CollectionService:
         return identifier.strip().lower()
 
     def _perform_move(self, item: ZoteroItem, source_id: Optional[str], dest_id: Optional[str]) -> bool:
-        key = item.key
-        version = item.version
-        current_cols = set(item.collections)
+        """
+        Performs a 'sticky' move by ensuring the item and all its children (notes, attachments)
+        share the EXACT same collection membership as the parent after the move.
+        """
+        # 1. Calculate the NEW collection set for the parent
+        parent_cols = set(item.collections)
+        if source_id and source_id in parent_cols:
+            parent_cols.remove(source_id)
+        if dest_id:
+            parent_cols.add(dest_id)
+        
+        target_cols_list = list(parent_cols)
 
-        if dest_id and dest_id in current_cols and source_id and source_id not in current_cols:
+        # 2. Fetch children keys/versions
+        children_data = self.item_repo.get_item_children(item.key)
+        
+        # 3. Build the list of all objects to update (Parent + Children)
+        all_to_update = [item.raw_data]
+        for child in children_data:
+            all_to_update.append(child)
+
+        update_payload = []
+        for obj in all_to_update:
+            data = obj.get("data", obj)
+            key = obj.get("key") or data.get("key")
+            
+            # RE-FETCH to get latest version (crucial for sequential moves)
+            fresh_item = self.item_repo.get_item(key)
+            if not fresh_item:
+                continue
+                
+            current_cols = set(fresh_item.collections)
+            version = fresh_item.version
+
+            # ENFORCE IDENTITY: Children must have EXACTLY the same collections as parent
+            if current_cols != parent_cols:
+                update_payload.append({
+                    "key": key,
+                    "version": version,
+                    "collections": target_cols_list
+                })
+
+        if not update_payload:
             return True
 
-        new_cols = current_cols.copy()
-        if source_id and source_id in new_cols:
-            new_cols.remove(source_id)
-
-        if dest_id:
-            new_cols.add(dest_id)
-        else:
-            # Moving to root means it should be in zero collections if it's an exclusive move
-            # However, Zotero "Unfiled" are just items with no collections.
-            # If we remove the source collection and don't add a new one, it becomes unfiled.
-            pass
-
-        return self.item_repo.update_item(key, version, {"collections": list(new_cols)})
+        return self.item_repo.update_items(update_payload)
 
     def get_or_create_collection_id(self, name: str) -> str:
         col_id = self.collection_repo.get_collection_id_by_name(name)

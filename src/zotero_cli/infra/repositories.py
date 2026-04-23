@@ -31,8 +31,14 @@ class ZoteroItemRepository(ItemRepository):
     def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool:
         return self.gateway.update_item(item_key, version, item_data)
 
+    def update_items(self, items_data: List[Dict[str, Any]]) -> bool:
+        return self.gateway.update_items(items_data)
+
     def delete_item(self, item_key: str, version: int) -> bool:
         return self.gateway.delete_item(item_key, version)
+
+    def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
+        return self.gateway.get_item_children(item_key)
 
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
         return self.gateway.get_items_by_tag(tag)

@@ -46,9 +46,22 @@ class ZoteroHttpClient:
         response.raise_for_status()
         return response
 
-    def post(self, endpoint: str, json_data: Any, use_prefix: bool = True) -> requests.Response:
+    def post(
+        self,
+        endpoint: str,
+        json_data: Any,
+        use_prefix: bool = True,
+        headers: Optional[Dict] = None,
+        version_check: bool = False,
+    ) -> requests.Response:
         url = f"{self.api_prefix}/{endpoint}" if use_prefix else f"{self.BASE_URL}/{endpoint}"
-        response = self.session.post(url, json=json_data)
+        h = dict(self.session.headers).copy()
+        if headers:
+            h.update(headers)
+        if version_check:
+            h["If-Unmodified-Since-Version"] = str(self.last_library_version)
+
+        response = self.session.post(url, json=json_data, headers=h)
         self._update_version(response)
         response.raise_for_status()
         return response
