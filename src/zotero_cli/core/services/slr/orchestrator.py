@@ -71,33 +71,73 @@ class SLROrchestrator:
                     
         return list(unique_papers.values())
 
-    def resolve_target_phase(self, item_key: str) -> Optional[str]:
+    def resolve_target_phase(self, item_key: str, default_qa_threshold: float = 2.0) -> Optional[str]:
         """
-        Determines the highest phase an item reached by parsing its child SDB notes.
-        Returns the phase_id (e.g. 'full_text') or None if no positive decisions.
+        Determines the highest phase an item reached by validating the SLR pipeline 
+        sequentially. A paper stops advancing at the FIRST phase it fails to win.
         """
         children = self.gateway.get_item_children(item_key)
-        highest_phase_id = None
         
-        # Priority mapping (Higher index = higher phase)
-        phase_order = [p["id"] for p in self.PHASE_FLOW]
-        highest_index = -1
-
+        # Parse all notes once to avoid repeated parsing in the loop
+        parsed_notes = []
         for child in children:
             if child.get("data", {}).get("itemType") == "note":
                 parsed = parse_sdb_note(child.get("data", {}).get("note", ""))
                 if parsed:
-                    phase_id = parsed.get("phase")
-                    decision = str(parsed.get("decision", "")).lower()
-                    
-                    if decision in ["accepted", "approved", "included"]:
-                        if phase_id in phase_order:
-                            idx = phase_order.index(phase_id)
-                            if idx > highest_index:
-                                highest_index = idx
-                                highest_phase_id = phase_id
+                    parsed_notes.append(parsed)
+
+        highest_won_phase_id = None
+        
+        # Iterate through the pipeline in strict order
+        for phase_cfg in self.PHASE_FLOW:
+            phase_id = phase_cfg["id"]
+            
+            # Check if any note for THIS phase satisfies the victory condition
+            phase_notes = [n for n in parsed_notes if n.get("phase") == phase_id]
+            
+            won_this_phase = False
+            for note in phase_notes:
+                if self._evaluate_phase_success(phase_id, note, default_qa_threshold):
+                    won_this_phase = True
+                    break
+            
+            if won_this_phase:
+                highest_won_phase_id = phase_id
+            else:
+                # PIPELINE BREAK: Paper failed this gate. It cannot advance further.
+                break
                                 
-        return highest_phase_id
+        return highest_won_phase_id
+
+    def _evaluate_phase_success(self, phase_id: str, note_data: dict, default_threshold: float) -> bool:
+        """
+        Victory Condition Strategy.
+        - quality_assessment: total >= threshold
+        - others: decision == accepted/approved/included
+        """
+        if phase_id == "quality_assessment":
+            # Extract total score
+            qa_block = note_data.get("quality_assessment", {})
+            if not isinstance(qa_block, dict):
+                # Handle legacy/flat structure if present
+                qa_block = note_data.get("data", {}).get("quality_assessment", {})
+            
+            raw_total = qa_block.get("total") if isinstance(qa_block, dict) else None
+            
+            if raw_total is None:
+                return False
+                
+            try:
+                total = float(raw_total)
+                # Look for 'limit' or 'threshold' in the note, fall back to system default
+                limit = qa_block.get("limit") or qa_block.get("threshold") or default_threshold
+                return total >= float(limit)
+            except (ValueError, TypeError):
+                return False
+
+        # Default string-based decision gate
+        decision = str(note_data.get("decision", "")).lower()
+        return decision in ["accepted", "approved", "included"]
 
     def get_folder_key_for_phase(self, root_key: str, phase_id: Optional[str]) -> str:
         """
