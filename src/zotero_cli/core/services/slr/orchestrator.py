@@ -113,3 +113,25 @@ class SLROrchestrator:
         target_folder_name = next((p["folder"] for p in self.PHASE_FLOW if p["id"] == phase_id), None)
         
         return phase_map.get(target_folder_name, root_key)
+
+    def get_promotion_path(self, root_key: str, phase_id: str) -> tuple[Optional[str], Optional[str]]:
+        """
+        Returns (source_folder_key, target_folder_key) for a given phase promotion.
+        """
+        phase_map = self.ensure_slr_hierarchy(root_key)
+        phase_ids = [p["id"] for p in self.PHASE_FLOW]
+        
+        if phase_id not in phase_ids:
+            return None, None
+
+        idx = phase_ids.index(phase_id)
+        target_folder_name = self.PHASE_FLOW[idx]["folder"]
+        target_key = phase_map.get(target_folder_name)
+
+        if idx == 0:
+            source_key = root_key
+        else:
+            prev_folder_name = self.PHASE_FLOW[idx - 1]["folder"]
+            source_key = phase_map.get(prev_folder_name)
+
+        return source_key, target_key
