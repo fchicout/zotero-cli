@@ -17,6 +17,7 @@ class ReconcileCommand:
     def register_args(parser: argparse.ArgumentParser):
         parser.description = "Synchronizes the physical folder location of papers with their highest verified SLR phase."
         parser.add_argument("--tree", required=True, help="Root collection name or key (e.g. raw_acm)")
+        parser.add_argument("--qa-threshold", type=float, default=2.0, help="Minimum total score for QA success (default: 2.0)")
         parser.add_argument("--execute", action="store_true", help="Perform the actual displacement moves")
         parser.add_argument("--verbose", action="store_true", help="Show detailed move logs")
 
@@ -42,7 +43,7 @@ class ReconcileCommand:
             
             # 3. Resolve State & Diff for each paper
             for paper in papers:
-                target_phase_id = orchestrator.resolve_target_phase(paper.key)
+                target_phase_id = orchestrator.resolve_target_phase(paper.key, default_qa_threshold=args.qa_threshold)
                 target_folder_key = orchestrator.get_folder_key_for_phase(root_key, target_phase_id)
                 
                 current_cols = set(paper.collections)

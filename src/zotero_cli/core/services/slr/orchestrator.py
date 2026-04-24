@@ -71,11 +71,14 @@ class SLROrchestrator:
                     
         return list(unique_papers.values())
 
-    def resolve_target_phase(self, item_key: str, default_qa_threshold: float = 2.0) -> Optional[str]:
+    def resolve_target_phase(self, item_key: str, default_qa_threshold: Optional[float] = None) -> Optional[str]:
         """
         Determines the highest phase an item reached by validating the SLR pipeline 
         sequentially. A paper stops advancing at the FIRST phase it fails to win.
         """
+        # Use system default if not provided
+        threshold = default_qa_threshold if default_qa_threshold is not None else 2.0
+        
         children = self.gateway.get_item_children(item_key)
         
         # Parse all notes once to avoid repeated parsing in the loop
@@ -97,7 +100,7 @@ class SLROrchestrator:
             
             won_this_phase = False
             for note in phase_notes:
-                if self._evaluate_phase_success(phase_id, note, default_qa_threshold):
+                if self._evaluate_phase_success(phase_id, note, threshold):
                     won_this_phase = True
                     break
             
