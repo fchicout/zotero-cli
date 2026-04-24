@@ -10,6 +10,7 @@ from zotero_cli.cli.commands.slr import (
     DecideCommand,
     ExtractionCommand,
     LoadCommand,
+    PromoteCommand,
     ReconcileCommand,
     ScreenCommand,
     SDBCommand,
@@ -115,6 +116,14 @@ Cognitive Safeguards
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
         ReconcileCommand.register_args(reconcile_p)
+
+        promote_p = sub.add_parser(
+            "promote",
+            help="Atomic decision and folder displacement",
+            description="Records a screening decision (Include/Exclude) and automatically moves the paper into its target phase folder if accepted.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
+        PromoteCommand.register_args(promote_p)
 
         # --- Verification ---
         verify_p = sub.add_parser(
@@ -405,6 +414,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             StatusCommand.execute(args)
         elif args.verb == "reconcile":
             ReconcileCommand.execute(args)
+        elif args.verb == "promote":
+            PromoteCommand.execute(args)
         elif args.verb == "verify":
             VerifyCommand.execute(gateway, args)
         elif args.verb == "lookup":
