@@ -36,12 +36,30 @@ class StatusCommand:
         table.add_column("3-QA (Acc/Ref/Pen)")
         table.add_column("4-DE (Extracted)")
 
+        totals = {
+            "root": 0,
+            "title_abstract": {"accepted": 0, "rejected": 0, "pending": 0},
+            "full_text": {"accepted": 0, "rejected": 0, "pending": 0},
+            "quality_assessment": {"accepted": 0, "rejected": 0, "pending": 0},
+            "data_extraction": {"accepted": 0}
+        }
+
         for s in statuses:
             # Helper to format stats using correct phase IDs
             def fmt(phase_id):
                 stats = s.phases.get(phase_id)
                 if not stats: return "-"
+                # Update Totals
+                totals[phase_id]["accepted"] += stats.accepted
+                totals[phase_id]["rejected"] += stats.rejected
+                totals[phase_id]["pending"] += stats.pending
                 return f"[green]{stats.accepted}[/green]/[orange_red1]{stats.rejected}[/orange_red1]/[dim]{stats.pending}[/dim]"
+
+            de_stats = s.phases.get('data_extraction')
+            if de_stats:
+                totals["data_extraction"]["accepted"] += de_stats.accepted
+                
+            totals["root"] += s.total_in_root
 
             table.add_row(
                 f"[bold cyan]{s.source_name}[/bold cyan] ({s.source_key})",
@@ -49,7 +67,17 @@ class StatusCommand:
                 fmt("title_abstract"),
                 fmt("full_text"),
                 fmt("quality_assessment"),
-                f"[bold blue]{s.phases.get('data_extraction').accepted}[/bold blue]" if s.phases.get('data_extraction') else "-"
+                f"[bold blue]{de_stats.accepted}[/bold blue]" if de_stats else "-"
             )
+
+        table.add_section()
+        table.add_row(
+            "[bold yellow]TOTAL (SUM)[/bold yellow]",
+            f"[bold white]{totals['root']}[/bold white]",
+            f"[bold green]{totals['title_abstract']['accepted']}[/bold green]/[bold orange_red1]{totals['title_abstract']['rejected']}[/bold orange_red1]/[bold dim]{totals['title_abstract']['pending']}[/bold dim]",
+            f"[bold green]{totals['full_text']['accepted']}[/bold green]/[bold orange_red1]{totals['full_text']['rejected']}[/bold orange_red1]/[bold dim]{totals['full_text']['pending']}[/bold dim]",
+            f"[bold green]{totals['quality_assessment']['accepted']}[/bold green]/[bold orange_red1]{totals['quality_assessment']['rejected']}[/bold orange_red1]/[bold dim]{totals['quality_assessment']['pending']}[/bold dim]",
+            f"[bold blue]{totals['data_extraction']['accepted']}[/bold blue]"
+        )
 
         console.print(table)
