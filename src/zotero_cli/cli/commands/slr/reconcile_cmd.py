@@ -64,7 +64,7 @@ class ReconcileCommand:
                     })
 
         if not planned_moves:
-            console.print("[bold green]Tree is perfectly synchronized. No moves needed.[/bold green]")
+            console.print(f"[bold green]Tree '{args.tree}' is perfectly synchronized. No moves needed.[/bold green]")
             return
 
         # 4. Report Plan
