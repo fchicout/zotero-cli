@@ -69,8 +69,10 @@ class RAGServiceBase(RAGService):
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
     ) -> Dict[str, Any]:
         """
-        Refactored ingestion with metadata hydration [SPEC-RAG-001].
+        Refactored ingestion with parallel processing and metadata hydration [SPEC-RAG-001].
         """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
         # 1. Full Prune if requested
         if prune:
             logger.info("Pruning entire vector store before ingestion.")
@@ -82,44 +84,35 @@ class RAGServiceBase(RAGService):
             "skipped_low_qa": 0,
         }
 
-        for key in item_keys:
+        all_vector_chunks = []
+
+        def process_item(key: str) -> Optional[List[VectorChunk]]:
             item = self.gateway.get_item(key)
             if not item:
-                continue
+                return None
 
             # A. Resolve SDB Metadata once per paper
             qa_score = self._get_item_max_qa_score(item)
             citation_key = self.citation_service.resolve_citation_key(item)
             target_phase = self.orchestrator.resolve_target_phase(item.key, default_qa_threshold=min_qa_score)
 
-            # B. Filter: QA Score [SPEC-RAG-002]
+            # B. Filter: QA Score
             if min_qa_score is not None:
                 if qa_score < min_qa_score:
-                    stats["skipped_low_qa"] += 1
-                    if on_item_processed:
-                        on_item_processed(item)
-                    continue
+                    return {"status": "low_qa", "item": item}
 
-            # C. Ingest
-            # Idempotency: Clear existing chunks for this item if not pruned globally
-            if not prune:
-                self.vector_repo.delete_chunks_by_item(item.key)
-
-            # Extract text
+            # C. Extract text
             text = self.fulltext_provider.get_fulltext(item.key)
             if not text:
-                stats["skipped_no_text"] += 1
-                if on_item_processed:
-                    on_item_processed(item)
-                continue
+                return {"status": "no_text", "item": item}
 
-            # Chunk, Embed & Store
+            # D. Transform: Chunk & Embed
             chunks_text = self.text_splitter.split_text(text)
             embeddings = self.embedding_provider.embed_batch(chunks_text)
 
-            vector_chunks = []
+            item_chunks = []
             for i, (chunk_text, embedding) in enumerate(zip(chunks_text, embeddings)):
-                vector_chunks.append(
+                item_chunks.append(
                     VectorChunk(
                         item_key=item.key,
                         chunk_index=i,
@@ -130,12 +123,40 @@ class RAGServiceBase(RAGService):
                         phase_folder=target_phase,
                     )
                 )
+            
+            return {"status": "success", "item": item, "chunks": item_chunks}
 
-            self.vector_repo.store_chunks(vector_chunks)
-            stats["processed"] += 1
+        # 2. Dispatch to ThreadPool
+        # Use a reasonable number of workers to avoid API rate limits (e.g. 5)
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_key = {executor.submit(process_item, key): key for key in item_keys}
+            
+            for future in as_completed(future_to_key):
+                result = future.result()
+                if not result:
+                    continue
+                
+                item = result["item"]
+                status = result["status"]
+                
+                if status == "success":
+                    # Idempotency: Clear existing chunks if not pruned globally
+                    if not prune:
+                        self.vector_repo.delete_chunks_by_item(item.key)
+                    
+                    all_vector_chunks.extend(result["chunks"])
+                    stats["processed"] += 1
+                elif status == "low_qa":
+                    stats["skipped_low_qa"] += 1
+                elif status == "no_text":
+                    stats["skipped_no_text"] += 1
 
-            if on_item_processed:
-                on_item_processed(item)
+                if on_item_processed:
+                    on_item_processed(item)
+
+        # 3. Final Bulk Commit
+        if all_vector_chunks:
+            self.vector_repo.store_chunks(all_vector_chunks)
 
         return stats
 
