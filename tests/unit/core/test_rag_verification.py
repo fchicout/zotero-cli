@@ -26,7 +26,7 @@ def test_rag_service_verify_results_interface():
     mock_vector_repo = MagicMock()
     mock_embedding_provider = MagicMock()
     mock_gateway = MagicMock()
-    
+
     from zotero_cli.core.zotero_item import ZoteroItem
     mock_item = ZoteroItem.from_raw_zotero_item({
         "key": "KEY1",

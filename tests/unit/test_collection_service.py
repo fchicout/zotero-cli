@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -34,7 +34,7 @@ def test_move_item_success_doi(service, mock_gateway):
         },
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
-    
+
     # First call None (trigger search), subsequent calls return item (re-fetch)
     mock_gateway.get_item.side_effect = [None, item, item, item]
     mock_gateway.get_items_in_collection.return_value = iter([item])
