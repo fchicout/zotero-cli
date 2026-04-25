@@ -15,6 +15,8 @@ from zotero_cli.core.models import (
     VectorChunk,
     VerifiedSearchResult,
 )
+from zotero_cli.core.services.slr.citation_service import CitationService
+from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -56,6 +58,8 @@ class RAGServiceBase(RAGService):
         self.embedding_provider = embedding_provider
         self.fulltext_provider = fulltext_provider
         self.text_splitter = text_splitter or FixedSizeChunker()
+        self.citation_service = CitationService()
+        self.orchestrator = SLROrchestrator(gateway)
 
     def ingest(
         self,
@@ -65,7 +69,7 @@ class RAGServiceBase(RAGService):
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
     ) -> Dict[str, Any]:
         """
-        Refactored ingestion with pre-selected item keys [SPEC-RAG-001].
+        Refactored ingestion with metadata hydration [SPEC-RAG-001].
         """
         # 1. Full Prune if requested
         if prune:
@@ -83,16 +87,20 @@ class RAGServiceBase(RAGService):
             if not item:
                 continue
 
-            # A. Filter: QA Score [SPEC-RAG-002]
+            # A. Resolve SDB Metadata once per paper
+            qa_score = self._get_item_max_qa_score(item)
+            citation_key = self.citation_service.resolve_citation_key(item)
+            target_phase = self.orchestrator.resolve_target_phase(item.key, default_qa_threshold=min_qa_score)
+
+            # B. Filter: QA Score [SPEC-RAG-002]
             if min_qa_score is not None:
-                qa_score = self._get_item_max_qa_score(item)
                 if qa_score < min_qa_score:
                     stats["skipped_low_qa"] += 1
                     if on_item_processed:
                         on_item_processed(item)
                     continue
 
-            # B. Ingest
+            # C. Ingest
             # Idempotency: Clear existing chunks for this item if not pruned globally
             if not prune:
                 self.vector_repo.delete_chunks_by_item(item.key)
@@ -113,7 +121,13 @@ class RAGServiceBase(RAGService):
             for i, (chunk_text, embedding) in enumerate(zip(chunks_text, embeddings)):
                 vector_chunks.append(
                     VectorChunk(
-                        item_key=item.key, chunk_index=i, text=chunk_text, embedding=embedding
+                        item_key=item.key,
+                        chunk_index=i,
+                        text=chunk_text,
+                        embedding=embedding,
+                        citation_key=citation_key,
+                        qa_score=qa_score if qa_score >= 0 else None,
+                        phase_folder=target_phase,
                     )
                 )
 
@@ -127,8 +141,8 @@ class RAGServiceBase(RAGService):
 
     def _get_item_max_qa_score(self, item: ZoteroItem) -> float:
         """
-        Extracts max QA score using the high-fidelity path [SPEC-RAG-002].
-        Path: data -> quality_assessment -> total
+        Extracts QA score from the dedicated 'quality_assessment' phase note.
+        Adheres to the 4-step SDB strategy.
         """
         max_score = -1.0
         children = self.gateway.get_item_children(item.key)
@@ -137,14 +151,20 @@ class RAGServiceBase(RAGService):
             if child_raw.get("data", {}).get("itemType") == "note":
                 note_content = child_raw.get("data", {}).get("note", "")
                 parsed = parse_sdb_note(note_content)
-                if parsed and parsed.get("action") == "data_extraction":
-                    # Correct path per [SPEC-RAG-002]
-                    data_block = parsed.get("data", {})
-                    qa_block = data_block.get("quality_assessment", {})
-                    score = qa_block.get("total")
+                if not parsed:
+                    continue
 
-                    # Fallback to legacy path if new path is missing
-                    if score is None:
+                # Support both quality_assessment phase AND legacy data_extraction action
+                is_qa_phase = parsed.get("phase") == "quality_assessment"
+                is_ext_action = parsed.get("action") == "data_extraction"
+                
+                if is_qa_phase or is_ext_action:
+                    data_block = parsed.get("data", {})
+                    qa_block = data_block.get("quality_assessment") or parsed.get("quality_assessment")
+                    
+                    if isinstance(qa_block, dict):
+                        score = qa_block.get("total")
+                    else:
                         score = parsed.get("quality_score") or data_block.get("quality_score")
 
                     if score is not None:
@@ -232,12 +252,7 @@ class RAGServiceBase(RAGService):
                                 break
 
             # Citation key
-            citation_key = getattr(item, 'raw_data', {}).get('data', {}).get('citationKey')
-            if not citation_key and item and item.extra:
-                for line in item.extra.split("\n"):
-                    if line.lower().startswith("citation key:"):
-                        citation_key = line.split(":", 1)[1].strip()
-                        break
+            citation_key = self.citation_service.resolve_citation_key(item) if item else None
 
             verified_results.append(
                 VerifiedSearchResult(
