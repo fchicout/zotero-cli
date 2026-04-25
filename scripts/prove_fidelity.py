@@ -1,5 +1,6 @@
 import json
 from dataclasses import asdict
+
 from zotero_cli.core.models import SearchResult
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -13,10 +14,10 @@ high_fidelity_text = (
 
 # 2. Simulate a SearchResult with metadata
 item = ZoteroItem(
-    key="V4L3R1U5", 
-    version=1, 
-    item_type="journalArticle", 
-    title="The Gemny Doctrine", 
+    key="V4L3R1U5",
+    version=1,
+    item_type="journalArticle",
+    title="The Gemny Doctrine",
     doi="10.1234/gemny.2026",
     authors=["Valerius", "Argentis"]
 )
