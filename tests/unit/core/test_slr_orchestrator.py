@@ -30,8 +30,9 @@ def test_ensure_slr_hierarchy_existing(orchestrator, mock_gateway):
     mock_gateway.create_collection.assert_not_called()
 
 def test_ensure_slr_hierarchy_missing(orchestrator, mock_gateway):
+    from typing import Any, Dict, List
     parent_key = "ROOT"
-    all_cols = []
+    all_cols: List[Dict[str, Any]] = []
     mock_gateway.create_collection.side_effect = ["NEW1", "NEW2", "NEW3", "NEW4"]
 
     phase_map = orchestrator.ensure_slr_hierarchy(parent_key, all_cols)

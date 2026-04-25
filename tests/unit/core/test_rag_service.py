@@ -82,5 +82,6 @@ def test_rag_query(mock_deps):
 
     assert len(results) == 1
     assert results[0].item_key == "KEY1"
+    assert results[0].item is not None
     assert results[0].item.title == "Sample Paper"
     gateway.get_item.assert_called_once_with("KEY1")
