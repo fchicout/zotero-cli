@@ -22,6 +22,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[dev]"
 
+      - name: Lint with Ruff
+        run: |
+          ruff check .
+
+      - name: Type Check with Mypy
+        run: |
+          mypy .
+
       - name: Run Tests
         run: |
           pytest tests/unit --cov=zotero_cli --cov-report=xml

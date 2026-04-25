@@ -1,6 +1,7 @@
 import re
-from typing import Optional
+
 from zotero_cli.core.zotero_item import ZoteroItem
+
 
 class CitationService:
     """
@@ -13,29 +14,22 @@ class CitationService:
 
     def resolve_citation_key(self, item: ZoteroItem) -> str:
         # 1. Check 'extra' field for 'Citation Key: KEY'
-        extra = item.raw_data.get("data", {}).get("extra", "")
-        if extra:
-            match = re.search(r"citation key:\s*(\S+)", extra, re.I)
+        if item.extra:
+            match = re.search(r"citation key:\s*(\S+)", item.extra, re.I)
             if match:
                 return match.group(1)
 
-        # 2. Check for native Zotero citationKey (if present in some exports)
-        key = item.raw_data.get("data", {}).get("citationKey")
-        if key:
-            return str(key)
-
-        # 3. Fallback: Generate from Authors and Year
+        # 2. Fallback: Generate from Authors and Year
         author = "Unknown"
-        creators = item.raw_data.get("data", {}).get("creators", [])
-        for c in creators:
+        for c in item.creators:
             if c.get("creatorType") == "author":
                 author = c.get("lastName") or c.get("name") or "Unknown"
                 break
-        
+
         # Clean author name (remove spaces/special chars)
         author = re.sub(r"\W+", "", author)
-        
-        year = item.raw_data.get("data", {}).get("date", "")
+
+        year = item.date or ""
         year_match = re.search(r"\d{4}", year)
         year_str = year_match.group(0) if year_match else "n.d."
 

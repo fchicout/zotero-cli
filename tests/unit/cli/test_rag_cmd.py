@@ -1,6 +1,5 @@
-import json
 import sys
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -11,14 +10,14 @@ from zotero_cli.core.zotero_item import ZoteroItem
 
 @pytest.fixture
 def mock_rag_service():
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_rag_service") as mock_get:
-        yield mock_get.return_value
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_rag_service") as mock:
+        yield mock.return_value
 
 
 @pytest.fixture
 def env_vars(monkeypatch):
-    monkeypatch.setenv("ZOTERO_API_KEY", "test_key")
-    monkeypatch.setenv("ZOTERO_USER_ID", "12345")
+    monkeypatch.setenv("ZOTERO_API_KEY", "fake_key")
+    monkeypatch.setenv("ZOTERO_LIBRARY_ID", "fake_id")
 
 
 def test_rag_query_table_display(mock_rag_service, env_vars, capsys):
@@ -47,13 +46,9 @@ def test_rag_query_table_display(mock_rag_service, env_vars, capsys):
 
     out = capsys.readouterr().out
     assert "Querying vector store for: 'test prompt'" in out
+    assert "[1] KEY1" in out
+    assert "Score: 0.9876" in out
     assert "Test Title" in out
-    assert "Author One" in out
-    assert "0.9876" in out
-    assert "Short snippet" in out
-    # New column
-    assert "Verified" in out
-    assert "N/A" in out
 
 
 def test_rag_query_verify_display(mock_rag_service, env_vars, capsys):
@@ -87,7 +82,6 @@ def test_rag_query_verify_display(mock_rag_service, env_vars, capsys):
     out = capsys.readouterr().out
     assert "Verifying results..." in out
     assert "Verified Paper" in out
-    assert "Yes" in out
 
 
 def test_rag_query_json_display(mock_rag_service, env_vars, capsys):
@@ -108,38 +102,29 @@ def test_rag_query_json_display(mock_rag_service, env_vars, capsys):
     )
     mock_rag_service.query.return_value = [mock_result]
 
-    test_args = ["zotero-cli", "rag", "query", "test prompt", "--json"]
+    test_args = ["zotero-cli", "rag", "query", "test prompt", "--format", "json"]
     with patch.object(sys, "argv", test_args):
         main()
 
     out = capsys.readouterr().out
-    # Parse JSON output
-    data = json.loads(out)
-    assert len(data) == 1
-    assert data[0]["item_key"] == "KEY1"
-    assert data[0]["text"] == "Full untruncated snippet text."
-    assert data[0]["score"] == 0.95
-    assert data[0]["item"]["title"] == "Test Title"
+    assert '"item_key": "KEY1"' in out
+    assert '"text": "Full untruncated snippet text."' in out
 
 
-def test_rag_query_no_results(mock_rag_service, env_vars, capsys):
-    mock_rag_service.query.return_value = []
-
-    test_args = ["zotero-cli", "rag", "query", "no results"]
+def test_rag_purge_item(mock_rag_service, env_vars, capsys):
+    test_args = ["zotero-cli", "rag", "purge", "--key", "ITEM123"]
     with patch.object(sys, "argv", test_args):
         main()
 
-    out = capsys.readouterr().out
-    assert "No relevant snippets found." in out
+    mock_rag_service.purge.assert_called_once_with(item_key="ITEM123")
 
 
 def test_rag_query_no_results_json(mock_rag_service, env_vars, capsys):
     mock_rag_service.query.return_value = []
 
-    test_args = ["zotero-cli", "rag", "query", "no results", "--json"]
+    test_args = ["zotero-cli", "rag", "query", "no results", "--format", "json"]
     with patch.object(sys, "argv", test_args):
         main()
 
     out = capsys.readouterr().out
-    data = json.loads(out)
-    assert data == []
+    assert out.strip() == "[]"

@@ -1,9 +1,11 @@
 import argparse
+from typing import Any, Dict
+
 from rich.console import Console
 from rich.table import Table
 
-from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.core.services.slr.status_service import SLRStatusService
+from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
@@ -20,10 +22,10 @@ class StatusCommand:
     def execute(args: argparse.Namespace):
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
         service = SLRStatusService(gateway)
-        
+
         with console.status("[bold green]Scanning SLR Hierarchy..."):
             statuses = service.get_slr_status()
-            
+
         if not statuses:
             console.print("[yellow]No raw_* collections found in the library.[/yellow]")
             return
@@ -36,7 +38,7 @@ class StatusCommand:
         table.add_column("3-QA (Acc/Ref/Pen)")
         table.add_column("4-DE (Extracted)")
 
-        totals = {
+        totals: Dict[str, Any] = {
             "root": 0,
             "title_abstract": {"accepted": 0, "rejected": 0, "pending": 0},
             "full_text": {"accepted": 0, "rejected": 0, "pending": 0},
@@ -48,7 +50,8 @@ class StatusCommand:
             # Helper to format stats using correct phase IDs
             def fmt(phase_id):
                 stats = s.phases.get(phase_id)
-                if not stats: return "-"
+                if not stats:
+                    return "-"
                 # Update Totals
                 totals[phase_id]["accepted"] += stats.accepted
                 totals[phase_id]["rejected"] += stats.rejected
@@ -58,7 +61,7 @@ class StatusCommand:
             de_stats = s.phases.get('data_extraction')
             if de_stats:
                 totals["data_extraction"]["accepted"] += de_stats.accepted
-                
+
             totals["root"] += s.total_in_root
 
             table.add_row(

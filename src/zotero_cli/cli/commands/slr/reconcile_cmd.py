@@ -1,10 +1,10 @@
 import argparse
-import sys
+
 from rich.console import Console
 from rich.table import Table
 
-from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
+from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
@@ -23,11 +23,15 @@ class ReconcileCommand:
 
     @staticmethod
     def execute(args: argparse.Namespace):
+        from typing import Any, Dict, List
+
+        from zotero_cli.core.zotero_item import ZoteroItem
+
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
         orchestrator = SLROrchestrator(gateway)
         coll_service = GatewayFactory.get_collection_service(force_user=force_user)
-        
+
         # 1. Resolve Tree Root
         root_key = gateway.get_collection_id_by_name(args.tree) or args.tree
         if not gateway.get_collection(root_key):
@@ -36,25 +40,25 @@ class ReconcileCommand:
 
         with console.status(f"[bold green]Auditing SLR Tree: {args.tree}..."):
             # 2. Aggregation: Get all papers in tree
-            papers = orchestrator.get_all_papers_in_tree(root_key)
+            papers: List[ZoteroItem] = orchestrator.get_all_papers_in_tree(root_key)
             tree_keys = set(orchestrator.get_tree_keys(root_key))
-            
-            planned_moves = []
-            
+
+            planned_moves: List[Dict[str, Any]] = []
+
             # 3. Resolve State & Diff for each paper
             for paper in papers:
                 target_phase_id = orchestrator.resolve_target_phase(paper.key, default_qa_threshold=args.qa_threshold)
                 target_folder_key = orchestrator.get_folder_key_for_phase(root_key, target_phase_id)
-                
+
                 current_cols = set(paper.collections)
-                
+
                 # Check for "Exclusive Membership" violation:
                 # - Paper must be in target_folder_key
                 # - Paper must NOT be in any other tree_keys
                 other_tree_cols = (current_cols & tree_keys) - {target_folder_key}
-                
+
                 needs_move = (target_folder_key not in current_cols) or (len(other_tree_cols) > 0)
-                
+
                 if needs_move:
                     planned_moves.append({
                         "paper": paper,
@@ -79,7 +83,7 @@ class ReconcileCommand:
             for ckey in m["current"]:
                 c = gateway.get_collection(ckey)
                 curr_names.append(c["data"]["name"] if c else ckey)
-                
+
             target_name = "Root"
             if m["target_id"] != root_key:
                 tc = gateway.get_collection(m["target_id"])
@@ -103,25 +107,24 @@ class ReconcileCommand:
             for i, m in enumerate(planned_moves):
                 p = m["paper"]
                 status.update(f"[bold blue]Moving {i+1}/{len(planned_moves)}: {p.key}...")
-                
-                # We use the coll_service._perform_move directly because we want 
+
+                # We use the coll_service._perform_move directly because we want
                 # to clear ALL other tree keys at once (exclusive membership).
                 # _perform_move(item, source_id, target_id) clears source_id.
                 # But here we want a stronger guarantee.
-                
+
                 # Calculate the exact collection set we want
                 other_collections = set(p.collections) - tree_keys
-                final_collections = list(other_collections | {m["target_id"]})
-                
+                list(other_collections | {m["target_id"]})
+
                 # Fetch children and perform bulk update (re-using the logic from _perform_move)
-                # For simplicity and reliability, we let the existing move_item handle it 
+                # For simplicity and reliability, we let the existing move_item handle it
                 # but we might need a multi-source removal.
-                
+
                 # RECONCILE STRATEGY: Move to target from whatever tree key it was in.
                 # If it was in multiple, we loop.
-                move_success = True
                 sources = m["current"] if m["current"] else [None]
-                
+
                 # First move establishes the target and removes ONE source.
                 first_src = sources[0]
                 if coll_service.move_item(first_src, m["target_id"], p.key):
@@ -130,6 +133,6 @@ class ReconcileCommand:
                         coll_service.move_item(extra_src, m["target_id"], p.key)
                     success_count += 1
                 else:
-                    move_success = False
+                    pass
 
         console.print(f"\n[bold green]RECONCILE COMPLETE:[/bold green] {success_count} items synchronized.")

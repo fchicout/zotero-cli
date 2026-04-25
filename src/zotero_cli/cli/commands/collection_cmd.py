@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import sys
+from typing import Any, Dict, List, Optional
 
 from rich.console import Console
 from rich.table import Table
@@ -340,7 +341,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
     def _handle_list(self, gateway, args):
         cols = gateway.get_all_collections()
-        
+
         if args.table:
             table = Table(title="Zotero Collections")
             table.add_column("Name")
@@ -353,7 +354,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         # Tree View [DEFAULT]
         # 1. Build map of key -> children
-        by_parent = {}
+        by_parent: Dict[Optional[str], List[Dict[str, Any]]] = {}
         by_key = {}
         for c in cols:
             by_key[c["key"]] = c
@@ -370,19 +371,19 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         # 3. Build Tree
         tree = Tree("Zotero Library (ROOT)")
-        
+
         def add_nodes(parent_tree, parent_key):
             children = by_parent.get(parent_key, [])
             for child in children:
                 name = child["data"]["name"]
                 key = child["key"]
                 items = child["meta"].get("numItems", 0)
-                
+
                 # Format node: Name (Key) [Items]
                 node_text = f"[bold green]{name}[/bold green] ([cyan]{key}[/cyan])"
                 if items > 0:
                     node_text += f" [dim]({items} items)[/dim]"
-                
+
                 node = parent_tree.add(node_text)
                 add_nodes(node, key)
 

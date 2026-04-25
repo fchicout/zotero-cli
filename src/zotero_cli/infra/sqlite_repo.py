@@ -232,7 +232,7 @@ class SqliteZoteroGateway(ZoteroGateway):
         finally:
             conn.close()
 
-    # --- Write Operations (FORBIDDEN) ---
+    # --- Write Operations (FORBIDDEN in Offline mode) ---
 
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
         raise ConfigurationError("Offline mode is read-only")
@@ -244,6 +244,9 @@ class SqliteZoteroGateway(ZoteroGateway):
         raise ConfigurationError("Offline mode is read-only")
 
     def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool:
+        raise ConfigurationError("Offline mode is read-only")
+
+    def update_items(self, items_data: List[Dict[str, Any]]) -> bool:
         raise ConfigurationError("Offline mode is read-only")
 
     def delete_item(self, item_key: str, version: int) -> bool:
@@ -267,7 +270,7 @@ class SqliteZoteroGateway(ZoteroGateway):
     def create_note(self, parent_item_key: str, note_content: str) -> bool:
         raise ConfigurationError("Offline mode is read-only")
 
-    def update_note(self, note_key: str, version: int, note_content: str) -> bool:
+    def update_note(self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None) -> bool:
         raise ConfigurationError("Offline mode is read-only")
 
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
@@ -279,7 +282,7 @@ class SqliteZoteroGateway(ZoteroGateway):
         raise ConfigurationError("Offline mode is read-only")
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:
-        raise ConfigurationError("Offline mode is read-only (local file access not implemented)")
+        raise ConfigurationError("Offline mode is read-only")
 
     def update_attachment_link(self, item_key: str, version: int, new_path: str) -> bool:
         raise ConfigurationError("Offline mode is read-only")

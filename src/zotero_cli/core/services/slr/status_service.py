@@ -1,10 +1,10 @@
-import json
-from typing import Dict, List, Optional
 from dataclasses import dataclass, field
+from typing import Dict, List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
+from zotero_cli.core.utils.sdb_parser import parse_sdb_note
+
 
 @dataclass
 class PhaseStats:
@@ -21,7 +21,7 @@ class SLRStatus:
 
 class SLRStatusService:
     """
-    Orchestrates SLR status reporting by analyzing the physical displacement 
+    Orchestrates SLR status reporting by analyzing the physical displacement
     of items between phase folders and their internal SDB metadata.
     """
 
@@ -32,59 +32,59 @@ class SLRStatusService:
     def get_slr_status(self) -> List[SLRStatus]:
         all_collections = self.gateway.get_all_collections()
         raw_collections = [
-            c for c in all_collections 
+            c for c in all_collections
             if c["data"]["name"].startswith("raw_") and not c["data"].get("parentCollection")
         ]
-        
+
         results = []
         for raw_col in raw_collections:
             source_key = raw_col["key"]
             source_name = raw_col["data"]["name"]
-            
+
             # Ensure hierarchy and get keys via orchestrator
             phase_map = self.orchestrator.ensure_slr_hierarchy(source_key, all_collections)
-            
+
             status = SLRStatus(source_name=source_name, source_key=source_key)
-            
+
             # The "Root" folder is the source for the first phase
             source_for_next_phase = source_key
-            
+
             for phase_cfg in self.orchestrator.PHASE_FLOW:
                 phase_id = phase_cfg["id"]
                 folder_name = phase_cfg["folder"]
                 folder_key = phase_map.get(folder_name)
-                
+
                 stats = PhaseStats()
-                
+
                 # 1. Accepted: Count papers actually in the target folder
                 if folder_key:
                     folder_items = list(self.gateway.get_items_in_collection(folder_key))
                     stats.accepted = len([i for i in folder_items if i.raw_data["data"].get("itemType") not in ["attachment", "note"]])
-                
+
                 # 2. Rejected & Pending: Count papers in the SOURCE folder looking for notes of THIS phase
                 source_items = list(self.gateway.get_items_in_collection(source_for_next_phase))
                 source_papers = [i for i in source_items if i.raw_data["data"].get("itemType") not in ["attachment", "note"]]
-                
+
                 if source_for_next_phase == source_key:
                     status.total_in_root = len(source_papers)
 
                 for paper in source_papers:
                     children = self.gateway.get_item_children(paper.key)
                     decision = self._get_phase_decision(children, phase_id)
-                    
+
                     if decision == "rejected":
                         stats.rejected += 1
                     elif decision is None:
                         # No note for this phase in the source folder means it's pending evaluation
                         stats.pending += 1
-                
+
                 status.phases[phase_id] = stats
-                
+
                 # The current folder becomes the source for the next phase in the loop
                 source_for_next_phase = folder_key
-                
+
             results.append(status)
-            
+
         return results
 
     def _get_phase_decision(self, children: List[dict], phase_id: str) -> Optional[str]:

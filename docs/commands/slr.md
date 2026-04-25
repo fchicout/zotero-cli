@@ -92,6 +92,30 @@ zotero-cli slr load "decisions.csv" --reviewer "Persona" --phase "title_abstract
 - **Problem:** Screened 500 papers in Rayyan and exported a CSV. Need decisions reflected in Zotero.
 - **Action:** `zotero-cli slr load --file "rayyan_export.csv" --reviewer "Chicout" --phase "full_text" --move-to-included "Accepted" --force`
 
+### `status`
+Displays a quantitative summary of the SLR funnel across all `raw_*` sources. Silently ensures the 4-phase hierarchy exists for every source.
+
+**Usage:**
+```bash
+zotero-cli slr status
+```
+
+### `reconcile`
+Synchronizes physical folder locations with SDB audit notes. Automatically moves papers to their correct phase folder based on verified decisions. Enforces exclusive membership in exactly one phase folder per SLR tree.
+
+**Usage:**
+```bash
+zotero-cli slr reconcile --tree "raw_source" [--qa-threshold 5.0] [--execute]
+```
+
+### `promote`
+Atomic command to record a screening decision (Include/Exclude) and automatically move the paper into its target phase folder if accepted. Reuses the "Sticky Move" logic to carry children along.
+
+**Usage:**
+```bash
+zotero-cli slr promote --key "ITEMKEY" --vote "INCLUDE" --phase "full_text" --tree "raw_source" --persona "Name"
+```
+
 ### `verify`
 Performs verification tasks for the SLR. Supports both LaTeX manuscript citation auditing and collection completeness validation.
 

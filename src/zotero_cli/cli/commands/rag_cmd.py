@@ -1,18 +1,15 @@
 import argparse
-import json
-from dataclasses import asdict
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Sequence
 
 from rich.console import Console
-from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.cli.presenters.rag_presenter import (
     ContextPresenter,
     HumanPresenter,
     JsonPresenter,
 )
+from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
@@ -104,33 +101,16 @@ Cognitive Safeguards
             TextColumn,
             TimeRemainingColumn,
         )
-        from zotero_cli.core.models import ZoteroQuery
 
         force_user = getattr(args, "user", False)
         rag_service = GatewayFactory.get_rag_service(force_user=force_user)
-        gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
         if args.verb == "ingest":
-            # (Selection logic preserved from earlier)
-            items = []
-            if args.collection:
-                col_id = gateway.get_collection_id_by_name(args.collection) or args.collection
-                items = list(gateway.get_items_in_collection(col_id))
-            elif args.key:
-                item = gateway.get_item(args.key)
-                items = [item] if item else []
-            else:
-                items = list(gateway.get_all_items())
-
-            if args.approved:
-                items = [item for item in items if "rsl:include" in item.tags]
-            
-            item_keys = [item.key for item in items]
-            
             if args.prune:
                 console.print("[bold red]Pruning vector store before start...[/bold red]")
 
-            console.print(f"[bold]Streaming ingestion for {len(item_keys)} items...[/bold]")
+            # We pass the raw parameters to the service as requested in the audit
+            console.print("[bold]Streaming ingestion starting...[/bold]")
 
             with Progress(
                 TextColumn("[progress.description]{task.description}"),
@@ -139,13 +119,17 @@ Cognitive Safeguards
                 TimeRemainingColumn(),
                 console=console,
             ) as progress:
-                task = progress.add_task("Ingesting...", total=len(item_keys))
+                # Since we don't know the count yet (service resolves it),
+                # we start with indeterminate or 0.
+                task = progress.add_task("Ingesting...", total=None)
 
                 def on_item(item):
                     progress.update(task, advance=1, description=f"Ingesting: {item.key}")
 
                 stats = rag_service.ingest(
-                    item_keys=item_keys,
+                    collection_key=args.collection,
+                    item_key=args.key,
+                    approved_only=args.approved,
                     prune=args.prune,
                     min_qa_score=args.qa_limit,
                     on_item_processed=on_item
@@ -157,15 +141,22 @@ Cognitive Safeguards
                 console.print(f"  - [yellow]Skipped (Low QA Score):[/yellow] {stats['skipped_low_qa']}")
 
         elif args.verb == "query":
-            from zotero_cli.core.models import SearchResult, VerifiedSearchResult
+            from zotero_cli.core.models import SearchResult
+
+            if args.format == "human":
+                console.print(f"Querying vector store for: '{args.prompt}'")
 
             raw_results = rag_service.query(args.prompt, top_k=args.top_k)
             results: Sequence[SearchResult] = raw_results
 
             if args.verify:
+                console.print("Verifying results...")
                 results = rag_service.verify_results(raw_results)
 
+            from zotero_cli.cli.presenters.rag_presenter import SearchResultPresenter
+
             # Choose Presenter
+            presenter: SearchResultPresenter
             if args.format == "json":
                 presenter = JsonPresenter()
             elif args.format == "context":

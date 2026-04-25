@@ -23,10 +23,17 @@ def test_verified_search_result_model():
 
 @pytest.mark.unit
 def test_rag_service_verify_results_interface():
-    # This test will fail if verify_results is not implemented in RAGService
     mock_vector_repo = MagicMock()
     mock_embedding_provider = MagicMock()
     mock_gateway = MagicMock()
+    
+    from zotero_cli.core.zotero_item import ZoteroItem
+    mock_item = ZoteroItem.from_raw_zotero_item({
+        "key": "KEY1",
+        "data": {"key": "KEY1", "version": 1, "itemType": "journalArticle", "title": "Test", "DOI": "10.1000/1"}
+    })
+    mock_gateway.get_item.return_value = mock_item
+    mock_gateway.get_item_children.return_value = []
 
     mock_attachment_service = MagicMock()
 
@@ -37,7 +44,6 @@ def test_rag_service_verify_results_interface():
         SearchResult(item_key="KEY1", text="text1", score=0.8, metadata={})
     ]
 
-    # We expect this method to exist
     verified = service.verify_results(results)
     assert len(verified) == 1
     assert isinstance(verified[0], VerifiedSearchResult)
@@ -54,27 +60,37 @@ def test_rag_service_verify_logic():
 
     service = RAGServiceBase(mock_gateway, mock_vector_repo, mock_embedding_provider, mock_attachment_service)
 
-    # 1. Item with DOI and Title/Abstract -> Verified
-    item1 = MagicMock(spec=ZoteroItem)
-    item1.key = "KEY1"
-    item1.doi = "10.1000/1"
-    item1.arxiv_id = None
-    item1.title = "Verified Paper"
-    item1.abstract = "Some abstract"
-    item1.tags = ["rsl:include"]
-    item1.extra = "Citation Key: Key2024"
-    item1.has_identifier.return_value = True
+    # Use real ZoteroItem objects to avoid mock fragility
+    item1 = ZoteroItem.from_raw_zotero_item({
+        "key": "KEY1",
+        "data": {
+            "key": "KEY1",
+            "version": 1,
+            "itemType": "journalArticle",
+            "title": "Verified Paper",
+            "abstractNote": "Some abstract",
+            "DOI": "10.1000/1",
+            "tags": [{"tag": "rsl:include"}],
+            "extra": "Citation Key: Key2024",
+            "creators": [],
+            "date": "2024"
+        }
+    })
 
-    # 2. Item missing identifier -> Not Verified
-    item2 = MagicMock(spec=ZoteroItem)
-    item2.key = "KEY2"
-    item2.doi = None
-    item2.arxiv_id = None
-    item2.title = "Unverified Paper"
-    item2.abstract = "Abstract"
-    item2.tags = []
-    item2.extra = ""
-    item2.has_identifier.return_value = False
+    item2 = ZoteroItem.from_raw_zotero_item({
+        "key": "KEY2",
+        "data": {
+            "key": "KEY2",
+            "version": 1,
+            "itemType": "journalArticle",
+            "title": "Unverified Paper",
+            "abstractNote": "Abstract",
+            "tags": [],
+            "extra": "",
+            "creators": [],
+            "date": "2024"
+        }
+    })
 
     mock_gateway.get_item.side_effect = lambda k: item1 if k == "KEY1" else (item2 if k == "KEY2" else None)
     mock_gateway.get_item_children.return_value = []

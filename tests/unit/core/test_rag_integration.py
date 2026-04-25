@@ -31,6 +31,12 @@ def test_rag_full_flow(tmp_path, monkeypatch):
     gateway = MagicMock()
     mock_item = MagicMock()
     mock_item.key = "KEY1"
+    mock_item.title = "Test Paper"
+    mock_item.extra = ""
+    mock_item.date = "2026"
+    mock_item.creators = []
+    
+    gateway.get_item.return_value = mock_item
     gateway.get_collection_id_by_name.return_value = "COL1"
     gateway.get_items_in_collection.return_value = [mock_item]
 

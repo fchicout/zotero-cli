@@ -22,10 +22,18 @@ def test_rag_ingest_logic_v1_1(mock_deps):
     # 1. Setup Items: One low QA, one high QA
     item_low_qa = MagicMock()
     item_low_qa.key = "LOW_QA"
+    item_low_qa.extra = ""
+    item_low_qa.date = "2026"
+    item_low_qa.creators = []
+    item_low_qa.title = "Low QA Paper"
     note_low = {"data": {"itemType": "note", "note": '{"action": "data_extraction", "quality_score": 0.3, "sdb_version": "1.2"}'}}
 
     item_high_qa = MagicMock()
     item_high_qa.key = "HIGH_QA"
+    item_high_qa.extra = ""
+    item_high_qa.date = "2026"
+    item_high_qa.creators = []
+    item_high_qa.title = "High QA Paper"
     note_high = {"data": {"itemType": "note", "note": '{"action": "data_extraction", "quality_score": 0.9, "sdb_version": "1.2"}'}}
 
     # Mock gateway.get_item and get_item_children

@@ -61,8 +61,8 @@ class SQLiteVectorRepository(VectorRepository):
                 for chunk in chunks:
                     embedding_json = json.dumps(chunk.embedding)
                     conn.execute(
-                        """INSERT INTO vector_chunks 
-                           (item_key, chunk_index, text, embedding, citation_key, qa_score, phase_folder) 
+                        """INSERT INTO vector_chunks
+                           (item_key, chunk_index, text, embedding, citation_key, qa_score, phase_folder)
                            VALUES (?, ?, ?, ?, ?, ?, ?)""",
                         (
                             chunk.item_key,

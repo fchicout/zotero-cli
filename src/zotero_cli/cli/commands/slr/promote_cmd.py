@@ -1,9 +1,10 @@
 import argparse
 import sys
+
 from rich.console import Console
 
-from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
+from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
@@ -18,7 +19,7 @@ class PromoteCommand:
         parser.description = "Records a decision and automatically moves the paper into the phase folder."
         parser.add_argument("--key", required=True, help="Item Key (ZoteroID)")
         parser.add_argument("--vote", required=True, choices=["INCLUDE", "EXCLUDE"], help="Screening decision")
-        parser.add_argument("--phase", required=True, 
+        parser.add_argument("--phase", required=True,
                           choices=["title_abstract", "full_text", "quality_assessment", "data_extraction"],
                           help="SLR phase being voted on")
         parser.add_argument("--tree", required=True, help="Root collection name or key (e.g. raw_acm)")
@@ -52,7 +53,7 @@ class PromoteCommand:
             # If rejected, we don't move (it stays in source)
             move_source = source_key if args.vote == "INCLUDE" else None
             move_target = target_key if args.vote == "INCLUDE" else None
-            
+
             success = screening_service.record_decision(
                 item_key=args.key,
                 decision=args.vote,

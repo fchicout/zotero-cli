@@ -121,8 +121,8 @@ class ZoteroNoteRepository(NoteRepository):
     def create_note(self, parent_item_key: str, note_content: str) -> bool:
         return self.gateway.create_note(parent_item_key, note_content)
 
-    def update_note(self, note_key: str, version: int, note_content: str) -> bool:
-        return self.gateway.update_note(note_key, version, note_content)
+    def update_note(self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None) -> bool:
+        return self.gateway.update_note(note_key, version, note_content, parent_item_key)
 
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
         return self.gateway.get_item_children(item_key)

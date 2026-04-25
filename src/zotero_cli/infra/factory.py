@@ -756,7 +756,7 @@ class GatewayFactory:
             db_dir = base / "zotero-cli"
 
         db_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Use library_id or default name to isolate projects
         library_suffix = config.library_id if config and config.library_id else "default"
         db_path = str(db_dir / f"vector_store_{library_suffix}.sqlite")

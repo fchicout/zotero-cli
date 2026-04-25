@@ -194,7 +194,7 @@ class AttachmentService(FullTextProvider):
     def _download_file(self, url: str) -> Optional[str]:
         """
         Downloads a file to a temporary location.
-        Note: The caller is responsible for moving or deleting the file 
+        Note: The caller is responsible for moving or deleting the file
         if it's not within a managed TemporaryDirectory.
         """
         try:

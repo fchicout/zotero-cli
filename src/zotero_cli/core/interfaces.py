@@ -317,7 +317,7 @@ class TextSplitter(ABC):
     """
 
     @abstractmethod
-    def split_text(self, text: str) -> List[str]:
+    def split_text(self, text: str, context_title: Optional[str] = None) -> List[str]:
         pass
 
 
@@ -325,7 +325,10 @@ class RAGService(ABC):
     @abstractmethod
     def ingest(
         self,
-        item_keys: List[str],
+        item_keys: Optional[List[str]] = None,
+        collection_key: Optional[str] = None,
+        item_key: Optional[str] = None,
+        approved_only: bool = False,
         prune: bool = False,
         min_qa_score: Optional[float] = None,
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,

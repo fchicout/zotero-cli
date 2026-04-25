@@ -18,6 +18,7 @@ class ZoteroItem:
     url: Optional[str] = None
     date: Optional[str] = None
     authors: List[str] = field(default_factory=list)
+    creators: List[Dict[str, Any]] = field(default_factory=list)
     extra: Optional[str] = None
     has_pdf: bool = False  # Will be set by auditor or via child items processing later
     raw_data: Dict[str, Any] = field(default_factory=dict)
@@ -64,6 +65,7 @@ class ZoteroItem:
             url=data.get("url"),
             date=data.get("date"),
             authors=authors,
+            creators=creators,
             extra=extra,
             collections=data.get("collections", []),
             tags=tags,

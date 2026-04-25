@@ -128,12 +128,12 @@ class CollectionService:
             parent_cols.remove(source_id)
         if dest_id:
             parent_cols.add(dest_id)
-        
+
         target_cols_list = list(parent_cols)
 
         # 2. Fetch children keys/versions
         children_data = self.item_repo.get_item_children(item.key)
-        
+
         # 3. Build the list of all objects to update (Parent + Children)
         all_to_update = [item.raw_data]
         for child in children_data:
@@ -143,12 +143,12 @@ class CollectionService:
         for obj in all_to_update:
             data = obj.get("data", obj)
             key = obj.get("key") or data.get("key")
-            
+
             # RE-FETCH to get latest version (crucial for sequential moves)
             fresh_item = self.item_repo.get_item(key)
             if not fresh_item:
                 continue
-                
+
             current_cols = set(fresh_item.collections)
             version = fresh_item.version
 
@@ -159,12 +159,12 @@ class CollectionService:
                     "version": version,
                     "collections": target_cols_list
                 }
-                
+
                 # CRITICAL: If item has a parent, it MUST be preserved in the bulk POST
                 # otherwise Zotero API clears the relationship (orphaning).
                 if fresh_item.parent_item:
                     payload["parentItem"] = fresh_item.parent_item
-                    
+
                 update_payload.append(payload)
 
         if not update_payload:

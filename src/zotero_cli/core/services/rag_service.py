@@ -1,5 +1,6 @@
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional
 
 from zotero_cli.core.interfaces import (
@@ -35,9 +36,7 @@ class FixedSizeChunker(TextSplitter):
     def split_text(self, text: str, context_title: Optional[str] = None) -> List[str]:
         if not text:
             return []
-        return [
-            text[i : i + self.chunk_size] for i in range(0, len(text), self.chunk_size)
-        ]
+        return [text[i : i + self.chunk_size] for i in range(0, len(text), self.chunk_size)]
 
 
 class MarkdownRecursiveSplitter(TextSplitter):
@@ -57,25 +56,25 @@ class MarkdownRecursiveSplitter(TextSplitter):
 
         chunks = []
         current_section = "Introduction"
-        
+
         # 1. Split into Section Blocks based on headers
         sections = []
         last_pos = 0
         for match in self.header_regex.finditer(text):
             if match.start() > last_pos:
-                sections.append((current_section, text[last_pos:match.start()]))
-            
+                sections.append((current_section, text[last_pos : match.start()]))
+
             current_section = match.group(2).strip()
             last_pos = match.end()
-        
+
         sections.append((current_section, text[last_pos:]))
 
         # 2. Further split large sections into chunks with breadcrumbs
         for section_title, content in sections:
             paragraphs = content.split("\n\n")
-            current_chunk = []
+            current_chunk: List[str] = []
             current_length = 0
-            
+
             breadcrumb = f"[Source: {context_title or 'Unknown'}] [Section: {section_title}]\n\n"
             breadcrumb_len = len(breadcrumb)
 
@@ -83,14 +82,16 @@ class MarkdownRecursiveSplitter(TextSplitter):
                 para = para.strip()
                 if not para:
                     continue
-                
+
                 if len(para) > self.chunk_size:
                     if current_chunk:
                         chunks.append(breadcrumb + "\n\n".join(current_chunk))
-                    
+
                     for i in range(0, len(para), self.chunk_size - breadcrumb_len):
-                        chunks.append(breadcrumb + para[i : i + (self.chunk_size - breadcrumb_len)])
-                    
+                        chunks.append(
+                            breadcrumb + para[i : i + (self.chunk_size - breadcrumb_len)]
+                        )
+
                     current_chunk = []
                     current_length = 0
                     continue
@@ -134,30 +135,51 @@ class RAGServiceBase(RAGService):
 
     def ingest(
         self,
-        item_keys: List[str],
+        item_keys: Optional[List[str]] = None,
+        collection_key: Optional[str] = None,
+        item_key: Optional[str] = None,
+        approved_only: bool = False,
         prune: bool = False,
         min_qa_score: Optional[float] = None,
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
     ) -> Dict[str, Any]:
         """
-        Refactored ingestion with parallel processing and structural splitting [SPEC-RAG-001].
+        Ingest items with selection logic moved to service for architectural alignment.
         """
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-
         if prune:
             logger.info("Pruning entire vector store before ingestion.")
             self.vector_repo.purge_all()
 
         stats = {"processed": 0, "skipped_no_text": 0, "skipped_low_qa": 0}
+
+        # 1. Resolve final keys
+        final_keys = item_keys or []
+        if item_key:
+            final_keys.append(item_key)
+        elif collection_key:
+            col_id = self.gateway.get_collection_id_by_name(collection_key) or collection_key
+            items = list(self.gateway.get_items_in_collection(col_id))
+            final_keys.extend([i.key for i in items])
+        elif not final_keys:
+            # Full library ingestion
+            items = list(self.gateway.get_all_items())
+            final_keys.extend([i.key for i in items])
+
         all_vector_chunks = []
 
         def process_item(key: str):
             item = self.gateway.get_item(key)
-            if not item: return None
+            if not item:
+                return None
+
+            if approved_only and "rsl:include" not in item.tags:
+                return {"status": "not_approved", "item": item}
 
             qa_score = self._get_item_max_qa_score(item)
             citation_key = self.citation_service.resolve_citation_key(item)
-            target_phase = self.orchestrator.resolve_target_phase(item.key, default_qa_threshold=min_qa_score)
+            target_phase = self.orchestrator.resolve_target_phase(
+                item.key, default_qa_threshold=min_qa_score
+            )
 
             if min_qa_score is not None:
                 if qa_score < min_qa_score:
@@ -187,20 +209,23 @@ class RAGServiceBase(RAGService):
             return {"status": "success", "item": item, "chunks": item_chunks}
 
         with ThreadPoolExecutor(max_workers=5) as executor:
-            future_to_key = {executor.submit(process_item, key): key for key in item_keys}
+            future_to_key = {executor.submit(process_item, key): key for key in final_keys}
             for future in as_completed(future_to_key):
                 result = future.result()
-                if not result: continue
-                
+                if not result:
+                    continue
+
                 item = result["item"]
                 if result["status"] == "success":
-                    if not prune: self.vector_repo.delete_chunks_by_item(item.key)
+                    if not prune:
+                        self.vector_repo.delete_chunks_by_item(item.key)
                     all_vector_chunks.extend(result["chunks"])
                     stats["processed"] += 1
-                else:
+                elif result["status"] != "not_approved":
                     stats[f"skipped_{result['status']}"] += 1
 
-                if on_item_processed: on_item_processed(item)
+                if on_item_processed:
+                    on_item_processed(item)
 
         if all_vector_chunks:
             self.vector_repo.store_chunks(all_vector_chunks)
@@ -217,23 +242,38 @@ class RAGServiceBase(RAGService):
             if child_raw.get("data", {}).get("itemType") == "note":
                 note_content = child_raw.get("data", {}).get("note", "")
                 parsed = parse_sdb_note(note_content)
-                if not parsed: continue
+                if not parsed:
+                    continue
 
                 is_qa_phase = parsed.get("phase") == "quality_assessment"
                 is_ext_action = parsed.get("action") == "data_extraction"
-                
+
                 if is_qa_phase or is_ext_action:
-                    qa_block = parsed.get("data", {}).get("quality_assessment") or parsed.get("quality_assessment")
-                    score = qa_block.get("total") if isinstance(qa_block, dict) else (parsed.get("quality_score") or parsed.get("data", {}).get("quality_score"))
-                    
+                    data_block = parsed.get("data", {})
+                    qa_block = data_block.get(
+                        "quality_assessment"
+                    ) or parsed.get("quality_assessment")
+                    score = (
+                        qa_block.get("total")
+                        if isinstance(qa_block, dict)
+                        else (parsed.get("quality_score") or data_block.get("quality_score"))
+                    )
+
                     if score is not None:
                         try:
                             f_score = float(score)
-                            if f_score > max_score: max_score = f_score
-                        except (ValueError, TypeError): continue
+                            if f_score > max_score:
+                                max_score = f_score
+                        except (ValueError, TypeError):
+                            continue
         return max_score
 
-    def purge(self, purge_all: bool = False, item_key: Optional[str] = None, collection_key: Optional[str] = None) -> Dict[str, Any]:
+    def purge(
+        self,
+        purge_all: bool = False,
+        item_key: Optional[str] = None,
+        collection_key: Optional[str] = None,
+    ) -> Dict[str, Any]:
         if purge_all:
             self.vector_repo.purge_all()
             return {"deleted_all": True}
@@ -258,16 +298,51 @@ class RAGServiceBase(RAGService):
                 is_verified = False
                 errors.append("Item not found")
             else:
-                if not item.has_identifier(): is_verified, errors.append("Missing ID")
-                if not item.title: is_verified, errors.append("Missing Title")
+                if not item.has_identifier():
+                    is_verified = False
+                    errors.append("Missing DOI or arXiv ID")
+                if not item.title:
+                    is_verified = False
+                    errors.append("Missing Title")
 
+            # Screening status
             screening_status = ScreeningStatus.UNKNOWN
+            if item:
+                if "rsl:include" in item.tags:
+                    screening_status = ScreeningStatus.ACCEPTED
+                elif "rsl:exclude" in item.tags:
+                    screening_status = ScreeningStatus.REJECTED
+                else:
+                    # Check for screening note
+                    children = self.gateway.get_item_children(item.key)
+                    for child in children:
+                        if child.get("data", {}).get("itemType") == "note":
+                            note_text = child.get("data", {}).get("note", "")
+                            parsed = parse_sdb_note(note_text)
+                            if parsed and parsed.get("action") == "screening_decision":
+                                decision = parsed.get("decision")
+                                if decision == "accepted":
+                                    screening_status = ScreeningStatus.ACCEPTED
+                                elif decision == "rejected":
+                                    screening_status = ScreeningStatus.REJECTED
+                                break
+
+            # Citation key
             citation_key = self.citation_service.resolve_citation_key(item) if item else None
-            verified_results.append(VerifiedSearchResult(
-                item_key=res.item_key, text=res.text, score=res.score, metadata=res.metadata,
-                item=item, is_verified=is_verified, verification_errors=errors,
-                screening_status=screening_status, citation_key=citation_key
-            ))
+
+            verified_results.append(
+                VerifiedSearchResult(
+                    item_key=res.item_key,
+                    text=res.text,
+                    score=res.score,
+                    metadata=res.metadata,
+                    item=item,
+                    is_verified=is_verified,
+                    verification_errors=errors,
+                    screening_status=screening_status,
+                    citation_key=citation_key,
+                )
+            )
         return verified_results
 
     def query(self, prompt: str, top_k: int = 5) -> List[SearchResult]:
