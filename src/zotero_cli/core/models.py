@@ -82,6 +82,9 @@ class VectorChunk:
     chunk_index: int
     text: str
     embedding: List[float]
+    citation_key: Optional[str] = None
+    qa_score: Optional[float] = None
+    phase_folder: Optional[str] = None
     id: Optional[int] = None
 
 

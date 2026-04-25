@@ -30,17 +30,30 @@ class SQLiteVectorRepository(VectorRepository):
                     item_key TEXT NOT NULL,
                     chunk_index INTEGER NOT NULL,
                     text TEXT NOT NULL,
-                    embedding BLOB NOT NULL
+                    embedding BLOB NOT NULL,
+                    citation_key TEXT,
+                    qa_score REAL,
+                    phase_folder TEXT
                 )
             """
                 )
+                # Migration: Add columns if they don't exist
+                cursor = conn.execute("PRAGMA table_info(vector_chunks)")
+                columns = [row[1] for row in cursor.fetchall()]
+                if "citation_key" not in columns:
+                    conn.execute("ALTER TABLE vector_chunks ADD COLUMN citation_key TEXT")
+                if "qa_score" not in columns:
+                    conn.execute("ALTER TABLE vector_chunks ADD COLUMN qa_score REAL")
+                if "phase_folder" not in columns:
+                    conn.execute("ALTER TABLE vector_chunks ADD COLUMN phase_folder TEXT")
+
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_item_key ON vector_chunks (item_key)")
         finally:
             conn.close()
 
     def store_chunks(self, chunks: List[VectorChunk]) -> bool:
         """
-        Store multiple vector chunks in the database.
+        Store multiple vector chunks with SLR metadata.
         """
         conn = self._get_connection()
         try:
@@ -48,8 +61,18 @@ class SQLiteVectorRepository(VectorRepository):
                 for chunk in chunks:
                     embedding_json = json.dumps(chunk.embedding)
                     conn.execute(
-                        "INSERT INTO vector_chunks (item_key, chunk_index, text, embedding) VALUES (?, ?, ?, ?)",
-                        (chunk.item_key, chunk.chunk_index, chunk.text, embedding_json),
+                        """INSERT INTO vector_chunks 
+                           (item_key, chunk_index, text, embedding, citation_key, qa_score, phase_folder) 
+                           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            chunk.item_key,
+                            chunk.chunk_index,
+                            chunk.text,
+                            embedding_json,
+                            chunk.citation_key,
+                            chunk.qa_score,
+                            chunk.phase_folder,
+                        ),
                     )
             return True
         finally:
@@ -57,21 +80,37 @@ class SQLiteVectorRepository(VectorRepository):
 
     def search(self, embedding: List[float], top_k: int = 5) -> List[SearchResult]:
         """
-        Search for semantically similar chunks using Cosine Similarity.
+        Search for semantically similar chunks and return with SLR metadata.
         """
         conn = self._get_connection()
         try:
-            cursor = conn.execute("SELECT item_key, text, embedding FROM vector_chunks")
+            cursor = conn.execute(
+                "SELECT item_key, text, embedding, citation_key, qa_score, phase_folder FROM vector_chunks"
+            )
             all_chunks = cursor.fetchall()
         finally:
             conn.close()
 
         results = []
-        for item_key, text, stored_embedding_json in all_chunks:
+        for (
+            item_key,
+            text,
+            stored_embedding_json,
+            cit_key,
+            qa_score,
+            phase,
+        ) in all_chunks:
             try:
                 stored_embedding = json.loads(stored_embedding_json)
                 score = self._cosine_similarity(embedding, stored_embedding)
-                results.append(SearchResult(item_key=item_key, text=text, score=score, metadata={}))
+                metadata = {
+                    "citation_key": cit_key,
+                    "qa_score": qa_score,
+                    "phase_folder": phase,
+                }
+                results.append(
+                    SearchResult(item_key=item_key, text=text, score=score, metadata=metadata)
+                )
             except (json.JSONDecodeError, TypeError):
                 continue
 
