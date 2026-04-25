@@ -75,22 +75,23 @@ class IntegrityService:
         has_pdf = False
         has_note = False
 
+        from zotero_cli.core.utils.sdb_parser import parse_sdb_note
+
         for child in children:
             data = child.get("data", {})
             item_type = data.get("itemType")
 
-            # Check PDF
-            if (
-                item_type == "attachment"
-                and data.get("linkMode") == "imported_file"
-                and data.get("filename", "").lower().endswith(".pdf")
-            ):
+            # Check PDF: look for imported_file OR linked_url with PDF contentType
+            is_pdf_ext = data.get("filename", "").lower().endswith(".pdf")
+            is_pdf_mime = data.get("contentType") == "application/pdf"
+
+            if item_type == "attachment" and (is_pdf_ext or is_pdf_mime):
                 has_pdf = True
 
-            # Check Screening Note (JSON)
+            # Check Screening Note: use robust parser instead of string match
             if item_type == "note":
                 note_text = data.get("note", "")
-                if "zotero-cli" in note_text and '"decision"' in note_text:
+                if parse_sdb_note(note_text):
                     has_note = True
 
         return has_pdf, has_note
