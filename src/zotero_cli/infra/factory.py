@@ -735,6 +735,11 @@ class GatewayFactory:
 
     @staticmethod
     def get_vector_repository(config: Optional[ZoteroConfig] = None) -> "VectorRepository":
+        if not config:
+            from zotero_cli.core.config import get_config
+
+            config = get_config()
+
         from zotero_cli.core.config import get_config_path
 
         config_path = get_config_path()
@@ -751,7 +756,10 @@ class GatewayFactory:
             db_dir = base / "zotero-cli"
 
         db_dir.mkdir(parents=True, exist_ok=True)
-        db_path = str(db_dir / "vector_store.sqlite")
+        
+        # Use library_id or default name to isolate projects
+        library_suffix = config.library_id if config and config.library_id else "default"
+        db_path = str(db_dir / f"vector_store_{library_suffix}.sqlite")
 
         from zotero_cli.infra.sqlite_vector_repo import SQLiteVectorRepository
 
