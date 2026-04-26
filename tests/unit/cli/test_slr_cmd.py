@@ -98,9 +98,9 @@ def test_slr_decide_dispatch_full(mock_gateway, mock_screening_get, slr_cmd):
 
 
 @patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")
-@patch("zotero_cli.cli.commands.slr.verify_cmd.IntegrityService")
-def test_slr_verify_collection_dispatch(mock_integrity_cls, mock_gateway, slr_cmd):
-    mock_integrity = mock_integrity_cls.return_value
+@patch("zotero_cli.infra.factory.GatewayFactory.get_integrity_service")
+def test_slr_verify_collection_dispatch(mock_integrity_get, mock_gateway, slr_cmd):
+    mock_integrity = mock_integrity_get.return_value
     mock_report = Mock()
     mock_report.items_missing_id = []
     mock_report.items_missing_title = []

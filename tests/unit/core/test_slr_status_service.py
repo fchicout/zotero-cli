@@ -10,8 +10,16 @@ def mock_gateway():
     return MagicMock()
 
 @pytest.fixture
-def service(mock_gateway):
-    return SLRStatusService(mock_gateway)
+def mock_orchestrator():
+    orchestrator = MagicMock()
+    # Provide the real flow definition so the service can iterate
+    from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
+    orchestrator.PHASE_FLOW = SLROrchestrator.PHASE_FLOW
+    return orchestrator
+
+@pytest.fixture
+def service(mock_gateway, mock_orchestrator):
+    return SLRStatusService(mock_gateway, mock_orchestrator)
 
 def test_get_slr_status_simple(service, mock_gateway):
     # Setup 1 raw collection

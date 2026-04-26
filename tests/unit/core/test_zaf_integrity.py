@@ -93,7 +93,11 @@ def test_verify_service_missing_files(tmp_path):
     report = service.verify_archive(str(zaf_path))
     assert "Missing manifest.json" in report.errors
 
-def test_restore_service_dry_run(dummy_zaf, tmp_path):
+@pytest.fixture
+def mock_orchestrator():
+    return MagicMock()
+
+def test_restore_service_dry_run(dummy_zaf, tmp_path, mock_orchestrator):
     zaf_path = tmp_path / "restore.zaf"
     zaf_path.write_bytes(dummy_zaf.getvalue())
 
@@ -101,15 +105,16 @@ def test_restore_service_dry_run(dummy_zaf, tmp_path):
     mock_gw.get_all_collections.return_value = []
     mock_gw.get_items_by_doi.return_value = iter([])
 
-    service = RestoreService(mock_gw)
+    service = RestoreService(mock_gw, mock_orchestrator)
     report = service.restore_archive(str(zaf_path), dry_run=True)
 
     assert report.is_dry_run is True
     assert report.items_created == 1
     assert report.attachments_uploaded == 1
 
-def test_restore_collections_hierarchy(mock_gateway):
-    service = RestoreService(mock_gateway)
+def test_restore_collections_hierarchy(mock_gateway, mock_orchestrator):
+    service = RestoreService(mock_gateway, mock_orchestrator)
+
     colls = [
         {"key": "C1", "data": {"name": "Root", "parentCollection": None}},
         {"key": "C2", "data": {"name": "Child", "parentCollection": "C1"}}
@@ -124,8 +129,8 @@ def test_restore_collections_hierarchy(mock_gateway):
     assert service.coll_map["C1"] == "NEW1"
     assert service.coll_map["C2"] == "NEW2"
 
-def test_restore_child_parent_not_found(mock_gateway):
-    service = RestoreService(mock_gateway)
+def test_restore_child_parent_not_found(mock_gateway, mock_orchestrator):
+    service = RestoreService(mock_gateway, mock_orchestrator)
     # Child with parent that is not in map
     child_raw = {"key": "ATT1", "data": {"itemType": "attachment", "parentItem": "MISSING"}}
 
@@ -135,17 +140,17 @@ def test_restore_child_parent_not_found(mock_gateway):
     service._restore_child_item(child_raw, MagicMock(), {}, report)
     assert not mock_gateway.upload_attachment.called
 
-def test_restore_service_idempotency_none(mock_gateway):
-    service = RestoreService(mock_gateway)
+def test_restore_service_idempotency_none(mock_gateway, mock_orchestrator):
+    service = RestoreService(mock_gateway, mock_orchestrator)
     # Data with no DOI or Title
     data = {"itemType": "journalArticle"}
     result = service._find_existing_item(data)
     assert result is None
 
-def test_restore_attachment_mode_mismatch(dummy_zaf, tmp_path, mock_gateway):
+def test_restore_attachment_mode_mismatch(dummy_zaf, tmp_path, mock_gateway, mock_orchestrator):
     zaf_path = tmp_path / "mode.zaf"
     zaf_path.write_bytes(dummy_zaf.getvalue())
-    service = RestoreService(mock_gateway)
+    service = RestoreService(mock_gateway, mock_orchestrator)
     # web_page or similar mode that we don't upload
     child_raw = {"key": "ATT1", "data": {"itemType": "attachment", "linkMode": "linked_url"}}
 
@@ -155,9 +160,9 @@ def test_restore_attachment_mode_mismatch(dummy_zaf, tmp_path, mock_gateway):
         service._restore_attachment(child_raw, zf, {}, "PARENT", report)
     assert not mock_gateway.upload_attachment.called
 
-def test_restore_item_creation_failure(mock_gateway):
+def test_restore_item_creation_failure(mock_gateway, mock_orchestrator):
     from zotero_cli.core.services.restore_service import RestoreReport
-    service = RestoreService(mock_gateway)
+    service = RestoreService(mock_gateway, mock_orchestrator)
     item_raw = {"key": "K1", "data": {"itemType": "journalArticle", "title": "Fail"}}
     mock_gateway.get_items_by_doi.return_value = iter([])
     mock_gateway.create_generic_item.return_value = None
@@ -178,8 +183,8 @@ def test_verify_service_calculate_checksum_error(tmp_path):
     with pytest.raises(Exception):
         service._calculate_checksum(mock_zf, "any_path")
 
-def test_restore_collections_match_existing(mock_gateway):
-    service = RestoreService(mock_gateway)
+def test_restore_collections_match_existing(mock_gateway, mock_orchestrator):
+    service = RestoreService(mock_gateway, mock_orchestrator)
     colls = [{"key": "C1", "data": {"name": "Existing", "parentCollection": None}}]
     # Mock existing match
     mock_gateway.get_all_collections.return_value = [
@@ -193,8 +198,8 @@ def test_restore_collections_match_existing(mock_gateway):
     assert service.coll_map["C1"] == "NEW_KEY"
     assert report.collections_created == 0
 
-def test_restore_note_creation(mock_gateway):
-    service = RestoreService(mock_gateway)
+def test_restore_note_creation(mock_gateway, mock_orchestrator):
+    service = RestoreService(mock_gateway, mock_orchestrator)
     item_key = "K1"
     note_data = {"note": "New note"}
     # Mock no existing notes
@@ -241,8 +246,8 @@ def test_verify_service_library_scope_missing_collections_file(tmp_path):
     assert report.is_valid is False
     assert any("Missing collections.json" in e for e in report.errors)
 
-def test_restore_service_idempotency_doi_none(mock_gateway):
-    service = RestoreService(mock_gateway)
+def test_restore_service_idempotency_doi_none(mock_gateway, mock_orchestrator):
+    service = RestoreService(mock_gateway, mock_orchestrator)
     mock_gateway.get_items_by_doi.return_value = iter([])
 
     data = {"DOI": "10.1/none", "title": "No Match"}
@@ -266,8 +271,8 @@ def test_verify_service_missing_path_in_manifest(tmp_path):
     assert report.is_valid is False
     assert any("Missing path in manifest" in e for e in report.errors)
 
-def test_restore_collections_failure(mock_gateway):
-    service = RestoreService(mock_gateway)
+def test_restore_collections_failure(mock_gateway, mock_orchestrator):
+    service = RestoreService(mock_gateway, mock_orchestrator)
     colls = [{"key": "C1", "data": {"name": "Fail", "parentCollection": None}}]
     mock_gateway.get_all_collections.return_value = []
     # Mock creation failure
