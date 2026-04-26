@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.1] - 2026-04-26
+
+### ✨ Features & Improvements
+- **SLR Status Dashboard:** Enhanced `slr status` with a new "Tree Total" column and global aggregate rows, providing a 360-degree view of the systematic review funnel across all sources.
+- **Traceable Duplicate Auditing:** Implemented forensic duplicate logging; every resolution during system restore is now permanently recorded in SDB Audit Notes for 100% accountability.
+- **Dependency Injection Refactor:** Major architectural cleanup of core services using constructor injection, centralized via the `GatewayFactory` for better testability and isolation.
+- **Unified Purge Engine:** Consolidated all destructive operations (tag removal, PDF stripping) into a single, high-fidelity `PurgeService` to ensure consistent "Dry Run" and safety checks.
+
+### 🛡️ Quality & Infrastructure (Valerius Protocol)
+- **Green State Certification:** Reached a landmark stability milestone with 100% test pass rate, 0 lint/type errors, and 0 warnings.
+- **80% Coverage Gate:** Successfully cleared the global 80% code coverage threshold with new unit tests for high-impact SLR commands.
+- **Zero-Leak E2E Sentinel:** Integrated a robust `ResourceTracker` in the E2E suite that guarantees remote Zotero resource cleanup even on test failures or crashes.
+- **Python 3.14 Modernization:** Hardened the codebase for Python 3.14 compatibility and implemented targeted suppression of legacy library deprecation noise.
+
 ## [2.6.0] - 2026-04-21
 
 ### ✨ Features & Improvements
