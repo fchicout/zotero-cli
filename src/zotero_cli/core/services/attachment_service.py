@@ -1,6 +1,5 @@
 import os
 import tempfile
-import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -152,33 +151,6 @@ class AttachmentService(FullTextProvider):
         if "arxiv.org/pdf" in url_lower:
             return True
         return False
-
-    def remove_attachments_from_collection(self, collection_name: str, dry_run: bool = True) -> int:
-        warnings.warn(
-            "AttachmentService.remove_attachments_from_collection is deprecated and will be removed in Phase B. Use PurgeService.purge_collection_assets instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        col_id = self.collection_repo.get_collection_id_by_name(collection_name)
-        if not col_id:
-            print(f"Collection '{collection_name}' not found.")
-            return 0
-
-        item_keys = [item.key for item in self.collection_repo.get_items_in_collection(col_id)]
-        if not item_keys:
-            return 0
-
-        stats = self._get_purge_service().purge_attachments(item_keys, dry_run=dry_run)
-        return stats["deleted"] if not dry_run else stats["skipped"]
-
-    def remove_attachments_from_item(self, item_key: str, dry_run: bool = True) -> int:
-        warnings.warn(
-            "AttachmentService.remove_attachments_from_item is deprecated and will be removed in Phase B. Use PurgeService.purge_item_assets instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        stats = self._get_purge_service().purge_attachments([item_key], dry_run=dry_run)
-        return stats["deleted"] if not dry_run else stats["skipped"]
 
     def _has_pdf_attachment(self, item_key: str) -> bool:
         children = self.note_repo.get_item_children(item_key)

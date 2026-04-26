@@ -26,7 +26,7 @@ def test_collection_lifecycle(run_cli, sentinel, timestamp):
     # 3. Rename
     rename_res = run_cli(["collection", "rename", "--key", col_name, "--name", new_name])
     assert rename_res.returncode == 0
-    
+
     # Track the new name for cleanup as well
     sentinel.track(new_name)
 

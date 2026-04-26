@@ -135,6 +135,10 @@ class PurgeService:
                 stats["errors"] += 1
         return stats
 
+    def purge_tags_from_collection(self, col_name: str, dry_run: bool = True) -> Dict[str, int]:
+        """Specific wrapper for purging tags from a collection."""
+        return self.purge_collection_assets(col_name, types=["tags"], dry_run=dry_run)
+
     def purge_item_assets(
         self, item_key: str, types: List[str] = ["files", "notes", "tags"], dry_run: bool = True
     ) -> Dict[str, int]:

@@ -11,8 +11,11 @@ from zotero_cli.core.models import ResearchPaper
 class BibtexLibGateway(BibtexGateway):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
         try:
-            with open(file_path, "r", encoding="utf-8") as bibtex_file:
-                bib_database = bibtexparser.load(bibtex_file)
+            import warnings
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                with open(file_path, "r", encoding="utf-8") as bibtex_file:
+                    bib_database = bibtexparser.load(bibtex_file)
 
             for entry in bib_database.entries:
                 yield self._map_entry_to_paper(entry)

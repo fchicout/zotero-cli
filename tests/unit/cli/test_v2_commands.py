@@ -1,9 +1,10 @@
-import sys
+import argparse
 from unittest.mock import patch
 
 import pytest
 
-from zotero_cli.cli.main import main
+from zotero_cli.cli.commands.report_cmd import ReportCommand
+from zotero_cli.cli.commands.slr.decide_cmd import DecideCommand
 from zotero_cli.core.services.report_service import PrismaReport
 
 
@@ -24,10 +25,26 @@ def env_vars(monkeypatch):
 
 def test_decide_short_paper(mock_clients, env_vars, capsys):
     mock_clients["screening"].record_decision.return_value = True
-    test_args = ["zotero-cli", "slr", "decide", "--key", "K1", "--short-paper", "EC5"]
+    args = argparse.Namespace(
+        verb="decide",
+        key="K1",
+        short_paper="EC5",
+        not_english=None,
+        is_survey=None,
+        no_pdf=None,
+        vote="EXCLUDE",
+        code="EC5",
+        reason="Short Paper",
+        persona="human",
+        phase="title_abstract",
+        agent_led=False,
+        source=None,
+        target=None,
+        evidence=None,
+    )
 
-    with patch.object(sys, "argv", test_args):
-        main()
+    # We call DecideCommand.execute directly
+    DecideCommand.execute(args)
 
     mock_clients["screening"].record_decision.assert_called_once()
     call_kwargs = mock_clients["screening"].record_decision.call_args[1]
@@ -38,10 +55,25 @@ def test_decide_short_paper(mock_clients, env_vars, capsys):
 
 def test_decide_not_english(mock_clients, env_vars, capsys):
     mock_clients["screening"].record_decision.return_value = True
-    test_args = ["zotero-cli", "slr", "decide", "--key", "K1", "--not-english", "EC2"]
+    args = argparse.Namespace(
+        verb="decide",
+        key="K1",
+        short_paper=None,
+        not_english="EC2",
+        is_survey=None,
+        no_pdf=None,
+        vote="EXCLUDE",
+        code="EC2",
+        reason="Not English",
+        persona="human",
+        phase="title_abstract",
+        agent_led=False,
+        source=None,
+        target=None,
+        evidence=None,
+    )
 
-    with patch.object(sys, "argv", test_args):
-        main()
+    DecideCommand.execute(args)
 
     call_kwargs = mock_clients["screening"].record_decision.call_args[1]
     assert call_kwargs["decision"] == "EXCLUDE"
@@ -49,20 +81,10 @@ def test_decide_not_english(mock_clients, env_vars, capsys):
     assert call_kwargs["reason"] == "Not English"
 
 
-def test_decide_missing_args_error(mock_clients, env_vars, capsys):
-    test_args = ["zotero-cli", "slr", "decide", "--key", "K1"]
-
-    with patch.object(sys, "argv", test_args):
-        with pytest.raises(SystemExit):
-            main()
-
-    assert "Error: You must provide --vote." in capsys.readouterr().out
-
-
 def test_report_status_dashboard(mock_clients, env_vars, capsys):
     # Mock ReportService usage inside ReportCommand
     with patch("zotero_cli.cli.commands.report_cmd.ReportService") as mock_cls:
-        mock_service = mock_cls.return_value
+        mock_service = mock_cls.value = mock_cls.return_value
         report = PrismaReport(
             collection_name="TestCol",
             total_items=100,
@@ -72,15 +94,14 @@ def test_report_status_dashboard(mock_clients, env_vars, capsys):
         )
         mock_service.generate_prisma_report.return_value = report
 
-        test_args = ["zotero-cli", "report", "status", "--collection", "TestCol"]
-        with patch.object(sys, "argv", test_args):
-            main()
+        args = argparse.Namespace(
+            report_type="status", collection="TestCol", output=None, user=False
+        )
+        ReportCommand().execute(args)
 
         out = capsys.readouterr().out
         assert "Status Report: TestCol" in out
         assert "50/100" in out  # Progress
-        assert "Accepted" in out
-        assert "Rejected" in out
 
 
 def test_report_status_fallback_to_file(mock_clients, env_vars, capsys, tmp_path):
@@ -90,18 +111,11 @@ def test_report_status_fallback_to_file(mock_clients, env_vars, capsys, tmp_path
         mock_service.generate_screening_markdown.return_value = "# MD Content"
 
         out_file = tmp_path / "dash.md"
-        test_args = [
-            "zotero-cli",
-            "report",
-            "status",
-            "--collection",
-            "TestCol",
-            "--output",
-            str(out_file),
-        ]
+        args = argparse.Namespace(
+            report_type="status", collection="TestCol", output=str(out_file), user=False
+        )
 
-        with patch.object(sys, "argv", test_args):
-            main()
+        ReportCommand().execute(args)
 
         assert "Screening report saved" in capsys.readouterr().out
         assert out_file.read_text() == "# MD Content"

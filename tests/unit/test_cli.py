@@ -398,10 +398,10 @@ def test_tag_list(mock_clients, env_vars, capsys):
 # --- 7. COLLECTION ---
 def test_collection_pdfs_strip(mock_clients, env_vars, capsys):
     with patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_attachment_service"
-    ) as mock_att_get:
-        mock_att = mock_att_get.return_value
-        mock_att.remove_attachments_from_collection.return_value = 10
+        "zotero_cli.infra.factory.GatewayFactory.get_purge_service"
+    ) as mock_purge_get:
+        mock_purge = mock_purge_get.return_value
+        mock_purge.purge_collection_assets.return_value = {"deleted": 0, "skipped": 10, "errors": 0}
         test_args = ["zotero-cli", "collection", "pdf", "strip", "--collection", "F"]
         with patch.object(sys, "argv", test_args):
             main()

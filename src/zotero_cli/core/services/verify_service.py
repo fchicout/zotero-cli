@@ -3,7 +3,7 @@ import json
 import logging
 import zipfile
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +77,7 @@ class VerifyService:
                 if report.manifest and "file_map" in report.manifest:
                     file_map = report.manifest["file_map"]
                     report.file_count = len(file_map)
-                    
+
                     for item_key, file_info in file_map.items():
                         # Handle both old string format and new dict format for backward compatibility
                         if isinstance(file_info, str):

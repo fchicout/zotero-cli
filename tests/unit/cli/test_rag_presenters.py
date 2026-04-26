@@ -1,8 +1,11 @@
+from unittest.mock import MagicMock
+
 import pytest
-from zotero_cli.cli.presenters.rag_presenter import HumanPresenter, JsonPresenter, ContextPresenter
+
+from zotero_cli.cli.presenters.rag_presenter import ContextPresenter, HumanPresenter, JsonPresenter
 from zotero_cli.core.models import SearchResult
 from zotero_cli.core.zotero_item import ZoteroItem
-from unittest.mock import MagicMock
+
 
 @pytest.fixture
 def sample_results():
@@ -10,7 +13,7 @@ def sample_results():
     item.title = "Paper A"
     item.version = 1
     item.tags = ["tag1"]
-    
+
     return [
         SearchResult(
             item_key="K1",

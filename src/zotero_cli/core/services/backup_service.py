@@ -158,7 +158,7 @@ class BackupService:
 
                         if self.gateway.download_attachment(child_key, temp_path):
                             zf.write(temp_path, storage_path)
-                            
+
                             # Calculate SHA-256 checksum [SPEC-ZAF-001]
                             import hashlib
                             sha256_hash = hashlib.sha256()

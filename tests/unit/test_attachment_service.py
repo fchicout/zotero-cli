@@ -125,29 +125,6 @@ def test_multiple_items_mixed(service, mock_gateway, mock_pdf_finder):
     mock_pdf_finder.enqueue_find_pdf.assert_called_once_with("KEY1")
 
 
-def test_remove_attachments_from_item(service, mock_purge_service):
-    mock_purge_service.purge_attachments.return_value = {"deleted": 2, "skipped": 0, "errors": 0}
-
-    count = service.remove_attachments_from_item("KEY1", dry_run=False)
-
-    assert count == 2
-    mock_purge_service.purge_attachments.assert_called_once_with(["KEY1"], dry_run=False)
-
-
-def test_remove_attachments_from_collection(service, mock_gateway, mock_purge_service):
-    mock_gateway.get_collection_id_by_name.return_value = "COL1"
-    item1 = create_item("K1")
-    item2 = create_item("K2")
-    mock_gateway.get_items_in_collection.return_value = iter([item1, item2])
-
-    mock_purge_service.purge_attachments.return_value = {"deleted": 0, "skipped": 2, "errors": 0}
-
-    count = service.remove_attachments_from_collection("TestCol", dry_run=True)
-
-    assert count == 2
-    mock_purge_service.purge_attachments.assert_called_once_with(["K1", "K2"], dry_run=True)
-
-
 def test_get_fulltext_success(service, mock_gateway):
     item_key = "KEY1"
     attachment_key = "ATT1"

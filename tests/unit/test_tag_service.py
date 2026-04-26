@@ -79,17 +79,3 @@ def test_rename_tag(service, mock_gateway):
     call1 = mock_gateway.update_item_metadata.call_args_list[0]
     tags1 = {t["tag"] for t in call1[0][2]["tags"]}
     assert tags1 == {"new", "other"}
-
-
-def test_delete_tag(service, mock_gateway, mock_purge_service):
-    item1 = create_item("KEY1", ["delete_me", "stay"])
-    mock_gateway.get_items_by_tag.return_value = iter([item1])
-
-    mock_purge_service.purge_tags.return_value = {"deleted": 1, "skipped": 0, "errors": 0}
-
-    count = service.delete_tag("delete_me", dry_run=False)
-
-    assert count == 1
-    mock_purge_service.purge_tags.assert_called_once_with(
-        ["KEY1"], tag_name="delete_me", dry_run=False
-    )

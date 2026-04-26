@@ -704,9 +704,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             console.print("[bold green]Discovery workers finished.[/bold green]")
 
         elif args.pdf_verb == "strip":
-            service = GatewayFactory.get_attachment_service(force_user=force_user)
+            purge_service = GatewayFactory.get_purge_service(force_user=force_user)
             dry_run = not args.execute
-            count = service.remove_attachments_from_item(args.key, dry_run=dry_run)
+            stats = purge_service.purge_item_assets(args.key, dry_run=dry_run)
+            count = stats["deleted"] if not dry_run else stats["skipped"]
             if dry_run:
                 print(
                     f"[yellow]DRY RUN:[/yellow] Would remove {count} attachments from {args.key}."

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+
 class ResourceTracker:
     """
     The Sentinel: Automatically tracks and purges remote Zotero resources.

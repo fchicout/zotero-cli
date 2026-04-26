@@ -101,7 +101,7 @@ def test_rag_get_context(service, mock_deps):
     mock_chunk = MagicMock()
     mock_chunk.text = "chunk text"
     vector_repo.get_chunks_by_item.return_value = [mock_chunk]
-    
+
     ctx = service.get_context("K1")
     assert ctx == "chunk text"
 
@@ -114,6 +114,6 @@ def test_rag_purge_collection(service, mock_deps):
     gateway, vector_repo, embedding_provider, attachment_service = mock_deps
     gateway.get_collection_id_by_name.return_value = "COL1"
     gateway.get_items_in_collection.return_value = iter([MagicMock(key="K1")])
-    
+
     service.purge(collection_key="MyColl")
     vector_repo.delete_chunks_by_item.assert_called_with("K1")

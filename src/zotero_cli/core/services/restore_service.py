@@ -2,7 +2,7 @@ import json
 import logging
 import zipfile
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
+from typing import Dict, List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
@@ -38,7 +38,7 @@ class RestoreService:
             with zipfile.ZipFile(file_path, "r") as zf:
                 manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
                 items_data = json.loads(zf.read("data.json").decode("utf-8"))
-                
+
                 collections_data = []
                 if "collections.json" in zf.namelist():
                     collections_data = json.loads(zf.read("collections.json").decode("utf-8"))
@@ -49,7 +49,7 @@ class RestoreService:
 
                 # 2. Restore Items (Top-level first, then children)
                 sorted_items = self._sort_items_by_hierarchy(items_data)
-                
+
                 for item_raw in sorted_items:
                     self._restore_single_item(item_raw, zf, manifest, report)
 
@@ -65,7 +65,7 @@ class RestoreService:
                 return 0
             parent_coll = next((pc for pc in all_colls if pc["key"] == parent), None)
             if not parent_coll:
-                return 0 
+                return 0
             return 1 + get_depth(parent_coll, all_colls)
 
         sorted_colls = sorted(colls, key=lambda c: get_depth(c, colls))
@@ -78,7 +78,7 @@ class RestoreService:
 
             existing_cols = self.gateway.get_all_collections()
             match = next((ec for ec in existing_cols if ec["data"]["name"] == name and ec["data"].get("parentCollection") == new_parent), None)
-            
+
             if match:
                 self.coll_map[old_key] = match["key"]
             else:
@@ -107,7 +107,7 @@ class RestoreService:
         if existing_item:
             self.item_map[old_key] = existing_item.key
             report.items_skipped_existing += 1
-            
+
             # Record audit trail for duplicate prevention [SPEC-ZAF-002]
             if not report.is_dry_run:
                 self.orchestrator.record_duplicate_resolution(
@@ -141,7 +141,6 @@ class RestoreService:
     def _restore_child_item(self, child_raw: dict, zf: zipfile.ZipFile, manifest: dict, report: RestoreReport):
         data = child_raw.get("data", {})
         item_type = data.get("itemType")
-        old_key = child_raw["key"]
         old_parent = data.get("parentItem")
         new_parent = self.item_map.get(old_parent)
 
@@ -157,7 +156,7 @@ class RestoreService:
         note_content = data.get("note", "")
         if report.is_dry_run:
             return
-        
+
         children = self.gateway.get_item_children(new_parent)
         for child in children:
             if child.get("data", {}).get("itemType") == "note":
@@ -170,7 +169,7 @@ class RestoreService:
         data = child_raw.get("data", {})
         old_key = child_raw["key"]
         link_mode = data.get("linkMode")
-        
+
         if link_mode not in ["imported_file", "linked_file"]:
             return
 
@@ -197,7 +196,7 @@ class RestoreService:
                 report.attachments_uploaded += 1
             else:
                 report.errors.append(f"Failed to upload attachment: {path_in_zip}")
-            
+
             if os.path.exists(temp_path):
                 os.remove(temp_path)
         except Exception as e:
@@ -207,7 +206,8 @@ class RestoreService:
         doi = data.get("DOI")
         if doi:
             items = list(self.gateway.get_items_by_doi(doi))
-            if items: return items[0]
+            if items:
+                return items[0]
         return None
 
     def _sort_items_by_hierarchy(self, items: List[dict]) -> List[dict]:

@@ -1,5 +1,5 @@
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -26,7 +26,12 @@ def mock_attachment_repo():
 @pytest.fixture
 def mock_resolver():
     resolver = MagicMock()
-    resolver.resolve = AsyncMock()
+    # Mocking resolve as a normal function that returns an awaitable if needed
+    # but here we can just return the value directly as we use anyio.
+    async def mock_resolve(item):
+        return resolver.resolve_val
+    resolver.resolve = mock_resolve
+    resolver.resolve_val = None
     return resolver
 
 
@@ -49,7 +54,7 @@ async def test_process_job_success(
     # Resolver returns a temp file
     dummy_pdf = Path("test.pdf")
     dummy_pdf.write_bytes(b"%PDF-1.4")
-    mock_resolver.resolve.return_value = dummy_pdf
+    mock_resolver.resolve_val = dummy_pdf
 
     mock_attachment_repo.upload_attachment.return_value = True
 

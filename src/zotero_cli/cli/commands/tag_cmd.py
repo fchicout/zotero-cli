@@ -105,8 +105,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             print(
                 "[yellow]Warning: 'tag purge' is deprecated. Use 'collection purge --tags' instead.[/yellow]"
             )
+            purge_service = GatewayFactory.get_purge_service(
+                force_user=getattr(args, "user", False)
+            )
             dry_run = not args.execute
-            count = service.purge_tags_from_collection(args.collection, dry_run=dry_run)
+            stats = purge_service.purge_tags_from_collection(args.collection, dry_run=dry_run)
+            count = stats["deleted"] if not dry_run else stats["skipped"]
+
             if count >= 0:
                 if dry_run:
                     print(f"[yellow]DRY RUN:[/yellow] Would purge {count} tags.")

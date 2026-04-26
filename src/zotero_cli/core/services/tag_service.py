@@ -1,4 +1,3 @@
-import warnings
 from typing import List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
@@ -59,47 +58,6 @@ class TagService:
                 if self._update_tags(item.key, item.version, list(current_tags)):
                     count += 1
         return count
-
-    def delete_tag(self, tag: str, dry_run: bool = False) -> int:
-        """
-        Deletes a tag from all items in the library.
-        Returns the number of items updated.
-
-        Deprecated: Use PurgeService.purge_item_assets or PurgeService.purge_collection_assets instead.
-        """
-        warnings.warn(
-            "TagService.delete_tag is deprecated and will be removed in Phase B. Use PurgeService directly.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        item_keys = [item.key for item in self.gateway.get_items_by_tag(tag)]
-        if not item_keys:
-            return 0
-
-        stats = self.purge_service.purge_tags(item_keys, tag_name=tag, dry_run=dry_run)
-        return stats["deleted"] if not dry_run else stats["skipped"]
-
-    def purge_tags_from_collection(self, collection_name: str, dry_run: bool = False) -> int:
-        """
-        Removes all tags from all items in a specific collection.
-
-        Deprecated: Use PurgeService.purge_collection_assets instead.
-        """
-        warnings.warn(
-            "TagService.purge_tags_from_collection is deprecated and will be removed in Phase B. Use PurgeService.purge_collection_assets instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        col_id = self.gateway.get_collection_id_by_name(collection_name)
-        if not col_id:
-            return 0
-
-        item_keys = [item.key for item in self.gateway.get_items_in_collection(col_id)]
-        if not item_keys:
-            return 0
-
-        stats = self.purge_service.purge_tags(item_keys, tag_name=None, dry_run=dry_run)
-        return stats["deleted"] if not dry_run else stats["skipped"]
 
     def _update_tags(self, item_key: str, version: int, tags: List[str]) -> bool:
         # Zotero API expects tags as a list of objects: [{"tag": "name"}, ...]

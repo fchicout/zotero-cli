@@ -1,4 +1,6 @@
-from typing import Dict, List, Optional
+import json
+from datetime import datetime, timezone
+from typing import Dict, List, Optional, Tuple
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
@@ -16,13 +18,15 @@ class SLROrchestrator:
         {"id": "title_abstract", "folder": "1-title_abstract", "label": "1-T&A"},
         {"id": "full_text", "folder": "2-fulltext", "label": "2-FT"},
         {"id": "quality_assessment", "folder": "3-quality_assessment", "label": "3-QA"},
-        {"id": "data_extraction", "folder": "4-data_extraction", "label": "4-DE"}
+        {"id": "data_extraction", "folder": "4-data_extraction", "label": "4-DE"},
     ]
 
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
 
-    def ensure_slr_hierarchy(self, parent_key: str, all_cols: Optional[List[dict]] = None) -> Dict[str, str]:
+    def ensure_slr_hierarchy(
+        self, parent_key: str, all_cols: Optional[List[dict]] = None
+    ) -> Dict[str, str]:
         """
         Verifies and silently creates the 4-phase subfolders under a source collection.
         Returns a mapping of folder_name -> folder_key.
@@ -73,7 +77,9 @@ class SLROrchestrator:
 
         return list(unique_papers.values())
 
-    def resolve_target_phase(self, item_key: str, default_qa_threshold: Optional[float] = None) -> Optional[str]:
+    def resolve_target_phase(
+        self, item_key: str, default_qa_threshold: Optional[float] = None
+    ) -> Optional[str]:
         """
         Determines the highest phase an item reached by validating the SLR pipeline
         sequentially. A paper stops advancing at the FIRST phase it fails to win.
@@ -113,7 +119,9 @@ class SLROrchestrator:
 
         return highest_won_phase_id
 
-    def _evaluate_phase_success(self, phase_id: str, note_data: dict, default_threshold: float) -> bool:
+    def _evaluate_phase_success(
+        self, phase_id: str, note_data: dict, default_threshold: float
+    ) -> bool:
         """
         Victory Condition Strategy.
         - quality_assessment: total >= threshold
@@ -154,20 +162,42 @@ class SLROrchestrator:
         phase_map = self.ensure_slr_hierarchy(root_key)
 
         # Find folder name for the ID
-        target_folder_name = next((p["folder"] for p in self.PHASE_FLOW if p["id"] == phase_id), None)
+        target_folder_name = next(
+            (p["folder"] for p in self.PHASE_FLOW if p["id"] == phase_id), None
+        )
 
         if target_folder_name and target_folder_name in phase_map:
             return phase_map[target_folder_name]
 
         return root_key
 
+    def get_promotion_path(self, root_key: str, phase_id: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Returns (source_folder_key, target_folder_key) for a given phase promotion.
+        """
+        phase_map = self.ensure_slr_hierarchy(root_key)
+        phase_ids = [p["id"] for p in self.PHASE_FLOW]
+
+        if phase_id not in phase_ids:
+            return None, None
+
+        idx = phase_ids.index(phase_id)
+        target_folder_name = self.PHASE_FLOW[idx]["folder"]
+        target_key = phase_map.get(target_folder_name)
+
+        source_key: Optional[str] = None
+        if idx == 0:
+            source_key = root_key
+        else:
+            prev_folder_name = self.PHASE_FLOW[idx - 1]["folder"]
+            source_key = phase_map.get(prev_folder_name)
+
+        return source_key, target_key
+
     def record_duplicate_resolution(self, item_key: str, duplicate_key: str, reason: str):
         """
         Records a permanent audit trail in SDB for duplicate resolution.
         """
-        import json
-        from datetime import datetime, timezone
-        
         audit_note = {
             "audit_version": "1.2",
             "phase": "system",
@@ -176,7 +206,7 @@ class SLROrchestrator:
             "reason_text": f"{reason}. Removed Duplicate Key: {duplicate_key}",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "persona": "orchestrator",
-            "agent": "zotero-cli"
+            "agent": "zotero-cli",
         }
-        
+
         self.gateway.create_note(item_key, json.dumps(audit_note))
