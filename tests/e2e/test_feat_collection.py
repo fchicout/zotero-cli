@@ -4,49 +4,47 @@ import pytest
 
 
 @pytest.mark.e2e
-def test_collection_lifecycle(run_cli, timestamp):
+def test_collection_lifecycle(run_cli, sentinel, timestamp):
     """
     Verifies the full lifecycle of a collection:
     Create -> List -> Rename -> Delete.
+    Uses 'sentinel' for robust cleanup.
     """
     col_name = f"E2E_Coll_{timestamp}"
     new_name = f"E2E_Renamed_{timestamp}"
 
-    try:
-        # 1. Create
-        res = run_cli(["collection", "create", "--name", col_name])
-        assert res.returncode == 0
-        # CLI Output: Created collection 'Name' (Key: XXXXX)
-        assert f"Created collection '{col_name}'" in res.stdout
+    # 1. Create
+    res = sentinel.create_collection(col_name)
+    assert res.returncode == 0
+    assert f"Created collection '{col_name}'" in res.stdout
 
-        # 2. List & Verify existence
-        # Wait a moment for Zotero API to propagate
-        time.sleep(5)
-        list_res = run_cli(["collection", "list"])
-        assert col_name in list_res.stdout
+    # 2. List & Verify existence
+    time.sleep(5)
+    list_res = run_cli(["collection", "list"])
+    assert col_name in list_res.stdout
 
-        # 3. Rename
-        rename_res = run_cli(["collection", "rename", "--key", col_name, "--name", new_name])
+    # 3. Rename
+    rename_res = run_cli(["collection", "rename", "--key", col_name, "--name", new_name])
+    assert rename_res.returncode == 0
+    
+    # Track the new name for cleanup as well
+    sentinel.track(new_name)
 
-        assert rename_res.returncode == 0
+    time.sleep(5)
+    list_after = run_cli(["collection", "list"])
+    assert new_name in list_after.stdout
+    assert col_name not in list_after.stdout
 
-        time.sleep(5)
-        list_after = run_cli(["collection", "list"])
-        assert new_name in list_after.stdout
-        assert col_name not in list_after.stdout
-
-    finally:
-        # 4. Cleanup (Delete)
-        run_cli(["collection", "delete", "--key", col_name, "--recursive"])
-        run_cli(["collection", "delete", "--key", new_name, "--recursive"])
+    # 4. Cleanup is handled by sentinel fixture automatically
 
 
 @pytest.mark.e2e
 def test_collection_clean(run_cli, temp_collection):
     """
     Verifies that 'collection clean' removes items but keeps the folder.
+    'temp_collection' fixture now uses 'sentinel' internally.
     """
-    # 1. Import one item (Fixture already created collection)
+    # 1. Import one item
     run_cli(
         [
             "import",
