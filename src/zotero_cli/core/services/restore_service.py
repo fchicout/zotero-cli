@@ -25,9 +25,9 @@ class RestoreService:
     Implements idempotency, hierarchy reconstruction, and asset re-linking.
     """
 
-    def __init__(self, gateway: ZoteroGateway):
+    def __init__(self, gateway: ZoteroGateway, orchestrator: SLROrchestrator):
         self.gateway = gateway
-        self.orchestrator = SLROrchestrator(gateway)
+        self.orchestrator = orchestrator
         self.item_map: Dict[str, str] = {}  # old_key -> new_key
         self.coll_map: Dict[str, str] = {}  # old_key -> new_key
 

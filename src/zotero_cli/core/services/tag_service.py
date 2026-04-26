@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.purge_service import PurgeService
@@ -6,9 +6,9 @@ from zotero_cli.core.zotero_item import ZoteroItem
 
 
 class TagService:
-    def __init__(self, gateway: ZoteroGateway, purge_service: Optional[PurgeService] = None):
+    def __init__(self, gateway: ZoteroGateway, purge_service: PurgeService):
         self.gateway = gateway
-        self.purge_service = purge_service or PurgeService(gateway)
+        self.purge_service = purge_service
 
     def list_tags(self) -> List[str]:
         """Returns a list of all unique tags in the library."""

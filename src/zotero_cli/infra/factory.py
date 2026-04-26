@@ -53,9 +53,12 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.restore_service import RestoreService
     from zotero_cli.core.services.screening_service import ScreeningService
     from zotero_cli.core.services.sdb.sdb_service import SDBService
+    from zotero_cli.core.services.slr.citation_service import CitationService
     from zotero_cli.core.services.slr.csv_inbound import CSVInboundService
     from zotero_cli.core.services.slr.integrity import IntegrityService
+    from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
     from zotero_cli.core.services.slr.snapshot import SnapshotService
+    from zotero_cli.core.services.slr.status_service import SLRStatusService
     from zotero_cli.core.services.snowball_graph import SnowballGraphService
     from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
     from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
@@ -393,9 +396,10 @@ class GatewayFactory:
         offline: Optional[bool] = None,
     ) -> "RestoreService":
         gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+        orchestrator = GatewayFactory.get_slr_orchestrator(config, force_user, offline=offline)
         from zotero_cli.core.services.restore_service import RestoreService
 
-        return RestoreService(gateway)
+        return RestoreService(gateway, orchestrator)
 
     @staticmethod
     def get_integrity_service(
@@ -807,6 +811,35 @@ class GatewayFactory:
         return MockEmbeddingProvider()
 
     @staticmethod
+    def get_slr_orchestrator(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "SLROrchestrator":
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+        from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
+
+        return SLROrchestrator(gateway)
+
+    @staticmethod
+    def get_slr_status_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "SLRStatusService":
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+        orchestrator = GatewayFactory.get_slr_orchestrator(config, force_user, offline=offline)
+        from zotero_cli.core.services.slr.status_service import SLRStatusService
+
+        return SLRStatusService(gateway, orchestrator)
+
+    @staticmethod
+    def get_citation_service() -> "CitationService":
+        from zotero_cli.core.services.slr.citation_service import CitationService
+
+        return CitationService()
+
+    @staticmethod
     def get_rag_service(
         config: Optional[ZoteroConfig] = None,
         force_user: bool = False,
@@ -823,6 +856,8 @@ class GatewayFactory:
         attachment_service = GatewayFactory.get_attachment_service(
             config, force_user, offline=offline
         )
+        orchestrator = GatewayFactory.get_slr_orchestrator(config, force_user, offline=offline)
+        citation_service = GatewayFactory.get_citation_service()
 
         from zotero_cli.core.services.rag_service import FixedSizeChunker, RAGServiceBase
 
@@ -831,5 +866,7 @@ class GatewayFactory:
             vector_repo,
             embedding_provider,
             attachment_service,
+            orchestrator=orchestrator,
+            citation_service=citation_service,
             text_splitter=FixedSizeChunker(chunk_size=1000),
         )

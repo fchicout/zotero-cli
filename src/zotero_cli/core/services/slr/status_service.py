@@ -31,9 +31,9 @@ class SLRStatusService:
     of items between phase folders and their internal SDB metadata.
     """
 
-    def __init__(self, gateway: ZoteroGateway):
+    def __init__(self, gateway: ZoteroGateway, orchestrator: SLROrchestrator):
         self.gateway = gateway
-        self.orchestrator = SLROrchestrator(gateway)
+        self.orchestrator = orchestrator
 
     def get_slr_status(self) -> List[SLRStatus]:
         all_collections = self.gateway.get_all_collections()

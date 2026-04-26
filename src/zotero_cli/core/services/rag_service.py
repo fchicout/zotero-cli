@@ -122,6 +122,8 @@ class RAGServiceBase(RAGService):
         vector_repo: VectorRepository,
         embedding_provider: EmbeddingProvider,
         fulltext_provider: FullTextProvider,
+        orchestrator: SLROrchestrator,
+        citation_service: CitationService,
         text_splitter: Optional[TextSplitter] = None,
     ):
         self.gateway = gateway
@@ -130,8 +132,8 @@ class RAGServiceBase(RAGService):
         self.fulltext_provider = fulltext_provider
         # Use High-Fidelity Splitter by default
         self.text_splitter = text_splitter or MarkdownRecursiveSplitter()
-        self.citation_service = CitationService()
-        self.orchestrator = SLROrchestrator(gateway)
+        self.citation_service = citation_service
+        self.orchestrator = orchestrator
 
     def ingest(
         self,
