@@ -15,6 +15,11 @@ def mock_deps():
     attachment_service = MagicMock()
     return gateway, vector_repo, embedding_provider, attachment_service
 
+@pytest.fixture
+def service(mock_deps):
+    gateway, vector_repo, embedding_provider, attachment_service = mock_deps
+    return RAGServiceBase(gateway, vector_repo, embedding_provider, attachment_service)
+
 @pytest.mark.unit
 def test_rag_ingest_logic_v1_1(mock_deps):
     gateway, vector_repo, embedding_provider, attachment_service = mock_deps
@@ -85,3 +90,30 @@ def test_rag_query(mock_deps):
     assert results[0].item is not None
     assert results[0].item.title == "Sample Paper"
     gateway.get_item.assert_called_once_with("KEY1")
+
+def test_rag_purge_all(service, mock_deps):
+    gateway, vector_repo, embedding_provider, attachment_service = mock_deps
+    service.purge(purge_all=True)
+    vector_repo.purge_all.assert_called_once()
+
+def test_rag_get_context(service, mock_deps):
+    gateway, vector_repo, embedding_provider, attachment_service = mock_deps
+    mock_chunk = MagicMock()
+    mock_chunk.text = "chunk text"
+    vector_repo.get_chunks_by_item.return_value = [mock_chunk]
+    
+    ctx = service.get_context("K1")
+    assert ctx == "chunk text"
+
+def test_rag_purge_item(service, mock_deps):
+    gateway, vector_repo, embedding_provider, attachment_service = mock_deps
+    service.purge(item_key="K1")
+    vector_repo.delete_chunks_by_item.assert_called_with("K1")
+
+def test_rag_purge_collection(service, mock_deps):
+    gateway, vector_repo, embedding_provider, attachment_service = mock_deps
+    gateway.get_collection_id_by_name.return_value = "COL1"
+    gateway.get_items_in_collection.return_value = iter([MagicMock(key="K1")])
+    
+    service.purge(collection_key="MyColl")
+    vector_repo.delete_chunks_by_item.assert_called_with("K1")

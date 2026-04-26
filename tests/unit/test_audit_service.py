@@ -315,7 +315,7 @@ def test_audit_children_logic(auditor, mock_gateway):
         {
             "data": {
                 "itemType": "note",
-                "note": 'zotero-cli screening note: {"decision": "accepted"}',
+                "note": '{"decision": "accepted", "audit_version": "1.2"}',
             }
         },
     ]

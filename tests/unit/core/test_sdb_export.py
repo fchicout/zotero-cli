@@ -10,9 +10,9 @@ def test_export_service_with_sdb():
     """Verify ExportService fetches SDB metadata from SDBService."""
     mock_gateway = MagicMock()
     mock_bibtex = MagicMock()
+    mock_ris = MagicMock()
     mock_sdb = MagicMock()
-    service = ExportService(mock_gateway, mock_bibtex, mock_sdb)
-
+    service = ExportService(mock_gateway, mock_bibtex, mock_ris, mock_sdb)
     # Setup mocks
     mock_gateway.get_collection_id_by_name.return_value = "COL1"
     item = ZoteroItem(key="K1", version=1, item_type="journalArticle", title="Test", authors=["A1"])

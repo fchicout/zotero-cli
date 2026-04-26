@@ -20,6 +20,14 @@ class BibtexLibGateway(BibtexGateway):
             print(f"Error parsing BibTeX file: {e}")
             return
 
+    def serialize(self, papers: List[ResearchPaper]) -> str:
+        """Serialize list of papers to a BibTeX string."""
+        db = BibDatabase()
+        db.entries = [self._map_paper_to_entry(p) for p in papers]
+
+        writer = BibTexWriter()
+        return str(writer.write(db))
+
     def write_file(self, file_path: str, papers: List[ResearchPaper]) -> bool:
         """Export list of papers to a BibTeX file."""
         db = BibDatabase()

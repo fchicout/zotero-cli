@@ -60,7 +60,7 @@ def test_collection_clean(run_cli, temp_collection):
         ]
     )
 
-    time.sleep(3)
+    time.sleep(10)
     before_clean = run_cli(["item", "list", "--collection", temp_collection])
     assert "Attention" in before_clean.stdout
 

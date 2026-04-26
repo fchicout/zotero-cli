@@ -37,6 +37,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         parser.add_argument("key", help="Zotero Item Key")
         parser.add_argument("--raw", action="store_true", help="Show raw JSON")
         parser.add_argument(
+            "--format", choices=["bibtex", "ris"], help="Export in specific bibliographic format"
+        )
+        parser.add_argument(
             "--full-notes", action="store_true", help="Show full content of child notes"
         )
 
@@ -52,6 +55,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         if args.raw:
             print(json.dumps(item.raw_data, indent=2))
+            return
+
+        if args.format:
+            export_service = GatewayFactory.get_export_service(
+                force_user=getattr(args, "user", False)
+            )
+            if args.format == "bibtex":
+                print(export_service.serialize_bibtex([item]))
+            elif args.format == "ris":
+                print(export_service.serialize_ris([item]))
             return
 
         console.print(

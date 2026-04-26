@@ -75,8 +75,10 @@ def test_backup_collection_recursive_attachments(service, mock_gateway):
         assert "attachments/PARENT1/paper.pdf" in namelist
 
         manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
-        assert manifest["file_map"]["CHILD1"] == "attachments/PARENT1/paper.pdf"
-
+        file_entry = manifest["file_map"]["CHILD1"]
+        assert file_entry["path"] == "attachments/PARENT1/paper.pdf"
+        assert "checksum" in file_entry
+        assert len(file_entry["checksum"]) == 64  # SHA-256 length
         content = zf.read("attachments/PARENT1/paper.pdf").decode("utf-8")
         assert content == "fake pdf content"
 

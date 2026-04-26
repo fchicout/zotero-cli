@@ -158,7 +158,19 @@ class BackupService:
 
                         if self.gateway.download_attachment(child_key, temp_path):
                             zf.write(temp_path, storage_path)
-                            manifest["file_map"][child_key] = storage_path
+                            
+                            # Calculate SHA-256 checksum [SPEC-ZAF-001]
+                            import hashlib
+                            sha256_hash = hashlib.sha256()
+                            with open(temp_path, "rb") as f:
+                                for byte_block in iter(lambda: f.read(4096), b""):
+                                    sha256_hash.update(byte_block)
+                            checksum = sha256_hash.hexdigest()
+
+                            manifest["file_map"][child_key] = {
+                                "path": storage_path,
+                                "checksum": checksum
+                            }
                         else:
                             errors.append(f"Failed to download attachment {child_key} ({filename})")
 

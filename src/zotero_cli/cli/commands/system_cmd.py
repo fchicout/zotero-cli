@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import os
 import time
-from typing import Any
+from typing import Any, Dict
 
 from rich.console import Console
 from rich.table import Table
@@ -129,7 +129,28 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         backup_p.add_argument("--output", required=True, help="Output file path (e.g., backup.zaf)")
 
-        # Restore (Placeholder for now, implemented logic pending)
+        # Verify
+        verify_p = sub.add_parser(
+            "verify",
+            help="Validate integrity of a .zaf archive",
+            description="Performs a deep integrity check on a Zotero Archive Format (.zaf) file, validating checksums of all attachments and ensuring JSON data structures are correct.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Verifying a backup before cloud deletion
+Problem: I want to delete my Zotero cloud data to save space, but I must be 100% sure my backup is valid.
+Action:  zotero-cli system verify --file "backup_2024.zaf"
+Result:  The CLI confirms all 120 PDFs match their original checksums.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Running verify on a non-.zaf file or an archive that is still being written.
+""",
+        )
+        verify_p.add_argument("--file", required=True, help="Input .zaf file")
+
+        # Restore
         restore_p = sub.add_parser(
             "restore",
             help="Restore from a .zaf backup",
@@ -267,14 +288,76 @@ Cognitive Safeguards
             self._handle_groups(args)
         elif args.verb == "backup":
             self._handle_backup(args)
+        elif args.verb == "verify":
+            self._handle_verify(args)
         elif args.verb == "restore":
-            print("Restore functionality is pending implementation.")
+            self._handle_restore(args)
         elif args.verb == "normalize":
             self._handle_normalize(args)
         elif args.verb == "switch":
             self._handle_switch(args)
         elif args.verb == "jobs":
             self._handle_jobs(args)
+
+    def _handle_verify(self, args):
+        from zotero_cli.infra.factory import GatewayFactory
+
+        verify_service = GatewayFactory.get_verify_service()
+
+        console.print(f"Verifying archive integrity: [green]{args.file}[/green]...")
+
+        with console.status("[bold green]Analyzing archive structures..."):
+            report = verify_service.verify_archive(args.file)
+
+        if report.is_valid:
+            console.print("\n[bold green]✅ ARCHIVE IS VALID[/bold green]")
+            console.print(f"  - Items: {report.item_count}")
+            console.print(f"  - Attachments: {report.file_count}")
+            if report.manifest and report.manifest.get("scope_type") == "library":
+                console.print(f"  - Collections: {report.collection_count}")
+            console.print(
+                f"  - Timestamp: {report.manifest.get('timestamp') if report.manifest else 'N/A'}"
+            )
+        else:
+            console.print("\n[bold red]❌ ARCHIVE IS INVALID OR CORRUPT[/bold red]")
+            for error in report.errors:
+                console.print(f"  - [red]Error:[/red] {error}")
+
+    def _handle_restore(self, args):
+        from zotero_cli.infra.factory import GatewayFactory
+
+        restore_service = GatewayFactory.get_restore_service(
+            force_user=getattr(args, "user", False)
+        )
+
+        msg = f"Restoring from archive: [green]{args.file}[/green]"
+        if args.dry_run:
+            msg += " [bold yellow](DRY RUN)[/bold yellow]"
+        console.print(msg)
+
+        with console.status("[bold blue]Processing ZAF archive and synchronizing state..."):
+            report = restore_service.restore_archive(args.file, dry_run=args.dry_run)
+
+        if report.errors:
+            console.print("\n[bold red]Restore encountered errors:[/bold red]")
+            for err in report.errors:
+                console.print(f"  - [red]Error:[/red] {err}")
+
+        title = "Restore Plan Summary" if args.dry_run else "Restore Completion Summary"
+        table = Table(title=title)
+        table.add_column("Metric", style="cyan")
+        table.add_column("Count", justify="right")
+
+        table.add_row("Collections Created", str(report.collections_created))
+        table.add_row("Items Created", str(report.items_created))
+        table.add_row("Items Skipped (Existing)", str(report.items_skipped_existing))
+        table.add_row("Attachments Uploaded", str(report.attachments_uploaded))
+
+        console.print(table)
+
+        if not report.errors:
+            status = "SIMULATED" if args.dry_run else "COMPLETE"
+            console.print(f"\n[bold green]RESTORE {status}[/bold green]")
 
     def _handle_groups(self, args):
         from zotero_cli.core.config import get_config
@@ -541,7 +624,7 @@ Cognitive Safeguards
                 # Converting to list in Service already, but we need the count here for total.
                 # However, since we don't want to double-fetch, we'll let the service drive progress.
 
-                task = progress.add_task("Backing up items...", total=None) # Indeterminate initially
+                task = progress.add_task("Backing up items...", total=None)  # Indeterminate initially
 
                 def on_item(item):
                     progress.update(task, advance=1, description=f"Backing up: {item.key}")

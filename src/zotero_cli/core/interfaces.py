@@ -189,6 +189,10 @@ class BibtexGateway(ABC):
         pass
 
     @abstractmethod
+    def serialize(self, papers: List[ResearchPaper]) -> str:
+        pass
+
+    @abstractmethod
     def write_file(self, file_path: str, papers: List[ResearchPaper]) -> bool:
         pass
 
@@ -196,6 +200,14 @@ class BibtexGateway(ABC):
 class RisGateway(ABC):
     @abstractmethod
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
+        pass
+
+    @abstractmethod
+    def serialize(self, papers: List[ResearchPaper]) -> str:
+        pass
+
+    @abstractmethod
+    def write_file(self, file_path: str, papers: List[ResearchPaper]) -> bool:
         pass
 
 

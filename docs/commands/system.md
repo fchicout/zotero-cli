@@ -41,8 +41,7 @@ zotero-cli system switch 1234567
 ---
 
 ### `backup`
-Create a full backup of the entire library (System Scope).
-Produces a `.zaf` (Zotero Archive Format) file, which is a ZIP archive (LZMA compressed) containing `manifest.json` and `data.json`.
+Creates a complete, self-contained backup archive (`.zaf`) of your entire Zotero library or a specific collection, including all metadata and PDF attachments. Every attachment is mathematically verified using SHA-256 checksums.
 
 **Usage:**
 ```bash
@@ -54,52 +53,45 @@ zotero-cli system backup --output "full_backup_2026.zaf"
 
 ---
 
-### `restore`
-
-Restore items from a `.zaf` archive.
-
-*Note: Currently in development. Functionality placeholder.*
-
-
+### `verify`
+Performs a deep integrity check on a `.zaf` archive. Validates all internal JSON structures and re-calculates checksums for every attachment to ensure 100% data fidelity.
 
 **Usage:**
-
 ```bash
-
-zotero-cli system restore --file "backup.zaf" --dry-run
-
+zotero-cli system verify --file "backup.zaf"
 ```
 
-
+**Parameters:**
+*   `--file`: (Required) Path to the .zaf archive.
 
 ---
 
-
-
-### `normalize`
-
-Convert external CSV files (IEEE Xplore, Springer) into the Zotero-CLI Canonical format.
-
-This allows for consistent pre-processing and manual auditing before importing to Zotero.
-
-
+### `restore`
+Reconstructs an entire Zotero library or specific collections from a `.zaf` archive. Implements intelligent duplicate detection (via DOI/ArXiv/Title) to avoid cluttering your library during restoration.
 
 **Usage:**
-
 ```bash
-
-zotero-cli system normalize "ieee_export.csv" --output "papers_ready.csv"
-
+zotero-cli system restore --file "backup.zaf" [--dry-run]
 ```
 
+**Parameters:**
+*   `--file`: (Required) Path to the .zaf archive.
+*   `--dry-run`: (Optional) Simulates the restore without making any changes.
 
+---
+
+### `normalize`
+Convert external CSV files (IEEE Xplore, Springer) into the Zotero-CLI Canonical format.
+This allows for consistent pre-processing and manual auditing before importing to Zotero.
+
+**Usage:**
+```bash
+zotero-cli system normalize "ieee_export.csv" --output "papers_ready.csv"
+```
 
 **Features:**
-
 *   Automatic detection of IEEE and Springer formats.
-
 *   Maps disparate headers to a single canonical schema.
-
 *   Enables use of CSVs in `review screen` headless modes.
 
 ---
@@ -126,4 +118,3 @@ Starts the background worker to process pending jobs in the queue.
 ```bash
 zotero-cli system jobs run [--limit 10]
 ```
-

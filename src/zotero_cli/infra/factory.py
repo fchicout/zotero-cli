@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.network_gateway import NetworkGateway
     from zotero_cli.core.services.pdf_finder_service import PDFFinderService
     from zotero_cli.core.services.purge_service import PurgeService
+    from zotero_cli.core.services.restore_service import RestoreService
     from zotero_cli.core.services.screening_service import ScreeningService
     from zotero_cli.core.services.sdb.sdb_service import SDBService
     from zotero_cli.core.services.slr.csv_inbound import CSVInboundService
@@ -60,6 +61,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
     from zotero_cli.core.services.tag_service import TagService
     from zotero_cli.core.services.transfer_service import TransferService
+    from zotero_cli.core.services.verify_service import VerifyService
 
 
 class GatewayFactory:
@@ -333,8 +335,9 @@ class GatewayFactory:
 
         gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
         bibtex_gateway = GatewayFactory.get_bibtex_gateway()
+        ris_gateway = GatewayFactory.get_ris_gateway()
         sdb_service = GatewayFactory.get_sdb_service(config, force_user, offline=offline)
-        return ExportService(gateway, bibtex_gateway, sdb_service)
+        return ExportService(gateway, bibtex_gateway, ris_gateway, sdb_service)
 
     @staticmethod
     def get_transfer_service() -> "TransferService":
@@ -382,6 +385,17 @@ class GatewayFactory:
         from zotero_cli.core.services.audit_service import AuditService
 
         return AuditService(gateway)
+
+    @staticmethod
+    def get_restore_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "RestoreService":
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user, offline=offline)
+        from zotero_cli.core.services.restore_service import RestoreService
+
+        return RestoreService(gateway)
 
     @staticmethod
     def get_integrity_service(
@@ -732,6 +746,12 @@ class GatewayFactory:
         return SnowballIngestionService(
             graph_service, metadata_service, item_repo, col_repo, duplicate_finder
         )
+
+    @staticmethod
+    def get_verify_service() -> "VerifyService":
+        from zotero_cli.core.services.verify_service import VerifyService
+
+        return VerifyService()
 
     @staticmethod
     def get_vector_repository(config: Optional[ZoteroConfig] = None) -> "VectorRepository":

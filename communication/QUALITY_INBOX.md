@@ -1,13 +1,22 @@
-# 📥 QUALITY_INBOX: RAG Verification (Spec v1.1)
+# 📥 QUALITY_INBOX: System Restore & ZAF Integrity (Issues #100, #102 / Spec v1.0)
 
-**Status:** 🟡 WAITING FOR DEV
-**Related Task:** RAG Verification (DEV_INBOX)
+**Status:** 🟢 READY FOR IMPLEMENTATION
+**Project:** zotero-cli
+**Spec:** [docs/specs/SYSTEM_RESTORE_v1.0.md](../docs/specs/SYSTEM_RESTORE_v1.0.md)
+**Priority:** High
 
-## ✅ Verification Criteria
-- [ ] **Unit Tests:** `RAGService.verify_results` must correctly flag items missing DOI/arXiv ID.
-- [ ] **Integration Tests:** `rag query --verify --json` must return `is_verified: true` for approved items.
-- [ ] **Fidelity Test:** Verify that snippet length in JSON matches source text length (no truncation).
-- [ ] **Workflow Test:** Verify `citation_key` is present in the output.
+## 🛠️ Task Description
+Provide test coverage and execution audit for the new `system restore`, `system verify`, and `item inspect --format` features.
 
-## ⚠️ Safety Gate
-- [ ] Verify that research database (`vector_store.sqlite.bak_research`) is restorable and unharmed after test suite execution.
+## 📋 Technical Requirements
+1.  **Unit Tests:** Mock `ZoteroGateway` to test `RestoreService`'s duplicate detection, hierarchy reconstruction, and key mapping logic without hitting the live API.
+2.  **Integration Tests:** Generate a dummy `.zaf` archive with checksums, restore it to a clean mock group, and verify the resulting state matches the original exactly.
+3.  **Safety Verification:** Ensure `--dry-run` in `system restore` produces no mutations.
+
+## 🛑 Critical Vetoes
+- **VETO: The Coverage Breach:** Coverage < 80% is an automatic failure.
+- **VETO: The Release Gamble:** Release requires 100% pass rate.
+
+---
+**Lead Persona:** Valerius (Quality Lead)
+**Protocol:** Gatekeeper Loop

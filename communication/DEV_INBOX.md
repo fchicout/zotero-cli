@@ -1,27 +1,28 @@
-# 📥 DEV_INBOX: RAG Verification (Issue #112 / Spec v1.1)
+# 📥 DEV_INBOX: System Restore & ZAF Integrity (Issues #100, #102 / Spec v1.0)
 
 **Status:** 🟢 READY FOR IMPLEMENTATION
 **Project:** zotero-cli
-**Spec:** [docs/specs/RAG_VERIFICATION_v1.1.md](../docs/specs/RAG_VERIFICATION_v1.1.md)
+**Spec:** [docs/specs/SYSTEM_RESTORE_v1.0.md](../docs/specs/SYSTEM_RESTORE_v1.0.md)
 **Priority:** High
 
 ## 🛠️ Task Description
-Implement the **Verification Layer** for RAG search results to ensure academic integrity and provide citation-ready metadata to researchers.
+Implement the **System Restore** and **ZAF Verification** logic to enable trustworthy archiving and safe cloud data deletion, as well as bibliographic export support for `item inspect`.
 
 ## 📋 Technical Requirements
-1.  **Phase 1: Domain Update**
-    - Add `VerifiedSearchResult` to `src/zotero_cli/core/models.py`.
-    - Extend `RAGService` interface in `src/zotero_cli/core/interfaces.py`.
-2.  **Phase 2: Service Logic**
-    - Implement `verify_results` in `src/zotero_cli/core/services/rag_service.py`.
-    - Integrate with `IntegrityService` for metadata checks.
-3.  **Phase 3: CLI Integration**
-    - Add `--verify` flag to `rag query` command.
-    - Update human-readable table and JSON output.
+1.  **Phase 1: Verification & Checksums**
+    - Update `BackupService` to include SHA-256 checksums in `manifest.json`.
+    - Implement `system verify` command and `VerifyService` logic.
+2.  **Phase 2: Restore Command**
+    - Implement `RestoreService` mapping logic and API interactions in `src/zotero_cli/core/services/restore_service.py`.
+    - Handle idempotency, hierarchy reconstruction, item recreation, and attachment re-linking.
+    - Connect `RestoreService` to `SystemCommand._handle_restore` with `--dry-run` support.
+3.  **Phase 3: Inspect Export**
+    - Update `InspectCommand` in `src/zotero_cli/cli/commands/item_cmd.py` to support `--format bibtex/ris`.
+    - Use `ExportService` to output to `stdout`.
 
 ## 🛑 Critical Vetoes
-- **No data loss:** Ensure `vector_store.sqlite` is protected (Backup created).
-- **No truncation:** Snipet in JSON output MUST be the full text.
+- **No duplicates:** Ensure `RestoreService` checks for existing items by DOI/Title/ArXiv ID before creation.
+- **No data loss:** Ensure `--dry-run` performs absolutely zero mutations.
 
 ---
 **Lead Persona:** Hamilton (Lead Engineer)

@@ -1,4 +1,5 @@
-from typing import Iterator
+import io
+from typing import Iterator, List
 
 import rispy
 
@@ -10,7 +11,6 @@ class RisLibGateway(RisGateway):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
         try:
             with open(file_path, "r", encoding="utf-8") as ris_file:
-                # rispy.load accepts a file-like object
                 entries = rispy.load(ris_file)
 
             for entry in entries:
@@ -19,15 +19,31 @@ class RisLibGateway(RisGateway):
             print(f"Error parsing RIS file: {e}")
             return
 
+    def serialize(self, papers: List[ResearchPaper]) -> str:
+        """Serialize list of papers to a RIS string."""
+        entries = [self._map_paper_to_entry(p) for p in papers]
+        output = io.StringIO()
+        rispy.dump(entries, output)
+        return output.getvalue()
+
+    def write_file(self, file_path: str, papers: List[ResearchPaper]) -> bool:
+        """Export list of papers to a RIS file."""
+        entries = [self._map_paper_to_entry(p) for p in papers]
+        try:
+            with open(file_path, "w", encoding="utf-8") as ris_file:
+                rispy.dump(entries, ris_file)
+            return True
+        except Exception as e:
+            print(f"Error writing RIS file: {e}")
+            return False
+
     def _map_entry_to_paper(self, entry: dict) -> ResearchPaper:
-        # rispy maps tags to human-readable keys
         title = entry.get("primary_title") or entry.get("title") or "No Title"
         abstract = entry.get("abstract", "")
         authors = entry.get("authors", [])
         doi = entry.get("doi")
         publication = entry.get("journal_name") or entry.get("secondary_title")
         year = entry.get("year")
-        # urls is a list in rispy
         urls = entry.get("urls", [])
         url = urls[0] if urls else None
 
@@ -39,5 +55,25 @@ class RisLibGateway(RisGateway):
             year=year,
             doi=doi,
             url=url,
-            # RIS format doesn't typically have a direct arxiv_id field
         )
+
+    def _map_paper_to_entry(self, paper: ResearchPaper) -> dict:
+        """Convert ResearchPaper to RIS entry dict."""
+        entry = {
+            "type_of_reference": "JOUR",  # Default to journal
+            "title": paper.title,
+            "authors": paper.authors,
+        }
+
+        if paper.abstract:
+            entry["abstract"] = paper.abstract
+        if paper.publication:
+            entry["journal_name"] = paper.publication
+        if paper.year:
+            entry["year"] = str(paper.year)
+        if paper.doi:
+            entry["doi"] = paper.doi
+        if paper.url:
+            entry["urls"] = [paper.url]
+
+        return entry
