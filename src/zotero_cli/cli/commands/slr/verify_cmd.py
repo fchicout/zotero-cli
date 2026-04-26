@@ -5,7 +5,6 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-from zotero_cli.core.services.slr.integrity import IntegrityService
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -84,7 +83,8 @@ class VerifyCommand:
 
     @staticmethod
     def _verify_collection(gateway, args: argparse.Namespace):
-        service = IntegrityService(gateway)
+        force_user = getattr(args, "user", False)
+        service = GatewayFactory.get_integrity_service(force_user=force_user)
         print(f"Auditing collection: {args.collection}...")
         report = service.audit_collection(args.collection)
 

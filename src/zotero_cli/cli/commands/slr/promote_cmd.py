@@ -3,7 +3,6 @@ import sys
 
 from rich.console import Console
 
-from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -35,7 +34,7 @@ class PromoteCommand:
 
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
-        orchestrator = SLROrchestrator(gateway)
+        orchestrator = GatewayFactory.get_slr_orchestrator(force_user=force_user)
         screening_service = GatewayFactory.get_screening_service(force_user=force_user)
 
         # 1. Resolve folders

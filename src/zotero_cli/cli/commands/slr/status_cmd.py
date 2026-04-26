@@ -4,7 +4,6 @@ from typing import Any, Dict
 from rich.console import Console
 from rich.table import Table
 
-from zotero_cli.core.services.slr.status_service import SLRStatusService
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -20,8 +19,8 @@ class StatusCommand:
 
     @staticmethod
     def execute(args: argparse.Namespace):
-        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
-        service = SLRStatusService(gateway)
+        force_user = getattr(args, "user", False)
+        service = GatewayFactory.get_slr_status_service(force_user=force_user)
 
         with console.status("[bold green]Scanning SLR Hierarchy..."):
             statuses = service.get_slr_status()

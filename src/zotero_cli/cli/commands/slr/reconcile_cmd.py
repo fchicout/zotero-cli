@@ -3,7 +3,6 @@ import argparse
 from rich.console import Console
 from rich.table import Table
 
-from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -29,7 +28,7 @@ class ReconcileCommand:
 
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
-        orchestrator = SLROrchestrator(gateway)
+        orchestrator = GatewayFactory.get_slr_orchestrator(force_user=force_user)
         coll_service = GatewayFactory.get_collection_service(force_user=force_user)
 
         # 1. Resolve Tree Root
