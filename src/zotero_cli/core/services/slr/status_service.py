@@ -19,6 +19,12 @@ class SLRStatus:
     total_in_root: int = 0
     phases: Dict[str, PhaseStats] = field(default_factory=dict)
 
+    @property
+    def total_unique(self) -> int:
+        """Sum of papers in root plus all papers accepted in subsequent phases."""
+        phase_sum = sum(p.accepted for p in self.phases.values())
+        return self.total_in_root + phase_sum
+
 class SLRStatusService:
     """
     Orchestrates SLR status reporting by analyzing the physical displacement
