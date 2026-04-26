@@ -133,6 +133,9 @@ class ZoteroAPIClient(ZoteroGateway):
     def get_all_items(self) -> Iterator[ZoteroItem]:
         return self.search_items(ZoteroQuery())
 
+    def get_trash_items(self) -> Iterator[ZoteroItem]:
+        return self._paginate_items("items/trash")
+
     def get_orphan_items(self) -> Iterator[ZoteroItem]:
         return self._paginate_items("items", params={"collection": "none"})
 

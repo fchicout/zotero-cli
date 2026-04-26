@@ -161,25 +161,22 @@ class SLROrchestrator:
 
         return root_key
 
-    def get_promotion_path(self, root_key: str, phase_id: str) -> tuple[Optional[str], Optional[str]]:
+    def record_duplicate_resolution(self, item_key: str, duplicate_key: str, reason: str):
         """
-        Returns (source_folder_key, target_folder_key) for a given phase promotion.
+        Records a permanent audit trail in SDB for duplicate resolution.
         """
-        phase_map = self.ensure_slr_hierarchy(root_key)
-        phase_ids = [p["id"] for p in self.PHASE_FLOW]
-
-        if phase_id not in phase_ids:
-            return None, None
-
-        idx = phase_ids.index(phase_id)
-        target_folder_name = self.PHASE_FLOW[idx]["folder"]
-        target_key = phase_map.get(target_folder_name)
-
-        source_key: Optional[str] = None
-        if idx == 0:
-            source_key = root_key
-        else:
-            prev_folder_name = self.PHASE_FLOW[idx - 1]["folder"]
-            source_key = phase_map.get(prev_folder_name)
-
-        return source_key, target_key
+        import json
+        from datetime import datetime, timezone
+        
+        audit_note = {
+            "audit_version": "1.2",
+            "phase": "system",
+            "action": "duplicate_detected",
+            "decision": "merged",
+            "reason_text": f"{reason}. Removed Duplicate Key: {duplicate_key}",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "persona": "orchestrator",
+            "agent": "zotero-cli"
+        }
+        
+        self.gateway.create_note(item_key, json.dumps(audit_note))
