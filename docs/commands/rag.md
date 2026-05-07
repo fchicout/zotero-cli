@@ -37,3 +37,12 @@ zotero-cli rag purge --all
 zotero-cli rag purge --key "ITEM_KEY"
 zotero-cli rag purge --collection "COLLECTION_NAME/KEY"
 ```
+
+### `model`
+Manages RAG models (embeddings and generative).
+
+**Usage:**
+```bash
+zotero-cli rag model set
+zotero-cli rag model clean
+```

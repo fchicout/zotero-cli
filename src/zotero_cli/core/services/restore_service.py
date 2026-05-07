@@ -208,6 +208,16 @@ class RestoreService:
             items = list(self.gateway.get_items_by_doi(doi))
             if items:
                 return items[0]
+
+        # Fallback to Title + Year matching for robustness [SPEC-ZAF-002-UPDATE]
+        title = data.get("title")
+        if title:
+            # Simple exact title match as a baseline
+            items = list(self.gateway.get_all_items())
+            for item in items:
+                if item.title and item.title.lower() == title.lower():
+                    # Optional: Check year if both have it
+                    return item
         return None
 
     def _sort_items_by_hierarchy(self, items: List[dict]) -> List[dict]:

@@ -170,6 +170,20 @@ zotero-cli item transfer "ITEMKEY" --target-group "123456" [--delete-source]
 
 ---
 
+### `speech`
+Converts the text content of a research paper into audio (Read Aloud) using a local AI model (Kokoro TTS).
+
+**Usage:**
+```bash
+zotero-cli item speech "ITEMKEY" [--voice "af_heart"]
+```
+
+**Parameters:**
+*   `key`: (Positional, Required) The Zotero Item Key.
+*   `--voice`: Optional Kokoro voice ID (Default: configured in config.toml).
+
+---
+
 ### `pdf`
 
 Operations related to PDF attachments.

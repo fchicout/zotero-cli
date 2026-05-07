@@ -1,4 +1,4 @@
-from typing import List, cast
+from typing import List, Optional, cast
 
 from zotero_cli.core.interfaces import EmbeddingProvider
 
@@ -88,3 +88,48 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             model=self.model, content=texts, task_type="retrieval_document"
         )
         return [cast(List[float], emb) for emb in response["embedding"]]
+
+
+class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
+    """
+    Local embedding provider using sentence-transformers.
+    Supports any model from Hugging Face.
+    Uses lazy loading to avoid heavy memory usage on startup.
+    """
+
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2", token: Optional[str] = None):
+        self.model_name = model_name
+        self.token = token
+        self._model = None
+
+    @property
+    def model(self):
+        if self._model is None:
+            try:
+                from sentence_transformers import SentenceTransformer
+            except ImportError:
+                raise ImportError(
+                    "sentence-transformers package not installed. "
+                    "Run 'pip install sentence-transformers'"
+                )
+
+            # Many 2026 models (Jina v3, Qwen) require trust_remote_code=True
+            self._model = SentenceTransformer(
+                self.model_name,
+                token=self.token,
+                trust_remote_code=True
+            )
+        return self._model
+
+    def embed_text(self, text: str) -> List[float]:
+        embedding = self.model.encode(text)
+        # Handle cases where embedding is a numpy array
+        if hasattr(embedding, "tolist"):
+            return cast(List[float], embedding.tolist())
+        return cast(List[float], list(embedding))
+
+    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+        embeddings = self.model.encode(texts)
+        if hasattr(embeddings, "tolist"):
+            return cast(List[List[float]], embeddings.tolist())
+        return cast(List[List[float]], [list(e) for e in embeddings])

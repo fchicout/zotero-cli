@@ -415,6 +415,30 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         add_p.add_argument("--date", help="Publication Date")
         add_p.add_argument("--abstract", help="Abstract/Note")
 
+        # Speech
+        speech_p = sub.add_parser(
+            "speech",
+            help="Convert item text to speech",
+            description="Extracts the full text from the item's PDF attachment, cleans it, and converts it to speech using the Local AI engine.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Listening to a paper while commuting
+Problem: I want to listen to the paper with key ABCD1234 on my phone.
+Action:  zotero-cli item speech --key "ABCD1234" --output "paper.wav"
+Result:  The PDF text is extracted, cleaned, and a WAV file is generated.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Item has no PDF attachment or kokoro is not installed.
+• Safety Tips: Ensure you have enough disk space for the generated audio.
+""",
+        )
+        speech_p.add_argument("--key", required=True, help="Item Key")
+        speech_p.add_argument("--output", required=True, help="Output audio file path (.wav)")
+        speech_p.add_argument("--voice", help="Override default voice")
+
     def execute(self, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -441,6 +465,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             self._handle_export(args)
         elif args.verb == "add":
             self._handle_add(gateway, args)
+        elif args.verb == "speech":
+            self._handle_speech(args)
 
     def _handle_list(self, gateway, args):
         from zotero_cli.core.services.sdb.sdb_service import SDBService
@@ -883,3 +909,32 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             console.print(f"[bold green]Success![/bold green] Item created with key: [magenta]{new_key}[/magenta]")
         else:
             console.print("[bold red]Error:[/bold red] Failed to create item.")
+
+    def _handle_speech(self, args):
+        force_user = getattr(args, "user", False)
+        gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
+        item = gateway.get_item(args.key)
+        if not item:
+            console.print(f"[bold red]Item '{args.key}' not found.[/bold red]")
+            return
+
+        speech_service = GatewayFactory.get_speech_service()
+        # Voice is handled by service configuration or synthesis call
+
+        # Extract text via FullTextProvider (implemented by AttachmentService)
+        attach_service = GatewayFactory.get_attachment_service(force_user=force_user)
+
+        console.print(f"Extracting text from [cyan]{item.title}[/cyan]...")
+        text = attach_service.get_fulltext(item.key)
+        if not text:
+            console.print("[bold red]Failed to extract text from item PDF.[/bold red]")
+            return
+
+        from pathlib import Path
+        output_path = Path(args.output)
+
+        console.print(f"Generating speech to [green]{args.output}[/green]...")
+        if speech_service.synthesize_text(text, output_path):
+            console.print("[bold green]Speech generation complete.[/bold green]")
+        else:
+            console.print("[bold red]Speech generation failed.[/bold red]")

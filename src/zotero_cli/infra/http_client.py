@@ -1,6 +1,17 @@
 from typing import Any, Dict, Optional
 
 import requests
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+
+
+def is_http_retryable(exception: BaseException) -> bool:
+    """Check if an exception is a retryable HTTP error or connection error."""
+    if isinstance(exception, requests.exceptions.ConnectionError):
+        return True
+    if isinstance(exception, requests.exceptions.HTTPError):
+        status_code = exception.response.status_code
+        return status_code == 429 or 500 <= status_code < 600
+    return False
 
 
 class ZoteroHttpClient:
@@ -34,6 +45,12 @@ class ZoteroHttpClient:
         # State
         self.last_library_version = 0
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=2, max=30),
+        retry=retry_if_exception(is_http_retryable),
+        reraise=True,
+    )
     def get(
         self, endpoint: str, params: Optional[Dict] = None, use_prefix: bool = True, **kwargs: Any
     ) -> requests.Response:
@@ -46,6 +63,12 @@ class ZoteroHttpClient:
         response.raise_for_status()
         return response
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=2, max=30),
+        retry=retry_if_exception(is_http_retryable),
+        reraise=True,
+    )
     def post(
         self,
         endpoint: str,
@@ -66,6 +89,12 @@ class ZoteroHttpClient:
         response.raise_for_status()
         return response
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=2, max=30),
+        retry=retry_if_exception(is_http_retryable),
+        reraise=True,
+    )
     def patch(
         self, endpoint: str, json_data: Any, version_check: bool = False
     ) -> requests.Response:
@@ -87,6 +116,12 @@ class ZoteroHttpClient:
         self._update_version(response)
         return response
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=2, max=30),
+        retry=retry_if_exception(is_http_retryable),
+        reraise=True,
+    )
     def delete(
         self, endpoint: str, params: Optional[Dict] = None, version_check: bool = True
     ) -> requests.Response:

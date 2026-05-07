@@ -333,6 +333,12 @@ class TextSplitter(ABC):
         pass
 
 
+class LLMProvider(ABC):
+    @abstractmethod
+    def generate(self, prompt: str, system_instruction: Optional[str] = None) -> str:
+        pass
+
+
 class RAGService(ABC):
     @abstractmethod
     def ingest(
@@ -343,12 +349,19 @@ class RAGService(ABC):
         approved_only: bool = False,
         prune: bool = False,
         min_qa_score: Optional[float] = None,
-        on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
+        on_item_processed: Optional[Callable[[ZoteroItem, int], None]] = None,
     ) -> Dict[str, Any]:
         pass
 
     @abstractmethod
     def query(self, prompt: str, top_k: int = 5) -> List[SearchResult]:
+        pass
+
+    @abstractmethod
+    def synthesize(self, prompt: str, results: List[SearchResult]) -> str:
+        """
+        Synthesizes an answer from search results using an LLM.
+        """
         pass
 
     @abstractmethod
@@ -454,4 +467,10 @@ class OpenerService(ABC):
 class AuditService(ABC):
     @abstractmethod
     def audit_manuscript(self, path: Path) -> Dict[str, Any]:
+        pass
+
+
+class SpeechProvider(ABC):
+    @abstractmethod
+    def synthesize(self, text: str, output_path: Path) -> bool:
         pass

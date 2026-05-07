@@ -10,6 +10,7 @@ from zotero_cli.cli.commands.slr import (
     DecideCommand,
     ExtractionCommand,
     LoadCommand,
+    PendingCommand,
     PromoteCommand,
     ReconcileCommand,
     ScreenCommand,
@@ -108,6 +109,14 @@ Cognitive Safeguards
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
         StatusCommand.register_args(status_p)
+
+        pending_p = sub.add_parser(
+            "pending",
+            help="Lists all items currently pending in the SLR funnel",
+            description="Scans all raw_* collections and identifies items that are 'stuck' in the funnel (e.g., missing audit notes or missing PDFs).",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
+        PendingCommand.register_args(pending_p)
 
         reconcile_p = sub.add_parser(
             "reconcile",
@@ -412,6 +421,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             LoadCommand.execute(gateway, args)
         elif args.verb == "status":
             StatusCommand.execute(args)
+        elif args.verb == "pending":
+            PendingCommand.execute(args)
         elif args.verb == "reconcile":
             ReconcileCommand.execute(args)
         elif args.verb == "promote":

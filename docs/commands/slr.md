@@ -288,4 +288,12 @@ Safely resets items by stripping all screening metadata (SDB notes, tags) and op
 zotero-cli slr reset --collection "To Reset" [--target-collection "Raw"] [--execute]
 ```
 
+### `pending`
+Lists all items currently pending evaluation in the SLR funnel, identifying why they are stuck (e.g. missing decision in a specific phase).
+
+**Usage:**
+```bash
+zotero-cli slr pending [--tree "RAW_COLLECTION"]
+```
+
 

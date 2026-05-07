@@ -1,6 +1,7 @@
 from .decide_cmd import DecideCommand
 from .extraction_cmd import ExtractionCommand
 from .load_cmd import LoadCommand
+from .pending_cmd import PendingCommand
 from .promote_cmd import PromoteCommand
 from .reconcile_cmd import ReconcileCommand
 from .screen_cmd import ScreenCommand
@@ -10,14 +11,16 @@ from .status_cmd import StatusCommand
 from .verify_cmd import VerifyCommand
 
 __all__ = [
-    "ScreenCommand",
     "DecideCommand",
-    "LoadCommand",
     "ExtractionCommand",
-    "SnowballCommand",
-    "VerifyCommand",
-    "SDBCommand",
-    "StatusCommand",
-    "ReconcileCommand",
+    "LoadCommand",
+    "PendingCommand",
     "PromoteCommand",
+    "ReconcileCommand",
+    "ScreenCommand",
+    "SDBCommand",
+    "SnowballCommand",
+    "StatusCommand",
+    "VerifyCommand",
 ]
+

@@ -24,6 +24,13 @@ class ZoteroConfig:
     database_path: Optional[str] = None
     openai_api_key: Optional[str] = None
     gemini_api_key: Optional[str] = None
+    embedding_provider: str = "auto"
+    embedding_model: Optional[str] = None
+    generative_provider: str = "auto"
+    generative_model: Optional[str] = None
+    huggingface_token: Optional[str] = None
+    tts_lang: Optional[str] = None
+    tts_voice: Optional[str] = None
 
     def is_valid(self) -> bool:
         return bool(self.api_key and self.library_id)
@@ -71,6 +78,13 @@ class ConfigLoader:
         up_email = os.environ.get("UNPAYWALL_EMAIL") or file_config.get("unpaywall_email")
         openai_key = os.environ.get("OPENAI_API_KEY") or file_config.get("openai_api_key")
         gemini_key = os.environ.get("GEMINI_API_KEY") or file_config.get("gemini_api_key")
+        emb_provider = os.environ.get("EMBEDDING_PROVIDER") or file_config.get("embedding_provider", "auto")
+        emb_model = os.environ.get("EMBEDDING_MODEL") or file_config.get("embedding_model")
+        gen_provider = os.environ.get("GENERATIVE_PROVIDER") or file_config.get("generative_provider", "auto")
+        gen_model = os.environ.get("GENERATIVE_MODEL") or file_config.get("generative_model")
+        hf_token = os.environ.get("HUGGINGFACE_TOKEN") or file_config.get("huggingface_token")
+        tts_lang = os.environ.get("TTS_LANG") or file_config.get("tts_lang")
+        tts_voice = os.environ.get("TTS_VOICE") or file_config.get("tts_voice")
 
         storage_path = os.environ.get("ZOTERO_STORAGE_PATH") or file_config.get("storage_path")
         database_path = os.environ.get("ZOTERO_DATABASE_PATH") or file_config.get("database_path")
@@ -88,6 +102,13 @@ class ConfigLoader:
             database_path=database_path,
             openai_api_key=openai_key,
             gemini_api_key=gemini_key,
+            embedding_provider=emb_provider,
+            embedding_model=emb_model,
+            generative_provider=gen_provider,
+            generative_model=gen_model,
+            huggingface_token=hf_token,
+            tts_lang=tts_lang,
+            tts_voice=tts_voice,
         )
 
     def _load_from_file(self) -> Dict[str, Any]:
@@ -119,42 +140,43 @@ class ConfigManager:
         Updates the library_id and library_type in the config file to point to a group.
         Preserves other keys.
         """
-        # Ensure we have toml installed for writing, or use basic string replacement if minimal deps required.
-        # But project likely has 'toml' or 'tomli-w'. Let's check imports.
-        # Assuming we can read/write. If tomli is read-only, we might need another approach or 'tomli-w'.
-        # For simplicity and robustness, we'll try to read all, update dict, write back using a simple toml writer
-        # or just manual string manipulation if dependencies are strict.
-        # However, the instructions say "Use the toml library (already a dependency)".
-        # Let's check if 'toml' is available (the write-capable one).
+        self.update_config({"library_id": group_id, "library_type": "group"})
+
+    def update_config(self, updates: Dict[str, Any]):
+        """
+        Updates the config file with the provided key-value pairs.
+        Preserves other keys.
+        """
         try:
             import toml
         except ImportError:
-            # Fallback or error. Assuming it is available as per instructions.
             raise RuntimeError("The 'toml' library is required for writing configuration.")
 
         if not self.config_path.exists():
-            raise FileNotFoundError(f"Config file not found at {self.config_path}")
+            # Create a basic structure if it doesn't exist
+            data: Dict[str, Any] = {"zotero": {}}
+        else:
+            try:
+                with open(self.config_path, "r", encoding="utf-8") as f:
+                    data = toml.load(f)
+            except Exception as e:
+                # If file exists but is invalid, we might overwrite or error.
+                # Better to error to avoid data loss.
+                raise RuntimeError(f"Failed to load existing config file: {e}")
 
-        try:
-            with open(self.config_path, "r", encoding="utf-8") as f:
-                data = toml.load(f)
+        if "zotero" not in data:
+            data["zotero"] = {}
 
-            if "zotero" not in data:
-                data["zotero"] = {}
+        for key, value in updates.items():
+            data["zotero"][key] = value
 
-            data["zotero"]["library_id"] = group_id
-            data["zotero"]["library_type"] = "group"
-            # Clear target_group if it conflicts? Or keep it?
-            # Instruction doesn't specify, but setting context implies ID is authority.
+        # Ensure directory exists
+        self.config_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.config_path, "w", encoding="utf-8") as f:
+            toml.dump(data, f)
 
-            with open(self.config_path, "w", encoding="utf-8") as f:
-                toml.dump(data, f)
-
-            # Invalidate global cache
-            reset_config()
-
-        except Exception as e:
-            raise RuntimeError(f"Failed to update config file: {e}")
+        # Invalidate global cache
+        reset_config()
 
 
 # --- Global Config State ---

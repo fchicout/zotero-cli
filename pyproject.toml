@@ -1,6 +1,6 @@
 [project]
 name = "zotero-cli"
-version = "2.6.1"
+version = "2.7.0"
 license = {text = "MIT"}
 dependencies = [
     "requests>=2.31.0",
@@ -18,6 +18,14 @@ dependencies = [
     "beautifulsoup4>=4.12.0",
     "networkx>=3.0",
     "markitdown>=0.0.1",
+    "sentence-transformers>=3.0.0",
+    "huggingface-hub>=0.20.0",
+    "numpy>=1.24.0",
+    "einops>=0.7.0",
+    "torch>=2.0.0",
+    "openai>=1.0.0",
+    "google-generativeai>=0.3.0",
+    "accelerate>=0.26.0",
 ]
 
 [project.scripts]

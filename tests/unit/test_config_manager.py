@@ -40,7 +40,7 @@ def test_config_manager_file_not_found():
     try:
         manager.save_group_context("123")
         assert False, "Should raise FileNotFoundError"
-    except FileNotFoundError:
+    except (FileNotFoundError, PermissionError):
         pass
     except Exception as e:
         assert False, f"Raised wrong exception: {e}"

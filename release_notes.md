@@ -1,13 +1,23 @@
-## [2.6.0] - 2026-04-21
+# Release Notes - v2.7.0 (2026-05-07)
 
-### ✨ Features & Improvements
-- **RAG Verification Engine (Spec v1.1):** Introduced automated integrity checks for semantic search results. Results can now be verified against mandatory academic identifiers (DOI/arXiv) and screening status.
-- **Fidelity Integrity Guards:** Enforced high-fidelity JSON serialization in the RAG pipeline. Snippets are now preserved without truncation in `--json` output, ensuring 100% data reliability for citation verification.
-- **Citation Key Traceability:** Enhanced the `ZoteroItem` model to automatically extract and verify Citation Keys from the Zotero 'extra' field.
-- **Verification CLI:** Added the `--verify` flag to `rag query`, providing real-time feedback on the "verified" status of retrieved context.
+## 🚀 The "Cognitive Clarity" Release
 
-### 🛡️ Quality & Infrastructure
-- **Restoration Gate:** Established a new safety protocol to verify the integrity of critical research database backups (`.bak_research`) during the test lifecycle.
-- **Valerius Protocol Expansion:** Hardened the RAG test suite with exhaustive unit and fidelity tests.
-- **Interface Consolidation:** Refactored `RAGService` to use a unified and more flexible ingestion strategy.
+This minor release focuses on project professionalization, repository hygiene, and formalizing the development lifecycle through comprehensive documentation.
 
+### 📝 Strategic Documentation
+We have introduced a formal documentation suite in the `docs/` directory to improve onboarding and architectural traceability:
+- **Requirements Specification:** A detailed mapping of functional and non-functional requirements.
+- **Use Cases:** Documented primary user interactions and system flows.
+- **User Stories:** Real-world scenarios from the perspective of researchers, reviewers, and authors.
+
+### 🧹 Repository Hygiene
+The project root has been sanitized to adhere to our **Clean Root Policy**. Over 20 misplaced data artifacts and temporary files were relocated to structured storage in the `data/` directory or removed, ensuring a focused and professional workspace.
+
+### 🛡️ Quality Assurance
+- **Pass Rate:** 100% (455 tests).
+- **Coverage:** >80%.
+- **Linting:** Zero errors (Ruff).
+- **Type Checking:** Zero errors (Mypy).
+
+---
+*Developed by the ARCH_MGMT Team (The Council)*

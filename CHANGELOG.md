@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.7.0] - 2026-05-07
+
+### ✨ Features & Improvements
+- **Formal Project Documentation:** Added comprehensive `REQUIREMENTS.md`, `USE_CASES.md`, and `USER_STORIES.md` to the `docs/` directory, establishing a clear functional and user-centric baseline for the project.
+
+### 🛡️ Quality & Infrastructure (The Council Audit)
+- **Root Directory Hygiene:** Performed a major cleanup of the project root, moving misplaced data artifacts (`.csv`, `.json`, `.txt`) to the `data/` directory and removing legacy coverage artifacts.
+- **Documentation Consolidation:** Synchronized internal architectural notes with user-facing requirements to ensure cognitive clarity across the codebase.
+
 ## [2.6.1] - 2026-04-26
 
 ### ✨ Features & Improvements

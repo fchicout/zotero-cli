@@ -125,6 +125,7 @@ class RAGServiceBase(RAGService):
         orchestrator: SLROrchestrator,
         citation_service: CitationService,
         text_splitter: Optional[TextSplitter] = None,
+        llm_provider: Optional[Any] = None,
     ):
         self.gateway = gateway
         self.vector_repo = vector_repo
@@ -134,6 +135,7 @@ class RAGServiceBase(RAGService):
         self.text_splitter = text_splitter or MarkdownRecursiveSplitter()
         self.citation_service = citation_service
         self.orchestrator = orchestrator
+        self.llm_provider = llm_provider
 
     def ingest(
         self,
@@ -143,7 +145,7 @@ class RAGServiceBase(RAGService):
         approved_only: bool = False,
         prune: bool = False,
         min_qa_score: Optional[float] = None,
-        on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
+        on_item_processed: Optional[Callable[[ZoteroItem, int], None]] = None,
     ) -> Dict[str, Any]:
         """
         Ingest items with selection logic moved to service for architectural alignment.
@@ -154,42 +156,56 @@ class RAGServiceBase(RAGService):
 
         stats = {"processed": 0, "skipped_no_text": 0, "skipped_low_qa": 0}
 
-        # 1. Resolve final keys
-        final_keys = item_keys or []
+        # 1. Resolve initial items
+        items_to_process: List[ZoteroItem] = []
         if item_key:
-            final_keys.append(item_key)
+            item = self.gateway.get_item(item_key)
+            if item:
+                items_to_process.append(item)
+        elif item_keys:
+            for k in item_keys:
+                item = self.gateway.get_item(k)
+                if item:
+                    items_to_process.append(item)
         elif collection_key:
             col_id = self.gateway.get_collection_id_by_name(collection_key) or collection_key
-            items = list(self.gateway.get_items_in_collection(col_id))
-            final_keys.extend([i.key for i in items])
-        elif not final_keys:
+            items_to_process = list(self.gateway.get_items_in_collection(col_id))
+        else:
             # Full library ingestion
-            items = list(self.gateway.get_all_items())
-            final_keys.extend([i.key for i in items])
+            items_to_process = list(self.gateway.get_all_items())
 
+        # 2. Pre-filter items if necessary to get exact progress count
+        if approved_only:
+            items_to_process = [i for i in items_to_process if "rsl:include" in i.tags]
+            # Approved-only filtering doesn't usually count as 'skipped' in stats
+            # but we could count them if needed. For now, we follow existing pattern.
+
+        if min_qa_score is not None:
+            logger.info(f"Pre-filtering items by QA score >= {min_qa_score}...")
+            filtered_items = []
+            for i in items_to_process:
+                if self._get_item_max_qa_score(i) >= min_qa_score:
+                    filtered_items.append(i)
+                else:
+                    stats["skipped_low_qa"] += 1
+            items_to_process = filtered_items
+
+        total_count = len(items_to_process)
         all_vector_chunks = []
 
-        def process_item(key: str):
-            item = self.gateway.get_item(key)
-            if not item:
-                return None
-
-            if approved_only and "rsl:include" not in item.tags:
-                return {"status": "not_approved", "item": item}
-
-            qa_score = self._get_item_max_qa_score(item)
+        def process_item(item: ZoteroItem):
             citation_key = self.citation_service.resolve_citation_key(item)
+            qa_score = self._get_item_max_qa_score(item)
             target_phase = self.orchestrator.resolve_target_phase(
                 item.key, default_qa_threshold=min_qa_score
             )
 
-            if min_qa_score is not None:
-                if qa_score < min_qa_score:
-                    return {"status": "low_qa", "item": item}
-
             text = self.fulltext_provider.get_fulltext(item.key)
             if not text:
                 return {"status": "no_text", "item": item}
+
+            # [RAG IMPROVEMENT] Strip references to improve data quality
+            text = self._strip_references(text)
 
             # Structural Splitting with breadcrumbs
             chunks_text = self.text_splitter.split_text(text, context_title=item.title)
@@ -210,9 +226,9 @@ class RAGServiceBase(RAGService):
                 )
             return {"status": "success", "item": item, "chunks": item_chunks}
 
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            future_to_key = {executor.submit(process_item, key): key for key in final_keys}
-            for future in as_completed(future_to_key):
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_to_item = {executor.submit(process_item, item): item for item in items_to_process}
+            for future in as_completed(future_to_item):
                 result = future.result()
                 if not result:
                     continue
@@ -223,16 +239,49 @@ class RAGServiceBase(RAGService):
                         self.vector_repo.delete_chunks_by_item(item.key)
                     all_vector_chunks.extend(result["chunks"])
                     stats["processed"] += 1
-                elif result["status"] != "not_approved":
+                else:
                     stats[f"skipped_{result['status']}"] += 1
 
                 if on_item_processed:
-                    on_item_processed(item)
+                    on_item_processed(item, total_count)
 
         if all_vector_chunks:
             self.vector_repo.store_chunks(all_vector_chunks)
 
         return stats
+
+    def _strip_references(self, text: str) -> str:
+        """
+        Heuristic to remove the bibliography/references section of a paper.
+        """
+        # Look for headers likely to indicate references
+        ref_patterns = [
+            r"^(#+)\s+References\s*$",
+            r"^(#+)\s+BIBLIOGRAPHY\s*$",
+            r"^(#+)\s+WORKS CITED\s*$",
+            r"^(#+)\s+Referências\s*$",
+            r"^References\s*$",
+            r"^BIBLIOGRAPHY\s*$",
+        ]
+
+        lines = text.split("\n")
+        strip_index = -1
+
+        for i, line in enumerate(lines):
+            for pattern in ref_patterns:
+                if re.match(pattern, line, re.IGNORECASE):
+                    # Check if it's towards the end (heuristic: at least 60% of the paper)
+                    if i > len(lines) * 0.6:
+                        strip_index = i
+                        break
+            if strip_index != -1:
+                break
+
+        if strip_index != -1:
+            logger.info(f"Stripping references starting at line {strip_index}")
+            return "\n".join(lines[:strip_index])
+
+        return text
 
     def _get_item_max_qa_score(self, item: ZoteroItem) -> float:
         """
@@ -353,6 +402,41 @@ class RAGServiceBase(RAGService):
         for result in results:
             result.item = self.gateway.get_item(result.item_key)
         return results
+
+    def synthesize(self, prompt: str, results: List[SearchResult]) -> str:
+        """
+        Synthesizes an answer from search results using an LLM.
+        """
+        if not self.llm_provider:
+            return "Error: No LLM provider configured. Use 'zotero-cli rag model set' or check your config.toml for API keys."
+
+        context_blocks = []
+        for i, res in enumerate(results):
+            citation = res.metadata.get("citation_key") or res.item_key
+            context_blocks.append(f"--- [Source: {citation}] ---\n{res.text}")
+
+        context_str = "\n\n".join(context_blocks)
+
+        system_instruction = (
+            "You are a rigorous Research Evidence Auditor. Your goal is to extract and summarize "
+            "information from the provided snippets with 100% accuracy. "
+            "RULES:\n"
+            "1. DO NOT assume a paper is a Systematic Literature Review (SLR) unless it explicitly states so.\n"
+            "2. DO NOT hallucinate contributions. If a snippet only contains an abstract or intro, only report what is in that text.\n"
+            "3. If the user asks about 'each' paper, but you only have snippets for a few, state: 'I only have evidence for [List Papers]'.\n"
+            "4. CITE your sources using the [Source: Key] format at the end of every claim.\n"
+            "5. If information is missing, say 'Information not found in snippets'."
+        )
+
+        full_prompt = (
+            f"User Question: {prompt}\n\n"
+            f"DATA SOURCE (Snippets from papers):\n{context_str}\n\n"
+            "Provide a technical, grounded summary based ONLY on the data above:"
+        )
+
+        return str(
+            self.llm_provider.generate(full_prompt, system_instruction=system_instruction)
+        )
 
     def get_context(self, item_key: str) -> str:
         chunks = self.vector_repo.get_chunks_by_item(item_key)

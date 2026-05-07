@@ -37,23 +37,28 @@ def get_markdown_content(filepath):
 @pytest.mark.docs
 def test_documentation_structure():
     """Ensures every registered noun has a corresponding file in docs/commands/."""
+    # Find project root relative to this file (tests/docs/test_doc_consistency.py)
+    project_root = Path(__file__).parent.parent.parent
+    docs_dir = project_root / "docs/commands"
+
+    assert docs_dir.exists(), f"Documentation directory '{docs_dir}' is missing!"
+
     registry = get_registered_commands()
-    docs_dir = Path("docs/commands")
-
-    assert docs_dir.exists(), "Documentation directory 'docs/commands/' is missing!"
-
     for noun in registry:
         if noun == "maint":
             continue  # Skip deprecated
         doc_file = docs_dir / f"{noun}.md"
-        assert doc_file.exists(), f"Missing documentation file for noun '{noun}': {doc_file}"
+        assert (
+            doc_file.exists()
+        ), f"Missing documentation file for noun '{noun}': {doc_file}"
 
 
 @pytest.mark.docs
 def test_verb_coverage():
     """Ensures every verb for a noun is documented in its markdown file."""
+    project_root = Path(__file__).parent.parent.parent
+    docs_dir = project_root / "docs/commands"
     registry = get_registered_commands()
-    docs_dir = Path("docs/commands")
 
     for noun, info in registry.items():
         if noun == "maint":
@@ -75,8 +80,10 @@ def test_verb_coverage():
 @pytest.mark.docs
 def test_readme_index_coverage():
     """Ensures the README.md index contains all registered nouns."""
+    project_root = Path(__file__).parent.parent.parent
+    readme_path = project_root / "README.md"
     registry = get_registered_commands()
-    readme_content = get_markdown_content("README.md")
+    readme_content = get_markdown_content(readme_path)
 
     for noun in registry:
         if noun == "maint":
