@@ -8,6 +8,7 @@ from zotero_cli.infra.opener import OpenerService
 
 console = Console()
 
+
 class ExtractionCommand:
     @staticmethod
     def register_args(parser: argparse.ArgumentParser):

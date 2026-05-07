@@ -15,10 +15,12 @@ class AuditReport:
     items_missing_pdf: List[ZoteroItem] = field(default_factory=list)
     items_missing_note: List[ZoteroItem] = field(default_factory=list)
 
+
 class IntegrityService:
     """
     Handles metadata completeness and asset integrity audits for collections.
     """
+
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
 

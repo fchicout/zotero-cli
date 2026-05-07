@@ -13,6 +13,7 @@ class CollectionAuditor:
     DEPRECATED: Use IntegrityService, SnapshotService, or CSVInboundService directly.
     Maintained for backward compatibility during Phase B.
     """
+
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
         self.integrity = IntegrityService(gateway)

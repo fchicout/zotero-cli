@@ -13,31 +13,42 @@ from zotero_cli.core.zotero_item import ZoteroItem
 
 class ItemMatcher(ABC):
     @abstractmethod
-    def match(self, row: Dict[str, str], items: List[ZoteroItem], column_map: Dict[str, str]) -> Optional[ZoteroItem]:
+    def match(
+        self, row: Dict[str, str], items: List[ZoteroItem], column_map: Dict[str, str]
+    ) -> Optional[ZoteroItem]:
         pass
+
 
 class KeyMatcher(ItemMatcher):
     def __init__(self, items_by_key: Dict[str, ZoteroItem]):
         self.items_by_key = items_by_key
 
-    def match(self, row: Dict[str, str], items: List[ZoteroItem], column_map: Dict[str, str]) -> Optional[ZoteroItem]:
+    def match(
+        self, row: Dict[str, str], items: List[ZoteroItem], column_map: Dict[str, str]
+    ) -> Optional[ZoteroItem]:
         key_col = column_map.get("key", "Key")
         key = row.get(key_col) or row.get("key") or row.get("zotero_key")
         return self.items_by_key.get(key) if key else None
+
 
 class DOIMatcher(ItemMatcher):
     def __init__(self, items_by_doi: Dict[str, ZoteroItem]):
         self.items_by_doi = items_by_doi
 
-    def match(self, row: Dict[str, str], items: List[ZoteroItem], column_map: Dict[str, str]) -> Optional[ZoteroItem]:
+    def match(
+        self, row: Dict[str, str], items: List[ZoteroItem], column_map: Dict[str, str]
+    ) -> Optional[ZoteroItem]:
         doi_col = column_map.get("doi", "DOI")
         doi = row.get(doi_col) or row.get("doi")
         if not doi:
             return None
         return self.items_by_doi.get(normalize_doi(doi))
 
+
 class FuzzyTitleMatcher(ItemMatcher):
-    def match(self, row: Dict[str, str], items: List[ZoteroItem], column_map: Dict[str, str]) -> Optional[ZoteroItem]:
+    def match(
+        self, row: Dict[str, str], items: List[ZoteroItem], column_map: Dict[str, str]
+    ) -> Optional[ZoteroItem]:
         title_col = column_map.get("title", "Title")
         title = row.get(title_col) or row.get("title")
         if not title:
@@ -57,10 +68,12 @@ class FuzzyTitleMatcher(ItemMatcher):
 
         return best_match if best_score >= 95 else None
 
+
 class CSVInboundService:
     """
     Handles retroactive metadata enrichment from CSV files.
     """
+
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
 
@@ -76,29 +89,41 @@ class CSVInboundService:
         move_to_excluded: Optional[str] = None,
         collection_service: Optional[Any] = None,
     ) -> Dict[str, Any]:
-
         actual_map = {
-            "key": "Key", "vote": "Vote", "reason": "Reason",
-            "code": "Code", "doi": "DOI", "title": "Title",
-            "comment": "Comment", "evidence": "Evidence"
+            "key": "Key",
+            "vote": "Vote",
+            "reason": "Reason",
+            "code": "Code",
+            "doi": "DOI",
+            "title": "Title",
+            "comment": "Comment",
+            "evidence": "Evidence",
         }
         if column_map:
             actual_map.update(column_map)
 
         rows = self._load_csv(csv_path, actual_map, column_map)
         if "error" in rows:
-            return rows # type: ignore
+            return rows  # type: ignore
 
         if not rows:
-            return {"total_rows": 0, "matched": 0, "unmatched": [], "updated": 0, "created": 0, "skipped": 0}
+            return {
+                "total_rows": 0,
+                "matched": 0,
+                "unmatched": [],
+                "updated": 0,
+                "created": 0,
+                "skipped": 0,
+            }
 
         # Cache items and matchers
         from zotero_cli.core.models import ZoteroQuery
+
         all_items = list(self.gateway.search_items(ZoteroQuery()))
         matchers = [
             KeyMatcher({i.key: i for i in all_items}),
             DOIMatcher({normalize_doi(i.doi): i for i in all_items if i.doi}),
-            FuzzyTitleMatcher()
+            FuzzyTitleMatcher(),
         ]
 
         results: Dict[str, Any] = {
@@ -144,7 +169,9 @@ class CSVInboundService:
 
         return results
 
-    def _load_csv(self, path: str, actual_map: Dict[str, str], user_map: Optional[Dict[str, str]]) -> Any:
+    def _load_csv(
+        self, path: str, actual_map: Dict[str, str], user_map: Optional[Dict[str, str]]
+    ) -> Any:
         try:
             with open(path, "r", encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
@@ -157,14 +184,22 @@ class CSVInboundService:
         except Exception as e:
             return {"error": str(e)}
 
-    def _find_item(self, row: Dict[str, str], items: List[ZoteroItem], matchers: List[ItemMatcher], col_map: Dict[str, str]) -> Optional[ZoteroItem]:
+    def _find_item(
+        self,
+        row: Dict[str, str],
+        items: List[ZoteroItem],
+        matchers: List[ItemMatcher],
+        col_map: Dict[str, str],
+    ) -> Optional[ZoteroItem]:
         for matcher in matchers:
             item = matcher.match(row, items, col_map)
             if item:
                 return item
         return None
 
-    def _build_sdb_payload(self, row: Dict[str, str], reviewer: str, phase: str, col_map: Dict[str, str]) -> dict:
+    def _build_sdb_payload(
+        self, row: Dict[str, str], reviewer: str, phase: str, col_map: Dict[str, str]
+    ) -> dict:
         # Priority: 1. User mapped 'vote' column, 2. fallback to row keys like 'status' or 'vote'
         status_val = row.get(col_map.get("vote", "Vote"))
         if status_val is None:
@@ -181,7 +216,9 @@ class CSVInboundService:
         return {
             "audit_version": "1.2",
             "decision": decision,
-            "reason_code": [c.strip() for c in (row.get(col_map.get("code", "Code")) or "").split(",")]
+            "reason_code": [
+                c.strip() for c in (row.get(col_map.get("code", "Code")) or "").split(",")
+            ]
             if row.get(col_map.get("code", "Code"))
             else [],
             "reason_text": row.get(col_map.get("reason", "Reason")) or row.get("Reason", ""),
@@ -192,6 +229,7 @@ class CSVInboundService:
             "phase": phase,
             "action": "screening_decision",
         }
+
     def _inject_sdb_note(self, item_key: str, reviewer: str, phase: str, payload: dict) -> str:
         children = self.gateway.get_item_children(item_key)
         note_key, version = None, 0
@@ -199,8 +237,15 @@ class CSVInboundService:
             data = child.get("data", child)
             if data.get("itemType") == "note":
                 content = data.get("note", "")
-                if "audit_version" in content and f'"persona": "{reviewer}"' in content and f'"phase": "{phase}"' in content:
-                    note_key, version = child.get("key") or data.get("key"), int(child.get("version") or data.get("version") or 0)
+                if (
+                    "audit_version" in content
+                    and f'"persona": "{reviewer}"' in content
+                    and f'"phase": "{phase}"' in content
+                ):
+                    note_key, version = (
+                        child.get("key") or data.get("key"),
+                        int(child.get("version") or data.get("version") or 0),
+                    )
                     break
 
         content = f"<div>{json.dumps(payload, indent=2)}</div>"
@@ -208,7 +253,9 @@ class CSVInboundService:
             return "update" if self.gateway.update_note(note_key, version, content) else "error"
         return "create" if self.gateway.create_note(item_key, content) else "error"
 
-    def _handle_movement(self, key: str, decision: str, inc: Optional[str], excl: Optional[str], svc: Any):
+    def _handle_movement(
+        self, key: str, decision: str, inc: Optional[str], excl: Optional[str], svc: Any
+    ):
         target = inc if decision == "accepted" else (excl if decision == "rejected" else None)
         if target and svc:
             svc.move_item(source_col_name=None, dest_col_name=target, identifier=key)

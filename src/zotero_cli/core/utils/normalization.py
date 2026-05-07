@@ -15,6 +15,7 @@ def normalize_doi(doi: str) -> str:
     doi = re.sub(r"^doi:\s*", "", doi)
     return doi
 
+
 def normalize_title(title: str) -> str:
     """
     Standardizes titles for fuzzy matching (lowercase, no punctuation, no extra spaces).

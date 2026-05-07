@@ -141,7 +141,7 @@ class ZoteroHttpClient:
         """
         Direct upload bypasses the Zotero Prefix, usually going to S3 or a specific upload URL.
         """
-        response = requests.post(url, data=data, files=files)
+        response = requests.post(url, data=data, files=files, timeout=30)
         response.raise_for_status()
         return response
 

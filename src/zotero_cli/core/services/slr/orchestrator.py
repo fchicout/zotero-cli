@@ -171,7 +171,9 @@ class SLROrchestrator:
 
         return root_key
 
-    def get_promotion_path(self, root_key: str, phase_id: str) -> Tuple[Optional[str], Optional[str]]:
+    def get_promotion_path(
+        self, root_key: str, phase_id: str
+    ) -> Tuple[Optional[str], Optional[str]]:
         """
         Returns (source_folder_key, target_folder_key) for a given phase promotion.
         """

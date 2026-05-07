@@ -26,10 +26,12 @@ def mock_attachment_repo():
 @pytest.fixture
 def mock_resolver():
     resolver = MagicMock()
+
     # Mocking resolve as a normal function that returns an awaitable if needed
     # but here we can just return the value directly as we use anyio.
     async def mock_resolve(item):
         return resolver.resolve_val
+
     resolver.resolve = mock_resolve
     resolver.resolve_val = None
     return resolver

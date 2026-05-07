@@ -8,6 +8,7 @@ from zotero_cli.infra.ris_lib import RisLibGateway
 def ris_gateway():
     return RisLibGateway()
 
+
 def test_ris_parse_file(ris_gateway, tmp_path):
     ris_content = """TY  - JOUR
 TI  - Test Paper
@@ -27,12 +28,14 @@ ER  - """
     assert papers[0].doi == "10.1/1"
     assert "Author 1" in papers[0].authors
 
+
 def test_ris_serialize(ris_gateway):
     paper = ResearchPaper(title="P1", authors=["A1"], year="2024", doi="10.1/2", abstract="")
     serialized = ris_gateway.serialize([paper])
     assert "TI  - P1" in serialized
     assert "AU  - A1" in serialized
     assert "PY  - 2024" in serialized
+
 
 def test_ris_write_file(ris_gateway, tmp_path):
     paper = ResearchPaper(title="P2", authors=["A2"], abstract="")
@@ -41,6 +44,7 @@ def test_ris_write_file(ris_gateway, tmp_path):
     assert success
     assert out_file.exists()
     assert "TI  - P2" in out_file.read_text()
+
 
 def test_ris_parse_error(ris_gateway):
     # Should not crash, just return empty/print error

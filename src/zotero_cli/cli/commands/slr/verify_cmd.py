@@ -9,10 +9,12 @@ from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
+
 class VerifyCommand:
     """
     Unified verification for SLR collections and manuscripts.
     """
+
     @staticmethod
     def register_args(parser: argparse.ArgumentParser):
         parser.add_argument("--collection", help="Verify metadata completeness for a collection")
@@ -79,7 +81,9 @@ class VerifyCommand:
             )
             sys.exit(1)
         else:
-            console.print("\n[bold green]Verification Success:[/] All citations are verified and screened.")
+            console.print(
+                "\n[bold green]Verification Success:[/] All citations are verified and screened."
+            )
 
     @staticmethod
     def _verify_collection(gateway, args: argparse.Namespace):
@@ -146,7 +150,9 @@ class VerifyCommand:
                 console.print("[yellow]No missing items found to export.[/yellow]")
 
         if has_failures:
-            print("\n[bold red]Verification FAILED.[/bold red] Some items are not submission-ready.")
+            print(
+                "\n[bold red]Verification FAILED.[/bold red] Some items are not submission-ready."
+            )
             sys.exit(1)
         else:
             print("\n[bold green]Verification PASSED.[/bold green] All items are submission-ready.")

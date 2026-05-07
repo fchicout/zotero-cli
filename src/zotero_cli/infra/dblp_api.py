@@ -9,6 +9,7 @@ from zotero_cli.infra.base_api_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
 
+
 class DBLPAPIClient(BaseAPIClient, MetadataProvider):
     def __init__(self):
         # DBLP base URL
@@ -24,7 +25,7 @@ class DBLPAPIClient(BaseAPIClient, MetadataProvider):
             params = {
                 "q": identifier,
                 "format": "json",
-                "h": 1 # Just get the best match
+                "h": 1,  # Just get the best match
             }
 
             response = self._get(params=params)
@@ -71,10 +72,10 @@ class DBLPAPIClient(BaseAPIClient, MetadataProvider):
 
         return ResearchPaper(
             title=title,
-            abstract="", # DBLP usually doesn't provide abstracts
+            abstract="",  # DBLP usually doesn't provide abstracts
             authors=authors,
             publication=info.get("venue") or "",
             year=str(info.get("year")) if info.get("year") else None,
             doi=doi,
-            url=info.get("ee") # Electronic Edition (often DOI link or publisher URL)
+            url=info.get("ee"),  # Electronic Edition (often DOI link or publisher URL)
         )

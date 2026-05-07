@@ -4,6 +4,7 @@ from rich.console import Console
 
 console = Console()
 
+
 class SDBCommand:
     @staticmethod
     def register_args(parser: argparse.ArgumentParser):
@@ -29,6 +30,7 @@ class SDBCommand:
     @staticmethod
     def execute(gateway, args: argparse.Namespace):
         from zotero_cli.core.services.sdb.sdb_service import SDBService
+
         service = SDBService(gateway)
 
         if args.sdb_verb == "inspect":
@@ -52,7 +54,9 @@ class SDBCommand:
 
         elif args.sdb_verb == "upgrade":
             if not args.execute:
-                console.print("[yellow]Running SDB Upgrade in DRY-RUN mode. Use --execute to apply.[/yellow]")
+                console.print(
+                    "[yellow]Running SDB Upgrade in DRY-RUN mode. Use --execute to apply.[/yellow]"
+                )
 
             stats = service.upgrade_sdb_entries(args.collection, dry_run=not args.execute)
             console.print(

@@ -288,12 +288,43 @@ Safely resets items by stripping all screening metadata (SDB notes, tags) and op
 zotero-cli slr reset --collection "To Reset" [--target-collection "Raw"] [--execute]
 ```
 
-### `pending`
-Lists all items currently pending evaluation in the SLR funnel, identifying why they are stuck (e.g. missing decision in a specific phase).
+### `list`
+Lists papers in the SLR funnel by status (pending, included, excluded) and phase. This command identifies papers physically in a phase's queue folder but missing an SDB note, or lists decided papers based on their SDB truth.
+
+#### `list pending`
+Identifies papers physically in a phase's queue folder but missing an SDB note for that phase.
 
 **Usage:**
 ```bash
-zotero-cli slr pending [--tree "RAW_COLLECTION"]
+zotero-cli slr list pending [--tree <source>]
 ```
+
+#### `list included`
+Lists papers that have "Accepted/Included" SDB notes across the entire tree of a source.
+
+**Usage:**
+```bash
+zotero-cli slr list included [--tree <source>] [--ta] [--ft|--fullscreen] [--qa <threshold>]
+```
+
+#### `list excluded`
+Lists papers that have "Rejected/Excluded" SDB notes across the entire tree of a source.
+
+**Usage:**
+```bash
+zotero-cli slr list excluded [--tree <source>] [--ta] [--ft|--fullscreen] [--qa <threshold>]
+```
+
+**Key Features:**
+- **Note-First Truth:** The `included` and `excluded` commands scan the entire tree of a source (Root + all 4 phase subfolders) to find audit notes. This ensures we see the real status regardless of where the paper is physically located.
+- **Phase Aliases:** Supported `--fullscreen` as an alias for the `--ft` (full_text) phase.
+- **QA Thresholds:** The `--qa` flag defaults to a threshold of 2.0 but accepts custom values to filter Quality Assessment results.
+- **Grouped Output:** Results are automatically sorted and grouped by SLR phase for better readability.
+
+**Scenario-Based Example (ACM Source):**
+- **List Pending:** `zotero-cli slr list pending --tree raw_acm` (e.g., identifies items awaiting data extraction).
+- **List Included (TA):** `zotero-cli slr list included --tree raw_acm --ta` (lists papers accepted during Title/Abstract).
+- **List Excluded (TA):** `zotero-cli slr list excluded --tree raw_acm --ta` (lists papers rejected during Title/Abstract with exclusion codes).
+
 
 

@@ -39,7 +39,9 @@ class ExportService:
 
         return self.export_items(items, output_path, format)
 
-    def export_items(self, items: List[ZoteroItem], output_path: str, format: str = "bibtex") -> bool:
+    def export_items(
+        self, items: List[ZoteroItem], output_path: str, format: str = "bibtex"
+    ) -> bool:
         """
         Exports specific items to a file.
         """
@@ -63,12 +65,16 @@ class ExportService:
 
     def serialize_bibtex(self, items: List[ZoteroItem]) -> str:
         """Serialize items to BibTeX string."""
-        papers = [self._map_item_to_paper(i) for i in items if i.item_type not in ["attachment", "note"]]
+        papers = [
+            self._map_item_to_paper(i) for i in items if i.item_type not in ["attachment", "note"]
+        ]
         return self.bibtex_gateway.serialize(papers) if papers else ""
 
     def serialize_ris(self, items: List[ZoteroItem]) -> str:
         """Serialize items to RIS string."""
-        papers = [self._map_item_to_paper(i) for i in items if i.item_type not in ["attachment", "note"]]
+        papers = [
+            self._map_item_to_paper(i) for i in items if i.item_type not in ["attachment", "note"]
+        ]
         return self.ris_gateway.serialize(papers) if papers else ""
 
     def _map_item_to_paper(self, item: ZoteroItem) -> ResearchPaper:
@@ -76,6 +82,7 @@ class ExportService:
         year = None
         if item.date:
             import re
+
             match = re.search(r"(\d{4})", item.date)
             if match:
                 year = match.group(1)

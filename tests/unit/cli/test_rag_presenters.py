@@ -20,9 +20,10 @@ def sample_results():
             text="Snippet content",
             score=0.9,
             metadata={"citation_key": "Auth2024", "qa_score": 5.0, "phase_folder": "1-T&A"},
-            item=item
+            item=item,
         )
     ]
+
 
 def test_human_presenter(sample_results, capsys):
     presenter = HumanPresenter()
@@ -31,12 +32,14 @@ def test_human_presenter(sample_results, capsys):
     assert "Auth2024" in out
     assert "Snippet content" in out
 
+
 def test_json_presenter(sample_results, capsys):
     presenter = JsonPresenter()
     presenter.present(sample_results)
     out = capsys.readouterr().out
     assert '"item_key": "K1"' in out
     assert '"relevance_score": 0.9' in out
+
 
 def test_context_presenter(sample_results, capsys):
     presenter = ContextPresenter()

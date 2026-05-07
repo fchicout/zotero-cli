@@ -28,15 +28,20 @@ def test_slr_screen_aliases(mock_screen_service, mock_gateway, env_vars):
     # Mock collection resolution
     mock_gateway.get_collection_id_by_name.return_value = "COL123"
     # Mock items return
-    mock_screen_service.get_pending_items.return_value = [] # Just to avoid TUI launch for now if no items
+    mock_screen_service.get_pending_items.return_value = []  # Just to avoid TUI launch for now if no items
 
     # Verification Request from Issue #96:
     # zotero-cli slr screen --source <COL> --include <INC> --exclude <EXC>
     test_args = [
-        "zotero-cli", "slr", "screen",
-        "--source", "MySourceCol",
-        "--include", "MyIncCol",
-        "--exclude", "MyExcCol"
+        "zotero-cli",
+        "slr",
+        "screen",
+        "--source",
+        "MySourceCol",
+        "--include",
+        "MyIncCol",
+        "--exclude",
+        "MyExcCol",
     ]
 
     with patch("zotero_cli.cli.tui.factory.TUIFactory.get_screening_tui") as _:

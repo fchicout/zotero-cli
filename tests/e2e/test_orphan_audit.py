@@ -11,7 +11,9 @@ def test_orphan_prevention_audit(run_cli, timestamp):
     run_cli(["collection", "create", col_name])
 
     # Import an item
-    run_cli(["import", "arxiv", "--query", "id:1706.03762", "--limit", "1", "--collection", col_name])
+    run_cli(
+        ["import", "arxiv", "--query", "id:1706.03762", "--limit", "1", "--collection", col_name]
+    )
 
     # Action: Delete collection recursively
     run_cli(["collection", "delete", col_name, "--recursive"])

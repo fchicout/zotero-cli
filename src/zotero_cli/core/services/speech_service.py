@@ -10,7 +10,9 @@ class KokoroSpeechProvider(SpeechProvider):
     Speech provider using Kokoro TTS.
     """
 
-    def __init__(self, model_path: Optional[str] = None, lang_code: str = "a", voice: str = "af_heart"):
+    def __init__(
+        self, model_path: Optional[str] = None, lang_code: str = "a", voice: str = "af_heart"
+    ):
         self.model_path = model_path
         self.lang_code = lang_code
         self.voice = voice
@@ -21,6 +23,7 @@ class KokoroSpeechProvider(SpeechProvider):
         if self._pipeline is None:
             try:
                 from kokoro import KPipeline
+
                 # Initialize pipeline for English (or configurable)
                 self._pipeline = KPipeline(lang_code=self.lang_code)
             except ImportError:
@@ -55,7 +58,10 @@ class SpeechService:
     """
     Orchestrates text-to-speech with cleaning.
     """
-    def __init__(self, provider: SpeechProvider, cleaning_filter: Optional[TextCleaningFilter] = None):
+
+    def __init__(
+        self, provider: SpeechProvider, cleaning_filter: Optional[TextCleaningFilter] = None
+    ):
         self.provider = provider
         self.filter = cleaning_filter or TextCleaningFilter()
 

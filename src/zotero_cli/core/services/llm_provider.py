@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from zotero_cli.core.interfaces import LLMProvider
 
@@ -18,7 +18,7 @@ class OpenAILLMProvider(LLMProvider):
         try:
             import openai
 
-            self.client = openai.OpenAI(api_key=self.api_key)
+            self.client: Any = openai.OpenAI(api_key=self.api_key)
         except ImportError:
             self.client = None
 
@@ -26,16 +26,16 @@ class OpenAILLMProvider(LLMProvider):
         if not self.client:
             raise ImportError("openai package not installed. Run 'pip install openai'")
 
-        messages = []
+        messages: List[Dict[str, str]] = []
         if system_instruction:
             messages.append({"role": "system", "content": system_instruction})
         messages.append({"role": "user", "content": prompt})
 
         response = self.client.chat.completions.create(
             model=self.model,
-            messages=messages,
+            messages=cast(Any, messages),
         )
-        return response.choices[0].message.content or ""
+        return str(response.choices[0].message.content or "")
 
 
 class GeminiLLMProvider(LLMProvider):
@@ -46,7 +46,7 @@ class GeminiLLMProvider(LLMProvider):
             import google.generativeai as genai
 
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel(
+            self.model: Any = genai.GenerativeModel(
                 model_name=self.model_name,
             )
         except ImportError:
@@ -81,10 +81,14 @@ class LocalTransformersLLMProvider(LLMProvider):
         if self._model is None:
             from transformers import AutoModelForCausalLM, AutoTokenizer
 
-            self._tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+            self._tokenizer = AutoTokenizer.from_pretrained(self.model_name, revision="main")  # nosec B615
             self._model = AutoModelForCausalLM.from_pretrained(
-                self.model_name, torch_dtype="auto", device_map="auto", trust_remote_code=True
-            )
+                self.model_name,
+                torch_dtype="auto",
+                device_map="auto",
+                trust_remote_code=True,
+                revision="main",
+            )  # nosec B615
 
     def generate(self, prompt: str, system_instruction: Optional[str] = None) -> str:
         self._init_model()

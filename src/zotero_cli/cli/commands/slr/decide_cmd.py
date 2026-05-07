@@ -7,6 +7,7 @@ from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
+
 class DecideCommand:
     @staticmethod
     def register_args(parser: argparse.ArgumentParser):

@@ -13,7 +13,9 @@ def mock_clients():
         patch("zotero_cli.infra.factory.GatewayFactory.get_arxiv_gateway") as mock_arxiv_get,
         patch("zotero_cli.infra.factory.GatewayFactory.get_import_service") as mock_imp_get,
         patch("zotero_cli.infra.factory.GatewayFactory.get_metadata_aggregator") as mock_agg_get,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_canonical_csv_gateway") as mock_canon_get,
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_canonical_csv_gateway"
+        ) as mock_canon_get,
         patch("zotero_cli.infra.factory.GatewayFactory.get_ris_gateway") as mock_ris_get,
         patch("zotero_cli.infra.factory.GatewayFactory.get_bibtex_gateway") as mock_bib_get,
         patch("zotero_cli.core.config.get_config") as mock_config,
@@ -49,7 +51,7 @@ def test_init_command(mock_clients, env_vars, capsys):
     with (
         patch("zotero_cli.cli.commands.init_cmd.Prompt.ask") as mock_ask,
         patch("zotero_cli.cli.commands.init_cmd.Confirm.ask") as mock_confirm,
-        patch("builtins.open", mock_open())
+        patch("builtins.open", mock_open()),
     ):
         # api_key, lib_type, lib_id, user_id, target_group, ss_key, up_email
         mock_ask.side_effect = ["API_KEY", "user", "12345", "", "", ""]
@@ -397,9 +399,7 @@ def test_tag_list(mock_clients, env_vars, capsys):
 
 # --- 7. COLLECTION ---
 def test_collection_pdfs_strip(mock_clients, env_vars, capsys):
-    with patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_purge_service"
-    ) as mock_purge_get:
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_purge_service") as mock_purge_get:
         mock_purge = mock_purge_get.return_value
         mock_purge.purge_collection_assets.return_value = {"deleted": 0, "skipped": 10, "errors": 0}
         test_args = ["zotero-cli", "collection", "pdf", "strip", "--collection", "F"]

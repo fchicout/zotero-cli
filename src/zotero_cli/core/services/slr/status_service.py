@@ -12,6 +12,7 @@ class PhaseStats:
     rejected: int = 0
     pending: int = 0
 
+
 @dataclass
 class PendingItem:
     item_key: str
@@ -19,6 +20,17 @@ class PendingItem:
     source_collection: str
     phase: str
     reason: str
+
+
+@dataclass
+class DecidedItem:
+    item_key: str
+    title: str
+    source_collection: str
+    phase: str
+    decision: str
+    reason: str
+
 
 @dataclass
 class SLRStatus:
@@ -28,6 +40,7 @@ class SLRStatus:
     total_in_root: int = 0
     total_unique: int = 0
     phases: Dict[str, PhaseStats] = field(default_factory=dict)
+
 
 class SLRStatusService:
     """
@@ -43,7 +56,8 @@ class SLRStatusService:
     def get_slr_status(self) -> List[SLRStatus]:
         all_collections = self.gateway.get_all_collections()
         raw_collections = [
-            c for c in all_collections
+            c
+            for c in all_collections
             if c["data"]["name"].startswith("raw_") and not c["data"].get("parentCollection")
         ]
 
@@ -54,7 +68,12 @@ class SLRStatusService:
 
             # 1. Collect All Papers in Tree (Source + all Phase Folders)
             all_papers = self.orchestrator.get_all_papers_in_tree(source_key)
-            status = SLRStatus(source_name=source_name, source_key=source_key, tree_total=len(all_papers))
+            status = SLRStatus(
+                source_name=source_name,
+                source_key=source_key,
+                tree_total=len(all_papers),
+                total_unique=len(all_papers),
+            )
 
             # 2. Cache All Parsed SDB Notes for these items
             item_notes = {}
@@ -87,7 +106,9 @@ class SLRStatusService:
                         stats.rejected += 1
 
                 # B. Pending: Items physically in the QUEUE folder WITHOUT a note for THIS phase
-                queue_items = list(self.gateway.get_items_in_collection(current_queue_key, top_only=True))
+                queue_items = list(
+                    self.gateway.get_items_in_collection(current_queue_key, top_only=True)
+                )
                 for q_item in queue_items:
                     if q_item.item_type in ["attachment", "note"]:
                         continue
@@ -117,7 +138,8 @@ class SLRStatusService:
                 return []
         else:
             raw_collections = [
-                c for c in all_collections
+                c
+                for c in all_collections
                 if c["data"]["name"].startswith("raw_") and not c["data"].get("parentCollection")
             ]
 
@@ -132,7 +154,9 @@ class SLRStatusService:
 
             for phase_cfg in self.orchestrator.PHASE_FLOW:
                 phase_id = phase_id = phase_cfg["id"]
-                queue_items = list(self.gateway.get_items_in_collection(current_queue_key, top_only=True))
+                queue_items = list(
+                    self.gateway.get_items_in_collection(current_queue_key, top_only=True)
+                )
 
                 for paper in queue_items:
                     if paper.item_type in ["attachment", "note"]:
@@ -143,13 +167,15 @@ class SLRStatusService:
 
                     if decision is None:
                         reason = f"Missing audit note for {phase_id}."
-                        pending_items.append(PendingItem(
-                            item_key=paper.key,
-                            title=paper.title or "Untitled",
-                            source_collection=source_name,
-                            phase=phase_id,
-                            reason=reason
-                        ))
+                        pending_items.append(
+                            PendingItem(
+                                item_key=paper.key,
+                                title=paper.title or "Untitled",
+                                source_collection=source_name,
+                                phase=phase_id,
+                                reason=reason,
+                            )
+                        )
 
                 current_queue_key = phase_map.get(phase_cfg["folder"])
                 if not current_queue_key:
@@ -157,7 +183,87 @@ class SLRStatusService:
 
         return pending_items
 
-    def _get_phase_decision_from_parsed(self, parsed_notes: List[dict], phase_id: str) -> Optional[str]:
+    def get_decided_items(
+        self, decision_type: str, root_key: Optional[str] = None, phase_filter: Optional[str] = None
+    ) -> List[DecidedItem]:
+        """
+        Retrieves all items in the specified tree(s) that have an SDB note matching
+         the decision_type ('accepted' or 'rejected').
+        """
+        all_collections = self.gateway.get_all_collections()
+
+        if root_key:
+            actual_root = self.gateway.get_collection_id_by_name(root_key) or root_key
+            raw_collections = [c for c in all_collections if c["key"] == actual_root]
+        else:
+            raw_collections = [
+                c
+                for c in all_collections
+                if c["data"]["name"].startswith("raw_") and not c["data"].get("parentCollection")
+            ]
+
+        decided_items = []
+        for raw_col in raw_collections:
+            source_key = raw_col["key"]
+            source_name = raw_col["data"]["name"]
+
+            # Collect All Papers in Tree
+            all_papers = self.orchestrator.get_all_papers_in_tree(source_key)
+
+            for paper in all_papers:
+                children = self.gateway.get_item_children(paper.key)
+                parsed_notes = []
+                for child in children:
+                    if child.get("data", {}).get("itemType") == "note":
+                        parsed = parse_sdb_note(child.get("data", {}).get("note", ""))
+                        if parsed:
+                            parsed_notes.append(parsed)
+
+                for phase_cfg in self.orchestrator.PHASE_FLOW:
+                    p_id = phase_cfg["id"]
+                    if phase_filter and p_id != phase_filter:
+                        continue
+
+                    # Check for note of this phase
+                    note = next((n for n in parsed_notes if n.get("phase") == p_id), None)
+                    if not note:
+                        continue
+
+                    decision = self._get_phase_decision_from_parsed([note], p_id)
+
+                    # Normalize decision_type and decision for comparison
+                    targets = (
+                        ["accepted", "included", "approved"]
+                        if decision_type == "accepted"
+                        else ["rejected", "excluded"]
+                    )
+
+                    if decision in targets:
+                        # Extract reason (Exclusion code or QA score)
+                        reason = ""
+                        if p_id == "quality_assessment":
+                            qa = note.get("quality_assessment", {})
+                            reason = f"Score: {qa.get('total', 'N/A')}"
+                        else:
+                            codes = note.get("reason_code", [])
+                            reason = ", ".join(codes) if codes else note.get("reason_text", "")
+
+                        decided_items.append(
+                            DecidedItem(
+                                item_key=paper.key,
+                                title=paper.title or "Untitled",
+                                source_collection=source_name,
+                                phase=p_id,
+                                decision=decision,
+                                reason=reason,
+                            )
+                        )
+
+        return decided_items
+
+    def _get_phase_decision_from_parsed(
+        self, parsed_notes: List[dict], phase_id: str
+    ) -> Optional[str]:
         """Specialized check for QA scores or simple decisions."""
         for note in parsed_notes:
             if note.get("phase") == phase_id:
@@ -177,7 +283,9 @@ class SLRStatusService:
                             decision = note.get("decision")
                             if not decision:
                                 limit = qa_block.get("limit") or qa_block.get("threshold") or 2.0
-                                decision = "accepted" if float(raw_total) >= float(limit) else "rejected"
+                                decision = (
+                                    "accepted" if float(raw_total) >= float(limit) else "rejected"
+                                )
                             return decision.lower()
                         except (ValueError, TypeError):
                             pass

@@ -19,15 +19,11 @@ item = ZoteroItem(
     item_type="journalArticle",
     title="The Gemny Doctrine",
     doi="10.1234/gemny.2026",
-    authors=["Valerius", "Argentis"]
+    authors=["Valerius", "Argentis"],
 )
 
 res = SearchResult(
-    item_key="V4L3R1U5",
-    text=high_fidelity_text,
-    score=0.9987,
-    metadata={"page": 12},
-    item=item
+    item_key="V4L3R1U5", text=high_fidelity_text, score=0.9987, metadata={"page": 12}, item=item
 )
 
 # 3. Execution: Simulate 'zotero-cli rag query --json' serialization

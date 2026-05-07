@@ -410,8 +410,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         add_p.add_argument("--collection", required=True, help="Collection name or key")
         add_p.add_argument("--title", required=True, help="Item Title")
-        add_p.add_argument("--type", default="journalArticle", help="Item Type (Default: journalArticle)")
-        add_p.add_argument("--authors", help="Comma-separated authors (e.g. 'John Doe, Jane Smith')")
+        add_p.add_argument(
+            "--type", default="journalArticle", help="Item Type (Default: journalArticle)"
+        )
+        add_p.add_argument(
+            "--authors", help="Comma-separated authors (e.g. 'John Doe, Jane Smith')"
+        )
         add_p.add_argument("--date", help="Publication Date")
         add_p.add_argument("--abstract", help="Abstract/Note")
 
@@ -499,57 +503,21 @@ Cognitive Safeguards
 
         if is_sdb_filter:
             sdb_service = SDBService(gateway)
-            filtered_items = []
-            sdb_data = {}
+            filtered_results = sdb_service.filter_items_by_sdb(
+                items=items,
+                included=getattr(args, "included", False),
+                excluded=getattr(args, "excluded", False),
+                criteria=getattr(args, "criteria", None),
+                persona=getattr(args, "persona", None),
+                phase=getattr(args, "phase", None),
+            )
 
-            incl = getattr(args, "included", False)
-            excl = getattr(args, "excluded", False)
-            crit = getattr(args, "criteria", None)
-            pers = getattr(args, "persona", None)
-            phas = getattr(args, "phase", None)
-
-            for item in items:
-                # 1. Fast Filter (Tags)
-                if incl and "rsl:include" not in item.tags:
-                    continue
-                if excl and not any(t.startswith("rsl:exclude:") for t in item.tags):
-                    continue
-                if crit and f"rsl:exclude:{crit}" not in item.tags:
-                    continue
-
-                # 2. Deep Filter (Notes)
-                entries = sdb_service.inspect_item_sdb(item.key)
-                matched_entry = None
-                for entry in entries:
-                    match = True
-                    if incl and entry.get("decision") != "accepted":
-                        match = False
-                    if excl and entry.get("decision") != "rejected":
-                        match = False
-                    if crit:
-                        codes = entry.get("reason_code", [])
-                        if crit not in codes:
-                            match = False
-                    if pers and entry.get("persona") != pers:
-                        match = False
-                    if phas and entry.get("phase") != phas:
-                        match = False
-
-                    if match:
-                        matched_entry = entry
-                        break
-
-                if matched_entry:
-                    filtered_items.append(item)
-                    sdb_data[item.key] = matched_entry
-
-            if not filtered_items:
+            if not filtered_results:
                 console.print(
                     "[yellow]No items found matching criteria. Ensure SDB metadata is populated.[/yellow]"
                 )
                 return
 
-            items = filtered_items
             table = Table(title=f"{title} (SDB Filtered)")
             table.add_column("Key", style="cyan")
             table.add_column("Title")
@@ -557,8 +525,7 @@ Cognitive Safeguards
             table.add_column("Criteria")
             table.add_column("Persona")
 
-            for item in items:
-                entry = sdb_data[item.key]
+            for item, entry in filtered_results:
                 decision = entry.get("decision", "N/A")
                 color = "green" if decision == "accepted" else "red"
                 criteria = ", ".join(entry.get("reason_code", []))
@@ -569,6 +536,8 @@ Cognitive Safeguards
                     criteria,
                     entry.get("persona", "N/A"),
                 )
+            # Re-assign items for the summary line
+            items = [r[0] for r in filtered_results]
         else:
             table = Table(title=title)
             table.add_column("Key", style="cyan")
@@ -871,7 +840,9 @@ Cognitive Safeguards
         # 2. Get Template
         template = gateway.get_item_template(args.type)
         if not template:
-            console.print(f"[bold red]Error:[/bold red] Could not fetch template for type '{args.type}'.")
+            console.print(
+                f"[bold red]Error:[/bold red] Could not fetch template for type '{args.type}'."
+            )
             return
 
         # 3. Populate Template
@@ -906,7 +877,9 @@ Cognitive Safeguards
         new_key = gateway.create_generic_item(template)
 
         if new_key:
-            console.print(f"[bold green]Success![/bold green] Item created with key: [magenta]{new_key}[/magenta]")
+            console.print(
+                f"[bold green]Success![/bold green] Item created with key: [magenta]{new_key}[/magenta]"
+            )
         else:
             console.print("[bold red]Error:[/bold red] Failed to create item.")
 
@@ -931,6 +904,7 @@ Cognitive Safeguards
             return
 
         from pathlib import Path
+
         output_path = Path(args.output)
 
         console.print(f"Generating speech to [green]{args.output}[/green]...")

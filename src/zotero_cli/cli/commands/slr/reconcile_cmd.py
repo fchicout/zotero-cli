@@ -7,6 +7,7 @@ from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
+
 class ReconcileCommand:
     """
     CLI command to reconcile the physical location of items with their SDB audit state.
@@ -15,9 +16,18 @@ class ReconcileCommand:
     @staticmethod
     def register_args(parser: argparse.ArgumentParser):
         parser.description = "Synchronizes the physical folder location of papers with their highest verified SLR phase."
-        parser.add_argument("--tree", required=True, help="Root collection name or key (e.g. raw_acm)")
-        parser.add_argument("--qa-threshold", type=float, default=2.0, help="Minimum total score for QA success (default: 2.0)")
-        parser.add_argument("--execute", action="store_true", help="Perform the actual displacement moves")
+        parser.add_argument(
+            "--tree", required=True, help="Root collection name or key (e.g. raw_acm)"
+        )
+        parser.add_argument(
+            "--qa-threshold",
+            type=float,
+            default=2.0,
+            help="Minimum total score for QA success (default: 2.0)",
+        )
+        parser.add_argument(
+            "--execute", action="store_true", help="Perform the actual displacement moves"
+        )
         parser.add_argument("--verbose", action="store_true", help="Show detailed move logs")
 
     @staticmethod
@@ -46,7 +56,9 @@ class ReconcileCommand:
 
             # 3. Resolve State & Diff for each paper
             for paper in papers:
-                target_phase_id = orchestrator.resolve_target_phase(paper.key, default_qa_threshold=args.qa_threshold)
+                target_phase_id = orchestrator.resolve_target_phase(
+                    paper.key, default_qa_threshold=args.qa_threshold
+                )
                 target_folder_key = orchestrator.get_folder_key_for_phase(root_key, target_phase_id)
 
                 current_cols = set(paper.collections)
@@ -59,15 +71,19 @@ class ReconcileCommand:
                 needs_move = (target_folder_key not in current_cols) or (len(other_tree_cols) > 0)
 
                 if needs_move:
-                    planned_moves.append({
-                        "paper": paper,
-                        "current": list(current_cols & tree_keys),
-                        "target_id": target_folder_key,
-                        "target_phase": target_phase_id or "Root/Rejected"
-                    })
+                    planned_moves.append(
+                        {
+                            "paper": paper,
+                            "current": list(current_cols & tree_keys),
+                            "target_id": target_folder_key,
+                            "target_phase": target_phase_id or "Root/Rejected",
+                        }
+                    )
 
         if not planned_moves:
-            console.print(f"[bold green]Tree '{args.tree}' is perfectly synchronized. No moves needed.[/bold green]")
+            console.print(
+                f"[bold green]Tree '{args.tree}' is perfectly synchronized. No moves needed.[/bold green]"
+            )
             return
 
         # 4. Report Plan
@@ -91,7 +107,7 @@ class ReconcileCommand:
             table.add_row(
                 f"{p.title[:40]}... ({p.key})",
                 ", ".join(curr_names),
-                f"{m['target_phase']} -> {target_name}"
+                f"{m['target_phase']} -> {target_name}",
             )
 
         console.print(table)
@@ -105,7 +121,7 @@ class ReconcileCommand:
         with console.status("[bold blue]Executing displacements...") as status:
             for i, m in enumerate(planned_moves):
                 p = m["paper"]
-                status.update(f"[bold blue]Moving {i+1}/{len(planned_moves)}: {p.key}...")
+                status.update(f"[bold blue]Moving {i + 1}/{len(planned_moves)}: {p.key}...")
 
                 # We use the coll_service._perform_move directly because we want
                 # to clear ALL other tree keys at once (exclusive membership).
@@ -134,4 +150,6 @@ class ReconcileCommand:
                 else:
                     pass
 
-        console.print(f"\n[bold green]RECONCILE COMPLETE:[/bold green] {success_count} items synchronized.")
+        console.print(
+            f"\n[bold green]RECONCILE COMPLETE:[/bold green] {success_count} items synchronized."
+        )

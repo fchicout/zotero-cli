@@ -1,5 +1,4 @@
 import time
-import xml.etree.ElementTree as ET
 from typing import Optional
 
 import requests
@@ -35,11 +34,7 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
 
         # 2. Fetch full record via efetch
         try:
-            params = {
-                "db": "pubmed",
-                "id": pmid,
-                "retmode": "xml"
-            }
+            params = {"db": "pubmed", "id": pmid, "retmode": "xml"}
             if self.api_key:
                 params["api_key"] = self.api_key
 
@@ -63,7 +58,7 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
                 "ids": pmcid,
                 "format": "json",
                 "tool": "zotero-cli",
-                "email": "fchicout@gmail.com"
+                "email": "fchicout@gmail.com",
             }
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
@@ -86,7 +81,9 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
         self.last_request_time = time.time()
 
     def _parse_pubmed_xml(self, xml_content: str) -> Optional[ResearchPaper]:
-        root = ET.fromstring(xml_content)
+        import defusedxml.ElementTree as DET
+
+        root = DET.fromstring(xml_content)
         article = root.find(".//PubmedArticle")
         if article is None:
             return None
@@ -134,7 +131,7 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
         # Year
         year = article.findtext(".//PubDate/Year") or article.findtext(".//PubDate/MedlineDate")
         if year and len(year) > 4:
-            year = year[:4] # Extract year from MedlineDate like "2023 Oct-Dec"
+            year = year[:4]  # Extract year from MedlineDate like "2023 Oct-Dec"
 
         return ResearchPaper(
             title=title,
@@ -143,5 +140,5 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
             publication=journal,
             year=year,
             doi=doi,
-            url=f"https://pubmed.ncbi.nlm.nih.gov/{article.findtext('.//PMID')}/"
+            url=f"https://pubmed.ncbi.nlm.nih.gov/{article.findtext('.//PMID')}/",
         )

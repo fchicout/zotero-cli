@@ -13,6 +13,7 @@ class ResourceTracker:
     The Sentinel: Automatically tracks and purges remote Zotero resources.
     Ensures 'Zero-Leak' state even on test failures.
     """
+
     def __init__(self, run_cli):
         self.run_cli = run_cli
         self.created_collections = []
@@ -42,6 +43,7 @@ class ResourceTracker:
                 print(f"[QA_FORCE] Cleanup failed for {col}: {res.stderr}")
         self.created_collections = []
 
+
 def _run_cli_raw(args):
     """Internal helper to run CLI without fixture context."""
     cwd = Path.cwd()
@@ -54,6 +56,7 @@ def _run_cli_raw(args):
         text=True,
         env=env,
     )
+
 
 def pytest_sessionstart(session):
     """
@@ -71,12 +74,16 @@ def pytest_sessionstart(session):
             _run_cli_raw(["collection", "clean", "--collection", key])
             _run_cli_raw(["collection", "delete", "--key", key, "--recursive"])
 
+
 @pytest.fixture
 def run_cli():
     """Fixture to run zotero-cli with correct PYTHONPATH."""
+
     def _run(args):
         return _run_cli_raw(args)
+
     return _run
+
 
 @pytest.fixture
 def sentinel(run_cli):
@@ -87,17 +94,22 @@ def sentinel(run_cli):
     yield tracker
     tracker.teardown()
 
+
 @pytest.fixture
 def extract_keys():
     """Fixture to extract Zotero keys from text."""
+
     def _extract(text):
         return re.findall(r"\b([A-Z0-9]{8})\b", text)
+
     return _extract
+
 
 @pytest.fixture
 def timestamp():
     """Return a unique timestamp for collection naming."""
     return int(time.time())
+
 
 @pytest.fixture
 def temp_collection(sentinel, timestamp):

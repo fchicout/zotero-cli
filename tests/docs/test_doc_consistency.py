@@ -48,9 +48,7 @@ def test_documentation_structure():
         if noun == "maint":
             continue  # Skip deprecated
         doc_file = docs_dir / f"{noun}.md"
-        assert (
-            doc_file.exists()
-        ), f"Missing documentation file for noun '{noun}': {doc_file}"
+        assert doc_file.exists(), f"Missing documentation file for noun '{noun}': {doc_file}"
 
 
 @pytest.mark.docs

@@ -9,6 +9,7 @@ from zotero_cli.infra.base_api_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
 
+
 class ERICAPIClient(BaseAPIClient, MetadataProvider):
     def __init__(self):
         # ERIC base URL (IES)
@@ -25,10 +26,7 @@ class ERICAPIClient(BaseAPIClient, MetadataProvider):
             return None
 
         try:
-            params = {
-                "search": f"id:{identifier}",
-                "format": "json"
-            }
+            params = {"search": f"id:{identifier}", "format": "json"}
 
             response = self._get(params=params)
             data = response.json()
@@ -89,6 +87,6 @@ class ERICAPIClient(BaseAPIClient, MetadataProvider):
             publication=source,
             year=year,
             doi=doi,
-            url=f"https://eric.ed.gov/?id={item.get('id')}" if item.get('id') else None,
-            extra="\n".join(extra_parts) if extra_parts else None
+            url=f"https://eric.ed.gov/?id={item.get('id')}" if item.get("id") else None,
+            extra="\n".join(extra_parts) if extra_parts else None,
         )

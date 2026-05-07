@@ -9,22 +9,24 @@ from zotero_cli.infra.pubmed_api import PubMedAPIClient
 def client():
     return PubMedAPIClient(api_key="test_key")
 
+
 def test_apply_rate_limit(client):
     import time
+
     client.last_request_time = time.time()
     # Should sleep briefly. We just verify it doesn't crash
     client._apply_rate_limit()
     assert client.last_request_time > 0
 
+
 def test_resolve_pmcid_to_pmid_success(client):
     mock_response = MagicMock()
-    mock_response.json.return_value = {
-        "records": [{"pmcid": "PMC123", "pmid": "456"}]
-    }
+    mock_response.json.return_value = {"records": [{"pmcid": "PMC123", "pmid": "456"}]}
 
     with patch("requests.get", return_value=mock_response):
         pmid = client._resolve_pmcid_to_pmid("PMC123")
         assert pmid == "456"
+
 
 def test_parse_pubmed_xml(client):
     xml_content = """
@@ -70,6 +72,7 @@ def test_parse_pubmed_xml(client):
     assert paper.doi == "10.1038/s123"
     assert paper.url == "https://pubmed.ncbi.nlm.nih.gov/12345/"
 
+
 def test_get_paper_metadata_pmid(client):
     mock_response = MagicMock()
     mock_response.text = "<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>1</PMID></MedlineCitation></PubmedArticle></PubmedArticleSet>"
@@ -78,6 +81,7 @@ def test_get_paper_metadata_pmid(client):
         with patch.object(client, "_parse_pubmed_xml") as mock_parse:
             client.get_paper_metadata("1")
             mock_parse.assert_called_once()
+
 
 def test_get_paper_metadata_pmcid(client):
     mock_response = MagicMock()

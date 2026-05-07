@@ -10,6 +10,7 @@ from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class RestoreReport:
     collections_created: int = 0
@@ -18,6 +19,7 @@ class RestoreReport:
     attachments_uploaded: int = 0
     errors: List[str] = field(default_factory=list)
     is_dry_run: bool = False
+
 
 class RestoreService:
     """
@@ -77,7 +79,15 @@ class RestoreService:
             new_parent = self.coll_map.get(old_parent) if old_parent else None
 
             existing_cols = self.gateway.get_all_collections()
-            match = next((ec for ec in existing_cols if ec["data"]["name"] == name and ec["data"].get("parentCollection") == new_parent), None)
+            match = next(
+                (
+                    ec
+                    for ec in existing_cols
+                    if ec["data"]["name"] == name
+                    and ec["data"].get("parentCollection") == new_parent
+                ),
+                None,
+            )
 
             if match:
                 self.coll_map[old_key] = match["key"]
@@ -93,7 +103,9 @@ class RestoreService:
                     else:
                         report.errors.append(f"Failed to create collection: {name}")
 
-    def _restore_single_item(self, item_raw: dict, zf: zipfile.ZipFile, manifest: dict, report: RestoreReport):
+    def _restore_single_item(
+        self, item_raw: dict, zf: zipfile.ZipFile, manifest: dict, report: RestoreReport
+    ):
         data = item_raw.get("data", {})
         item_type = data.get("itemType")
         old_key = item_raw["key"]
@@ -113,7 +125,7 @@ class RestoreService:
                 self.orchestrator.record_duplicate_resolution(
                     item_key=existing_item.key,
                     duplicate_key=old_key,
-                    reason="Skipped duplicate during system restore"
+                    reason="Skipped duplicate during system restore",
                 )
             return
 
@@ -138,7 +150,9 @@ class RestoreService:
             else:
                 report.errors.append(f"Failed to create item: {data.get('title', 'Unknown')}")
 
-    def _restore_child_item(self, child_raw: dict, zf: zipfile.ZipFile, manifest: dict, report: RestoreReport):
+    def _restore_child_item(
+        self, child_raw: dict, zf: zipfile.ZipFile, manifest: dict, report: RestoreReport
+    ):
         data = child_raw.get("data", {})
         item_type = data.get("itemType")
         old_parent = data.get("parentItem")
@@ -165,7 +179,14 @@ class RestoreService:
 
         self.gateway.create_note(new_parent, note_content)
 
-    def _restore_attachment(self, child_raw: dict, zf: zipfile.ZipFile, manifest: dict, new_parent: str, report: RestoreReport):
+    def _restore_attachment(
+        self,
+        child_raw: dict,
+        zf: zipfile.ZipFile,
+        manifest: dict,
+        new_parent: str,
+        report: RestoreReport,
+    ):
         data = child_raw.get("data", {})
         old_key = child_raw["key"]
         link_mode = data.get("linkMode")
@@ -187,8 +208,11 @@ class RestoreService:
 
         import os
         import tempfile
+
         try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(path_in_zip)[1]) as tf:
+            with tempfile.NamedTemporaryFile(
+                delete=False, suffix=os.path.splitext(path_in_zip)[1]
+            ) as tf:
                 temp_path = tf.name
                 tf.write(zf.read(path_in_zip))
 

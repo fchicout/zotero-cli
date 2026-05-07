@@ -32,7 +32,10 @@ def test_item_export_md_success(mock_factory, env_vars, capsys, tmp_path):
     mock_att = mock_factory["attachment"]
     # ItemCommand calls bulk_export_markdown([item], ...)
     mock_att.bulk_export_markdown.return_value = {
-        "total": 1, "success": 1, "failed": 0, "skipped": 0
+        "total": 1,
+        "success": 1,
+        "failed": 0,
+        "skipped": 0,
     }
 
     # Mock ZoteroItem
@@ -41,7 +44,17 @@ def test_item_export_md_success(mock_factory, env_vars, capsys, tmp_path):
     mock_item.title = "Test Paper"
     mock_factory["gateway"].get_item.return_value = mock_item
 
-    test_args = ["zotero-cli", "item", "export", "--key", "KEY1", "--format", "md", "--output", str(tmp_path)]
+    test_args = [
+        "zotero-cli",
+        "item",
+        "export",
+        "--key",
+        "KEY1",
+        "--format",
+        "md",
+        "--output",
+        str(tmp_path),
+    ]
     with patch.object(sys, "argv", test_args):
         main()
 
@@ -65,7 +78,17 @@ def test_collection_export_md_success(mock_factory, env_vars, capsys, tmp_path):
     mock_item.title = "Paper 1"
     mock_gateway.get_items_in_collection.return_value = [mock_item]
 
-    test_args = ["zotero-cli", "collection", "export", "--name", "MyCol", "--format", "md", "--output", str(tmp_path)]
+    test_args = [
+        "zotero-cli",
+        "collection",
+        "export",
+        "--name",
+        "MyCol",
+        "--format",
+        "md",
+        "--output",
+        str(tmp_path),
+    ]
     with patch.object(sys, "argv", test_args):
         main()
 

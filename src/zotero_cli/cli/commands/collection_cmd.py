@@ -43,7 +43,9 @@ Action:  zotero-cli collection list --table
 Result:  A standard flat table with Name, Key, and Item count.
 """,
         )
-        list_p.add_argument("--table", action="store_true", help="Display results as a flat table instead of a tree")
+        list_p.add_argument(
+            "--table", action="store_true", help="Display results as a flat table instead of a tree"
+        )
 
         # Create
         create_p = sub.add_parser(
@@ -503,7 +505,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         total_items = col.get("meta", {}).get("numItems")
 
         service = BackupService(gateway)
-        console.print(f"Starting Backup for Collection '[cyan]{args.name}[/cyan]' ({col_id}) to [green]{args.output}[/green]...")
+        console.print(
+            f"Starting Backup for Collection '[cyan]{args.name}[/cyan]' ({col_id}) to [green]{args.output}[/green]..."
+        )
 
         try:
             with Progress(

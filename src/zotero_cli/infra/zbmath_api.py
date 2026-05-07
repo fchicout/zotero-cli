@@ -9,6 +9,7 @@ from zotero_cli.infra.base_api_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
 
+
 class zbMATHAPIClient(BaseAPIClient, MetadataProvider):
     def __init__(self):
         # zbMATH base URL
@@ -25,18 +26,17 @@ class zbMATHAPIClient(BaseAPIClient, MetadataProvider):
             # Zbl lookup: q=an:1453.14001
 
             query = identifier
-            if "/" in identifier and "." in identifier: # Likely a DOI
+            if "/" in identifier and "." in identifier:  # Likely a DOI
                 query = f"doi:{identifier}"
             elif identifier.startswith("zbl") or identifier.replace(".", "").isdigit():
                 # Simple heuristic for Zbl number
                 query = f"an:{identifier}"
 
-            params = {
-                "q": query,
-                "fmt": "json"
-            }
+            params = {"q": query, "fmt": "json"}
 
-            response = self._get(endpoint="software" if "sw" in identifier.lower() else "document", params=params)
+            response = self._get(
+                endpoint="software" if "sw" in identifier.lower() else "document", params=params
+            )
             data = response.json()
 
             results = data.get("results", [])
@@ -91,5 +91,5 @@ class zbMATHAPIClient(BaseAPIClient, MetadataProvider):
             publication=source,
             year=year,
             doi=doi,
-            url=f"https://zbmath.org/?q=an:{item.get('zbl_id')}" if item.get('zbl_id') else None
+            url=f"https://zbmath.org/?q=an:{item.get('zbl_id')}" if item.get("zbl_id") else None,
         )

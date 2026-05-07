@@ -45,6 +45,7 @@ async def test_unpaywall_resolver_success(mock_gateway, zotero_item):
 @pytest.mark.anyio
 async def test_openalex_resolver_success(zotero_item):
     from zotero_cli.core.models import ResearchPaper
+
     mock_client = MagicMock()
     resolver = OpenAlexResolver(mock_client)
 
@@ -52,7 +53,7 @@ async def test_openalex_resolver_success(zotero_item):
         title="Test Paper",
         abstract="Test Abstract",
         doi="10.1000/123",
-        pdf_url="http://example.com/paper.pdf"
+        pdf_url="http://example.com/paper.pdf",
     )
     mock_client.get_paper_metadata.return_value = paper
 

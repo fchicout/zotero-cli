@@ -3,11 +3,11 @@ name = "zotero-cli"
 version = "2.7.0"
 license = {text = "MIT"}
 dependencies = [
-    "requests>=2.31.0",
+    "requests>=2.33.0",
     "rich>=13.7.0",
     "toml>=0.10.2",
     "tenacity>=8.2.3",
-    "pytest>=7.4.0",
+    "pytest>=9.0.3",
     "arxiv>=2.1.0",
     "bibtexparser>=1.4.0",
     "rispy>=0.4.0",
@@ -17,7 +17,8 @@ dependencies = [
     "PyYAML>=6.0.1",
     "beautifulsoup4>=4.12.0",
     "networkx>=3.0",
-    "markitdown>=0.0.1",
+    "markitdown>=0.1.5",
+    "pygments>=2.20.0",
     "sentence-transformers>=3.0.0",
     "huggingface-hub>=0.20.0",
     "numpy>=1.24.0",
@@ -39,6 +40,8 @@ dev = [
     "types-requests",
     "types-toml",
     "httpx>=0.27.0",
+    "bandit>=1.7.5",
+    "safety>=3.0.0",
 ]
 
 [tool.ruff]
@@ -67,6 +70,9 @@ exclude = ["build/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore::FutureWarning",
+]
 markers = [
     "unit: fast isolated logic tests",
     "e2e: tests that interact with real APIs or external state",

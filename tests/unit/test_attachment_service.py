@@ -130,10 +130,12 @@ def test_get_fulltext_success(service, mock_gateway):
     attachment_key = "ATT1"
 
     # Mocking children (one PDF)
-    mock_gateway.get_item_children.return_value = [{
-        "key": attachment_key,
-        "data": {"itemType": "attachment", "contentType": "application/pdf"}
-    }]
+    mock_gateway.get_item_children.return_value = [
+        {
+            "key": attachment_key,
+            "data": {"itemType": "attachment", "contentType": "application/pdf"},
+        }
+    ]
 
     # Mocking successful download
     mock_gateway.download_attachment.return_value = True
@@ -167,10 +169,9 @@ def test_bulk_export_markdown(service, mock_gateway, tmp_path):
     items = [item1, item2]
 
     # All items have PDFs
-    mock_gateway.get_item_children.return_value = [{
-        "key": "ATT",
-        "data": {"itemType": "attachment", "contentType": "application/pdf"}
-    }]
+    mock_gateway.get_item_children.return_value = [
+        {"key": "ATT", "data": {"itemType": "attachment", "contentType": "application/pdf"}}
+    ]
 
     mock_gateway.download_attachment.return_value = True
 

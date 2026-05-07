@@ -78,9 +78,13 @@ class ConfigLoader:
         up_email = os.environ.get("UNPAYWALL_EMAIL") or file_config.get("unpaywall_email")
         openai_key = os.environ.get("OPENAI_API_KEY") or file_config.get("openai_api_key")
         gemini_key = os.environ.get("GEMINI_API_KEY") or file_config.get("gemini_api_key")
-        emb_provider = os.environ.get("EMBEDDING_PROVIDER") or file_config.get("embedding_provider", "auto")
+        emb_provider = os.environ.get("EMBEDDING_PROVIDER") or file_config.get(
+            "embedding_provider", "auto"
+        )
         emb_model = os.environ.get("EMBEDDING_MODEL") or file_config.get("embedding_model")
-        gen_provider = os.environ.get("GENERATIVE_PROVIDER") or file_config.get("generative_provider", "auto")
+        gen_provider = os.environ.get("GENERATIVE_PROVIDER") or file_config.get(
+            "generative_provider", "auto"
+        )
         gen_model = os.environ.get("GENERATIVE_MODEL") or file_config.get("generative_model")
         hf_token = os.environ.get("HUGGINGFACE_TOKEN") or file_config.get("huggingface_token")
         tts_lang = os.environ.get("TTS_LANG") or file_config.get("tts_lang")
@@ -205,3 +209,17 @@ def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
 
 def get_config_path() -> Optional[Path]:
     return _GLOBAL_CONFIG_PATH
+
+
+def get_storage_dir() -> Path:
+    """Returns the directory where data (config, db) is stored."""
+    path = get_config_path()
+    if path:
+        return path.parent
+
+    # Fallback to default
+    if os.name == "nt":
+        base = Path(os.environ.get("APPDATA", "~")).expanduser()
+    else:
+        base = Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
+    return base / "zotero-cli"

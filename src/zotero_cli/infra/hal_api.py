@@ -9,6 +9,7 @@ from zotero_cli.infra.base_api_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
 
+
 class HALAPIClient(BaseAPIClient, MetadataProvider):
     def __init__(self):
         # HAL base URL
@@ -22,13 +23,13 @@ class HALAPIClient(BaseAPIClient, MetadataProvider):
         try:
             # Determine if identifier is a DOI or HAL ID
             query_field = "identifiant_s"
-            if "/" in identifier and "." in identifier: # Likely a DOI
+            if "/" in identifier and "." in identifier:  # Likely a DOI
                 query_field = "doi_s"
 
             params = {
                 "q": f"{query_field}:{identifier}",
                 "wt": "json",
-                "fl": "title_s,abstract_s,authFullName_s,journalTitle_s,producedDateY_i,doi_s,uri_s,files_s"
+                "fl": "title_s,abstract_s,authFullName_s,journalTitle_s,producedDateY_i,doi_s,uri_s,files_s",
             }
 
             response = self._get(params=params)
@@ -84,5 +85,5 @@ class HALAPIClient(BaseAPIClient, MetadataProvider):
             year=year,
             doi=doi,
             url=item.get("uri_s"),
-            pdf_url=pdf_url
+            pdf_url=pdf_url,
         )

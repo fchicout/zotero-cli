@@ -30,7 +30,7 @@ class OpenAlexAPIClient(BaseAPIClient, MetadataProvider):
             # OpenAlex endpoint for DOI is works/https://doi.org/DOI
             # But the BaseAPIClient joins base_url/endpoint.
             # OpenAlex works best if we use the canonical DOI URL as the ID.
-            if "/" in clean_id and "." in clean_id: # Likely a DOI
+            if "/" in clean_id and "." in clean_id:  # Likely a DOI
                 endpoint = f"https://doi.org/{clean_id}"
             else:
                 endpoint = clean_id
@@ -82,8 +82,8 @@ class OpenAlexAPIClient(BaseAPIClient, MetadataProvider):
             publication=publication,
             year=str(data.get("publication_year")) if data.get("publication_year") else None,
             doi=data.get("doi"),
-            url=data.get("id"), # OpenAlex ID is a URL
-            pdf_url=pdf_url
+            url=data.get("id"),  # OpenAlex ID is a URL
+            pdf_url=pdf_url,
         )
 
     def _reconstruct_abstract(self, inverted_index: Optional[Dict[str, List[int]]]) -> str:

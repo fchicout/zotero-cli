@@ -9,6 +9,7 @@ from zotero_cli.infra.base_api_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
 
+
 class InspireHEPAPIClient(BaseAPIClient, MetadataProvider):
     def __init__(self):
         # INSPIRE-HEP base URL
@@ -22,19 +23,16 @@ class InspireHEPAPIClient(BaseAPIClient, MetadataProvider):
         try:
             # Determine prefix based on identifier format
             query = identifier
-            if "/" in identifier and "." in identifier: # DOI
+            if "/" in identifier and "." in identifier:  # DOI
                 query = f"doi {identifier}"
-            elif identifier.startswith("hal-"): # HAL ID (skip)
+            elif identifier.startswith("hal-"):  # HAL ID (skip)
                 return None
-            elif "." in identifier and (identifier[0].isdigit() or "/" in identifier): # arXiv
+            elif "." in identifier and (identifier[0].isdigit() or "/" in identifier):  # arXiv
                 query = f"eprint {identifier}"
-            elif identifier.replace(".", "").isdigit(): # Likely INSPIRE ID (recid)
+            elif identifier.replace(".", "").isdigit():  # Likely INSPIRE ID (recid)
                 query = f"recid {identifier}"
 
-            params = {
-                "q": query,
-                "format": "json"
-            }
+            params = {"q": query, "format": "json"}
 
             response = self._get(params=params)
             data = response.json()
@@ -108,6 +106,8 @@ class InspireHEPAPIClient(BaseAPIClient, MetadataProvider):
             year=year,
             doi=doi,
             arxiv_id=arxiv_id,
-            url=f"https://inspirehep.net/literature/{metadata.get('control_number')}" if metadata.get('control_number') else None,
-            extra="\n".join(extra_parts) if extra_parts else None
+            url=f"https://inspirehep.net/literature/{metadata.get('control_number')}"
+            if metadata.get("control_number")
+            else None,
+            extra="\n".join(extra_parts) if extra_parts else None,
         )

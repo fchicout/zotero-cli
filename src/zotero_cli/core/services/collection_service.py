@@ -117,7 +117,9 @@ class CollectionService:
     def _normalize_id(self, identifier: str) -> str:
         return identifier.strip().lower()
 
-    def _perform_move(self, item: ZoteroItem, source_id: Optional[str], dest_id: Optional[str]) -> bool:
+    def _perform_move(
+        self, item: ZoteroItem, source_id: Optional[str], dest_id: Optional[str]
+    ) -> bool:
         """
         Performs a 'sticky' move by ensuring the item and all its children (notes, attachments)
         share the EXACT same collection membership as the parent after the move.
@@ -154,11 +156,7 @@ class CollectionService:
 
             # ENFORCE IDENTITY: Children must have EXACTLY the same collections as parent
             if current_cols != parent_cols:
-                payload = {
-                    "key": key,
-                    "version": version,
-                    "collections": target_cols_list
-                }
+                payload = {"key": key, "version": version, "collections": target_cols_list}
 
                 # CRITICAL: If item has a parent, it MUST be preserved in the bulk POST
                 # otherwise Zotero API clears the relationship (orphaning).

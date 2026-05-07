@@ -34,20 +34,26 @@
 6.  **Atomic Implementation:**
     *   Write the minimum code to satisfy the test.
     *   Adhere to PEP8 (Ruff) and Type Hints (Mypy).
-7.  **The Quality Quad-Gate:**
-    *   Must pass ALL four before committing:
-        1.  `ruff check .` (Linting)
+7.  **The High-Integrity Hexa-Gate:**
+    *   Must pass ALL six before committing:
+        1.  `ruff check . --fix` (Linting & Style)
         2.  `mypy .` (Type Safety)
-        3.  `pytest tests/unit` (Logic)
-        4.  `pytest tests/integration` (Iron Gauntlet - Workflow)
+        3.  `bandit -r src/` (Security SAST)
+        4.  `safety check` (Vulnerability Audit)
+        5.  `pytest tests/unit` (Logic)
+        6.  `pytest tests/integration` (Iron Gauntlet - Workflow)
 8.  **Green Commit:**
     *   `git commit -m "type(scope): description (Issue #ID)"`
     *   *Repeat Phase C for each logical unit of the feature.*
 
 ## Phase D: Integration (The Seal)
-**Trigger:** Feature complete and Quad-Gate passing.
+**Trigger:** Feature complete and Hexa-Gate passing.
 
-9.  **Documentation Sync:**
+9.  **Cognitive & Privacy Audit:**
+    *   **Complexity:** Run `ruff check --select C901` (Complexity < 10).
+    *   **Hygiene:** Enforce "Clean Root Policy" (Move artifacts to `data/`).
+    *   **Secrets:** Manual sweep for hardcoded keys or PII leaks.
+10. **Documentation Sync:**
     *   **Sullivan** updates:
         *   `README.md` (if CLI args changed).
         *   `docs/commands/*.md`.

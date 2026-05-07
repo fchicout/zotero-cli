@@ -5,6 +5,7 @@ class SnapshotService:
     """
     Analyzes shifts and changes between collection snapshots.
     """
+
     def detect_shifts(self, snapshot_old: List[dict], snapshot_new: List[dict]) -> List[dict]:
         """
         Compares two snapshots (lists of item dicts) and returns items that changed collections.

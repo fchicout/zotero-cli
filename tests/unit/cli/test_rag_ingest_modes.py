@@ -26,7 +26,15 @@ def env_vars(monkeypatch):
 
 def test_rag_ingest_key(mock_rag_service, mock_gateway, env_vars):
     mock_rag_service.ingest.return_value = {"processed": 1}
-    args = argparse.Namespace(verb="ingest", key="ITEM123", collection=None, approved=False, qa_limit=None, prune=False, user=False)
+    args = argparse.Namespace(
+        verb="ingest",
+        key="ITEM123",
+        collection=None,
+        approved=False,
+        qa_limit=None,
+        prune=False,
+        user=False,
+    )
 
     RAGCommand().execute(args)
 
@@ -37,7 +45,15 @@ def test_rag_ingest_key(mock_rag_service, mock_gateway, env_vars):
 
 def test_rag_ingest_approved(mock_rag_service, mock_gateway, env_vars):
     mock_rag_service.ingest.return_value = {"processed": 5, "skipped_not_approved": 2}
-    args = argparse.Namespace(verb="ingest", approved=True, key=None, collection=None, qa_limit=None, prune=False, user=False)
+    args = argparse.Namespace(
+        verb="ingest",
+        approved=True,
+        key=None,
+        collection=None,
+        qa_limit=None,
+        prune=False,
+        user=False,
+    )
 
     RAGCommand().execute(args)
 
@@ -48,7 +64,15 @@ def test_rag_ingest_approved(mock_rag_service, mock_gateway, env_vars):
 
 def test_rag_ingest_qa_limit(mock_rag_service, mock_gateway, env_vars):
     mock_rag_service.ingest.return_value = {"processed": 3, "skipped_low_qa": 4}
-    args = argparse.Namespace(verb="ingest", collection="MyColl", qa_limit=0.8, key=None, approved=False, prune=False, user=False)
+    args = argparse.Namespace(
+        verb="ingest",
+        collection="MyColl",
+        qa_limit=0.8,
+        key=None,
+        approved=False,
+        prune=False,
+        user=False,
+    )
 
     RAGCommand().execute(args)
 
@@ -60,7 +84,15 @@ def test_rag_ingest_qa_limit(mock_rag_service, mock_gateway, env_vars):
 
 def test_rag_ingest_prune(mock_rag_service, mock_gateway, env_vars):
     mock_rag_service.ingest.return_value = {"processed": 1}
-    args = argparse.Namespace(verb="ingest", prune=True, key=None, collection=None, approved=False, qa_limit=None, user=False)
+    args = argparse.Namespace(
+        verb="ingest",
+        prune=True,
+        key=None,
+        collection=None,
+        approved=False,
+        qa_limit=None,
+        user=False,
+    )
 
     RAGCommand().execute(args)
 
@@ -70,7 +102,15 @@ def test_rag_ingest_prune(mock_rag_service, mock_gateway, env_vars):
 
 def test_rag_ingest_no_prune(mock_rag_service, mock_gateway, env_vars):
     mock_rag_service.ingest.return_value = {"processed": 1}
-    args = argparse.Namespace(verb="ingest", prune=False, key=None, collection=None, approved=False, qa_limit=None, user=False)
+    args = argparse.Namespace(
+        verb="ingest",
+        prune=False,
+        key=None,
+        collection=None,
+        approved=False,
+        qa_limit=None,
+        user=False,
+    )
 
     RAGCommand().execute(args)
 

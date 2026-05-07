@@ -30,7 +30,7 @@ def test_move_item_success_doi(service, mock_gateway):
             "key": "ITEM1",
             "version": 1,
             "DOI": "10.1234/test",
-            "collections": ["ID_SRC", "ID_OTHER"]
+            "collections": ["ID_SRC", "ID_OTHER"],
         },
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
@@ -73,7 +73,7 @@ def test_move_item_success_arxiv(service, mock_gateway):
             "key": "ITEM2",
             "version": 5,
             "extra": "arXiv: 2301.00001",
-            "collections": ["ID_SRC"]
+            "collections": ["ID_SRC"],
         },
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
@@ -126,7 +126,9 @@ def test_move_item_auto_source_success(service, mock_gateway):
     assert "ID_DEST" in parent_update["collections"]
     assert "ID_SRC" not in parent_update["collections"]
 
+
 # (Rest of tests kept as is, they don't use update_items or re-fetch as much or are simpler)
+
 
 def test_delete_collection_recursive(service, mock_gateway):
     raw1 = {"key": "K1", "data": {"key": "K1", "version": 1}}

@@ -7,6 +7,7 @@ from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class VerificationReport:
     is_valid: bool = True
@@ -15,6 +16,7 @@ class VerificationReport:
     file_count: int = 0
     item_count: int = 0
     collection_count: int = 0
+
 
 class VerifyService:
     """
@@ -94,14 +96,18 @@ class VerifyService:
 
                         if path not in file_list:
                             report.is_valid = False
-                            report.errors.append(f"File {path} listed in manifest but missing from archive")
+                            report.errors.append(
+                                f"File {path} listed in manifest but missing from archive"
+                            )
                             continue
 
                         if expected_checksum:
                             actual_checksum = self._calculate_checksum(zf, path)
                             if actual_checksum != expected_checksum:
                                 report.is_valid = False
-                                report.errors.append(f"Checksum mismatch for {path}: expected {expected_checksum}, got {actual_checksum}")
+                                report.errors.append(
+                                    f"Checksum mismatch for {path}: expected {expected_checksum}, got {actual_checksum}"
+                                )
 
         except Exception as e:
             report.is_valid = False

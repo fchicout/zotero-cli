@@ -119,7 +119,9 @@ class NoteRepository(ABC):
         pass
 
     @abstractmethod
-    def update_note(self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None) -> bool:
+    def update_note(
+        self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None
+    ) -> bool:
         pass
 
     @abstractmethod

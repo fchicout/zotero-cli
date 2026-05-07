@@ -88,9 +88,7 @@ class MarkdownRecursiveSplitter(TextSplitter):
                         chunks.append(breadcrumb + "\n\n".join(current_chunk))
 
                     for i in range(0, len(para), self.chunk_size - breadcrumb_len):
-                        chunks.append(
-                            breadcrumb + para[i : i + (self.chunk_size - breadcrumb_len)]
-                        )
+                        chunks.append(breadcrumb + para[i : i + (self.chunk_size - breadcrumb_len)])
 
                     current_chunk = []
                     current_length = 0
@@ -227,7 +225,9 @@ class RAGServiceBase(RAGService):
             return {"status": "success", "item": item, "chunks": item_chunks}
 
         with ThreadPoolExecutor(max_workers=2) as executor:
-            future_to_item = {executor.submit(process_item, item): item for item in items_to_process}
+            future_to_item = {
+                executor.submit(process_item, item): item for item in items_to_process
+            }
             for future in as_completed(future_to_item):
                 result = future.result()
                 if not result:
@@ -301,9 +301,9 @@ class RAGServiceBase(RAGService):
 
                 if is_qa_phase or is_ext_action:
                     data_block = parsed.get("data", {})
-                    qa_block = data_block.get(
+                    qa_block = data_block.get("quality_assessment") or parsed.get(
                         "quality_assessment"
-                    ) or parsed.get("quality_assessment")
+                    )
                     score = (
                         qa_block.get("total")
                         if isinstance(qa_block, dict)
@@ -434,9 +434,7 @@ class RAGServiceBase(RAGService):
             "Provide a technical, grounded summary based ONLY on the data above:"
         )
 
-        return str(
-            self.llm_provider.generate(full_prompt, system_instruction=system_instruction)
-        )
+        return str(self.llm_provider.generate(full_prompt, system_instruction=system_instruction))
 
     def get_context(self, item_key: str) -> str:
         chunks = self.vector_repo.get_chunks_by_item(item_key)

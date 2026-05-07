@@ -13,6 +13,7 @@ from zotero_cli.core.services.verify_service import VerifyService
 def mock_gateway():
     return MagicMock()
 
+
 @pytest.fixture
 def dummy_zaf():
     buffer = io.BytesIO()
@@ -21,17 +22,33 @@ def dummy_zaf():
             "scope_type": "collection",
             "timestamp": "2024-01-01",
             "file_map": {
-                "ATT1": {"path": "attachments/P1/file.pdf", "checksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"} # empty file hash
-            }
+                "ATT1": {
+                    "path": "attachments/P1/file.pdf",
+                    "checksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                }  # empty file hash
+            },
         }
         zf.writestr("manifest.json", json.dumps(manifest))
-        zf.writestr("data.json", json.dumps([
-            {"key": "P1", "data": {"itemType": "journalArticle", "title": "Test"}},
-            {"key": "ATT1", "data": {"itemType": "attachment", "parentItem": "P1", "linkMode": "imported_file"}}
-        ]))
+        zf.writestr(
+            "data.json",
+            json.dumps(
+                [
+                    {"key": "P1", "data": {"itemType": "journalArticle", "title": "Test"}},
+                    {
+                        "key": "ATT1",
+                        "data": {
+                            "itemType": "attachment",
+                            "parentItem": "P1",
+                            "linkMode": "imported_file",
+                        },
+                    },
+                ]
+            ),
+        )
         zf.writestr("attachments/P1/file.pdf", b"")
     buffer.seek(0)
     return buffer
+
 
 def test_verify_service_success(dummy_zaf, tmp_path):
     zaf_path = tmp_path / "test.zaf"
@@ -43,6 +60,7 @@ def test_verify_service_success(dummy_zaf, tmp_path):
     assert report.is_valid is True
     assert report.item_count == 2
     assert report.file_count == 1
+
 
 def test_verify_service_library_scope_success(tmp_path):
     buffer = io.BytesIO()
@@ -59,12 +77,11 @@ def test_verify_service_library_scope_success(tmp_path):
     assert report.is_valid is True
     assert report.collection_count == 0
 
+
 def test_verify_service_checksum_failure(dummy_zaf, tmp_path):
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as zf:
-        manifest = {
-            "file_map": {"ATT1": {"path": "file.pdf", "checksum": "wrong"}}
-        }
+        manifest = {"file_map": {"ATT1": {"path": "file.pdf", "checksum": "wrong"}}}
         zf.writestr("manifest.json", json.dumps(manifest))
         zf.writestr("data.json", "[]")
         zf.writestr("file.pdf", b"tampered")
@@ -76,6 +93,7 @@ def test_verify_service_checksum_failure(dummy_zaf, tmp_path):
     report = service.verify_archive(str(zaf_path))
     assert report.is_valid is False
     assert any("Checksum mismatch" in e for e in report.errors)
+
 
 def test_verify_service_missing_files(tmp_path):
     zaf_path = tmp_path / "not_a_zip.zaf"
@@ -93,9 +111,11 @@ def test_verify_service_missing_files(tmp_path):
     report = service.verify_archive(str(zaf_path))
     assert "Missing manifest.json" in report.errors
 
+
 @pytest.fixture
 def mock_orchestrator():
     return MagicMock()
+
 
 def test_restore_service_dry_run(dummy_zaf, tmp_path, mock_orchestrator):
     zaf_path = tmp_path / "restore.zaf"
@@ -112,22 +132,25 @@ def test_restore_service_dry_run(dummy_zaf, tmp_path, mock_orchestrator):
     assert report.items_created == 1
     assert report.attachments_uploaded == 1
 
+
 def test_restore_collections_hierarchy(mock_gateway, mock_orchestrator):
     service = RestoreService(mock_gateway, mock_orchestrator)
 
     colls = [
         {"key": "C1", "data": {"name": "Root", "parentCollection": None}},
-        {"key": "C2", "data": {"name": "Child", "parentCollection": "C1"}}
+        {"key": "C2", "data": {"name": "Child", "parentCollection": "C1"}},
     ]
     mock_gateway.get_all_collections.return_value = []
     mock_gateway.create_collection.side_effect = ["NEW1", "NEW2"]
 
     from zotero_cli.core.services.restore_service import RestoreReport
+
     report = RestoreReport(is_dry_run=False)
     service._restore_collections(colls, report)
 
     assert service.coll_map["C1"] == "NEW1"
     assert service.coll_map["C2"] == "NEW2"
+
 
 def test_restore_child_parent_not_found(mock_gateway, mock_orchestrator):
     service = RestoreService(mock_gateway, mock_orchestrator)
@@ -135,10 +158,12 @@ def test_restore_child_parent_not_found(mock_gateway, mock_orchestrator):
     child_raw = {"key": "ATT1", "data": {"itemType": "attachment", "parentItem": "MISSING"}}
 
     from zotero_cli.core.services.restore_service import RestoreReport
+
     report = RestoreReport()
     # Should return early and not crash
     service._restore_child_item(child_raw, MagicMock(), {}, report)
     assert not mock_gateway.upload_attachment.called
+
 
 def test_restore_service_idempotency_none(mock_gateway, mock_orchestrator):
     service = RestoreService(mock_gateway, mock_orchestrator)
@@ -146,6 +171,7 @@ def test_restore_service_idempotency_none(mock_gateway, mock_orchestrator):
     data = {"itemType": "journalArticle"}
     result = service._find_existing_item(data)
     assert result is None
+
 
 def test_restore_attachment_mode_mismatch(dummy_zaf, tmp_path, mock_gateway, mock_orchestrator):
     zaf_path = tmp_path / "mode.zaf"
@@ -155,13 +181,16 @@ def test_restore_attachment_mode_mismatch(dummy_zaf, tmp_path, mock_gateway, moc
     child_raw = {"key": "ATT1", "data": {"itemType": "attachment", "linkMode": "linked_url"}}
 
     from zotero_cli.core.services.restore_service import RestoreReport
+
     report = RestoreReport()
     with zipfile.ZipFile(zaf_path, "r") as zf:
         service._restore_attachment(child_raw, zf, {}, "PARENT", report)
     assert not mock_gateway.upload_attachment.called
 
+
 def test_restore_item_creation_failure(mock_gateway, mock_orchestrator):
     from zotero_cli.core.services.restore_service import RestoreReport
+
     service = RestoreService(mock_gateway, mock_orchestrator)
     item_raw = {"key": "K1", "data": {"itemType": "journalArticle", "title": "Fail"}}
     mock_gateway.get_items_by_doi.return_value = iter([])
@@ -174,6 +203,7 @@ def test_restore_item_creation_failure(mock_gateway, mock_orchestrator):
     assert len(report.errors) == 1
     assert "Failed to create item" in report.errors[0]
 
+
 def test_verify_service_calculate_checksum_error(tmp_path):
     service = VerifyService()
     # Mock zipfile.ZipFile object that fails on open
@@ -182,6 +212,7 @@ def test_verify_service_calculate_checksum_error(tmp_path):
 
     with pytest.raises(Exception):
         service._calculate_checksum(mock_zf, "any_path")
+
 
 def test_restore_collections_match_existing(mock_gateway, mock_orchestrator):
     service = RestoreService(mock_gateway, mock_orchestrator)
@@ -192,11 +223,13 @@ def test_restore_collections_match_existing(mock_gateway, mock_orchestrator):
     ]
 
     from zotero_cli.core.services.restore_service import RestoreReport
+
     report = RestoreReport(is_dry_run=False)
     service._restore_collections(colls, report)
 
     assert service.coll_map["C1"] == "NEW_KEY"
     assert report.collections_created == 0
+
 
 def test_restore_note_creation(mock_gateway, mock_orchestrator):
     service = RestoreService(mock_gateway, mock_orchestrator)
@@ -207,18 +240,18 @@ def test_restore_note_creation(mock_gateway, mock_orchestrator):
     mock_gateway.create_note.return_value = True
 
     from zotero_cli.core.services.restore_service import RestoreReport
+
     report = RestoreReport(is_dry_run=False)
     service._restore_note(note_data, item_key, report)
 
     mock_gateway.create_note.assert_called_once_with(item_key, "New note")
 
+
 def test_verify_service_legacy_manifest(tmp_path):
     # Test file_map with string values (legacy)
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as zf:
-        manifest = {
-            "file_map": {"ATT1": "attachments/P1/file.pdf"}
-        }
+        manifest = {"file_map": {"ATT1": "attachments/P1/file.pdf"}}
         zf.writestr("manifest.json", json.dumps(manifest))
         zf.writestr("data.json", "[]")
         zf.writestr("attachments/P1/file.pdf", b"data")
@@ -230,6 +263,7 @@ def test_verify_service_legacy_manifest(tmp_path):
     report = service.verify_archive(str(zaf_path))
     assert report.is_valid is True
     assert report.file_count == 1
+
 
 def test_verify_service_library_scope_missing_collections_file(tmp_path):
     buffer = io.BytesIO()
@@ -246,6 +280,7 @@ def test_verify_service_library_scope_missing_collections_file(tmp_path):
     assert report.is_valid is False
     assert any("Missing collections.json" in e for e in report.errors)
 
+
 def test_restore_service_idempotency_doi_none(mock_gateway, mock_orchestrator):
     service = RestoreService(mock_gateway, mock_orchestrator)
     mock_gateway.get_items_by_doi.return_value = iter([])
@@ -254,11 +289,12 @@ def test_restore_service_idempotency_doi_none(mock_gateway, mock_orchestrator):
     result = service._find_existing_item(data)
     assert result is None
 
+
 def test_verify_service_missing_path_in_manifest(tmp_path):
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as zf:
         manifest = {
-            "file_map": {"ATT1": {"checksum": "somehash"}} # Missing 'path'
+            "file_map": {"ATT1": {"checksum": "somehash"}}  # Missing 'path'
         }
         zf.writestr("manifest.json", json.dumps(manifest))
         zf.writestr("data.json", "[]")
@@ -271,6 +307,7 @@ def test_verify_service_missing_path_in_manifest(tmp_path):
     assert report.is_valid is False
     assert any("Missing path in manifest" in e for e in report.errors)
 
+
 def test_restore_collections_failure(mock_gateway, mock_orchestrator):
     service = RestoreService(mock_gateway, mock_orchestrator)
     colls = [{"key": "C1", "data": {"name": "Fail", "parentCollection": None}}]
@@ -279,6 +316,7 @@ def test_restore_collections_failure(mock_gateway, mock_orchestrator):
     mock_gateway.create_collection.return_value = None
 
     from zotero_cli.core.services.restore_service import RestoreReport
+
     report = RestoreReport(is_dry_run=False)
     service._restore_collections(colls, report)
 

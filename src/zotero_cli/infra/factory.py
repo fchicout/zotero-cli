@@ -766,21 +766,9 @@ class GatewayFactory:
 
             config = get_config()
 
-        from zotero_cli.core.config import get_config_path
+        from zotero_cli.core.config import get_storage_dir
 
-        config_path = get_config_path()
-        if config_path:
-            db_dir = config_path.parent
-        else:
-            import os
-            from pathlib import Path
-
-            if os.name == "nt":
-                base = Path(os.environ.get("APPDATA", "~")).expanduser()
-            else:
-                base = Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
-            db_dir = base / "zotero-cli"
-
+        db_dir = get_storage_dir()
         db_dir.mkdir(parents=True, exist_ok=True)
 
         # Use library_id or default name to isolate projects
@@ -809,7 +797,9 @@ class GatewayFactory:
         model_name = config.embedding_model
 
         if provider_type == "local":
-            return SentenceTransformerEmbeddingProvider(model_name or "all-MiniLM-L6-v2", token=config.huggingface_token)
+            return SentenceTransformerEmbeddingProvider(
+                model_name or "all-MiniLM-L6-v2", token=config.huggingface_token
+            )
 
         if config.gemini_api_key and provider_type in ["auto", "gemini"]:
             return GeminiEmbeddingProvider(config.gemini_api_key)
@@ -821,7 +811,9 @@ class GatewayFactory:
             return MockEmbeddingProvider()
 
         # Default to local if no API keys but and we haven't explicitly asked for mock
-        return SentenceTransformerEmbeddingProvider(model_name or "all-MiniLM-L6-v2", token=config.huggingface_token)
+        return SentenceTransformerEmbeddingProvider(
+            model_name or "all-MiniLM-L6-v2", token=config.huggingface_token
+        )
 
     @staticmethod
     def get_slr_orchestrator(
@@ -856,6 +848,7 @@ class GatewayFactory:
     def get_llm_provider(config: Optional[ZoteroConfig] = None) -> Optional["LLMProvider"]:
         if not config:
             from zotero_cli.core.config import get_config
+
             config = get_config()
 
         from zotero_cli.core.services.llm_provider import (
@@ -924,14 +917,14 @@ class GatewayFactory:
     def get_speech_service(config: Optional[ZoteroConfig] = None) -> "SpeechService":
         if not config:
             from zotero_cli.core.config import get_config
+
             config = get_config()
 
         from zotero_cli.core.services.speech_service import KokoroSpeechProvider, SpeechService
         from zotero_cli.core.utils.speech_filter import TextCleaningFilter
 
         provider = KokoroSpeechProvider(
-            lang_code=config.tts_lang or "a",
-            voice=config.tts_voice or "af_heart"
+            lang_code=config.tts_lang or "a", voice=config.tts_voice or "af_heart"
         )
 
         return SpeechService(provider, TextCleaningFilter())

@@ -270,7 +270,9 @@ class SqliteZoteroGateway(ZoteroGateway):
     def create_note(self, parent_item_key: str, note_content: str) -> bool:
         raise ConfigurationError("Offline mode is read-only")
 
-    def update_note(self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None) -> bool:
+    def update_note(
+        self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None
+    ) -> bool:
         raise ConfigurationError("Offline mode is read-only")
 
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:

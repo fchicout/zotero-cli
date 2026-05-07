@@ -50,10 +50,24 @@ Cognitive Safeguards
         ingest_group = ingest_p.add_mutually_exclusive_group(required=False)
         ingest_group.add_argument("--collection", help="Collection name or key")
         ingest_group.add_argument("--key", help="Single item key")
-        ingest_p.add_argument("--approved", action="store_true", help="Ingest only approved items (rsl:include)")
-        ingest_p.add_argument("--qa-limit", type=float, help="Minimum extraction QA score threshold")
-        ingest_p.add_argument("--prune", action="store_true", default=False, help="Clear the vector store before ingestion")
-        ingest_p.add_argument("--no-prune", action="store_false", dest="prune", help="Append to the vector store (Default)")
+        ingest_p.add_argument(
+            "--approved", action="store_true", help="Ingest only approved items (rsl:include)"
+        )
+        ingest_p.add_argument(
+            "--qa-limit", type=float, help="Minimum extraction QA score threshold"
+        )
+        ingest_p.add_argument(
+            "--prune",
+            action="store_true",
+            default=False,
+            help="Clear the vector store before ingestion",
+        )
+        ingest_p.add_argument(
+            "--no-prune",
+            action="store_false",
+            dest="prune",
+            help="Append to the vector store (Default)",
+        )
 
         # query
         query_p = sub.add_parser(
@@ -70,12 +84,17 @@ Cognitive Safeguards
             default="human",
             help="Output format (human: beautiful UI, json: evidence pack, context: LLM-ready context)",
         )
-        query_p.add_argument("--verify", action="store_true", help="Verify results against RAG Verification Spec v1.1")
         query_p.add_argument(
-            "--ask", "--synthesize",
+            "--verify",
+            action="store_true",
+            help="Verify results against RAG Verification Spec v1.1",
+        )
+        query_p.add_argument(
+            "--ask",
+            "--synthesize",
             dest="synthesize",
             action="store_true",
-            help="Synthesize a meaningful answer using the configured LLM (Gemini/OpenAI)"
+            help="Synthesize a meaningful answer using the configured LLM (Gemini/OpenAI)",
         )
 
         # context
@@ -152,7 +171,9 @@ Cognitive Safeguards
                 task = progress.add_task("Ingesting...", total=None)
 
                 def on_item(item, total):
-                    progress.update(task, total=total, advance=1, description=f"Ingesting: {item.key}")
+                    progress.update(
+                        task, total=total, advance=1, description=f"Ingesting: {item.key}"
+                    )
 
                 stats = rag_service.ingest(
                     collection_key=args.collection,
@@ -160,13 +181,15 @@ Cognitive Safeguards
                     approved_only=args.approved,
                     prune=args.prune,
                     min_qa_score=args.qa_limit,
-                    on_item_processed=on_item
+                    on_item_processed=on_item,
                 )
 
             console.print("[green]Ingestion complete.[/green]")
             console.print(f"  - [bold]Processed:[/bold] {stats.get('processed', 0)} items")
             if stats.get("skipped_low_qa"):
-                console.print(f"  - [yellow]Skipped (Low QA Score):[/yellow] {stats['skipped_low_qa']}")
+                console.print(
+                    f"  - [yellow]Skipped (Low QA Score):[/yellow] {stats['skipped_low_qa']}"
+                )
 
         elif args.verb == "query":
             from zotero_cli.core.models import SearchResult
@@ -187,7 +210,10 @@ Cognitive Safeguards
 
                 from rich.markdown import Markdown
                 from rich.panel import Panel
-                console.print(Panel(Markdown(summary), title="Synthesized Answer", border_style="cyan"))
+
+                console.print(
+                    Panel(Markdown(summary), title="Synthesized Answer", border_style="cyan")
+                )
                 console.print("\n[bold dim]Supporting Evidence:[/bold dim]")
 
             from zotero_cli.cli.presenters.rag_presenter import SearchResultPresenter
@@ -245,7 +271,9 @@ Cognitive Safeguards
                 console.print("[yellow]No models found in cache.[/yellow]")
                 return
 
-            confirm = Confirm.ask("Delete ALL cached models and modules? [bold red]This cannot be undone.[/bold red]")
+            confirm = Confirm.ask(
+                "Delete ALL cached models and modules? [bold red]This cannot be undone.[/bold red]"
+            )
             if not confirm:
                 console.print("[yellow]Cleanup cancelled.[/yellow]")
                 return
@@ -268,7 +296,9 @@ Cognitive Safeguards
                 console.print("[dim]Dynamic modules cleared.[/dim]")
 
             console.print(f"[green]Successfully removed {count} model repositories.[/green]")
-            console.print("[yellow]Note: The next RAG operation will require a new model download.[/yellow]")
+            console.print(
+                "[yellow]Note: The next RAG operation will require a new model download.[/yellow]"
+            )
 
         except Exception as e:
             console.print(f"[bold red]Error during cleanup:[/bold red] {e}")
@@ -282,8 +312,16 @@ Cognitive Safeguards
         # 1. Selection for Embedding Model (The Finder)
         EMB_MODELS = {
             "1": {"name": "BGE-M3 (Most Stable / Hybrid)", "id": "BAAI/bge-m3", "size": "~1.1GB"},
-            "2": {"name": "Jina v3 (High Efficiency)", "id": "jinaai/jina-embeddings-v3", "size": "~1.2GB"},
-            "3": {"name": "Qwen2-7B (Maximum Accuracy)", "id": "Alibaba-NLP/gte-Qwen2-7B-instruct", "size": "~15GB"},
+            "2": {
+                "name": "Jina v3 (High Efficiency)",
+                "id": "jinaai/jina-embeddings-v3",
+                "size": "~1.2GB",
+            },
+            "3": {
+                "name": "Qwen2-7B (Maximum Accuracy)",
+                "id": "Alibaba-NLP/gte-Qwen2-7B-instruct",
+                "size": "~15GB",
+            },
         }
 
         table = Table(title="Stage 1: Embedding Models (Search)")
@@ -296,13 +334,23 @@ Cognitive Safeguards
             table.add_row(k, v["name"], v["id"], v["size"])
 
         console.print(table)
-        choice_emb = Prompt.ask("Choose an Embedding model", choices=list(EMB_MODELS.keys()), default="1")
+        choice_emb = Prompt.ask(
+            "Choose an Embedding model", choices=list(EMB_MODELS.keys()), default="1"
+        )
         selected_emb = EMB_MODELS[choice_emb]
 
         # 2. Selection for Generative Model (The Writer)
         GEN_MODELS = {
-            "1": {"name": "Qwen2.5-1.5B (Tiny/Fast)", "id": "Qwen/Qwen2.5-1.5B-Instruct", "size": "~3GB"},
-            "2": {"name": "Llama-3.2-3B (Balanced)", "id": "meta-llama/Llama-3.2-3B-Instruct", "size": "~6GB"},
+            "1": {
+                "name": "Qwen2.5-1.5B (Tiny/Fast)",
+                "id": "Qwen/Qwen2.5-1.5B-Instruct",
+                "size": "~3GB",
+            },
+            "2": {
+                "name": "Llama-3.2-3B (Balanced)",
+                "id": "meta-llama/Llama-3.2-3B-Instruct",
+                "size": "~6GB",
+            },
             "3": {"name": "None (Use Gemini/OpenAI API)", "id": "auto", "size": "0GB"},
         }
 
@@ -317,14 +365,18 @@ Cognitive Safeguards
             table_gen.add_row(k, v["name"], v["id"], v["size"])
 
         console.print(table_gen)
-        choice_gen = Prompt.ask("Choose a Generative model", choices=list(GEN_MODELS.keys()), default="1")
+        choice_gen = Prompt.ask(
+            "Choose a Generative model", choices=list(GEN_MODELS.keys()), default="1"
+        )
         selected_gen = GEN_MODELS[choice_gen]
 
         console.print("\nFinal Selection:")
         console.print(f"  - Embedding: [bold]{selected_emb['name']}[/bold]")
         console.print(f"  - Generative: [bold]{selected_gen['name']}[/bold]")
 
-        confirm = Prompt.ask("\nUpdate configuration and download models?", choices=["y", "n"], default="y")
+        confirm = Prompt.ask(
+            "\nUpdate configuration and download models?", choices=["y", "n"], default="y"
+        )
         if confirm != "y":
             console.print("[yellow]Operation cancelled.[/yellow]")
             return
@@ -332,10 +384,7 @@ Cognitive Safeguards
         # 1. Update Config
         config = get_config()
         manager = ConfigManager()
-        updates = {
-            "embedding_model": selected_emb["id"],
-            "embedding_provider": "local"
-        }
+        updates = {"embedding_model": selected_emb["id"], "embedding_provider": "local"}
 
         if selected_gen["id"] != "auto":
             updates["generative_model"] = selected_gen["id"]
@@ -353,20 +402,24 @@ Cognitive Safeguards
             # Download Embedding
             console.print(f"Downloading Embedding Model: {selected_emb['id']}...")
             snapshot_download(
-                repo_id=selected_emb["id"], token=config.huggingface_token
-            )
+                repo_id=selected_emb["id"],
+                token=config.huggingface_token,
+                revision="main",
+            )  # nosec B615
 
             # Download Generative (if not API)
             if selected_gen["id"] != "auto":
                 console.print(f"Downloading Generative Model: {selected_gen['id']}...")
                 snapshot_download(
-                    repo_id=selected_gen["id"], token=config.huggingface_token
-                )
-
-
+                    repo_id=selected_gen["id"],
+                    token=config.huggingface_token,
+                    revision="main",
+                )  # nosec B615
             console.print("[green]All models downloaded and cached.[/green]")
 
         except Exception as e:
             console.print(f"[bold red]Error downloading model:[/bold red] {e}")
             if "GatedRepoError" in str(type(e)):
-                console.print("[yellow]Hint: Some models (like Llama) are gated. Ensure you have accepted terms and your token is valid.[/yellow]")
+                console.print(
+                    "[yellow]Hint: Some models (like Llama) are gated. Ensure you have accepted terms and your token is valid.[/yellow]"
+                )

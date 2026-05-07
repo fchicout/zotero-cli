@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from rich.table import Table
 
@@ -154,3 +154,54 @@ class SDBService:
                             stats["errors"] += 1
 
         return stats
+
+    def filter_items_by_sdb(
+        self,
+        items: List[Any],
+        included: bool = False,
+        excluded: bool = False,
+        criteria: Optional[str] = None,
+        persona: Optional[str] = None,
+        phase: Optional[str] = None,
+    ) -> List[Tuple[Any, Dict[str, Any]]]:
+        """
+        Filters a list of items based on SDB metadata.
+        Returns a list of tuples (item, matched_sdb_entry).
+        """
+        filtered_results = []
+
+        for item in items:
+            # 1. Fast Filter (Tags) - Optimization
+            if included and "rsl:include" not in item.tags:
+                continue
+            if excluded and not any(t.startswith("rsl:exclude:") for t in item.tags):
+                continue
+            if criteria and f"rsl:exclude:{criteria}" not in item.tags:
+                continue
+
+            # 2. Deep Filter (Notes)
+            entries = self.inspect_item_sdb(item.key)
+            matched_entry = None
+            for entry in entries:
+                match = True
+                if included and entry.get("decision") != "accepted":
+                    match = False
+                if excluded and entry.get("decision") != "rejected":
+                    match = False
+                if criteria:
+                    codes = entry.get("reason_code", [])
+                    if criteria not in codes:
+                        match = False
+                if persona and entry.get("persona") != persona:
+                    match = False
+                if phase and entry.get("phase") != phase:
+                    match = False
+
+                if match:
+                    matched_entry = entry
+                    break
+
+            if matched_entry:
+                filtered_results.append((item, matched_entry))
+
+        return filtered_results

@@ -11,6 +11,7 @@ def mock_deps():
     with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mw:
         yield mw.return_value
 
+
 def test_status_command_execute(mock_deps, capsys):
     # Setup
     mock_status = MagicMock()
@@ -20,17 +21,24 @@ def test_status_command_execute(mock_deps, capsys):
     mock_status.total_unique = 15
     mock_status.phases = {}
 
-    with patch("zotero_cli.core.services.slr.status_service.SLRStatusService.get_slr_status", return_value=[mock_status]):
+    with patch(
+        "zotero_cli.core.services.slr.status_service.SLRStatusService.get_slr_status",
+        return_value=[mock_status],
+    ):
         args = argparse.Namespace(verb="status")
         StatusCommand.execute(args)
 
         out = capsys.readouterr().out
         assert "SLR Progress Status" in out
         assert "raw_test" in out
-        assert "15" in out # Tree Total
+        assert "15" in out  # Tree Total
+
 
 def test_status_command_no_collections(mock_deps, capsys):
-    with patch("zotero_cli.core.services.slr.status_service.SLRStatusService.get_slr_status", return_value=[]):
+    with patch(
+        "zotero_cli.core.services.slr.status_service.SLRStatusService.get_slr_status",
+        return_value=[],
+    ):
         args = argparse.Namespace(verb="status")
         StatusCommand.execute(args)
 

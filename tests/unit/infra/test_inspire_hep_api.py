@@ -9,6 +9,7 @@ from zotero_cli.infra.inspire_hep_api import InspireHEPAPIClient
 def client():
     return InspireHEPAPIClient()
 
+
 def test_map_to_research_paper(client):
     metadata = {
         "titles": [{"title": "HEP Discoveries"}],
@@ -19,7 +20,7 @@ def test_map_to_research_paper(client):
         "arxiv_eprints": [{"value": "1207.7214"}],
         "control_number": 1124337,
         "collaborations": [{"value": "ATLAS"}, {"value": "CMS"}],
-        "report_numbers": [{"value": "CERN-PH-EP-2012-218"}]
+        "report_numbers": [{"value": "CERN-PH-EP-2012-218"}],
     }
     paper = client._map_to_research_paper(metadata)
     assert paper.title == "HEP Discoveries"
@@ -33,12 +34,11 @@ def test_map_to_research_paper(client):
     assert "Report Numbers: CERN-PH-EP-2012-218" in paper.extra
     assert paper.url == "https://inspirehep.net/literature/1124337"
 
+
 def test_get_paper_metadata_doi(client):
     mock_response = MagicMock()
     mock_response.json.return_value = {
-        "hits": {
-            "hits": [{"metadata": {"titles": [{"title": "DOI Paper"}], "control_number": 1}}]
-        }
+        "hits": {"hits": [{"metadata": {"titles": [{"title": "DOI Paper"}], "control_number": 1}}]}
     }
 
     with patch.object(client, "_get", return_value=mock_response):
@@ -46,6 +46,7 @@ def test_get_paper_metadata_doi(client):
         assert paper.title == "DOI Paper"
         args, kwargs = client._get.call_args
         assert "doi 10.1/1" == kwargs["params"]["q"]
+
 
 def test_get_paper_metadata_arxiv(client):
     mock_response = MagicMock()
@@ -59,6 +60,7 @@ def test_get_paper_metadata_arxiv(client):
         args, kwargs = client._get.call_args
         assert "eprint 1207.7214" == kwargs["params"]["q"]
 
+
 def test_get_paper_metadata_recid(client):
     mock_response = MagicMock()
     mock_response.json.return_value = {
@@ -70,6 +72,7 @@ def test_get_paper_metadata_recid(client):
         assert paper.title == "Recid Paper"
         args, kwargs = client._get.call_args
         assert "recid 1124337" == kwargs["params"]["q"]
+
 
 def test_get_paper_metadata_not_found(client):
     mock_response = MagicMock()

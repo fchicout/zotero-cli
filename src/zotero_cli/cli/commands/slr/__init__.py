@@ -1,7 +1,7 @@
 from .decide_cmd import DecideCommand
 from .extraction_cmd import ExtractionCommand
+from .list_cmd import ListCommand
 from .load_cmd import LoadCommand
-from .pending_cmd import PendingCommand
 from .promote_cmd import PromoteCommand
 from .reconcile_cmd import ReconcileCommand
 from .screen_cmd import ScreenCommand
@@ -13,8 +13,8 @@ from .verify_cmd import VerifyCommand
 __all__ = [
     "DecideCommand",
     "ExtractionCommand",
+    "ListCommand",
     "LoadCommand",
-    "PendingCommand",
     "PromoteCommand",
     "ReconcileCommand",
     "ScreenCommand",
@@ -23,4 +23,3 @@ __all__ = [
     "StatusCommand",
     "VerifyCommand",
 ]
-

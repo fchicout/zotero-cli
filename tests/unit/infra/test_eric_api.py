@@ -9,6 +9,7 @@ from zotero_cli.infra.eric_api import ERICAPIClient
 def client():
     return ERICAPIClient()
 
+
 def test_map_to_research_paper(client):
     item = {
         "title": "Educational Study",
@@ -19,7 +20,7 @@ def test_map_to_research_paper(client):
         "doi": "10.1000/eric123",
         "id": "EJ123456",
         "peerreviewed": "T",
-        "subject": ["Pedagogy", "Technology"]
+        "subject": ["Pedagogy", "Technology"],
     }
     paper = client._map_to_research_paper(item)
     assert paper.title == "Educational Study"
@@ -32,13 +33,10 @@ def test_map_to_research_paper(client):
     assert "Subjects: Pedagogy, Technology" in paper.extra
     assert "eric.ed.gov/?id=EJ123456" in paper.url
 
+
 def test_get_paper_metadata_ej(client):
     mock_response = MagicMock()
-    mock_response.json.return_value = {
-        "response": {
-            "docs": [{"title": "EJ Paper", "id": "EJ1"}]
-        }
-    }
+    mock_response.json.return_value = {"response": {"docs": [{"title": "EJ Paper", "id": "EJ1"}]}}
 
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("EJ1")
@@ -46,21 +44,20 @@ def test_get_paper_metadata_ej(client):
         args, kwargs = client._get.call_args
         assert "id:EJ1" in kwargs["params"]["search"]
 
+
 def test_get_paper_metadata_ed(client):
     mock_response = MagicMock()
-    mock_response.json.return_value = {
-        "response": {
-            "docs": [{"title": "ED Report", "id": "ED1"}]
-        }
-    }
+    mock_response.json.return_value = {"response": {"docs": [{"title": "ED Report", "id": "ED1"}]}}
 
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("ED1")
         assert paper.title == "ED Report"
 
+
 def test_get_paper_metadata_invalid_format(client):
     assert client.get_paper_metadata("DOI:10.1/1") is None
     assert client.get_paper_metadata("12345") is None
+
 
 def test_get_paper_metadata_not_found(client):
     mock_response = MagicMock()

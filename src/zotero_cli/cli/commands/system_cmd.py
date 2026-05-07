@@ -624,7 +624,9 @@ Cognitive Safeguards
                 # Converting to list in Service already, but we need the count here for total.
                 # However, since we don't want to double-fetch, we'll let the service drive progress.
 
-                task = progress.add_task("Backing up items...", total=None)  # Indeterminate initially
+                task = progress.add_task(
+                    "Backing up items...", total=None
+                )  # Indeterminate initially
 
                 def on_item(item):
                     progress.update(task, advance=1, description=f"Backing up: {item.key}")

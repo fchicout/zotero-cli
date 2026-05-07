@@ -36,15 +36,9 @@ def test_audit_manuscript(audit_service, mock_gateway, tmp_path):
     main_tex = tmp_path / "main.tex"
     main_tex.write_text("\\cite{KEY1, KEY2, KEY3}")
 
-    item1 = ZoteroItem.from_raw_zotero_item({
-        "key": "KEY1",
-        "data": {"title": "Paper 1"}
-    })
+    item1 = ZoteroItem.from_raw_zotero_item({"key": "KEY1", "data": {"title": "Paper 1"}})
     # item2 will be missing
-    item3 = ZoteroItem.from_raw_zotero_item({
-        "key": "KEY3",
-        "data": {"title": "Paper 3"}
-    })
+    item3 = ZoteroItem.from_raw_zotero_item({"key": "KEY3", "data": {"title": "Paper 3"}})
 
     def get_item_mock(key):
         if key == "KEY1":
@@ -56,14 +50,18 @@ def test_audit_manuscript(audit_service, mock_gateway, tmp_path):
     mock_gateway.get_item.side_effect = get_item_mock
 
     # Mock children for SDB note check
-    mock_gateway.get_item_children.side_effect = lambda k: [
-        {
-            "data": {
-                "itemType": "note",
-                "note": '{"audit_version": "1.2", "persona": "Orion", "phase": "title_abstract", "decision": "accepted"}'
+    mock_gateway.get_item_children.side_effect = (
+        lambda k: [
+            {
+                "data": {
+                    "itemType": "note",
+                    "note": '{"audit_version": "1.2", "persona": "Orion", "phase": "title_abstract", "decision": "accepted"}',
+                }
             }
-        }
-    ] if k == "KEY1" else []
+        ]
+        if k == "KEY1"
+        else []
+    )
 
     with patch("zotero_cli.core.utils.sdb_parser.parse_sdb_note") as mock_parse:
         mock_parse.side_effect = lambda n: json.loads(n) if "audit_version" in n else None

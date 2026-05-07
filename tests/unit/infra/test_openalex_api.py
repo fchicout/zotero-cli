@@ -11,19 +11,17 @@ from zotero_cli.infra.openalex_api import OpenAlexAPIClient
 def client():
     return OpenAlexAPIClient(email="test@example.com")
 
+
 def test_reconstruct_abstract(client):
-    inverted_index = {
-        "The": [0],
-        "quick": [1],
-        "brown": [2],
-        "fox": [3]
-    }
+    inverted_index = {"The": [0], "quick": [1], "brown": [2], "fox": [3]}
     abstract = client._reconstruct_abstract(inverted_index)
     assert abstract == "The quick brown fox"
+
 
 def test_reconstruct_abstract_empty(client):
     assert client._reconstruct_abstract(None) == ""
     assert client._reconstruct_abstract({}) == ""
+
 
 def test_get_paper_metadata_success(client):
     mock_response = MagicMock()
@@ -35,7 +33,7 @@ def test_get_paper_metadata_success(client):
         "publication_year": 2023,
         "doi": "https://doi.org/10.1000/123",
         "id": "https://openalex.org/W123",
-        "best_oa_location": {"pdf_url": "http://example.com/test.pdf"}
+        "best_oa_location": {"pdf_url": "http://example.com/test.pdf"},
     }
 
     with patch.object(client, "_get", return_value=mock_response):
@@ -48,6 +46,7 @@ def test_get_paper_metadata_success(client):
         assert paper.publication == "Journal X"
         assert paper.year == "2023"
         assert paper.pdf_url == "http://example.com/test.pdf"
+
 
 def test_get_paper_metadata_not_found(client):
     mock_response = MagicMock()

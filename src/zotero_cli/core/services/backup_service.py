@@ -27,7 +27,7 @@ class BackupService:
         self,
         collection_key: str,
         output: Union[str, IO[bytes]],
-        on_item_processed: Optional[Callable[[ZoteroItem], None]] = None
+        on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
     ):
         """
         Backs up a specific collection, its items, and their attachments to a .zaf file.
@@ -56,7 +56,7 @@ class BackupService:
     def backup_system(
         self,
         output: Union[str, IO[bytes]],
-        on_item_processed: Optional[Callable[[ZoteroItem], None]] = None
+        on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
     ):
         """
         Backs up the entire library, including all collections and orphan items.
@@ -78,7 +78,7 @@ class BackupService:
         output: Union[str, IO[bytes]],
         manifest: dict,
         items: List[ZoteroItem],
-        on_item_processed: Optional[Callable[[ZoteroItem], None]] = None
+        on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
     ):
         # Use LZMA if available (standard in Py3.3+)
         compression = zipfile.ZIP_LZMA if hasattr(zipfile, "ZIP_LZMA") else zipfile.ZIP_DEFLATED
@@ -124,7 +124,7 @@ class BackupService:
         manifest: dict,
         errors: List[str],
         item_data: List[Dict[str, Any]],
-        processed_keys: Set[str]
+        processed_keys: Set[str],
     ):
         """
         Recursively processes an item and its children (attachments/notes).
@@ -148,7 +148,10 @@ class BackupService:
 
             # Check if it's an attachment with a file
             data = child.raw_data.get("data", {})
-            if data.get("itemType") == "attachment" and data.get("linkMode") in ["imported_file", "linked_file"]:
+            if data.get("itemType") == "attachment" and data.get("linkMode") in [
+                "imported_file",
+                "linked_file",
+            ]:
                 filename = data.get("filename") or data.get("title")
                 if filename:
                     storage_path = f"attachments/{item.key}/{filename}"
@@ -161,6 +164,7 @@ class BackupService:
 
                             # Calculate SHA-256 checksum [SPEC-ZAF-001]
                             import hashlib
+
                             sha256_hash = hashlib.sha256()
                             with open(temp_path, "rb") as f:
                                 for byte_block in iter(lambda: f.read(4096), b""):
@@ -169,7 +173,7 @@ class BackupService:
 
                             manifest["file_map"][child_key] = {
                                 "path": storage_path,
-                                "checksum": checksum
+                                "checksum": checksum,
                             }
                         else:
                             errors.append(f"Failed to download attachment {child_key} ({filename})")
@@ -178,7 +182,7 @@ class BackupService:
                             os.remove(temp_path)
                     except Exception as e:
                         errors.append(f"Error processing attachment {child_key}: {str(e)}")
-                        if 'temp_path' in locals() and os.path.exists(temp_path):
+                        if "temp_path" in locals() and os.path.exists(temp_path):
                             os.remove(temp_path)
 
             # Recurse

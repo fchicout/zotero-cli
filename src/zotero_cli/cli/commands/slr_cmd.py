@@ -9,8 +9,8 @@ from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.commands.slr import (
     DecideCommand,
     ExtractionCommand,
+    ListCommand,
     LoadCommand,
-    PendingCommand,
     PromoteCommand,
     ReconcileCommand,
     ScreenCommand,
@@ -54,7 +54,7 @@ Cognitive Safeguards
 --------------------
 • Common Failure Modes: Forgetting to specify --include or --exclude. The decision is recorded, but the item isn't moved.
 • Safety Tips: Always define your target collections to ensure your workflow is continuous and items are properly triaged.
-"""
+""",
         )
         ScreenCommand.register_args(screen_p)
         # Compatibility for --file in screen (Issue #97 legacy)
@@ -77,7 +77,7 @@ Cognitive Safeguards
 --------------------
 • Common Failure Modes: Forgetting the --code when excluding. The command will fail fast to prevent incomplete audit trails.
 • Safety Tips: Use quick flags like --is-survey or --not-english to streamline frequent, repetitive exclusion reasons and avoid typos.
-"""
+""",
         )
         DecideCommand.register_args(decide_p)
 
@@ -98,7 +98,7 @@ Cognitive Safeguards
 --------------------
 • Common Failure Modes: CSV column headers not matching the default expectations ('Key', 'Vote', 'Reason'). Use --col-* flags to override mappings.
 • Safety Tips: Always perform a dry run (omit --force) and review the results table for "Matched Items" before applying.
-"""
+""",
         )
         LoadCommand.register_args(load_p)
 
@@ -110,13 +110,13 @@ Cognitive Safeguards
         )
         StatusCommand.register_args(status_p)
 
-        pending_p = sub.add_parser(
-            "pending",
-            help="Lists all items currently pending in the SLR funnel",
-            description="Scans all raw_* collections and identifies items that are 'stuck' in the funnel (e.g., missing audit notes or missing PDFs).",
+        list_p = sub.add_parser(
+            "list",
+            help="List papers by SLR status (pending, included, excluded)",
+            description="Lists items in the SLR funnel based on their status (pending evaluation, accepted/included, or rejected/excluded) and phase.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
-        PendingCommand.register_args(pending_p)
+        ListCommand.register_args(list_p)
 
         reconcile_p = sub.add_parser(
             "reconcile",
@@ -178,7 +178,7 @@ Cognitive Safeguards
 • Safety Tips: Snowballing can quickly lead to "Context Explosion." Use the review TUI frequently to prune irrelevant branches.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_snowball.md
-"""
+""",
         )
         SnowballCommand.register_args(snow_p)
 
@@ -202,7 +202,7 @@ Cognitive Safeguards
 • Safety Tips: Use upgrade before running major reports (like report prisma) to ensure data consistency.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_sdb.md
-"""
+""",
         )
         SDBCommand.register_args(sdb_p)
 
@@ -226,7 +226,7 @@ Cognitive Safeguards
 • Safety Tips: AI extraction is a heuristic process. Always manually verify a subset of the extracted data.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_extract.md
-"""
+""",
         )
         ExtractionCommand.register_args(ext_p)
 
@@ -250,7 +250,7 @@ Cognitive Safeguards
 • Safety Tips: Use --fields to limit the output to only what you need, reducing terminal clutter.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_lookup.md
-"""
+""",
         )
         lookup_p.add_argument("--keys")
         lookup_p.add_argument("--file")
@@ -276,7 +276,7 @@ Cognitive Safeguards
 • Safety Tips: Use this command on smaller, curated "Selection" folders to maintain visual clarity.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_graph.md
-"""
+""",
         )
         graph_p.add_argument("--collections", required=True)
 
@@ -299,7 +299,7 @@ Cognitive Safeguards
 • Safety Tips: Use report snapshot regularly to maintain a versioned history of your library state.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_shift.md
-"""
+""",
         )
         shift_p.add_argument("--old", required=True, help="Old Snapshot JSON")
         shift_p.add_argument("--new", required=True, help="New Snapshot JSON")
@@ -324,7 +324,7 @@ Cognitive Safeguards
 • Safety Tips: Always perform a collection backup before running a migration on a critical collection.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_migrate.md
-"""
+""",
         )
         mig_p.add_argument("--collection", required=True, help="Collection name or key")
         mig_p.add_argument("--dry-run", action="store_true", help="Show changes without applying")
@@ -348,7 +348,7 @@ Cognitive Safeguards
 • Safety Tips: Use this command as a "Backup" mechanism for your screening results.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_sync_csv.md
-"""
+""",
         )
         sync_p.add_argument("--collection", required=True, help="Collection name or key")
         sync_p.add_argument("--output", required=True, help="Path to output CSV")
@@ -370,9 +370,11 @@ Cognitive Safeguards
 --------------------
 • Common Failure Modes: Providing the wrong collection name. If the name is ambiguous (multiple collections with the same name), use the Zotero Collection Key instead.
 • Safety Tips: Always run a `report status` or `report prisma` before and after pruning to verify the count changes as expected.
-"""
+""",
         )
-        prune_p.add_argument("--included", required=True, help="Primary collection (Winner/Included)")
+        prune_p.add_argument(
+            "--included", required=True, help="Primary collection (Winner/Included)"
+        )
         prune_p.add_argument(
             "--excluded",
             required=True,
@@ -399,7 +401,7 @@ Cognitive Safeguards
 • Safety Tips: ALWAYS perform a report snapshot before running a reset. This command is irreversible.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/slr_reset.md
-"""
+""",
         )
         reset_p.add_argument("--name", required=True, help="Collection name or key")
         reset_p.add_argument("--phase", required=True, help="Target phase to reset")
@@ -421,8 +423,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             LoadCommand.execute(gateway, args)
         elif args.verb == "status":
             StatusCommand.execute(args)
-        elif args.verb == "pending":
-            PendingCommand.execute(args)
+        elif args.verb == "list":
+            ListCommand.execute(args)
         elif args.verb == "reconcile":
             ReconcileCommand.execute(args)
         elif args.verb == "promote":
@@ -473,9 +475,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                         code="bulk",
                         reason=reason,
                         source_collection=args.source if hasattr(args, "source") else None,
-                        target_collection=(
-                            args.include if vote == "INCLUDE" else args.exclude
-                        ) if hasattr(args, "include") else None,
+                        target_collection=(args.include if vote == "INCLUDE" else args.exclude)
+                        if hasattr(args, "include")
+                        else None,
                     ):
                         success_count += 1
                     else:

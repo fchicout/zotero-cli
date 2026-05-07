@@ -13,6 +13,7 @@ class TUIFactory:
     """
     Decouples CLI commands from TUI instantiation logic.
     """
+
     @staticmethod
     def get_screening_tui(service: ScreeningService) -> ScreeningTUI:
         return ScreeningTUI(service)

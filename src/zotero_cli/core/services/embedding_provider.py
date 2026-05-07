@@ -1,4 +1,4 @@
-from typing import List, Optional, cast
+from typing import Any, List, Optional, cast
 
 from zotero_cli.core.interfaces import EmbeddingProvider
 
@@ -32,7 +32,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         try:
             import openai
 
-            self.client = openai.OpenAI(api_key=self.api_key)
+            self.client: Any = openai.OpenAI(api_key=self.api_key)
         except ImportError:
             self.client = None
 
@@ -63,7 +63,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             import google.generativeai as genai
 
             genai.configure(api_key=self.api_key)
-            self.client = genai
+            self.client: Any = genai
         except ImportError:
             self.client = None
 
@@ -100,7 +100,7 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
     def __init__(self, model_name: str = "all-MiniLM-L6-v2", token: Optional[str] = None):
         self.model_name = model_name
         self.token = token
-        self._model = None
+        self._model: Any = None
 
     @property
     def model(self):
@@ -115,9 +115,7 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
 
             # Many 2026 models (Jina v3, Qwen) require trust_remote_code=True
             self._model = SentenceTransformer(
-                self.model_name,
-                token=self.token,
-                trust_remote_code=True
+                self.model_name, token=self.token, trust_remote_code=True
             )
         return self._model
 

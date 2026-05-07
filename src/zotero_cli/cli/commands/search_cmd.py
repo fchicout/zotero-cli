@@ -9,6 +9,7 @@ from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
+
 @CommandRegistry.register
 class SearchCommand(BaseCommand):
     name = "search"
@@ -32,7 +33,9 @@ Cognitive Safeguards
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/search.md
 """
-        parser.add_argument("query", nargs="?", help="Keyword search (matches title, creator, or year)")
+        parser.add_argument(
+            "query", nargs="?", help="Keyword search (matches title, creator, or year)"
+        )
         parser.add_argument("--doi", help="Search by exact DOI")
         parser.add_argument("--title", help="Search by title substring")
         parser.add_argument("--limit", type=int, default=50, help="Limit results (default: 50)")
@@ -64,7 +67,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         # Apply limit if necessary (though Zotero API already paginates)
         if args.limit and len(results) > args.limit:
-            results = results[:args.limit]
+            results = results[: args.limit]
 
         table = Table(title=f"Search Results ({len(results)})")
         table.add_column("Key", style="dim")

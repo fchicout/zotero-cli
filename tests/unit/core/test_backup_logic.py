@@ -43,8 +43,8 @@ def test_backup_collection_recursive_attachments(service, mock_gateway):
             "itemType": "attachment",
             "linkMode": "imported_file",
             "filename": "paper.pdf",
-            "title": "Attached PDF"
-        }
+            "title": "Attached PDF",
+        },
     }
     child_item = ZoteroItem.from_raw_zotero_item(child_item_raw)
 
@@ -85,13 +85,17 @@ def test_backup_collection_recursive_attachments(service, mock_gateway):
 
 def test_backup_system_coverage(service, mock_gateway):
     # Setup
-    item1 = ZoteroItem.from_raw_zotero_item({"key": "I1", "data": {"title": "T1", "itemType": "book"}})
-    item2 = ZoteroItem.from_raw_zotero_item({"key": "I2", "data": {"title": "T2", "itemType": "thesis"}})
+    item1 = ZoteroItem.from_raw_zotero_item(
+        {"key": "I1", "data": {"title": "T1", "itemType": "book"}}
+    )
+    item2 = ZoteroItem.from_raw_zotero_item(
+        {"key": "I2", "data": {"title": "T2", "itemType": "thesis"}}
+    )
 
     mock_gateway.get_all_items.return_value = iter([item1, item2])
     mock_gateway.get_all_collections.return_value = [
         {"key": "C1", "data": {"name": "Col 1"}},
-        {"key": "C2", "data": {"name": "Col 2"}}
+        {"key": "C2", "data": {"name": "Col 2"}},
     ]
 
     output_buffer = BytesIO()
@@ -118,16 +122,18 @@ def test_backup_system_coverage(service, mock_gateway):
 def test_backup_handles_download_failures(service, mock_gateway):
     # Setup
     item = ZoteroItem.from_raw_zotero_item({"key": "P1", "data": {"itemType": "journalArticle"}})
-    att = ZoteroItem.from_raw_zotero_item({
-        "key": "A1",
-        "data": {"itemType": "attachment", "linkMode": "imported_file", "filename": "miss.pdf"}
-    })
+    att = ZoteroItem.from_raw_zotero_item(
+        {
+            "key": "A1",
+            "data": {"itemType": "attachment", "linkMode": "imported_file", "filename": "miss.pdf"},
+        }
+    )
 
     mock_gateway.get_collection.return_value = {"key": "c", "data": {"name": "n"}}
     mock_gateway.get_items_in_collection.return_value = iter([item])
     mock_gateway.get_item_children.return_value = [{"key": "A1"}]
     mock_gateway.get_item.return_value = att
-    mock_gateway.download_attachment.return_value = False # Simulate failure
+    mock_gateway.download_attachment.return_value = False  # Simulate failure
 
     output_buffer = BytesIO()
     service.backup_collection("c", output_buffer)

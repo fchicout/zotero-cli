@@ -8,6 +8,7 @@ from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
+
 class SnowballCommand:
     @staticmethod
     def register_args(parser: argparse.ArgumentParser):
@@ -18,8 +19,12 @@ class SnowballCommand:
         seed_p.add_argument("--keys", help="Comma-separated Zotero keys")
         seed_p.add_argument("--collection", help="Collection name or key")
         seed_p.add_argument("--backward", action="store_true", help="Fetch references (CrossRef)")
-        seed_p.add_argument("--forward", action="store_true", help="Fetch citations (Semantic Scholar)")
-        seed_p.add_argument("--generation", type=int, default=1, help="Graph generation (Default: 1)")
+        seed_p.add_argument(
+            "--forward", action="store_true", help="Fetch citations (Semantic Scholar)"
+        )
+        seed_p.add_argument(
+            "--generation", type=int, default=1, help="Graph generation (Default: 1)"
+        )
 
         # discovery
         disc_p = snow_sub.add_parser("discovery", help="Run background workers to process jobs")
@@ -38,7 +43,9 @@ class SnowballCommand:
 
         # export
         export_p = snow_sub.add_parser("export", help="Export discovery graph")
-        export_p.add_argument("--format", choices=["json", "mermaid"], default="mermaid", help="Export format")
+        export_p.add_argument(
+            "--format", choices=["json", "mermaid"], default="mermaid", help="Export format"
+        )
         export_p.add_argument("--output", help="Output file path")
 
     @staticmethod
@@ -66,6 +73,7 @@ class SnowballCommand:
     @staticmethod
     def _handle_seed(gateway, args):
         from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
+
         job_queue = GatewayFactory.get_job_queue_service()
         dois = []
         if args.keys:
@@ -86,10 +94,14 @@ class SnowballCommand:
         enqueued = 0
         for doi in dois:
             if args.backward:
-                job_queue.enqueue(doi, SnowballDiscoveryWorker.TASK_BACKWARD, {"generation": args.generation})
+                job_queue.enqueue(
+                    doi, SnowballDiscoveryWorker.TASK_BACKWARD, {"generation": args.generation}
+                )
                 enqueued += 1
             if args.forward:
-                job_queue.enqueue(doi, SnowballDiscoveryWorker.TASK_FORWARD, {"generation": args.generation})
+                job_queue.enqueue(
+                    doi, SnowballDiscoveryWorker.TASK_FORWARD, {"generation": args.generation}
+                )
                 enqueued += 1
         console.print(f"[green]Enqueued {enqueued} discovery jobs.[/green]")
 
@@ -102,7 +114,9 @@ class SnowballCommand:
                 console.print(f"Collection '{args.target}' not found. Creating...")
                 col_id = gateway.create_collection(args.target)
             else:
-                console.print(f"[red]Error: Collection '{args.target}' not found. Use --create to create it.[/red]")
+                console.print(
+                    f"[red]Error: Collection '{args.target}' not found. Use --create to create it.[/red]"
+                )
                 return
         if col_id:
             console.print(f"[bold]Ingesting ACCEPTED candidates into '{args.target}'...[/bold]")

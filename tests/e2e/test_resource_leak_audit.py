@@ -23,6 +23,7 @@ def test_audit_for_leaked_collections(run_cli):
     else:
         print("\n[AUDIT] No leaked E2E collections found.")
 
+
 @pytest.mark.e2e
 def test_resource_tracker_proposal_verification(run_cli, timestamp):
     """

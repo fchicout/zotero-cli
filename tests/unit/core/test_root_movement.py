@@ -25,11 +25,7 @@ def test_move_to_root_keyword(service, mock_item_repo, mock_collection_repo):
     # Setup
     raw_item = {
         "key": "K1",
-        "data": {
-            "version": 1,
-            "itemType": "journalArticle",
-            "collections": ["COL1"]
-        }
+        "data": {"version": 1, "itemType": "journalArticle", "collections": ["COL1"]},
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
     mock_item_repo.get_item.return_value = item
@@ -52,11 +48,7 @@ def test_move_from_root_keyword(service, mock_item_repo, mock_collection_repo):
     # Setup
     raw_item = {
         "key": "K1",
-        "data": {
-            "version": 1,
-            "itemType": "journalArticle",
-            "collections": []
-        }
+        "data": {"version": 1, "itemType": "journalArticle", "collections": []},
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
     mock_item_repo.get_item.return_value = item
@@ -80,11 +72,7 @@ def test_auto_inference_from_root(service, mock_item_repo, mock_collection_repo)
     # Setup: Item is in zero collections (unfiled)
     raw_item = {
         "key": "K1",
-        "data": {
-            "version": 1,
-            "itemType": "journalArticle",
-            "collections": []
-        }
+        "data": {"version": 1, "itemType": "journalArticle", "collections": []},
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
     mock_item_repo.get_item.return_value = item

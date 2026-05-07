@@ -12,6 +12,7 @@ class BibtexLibGateway(BibtexGateway):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
         try:
             import warnings
+
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=DeprecationWarning)
                 with open(file_path, "r", encoding="utf-8") as bibtex_file:

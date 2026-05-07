@@ -13,7 +13,10 @@ def test_orchestrator_missing_methods():
     VALERIUS-001: SLROrchestrator must implement get_promotion_path.
     """
     orchestrator = SLROrchestrator(MagicMock())
-    assert hasattr(orchestrator, 'get_promotion_path'), "SLROrchestrator is missing get_promotion_path"
+    assert hasattr(orchestrator, "get_promotion_path"), (
+        "SLROrchestrator is missing get_promotion_path"
+    )
+
 
 @pytest.mark.unit
 def test_sqlite_gateway_interface_completeness():
