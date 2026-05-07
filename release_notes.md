@@ -17,9 +17,20 @@ The release was finalized after passing the **High-Integrity Hexa-Gate**, ensuri
 
 ---
 
-### ✨ Major Enhancements & Refactoring
+#### ✨ Major Enhancements & Refactoring
+
+#### 🚀 Systematic Literature Review (SLR) Toolkit
+- **New `slr list` Command:** Introduced a powerful diagnostic tool for funnel management:
+    - `slr list pending`: Identifies papers stuck in the pipeline and the exact phase blocking them.
+    - `slr list included/excluded`: Provides high-visibility lists of decisions across the entire source tree, supporting phase-specific filters (`--ta`, `--fullscreen`, `--qa`).
+    - **Note-First Truth:** Scans Zotero SDB audit notes directly rather than relying on folder location, ensuring 100% accuracy even if items were manually moved.
+- **Forensic `slr status` Fixes:** 
+    - Resolved critical accounting discrepancies in the status dashboard.
+    - Implemented `total_unique` and `total_in_root` metrics to distinguish between the raw ingestion count and the processed pipeline.
+    - Fixed global sum calculations for the "Tree Total" column.
 
 #### 📝 Strategic Documentation Suite
+
 Established a formal documentation baseline in the `docs/` directory to improve architectural traceability and user onboarding:
 - **`REQUIREMENTS.md`**: Detailed functional and non-functional mapping.
 - **`USE_CASES.md`**: Documented primary user interactions and system flows.
