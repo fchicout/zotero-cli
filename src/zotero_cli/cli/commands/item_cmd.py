@@ -24,7 +24,7 @@ Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
 Scenario: Verifying metadata after an import
 Problem: I've imported a paper and want to ensure the DOI was correctly captured and check for any existing notes.
-Action:  zotero-cli item inspect "ABCD1234"
+Action:  zotero-cli item inspect --key "ABCD1234"
 Result:  The CLI displays a detailed view of the item, including its DOI, abstract, and list of child PDF attachments.
 
 Cognitive Safeguards
@@ -34,7 +34,7 @@ Cognitive Safeguards
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_inspect.md
 """
-        parser.add_argument("key", help="Zotero Item Key")
+        parser.add_argument("--key", required=True, help="Zotero Item Key")
         parser.add_argument("--raw", action="store_true", help="Show raw JSON")
         parser.add_argument(
             "--format", choices=["bibtex", "ris"], help="Export in specific bibliographic format"
