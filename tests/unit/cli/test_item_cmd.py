@@ -91,3 +91,37 @@ def test_item_pdf_fetch_failure(mock_clients, env_vars, capsys):
     out = capsys.readouterr().out
     assert "Starting resilient PDF discovery for 1 items" in out
     assert "Discovery workers finished" in out
+
+def test_item_inspect_success(mock_clients, env_vars, capsys):
+    mock_gateway = mock_clients["gateway"]
+    item = MagicMock()
+    item.title = "Test Paper"
+    item.item_type = "journalArticle"
+    item.date = "2023"
+    item.date_added = "2023-01-01"
+    item.date_modified = "2023-01-02"
+    item.authors = ["Author One", "Author Two"]
+    item.doi = "10.1234/test"
+    item.url = "http://test.com"
+    item.abstract = "Test abstract."
+    item.collections = ["COL1"]
+    mock_gateway.get_item.return_value = item
+    mock_gateway.get_item_children.return_value = []
+    mock_gateway.get_collection.return_value = {"data": {"name": "My Collection"}}
+
+    args = MagicMock()
+    args.verb = "inspect"
+    args.key = "TESTKEY123"
+    args.raw = False
+    args.format = None
+    args.full_notes = False
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "Collections: My Collection (COL1)" in out
+    assert "Test Paper" in out
+    assert "TESTKEY123" in out
+    assert "Added: 2023-01-01" in out
+    assert "Modified: 2023-01-02" in out

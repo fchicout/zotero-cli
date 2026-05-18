@@ -67,8 +67,23 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 print(export_service.serialize_ris([item]))
             return
 
+        # Resolve collections
+        col_list = []
+        for ckey in item.collections:
+            c = gateway.get_collection(ckey)
+            name = c.get("data", {}).get("name", ckey) if c else ckey
+            col_list.append(f"{name} ({ckey})")
+        collections_str = ", ".join(col_list) if col_list else "None"
+
+        abstract_display = (
+            item.abstract
+            if item.abstract
+            else "[blink bright_red]<no abstract>[/blink bright_red] ❗"
+        )
+
         console.print(
             Panel(
+                f"[bold]Collections:[/bold] {collections_str}\n"
                 f"[bold]Title:[/bold] {item.title}\n"
                 f"[bold]Type:[/bold] {item.item_type}\n"
                 f"[bold]Date:[/bold] {item.date}\n"
