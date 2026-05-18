@@ -87,10 +87,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 f"[bold]Title:[/bold] {item.title}\n"
                 f"[bold]Type:[/bold] {item.item_type}\n"
                 f"[bold]Date:[/bold] {item.date}\n"
+                f"[bold]Added:[/bold] {item.date_added}\n"
+                f"[bold]Modified:[/bold] {item.date_modified}\n"
                 f"[bold]Authors:[/bold] {', '.join(item.authors)}\n"
                 f"[bold]DOI:[/bold] {item.doi}\n"
                 f"[bold]URL:[/bold] {item.url}\n\n"
-                f"[bold]Abstract:[/bold]\n{item.abstract}",
+                f"[bold]Abstract:[/bold]\n{abstract_display}",
                 title=f"Item: {args.key}",
             )
         )
@@ -102,16 +104,46 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             for child in children:
                 ctype = child.get("data", {}).get("itemType", "unknown")
                 ckey = child.get("key")
+                cdata = child.get("data", {})
                 if ctype == "note":
-                    note_full = child.get("data", {}).get("note", "")
+                    note_full = cdata.get("note", "")
+                    date_added = cdata.get("dateAdded", "N/A")
+                    date_modified = cdata.get("dateModified", "N/A")
+
+                    # Try to parse as JSON (handling common <div> wrapper)
+                    is_json = False
+                    raw_json = note_full
+                    if note_full.startswith("<div>") and note_full.endswith("</div>"):
+                        raw_json = note_full[5:-6].strip()
+
+                    try:
+                        parsed_data = json.loads(raw_json)
+                        is_json = True
+                    except (json.JSONDecodeError, TypeError):
+                        parsed_data = None
+
                     if args.full_notes:
-                        console.print(f"  - [cyan]Note[/cyan] ({ckey}):")
-                        console.print(Panel(note_full, border_style="cyan"))
+                        console.print(
+                            f"  - [cyan]Note[/cyan] ({ckey}) [dim]Added: {date_added} | Mod: {date_modified}[/dim]"
+                        )
+                        if is_json:
+                            from rich.json import JSON
+                            console.print(Panel(JSON(raw_json), border_style="cyan"))
+                        else:
+                            console.print(Panel(note_full, border_style="cyan"))
                     else:
-                        note_snippet = note_full[:100].replace("\n", " ")
-                        console.print(f"  - [cyan]Note[/cyan] ({ckey}): {note_snippet}...")
+                        if is_json:
+                            display_content = json.dumps(parsed_data, indent=2, ensure_ascii=False)
+                        else:
+                            display_content = note_full
+                        
+                        note_snippet = display_content[:150].replace("\n", " ")
+                        console.print(
+                            f"  - [cyan]Note[/cyan] ({ckey}) [dim]Added: {date_added} | Mod: {date_modified}[/dim]\n"
+                            f"    {note_snippet}..."
+                        )
                 else:
-                    filename = child.get("data", {}).get("filename", "N/A")
+                    filename = cdata.get("filename", "N/A")
                     console.print(f"  - [green]Attachment[/green] ({ckey}): {filename}")
 
 
