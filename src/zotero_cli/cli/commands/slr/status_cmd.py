@@ -58,7 +58,8 @@ class StatusCommand:
                 totals[phase_id]["accepted"] += stats.accepted
                 totals[phase_id]["rejected"] += stats.rejected
                 totals[phase_id]["pending"] += stats.pending
-                return f"[green]{stats.accepted}[/green]/[orange_red1]{stats.rejected}[/orange_red1]/[dim]{stats.pending}[/dim]"
+                base = f"[green]{stats.accepted}[/green]/[orange_red1]{stats.rejected}[/orange_red1]/[yellow]{stats.pending}[/yellow]"
+                return f"{base} ✅" if stats.pending == 0 else base
 
             de_stats = s.phases.get("data_extraction")
             if de_stats:
@@ -73,13 +74,18 @@ class StatusCommand:
                 f"[bold blue]{de_stats.accepted}[/bold blue]" if de_stats else "-",
             )
 
+        def fmt_total(phase_id):
+            p_stats = totals[phase_id]
+            base = f"[bold green]{p_stats['accepted']}[/bold green]/[bold orange_red1]{p_stats['rejected']}[/bold orange_red1]/[bold yellow]{p_stats['pending']}[/bold yellow]"
+            return f"{base} ✅" if p_stats["pending"] == 0 else base
+
         table.add_section()
         table.add_row(
             "[bold yellow]TOTAL (SUM)[/bold yellow]",
             f"[bold yellow]{totals['tree_total']}[/bold yellow]",
-            f"[bold green]{totals['title_abstract']['accepted']}[/bold green]/[bold orange_red1]{totals['title_abstract']['rejected']}[/bold orange_red1]/[bold dim]{totals['title_abstract']['pending']}[/bold dim]",
-            f"[bold green]{totals['full_text']['accepted']}[/bold green]/[bold orange_red1]{totals['full_text']['rejected']}[/bold orange_red1]/[bold dim]{totals['full_text']['pending']}[/bold dim]",
-            f"[bold green]{totals['quality_assessment']['accepted']}[/bold green]/[bold orange_red1]{totals['quality_assessment']['rejected']}[/bold orange_red1]/[bold dim]{totals['quality_assessment']['pending']}[/bold dim]",
+            fmt_total("title_abstract"),
+            fmt_total("full_text"),
+            fmt_total("quality_assessment"),
             f"[bold blue]{totals['data_extraction']['accepted']}[/bold blue]",
         )
         console.print(table)
