@@ -41,23 +41,16 @@ jobs:
         run: |
           infisical run --domain https://infisical.fchicout.dev --token "$INFISICAL_TOKEN" --env dev -- pytest tests/unit --cov=src/zotero_cli --cov-report=xml
 
-      - name: Export SonarQube Secrets to Env
-        env:
-          INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
-        run: |
-          # Fetch secrets as clean key=value without single quotes and append to GITHUB_ENV
-          infisical export --domain https://infisical.fchicout.dev --token "$INFISICAL_TOKEN" --env dev --format dotenv | tr -d "'" >> $GITHUB_ENV
-
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v6
         env:
-          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: SonarQube Quality Gate Check
         uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
         with:
           pollingTimeoutSec: 600
         env:
-          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
