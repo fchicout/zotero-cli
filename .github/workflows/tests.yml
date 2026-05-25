@@ -28,20 +28,36 @@ jobs:
         run: |
           mypy .
 
+      - name: Fetch Secrets from Infisical
+        uses: infisical/secrets-action@v1.0.7
+        with:
+          domain: https://infisical.fchicout.dev
+          token: ${{ secrets.INFISICAL_TOKEN }}
+          env: dev
+
       - name: Run Tests
+        env:
+          ZOTERO_API_KEY: ${{ env.ZOTERO_API_KEY }}
+          ZOTERO_LIBRARY_ID: ${{ env.ZOTERO_LIBRARY_ID }}
+          ZOTERO_LIBRARY_TYPE: ${{ env.ZOTERO_LIBRARY_TYPE }}
+          ZOTERO_USER_ID: ${{ env.ZOTERO_USER_ID }}
+          ZOTERO_TARGET_GROUP: ${{ env.ZOTERO_TARGET_GROUP }}
+          UNPAYWALL_EMAIL: ${{ env.UNPAYWALL_EMAIL }}
+          SEMANTIC_SCHOLAR_API_KEY: ${{ env.SEMANTIC_SCHOLAR_API_KEY }}
+          HUGGINGFACE_TOKEN: ${{ env.HUGGINGFACE_TOKEN }}
         run: |
           PYTHONPATH=src pytest tests/unit --cov=src/zotero_cli --cov-report=xml
 
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v6
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonar.fchicout.dev
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
 
       - name: SonarQube Quality Gate Check
         uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
         with:
           pollingTimeoutSec: 600
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonar.fchicout.dev
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
