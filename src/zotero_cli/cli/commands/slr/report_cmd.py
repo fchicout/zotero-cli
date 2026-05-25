@@ -30,7 +30,13 @@ class SLRReportCommand:
             help="Displays SLR funnel progress dashboard",
             description="Scans SLR collections to report screening progress."
         )
-        status_p.add_argument("--collection", required=True, help="Collection name or key")
+        status_group = status_p.add_mutually_exclusive_group(required=True)
+        status_group.add_argument("--collection", help="Collection name or key")
+        status_group.add_argument(
+            "--all-sources",
+            action="store_true",
+            help="Display status for all raw search sources in the library"
+        )
 
         # slr report prisma
         prisma_p = sub.add_parser(
@@ -114,6 +120,40 @@ class SLRReportCommand:
 
     @staticmethod
     def _handle_status(gateway, args):
+        status_service = GatewayFactory.get_slr_status_service()
+
+        if getattr(args, "all_sources", False):
+            with console.status("[bold green]Calculating Overall SLR status..."):
+                statuses = status_service.get_slr_status()
+
+            if not statuses:
+                console.print("[yellow]No raw source collections starting with 'raw_' found.[/yellow]")
+                return
+
+            for status in statuses:
+                console.print("\n[bold green]==================================================[/bold green]")
+                console.print(f"[bold]SLR Funnel Status: {status.source_name}[/bold] (Key: {status.source_key})")
+                console.print("[bold green]==================================================[/bold green]")
+                console.print(f"Total Unique Items: {status.tree_total} | Total in Root: {status.total_in_root}")
+
+                table = Table(show_header=True, header_style="bold magenta", expand=True)
+                table.add_column("Phase")
+                table.add_column("Accepted", style="green")
+                table.add_column("Rejected", style="red")
+                table.add_column("Pending", style="yellow")
+
+                for phase_cfg in status_service.orchestrator.PHASE_FLOW:
+                    phase_id = phase_cfg["id"]
+                    label = phase_cfg["label"]
+                    stats = status.phases.get(phase_id)
+                    if stats:
+                        table.add_row(label, str(stats.accepted), str(stats.rejected), str(stats.pending))
+                    else:
+                        table.add_row(label, "0", "0", "0")
+                console.print(table)
+            return
+
+        # Handle single collection overview (Prisma funnel)
         service = ReportService(gateway)
         with console.status("[bold green]Calculating SLR status..."):
             report = service.generate_prisma_report(args.collection)
