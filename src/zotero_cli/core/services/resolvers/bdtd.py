@@ -5,8 +5,8 @@ import urllib.parse
 from pathlib import Path
 from typing import Optional
 
-import Levenshtein
 from bs4 import BeautifulSoup
+from rapidfuzz.distance import Levenshtein
 
 from zotero_cli.core.interfaces import PDFResolver, ResolutionError
 from zotero_cli.core.services.network_gateway import NetworkGateway
@@ -111,7 +111,7 @@ class BDTDResolver(PDFResolver):
                     base_url_path, _ = link.rsplit("/", 1)
                 else:
                     base_url_path = link
-                ratio = Levenshtein.ratio(str(response.url), base_url_path)
+                ratio = Levenshtein.normalized_similarity(str(response.url), base_url_path)
                 levenshtein_ratios.append((ratio, link))
 
             if not levenshtein_ratios:

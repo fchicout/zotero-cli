@@ -3,9 +3,9 @@ import logging
 import urllib.parse
 from typing import Any, Dict, Optional
 
-import Levenshtein
 import requests
 from bs4 import BeautifulSoup
+from rapidfuzz.distance import Levenshtein
 
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
@@ -248,7 +248,7 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider):
             levenshtein_ratios = []
             for link in pdf_links:
                 base_url_path, _ = link.rsplit("/", 1)
-                ratio = Levenshtein.ratio(response.url, base_url_path)
+                ratio = Levenshtein.normalized_similarity(response.url, base_url_path)
                 levenshtein_ratios.append((ratio, link))
 
             if not levenshtein_ratios:
