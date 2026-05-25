@@ -37,8 +37,9 @@ jobs:
       - name: Run Tests with Infisical Secrets
         env:
           INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
+          PYTHONPATH: src
         run: |
-          infisical run --domain https://infisical.fchicout.dev --token "$INFISICAL_TOKEN" --env dev -- PYTHONPATH=src pytest tests/unit --cov=src/zotero_cli --cov-report=xml
+          infisical run --domain https://infisical.fchicout.dev --token "$INFISICAL_TOKEN" --env dev -- pytest tests/unit --cov=src/zotero_cli --cov-report=xml
 
       - name: Export SonarQube Secrets to Env
         env:
