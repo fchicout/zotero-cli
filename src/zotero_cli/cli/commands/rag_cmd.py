@@ -47,6 +47,16 @@ Cognitive Safeguards
 • Safety Tips: Ingestion is computationally expensive. Use targeted modes (--key, --approved) to save resources.
 """,
         )
+        ingest_p.add_argument(
+            "target",
+            nargs="?",
+            choices=["qa-approved"],
+            help="Optional ingestion target (e.g. qa-approved)",
+        )
+        ingest_p.add_argument(
+            "--tree",
+            help="Source collection name or key (only applicable with qa-approved target)",
+        )
         ingest_group = ingest_p.add_mutually_exclusive_group(required=False)
         ingest_group.add_argument("--collection", help="Collection name or key")
         ingest_group.add_argument("--key", help="Single item key")
@@ -152,7 +162,22 @@ Cognitive Safeguards
         rag_service = GatewayFactory.get_rag_service(force_user=force_user)
 
         if args.verb == "ingest":
-            # ...
+            qa_approved_only = getattr(args, "target", None) == "qa-approved"
+            tree_filter = getattr(args, "tree", None)
+
+            if qa_approved_only:
+                if args.collection or args.key:
+                    console.print(
+                        "[bold red]Error: Cannot specify --collection or --key with 'qa-approved' target.[/bold red]"
+                    )
+                    return
+            else:
+                if tree_filter:
+                    console.print(
+                        "[bold red]Error: Cannot specify --tree without 'qa-approved' target.[/bold red]"
+                    )
+                    return
+
             if args.prune:
                 console.print("[bold red]Pruning vector store before start...[/bold red]")
 
@@ -171,9 +196,12 @@ Cognitive Safeguards
                 task = progress.add_task("Ingesting...", total=None)
 
                 def on_item(item, total):
-                    progress.update(
-                        task, total=total, advance=1, description=f"Ingesting: {item.key}"
-                    )
+                    if item is None:
+                        progress.update(task, total=total)
+                    else:
+                        progress.update(
+                            task, total=total, advance=1, description=f"Ingesting: {item.key}"
+                        )
 
                 stats = rag_service.ingest(
                     collection_key=args.collection,
@@ -182,6 +210,8 @@ Cognitive Safeguards
                     prune=args.prune,
                     min_qa_score=args.qa_limit,
                     on_item_processed=on_item,
+                    qa_approved_only=qa_approved_only,
+                    tree_filter=tree_filter,
                 )
 
             console.print("[green]Ingestion complete.[/green]")

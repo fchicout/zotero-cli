@@ -34,7 +34,8 @@ Cognitive Safeguards
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_inspect.md
 """
-        parser.add_argument("--key", required=True, help="Zotero Item Key")
+        parser.add_argument("--key", help="Zotero Item Key(s) - comma-separated, e.g. K1,K2,K3")
+        parser.add_argument("--file", help="Path to file containing keys (one key per line)")
         parser.add_argument("--raw", action="store_true", help="Show raw JSON")
         parser.add_argument(
             "--format", choices=["bibtex", "ris"], help="Export in specific bibliographic format"
@@ -48,103 +49,118 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
 
-        item = gateway.get_item(args.key)
-        if not item:
-            console.print(f"[bold red]Item '{args.key}' not found.[/bold red]")
+        keys = []
+        if args.key:
+            keys.extend([k.strip() for k in args.key.split(",") if k.strip()])
+        if args.file:
+            with open(args.file, "r", encoding="utf-8") as f:
+                keys.extend([line.strip() for line in f if line.strip()])
+
+        if not keys:
+            console.print("[bold red]Error: You must specify --key or --file.[/bold red]")
             return
 
-        if args.raw:
-            print(json.dumps(item.raw_data, indent=2))
-            return
+        for idx, key in enumerate(keys):
+            item = gateway.get_item(key)
+            if not item:
+                console.print(f"[bold red]Item '{key}' not found.[/bold red]")
+                continue
 
-        if args.format:
-            export_service = GatewayFactory.get_export_service(
-                force_user=getattr(args, "user", False)
+            if len(keys) > 1:
+                console.print(f"\n[bold yellow]--- Inspecting Item {idx + 1}/{len(keys)}: {key} ---[/bold yellow]")
+
+            if args.raw:
+                print(json.dumps(item.raw_data, indent=2))
+                continue
+
+            if args.format:
+                export_service = GatewayFactory.get_export_service(
+                    force_user=getattr(args, "user", False)
+                )
+                if args.format == "bibtex":
+                    print(export_service.serialize_bibtex([item]))
+                elif args.format == "ris":
+                    print(export_service.serialize_ris([item]))
+                continue
+
+            # Resolve collections
+            col_list = []
+            for ckey in item.collections:
+                c = gateway.get_collection(ckey)
+                name = c.get("data", {}).get("name", ckey) if c else ckey
+                col_list.append(f"{name} ({ckey})")
+            collections_str = ", ".join(col_list) if col_list else "None"
+
+            abstract_display = (
+                item.abstract
+                if item.abstract
+                else "[blink bright_red]<no abstract>[/blink bright_red] ❗"
             )
-            if args.format == "bibtex":
-                print(export_service.serialize_bibtex([item]))
-            elif args.format == "ris":
-                print(export_service.serialize_ris([item]))
-            return
 
-        # Resolve collections
-        col_list = []
-        for ckey in item.collections:
-            c = gateway.get_collection(ckey)
-            name = c.get("data", {}).get("name", ckey) if c else ckey
-            col_list.append(f"{name} ({ckey})")
-        collections_str = ", ".join(col_list) if col_list else "None"
-
-        abstract_display = (
-            item.abstract
-            if item.abstract
-            else "[blink bright_red]<no abstract>[/blink bright_red] ❗"
-        )
-
-        console.print(
-            Panel(
-                f"[bold]Collections:[/bold] {collections_str}\n"
-                f"[bold]Title:[/bold] {item.title}\n"
-                f"[bold]Type:[/bold] {item.item_type}\n"
-                f"[bold]Date:[/bold] {item.date}\n"
-                f"[bold]Added:[/bold] {item.date_added}\n"
-                f"[bold]Modified:[/bold] {item.date_modified}\n"
-                f"[bold]Authors:[/bold] {', '.join(item.authors)}\n"
-                f"[bold]DOI:[/bold] {item.doi}\n"
-                f"[bold]URL:[/bold] {item.url}\n\n"
-                f"[bold]Abstract:[/bold]\n{abstract_display}",
-                title=f"Item: {args.key}",
+            console.print(
+                Panel(
+                    f"[bold]Collections:[/bold] {collections_str}\n"
+                    f"[bold]Title:[/bold] {item.title}\n"
+                    f"[bold]Type:[/bold] {item.item_type}\n"
+                    f"[bold]Date:[/bold] {item.date}\n"
+                    f"[bold]Added:[/bold] {item.date_added}\n"
+                    f"[bold]Modified:[/bold] {item.date_modified}\n"
+                    f"[bold]Authors:[/bold] {', '.join(item.authors)}\n"
+                    f"[bold]DOI:[/bold] {item.doi}\n"
+                    f"[bold]URL:[/bold] {item.url}\n\n"
+                    f"[bold]Abstract:[/bold]\n{abstract_display}",
+                    title=f"Item: {key}",
+                )
             )
-        )
 
-        # Children (Notes/Attachments)
-        children = gateway.get_item_children(args.key)
-        if children:
-            console.print(f"\n[bold]Children ({len(children)}):[/bold]")
-            for child in children:
-                ctype = child.get("data", {}).get("itemType", "unknown")
-                ckey = child.get("key")
-                cdata = child.get("data", {})
-                if ctype == "note":
-                    note_full = cdata.get("note", "")
-                    date_added = cdata.get("dateAdded", "N/A")
-                    date_modified = cdata.get("dateModified", "N/A")
+            # Children (Notes/Attachments)
+            children = gateway.get_item_children(key)
+            if children:
+                console.print(f"\n[bold]Children ({len(children)}):[/bold]")
+                for child in children:
+                    ctype = child.get("data", {}).get("itemType", "unknown")
+                    ckey = str(child.get("key", ""))
+                    cdata = child.get("data", {})
+                    if ctype == "note":
+                        note_full = cdata.get("note", "")
+                        date_added = cdata.get("dateAdded", "N/A")
+                        date_modified = cdata.get("dateModified", "N/A")
 
-                    # Try to parse as JSON (handling common <div> wrapper)
-                    is_json = False
-                    raw_json = note_full
-                    if note_full.startswith("<div>") and note_full.endswith("</div>"):
-                        raw_json = note_full[5:-6].strip()
+                        # Try to parse as JSON (handling common <div> wrapper)
+                        is_json = False
+                        raw_json = note_full
+                        if note_full.startswith("<div>") and note_full.endswith("</div>"):
+                            raw_json = note_full[5:-6].strip()
 
-                    try:
-                        parsed_data = json.loads(raw_json)
-                        is_json = True
-                    except (json.JSONDecodeError, TypeError):
-                        parsed_data = None
+                        try:
+                            parsed_data = json.loads(raw_json)
+                            is_json = True
+                        except (json.JSONDecodeError, TypeError):
+                            parsed_data = None
 
-                    if args.full_notes:
-                        console.print(
-                            f"  - [cyan]Note[/cyan] ({ckey}) [dim]Added: {date_added} | Mod: {date_modified}[/dim]"
-                        )
-                        if is_json:
-                            from rich.json import JSON
-                            console.print(Panel(JSON(raw_json), border_style="cyan"))
+                        if args.full_notes:
+                            console.print(
+                                f"  - [cyan]Note[/cyan] ({ckey}) [dim]Added: {date_added} | Mod: {date_modified}[/dim]"
+                            )
+                            if is_json:
+                                from rich.json import JSON
+                                console.print(Panel(JSON(raw_json), border_style="cyan"))
+                            else:
+                                console.print(Panel(note_full, border_style="cyan"))
                         else:
-                            console.print(Panel(note_full, border_style="cyan"))
+                            if is_json:
+                                display_content = json.dumps(parsed_data, indent=2, ensure_ascii=False)
+                            else:
+                                display_content = note_full
+
+                            note_snippet = display_content[:150].replace("\n", " ")
+                            console.print(
+                                f"  - [cyan]Note[/cyan] ({ckey}) [dim]Added: {date_added} | Mod: {date_modified}[/dim]\n"
+                                f"    {note_snippet}..."
+                            )
                     else:
-                        if is_json:
-                            display_content = json.dumps(parsed_data, indent=2, ensure_ascii=False)
-                        else:
-                            display_content = note_full
-                        
-                        note_snippet = display_content[:150].replace("\n", " ")
-                        console.print(
-                            f"  - [cyan]Note[/cyan] ({ckey}) [dim]Added: {date_added} | Mod: {date_modified}[/dim]\n"
-                            f"    {note_snippet}..."
-                        )
-                else:
-                    filename = cdata.get("filename", "N/A")
-                    console.print(f"  - [green]Attachment[/green] ({ckey}): {filename}")
+                        filename = cdata.get("filename", "N/A")
+                        console.print(f"  - [green]Attachment[/green] ({ckey}): {filename}")
 
 
 @CommandRegistry.register
@@ -210,15 +226,6 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         list_p.add_argument("--collection", help="Collection name or key")
         list_p.add_argument("--trash", action="store_true", help="List items in the trash")
         list_p.add_argument("--top-only", action="store_true", help="Only show top-level items")
-        list_p.add_argument(
-            "--included", action="store_true", help="Filter for items with decision 'accepted'"
-        )
-        list_p.add_argument(
-            "--excluded", action="store_true", help="Filter for items with decision 'rejected'"
-        )
-        list_p.add_argument("--criteria", help="Filter for items with specific exclusion code")
-        list_p.add_argument("--persona", help="Filter by reviewer persona")
-        list_p.add_argument("--phase", help="Filter by screening phase")
 
         # Update
         update_p = sub.add_parser(
@@ -520,18 +527,6 @@ Cognitive Safeguards
             self._handle_speech(args)
 
     def _handle_list(self, gateway, args):
-        from zotero_cli.core.services.sdb.sdb_service import SDBService
-
-        is_sdb_filter = any(
-            [
-                getattr(args, "included", False),
-                getattr(args, "excluded", False),
-                getattr(args, "criteria", None),
-                getattr(args, "persona", None),
-                getattr(args, "phase", None),
-            ]
-        )
-
         if getattr(args, "trash", False):
             items = list(gateway.get_trash_items())
             title = "Trash Items"
@@ -548,50 +543,12 @@ Cognitive Safeguards
             )
             title = f"Items in {args.collection}"
 
-        if is_sdb_filter:
-            sdb_service = SDBService(gateway)
-            filtered_results = sdb_service.filter_items_by_sdb(
-                items=items,
-                included=getattr(args, "included", False),
-                excluded=getattr(args, "excluded", False),
-                criteria=getattr(args, "criteria", None),
-                persona=getattr(args, "persona", None),
-                phase=getattr(args, "phase", None),
-            )
-
-            if not filtered_results:
-                console.print(
-                    "[yellow]No items found matching criteria. Ensure SDB metadata is populated.[/yellow]"
-                )
-                return
-
-            table = Table(title=f"{title} (SDB Filtered)")
-            table.add_column("Key", style="cyan")
-            table.add_column("Title")
-            table.add_column("Decision")
-            table.add_column("Criteria")
-            table.add_column("Persona")
-
-            for item, entry in filtered_results:
-                decision = entry.get("decision", "N/A")
-                color = "green" if decision == "accepted" else "red"
-                criteria = ", ".join(entry.get("reason_code", []))
-                table.add_row(
-                    item.key,
-                    (item.title or "Untitled")[:50],
-                    f"[{color}]{decision}[/{color}]",
-                    criteria,
-                    entry.get("persona", "N/A"),
-                )
-            # Re-assign items for the summary line
-            items = [r[0] for r in filtered_results]
-        else:
-            table = Table(title=title)
-            table.add_column("Key", style="cyan")
-            table.add_column("Title")
-            table.add_column("Type")
-            for item in items:
-                table.add_row(item.key, item.title or "Untitled", item.item_type)
+        table = Table(title=title)
+        table.add_column("Key", style="cyan")
+        table.add_column("Title")
+        table.add_column("Type")
+        for item in items:
+            table.add_row(item.key, item.title or "Untitled", item.item_type)
 
         console.print(table)
         console.print(f"\n[dim]Showing {len(items)} items.[/dim]")

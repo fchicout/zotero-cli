@@ -146,6 +146,16 @@ class ReconcileCommand:
                     # Remove from remaining tree sources if any
                     for extra_src in sources[1:]:
                         coll_service.move_item(extra_src, m["target_id"], p.key)
+
+                    # Update SDB Note for QA reconciliation
+                    # 1. Accepted at QA
+                    if m["target_phase"] == "quality_assessment":
+                        orchestrator.reconcile_qa_audit(p.key, args.qa_threshold, "accepted")
+                    # 2. Rejected at QA (Demoted to FT)
+                    elif m["target_phase"] == "full_text":
+                        # We only audit if it actually has a QA note to update
+                        orchestrator.reconcile_qa_audit(p.key, args.qa_threshold, "rejected")
+
                     success_count += 1
                 else:
                     pass

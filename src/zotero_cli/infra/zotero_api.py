@@ -244,41 +244,133 @@ class ZoteroAPIClient(ZoteroGateway):
             else:
                 creators.append({"creatorType": "author", "name": author})
 
+        # Detect thesis items (from BDTD or other academic repositories)
+        is_thesis = self._is_thesis_paper(paper)
+
+        if is_thesis:
+            item_payload = self._build_thesis_payload(paper, creators, collection_id)
+        else:
+            item_payload = {
+                "itemType": "journalArticle",
+                "title": paper.title,
+                "abstractNote": paper.abstract,
+                "creators": creators,
+                "collections": [collection_id],
+            }
+
+            if paper.url:
+                item_payload["url"] = paper.url
+            elif paper.arxiv_id:
+                item_payload["url"] = f"https://arxiv.org/abs/{paper.arxiv_id}"
+
+            if paper.arxiv_id:
+                item_payload["libraryCatalog"] = "arXiv"
+                extra_lines = [f"arXiv: {paper.arxiv_id}"]
+                if paper.extra:
+                    extra_lines.append(paper.extra)
+                item_payload["extra"] = "\n".join(extra_lines)
+            elif paper.extra:
+                item_payload["extra"] = paper.extra
+
+            if paper.doi:
+                item_payload["DOI"] = paper.doi
+            if paper.publication:
+                item_payload["publicationTitle"] = paper.publication
+            if paper.year:
+                item_payload["date"] = paper.year
+
+        try:
+            response = self.http.post("items", json_data=[item_payload])
+            item_key = self._parse_write_response(response)
+
+            # Download and attach PDF for thesis items if available
+            if item_key and is_thesis and paper.pdf_url:
+                try:
+                    import tempfile
+                    from pathlib import Path
+
+                    temp_dir = Path(tempfile.gettempdir())
+                    dest = temp_dir / f"thesis_{item_key}.pdf"
+
+                    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0"}
+                    resp = requests.get(paper.pdf_url, stream=True, timeout=30, headers=headers)
+
+                    if resp.status_code == 200:
+                        with open(dest, "wb") as f:
+                            for chunk in resp.iter_content(8192):
+                                f.write(chunk)
+
+                        self.upload_attachment(item_key, str(dest))
+                        dest.unlink(missing_ok=True)
+                except Exception as attach_err:
+                    print(f"Warning: Failed to download and attach PDF for thesis {item_key}: {attach_err}")
+
+            return bool(item_key)
+        except Exception as e:
+            print(f"Error creating item: {e}")
+            return False
+
+    def _is_thesis_paper(self, paper: ResearchPaper) -> bool:
+        """Detects if a ResearchPaper represents a thesis/dissertation."""
+        # Check extra field for degree level marker
+        if paper.extra and "Degree Level:" in paper.extra:
+            return True
+        # Check URL for academic repository patterns
+        if paper.url:
+            lower_url = paper.url.lower()
+            repo_markers = ["bdtd.ibict.br", "/tede/", "/jspui/handle/tede/"]
+            if any(marker in lower_url for marker in repo_markers):
+                return True
+        return False
+
+    def _build_thesis_payload(
+        self, paper: ResearchPaper, creators: list, collection_id: str
+    ) -> dict:
+        """Builds a Zotero 'thesis' item payload from a ResearchPaper."""
+        # Extract degree level and clean extra
+        degree_level = ""
+        extra_lines_clean = []
+        if paper.extra:
+            for line in paper.extra.split("\n"):
+                if line.startswith("Degree Level:"):
+                    degree_level = line.split(":", 1)[1].strip()
+                else:
+                    extra_lines_clean.append(line)
+
+        # Map common BDTD format values to human-readable thesis types
+        thesis_type_map = {
+            "masterThesis": "Master's Thesis",
+            "doctoralDissertation": "Doctoral Dissertation",
+            "masterthesis": "Master's Thesis",
+            "doctoraldissertation": "Doctoral Dissertation",
+        }
+        thesis_type = thesis_type_map.get(degree_level, degree_level)
+
         item_payload = {
-            "itemType": "journalArticle",
+            "itemType": "thesis",
             "title": paper.title,
             "abstractNote": paper.abstract,
             "creators": creators,
             "collections": [collection_id],
+            "thesisType": thesis_type,
         }
+
+        # Map institution -> university
+        if paper.publication:
+            item_payload["university"] = paper.publication
 
         if paper.url:
             item_payload["url"] = paper.url
-        elif paper.arxiv_id:
-            item_payload["url"] = f"https://arxiv.org/abs/{paper.arxiv_id}"
-
-        if paper.arxiv_id:
-            item_payload["libraryCatalog"] = "arXiv"
-            extra_lines = [f"arXiv: {paper.arxiv_id}"]
-            if paper.extra:
-                extra_lines.append(paper.extra)
-            item_payload["extra"] = "\n".join(extra_lines)
-        elif paper.extra:
-            item_payload["extra"] = paper.extra
-
         if paper.doi:
             item_payload["DOI"] = paper.doi
-        if paper.publication:
-            item_payload["publicationTitle"] = paper.publication
         if paper.year:
             item_payload["date"] = paper.year
 
-        try:
-            response = self.http.post("items", json_data=[item_payload])
-            return bool(self._parse_write_response(response))
-        except Exception as e:
-            print(f"Error creating item: {e}")
-            return False
+        extra_clean = "\n".join(extra_lines_clean).strip()
+        if extra_clean:
+            item_payload["extra"] = extra_clean
+
+        return item_payload
 
     def get_item_template(self, item_type: str) -> Dict[str, Any]:
         return self._safe_execute(

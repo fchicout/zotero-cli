@@ -12,6 +12,7 @@ from zotero_cli.core.interfaces import (
     ZoteroGateway,
 )
 from zotero_cli.infra.arxiv_lib import ArxivLibGateway
+from zotero_cli.infra.bdtd_api import BDTDAPIClient
 from zotero_cli.infra.bibtex_lib import BibtexLibGateway
 from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
 from zotero_cli.infra.crossref_api import CrossRefAPIClient
@@ -226,6 +227,10 @@ class GatewayFactory:
         return HALAPIClient()
 
     @staticmethod
+    def get_bdtd_client() -> BDTDAPIClient:
+        return BDTDAPIClient()
+
+    @staticmethod
     def get_inspire_hep_client() -> InspireHEPAPIClient:
         return InspireHEPAPIClient()
 
@@ -256,6 +261,7 @@ class GatewayFactory:
         hal_client = GatewayFactory.get_hal_client()
         ih_client = GatewayFactory.get_inspire_hep_client()
         dblp_client = GatewayFactory.get_dblp_client()
+        bdtd_client = GatewayFactory.get_bdtd_client()
 
         from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
@@ -271,6 +277,7 @@ class GatewayFactory:
                 hal_client,
                 ih_client,
                 dblp_client,
+                bdtd_client,
             ]
         )
 
@@ -285,6 +292,7 @@ class GatewayFactory:
         aggregator.hal = hal_client
         aggregator.inspire_hep = ih_client
         aggregator.dblp = dblp_client
+        setattr(aggregator, "bdtd", bdtd_client)
 
         return aggregator
 
@@ -573,6 +581,7 @@ class GatewayFactory:
             GatewayFactory.get_openalex_resolver(),
             GatewayFactory.get_arxiv_resolver(),
             GatewayFactory.get_semantic_scholar_resolver(config),
+            GatewayFactory.get_bdtd_resolver(),
         ]
         # Add YAML-configured scrapers
         resolvers.extend(GatewayFactory.get_generic_resolvers())
@@ -653,6 +662,13 @@ class GatewayFactory:
 
         gateway = GatewayFactory.get_network_gateway()
         return SemanticScholarResolver(gateway, api_key=config.semantic_scholar_api_key)
+
+    @staticmethod
+    def get_bdtd_resolver() -> "PDFResolver":
+        from zotero_cli.core.services.resolvers.bdtd import BDTDResolver
+
+        gateway = GatewayFactory.get_network_gateway()
+        return BDTDResolver(gateway)
 
     @staticmethod
     def get_generic_resolvers() -> List["PDFResolver"]:

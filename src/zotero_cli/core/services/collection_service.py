@@ -172,8 +172,14 @@ class CollectionService:
 
     def get_or_create_collection_id(self, name: str) -> str:
         col_id = self.collection_repo.get_collection_id_by_name(name)
+
+        # If not found by name, check if 'name' is actually a valid collection key
+        if not col_id and self.collection_repo.get_collection(name):
+            col_id = name
+
         if not col_id:
             col_id = self.collection_repo.create_collection(name)
+
         if not col_id:
             raise ValueError(f"Collection '{name}' not found and could not be created.")
         return col_id

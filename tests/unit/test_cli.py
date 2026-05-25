@@ -299,8 +299,8 @@ def test_list_items_top_only(mock_clients, env_vars, capsys):
 
 
 # --- 5. REPORT ---
-def test_report_prisma(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.report_cmd.ReportService") as mock_report_cls:
+def test_slr_report_prisma(mock_clients, env_vars, capsys):
+    with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_report_cls:
         mock_service = mock_report_cls.return_value
         mock_report = Mock()
         mock_report.total_items = 10
@@ -311,18 +311,19 @@ def test_report_prisma(mock_clients, env_vars, capsys):
         mock_report.malformed_notes = []
         mock_service.generate_prisma_report.return_value = mock_report
 
-        test_args = ["zotero-cli", "report", "prisma", "--collection", "MyCol"]
+        test_args = ["zotero-cli", "slr", "report", "prisma", "--collection", "MyCol"]
         with patch.object(sys, "argv", test_args):
             main()
         assert "PRISMA Screening Summary" in capsys.readouterr().out
 
 
-def test_report_snapshot(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.report_cmd.SnapshotService") as mock_snapshot_cls:
+def test_slr_report_snapshot(mock_clients, env_vars, capsys):
+    with patch("zotero_cli.cli.commands.slr.report_cmd.SnapshotService") as mock_snapshot_cls:
         mock_snapshot = mock_snapshot_cls.return_value
         mock_snapshot.freeze_collection.return_value = True
         test_args = [
             "zotero-cli",
+            "slr",
             "report",
             "snapshot",
             "--collection",
@@ -335,8 +336,8 @@ def test_report_snapshot(mock_clients, env_vars, capsys):
         assert "Snapshot saved" in capsys.readouterr().out
 
 
-def test_report_screening(mock_clients, env_vars, capsys, tmp_path):
-    with patch("zotero_cli.cli.commands.report_cmd.ReportService") as mock_report_cls:
+def test_slr_report_screening(mock_clients, env_vars, capsys, tmp_path):
+    with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_report_cls:
         mock_service = mock_report_cls.return_value
         mock_report = Mock()
         mock_report.collection_name = "MyCol"
@@ -346,6 +347,7 @@ def test_report_screening(mock_clients, env_vars, capsys, tmp_path):
         out_file = tmp_path / "report.md"
         test_args = [
             "zotero-cli",
+            "slr",
             "report",
             "screening",
             "--collection",
@@ -361,31 +363,32 @@ def test_report_screening(mock_clients, env_vars, capsys, tmp_path):
         assert out_file.read_text() == "# Report Content"
 
 
-def test_report_status(mock_clients, env_vars, capsys, tmp_path):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"):
-        with patch("zotero_cli.cli.commands.report_cmd.ReportService") as mock_report_cls:
-            mock_service = mock_report_cls.return_value
-            mock_report = Mock()
-            mock_report.collection_name = "MyCol"
-            mock_service.generate_prisma_report.return_value = mock_report
-            mock_service.generate_screening_markdown.return_value = "# Dashboard Content"
+def test_slr_report_status(mock_clients, env_vars, capsys):
+    with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_report_cls:
+        mock_service = mock_report_cls.return_value
+        mock_report = Mock()
+        mock_report.collection_name = "MyCol"
+        mock_report.total_items = 10
+        mock_report.screened_items = 5
+        mock_report.accepted_items = 2
+        mock_report.rejected_items = 3
+        mock_report.rejections_by_code = {}
+        mock_service.generate_prisma_report.return_value = mock_report
 
-            out_file = tmp_path / "status.md"
-            test_args = [
-                "zotero-cli",
-                "report",
-                "status",
-                "--collection",
-                "MyCol",
-                "--output",
-                str(out_file),
-            ]
-            with patch.object(sys, "argv", test_args):
-                main()
+        test_args = [
+            "zotero-cli",
+            "slr",
+            "report",
+            "status",
+            "--collection",
+            "MyCol",
+        ]
+        with patch.object(sys, "argv", test_args):
+            main()
 
-            assert "Screening report saved" in capsys.readouterr().out
-            assert out_file.exists()
-            assert out_file.read_text() == "# Dashboard Content"
+        out = capsys.readouterr().out
+        assert "SLR Funnel Status: MyCol" in out
+        assert "Total Funnel Items" in out
 
 
 # --- 6. TAG ---
@@ -398,21 +401,21 @@ def test_tag_list(mock_clients, env_vars, capsys):
 
 
 # --- 7. COLLECTION ---
-def test_collection_pdfs_strip(mock_clients, env_vars, capsys):
+def test_item_pdf_strip(mock_clients, env_vars, capsys):
     with patch("zotero_cli.infra.factory.GatewayFactory.get_purge_service") as mock_purge_get:
         mock_purge = mock_purge_get.return_value
-        mock_purge.purge_collection_assets.return_value = {"deleted": 0, "skipped": 10, "errors": 0}
-        test_args = ["zotero-cli", "collection", "pdf", "strip", "--collection", "F"]
+        mock_purge.purge_item_assets.return_value = {"deleted": 0, "skipped": 10, "errors": 0}
+        test_args = ["zotero-cli", "item", "pdf", "strip", "--key", "K1"]
         with patch.object(sys, "argv", test_args):
             main()
         assert "Would remove 10 attachments" in capsys.readouterr().out
 
 
-def test_collection_duplicates(mock_clients, env_vars, capsys):
+def test_report_duplicates(mock_clients, env_vars, capsys):
     with patch("zotero_cli.core.services.duplicate_service.DuplicateFinder") as mock_finder_cls:
         mock_finder = mock_finder_cls.return_value
         mock_finder.find_duplicates.return_value = []
-        test_args = ["zotero-cli", "collection", "duplicates", "--collections", "A,B"]
+        test_args = ["zotero-cli", "report", "duplicates", "--collections", "A,B"]
         with patch.object(sys, "argv", test_args):
             main()
         assert "No duplicates found" in capsys.readouterr().out
@@ -454,23 +457,9 @@ def test_item_move(mock_clients, env_vars, capsys):
 
 
 # --- 9. SLR ---
-def test_review_migrate(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.slr_cmd.MigrationService") as mock_migrate_cls:
-        mock_migrate = mock_migrate_cls.return_value
-        mock_migrate.migrate_collection_notes.return_value = {
-            "processed": 1,
-            "migrated": 1,
-            "failed": 0,
-        }
-        test_args = ["zotero-cli", "slr", "migrate", "--collection", "C"]
-        with patch.object(sys, "argv", test_args):
-            main()
-        assert "Migration results for C" in capsys.readouterr().out
-
-
-def test_verify_check(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.core.services.audit_service.CollectionAuditor") as mock_auditor_cls:
-        mock_auditor = mock_auditor_cls.return_value
+def test_report_audit(mock_clients, env_vars, capsys):
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_integrity_service") as mock_integrity_get:
+        mock_service = mock_integrity_get.return_value
         mock_report = Mock()
         mock_report.total_items = 0
         mock_report.items_missing_id = []
@@ -478,18 +467,32 @@ def test_verify_check(mock_clients, env_vars, capsys):
         mock_report.items_missing_abstract = []
         mock_report.items_missing_pdf = []
         mock_report.items_missing_note = []
-        mock_auditor.audit_collection.return_value = mock_report
-        test_args = ["zotero-cli", "slr", "verify", "--collection", "C"]
+        mock_service.audit_collection.return_value = mock_report
+        test_args = ["zotero-cli", "report", "audit", "--collection", "C"]
         with patch.object(sys, "argv", test_args):
             main()
         assert "Auditing collection: C" in capsys.readouterr().out
 
 
-def test_slr_lookup(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.slr_cmd.LookupService") as mock_lookup_cls:
-        mock_lookup = mock_lookup_cls.return_value
-        mock_lookup.lookup_items.return_value = "Lookup Result"
-        test_args = ["zotero-cli", "slr", "lookup", "--keys", "K1"]
-        with patch.object(sys, "argv", test_args):
-            main()
-        assert "Lookup Result" in capsys.readouterr().out
+def test_item_inspect_multiple_keys(mock_clients, env_vars, capsys):
+    mock_item = Mock()
+    mock_item.title = "Paper 1"
+    mock_item.key = "K1"
+    mock_item.item_type = "journalArticle"
+    mock_item.collections = []
+    mock_item.abstract = "Abstract 1"
+    mock_item.date = "2026"
+    mock_item.date_added = "2026-01-01"
+    mock_item.date_modified = "2026-01-02"
+    mock_item.authors = ["Author A"]
+    mock_item.doi = "10.1234/test"
+    mock_item.url = "http://test"
+    mock_item.raw_data = {}
+    mock_clients["zotero"].get_item.return_value = mock_item
+    mock_clients["zotero"].get_item_children.return_value = []
+
+    test_args = ["zotero-cli", "item", "inspect", "--key", "K1,K2"]
+    with patch.object(sys, "argv", test_args):
+        main()
+    out = capsys.readouterr().out
+    assert "Paper 1" in out

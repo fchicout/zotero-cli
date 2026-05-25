@@ -153,80 +153,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         clean_p.add_argument("--collection", required=True, help="Collection name or key")
         clean_p.add_argument("--verbose", action="store_true")
 
-        # Duplicates
-        dupe_p = sub.add_parser(
-            "duplicates",
-            help="Find duplicate items across collections",
-            description="Identifies duplicate items that exist across multiple specified collections, facilitating library cleanup and systematic review consistency.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
-Scenario: Identifying overlaps between search databases
-Problem: I've imported search results from IEEE (Key: IEEE_01) and Springer (Key: SPR_01) and want to see which papers are duplicates.
-Action:  zotero-cli collection duplicates --collections "IEEE_01,SPR_01"
-Result:  The CLI displays a table showing papers that were found in both collections, including their titles and keys.
 
-Cognitive Safeguards
---------------------
-• Common Failure Modes: Providing collection names that include commas or special characters without quoting.
-• Safety Tips: This command only identifies duplicates; it does not automatically merge or delete them. Use the item delete or slr prune commands to act on the findings.
-
-Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_duplicates.md
-""",
-        )
-        dupe_p.add_argument(
-            "--collections", required=True, help="Comma-separated list of collection names or keys"
-        )
-
-        # PDF operations
-        pdf_p = sub.add_parser(
-            "pdf",
-            help="Bulk PDF attachment operations",
-            description="Performs bulk operations on PDF attachments across an entire collection, either fetching missing files from online sources or stripping all existing attachments.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
-Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_pdf.md
-""",
-        )
-        pdf_sub = pdf_p.add_subparsers(dest="pdf_verb", required=True)
-
-        fetch_p = pdf_sub.add_parser(
-            "fetch",
-            help="Fetch missing PDFs for all items in a collection",
-            description="Scans the specified collection for items without PDF attachments and attempts to retrieve them using DOIs and other metadata through integrated providers (like ArXiv, CrossRef).",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
-Scenario: Mass retrieval of papers for reading
-Problem: I've imported 200 items into my "Reading List" (Key: READ_123) but they only have metadata and no PDFs.
-Action:  zotero-cli collection pdf fetch --collection "READ_123"
-Result:  The CLI attempts to find and download PDFs for all 200 items automatically.
-
-Cognitive Safeguards
---------------------
-• Common Failure Modes: Attempting fetch without a working internet connection or with items that lack a DOI/ArXiv ID.
-• Safety Tips: Always ensure you have sufficient disk space before running fetch on large collections.
-""",
-        )
-        fetch_p.add_argument("--collection", required=True, help="Collection name or key")
-
-        strip_p = pdf_sub.add_parser(
-            "strip",
-            help="Remove all PDF attachments from a collection",
-            description="Permanently removes all PDF attachments from every item in a collection.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
-Cognitive Safeguards
---------------------
-• Common Failure Modes: strip is irreversible and will permanently delete files from your Zotero storage.
-• Safety Tips: Use strip with extreme caution. Always backup your library before mass deletion.
-""",
-        )
-        strip_p.add_argument("--collection", required=True, help="Collection name or key")
-        strip_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
-        strip_p.add_argument("--verbose", action="store_true")
 
         # Backup
         backup_p = sub.add_parser(
@@ -330,10 +257,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                     print("Failed to rename collection.")
         elif args.verb == "clean":
             self._handle_clean(args)
-        elif args.verb == "duplicates":
-            self._handle_duplicates(gateway, args)
-        elif args.verb == "pdf":
-            self._handle_pdf(args)
+
         elif args.verb == "backup":
             self._handle_backup(gateway, args)
         elif args.verb == "export":
@@ -432,56 +356,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         count = service.empty_collection(args.collection, args.verbose)
         print(f"Deleted {count} items from '{args.collection}'.")
 
-    def _handle_pdf(self, args):
-        force_user = getattr(args, "user", False)
-        if args.pdf_verb == "fetch":
-            service = GatewayFactory.get_attachment_service(force_user=force_user)
-            pdf_finder = GatewayFactory.get_pdf_finder_service(force_user=force_user)
 
-            job_ids = service.attach_pdfs_to_collection(args.collection)
-            if not job_ids:
-                console.print(f"[yellow]No items in '{args.collection}' missing PDFs.[/]")
-                return
-
-            console.print(f"[green]Enqueued {len(job_ids)} discovery jobs.[/]")
-            console.print("[bold]Starting resilient PDF discovery...[/]")
-
-            # Blocking worker for transparent upgrade
-            asyncio.run(pdf_finder.process_jobs(count=len(job_ids)))
-
-            console.print(f"[bold green]Done processing collection '{args.collection}'.[/]")
-        elif args.pdf_verb == "strip":
-            purge_service = GatewayFactory.get_purge_service(force_user=force_user)
-            dry_run = not args.execute
-            stats = purge_service.purge_collection_assets(args.collection, dry_run=dry_run)
-            count = stats["deleted"] if not dry_run else stats["skipped"]
-            if dry_run:
-                print(
-                    f"[yellow]DRY RUN:[/yellow] Would remove {count} attachments from collection '{args.collection}'."
-                )
-            else:
-                print(f"Removed {count} attachments from collection '{args.collection}'.")
-
-    def _handle_duplicates(self, gateway, args):
-        service = DuplicateFinder(gateway)
-        col_ids = []
-        for c in args.collections.split(","):
-            c = c.strip()
-            # Try to resolve name to ID
-            cid = gateway.get_collection_id_by_name(c) or c
-            col_ids.append(cid)
-
-        dupes = service.find_duplicates(col_ids)
-        if not dupes:
-            print("No duplicates found.")
-            return
-        table = Table(title="Duplicate Items")
-        table.add_column("Title")
-        table.add_column("DOI")
-        table.add_column("Keys")
-        for d in dupes:
-            table.add_row(d["title"] or "No Title", d["doi"] or "N/A", ", ".join(d["keys"]))
-        console.print(table)
 
     def _handle_backup(self, gateway, args):
         from rich.progress import (

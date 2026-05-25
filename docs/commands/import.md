@@ -63,3 +63,18 @@ Add a paper manually by providing its core metadata.
 ```bash
 zotero-cli import manual --title "Paper Title" --arxiv-id "2401.xxx" --abstract "..." --collection "Inbox"
 ```
+
+---
+
+### `bdtd`
+Import thesis/dissertation from Brazilian BDTD into a Zotero collection. Accepts BDTD record IDs, institutional repository handle URLs, or DOIs.
+
+**Usage:**
+```bash
+zotero-cli import bdtd "https://repositorio.ufpe.br/handle/123456789/51746" --collection "BR_THESES"
+```
+
+**Parameters:**
+*   `identifier`: (Positional, Required) BDTD record ID, repository handle URL, or DOI.
+*   `--collection`: (Required) Target collection name or key.
+*   `--verbose`: Show detailed import logs.

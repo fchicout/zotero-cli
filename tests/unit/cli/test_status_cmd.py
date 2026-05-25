@@ -3,7 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zotero_cli.cli.commands.slr.status_cmd import StatusCommand
+from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
+from zotero_cli.core.services.report_service import PrismaReport
 
 
 @pytest.fixture
@@ -14,33 +15,25 @@ def mock_deps():
 
 def test_status_command_execute(mock_deps, capsys):
     # Setup
-    mock_status = MagicMock()
-    mock_status.source_name = "raw_test"
-    mock_status.source_key = "K1"
-    mock_status.total_in_root = 10
-    mock_status.total_unique = 15
-    mock_status.phases = {}
+    mock_report = PrismaReport(
+        collection_name="raw_test",
+        total_items=15,
+        screened_items=5,
+        accepted_items=2,
+        rejected_items=3,
+        rejections_by_code={"EXC01": 3}
+    )
 
     with patch(
-        "zotero_cli.core.services.slr.status_service.SLRStatusService.get_slr_status",
-        return_value=[mock_status],
+        "zotero_cli.core.services.report_service.ReportService.generate_prisma_report",
+        return_value=mock_report,
     ):
-        args = argparse.Namespace(verb="status")
-        StatusCommand.execute(args)
+        args = argparse.Namespace(verb="report", report_verb="status", collection="raw_test")
+        SLRReportCommand.execute(MagicMock(), args)
 
         out = capsys.readouterr().out
-        assert "SLR Progress Status" in out
+        assert "SLR Funnel Status" in out
         assert "raw_test" in out
-        assert "15" in out  # Tree Total
-
-
-def test_status_command_no_collections(mock_deps, capsys):
-    with patch(
-        "zotero_cli.core.services.slr.status_service.SLRStatusService.get_slr_status",
-        return_value=[],
-    ):
-        args = argparse.Namespace(verb="status")
-        StatusCommand.execute(args)
-
-        out = capsys.readouterr().out
-        assert "No raw_* collections found" in out
+        assert "15" in out  # Total
+        assert "Accepted (Included)" in out
+        assert "Rejected (Excluded)" in out

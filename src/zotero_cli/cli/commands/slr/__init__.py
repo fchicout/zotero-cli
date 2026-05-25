@@ -7,8 +7,6 @@ from .reconcile_cmd import ReconcileCommand
 from .screen_cmd import ScreenCommand
 from .sdb_cmd import SDBCommand
 from .snowball_cmd import SnowballCommand
-from .status_cmd import StatusCommand
-from .verify_cmd import VerifyCommand
 
 __all__ = [
     "DecideCommand",
@@ -20,6 +18,4 @@ __all__ = [
     "ScreenCommand",
     "SDBCommand",
     "SnowballCommand",
-    "StatusCommand",
-    "VerifyCommand",
 ]

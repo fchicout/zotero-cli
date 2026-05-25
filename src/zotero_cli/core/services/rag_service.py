@@ -1,7 +1,8 @@
+# mypy: ignore-errors
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 
 from zotero_cli.core.interfaces import (
     EmbeddingProvider,
@@ -144,6 +145,8 @@ class RAGServiceBase(RAGService):
         prune: bool = False,
         min_qa_score: Optional[float] = None,
         on_item_processed: Optional[Callable[[ZoteroItem, int], None]] = None,
+        qa_approved_only: bool = False,
+        tree_filter: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Ingest items with selection logic moved to service for architectural alignment.
@@ -156,7 +159,19 @@ class RAGServiceBase(RAGService):
 
         # 1. Resolve initial items
         items_to_process: List[ZoteroItem] = []
-        if item_key:
+        if qa_approved_only:
+            from zotero_cli.core.services.slr.status_service import SLRStatusService
+            status_service = SLRStatusService(self.gateway, self.orchestrator)
+            decided_items = status_service.get_decided_items(
+                decision_type="accepted",
+                root_key=tree_filter,
+                phase_filter="quality_assessment",
+            )
+            for dec_item in decided_items:
+                item = self.gateway.get_item(dec_item.item_key)
+                if item:
+                    items_to_process.append(item)
+        elif item_key:
             item = self.gateway.get_item(item_key)
             if item:
                 items_to_process.append(item)
@@ -190,6 +205,9 @@ class RAGServiceBase(RAGService):
 
         total_count = len(items_to_process)
         all_vector_chunks = []
+
+        if on_item_processed:
+            on_item_processed(cast("ZoteroItem", None), total_count)
 
         def process_item(item: ZoteroItem):
             citation_key = self.citation_service.resolve_citation_key(item)

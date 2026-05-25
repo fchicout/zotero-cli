@@ -1,6 +1,35 @@
+import logging
 from typing import Any, List, Optional, cast
 
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+
 from zotero_cli.core.interfaces import EmbeddingProvider
+
+logger = logging.getLogger(__name__)
+
+
+def is_api_retryable(exception: BaseException) -> bool:
+    """Check if an API exception is retryable (rate limits or 5xx)."""
+    # Import inside to avoid dependency issues if providers aren't used
+    try:
+        import openai
+        if isinstance(exception, openai.RateLimitError):
+            return True
+        if isinstance(exception, openai.InternalServerError):
+            return True
+    except ImportError:
+        pass
+
+    try:
+        from google.api_core import exceptions
+        if isinstance(exception, (exceptions.ResourceExhausted, exceptions.InternalServerError, exceptions.ServiceUnavailable)):
+            return True
+    except ImportError:
+        pass
+
+    # Generic check for transient errors if possible, or just default to False for safety
+    # unless we know the specific exception.
+    return False
 
 
 class MockEmbeddingProvider(EmbeddingProvider):
@@ -36,6 +65,12 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         except ImportError:
             self.client = None
 
+    @retry(
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
+        retry=retry_if_exception(is_api_retryable),
+        reraise=True,
+    )
     def embed_text(self, text: str) -> List[float]:
         if not self.client:
             raise ImportError("openai package not installed. Run 'pip install openai'")
@@ -43,6 +78,12 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         response = self.client.embeddings.create(input=text, model=self.model)
         return cast(List[float], response.data[0].embedding)
 
+    @retry(
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
+        retry=retry_if_exception(is_api_retryable),
+        reraise=True,
+    )
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
         if not self.client:
             raise ImportError("openai package not installed. Run 'pip install openai'")
@@ -67,6 +108,12 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         except ImportError:
             self.client = None
 
+    @retry(
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
+        retry=retry_if_exception(is_api_retryable),
+        reraise=True,
+    )
     def embed_text(self, text: str) -> List[float]:
         if not self.client:
             raise ImportError(
@@ -78,6 +125,12 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         )
         return cast(List[float], response["embedding"])
 
+    @retry(
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
+        retry=retry_if_exception(is_api_retryable),
+        reraise=True,
+    )
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
         if not self.client:
             raise ImportError(
