@@ -79,4 +79,8 @@ markers = [
     "docs: tests for documentation consistency and repository structure",
 ]
 
+[tool.coverage.run]
+relative_files = true
+source = ["src"]
+
 
