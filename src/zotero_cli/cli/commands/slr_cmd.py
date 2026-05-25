@@ -1,9 +1,6 @@
 import argparse
-import json
-import sys
 
 from rich.console import Console
-from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.commands.slr import (

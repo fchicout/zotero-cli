@@ -1,5 +1,4 @@
 import argparse
-import asyncio
 import sys
 from typing import Any, Dict, List, Optional
 
@@ -9,7 +8,6 @@ from rich.tree import Tree
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.services.backup_service import BackupService
-from zotero_cli.core.services.duplicate_service import DuplicateFinder
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()

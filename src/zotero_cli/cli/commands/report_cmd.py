@@ -1,7 +1,7 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict
 
 from rich.console import Console
 from rich.panel import Panel

@@ -3,7 +3,6 @@ from unittest.mock import patch
 
 import pytest
 
-from zotero_cli.cli.commands.report_cmd import ReportCommand
 from zotero_cli.cli.commands.slr.decide_cmd import DecideCommand
 from zotero_cli.core.services.report_service import PrismaReport
 

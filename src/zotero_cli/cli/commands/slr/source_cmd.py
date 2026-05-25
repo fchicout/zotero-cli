@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-from pathlib import Path
+from typing import Any
 
 from rich.console import Console
 from rich.table import Table
@@ -10,8 +10,6 @@ from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
-
-from typing import Any
 
 class SLRSourceCommand:
     """
@@ -41,7 +39,7 @@ class SLRSourceCommand:
         add_p.add_argument("--verbose", action="store_true", help="Print verbose details")
 
         # slr source list
-        list_p = sub.add_parser(
+        sub.add_parser(
             "list",
             help="Inventory active SLR sources and pipeline health",
             description="Scans and lists active raw_ collections, detailing total item count, metadata completeness, abstract presence, and PDF coverage."
