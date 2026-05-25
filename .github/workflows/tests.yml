@@ -6,12 +6,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
@@ -33,13 +33,13 @@ jobs:
           pytest tests/unit --cov=zotero_cli --cov-report=xml
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: sonarsource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonar.fchicout.dev
 
       - name: SonarQube Quality Gate Check
-        uses: sonarsource/sonarqube-quality-gate-action@v1
+        uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
         with:
           pollingTimeoutSec: 600
         env:
