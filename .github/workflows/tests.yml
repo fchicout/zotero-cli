@@ -45,8 +45,8 @@ jobs:
         env:
           INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
         run: |
-          # Export to $GITHUB_ENV so subsequent steps can use them
-          infisical export --domain https://infisical.fchicout.dev --token "$INFISICAL_TOKEN" --env dev --format dotenv >> $GITHUB_ENV
+          # Fetch secrets as clean key=value without single quotes and append to GITHUB_ENV
+          infisical export --domain https://infisical.fchicout.dev --token "$INFISICAL_TOKEN" --env dev --format dotenv | tr -d "'" >> $GITHUB_ENV
 
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v6
