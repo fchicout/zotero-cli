@@ -1,19 +1,5 @@
 import argparse
-import sys
 from unittest.mock import MagicMock, mock_open, patch
-
-try:
-    import openpyxl  # noqa: F401
-except ImportError:
-    sys.modules["openpyxl"] = MagicMock()
-
-try:
-    import odf  # noqa: F401
-except ImportError:
-    sys.modules["odf"] = MagicMock()
-    sys.modules["odf.opendocument"] = MagicMock()
-    sys.modules["odf.table"] = MagicMock()
-    sys.modules["odf.text"] = MagicMock()
 
 import pytest
 
@@ -288,10 +274,7 @@ def test_handle_qa_approved_import_errors(mock_slr_status_service, capsys):
         user=False
     )
 
-    with (
-        patch("openpyxl.Workbook", side_effect=ImportError),
-        patch("odf.opendocument.OpenDocumentSpreadsheet", side_effect=ImportError)
-    ):
+    with patch.dict("sys.modules", {"openpyxl": None, "odf.opendocument": None}):
         ListCommand.execute(args)
 
     out = capsys.readouterr().out
