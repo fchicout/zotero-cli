@@ -169,27 +169,101 @@ class SLRReportCommand:
             console.print(table)
             return
 
+        # Compact Grid View matching the provided mock design exactly
+        from rich import box
+
+        table = Table(
+            title="SLR Progress Status",
+            title_style="italic white",
+            show_header=True,
+            header_style="bold magenta",
+            box=box.SQUARE,
+            expand=True
+        )
+        table.add_column("Source Collection")
+        table.add_column("Tree Total", justify="right", style="bold yellow")
+        table.add_column("1-T&A (Acc/Rej/Pen)", justify="center")
+        table.add_column("2-FT (Acc/Rej/Pen)", justify="center")
+        table.add_column("3-QA (Acc/Rej/Pen)", justify="center")
+        table.add_column("4-DE (Extracted)", justify="center", style="bold cyan")
+
+        # Sum aggregates
+        sum_tree = 0
+        sum_ta_acc = 0
+        sum_ta_rej = 0
+        sum_ta_pen = 0
+        sum_ft_acc = 0
+        sum_ft_rej = 0
+        sum_ft_pen = 0
+        sum_qa_acc = 0
+        sum_qa_rej = 0
+        sum_qa_pen = 0
+        sum_de_acc = 0
+
         for status in statuses:
-            console.print("\n[bold green]==================================================[/bold green]")
-            console.print(f"[bold]SLR Funnel Status: {status.source_name}[/bold] (Key: {status.source_key})")
-            console.print("[bold green]==================================================[/bold green]")
-            console.print(f"Total Unique Items: {status.tree_total} | Total in Root: {status.total_in_root}")
+            sum_tree += status.tree_total
 
-            table = Table(show_header=True, header_style="bold magenta", expand=True)
-            table.add_column("Phase")
-            table.add_column("Accepted", style="green")
-            table.add_column("Rejected", style="red")
-            table.add_column("Pending", style="yellow")
+            # Extract phase stats safely
+            ta = status.phases.get("title_abstract")
+            ft = status.phases.get("full_text")
+            qa = status.phases.get("quality_assessment")
+            de = status.phases.get("data_extraction")
 
-            for phase_cfg in status_service.orchestrator.PHASE_FLOW:
-                phase_id = phase_cfg["id"]
-                label = phase_cfg["label"]
-                stats = status.phases.get(phase_id)
-                if stats:
-                    table.add_row(label, str(stats.accepted), str(stats.rejected), str(stats.pending))
-                else:
-                    table.add_row(label, "0", "0", "0")
-            console.print(table)
+            def format_stats(phase_stats) -> str:
+                if not phase_stats:
+                    return "[green]0[/green]/[red]0[/red]/[yellow]0[/yellow]"
+                acc = phase_stats.accepted
+                rej = phase_stats.rejected
+                pen = phase_stats.pending
+                check = " [white on green]✔[/white on green]" if pen == 0 else ""
+                return f"[green]{acc}[/green]/[red]{rej}[/red]/[yellow]{pen}[/yellow]{check}"
+
+            # Accumulate totals
+            if ta:
+                sum_ta_acc += ta.accepted
+                sum_ta_rej += ta.rejected
+                sum_ta_pen += ta.pending
+            if ft:
+                sum_ft_acc += ft.accepted
+                sum_ft_rej += ft.rejected
+                sum_ft_pen += ft.pending
+            if qa:
+                sum_qa_acc += qa.accepted
+                sum_qa_rej += qa.rejected
+                sum_qa_pen += qa.pending
+            if de:
+                sum_de_acc += de.accepted
+
+            de_val = str(de.accepted) if de else "0"
+
+            table.add_row(
+                f"[cyan]{status.source_name} ({status.source_key})[/cyan]",
+                str(status.tree_total),
+                format_stats(ta),
+                format_stats(ft),
+                format_stats(qa),
+                de_val
+            )
+
+        # Add divider line before total row
+        table.add_section()
+
+        # Append TOTAL (SUM) row
+        ta_tot = f"[bold green]{sum_ta_acc}[/bold green]/[bold red]{sum_ta_rej}[/bold red]/[bold yellow]{sum_ta_pen}[/bold yellow]"
+        ft_tot = f"[bold green]{sum_ft_acc}[/bold green]/[bold red]{sum_ft_rej}[/bold red]/[bold yellow]{sum_ft_pen}[/bold yellow]"
+        qa_tot = f"[bold green]{sum_qa_acc}[/bold green]/[bold red]{sum_qa_rej}[/bold red]/[bold yellow]{sum_qa_pen}[/bold yellow]"
+        de_tot = str(sum_de_acc)
+
+        table.add_row(
+            "[bold yellow]TOTAL (SUM)[/bold yellow]",
+            str(sum_tree),
+            ta_tot,
+            ft_tot,
+            qa_tot,
+            de_tot
+        )
+
+        console.print(table)
 
     @staticmethod
     def _handle_prisma(gateway, args):
