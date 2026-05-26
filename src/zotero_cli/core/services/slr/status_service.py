@@ -53,13 +53,21 @@ class SLRStatusService:
         self.gateway = gateway
         self.orchestrator = orchestrator
 
-    def get_slr_status(self) -> List[SLRStatus]:
+    def get_slr_status(self, source_filter: Optional[str] = None) -> List[SLRStatus]:
         all_collections = self.gateway.get_all_collections()
-        raw_collections = [
-            c
-            for c in all_collections
-            if c["data"]["name"].startswith("raw_") and not c["data"].get("parentCollection")
-        ]
+
+        if source_filter:
+            actual_filter = self.gateway.get_collection_id_by_name(source_filter) or source_filter
+            raw_collections = [
+                c for c in all_collections
+                if c["key"] == actual_filter or c["data"]["name"] == source_filter
+            ]
+        else:
+            raw_collections = [
+                c
+                for c in all_collections
+                if c["data"]["name"].startswith("raw_") and not c["data"].get("parentCollection")
+            ]
 
         results = []
         for raw_col in raw_collections:
