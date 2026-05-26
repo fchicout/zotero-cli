@@ -41,7 +41,7 @@ def test_kokoro_speech_provider_synthesize_empty():
     mock_pipeline.return_value = []
 
     provider = KokoroSpeechProvider()
-    provider._pipeline = mock_pipeline
+    provider._pipeline = mock_pipeline  # type: ignore[assignment]
 
     res = provider.synthesize("Hello", Path("out.wav"))
     assert res is False
@@ -59,7 +59,8 @@ def test_kokoro_speech_provider_synthesize_success(mock_sf_write):
     ]
 
     provider = KokoroSpeechProvider(voice="af_heart")
-    provider._pipeline = mock_pipeline
+    provider._pipeline = mock_pipeline  # type: ignore[assignment]
+
 
     res = provider.synthesize("Hello world", Path("out.wav"))
     assert res is True
