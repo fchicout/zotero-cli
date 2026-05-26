@@ -275,9 +275,8 @@ class SLRStatusService:
         """Specialized check for QA scores or simple decisions."""
         for note in parsed_notes:
             if note.get("phase") == phase_id:
-                # Handle Quality Assessment victory condition logic
                 if phase_id == "quality_assessment":
-                    # Re-use orchestrator logic if possible, but keep it self-contained for now
+                    # Try to resolve from score first
                     qa_block = note.get("quality_assessment", {})
                     if not isinstance(qa_block, dict):
                         qa_block = note.get("data", {}).get("quality_assessment", {})
@@ -285,9 +284,6 @@ class SLRStatusService:
                     raw_total = qa_block.get("total") if isinstance(qa_block, dict) else None
                     if raw_total is not None:
                         try:
-                            # If it has a total score, we consider it 'decided'.
-                            # 'Accepted' vs 'Rejected' depends on the score, but here
-                            # we just return the 'decision' field if present or infer from score.
                             decision = note.get("decision")
                             if not decision:
                                 limit = qa_block.get("limit") or qa_block.get("threshold") or 2.0
@@ -297,8 +293,12 @@ class SLRStatusService:
                             return decision.lower()
                         except (ValueError, TypeError):
                             pass
+                    # No valid QA score — fall through to check the decision field directly
 
-                return str(note.get("decision", "")).lower()
+                # Generic string-based decision gate (used by all phases including QA fallback)
+                decision = str(note.get("decision", "")).lower().strip()
+                # Return None for empty/absent decisions so they count as pending
+                return decision if decision else None
         return None
 
     def _get_phase_decision(self, children: List[dict], phase_id: str) -> Optional[str]:
