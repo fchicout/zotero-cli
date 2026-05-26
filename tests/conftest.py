@@ -1,27 +1,21 @@
 import sys
-from unittest.mock import MagicMock
 
-# Global fallback mocks for optional dependencies on CI environments to prevent ModuleNotFoundError
+# Set optional dependencies to None in sys.modules globally if not installed.
+# This ensures importlib.util.find_spec() returns None cleanly on all Python versions (including Python 3.10 on CI).
 try:
     import soundfile  # noqa: F401
 except ImportError:
-    mock_sf = MagicMock()
-    mock_sf.__spec__ = None
-    sys.modules["soundfile"] = mock_sf
+    sys.modules["soundfile"] = None
 
 try:
     import openpyxl  # noqa: F401
 except ImportError:
-    mock_xl = MagicMock()
-    mock_xl.__spec__ = None
-    sys.modules["openpyxl"] = mock_xl
+    sys.modules["openpyxl"] = None
 
 try:
     import odf  # noqa: F401
 except ImportError:
-    mock_odf = MagicMock()
-    mock_odf.__spec__ = None
-    sys.modules["odf"] = mock_odf
-    sys.modules["odf.opendocument"] = mock_odf
-    sys.modules["odf.table"] = mock_odf
-    sys.modules["odf.text"] = mock_odf
+    sys.modules["odf"] = None
+    sys.modules["odf.opendocument"] = None
+    sys.modules["odf.table"] = None
+    sys.modules["odf.text"] = None

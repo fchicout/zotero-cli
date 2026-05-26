@@ -47,8 +47,7 @@ def test_kokoro_speech_provider_synthesize_empty():
     assert res is False
 
 
-@patch("soundfile.write")
-def test_kokoro_speech_provider_synthesize_success(mock_sf_write):
+def test_kokoro_speech_provider_synthesize_success():
     mock_pipeline = MagicMock()
     # Generator returns segments
     audio_segment = np.array([0.1, 0.2], dtype=np.float32)
@@ -61,16 +60,18 @@ def test_kokoro_speech_provider_synthesize_success(mock_sf_write):
     provider = KokoroSpeechProvider(voice="af_heart")
     provider._pipeline = mock_pipeline  # type: ignore[assignment]
 
+    mock_sf = MagicMock()
+    with patch.dict("sys.modules", {"soundfile": mock_sf}):
+        res = provider.synthesize("Hello world", Path("out.wav"))
+        assert res is True
 
-    res = provider.synthesize("Hello world", Path("out.wav"))
-    assert res is True
+        mock_pipeline.assert_called_once_with("Hello world", voice="af_heart", speed=1, split_pattern=r"\n+")
+        mock_sf.write.assert_called_once()
+        args, kwargs = mock_sf.write.call_args
+        assert args[0] == "out.wav"
+        assert np.array_equal(args[1], np.concatenate([audio_segment, audio_segment]))
+        assert args[2] == 24000
 
-    mock_pipeline.assert_called_once_with("Hello world", voice="af_heart", speed=1, split_pattern=r"\n+")
-    mock_sf_write.assert_called_once()
-    args, kwargs = mock_sf_write.call_args
-    assert args[0] == "out.wav"
-    assert np.array_equal(args[1], np.concatenate([audio_segment, audio_segment]))
-    assert args[2] == 24000
 
 
 def test_speech_service_init_defaults():
