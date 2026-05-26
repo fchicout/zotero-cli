@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
@@ -125,3 +125,133 @@ def test_item_inspect_success(mock_clients, env_vars, capsys):
     assert "TESTKEY123" in out
     assert "Added: 2023-01-01" in out
     assert "Modified: 2023-01-02" in out
+
+
+def test_item_inspect_missing_key(mock_clients, env_vars, capsys):
+    mock_gateway = mock_clients["gateway"]
+    mock_gateway.get_item.return_value = None
+
+    args = MagicMock()
+    args.verb = "inspect"
+    args.key = "MISSINGKEY"
+    args.raw = False
+    args.format = None
+    args.full_notes = False
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "Item 'MISSINGKEY' not found" in out
+
+
+def test_item_inspect_no_keys(mock_clients, env_vars, capsys):
+    args = MagicMock()
+    args.verb = "inspect"
+    args.key = None
+    args.file = None
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "Error: You must specify --key or --file" in out
+
+
+def test_item_inspect_raw(mock_clients, env_vars, capsys):
+    mock_gateway = mock_clients["gateway"]
+    item = MagicMock()
+    item.raw_data = {"key": "RAWKEY", "title": "Raw Paper"}
+    mock_gateway.get_item.return_value = item
+
+    args = MagicMock()
+    args.verb = "inspect"
+    args.key = "RAWKEY"
+    args.raw = True
+    args.format = None
+    args.full_notes = False
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "RAWKEY" in out
+    assert "Raw Paper" in out
+
+
+@patch("zotero_cli.infra.factory.GatewayFactory.get_export_service")
+def test_item_inspect_bibtex(mock_export, mock_clients, env_vars, capsys):
+    mock_gateway = mock_clients["gateway"]
+    item = MagicMock()
+    mock_gateway.get_item.return_value = item
+    mock_export.return_value.serialize_bibtex.return_value = "@article{bibtex}"
+
+    args = MagicMock()
+    args.verb = "inspect"
+    args.key = "BIBKEY"
+    args.raw = False
+    args.format = "bibtex"
+    args.full_notes = False
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "@article{bibtex}" in out
+
+
+@patch("zotero_cli.infra.factory.GatewayFactory.get_export_service")
+def test_item_inspect_ris(mock_export, mock_clients, env_vars, capsys):
+    mock_gateway = mock_clients["gateway"]
+    item = MagicMock()
+    mock_gateway.get_item.return_value = item
+    mock_export.return_value.serialize_ris.return_value = "TY  - JOUR\nER  - "
+
+    args = MagicMock()
+    args.verb = "inspect"
+    args.key = "RISKEY"
+    args.raw = False
+    args.format = "ris"
+    args.full_notes = False
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "TY  - JOUR" in out
+
+
+@patch("builtins.open", new_callable=mock_open, read_data="KEY1\nKEY2\n")
+def test_item_inspect_from_file(mock_file, mock_clients, env_vars, capsys):
+    mock_gateway = mock_clients["gateway"]
+    item1 = MagicMock()
+    item1.title = "Paper 1"
+    item1.item_type = "journalArticle"
+    item1.abstract = "Abstract 1"
+    item1.authors = []
+    item1.collections = []
+
+    item2 = MagicMock()
+    item2.title = "Paper 2"
+    item2.item_type = "journalArticle"
+    item2.abstract = "Abstract 2"
+    item2.authors = []
+    item2.collections = []
+
+    mock_gateway.get_item.side_effect = [item1, item2]
+
+    args = MagicMock()
+    args.verb = "inspect"
+    args.key = None
+    args.file = "keys.txt"
+    args.raw = False
+    args.format = None
+    args.full_notes = False
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "Paper 1" in out
+    assert "Paper 2" in out
+
