@@ -5,17 +5,18 @@ import sys
 try:
     import soundfile  # noqa: F401
 except ImportError:
-    sys.modules["soundfile"] = None
+    sys.modules["soundfile"] = None  # type: ignore[assignment]
 
 try:
     import openpyxl  # noqa: F401
 except ImportError:
-    sys.modules["openpyxl"] = None
+    sys.modules["openpyxl"] = None  # type: ignore[assignment]
 
 try:
     import odf  # noqa: F401
 except ImportError:
-    sys.modules["odf"] = None
-    sys.modules["odf.opendocument"] = None
-    sys.modules["odf.table"] = None
-    sys.modules["odf.text"] = None
+    sys.modules["odf"] = None  # type: ignore[assignment]
+    sys.modules["odf.opendocument"] = None  # type: ignore[assignment]
+    sys.modules["odf.table"] = None  # type: ignore[assignment]
+    sys.modules["odf.text"] = None  # type: ignore[assignment]
+
