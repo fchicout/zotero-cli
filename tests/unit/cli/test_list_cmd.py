@@ -1,5 +1,19 @@
 import argparse
+import sys
 from unittest.mock import MagicMock, mock_open, patch
+
+try:
+    import openpyxl  # noqa: F401
+except ImportError:
+    sys.modules["openpyxl"] = MagicMock()
+
+try:
+    import odf  # noqa: F401
+except ImportError:
+    sys.modules["odf"] = MagicMock()
+    sys.modules["odf.opendocument"] = MagicMock()
+    sys.modules["odf.table"] = MagicMock()
+    sys.modules["odf.text"] = MagicMock()
 
 import pytest
 

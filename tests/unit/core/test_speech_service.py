@@ -1,5 +1,11 @@
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
+
+try:
+    import soundfile  # noqa: F401
+except ImportError:
+    sys.modules["soundfile"] = MagicMock()
 
 import numpy as np
 import pytest
