@@ -1,22 +1,28 @@
 import sys
+from importlib.machinery import ModuleSpec
+from unittest.mock import MagicMock
 
-# Set optional dependencies to None in sys.modules globally if not installed.
-# This ensures importlib.util.find_spec() returns None cleanly on all Python versions (including Python 3.10 on CI).
+# Global fallback mocks for optional dependencies on CI environments to prevent ModuleNotFoundError
 try:
     import soundfile  # noqa: F401
 except ImportError:
-    sys.modules["soundfile"] = None  # type: ignore[assignment]
+    mock_sf = MagicMock()
+    mock_sf.__spec__ = ModuleSpec("soundfile", None)
+    sys.modules["soundfile"] = mock_sf
 
 try:
     import openpyxl  # noqa: F401
 except ImportError:
-    sys.modules["openpyxl"] = None  # type: ignore[assignment]
+    mock_xl = MagicMock()
+    mock_xl.__spec__ = ModuleSpec("openpyxl", None)
+    sys.modules["openpyxl"] = mock_xl
 
 try:
     import odf  # noqa: F401
 except ImportError:
-    sys.modules["odf"] = None  # type: ignore[assignment]
-    sys.modules["odf.opendocument"] = None  # type: ignore[assignment]
-    sys.modules["odf.table"] = None  # type: ignore[assignment]
-    sys.modules["odf.text"] = None  # type: ignore[assignment]
-
+    mock_odf = MagicMock()
+    mock_odf.__spec__ = ModuleSpec("odf", None)
+    sys.modules["odf"] = mock_odf
+    sys.modules["odf.opendocument"] = mock_odf
+    sys.modules["odf.table"] = mock_odf
+    sys.modules["odf.text"] = mock_odf
