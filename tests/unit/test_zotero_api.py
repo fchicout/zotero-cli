@@ -427,3 +427,106 @@ def test_update_attachment_link(client):
     assert success is True
 
 
+def test_is_thesis_paper(client):
+    # Case 1: Degree Level in extra
+    paper1 = ResearchPaper(title="T1", abstract="A1", extra="Degree Level: masterThesis")
+    assert client._is_thesis_paper(paper1) is True
+
+    # Case 2: URL has academic repository markers
+    paper2 = ResearchPaper(title="T2", abstract="A2", url="http://bdtd.ibict.br/tede/123")
+    assert client._is_thesis_paper(paper2) is True
+
+    # Case 3: Standard journal article
+    paper3 = ResearchPaper(title="T3", abstract="A3", url="http://example.com/paper")
+    assert client._is_thesis_paper(paper3) is False
+
+
+def test_build_thesis_payload(client):
+    paper = ResearchPaper(
+        title="My Thesis",
+        abstract="Abstract of my thesis",
+        publication="My University",
+        url="http://example.com/thesis",
+        doi="10.1234/thesis",
+        year="2024",
+        extra="Degree Level: doctoralDissertation\nAdvisor: Prof. Smith\nSome extra info"
+    )
+    creators = [{"creatorType": "author", "name": "John Doe"}]
+
+    payload = client._build_thesis_payload(paper, creators, "COL_123")
+
+    assert payload["itemType"] == "thesis"
+    assert payload["title"] == "My Thesis"
+    assert payload["abstractNote"] == "Abstract of my thesis"
+    assert payload["creators"] == creators
+    assert payload["collections"] == ["COL_123"]
+    assert payload["thesisType"] == "Doctoral Dissertation"
+    assert payload["university"] == "My University"
+    assert payload["url"] == "http://example.com/thesis"
+    assert payload["DOI"] == "10.1234/thesis"
+    assert payload["date"] == "2024"
+    assert payload["extra"] == "Advisor: Prof. Smith\nSome extra info"
+
+
+@patch("zotero_cli.infra.zotero_api.requests.get")
+@patch("pathlib.Path.unlink")
+def test_create_item_thesis_with_pdf(mock_unlink, mock_get, client):
+    paper = ResearchPaper(
+        title="BDTD Thesis",
+        abstract="Thesis abstract",
+        extra="Degree Level: masterThesis",
+        pdf_url="http://bdtd.ibict.br/thesis.pdf"
+    )
+
+    # Mock post item response
+    mock_post_resp = Mock()
+    mock_post_resp.status_code = 200
+    mock_post_resp.json.return_value = {"successful": {"0": {"key": "THESIS_KEY"}}}
+    mock_post_resp.headers = {}
+    client.http.session.post.return_value = mock_post_resp
+
+    # Mock PDF download response
+    mock_pdf_resp = Mock()
+    mock_pdf_resp.status_code = 200
+    mock_pdf_resp.iter_content.return_value = [b"pdf chunk"]
+    mock_get.return_value = mock_pdf_resp
+
+    # Mock upload_attachment
+    client.upload_attachment = Mock(return_value=True)
+
+    with patch("zotero_cli.infra.zotero_api.open", mock_open()):
+        success = client.create_item(paper, "COL_123")
+        assert success is True
+        client.upload_attachment.assert_called_once()
+        mock_unlink.assert_called_once()
+
+
+@patch("zotero_cli.infra.zotero_api.requests.get")
+def test_create_item_thesis_pdf_download_exception(mock_get, client):
+    paper = ResearchPaper(
+        title="BDTD Thesis Failed",
+        abstract="Thesis abstract",
+        extra="Degree Level: masterThesis",
+        pdf_url="http://bdtd.ibict.br/thesis.pdf"
+    )
+
+    # Mock post item response
+    mock_post_resp = Mock()
+    mock_post_resp.status_code = 200
+    mock_post_resp.json.return_value = {"successful": {"0": {"key": "THESIS_KEY"}}}
+    mock_post_resp.headers = {}
+    client.http.session.post.return_value = mock_post_resp
+
+    # Mock PDF download exception
+    mock_get.side_effect = Exception("Network Timeout")
+    client.upload_attachment = Mock()
+
+    # We patch open locally in zotero_api to prevent any potential crashes in other imports
+    with patch("zotero_cli.infra.zotero_api.open", mock_open()):
+        # Should handle the exception gracefully without failing the overall create_item
+        success = client.create_item(paper, "COL_123")
+        assert success is True
+        client.upload_attachment.assert_not_called()
+
+
+
