@@ -336,3 +336,94 @@ def test_delete_tags_chunking(client):
     success = client.delete_tags(tags, 1)
     assert success is True
     assert client.http.session.delete.call_count == 2
+
+
+def test_get_item_template(client):
+    mock_resp = Mock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {}
+    mock_resp.json.return_value = {"itemType": "thesis", "title": ""}
+    client.http.session.get.return_value = mock_resp
+    
+    template = client.get_item_template("thesis")
+    assert template["itemType"] == "thesis"
+    client.http.session.get.assert_called_with("https://api.zotero.org/items/new", params={"itemType": "thesis"})
+
+
+
+def test_update_items_success(client):
+    mock_resp = Mock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {}
+    client.http.session.post.return_value = mock_resp
+    
+    items = [{"key": f"K{i}", "version": 1, "title": f"T{i}"} for i in range(60)]
+    success = client.update_items(items)
+    assert success is True
+    assert client.http.session.post.call_count == 2 # 50 + 10 chunking
+
+
+def test_update_items_failure(client):
+    client.http.session.post.side_effect = Exception("API Error")
+    success = client.update_items([{"key": "K1"}])
+    assert success is False
+
+
+def test_update_note_412(client):
+    res412 = Mock()
+    res412.status_code = 412
+    res412.headers = {}
+    
+    res200 = Mock()
+    res200.status_code = 200
+    res200.headers = {}
+    
+    client.http.session.patch.side_effect = [res412, res200]
+    client.http.last_library_version = 150
+    
+    success = client.update_note("N1", 100, "New content")
+    assert success is True
+    assert client.http.session.patch.call_count == 2
+
+
+def test_update_item_metadata(client):
+    mock_resp = Mock()
+    mock_resp.status_code = 204
+    mock_resp.headers = {}
+    client.http.session.patch.return_value = mock_resp
+    
+    success = client.update_item_metadata("K1", 1, {"title": "New"})
+    assert success is True
+
+
+@patch("builtins.open", new_callable=mock_open)
+def test_download_attachment_success(mock_file, client):
+    mock_resp = Mock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {}
+    mock_resp.iter_content.return_value = [b"chunk1", b"chunk2"]
+    client.http.session.get.return_value = mock_resp
+    
+    success = client.download_attachment("K1", "save.pdf")
+    assert success is True
+    mock_file.assert_called_once_with("save.pdf", "wb")
+    mock_file().write.assert_any_call(b"chunk1")
+    mock_file().write.assert_any_call(b"chunk2")
+
+
+def test_download_attachment_failure(client):
+    client.http.session.get.side_effect = Exception("Download error")
+    success = client.download_attachment("K1", "save.pdf")
+    assert success is False
+
+
+def test_update_attachment_link(client):
+    mock_resp = Mock()
+    mock_resp.status_code = 204
+    mock_resp.headers = {}
+    client.http.session.patch.return_value = mock_resp
+    
+    success = client.update_attachment_link("K1", 1, "new_path.pdf")
+    assert success is True
+
+
