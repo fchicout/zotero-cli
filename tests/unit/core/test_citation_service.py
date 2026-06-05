@@ -1,11 +1,10 @@
-import pytest
 from zotero_cli.core.services.slr.citation_service import CitationService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
 def test_resolve_citation_key_from_extra():
     svc = CitationService()
-    
+
     # 1. Matching 'Citation Key: foo123'
     item1 = ZoteroItem.from_raw_zotero_item({
         "key": "K1",

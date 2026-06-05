@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 
 class TextCleaningFilter:
@@ -6,7 +7,7 @@ class TextCleaningFilter:
     Cleans text for Text-to-Speech by removing citations, LaTeX math, and URLs.
     """
 
-    def clean(self, text: str) -> str:
+    def clean(self, text: Optional[str]) -> str:
         if not text:
             return ""
 

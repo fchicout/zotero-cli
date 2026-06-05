@@ -1,12 +1,12 @@
-import sys
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 from zotero_cli.core.services.llm_provider import (
-    MockLLMProvider,
-    OpenAILLMProvider,
     GeminiLLMProvider,
     LocalTransformersLLMProvider,
+    MockLLMProvider,
+    OpenAILLMProvider,
 )
 
 
@@ -30,7 +30,7 @@ def test_openai_llm_provider_generate():
     mock_openai = MagicMock()
     mock_client = MagicMock()
     mock_openai.OpenAI.return_value = mock_client
-    
+
     # Mock return value structure: client.chat.completions.create().choices[0].message.content
     mock_response = MagicMock()
     mock_choice = MagicMock()
@@ -67,7 +67,7 @@ def test_gemini_llm_provider_import_error():
 def test_gemini_llm_provider_generate(mock_configure, mock_generative_model):
     mock_model = MagicMock()
     mock_generative_model.return_value = mock_model
-    
+
     mock_response = MagicMock()
     mock_response.text = "gemini generated response"
     mock_model.generate_content.return_value = mock_response
@@ -84,26 +84,26 @@ def test_local_transformers_llm_provider():
     mock_transformers = MagicMock()
     mock_model_obj = MagicMock()
     mock_tokenizer_obj = MagicMock()
-    
+
     mock_transformers.AutoModelForCausalLM.from_pretrained.return_value = mock_model_obj
     mock_transformers.AutoTokenizer.from_pretrained.return_value = mock_tokenizer_obj
-    
+
     mock_tokenizer_obj.apply_chat_template.return_value = "formatted template"
     mock_inputs = MagicMock()
     mock_inputs.to.return_value = mock_inputs
     mock_inputs.input_ids = [[1, 2, 3]]
     mock_tokenizer_obj.return_value = mock_inputs
-    
+
     mock_model_obj.device = "cpu"
     mock_model_obj.generate.return_value = [[1, 2, 3, 4, 5]] # output_ids length > input_ids length
-    
+
     mock_tokenizer_obj.batch_decode.return_value = ["local transformers response"]
 
     with patch.dict("sys.modules", {"transformers": mock_transformers}):
         provider = LocalTransformersLLMProvider()
         res = provider.generate("hello prompt", system_instruction="system rule")
         assert res == "local transformers response"
-        
+
         mock_transformers.AutoTokenizer.from_pretrained.assert_called_once_with(
             "Qwen/Qwen2.5-1.5B-Instruct", revision="main"
         )

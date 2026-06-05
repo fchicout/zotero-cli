@@ -73,7 +73,7 @@ def test_get_paper_metadata_http_error_404(client):
     mock_response = MagicMock()
     mock_response.status_code = 404
     http_err = requests.exceptions.HTTPError(response=mock_response)
-    
+
     with patch.object(client, "_get", side_effect=http_err):
         paper = client.get_paper_metadata("EJ1")
         assert paper is None
@@ -84,7 +84,7 @@ def test_get_paper_metadata_http_error_generic(client):
     mock_response = MagicMock()
     mock_response.status_code = 500
     http_err = requests.exceptions.HTTPError(response=mock_response)
-    
+
     with patch.object(client, "_get", side_effect=http_err):
         paper = client.get_paper_metadata("EJ1")
         assert paper is None
