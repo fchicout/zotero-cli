@@ -133,6 +133,44 @@ def test_get_items_in_collection_top_only(client):
     assert "/collections/C1/items/top" in args[0]
 
 
+def test_get_orphan_items_all(client):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [
+        {"key": "K1", "data": {"title": "Orphan Item"}, "meta": {}, "version": 1}
+    ]
+    mock_response.headers = {}
+    client.http.session.get.return_value = mock_response
+
+    items = list(client.get_orphan_items(top_only=False))
+    assert len(items) == 1
+    assert items[0].key == "K1"
+
+    # Verify correct endpoint and parameters
+    args, kwargs = client.http.session.get.call_args
+    assert args[0].endswith("/items")
+    assert kwargs["params"]["collection"] == "none"
+
+
+def test_get_orphan_items_top_only(client):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [
+        {"key": "K2", "data": {"title": "Top Orphan Item"}, "meta": {}, "version": 1}
+    ]
+    mock_response.headers = {}
+    client.http.session.get.return_value = mock_response
+
+    items = list(client.get_orphan_items(top_only=True))
+    assert len(items) == 1
+    assert items[0].key == "K2"
+
+    # Verify correct endpoint and parameters
+    args, kwargs = client.http.session.get.call_args
+    assert args[0].endswith("/items/top")
+    assert kwargs["params"]["collection"] == "none"
+
+
 # --- Item Modification Methods ---
 
 
