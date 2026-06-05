@@ -256,7 +256,7 @@ class ZoteroGateway(
         pass
 
     @abstractmethod
-    def get_orphan_items(self) -> Iterator[ZoteroItem]:
+    def get_orphan_items(self, top_only: bool = False) -> Iterator[ZoteroItem]:
         pass
 
 

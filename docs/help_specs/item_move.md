@@ -24,11 +24,11 @@ The `item move` command is the standard way to reorganize individual items withi
 If the item is only present in a single collection, the `source` parameter may be optional depending on the CLI version's ambiguity detection. Using the unique `Item Key` and `Collection Key` is the recommended method for ensuring precise item relocation. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--item-id` | String | Unique Zotero Item Key (e.g., `ABCD1234`). | Required. |
-| `--source` | String | Name or Key of the origin collection. | Optional. |
-| `--target` | String | Name or Key of the destination collection. | Required. |
+| `--item-id` | String | N/A | Required. |
+| `--source` | String | Source collection (optional if unambiguous) | Optional. |
+| `--target` | String | N/A | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Categorizing a paper into a specific folder

@@ -24,10 +24,10 @@ The `collection backup` command provides a robust mechanism for archiving snapsh
 It traverses the entire collection hierarchy, fetches the JSON metadata for every item, and collects all associated file attachments (PDFs, notes). These are then compressed and bundled into a single `.zaf` file. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--name` | String | Target collection Name or unique identifier (Key). | Required. |
-| `--output` | String | Local path where the `.zaf` archive will be saved. | Required. |
+| `--name` | String | Collection name or key | Required. |
+| `--output` | String | Output file path | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Archiving a completed SLR project

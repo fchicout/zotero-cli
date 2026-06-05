@@ -23,14 +23,14 @@ The `item update` command is the standard way to fix inaccuracies in paper metad
 The command supports both targeted field updates (via `--title`, `--doi`, etc.) and a powerful `--json` mode for complex metadata changes. It uses the `PATCH` method of the Zotero API to ensure that only the specified fields are changed, leaving the rest of the metadata intact. The `--version` identifier ensures that updates are only applied to the most recent version of the item to prevent synchronization conflicts.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--key` | String | Unique Zotero Item Key (e.g., `ABCD1234`). | Required. |
-| `--doi` | String | The correct Digital Object Identifier. | Optional. |
-| `--title` | String | The correct title of the paper. | Optional. |
-| `--abstract` | String | The correct abstract of the paper. | Optional. |
-| `--json` | String | Raw JSON string representing all fields to update. | Optional. Powerful for advanced users. |
-| `--version` | Integer | The version identifier for concurrency protection. | Optional. Auto-resolved if omitted. |
+| `--abstract` | String | Update Abstract | Optional. |
+| `--doi` | String | Update DOI | Optional. |
+| `--json` | String | Update using raw JSON string | Optional. |
+| `--key` | String | Item Key | Required. |
+| `--title` | String | Update Title | Optional. |
+| `--version` | Integer | Current version (auto-resolved if omitted) | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Correcting a title with typos

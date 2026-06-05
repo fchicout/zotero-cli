@@ -28,11 +28,13 @@ The `rag query` command allows you to interact with your library as a knowledge 
 It works by converting your input string into a vector and finding the closest matches in the Vector Store (populated via `rag ingest`). Each result is "hydrated" with real-time metadata from the Zotero database, providing a complete picture that includes the source item's title, authors, and the specific text snippet that matched your query.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `prompt` | String | The natural language search query. | Positional argument. Enclose in quotes if multi-word. |
-| `--top-k` | Integer | Number of most relevant results to return. | Default: 5. |
-| `--json` | Flag | Output results in raw JSON format for pipeline consumption. | Essential for integration with other AI tools. |
+| `--ask, --synthesize` | Boolean | Synthesize a meaningful answer using the configured LLM (Gemini/OpenAI) | Optional. Default: False. |
+| `--format` | String | Output format (human: beautiful UI, json: evidence pack, context: LLM-ready context) | Optional. Default: human. |
+| `--top-k` | Integer | Number of results (Default: 5) | Optional. Default: 5. |
+| `--verify` | Boolean | Verify results against RAG Verification Spec v1.1 | Optional. Default: False. |
+| `prompt` | String | Search prompt/query | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Finding implementation details across a library

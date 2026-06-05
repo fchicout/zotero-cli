@@ -27,11 +27,11 @@ The `serve` command transforms the `zotero-cli` from a terminal utility into a b
 This command is the "Integration Hub" for AI-powered research assistants. It exposes endpoints that allow other tools to query your library, retrieve item metadata, and perform semantic searches against your vector store (if populated). This is essential for building custom web dashboards, connecting your library to Large Language Models (LLMs), or integrating Zotero data into complex automated research pipelines.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--host` | String | The IP address to bind the server to. | Default: `127.0.0.1` (Localhost). |
-| `--port` | Integer| The port number to listen on. | Default: `1969`. |
-| `--reload` | Flag | Enables auto-reload when source code changes. | Useful for developers. |
+| `--host` | String | Bind host (Default: 127.0.0.1) | Optional. Default: 127.0.0.1. |
+| `--port` | Integer | Bind port (Default: 1969) | Optional. Default: 1969. |
+| `--reload` | Boolean | Enable auto-reload (Dev mode) | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Connecting Zotero to a custom research dashboard

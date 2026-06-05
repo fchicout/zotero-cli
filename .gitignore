@@ -20,3 +20,16 @@ tests/integration/*.csv
 tests/integration/*.json
 tests/integration/*.md
 RELEASE_DRAFT.md
+
+# Runtime/Temporary Outputs
+run_log.txt
+coverage.xml
+export_md/
+md_dir/
+
+# Developer Scratchpads
+scratch/
+
+# Local configuration files
+schema.yaml
+

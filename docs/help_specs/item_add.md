@@ -23,14 +23,14 @@ The `item add` command is the fundamental tool for manual entry into your librar
 It ensures that the new item is correctly structured for the Zotero database and automatically links it to your target collection. You can specify the type of item (defaulting to `journalArticle`) and provide a comma-separated list of authors to maintain bibliographic accuracy.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--title` | String | The full title of the new item. | Required. Use double quotes. |
-| `--collection` | String | Name or unique identifier (Key) of the target collection. | Required. |
-| `--type` | String | Zotero Item Type (e.g., `book`, `conferencePaper`). | Optional. Default: `journalArticle`. |
-| `--authors` | String | Comma-separated list of authors (e.g., `John Doe, Jane Smith`). | Optional. |
-| `--date` | String | Publication date (e.g., `2024-01-15`). | Optional. |
-| `--abstract` | String | Abstract or summary content. | Optional. |
+| `--abstract` | String | Abstract/Note | Optional. |
+| `--authors` | String | Comma-separated authors (e.g. 'John Doe, Jane Smith') | Optional. |
+| `--collection` | String | Collection name or key | Required. |
+| `--date` | String | Publication Date | Optional. |
+| `--title` | String | Item Title | Required. |
+| `--type` | String | Item Type (Default: journalArticle) | Optional. Default: journalArticle. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Manually adding an internal technical report

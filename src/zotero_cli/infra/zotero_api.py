@@ -136,8 +136,9 @@ class ZoteroAPIClient(ZoteroGateway):
     def get_trash_items(self) -> Iterator[ZoteroItem]:
         return self._paginate_items("items/trash")
 
-    def get_orphan_items(self) -> Iterator[ZoteroItem]:
-        return self._paginate_items("items", params={"collection": "none"})
+    def get_orphan_items(self, top_only: bool = False) -> Iterator[ZoteroItem]:
+        endpoint = "items/top" if top_only else "items"
+        return self._paginate_items(endpoint, params={"collection": "none"})
 
     def get_items_in_collection(
         self, collection_id: str, top_only: bool = False

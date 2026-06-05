@@ -24,10 +24,10 @@ The `tag add` command is used for categorized research organization. It allows y
 In Zotero, tags are a powerful way to cross-reference items regardless of which collection they belong to. When you use this command, the CLI retrieves the item's current set of tags and appends your new ones to the list, ensuring that no existing data is overwritten. You can provide multiple tags at once using a comma-separated string. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--item` | String | Unique Zotero Item Key (e.g., `ABCD1234`). | Required. |
-| `--tags` | String | Comma-separated list of tags to add. | Required. |
+| `--item` | String | Item Key | Required. |
+| `--tags` | String | Comma-separated tags | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Categorizing a paper for a specific project

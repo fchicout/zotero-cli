@@ -25,9 +25,9 @@ The `system backup` command is the "Ultimate Safety Net" for your research ecosy
 The resulting Zotero Archive Format (`.zaf`) file contains everything needed to reconstruct your entire library state on another machine or at a later date. This includes not just the bibliographic metadata, but also the physical PDF files, the hierarchical collection structure, and the critical Systematic Literature Review (SLR) audit data stored in child notes. This command is essential for long-term project preservation and disaster recovery planning.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--output` | Path | File path where the `.zaf` archive will be saved. | Required. Use `.zaf` extension. |
+| `--output` | String | Output file path (e.g., backup.zaf) | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Migrating research data to a new workstation

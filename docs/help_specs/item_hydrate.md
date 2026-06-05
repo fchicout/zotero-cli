@@ -31,12 +31,12 @@ The `item hydrate` command is the "Metadata Repair" tool for your library. It's 
 The command can be run on a single item, an entire collection, or your whole library. The `--dry-run` flag is highly recommended for larger scopes, as it allows you to preview the metadata changes that the CLI intends to make before committing them to your Zotero cloud database. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--key` | String | Unique Zotero Item Key (e.g., `ABCD1234`). | Single item hydration. |
-| `--collection` | String | Name or Key of the collection to hydrate. | Mass hydration for a folder. |
-| `--all` | Flag | Scans every item in your entire Zotero library. | Comprehensive repair. |
-| `--dry-run` | Flag | Preview changes without performing any API updates. | Essential safety feature. |
+| `--all` | Boolean | Scan entire library for hydration | Optional. Default: False. |
+| `--collection` | String | Hydrate all items in a collection | Optional. |
+| `--dry-run` | Boolean | Show changes without applying | Optional. Default: False. |
+| `--key` | String | Item Key | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Enriching a collection after an ArXiv import

@@ -30,11 +30,11 @@ The `item export` command is designed for surgical extraction of bibliographic d
 It is particularly useful for workflows where you need to copy a single BibTeX entry into a LaTeX file or generate a research note in Markdown for a specific item. If the `--output` flag is omitted, the command will print the result directly to your terminal (stdout), enabling quick "Copy-Paste" operations.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--key` | String | Unique Zotero Item Key (e.g., `ABCD1234`). | Required. |
-| `--format` | Choice | `bibtex`, `ris`, or `md`. | Optional. Default: `bibtex`. |
-| `--output` | String | Local path where the export will be saved. | Optional. Omit to print to terminal. |
+| `--format` | String | Export format | Optional. Default: bibtex. |
+| `--key` | String | Item Key | Required. |
+| `--output` | String | Output file path or directory (for md) | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Getting a BibTeX entry for a specific citation

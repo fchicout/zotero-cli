@@ -24,12 +24,12 @@ The `import manual` command is designed for cases where automated ingestion via 
 While simpler than bulk import commands, it ensures consistency by validating that the required fields (Title and ArXiv-ID) are present. This command is particularly useful for quickly adding papers that you have discovered through manual browsing or for papers that are not yet officially indexed by bibliographic databases. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--title` | String | The full title of the paper. | Required. Use double quotes. |
-| `--arxiv-id` | String | The ArXiv unique identifier. | Required. |
-| `--abstract` | String | The abstract or summary of the paper. | Optional. |
-| `--collection` | String | Name or Key of the target collection. | Required. |
+| `--abstract` | String | N/A | Optional. Default: . |
+| `--arxiv-id` | String | N/A | Required. |
+| `--collection` | String | N/A | Required. |
+| `--title` | String | N/A | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Adding a pre-print discovered on social media

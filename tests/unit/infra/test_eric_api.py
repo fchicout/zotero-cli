@@ -66,3 +66,43 @@ def test_get_paper_metadata_not_found(client):
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("EJ404")
         assert paper is None
+
+
+def test_get_paper_metadata_http_error_404(client):
+    import requests
+    mock_response = MagicMock()
+    mock_response.status_code = 404
+    http_err = requests.exceptions.HTTPError(response=mock_response)
+    
+    with patch.object(client, "_get", side_effect=http_err):
+        paper = client.get_paper_metadata("EJ1")
+        assert paper is None
+
+
+def test_get_paper_metadata_http_error_generic(client):
+    import requests
+    mock_response = MagicMock()
+    mock_response.status_code = 500
+    http_err = requests.exceptions.HTTPError(response=mock_response)
+    
+    with patch.object(client, "_get", side_effect=http_err):
+        paper = client.get_paper_metadata("EJ1")
+        assert paper is None
+
+
+def test_get_paper_metadata_exception(client):
+    with patch.object(client, "_get", side_effect=ValueError("crashed")):
+        paper = client.get_paper_metadata("EJ1")
+        assert paper is None
+
+
+def test_map_to_research_paper_str_author_and_subject(client):
+    item = {
+        "title": "Solo Study",
+        "author": "Single Author",
+        "subject": "Single Subject",
+    }
+    paper = client._map_to_research_paper(item)
+    assert paper.authors == ["Single Author"]
+    assert "Subjects: Single Subject" in paper.extra
+

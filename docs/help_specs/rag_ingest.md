@@ -30,12 +30,16 @@ The `rag ingest` command is the "Ghost Process" that bridges your Zotero library
 This content is then fragmented into smaller chunks and transformed into high-dimensional vectors (embeddings) stored in a local SQLite database.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--collection` | String | Name or Key of the source collection. | Mutually exclusive with --key/--approved. |
-| `--key` | String | Specific Zotero Item Key (e.g., A1B2C3D4). | Fast path for single paper indexing. |
-| `--approved` | Boolean | Ingest only items marked 'rsl:include'. | Uses screening metadata from SLR process. |
-| `--qa-limit` | Float | Minimum quality score threshold (0.0 - 1.0). | Filters items based on Extraction QA notes. |
+| `--approved` | Boolean | Ingest only approved items (rsl:include) | Optional. Default: False. |
+| `--collection` | String | Collection name or key | Optional. |
+| `--key` | String | Single item key | Optional. |
+| `--no-prune` | Boolean | Append to the vector store (Default) | Optional. Default: True. |
+| `--prune` | Boolean | Clear the vector store before ingestion | Optional. Default: False. |
+| `--qa-limit` | Float | Minimum extraction QA score threshold | Optional. |
+| `--tree` | String | Source collection name or key (only applicable with qa-approved target) | Optional. |
+| `target` | String | Optional ingestion target (e.g. qa-approved) | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Preparing a collection for semantic analysis

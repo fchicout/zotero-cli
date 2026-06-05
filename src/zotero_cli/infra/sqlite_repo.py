@@ -62,6 +62,7 @@ class SqliteZoteroGateway(ZoteroGateway):
                 "key": row_dict["key"],
                 "version": row_dict["version"],
                 "itemType": row_dict["typeName"],
+                "parentItem": row_dict.get("parentKey"),
                 "title": row_dict.get("title") or "",
                 "abstractNote": row_dict.get("abstractNote") or "",
                 "date": row_dict.get("date") or "",
@@ -130,6 +131,7 @@ class SqliteZoteroGateway(ZoteroGateway):
         try:
             query_sql = """
                 SELECT i.key, i.version, i.libraryID, it.typeName,
+                       (SELECT key FROM items WHERE itemID = i.parentItemID) as parentKey,
                        MAX(CASE WHEN f.fieldName = 'title' THEN dv.value END) as title,
                        MAX(CASE WHEN f.fieldName = 'abstractNote' THEN dv.value END) as abstractNote,
                        MAX(CASE WHEN f.fieldName = 'date' THEN dv.value END) as date,
@@ -198,6 +200,8 @@ class SqliteZoteroGateway(ZoteroGateway):
     ) -> Iterator[ZoteroItem]:
         for item in self.search_items(ZoteroQuery()):
             if collection_id in item.collections:
+                if top_only and item.parent_item:
+                    continue
                 yield item
 
     def get_item(self, item_key: str) -> Optional[ZoteroItem]:
@@ -302,9 +306,11 @@ class SqliteZoteroGateway(ZoteroGateway):
     def get_all_items(self) -> Iterator[ZoteroItem]:
         return self.search_items(ZoteroQuery())
 
-    def get_orphan_items(self) -> Iterator[ZoteroItem]:
+    def get_orphan_items(self, top_only: bool = False) -> Iterator[ZoteroItem]:
         for item in self.search_items(ZoteroQuery()):
             if not item.collections:
+                if top_only and item.parent_item:
+                    continue
                 yield item
 
     def verify_credentials(self) -> bool:

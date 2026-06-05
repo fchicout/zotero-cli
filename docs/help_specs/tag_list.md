@@ -23,7 +23,8 @@ The `tag list` command is the "Taxonomy Audit" tool for your library. It provide
 The command retrieves all tags currently in use and presents them in a formatted table. This is essential for maintaining a consistent tagging strategy, as it allows you to identify near-duplicates (e.g., "AI" vs "Artificial Intelligence") or outdated terms that need consolidation. The "Count" column helps you understand the focus areas of your library by showing which topics are most heavily represented.
 
 ## 5. Parameter Matrix
-*This command does not accept additional parameters.*
+| Flag / Parameter | Type | Description | Ergonomic Note |
+| :--- | :--- | :--- | :--- |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Auditing library categories

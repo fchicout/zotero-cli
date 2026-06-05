@@ -33,13 +33,14 @@ As you make decisions (Accept/Reject), the CLI automatically:
 The command also supports an `--agent` mode, enabling autonomous or semi-autonomous screening when combined with AI-led reviewer personas.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--source` | String | Name or Key of the collection to screen. | Required. |
-| `--include`| String | Target collection for accepted items. | Optional but recommended. |
-| `--exclude`| String | Target collection for rejected items. | Optional but recommended. |
-| `--agent`  | Flag | Enables Agent-led screening logic. | For AI automation. |
-| `--persona`| String | Reviewer name recorded in the audit trail. | Default: `Human`. |
+| `--agent` | Boolean | Run in Agent-led mode | Optional. Default: False. |
+| `--collection, --source` | String | Collection name or key to screen | Optional. |
+| `--exclude` | String | Target collection for exclusions (Optional) | Optional. |
+| `--file` | String | Bulk process decisions from CSV | Optional. |
+| `--include` | String | Target collection for inclusions (Optional) | Optional. |
+| `--persona` | String | Reviewer persona (for Agent-led mode) | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Rapid abstract screening phase

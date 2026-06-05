@@ -22,10 +22,10 @@ The `collection clean` command is used to reset the contents of a folder without
 It finds all items currently linked to the specified collection and removes that link via the Zotero API. If an item is only present in this collection and no others (and not in the root library), it will effectively be "unfiled" but not necessarily moved to the trash.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--collection` | String | Name or unique identifier (Key) of the collection. | Required. |
-| `--verbose` | Flag | Displays detailed progress during the cleaning process. | Optional. |
+| `--collection` | String | Collection name or key | Required. |
+| `--verbose` | Boolean | N/A | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Resetting a screening results folder

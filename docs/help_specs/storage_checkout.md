@@ -24,9 +24,9 @@ The `storage checkout` command is a specialized tool for managing Zotero storage
 This allows you to maintain a massive library of PDFs on your own hard drive (or a large external disk) while still having them perfectly indexed and searchable within Zotero. The command ensures that the link remains active, so opening the PDF from the Zotero desktop client will still work correctly.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--limit` | Integer | Maximum number of files to process in one run. | Optional. Useful for gradual migrations. |
+| `--limit` | Integer | Max items to process | Optional. Default: 50. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Migrating a library to local storage to save cloud space

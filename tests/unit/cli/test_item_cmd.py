@@ -255,3 +255,68 @@ def test_item_inspect_from_file(mock_file, mock_clients, env_vars, capsys):
     assert "Paper 1" in out
     assert "Paper 2" in out
 
+
+def test_item_list_root(mock_clients, env_vars, capsys):
+    mock_gateway = mock_clients["gateway"]
+    item = MagicMock()
+    item.key = "ROOTKEY123"
+    item.title = "Root Paper"
+    item.item_type = "journalArticle"
+    mock_gateway.get_orphan_items.return_value = [item]
+
+    args = MagicMock()
+    args.verb = "list"
+    args.root = True
+    args.top_only = False
+    args.trash = False
+    args.collection = None
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    mock_gateway.get_orphan_items.assert_called_once_with(top_only=False)
+    out = capsys.readouterr().out
+    assert "Root/Orphan Items (unfiled)" in out
+    assert "ROOTKEY123" in out
+    assert "Root Paper" in out
+
+
+def test_item_list_root_top_only(mock_clients, env_vars, capsys):
+    mock_gateway = mock_clients["gateway"]
+    item = MagicMock()
+    item.key = "ROOTKEY123"
+    item.title = "Root Paper"
+    item.item_type = "journalArticle"
+    mock_gateway.get_orphan_items.return_value = [item]
+
+    args = MagicMock()
+    args.verb = "list"
+    args.root = True
+    args.top_only = True
+    args.trash = False
+    args.collection = None
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    mock_gateway.get_orphan_items.assert_called_once_with(top_only=True)
+    out = capsys.readouterr().out
+    assert "Root/Orphan Items (unfiled)" in out
+    assert "ROOTKEY123" in out
+    assert "Root Paper" in out
+
+
+def test_item_list_no_collection_or_root(mock_clients, env_vars, capsys):
+    args = MagicMock()
+    args.verb = "list"
+    args.root = False
+    args.trash = False
+    args.collection = None
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "Error: --collection or --root required for non-trash listings" in out
+
+

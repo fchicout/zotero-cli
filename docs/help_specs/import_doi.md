@@ -24,11 +24,11 @@ The `import doi` command is the fastest way to add a specific paper to your libr
 Before uploading to the Zotero API, the CLI checks if an item with the same DOI already exists in your library. If it does, the import is skipped to maintain library hygiene. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `doi` | String | The Digital Object Identifier (e.g., `10.1145/123456.123456`). | Positional argument. |
-| `--collection` | String | Name or unique identifier (Key) of the target collection. | Required. |
-| `--verbose` | Flag | Displays the status of each item during the import process. | Optional. |
+| `--collection` | String | N/A | Required. |
+| `--verbose` | Boolean | N/A | Optional. Default: False. |
+| `doi` | String | Digital Object Identifier | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Adding a specific paper from a journal website

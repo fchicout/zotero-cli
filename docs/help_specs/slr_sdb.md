@@ -31,12 +31,17 @@ The `slr sdb` command is the "Database Administrator" for your review's audit tr
 - **`upgrade`**: As the `zotero-cli` evolves, the format of these notes may change. This command ensures that your old research data is migrated to the newest reporting standards.
 
 ## 5. Parameter Matrix
-| Command | Flag | Type | Description | Ergonomic Note |
-| :--- | :--- | :--- | :--- | :--- |
-| `inspect` | `--key` | String | Unique Zotero Item Key. | Required. |
-| `edit` | `--key` | String | Unique Zotero Item Key. | Required. |
-| `edit` | `--vote`| Choice | `INCLUDE` or `EXCLUDE`. | New decision. |
-| `upgrade` | `--all` | Flag | Migrates the entire library. | Use with caution. |
+| Flag / Parameter | Type | Description | Ergonomic Note |
+| :--- | :--- | :--- | :--- |
+| `--collection` | String | Collection name or key | Required. |
+| `--execute` | Boolean | N/A | Optional. Default: False. |
+| `--force` | Boolean | Skip confirmation | Optional. Default: False. |
+| `--name` | String | Collection name or key | Required. |
+| `--output` | String | Path to output CSV | Required. |
+| `--persona` | String | Reviewer persona to reset (Optional) | Optional. |
+| `--phase` | String | Target phase to reset | Required. |
+| `--set-decision` | String | N/A | Optional. |
+| `key` | String | Item Key | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Verifying the audit history of a controversial paper

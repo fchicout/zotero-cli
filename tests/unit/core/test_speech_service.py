@@ -115,3 +115,28 @@ def test_speech_service_synthesize_text_success():
     assert res is True
     mock_filter.clean.assert_called_once_with("Hello [1]")
     mock_provider.synthesize.assert_called_once_with("Hello", Path("out.wav"))
+
+
+def test_text_cleaning_filter():
+    filt = TextCleaningFilter()
+    assert filt.clean("") == ""
+    assert filt.clean(None) == ""
+
+    # Test LaTeX block removal
+    assert filt.clean("$$block math$$ inline $math$ text") == "inline text"
+
+    # Test LaTeX command removal
+    assert filt.clean("This is a \\section{Introduction} and \\textbf{bold} text.") == "This is a and text."
+
+    # Test citation removal
+    assert filt.clean("According to [1], we found [1, 2] and [1-3] to be true.") == "According to , we found and to be true."
+
+    # Test author-year citation removal
+    assert filt.clean("Some claim (Smith, 2020) and others (Smith et al., 2020) say otherwise.") == "Some claim and others say otherwise."
+
+    # Test URL removal
+    assert filt.clean("Check https://google.com or http://foo.bar/baz for info.") == "Check or for info."
+
+    # Test whitespace compression
+    assert filt.clean("   Leading,    multiple spaces, and trailing    ") == "Leading, multiple spaces, and trailing"
+

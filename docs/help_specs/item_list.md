@@ -28,14 +28,12 @@ The `item list` command is the "Inventory View" of your research data. It provid
 The power of `item list` lies in its advanced filtering capabilities. You can quickly see which papers were accepted, rejected, or excluded for specific reasons. This command is also "Persona-aware," allowing you to see the results of individual reviewers in a multi-agent or collaborative project. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--collection` | String | Name or Key of the collection. | Required for folder-specific inventory. |
-| `--trash` | Flag | Lists items currently in the Zotero trash. | Optional. |
-| `--included` | Flag | Filters for items with a decision of 'accepted'. | Useful for final review. |
-| `--excluded` | Flag | Filters for items with a decision of 'rejected'. | Useful for audit checks. |
-| `--criteria` | String | Filters by a specific exclusion criteria code (e.g., `E1`). | Optional. |
-| `--persona` | String | Filters by a specific reviewer persona (e.g., `Hamilton`). | Optional. |
+| `--collection` | String | Collection name or key | Optional. |
+| `--root` | Boolean | List top-level items not in any collection | Optional. Default: False. |
+| `--top-only` | Boolean | Only show top-level items | Optional. Default: False. |
+| `--trash` | Boolean | List items in the trash | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Verifying the final selection for a review

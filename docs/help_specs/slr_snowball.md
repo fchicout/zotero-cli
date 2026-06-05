@@ -31,12 +31,18 @@ The process follows a structured lifecycle:
 This command ensures that your review is comprehensive and captures all relevant branches of a research topic.
 
 ## 5. Parameter Matrix
-| Command | Flag | Type | Description | Ergonomic Note |
-| :--- | :--- | :--- | :--- | :--- |
-| `seed` | `--doi` | String | A starting DOI for discovery. | Can be called multiple times. |
-| `discovery`| `--workers` | Integer | Number of concurrent API workers. | Optional. |
-| `review` | `--phase` | String | Review phase identifier. | Interactive TUI. |
-| `import` | `--collection` | String | Target Zotero collection Key. | For accepted candidates. |
+| Flag / Parameter | Type | Description | Ergonomic Note |
+| :--- | :--- | :--- | :--- |
+| `--backward` | Boolean | Fetch references (CrossRef) | Optional. Default: False. |
+| `--collection` | String | Collection name or key | Optional. |
+| `--count` | Integer | Number of jobs to process | Optional. |
+| `--create` | Boolean | Create collection if missing | Optional. Default: False. |
+| `--format` | String | Export format | Optional. Default: mermaid. |
+| `--forward` | Boolean | Fetch citations (Semantic Scholar) | Optional. Default: False. |
+| `--generation` | Integer | Graph generation (Default: 1) | Optional. Default: 1. |
+| `--keys` | String | Comma-separated Zotero keys | Optional. |
+| `--output` | String | Output file path | Optional. |
+| `--target` | String | Target collection name | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Expanding a review from a single seminal paper

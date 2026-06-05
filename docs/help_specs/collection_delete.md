@@ -26,11 +26,11 @@ The `collection delete` command provides the necessary tooling for pruning unwan
 By default, the command performs a simple deletion if the collection is empty. If it contains sub-folders or items, the `--recursive` flag must be explicitly passed to confirm the removal of all underlying content. The `--version` flag is optional and can be used to ensure concurrency protection (preventing deletion if the collection has been modified since you last retrieved its metadata).
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--key` | String | Name or unique identifier (Key) of the collection to delete. | Required. Use Key for certainty. |
-| `--recursive` | Flag | Deletes the collection and all its sub-collections/items. | Required for non-empty folders. |
-| `--version` | Integer | The version identifier of the collection for synchronization. | Optional. |
+| `--key` | String | Collection name or key | Required. |
+| `--recursive` | Boolean | Delete all items and sub-collections | Optional. Default: False. |
+| `--version` | Integer | Collection version (optional if recursive) | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Cleaning up an old project

@@ -27,7 +27,8 @@ The output is a formatted table that includes:
 This command is essential for researchers who work across multiple labs or projects and need to manage several distinct Zotero libraries.
 
 ## 5. Parameter Matrix
-*This command does not accept additional parameters.*
+| Flag / Parameter | Type | Description | Ergonomic Note |
+| :--- | :--- | :--- | :--- |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Finding a lab's Group ID for a new project

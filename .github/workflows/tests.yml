@@ -42,13 +42,13 @@ jobs:
           infisical run --domain https://infisical.fchicout.dev --token "$INFISICAL_TOKEN" --env dev -- pytest tests/unit --cov=src/zotero_cli --cov-report=xml
 
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v6
+        uses: sonarsource/sonarqube-scan-action@v8
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: SonarQube Quality Gate Check
-        uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
+        uses: sonarsource/sonarqube-quality-gate-action@v2
         with:
           pollingTimeoutSec: 600
         env:

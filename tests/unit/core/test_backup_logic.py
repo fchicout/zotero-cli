@@ -145,3 +145,62 @@ def test_backup_handles_download_failures(service, mock_gateway):
         errors = zf.read("errors.log").decode("utf-8")
         assert "Failed to download attachment A1" in errors
         assert "attachments/P1/miss.pdf" not in namelist
+
+
+def test_backup_system_attachment_before_parent(service, mock_gateway):
+    # Setup
+    # An attachment is yielded BEFORE its parent item in get_all_items()
+    child_item = ZoteroItem.from_raw_zotero_item(
+        {
+            "key": "CHILD_FIRST",
+            "version": 1,
+            "data": {
+                "key": "CHILD_FIRST",
+                "itemType": "attachment",
+                "linkMode": "imported_file",
+                "filename": "first.pdf",
+                "title": "First PDF",
+                "parentItem": "PARENT_LATER",
+            },
+        }
+    )
+    parent_item = ZoteroItem.from_raw_zotero_item(
+        {
+            "key": "PARENT_LATER",
+            "version": 1,
+            "data": {"title": "Later Parent Paper", "itemType": "journalArticle"},
+        }
+    )
+
+    mock_gateway.get_all_items.return_value = iter([child_item, parent_item])
+    mock_gateway.get_all_collections.return_value = []
+    mock_gateway.get_item_children.return_value = [{"key": "CHILD_FIRST"}]
+    mock_gateway.get_item.side_effect = lambda k: child_item if k == "CHILD_FIRST" else None
+
+    # Mock successful download
+    def mock_download(key, path):
+        with open(path, "w") as f:
+            f.write("traversal order edge case")
+        return True
+
+    mock_gateway.download_attachment.side_effect = mock_download
+
+    output_buffer = BytesIO()
+
+    # Action
+    service.backup_system(output_buffer)
+
+    # Verify
+    output_buffer.seek(0)
+    with zipfile.ZipFile(output_buffer, "r") as zf:
+        namelist = zf.namelist()
+        assert "manifest.json" in namelist
+        assert "data.json" in namelist
+        assert "attachments/PARENT_LATER/first.pdf" in namelist
+
+        manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
+        file_entry = manifest["file_map"]["CHILD_FIRST"]
+        assert file_entry["path"] == "attachments/PARENT_LATER/first.pdf"
+        assert "checksum" in file_entry
+        content = zf.read("attachments/PARENT_LATER/first.pdf").decode("utf-8")
+        assert content == "traversal order edge case"

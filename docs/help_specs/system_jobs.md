@@ -30,11 +30,13 @@ The `system jobs` command is the "Worker Supervisor" for asynchronous operations
 - **`run`**: Launches the background worker that actually performs the work in the queue. This is essential for environments where a continuous background process is not already running.
 
 ## 5. Parameter Matrix
-| Command | Flag | Type | Description | Ergonomic Note |
-| :--- | :--- | :--- | :--- | :--- |
-| `list` | *None* | - | Lists all jobs. | - |
-| `retry` | `--id` | Integer | The unique identifier of the job. | Required. |
-| `run` | `--workers`| Integer | Number of concurrent worker threads. | Optional. |
+| Flag / Parameter | Type | Description | Ergonomic Note |
+| :--- | :--- | :--- | :--- |
+| `--count` | Integer | Number of jobs to process | Optional. |
+| `--limit` | Integer | Max jobs to show | Optional. Default: 50. |
+| `--type` | String | Filter by task type (Default: fetch_pdf) | Optional. Default: fetch_pdf. |
+| `--watch` | Boolean | Live progress monitor | Optional. Default: False. |
+| `id` | Integer | Job ID | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Monitoring a large snowballing discovery

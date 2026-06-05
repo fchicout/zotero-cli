@@ -98,3 +98,85 @@ async def test_process_job_item_not_found(finder_service, mock_item_repo, mock_j
     await finder_service._process_job(job)
 
     mock_job_queue.fail_job.assert_called_once_with(3, "Item MISSING not found", retry=False)
+
+
+def test_enqueue_find_pdf(finder_service, mock_job_queue):
+    mock_job_queue.enqueue.return_value = 42
+    res = finder_service.enqueue_find_pdf("ITEMKEY")
+    assert res == 42
+    mock_job_queue.enqueue.assert_called_once_with("ITEMKEY", "fetch_pdf", {})
+
+
+@pytest.mark.anyio
+async def test_process_jobs_loop(finder_service, mock_job_queue, mock_item_repo, mock_resolver):
+    # Setup job pop
+    job1 = Job(id=1, item_key="KEY1", task_type="fetch_pdf", payload={})
+    job2 = Job(id=2, item_key="KEY2", task_type="fetch_pdf", payload={})
+    mock_job_queue.pop_next_job.side_effect = [job1, job2, None]
+
+    mock_item = ZoteroItem(key="KEY1", version=1, item_type="journalArticle")
+    mock_item_repo.get_item.return_value = mock_item
+
+    # Test with count limit
+    mock_job_queue.pop_next_job.side_effect = [job1, job2, None]
+    mock_job_queue.pop_next_job.reset_mock()
+    await finder_service.process_jobs(count=1)
+    assert mock_job_queue.pop_next_job.call_count == 1
+
+    # Test no more jobs
+    mock_job_queue.pop_next_job.side_effect = [job1, job2, None]
+    mock_job_queue.pop_next_job.reset_mock()
+    await finder_service.process_jobs(count=5)
+    assert mock_job_queue.pop_next_job.call_count == 3
+
+
+@pytest.mark.anyio
+async def test_process_job_upload_failure(
+    finder_service, mock_item_repo, mock_attachment_repo, mock_resolver, mock_job_queue
+):
+    item_key = "ABC123"
+    job = Job(id=1, item_key=item_key, task_type="fetch_pdf", payload={})
+
+    mock_item = ZoteroItem(key=item_key, version=1, item_type="journalArticle")
+    mock_item_repo.get_item.return_value = mock_item
+
+    dummy_pdf = Path("test_fail.pdf")
+    dummy_pdf.write_bytes(b"%PDF-1.4")
+    mock_resolver.resolve_val = dummy_pdf
+
+    mock_attachment_repo.upload_attachment.return_value = False
+
+    await finder_service._process_job(job)
+
+    mock_job_queue.fail_job.assert_called_once_with(1, "Zotero attachment upload failed")
+    assert not dummy_pdf.exists()
+
+
+@pytest.mark.anyio
+async def test_process_job_resolver_crashes(
+    finder_service, mock_item_repo, mock_resolver, mock_job_queue
+):
+    from zotero_cli.core.interfaces import ResolutionError
+
+    item_key = "ABC123"
+    job = Job(id=1, item_key=item_key, task_type="fetch_pdf", payload={})
+
+    mock_item = ZoteroItem(key=item_key, version=1, item_type="journalArticle")
+    mock_item_repo.get_item.return_value = mock_item
+
+    # Scenario 1: ResolutionError
+    async def mock_resolve_err(item):
+        raise ResolutionError("Resolution failed")
+    mock_resolver.resolve = mock_resolve_err
+
+    await finder_service._process_job(job)
+    mock_job_queue.fail_job.assert_called_with(1, "Errors: MagicMock: Resolution failed", retry=True)
+
+    # Scenario 2: Generic Exception
+    async def mock_resolve_crash(item):
+        raise ValueError("Crashed")
+    mock_resolver.resolve = mock_resolve_crash
+
+    await finder_service._process_job(job)
+    mock_job_queue.fail_job.assert_called_with(1, "Errors: MagicMock: Unexpected error: Crashed", retry=True)
+

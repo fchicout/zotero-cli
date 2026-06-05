@@ -30,14 +30,22 @@ The `slr decide` command is the "Surgical Audit" tool for Systematic Literature 
 This command is essential for maintaining scientific rigor. It not only records the binary decision but also captures the **Reviewer Persona**, the **Review Phase** (e.g., Title/Abstract, Full-Text), and the specific **Exclusion Code** or rationale. This metadata is stored as a persistent child note on the Zotero item, creating an immutable history of why every paper was chosen or rejected. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--key` | String | Unique Zotero Item Key (e.g., `ABCD1234`). | Required. |
-| `--vote`| Choice | `INCLUDE` or `EXCLUDE`. | Required. |
-| `--code`| String | Exclusion criteria code (e.g., `E1`, `E2`). | Required for `EXCLUDE`. |
-| `--phase`| String | The current review stage (e.g., `Title_Abstract`). | Recommended. |
-| `--persona`| String | The name of the reviewer. | Recommended. |
-| `--target` | String | Move item to this collection after decision. | Optional automation. |
+| `--agent-led` | Boolean | Run in Agent-led mode | Optional. Default: False. |
+| `--code` | String | Reason code (required for EXCLUDE) | Optional. |
+| `--evidence` | String | Evidence text for decision | Optional. |
+| `--is-survey` | String | Exclusion code for surveys/SLRs | Optional. |
+| `--key` | String | Item Key | Required. |
+| `--no-pdf` | String | Exclusion code for missing PDFs | Optional. |
+| `--not-english` | String | Exclusion code for non-English papers | Optional. |
+| `--persona` | String | Reviewer persona | Optional. |
+| `--phase` | String | Review phase | Optional. Default: title_abstract. |
+| `--reason` | String | Detailed reason text | Optional. |
+| `--short-paper` | String | Exclusion code for short papers | Optional. |
+| `--source` | String | Source collection | Optional. |
+| `--target` | String | Target collection | Optional. |
+| `--vote` | String | Screening decision | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Excluding a survey paper during review

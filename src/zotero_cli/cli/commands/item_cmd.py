@@ -225,6 +225,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         list_p.add_argument("--collection", help="Collection name or key")
         list_p.add_argument("--trash", action="store_true", help="List items in the trash")
+        list_p.add_argument(
+            "--root", action="store_true", help="List top-level items not in any collection"
+        )
         list_p.add_argument("--top-only", action="store_true", help="Only show top-level items")
 
         # Update
@@ -530,9 +533,12 @@ Cognitive Safeguards
         if getattr(args, "trash", False):
             items = list(gateway.get_trash_items())
             title = "Trash Items"
+        elif getattr(args, "root", False):
+            items = list(gateway.get_orphan_items(top_only=getattr(args, "top_only", False)))
+            title = "Root/Orphan Items (unfiled)"
         else:
             if not getattr(args, "collection", None):
-                console.print("[red]Error: --collection required for non-trash listings.[/red]")
+                console.print("[red]Error: --collection or --root required for non-trash listings.[/red]")
                 return
             col_id = gateway.get_collection_id_by_name(args.collection)
             if not col_id:
