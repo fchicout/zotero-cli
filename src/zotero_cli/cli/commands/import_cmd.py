@@ -8,10 +8,17 @@ from zotero_cli.infra.factory import GatewayFactory
 
 @CommandRegistry.register
 class ImportCommand(BaseCommand):
+    """
+    CLI Command handler for importing research papers from various sources.
+    Supports importing from local files (RIS, BibTeX, CSV), arXiv queries, BDTD Brazil database, DOIs, and manual entry.
+    """
     name = "import"
     help = "Import papers from various sources"
 
     def register_args(self, parser: argparse.ArgumentParser):
+        """
+        Registers argument subparsers for files, arXiv, DOI, BDTD, and manual imports.
+        """
         sub = parser.add_subparsers(dest="import_type", required=True)
 
         # File
@@ -152,6 +159,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         man_p.add_argument("--collection", required=True)
 
     def execute(self, args: argparse.Namespace):
+        """
+        Routes and executes the import logic based on the user-selected import source type.
+        """
         import_service = GatewayFactory.get_import_service(force_user=getattr(args, "user", False))
 
         if args.import_type == "file":

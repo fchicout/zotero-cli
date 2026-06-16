@@ -126,7 +126,9 @@ class SqliteZoteroGateway(ZoteroGateway):
                 return str(c["key"])
         return None
 
-    def _fetch_items_with_filter(self, filter_sql: str = "", params: tuple = ()) -> Iterator[ZoteroItem]:
+    def _fetch_items_with_filter(
+        self, filter_sql: str = "", params: tuple = ()
+    ) -> Iterator[ZoteroItem]:
         conn = self._get_connection()
         try:
             query_sql = f"""
@@ -204,9 +206,9 @@ class SqliteZoteroGateway(ZoteroGateway):
     ) -> Iterator[ZoteroItem]:
         filter_sql = """
             AND i.itemID IN (
-                SELECT ci.itemID 
-                FROM collectionItems ci 
-                JOIN collections c ON ci.collectionID = c.collectionID 
+                SELECT ci.itemID
+                FROM collectionItems ci
+                JOIN collections c ON ci.collectionID = c.collectionID
                 WHERE c.key = ?
             )
         """
@@ -304,9 +306,9 @@ class SqliteZoteroGateway(ZoteroGateway):
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
         filter_sql = """
             AND i.itemID IN (
-                SELECT itg.itemID 
-                FROM itemTags itg 
-                JOIN tags t ON itg.tagID = t.tagID 
+                SELECT itg.itemID
+                FROM itemTags itg
+                JOIN tags t ON itg.tagID = t.tagID
                 WHERE t.name = ?
             )
         """
