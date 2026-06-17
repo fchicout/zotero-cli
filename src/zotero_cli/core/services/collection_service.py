@@ -260,11 +260,10 @@ class CollectionService:
         for item in secondary_items:
             is_duplicate = False
 
-            # Check for duplicate item by key, DOI, or ArXiv ID
             is_duplicate = (
                 item.key in primary_keys
-                or (item.doi and self._normalize_id(item.doi) in primary_identifiers)
-                or (item.arxiv_id and self._normalize_id(item.arxiv_id) in primary_identifiers)
+                or bool(item.doi and self._normalize_id(item.doi) in primary_identifiers)
+                or bool(item.arxiv_id and self._normalize_id(item.arxiv_id) in primary_identifiers)
             )
 
             if is_duplicate:
