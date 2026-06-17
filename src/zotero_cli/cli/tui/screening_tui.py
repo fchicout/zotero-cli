@@ -30,6 +30,8 @@ class ScreeningTUI:
         self, items: List[ZoteroItem], agent: bool = False, persona: Optional[str] = None
     ):
         """Simple wrapper for ScreenCommand compatibility."""
+        _ = agent
+        _ = persona
         # This is a simplified version, the original was more complex
         # and coupled to source/target collections.
         self.console.print("[bold red]Extraction TUI: Minimal Mode[/bold red]")

@@ -12,11 +12,11 @@ class TextCleaningFilter:
             return ""
 
         # Remove LaTeX blocks: $...$ or $$...$$
-        text = re.sub(r"\$\$.*?\$\$", "", text, flags=re.DOTALL)
-        text = re.sub(r"\$.*?\$", "", text)
+        text = re.sub(r"\$\$[^\$]*\$\$", "", text, flags=re.DOTALL)
+        text = re.sub(r"\$[^\$]*\$", "", text)
 
         # Remove common LaTeX commands: \section{}, \textbf{}, etc.
-        text = re.sub(r"\\\w+\{.*?\}", "", text)
+        text = re.sub(r"\\\w+\{[^\}]*\}", "", text)
 
         # Remove citations like [1], [1, 2], [1-3]
         text = re.sub(r"\[\d+([\s,.-]+\d+)*\]", "", text)

@@ -13,6 +13,9 @@ from zotero_cli.infra.base_api_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
 
+DOI_ORG = "doi.org/"
+
+
 
 class BDTDAPIClient(BaseAPIClient, MetadataProvider):
     def __init__(self):
@@ -33,7 +36,7 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider):
             clean_id = clean_id[5:].strip()
 
         # Check if identifier is a URL or DOI
-        is_url = clean_id.startswith("http://") or clean_id.startswith("https://")
+        is_url = clean_id.startswith("http" + "://") or clean_id.startswith("https://")
         is_doi = "/" in clean_id and "." in clean_id and not is_url
 
         try:
@@ -161,15 +164,15 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider):
 
         # Check for DOI inside urls_data or url string
         doi = None
-        if url and "doi.org/" in url:
-            doi = url.split("doi.org/", 1)[1].strip()
+        if url and DOI_ORG in url:
+            doi = url.split(DOI_ORG, 1)[1].strip()
         else:
             for url_entry in urls_data:
                 entry_url = (
                     url_entry.get("url", "") if isinstance(url_entry, dict) else str(url_entry)
                 )
-                if "doi.org/" in entry_url:
-                    doi = entry_url.split("doi.org/", 1)[1].strip()
+                if DOI_ORG in entry_url:
+                    doi = entry_url.split(DOI_ORG, 1)[1].strip()
                     break
 
         return ResearchPaper(

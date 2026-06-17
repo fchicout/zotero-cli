@@ -42,16 +42,16 @@ class OpenAlexResolver(PDFResolver):
             # But the existing code used await self.gateway.get(pdf_url).
             # Let's keep it consistent with other resolvers if they use gateway.
 
-            # Actually, the blueprint says "use the new OpenAlexAPIClient instead of making direct raw requests".
-            # I'll use requests here for the binary download as the client is for metadata.
-
-            response = requests.get(pdf_url, timeout=30)
-            response.raise_for_status()
+            import httpx
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+                response = await client.get(pdf_url)
+                response.raise_for_status()
+                response_content = response.content
 
             # Save to temp file
             temp_dir = Path(tempfile.gettempdir())
             dest = temp_dir / f"openalex_{item.key}.pdf"
-            dest.write_bytes(response.content)
+            dest.write_bytes(response_content)
 
             return dest
         except Exception as e:

@@ -203,15 +203,17 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
                     reason = row.get("Reason", "")
                     if not key or not vote:
                         continue
+                    target_coll = None
+                    if hasattr(args, "include"):
+                        target_coll = args.include if vote == "INCLUDE" else args.exclude
+
                     if service.record_decision(
                         item_key=key,
                         decision=vote,
                         code="bulk",
                         reason=reason,
                         source_collection=args.source if hasattr(args, "source") else None,
-                        target_collection=(args.include if vote == "INCLUDE" else args.exclude)
-                        if hasattr(args, "include")
-                        else None,
+                        target_collection=target_coll,
                     ):
                         success_count += 1
                     else:

@@ -187,7 +187,7 @@ class CollectionService:
     def empty_collection(
         self,
         collection_name: str,
-        verbose: bool = False,
+        _verbose: bool = False,
         parent_collection_name: Optional[str] = None,
     ) -> int:
         """
@@ -260,15 +260,12 @@ class CollectionService:
         for item in secondary_items:
             is_duplicate = False
 
-            # Match by Key (Shared object)
-            if item.key in primary_keys:
-                is_duplicate = True
-            # Match by DOI
-            elif item.doi and self._normalize_id(item.doi) in primary_identifiers:
-                is_duplicate = True
-            # Match by ArXiv
-            elif item.arxiv_id and self._normalize_id(item.arxiv_id) in primary_identifiers:
-                is_duplicate = True
+            # Check for duplicate item by key, DOI, or ArXiv ID
+            is_duplicate = (
+                item.key in primary_keys
+                or (item.doi and self._normalize_id(item.doi) in primary_identifiers)
+                or (item.arxiv_id and self._normalize_id(item.arxiv_id) in primary_identifiers)
+            )
 
             if is_duplicate:
                 # ACTION: Remove from secondary

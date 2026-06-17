@@ -137,7 +137,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             table.add_row(d["title"] or "No Title", d["doi"] or "N/A", ", ".join(d["keys"]))
         console.print(table)
 
-    def _handle_audit(self, gateway, args: argparse.Namespace):
+    def _handle_audit(self, _gateway, args: argparse.Namespace):
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_integrity_service(force_user=force_user)
         console.print(f"[bold green]Auditing collection: {args.collection}...[/bold green]")
@@ -192,7 +192,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
 
             if missing_keys:
                 with open(args.export_missing, "w", encoding="utf-8") as f:
-                    for key in sorted(list(missing_keys)):
+                    for key in sorted(missing_keys):
                         f.write(f"{key}\n")
                 console.print(
                     f"[green]Exported {len(missing_keys)} missing item keys to {args.export_missing}[/green]"

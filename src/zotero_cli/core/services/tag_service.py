@@ -14,7 +14,7 @@ class TagService:
         """Returns a list of all unique tags in the library."""
         return self.gateway.get_tags()
 
-    def add_tags_to_item(self, item_key: str, item: ZoteroItem, tags_to_add: List[str]) -> bool:
+    def add_tags_to_item(self, _item_key: str, item: ZoteroItem, tags_to_add: List[str]) -> bool:
         """
         Adds tags to an item. Preserves existing tags.
         """
@@ -29,7 +29,7 @@ class TagService:
         return self._update_tags(item.key, item.version, updated_tags)
 
     def remove_tags_from_item(
-        self, item_key: str, item: ZoteroItem, tags_to_remove: List[str]
+        self, _item_key: str, item: ZoteroItem, tags_to_remove: List[str]
     ) -> bool:
         """
         Removes specific tags from an item.

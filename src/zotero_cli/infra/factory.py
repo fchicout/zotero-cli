@@ -28,7 +28,7 @@ from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient
 from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
 from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
 from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
-from zotero_cli.infra.zbmath_api import zbMATHAPIClient
+from zotero_cli.infra.zbmath_api import ZBMathAPIClient
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
 if TYPE_CHECKING:
@@ -211,8 +211,8 @@ class GatewayFactory:
         return PubMedAPIClient(api_key=config.ncbi_api_key)
 
     @staticmethod
-    def get_zbmath_client() -> zbMATHAPIClient:
-        return zbMATHAPIClient()
+    def get_zbmath_client() -> ZBMathAPIClient:
+        return ZBMathAPIClient()
 
     @staticmethod
     def get_eric_client() -> ERICAPIClient:
@@ -526,11 +526,6 @@ class GatewayFactory:
 
     @staticmethod
     def get_job_queue_service(config: Optional[ZoteroConfig] = None) -> "JobQueueService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
-
         # Decouple from Zotero's main DB. Store jobs in the config directory.
         from zotero_cli.core.config import get_config_path
 

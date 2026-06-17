@@ -14,6 +14,9 @@ from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
+COLLECTION_NAME_OR_KEY_HELP = "Collection name or key"
+
+
 
 class SLRReportCommand:
     """
@@ -31,7 +34,7 @@ class SLRReportCommand:
             description="Scans SLR collections to report screening progress."
         )
         status_group = status_p.add_mutually_exclusive_group(required=True)
-        status_group.add_argument("--collection", help="Collection name or key")
+        status_group.add_argument("--collection", help=COLLECTION_NAME_OR_KEY_HELP)
         status_group.add_argument(
             "--all-sources",
             action="store_true",
@@ -44,7 +47,7 @@ class SLRReportCommand:
             help="Generate PRISMA flow diagram",
             description="Generates PRISMA flow diagram data and flowchart image for a collection."
         )
-        prisma_p.add_argument("--collection", required=True, help="Collection name or key")
+        prisma_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         prisma_p.add_argument("--output-chart", help="Path to save flowchart image (uses mmdc)")
         prisma_p.add_argument("--verbose", action="store_true", help="Verbose details")
 
@@ -71,7 +74,7 @@ class SLRReportCommand:
             help="Create a frozen JSON audit trail snapshot of a collection",
             description="Generates a machine-readable JSON freeze snapshot of a collection including all SDB decisions."
         )
-        snap_p.add_argument("--collection", required=True, help="Collection name or key")
+        snap_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         snap_p.add_argument("--output", required=True, help="Output JSON path")
 
         # slr report screening
@@ -80,7 +83,7 @@ class SLRReportCommand:
             help="Generate Markdown Screening Report",
             description="Generates human-readable Markdown summary of screening phase decisions."
         )
-        screen_p.add_argument("--collection", required=True, help="Collection name or key")
+        screen_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         screen_p.add_argument("--output", required=True, help="Output Markdown path")
 
         # slr report exclusion-summary [NEW]
@@ -89,7 +92,7 @@ class SLRReportCommand:
             help="Summarize rejection reason codes and percentages",
             description="Aggregates and reports counts and percentages for rejection reason codes across screened papers."
         )
-        excl_p.add_argument("--collection", required=True, help="Collection name or key")
+        excl_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
 
         # slr report consensus [NEW]
         cons_p = sub.add_parser(
@@ -97,7 +100,7 @@ class SLRReportCommand:
             help="Double-screening consensus and conflict report",
             description="Finds and highlights discrepancies/conflicts in items screened by multiple reviewers."
         )
-        cons_p.add_argument("--collection", required=True, help="Collection name or key")
+        cons_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
 
     @staticmethod
     def execute(gateway, args: argparse.Namespace):

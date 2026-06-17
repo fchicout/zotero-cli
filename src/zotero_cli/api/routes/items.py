@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -11,11 +11,11 @@ router = APIRouter(prefix="/items", tags=["items"])
 
 @router.get("", response_model=List[dict])
 async def list_items(
-    q: Optional[str] = Query(None, description="Search query"),
-    limit: int = Query(25, ge=1, le=100),
-    sort: str = Query("date", description="Sort field"),
-    direction: str = Query("desc", description="Sort direction (asc/desc)"),
-    gateway: ZoteroGateway = Depends(get_gateway),
+    gateway: Annotated[ZoteroGateway, Depends(get_gateway)],
+    q: Annotated[Optional[str], Query(description="Search query")] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    sort: Annotated[str, Query(description="Sort field")] = "date",
+    direction: Annotated[str, Query(description="Sort direction (asc/desc)")] = "desc",
 ):
     query = ZoteroQuery(q=q, sort=sort, direction=direction)
     # Zotero API search pagination is tricky with search_items generator.
@@ -54,10 +54,10 @@ async def list_items(
     return items
 
 
-@router.get("/{key}", response_model=dict)
+@router.get("/{key}", response_model=dict, responses={404: {"description": "Item not found"}})
 async def get_item(
     key: str,
-    gateway: ZoteroGateway = Depends(get_gateway),
+    gateway: Annotated[ZoteroGateway, Depends(get_gateway)],
 ):
     item = gateway.get_item(key)
     if not item:

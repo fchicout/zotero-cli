@@ -2,12 +2,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zotero_cli.infra.zbmath_api import zbMATHAPIClient
+from zotero_cli.infra.zbmath_api import ZBMathAPIClient
 
 
 @pytest.fixture
 def client():
-    return zbMATHAPIClient()
+    return ZBMathAPIClient()
 
 
 def test_map_to_research_paper(client):

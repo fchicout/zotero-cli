@@ -26,7 +26,7 @@ class BackupService:
     def backup_collection(
         self,
         collection_key: str,
-        output: Union[str, IO[bytes]],
+        output: str | IO[bytes],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
     ):
         """
@@ -55,7 +55,7 @@ class BackupService:
 
     def backup_system(
         self,
-        output: Union[str, IO[bytes]],
+        output: str | IO[bytes],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
     ):
         """
@@ -75,7 +75,7 @@ class BackupService:
 
     def _write_zip(
         self,
-        output: Union[str, IO[bytes]],
+        output: str | IO[bytes],
         manifest: dict,
         items: List[ZoteroItem],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,

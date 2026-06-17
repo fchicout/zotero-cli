@@ -49,7 +49,7 @@ class MarkdownRecursiveSplitter(TextSplitter):
 
     def __init__(self, chunk_size: int = 1500):
         self.chunk_size = chunk_size
-        self.header_regex = re.compile(r"^(#{1,6})\s+(.*)$", re.MULTILINE)
+        self.header_regex = re.compile(r"^(#{1,6})\s+([^\r\n]*)$", re.MULTILINE)
 
     def split_text(self, text: str, context_title: Optional[str] = None) -> List[str]:
         if not text:

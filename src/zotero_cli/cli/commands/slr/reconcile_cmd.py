@@ -157,8 +157,6 @@ class ReconcileCommand:
                         orchestrator.reconcile_qa_audit(p.key, args.qa_threshold, "rejected")
 
                     success_count += 1
-                else:
-                    pass
 
         console.print(
             f"\n[bold green]RECONCILE COMPLETE:[/bold green] {success_count} items synchronized."

@@ -11,9 +11,6 @@ logger = logging.getLogger(__name__)
 class TransferService:
     """Service for moving items between different Zotero libraries."""
 
-    def __init__(self):
-        pass
-
     def transfer_item(
         self,
         item_key: str,

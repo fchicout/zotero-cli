@@ -65,9 +65,8 @@ class BibtexLibGateway(BibtexGateway):
 
         # ArXiv ID
         arxiv_id = None
-        if entry.get("archiveprefix", "").lower() == "arxiv":
-            arxiv_id = entry.get("eprint")
-        elif entry.get("archivePrefix", "").lower() == "arxiv":
+        archive_prefix = entry.get("archiveprefix") or entry.get("archivePrefix") or ""
+        if archive_prefix.lower() == "arxiv":
             arxiv_id = entry.get("eprint")
 
         return ResearchPaper(

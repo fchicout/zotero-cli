@@ -10,7 +10,7 @@ from zotero_cli.infra.base_api_client import BaseAPIClient
 logger = logging.getLogger(__name__)
 
 
-class zbMATHAPIClient(BaseAPIClient, MetadataProvider):
+class ZBMathAPIClient(BaseAPIClient, MetadataProvider):
     def __init__(self):
         # zbMATH base URL
         base_url = "https://api.zbmath.org/v1"

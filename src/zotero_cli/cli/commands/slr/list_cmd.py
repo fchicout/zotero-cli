@@ -7,6 +7,11 @@ from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
+FILTER_TREE_HELP = "Filter by root collection name or key"
+BOLD_MAGENTA = "bold magenta"
+SCORE_REASON = "Score/Reason"
+
+
 
 class ListCommand:
     """
@@ -42,7 +47,7 @@ Cognitive Safeguards:
 
         # Included
         included_p = sub.add_parser("included", help="List items with 'Accepted' audit notes")
-        included_p.add_argument("--tree", help="Filter by root collection name or key")
+        included_p.add_argument("--tree", help=FILTER_TREE_HELP)
         included_p.add_argument(
             "--ta", action="store_true", help="Filter for Title & Abstract phase"
         )
@@ -59,7 +64,7 @@ Cognitive Safeguards:
 
         # Excluded
         excluded_p = sub.add_parser("excluded", help="List items with 'Rejected' audit notes")
-        excluded_p.add_argument("--tree", help="Filter by root collection name or key")
+        excluded_p.add_argument("--tree", help=FILTER_TREE_HELP)
         excluded_p.add_argument(
             "--ta", action="store_true", help="Filter for Title & Abstract phase"
         )
@@ -76,7 +81,7 @@ Cognitive Safeguards:
 
         # QA-Approved
         qa_p = sub.add_parser("qa-approved", help="List items approved after Quality Assessment")
-        qa_p.add_argument("--tree", help="Filter by root collection name or key")
+        qa_p.add_argument("--tree", help=FILTER_TREE_HELP)
         qa_p.add_argument("--csv", help="Export to CSV file")
         qa_p.add_argument("--json", help="Export to JSON file")
         qa_p.add_argument("--xlsx", help="Export to XLSX file")
@@ -118,7 +123,7 @@ Cognitive Safeguards:
 
         # Console output if no export or alongside export
         if not (args.csv or args.json or args.xlsx or args.ods):
-            table = Table(title="QA-Approved SLR Items", show_header=True, header_style="bold magenta")
+            table = Table(title="QA-Approved SLR Items", show_header=True, header_style=BOLD_MAGENTA)
             table.add_column("Key", style="dim")
             table.add_column("Source", style="blue")
             table.add_column("Score", style="green")
@@ -140,7 +145,7 @@ Cognitive Safeguards:
 
         with open(filename, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["Key", "Title", "Source", "Score/Reason"])
+            writer.writerow(["Key", "Title", "Source", SCORE_REASON])
             for item in items:
                 writer.writerow([item.item_key, item.title, item.source_collection, item.reason])
         console.print(f"[green]Successfully exported to CSV: {filename}[/green]")
@@ -170,7 +175,7 @@ Cognitive Safeguards:
             wb = Workbook()
             ws = wb.active
             ws.title = "QA-Approved"
-            ws.append(["Key", "Title", "Source", "Score/Reason"])
+            ws.append(["Key", "Title", "Source", SCORE_REASON])
             for item in items:
                 ws.append([item.item_key, item.title, item.source_collection, item.reason])
             wb.save(filename)
@@ -193,7 +198,7 @@ Cognitive Safeguards:
             # Header
             tr = TableRow()
             table.addElement(tr)
-            for header in ["Key", "Title", "Source", "Score/Reason"]:
+            for header in ["Key", "Title", "Source", SCORE_REASON]:
                 tc = TableCell()
                 tc.addElement(P(text=header))
                 tr.addElement(tc)
@@ -223,7 +228,7 @@ Cognitive Safeguards:
             console.print("[bold green]No pending papers found![/bold green]")
             return
 
-        table = Table(title="Pending SLR Items", show_header=True, header_style="bold magenta")
+        table = Table(title="Pending SLR Items", show_header=True, header_style=BOLD_MAGENTA)
         table.add_column("Key", style="dim")
         table.add_column("Phase", style="cyan")
         table.add_column("Source", style="blue")
@@ -266,7 +271,7 @@ Cognitive Safeguards:
         if phase_filter:
             title += f" ({phase_filter})"
 
-        table = Table(title=title, show_header=True, header_style="bold magenta")
+        table = Table(title=title, show_header=True, header_style=BOLD_MAGENTA)
         table.add_column("Key", style="dim")
         table.add_column("Phase", style="cyan")
         table.add_column("Source", style="blue")

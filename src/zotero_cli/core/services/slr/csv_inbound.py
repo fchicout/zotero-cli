@@ -170,7 +170,7 @@ class CSVInboundService:
         return results
 
     def _load_csv(
-        self, path: str, actual_map: Dict[str, str], user_map: Optional[Dict[str, str]]
+        self, path: str, _actual_map: Dict[str, str], user_map: Optional[Dict[str, str]]
     ) -> Any:
         try:
             with open(path, "r", encoding="utf-8-sig") as f:
@@ -256,6 +256,11 @@ class CSVInboundService:
     def _handle_movement(
         self, key: str, decision: str, inc: Optional[str], excl: Optional[str], svc: Any
     ):
-        target = inc if decision == "accepted" else (excl if decision == "rejected" else None)
+        if decision == "accepted":
+            target = inc
+        elif decision == "rejected":
+            target = excl
+        else:
+            target = None
         if target and svc:
             svc.move_item(source_col_name=None, dest_col_name=target, identifier=key)

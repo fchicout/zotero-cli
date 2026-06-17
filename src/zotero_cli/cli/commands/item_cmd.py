@@ -11,6 +11,9 @@ from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
+ITEM_KEY_HELP = "Item Key"
+
+
 
 class InspectCommand(BaseCommand):
     name = "inspect"
@@ -252,7 +255,7 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_update.md
 """,
         )
-        update_p.add_argument("--key", required=True, help="Item Key")
+        update_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         update_p.add_argument("--doi", help="Update DOI")
         update_p.add_argument("--title", help="Update Title")
         update_p.add_argument("--abstract", help="Update Abstract")
@@ -285,7 +288,7 @@ Cognitive Safeguards
 • Safety Tips: Use fetch as your first attempt for mass metadata enrichment.
 """,
         )
-        fetch_p.add_argument("--key", help="Item Key")
+        fetch_p.add_argument("--key", help=ITEM_KEY_HELP)
         fetch_p.add_argument("--collection", help="Fetch PDFs for all items in a collection")
         fetch_p.add_argument("--file", help="Fetch PDFs for all items in a key-list file")
         fetch_p.add_argument("--verbose", action="store_true")
@@ -301,7 +304,7 @@ Cognitive Safeguards
 • Common Failure Modes: strip is irreversible and will permanently delete files from your Zotero storage.
 """,
         )
-        strip_p.add_argument("--key", required=True, help="Item Key")
+        strip_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         strip_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
         strip_p.add_argument("--verbose", action="store_true")
 
@@ -323,7 +326,7 @@ Cognitive Safeguards
 • Common Failure Modes: Attaching a file that is too large for your Zotero storage quota.
 """,
         )
-        attach_p.add_argument("--key", required=True, help="Item Key")
+        attach_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         attach_p.add_argument("--file", required=True, help="Path to local file")
 
         # Hydrate
@@ -348,7 +351,7 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_hydrate.md
 """,
         )
-        hydrate_p.add_argument("--key", help="Item Key")
+        hydrate_p.add_argument("--key", help=ITEM_KEY_HELP)
         hydrate_p.add_argument("--collection", help="Hydrate all items in a collection")
         hydrate_p.add_argument(
             "--all", action="store_true", help="Scan entire library for hydration"
@@ -379,7 +382,7 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_purge.md
 """,
         )
-        purge_p.add_argument("--key", required=True, help="Item Key")
+        purge_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
         purge_p.add_argument("--notes", action="store_true", help="Purge notes")
         purge_p.add_argument("--tags", action="store_true", help="Purge tags")
@@ -437,7 +440,7 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_export.md
 """,
         )
-        export_p.add_argument("--key", required=True, help="Item Key")
+        export_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         export_p.add_argument(
             "--format", default="bibtex", choices=["bibtex", "ris", "md"], help="Export format"
         )
@@ -496,7 +499,7 @@ Cognitive Safeguards
 • Safety Tips: Ensure you have enough disk space for the generated audio.
 """,
         )
-        speech_p.add_argument("--key", required=True, help="Item Key")
+        speech_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         speech_p.add_argument("--output", required=True, help="Output audio file path (.wav)")
         speech_p.add_argument("--voice", help="Override default voice")
 

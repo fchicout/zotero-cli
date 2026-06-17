@@ -12,6 +12,9 @@ from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
+COLLECTION_NAME_OR_KEY_HELP = "Collection name or key"
+
+
 
 @CommandRegistry.register
 class CollectionCommand(BaseCommand):
@@ -92,7 +95,7 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_delete.md
 """,
         )
-        delete_p.add_argument("--key", required=True, help="Collection name or key")
+        delete_p.add_argument("--key", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         delete_p.add_argument(
             "--version", type=int, help="Collection version (optional if recursive)"
         )
@@ -148,7 +151,7 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_clean.md
 """,
         )
-        clean_p.add_argument("--collection", required=True, help="Collection name or key")
+        clean_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         clean_p.add_argument("--verbose", action="store_true")
 
 
@@ -175,7 +178,7 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_backup.md
 """,
         )
-        backup_p.add_argument("--name", required=True, help="Collection name or key")
+        backup_p.add_argument("--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         backup_p.add_argument("--output", required=True, help="Output file path")
 
         # Export
@@ -200,7 +203,7 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_export.md
 """,
         )
-        export_p.add_argument("--name", required=True, help="Collection name or key")
+        export_p.add_argument("--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         export_p.add_argument(
             "--format", default="bibtex", choices=["bibtex", "ris", "md"], help="Export format"
         )
