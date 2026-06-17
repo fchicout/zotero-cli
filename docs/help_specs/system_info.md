@@ -24,7 +24,8 @@ The `system info` command is the "Diagnostic Dashboard" for the CLI. It provides
 This command is essential for troubleshooting. It verifies that your API key is valid, shows you which Zotero library (Personal or Group) is currently active, and lists the filesystem paths used for storage and local caching. It also reports on the version of the CLI and the underlying Python environment, making it the first command you should run if you encounter unexpected behavior.
 
 ## 5. Parameter Matrix
-*This command does not accept additional parameters.*
+| Flag / Parameter | Type | Description | Ergonomic Note |
+| :--- | :--- | :--- | :--- |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Verifying which Zotero group is active

@@ -26,7 +26,9 @@ The output is presented as a formatted table that includes:
 - **Version:** The synchronization version (useful for debugging cache issues).
 
 ## 5. Parameter Matrix
-*This command does not currently accept additional parameters.*
+| Flag / Parameter | Type | Description | Ergonomic Note |
+| :--- | :--- | :--- | :--- |
+| `--table` | Boolean | Display results as a flat table instead of a tree | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Finding a collection key for a new task

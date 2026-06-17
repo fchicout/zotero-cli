@@ -60,8 +60,14 @@ async def test_openalex_resolver_success(zotero_item):
     mock_pdf_response = MagicMock()
     mock_pdf_response.content = b"%PDF-1.4 test alex"
     mock_pdf_response.status_code = 200
+    mock_pdf_response.raise_for_status = MagicMock()
 
-    with patch("requests.get", return_value=mock_pdf_response):
+    mock_client_instance = MagicMock()
+    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = AsyncMock()
+    mock_client_instance.get = AsyncMock(return_value=mock_pdf_response)
+
+    with patch("httpx.AsyncClient", return_value=mock_client_instance):
         result = await resolver.resolve(zotero_item)
 
     assert isinstance(result, Path)

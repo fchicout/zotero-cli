@@ -66,10 +66,6 @@ class BaseAPIClient(ABC):
         else:
             url = f"{self.base_url}/{endpoint.lstrip('/')}" if endpoint else self.base_url
 
-        try:
-            response = self.session.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            return response
-        except requests.exceptions.HTTPError as e:
-            # We re-raise to let the caller decide if 404 is None or Error
-            raise e
+        response = self.session.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        return response

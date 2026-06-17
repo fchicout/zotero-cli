@@ -30,12 +30,13 @@ The `item pdf` command is a versatile tool for handling individual file attachme
 - **`attach`**: Manually uploads a local file from your computer and links it as a child attachment to the item in Zotero. 
 
 ## 5. Parameter Matrix
-| Command | Flag | Type | Description | Ergonomic Note |
-| :--- | :--- | :--- | :--- | :--- |
-| `fetch` | `key` | String | Unique Zotero Item Key (e.g., `ABCD1234`). | Required. |
-| `strip` | `key` | String | Unique Zotero Item Key (e.g., `ABCD1234`). | Required. |
-| `attach` | `key` | String | Unique Zotero Item Key (e.g., `ABCD1234`). | Required. |
-| `attach` | `--file` | Path | Local path to the PDF to be attached. | Required. |
+| Flag / Parameter | Type | Description | Ergonomic Note |
+| :--- | :--- | :--- | :--- |
+| `--collection` | String | Fetch PDFs for all items in a collection | Optional. |
+| `--execute` | Boolean | Actually perform deletions | Optional. Default: False. |
+| `--file` | String | Path to local file | Required. |
+| `--key` | String | Item Key | Required. |
+| `--verbose` | Boolean | N/A | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Manually attaching a downloaded paper

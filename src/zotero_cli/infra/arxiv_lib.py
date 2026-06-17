@@ -40,8 +40,8 @@ class ArxivLibGateway(ArxivGateway):
             query=query, max_results=max_results, sort_by=criterion, sort_order=order
         )
 
-        # Use the arxiv Client to execute the search
-        client = arxiv.Client()
+        # Use the arxiv Client to execute the search with robust retries
+        client = arxiv.Client(num_retries=10, delay_seconds=5.0)
 
         results = client.results(search)
 

@@ -3,6 +3,8 @@ from typing import Dict, List, Optional
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 
+OFFLINE_ERROR_MSG = "Offline Veto: PurgeService cannot execute in offline mode."
+
 
 class PurgeService:
     """
@@ -22,7 +24,7 @@ class PurgeService:
     def purge_attachments(self, item_keys: List[str], dry_run: bool = True) -> Dict[str, int]:
         """Deletes all attachments for the given parent item keys."""
         if self._is_offline():
-            raise RuntimeError("Offline Veto: PurgeService cannot execute in offline mode.")
+            raise RuntimeError(OFFLINE_ERROR_MSG)
 
         stats = {"deleted": 0, "skipped": 0, "errors": 0}
 
@@ -58,7 +60,7 @@ class PurgeService:
         Supports filtering for SDB notes, specific screening phases, and personas.
         """
         if self._is_offline():
-            raise RuntimeError("Offline Veto: PurgeService cannot execute in offline mode.")
+            raise RuntimeError(OFFLINE_ERROR_MSG)
 
         stats = {"deleted": 0, "skipped": 0, "errors": 0}
 
@@ -100,7 +102,7 @@ class PurgeService:
         If tag_name is None, removes all tags.
         """
         if self._is_offline():
-            raise RuntimeError("Offline Veto: PurgeService cannot execute in offline mode.")
+            raise RuntimeError(OFFLINE_ERROR_MSG)
 
         stats = {"deleted": 0, "skipped": 0, "errors": 0}
 

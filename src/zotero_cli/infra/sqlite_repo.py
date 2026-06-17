@@ -16,6 +16,9 @@ class ConfigurationError(Exception):
     pass
 
 
+OFFLINE_READ_ONLY = "Offline mode is read-only"
+
+
 class SqliteZoteroGateway(ZoteroGateway):
     """
     Read-only implementation of ZoteroGateway using local zotero.sqlite.
@@ -62,6 +65,7 @@ class SqliteZoteroGateway(ZoteroGateway):
                 "key": row_dict["key"],
                 "version": row_dict["version"],
                 "itemType": row_dict["typeName"],
+                "parentItem": row_dict.get("parentKey"),
                 "title": row_dict.get("title") or "",
                 "abstractNote": row_dict.get("abstractNote") or "",
                 "date": row_dict.get("date") or "",
@@ -125,11 +129,14 @@ class SqliteZoteroGateway(ZoteroGateway):
                 return str(c["key"])
         return None
 
-    def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
+    def _fetch_items_with_filter(
+        self, filter_sql: str = "", params: tuple = ()
+    ) -> Iterator[ZoteroItem]:
         conn = self._get_connection()
         try:
-            query_sql = """
+            query_sql = f"""
                 SELECT i.key, i.version, i.libraryID, it.typeName,
+                       (SELECT key FROM items WHERE itemID = i.parentItemID) as parentKey,
                        MAX(CASE WHEN f.fieldName = 'title' THEN dv.value END) as title,
                        MAX(CASE WHEN f.fieldName = 'abstractNote' THEN dv.value END) as abstractNote,
                        MAX(CASE WHEN f.fieldName = 'date' THEN dv.value END) as date,
@@ -142,9 +149,10 @@ class SqliteZoteroGateway(ZoteroGateway):
                 LEFT JOIN fields f ON id.fieldID = f.fieldID
                 LEFT JOIN itemDataValues dv ON id.valueID = dv.valueID
                 WHERE i.itemID NOT IN (SELECT itemID FROM deletedItems)
+                  {filter_sql}
                 GROUP BY i.itemID
             """
-            cursor = conn.execute(query_sql)
+            cursor = conn.execute(query_sql, params)
             for row in cursor:
                 creator_cursor = conn.execute(
                     """
@@ -193,18 +201,27 @@ class SqliteZoteroGateway(ZoteroGateway):
         finally:
             conn.close()
 
+    def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
+        return self._fetch_items_with_filter()
+
     def get_items_in_collection(
         self, collection_id: str, top_only: bool = False
     ) -> Iterator[ZoteroItem]:
-        for item in self.search_items(ZoteroQuery()):
-            if collection_id in item.collections:
-                yield item
+        filter_sql = """
+            AND i.itemID IN (
+                SELECT ci.itemID
+                FROM collectionItems ci
+                JOIN collections c ON ci.collectionID = c.collectionID
+                WHERE c.key = ?
+            )
+        """
+        if top_only:
+            filter_sql += " AND i.parentItemID IS NULL"
+        return self._fetch_items_with_filter(filter_sql, (collection_id,))
 
     def get_item(self, item_key: str) -> Optional[ZoteroItem]:
-        for item in self.search_items(ZoteroQuery()):
-            if item.key == item_key:
-                return item
-        return None
+        items = list(self._fetch_items_with_filter("AND i.key = ?", (item_key,)))
+        return items[0] if items else None
 
     def get_tags(self) -> List[str]:
         conn = self._get_connection()
@@ -235,77 +252,91 @@ class SqliteZoteroGateway(ZoteroGateway):
     # --- Write Operations (FORBIDDEN in Offline mode) ---
 
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def get_item_template(self, item_type: str) -> Dict[str, Any]:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def create_generic_item(self, item_data: Dict[str, Any]) -> Optional[str]:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def update_items(self, items_data: List[Dict[str, Any]]) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def delete_item(self, item_key: str, version: int) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def create_collection(self, name: str, parent_key: Optional[str] = None) -> Optional[str]:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def delete_collection(self, collection_key: str, version: int) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def rename_collection(self, collection_key: str, version: int, name: str) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def add_tags(self, item_key: str, tags: List[str]) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def delete_tags(self, tags: List[str], version: int) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def create_note(self, parent_item_key: str, note_content: str) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def update_note(
         self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None
     ) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def upload_attachment(
         self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
     ) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def update_attachment_link(self, item_key: str, version: int, new_path: str) -> bool:
-        raise ConfigurationError("Offline mode is read-only")
+        raise ConfigurationError(OFFLINE_READ_ONLY)
 
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
-        for item in self.search_items(ZoteroQuery()):
-            if tag in item.tags:
-                yield item
+        filter_sql = """
+            AND i.itemID IN (
+                SELECT itg.itemID
+                FROM itemTags itg
+                JOIN tags t ON itg.tagID = t.tagID
+                WHERE t.name = ?
+            )
+        """
+        return self._fetch_items_with_filter(filter_sql, (tag,))
 
     def get_items_by_doi(self, doi: str) -> Iterator[ZoteroItem]:
-        for item in self.search_items(ZoteroQuery()):
-            if item.doi == doi:
-                yield item
+        filter_sql = """
+            AND i.itemID IN (
+                SELECT id.itemID
+                FROM itemData id
+                JOIN fields f ON id.fieldID = f.fieldID
+                JOIN itemDataValues dv ON id.valueID = dv.valueID
+                WHERE f.fieldName = 'DOI' AND dv.value = ?
+            )
+        """
+        return self._fetch_items_with_filter(filter_sql, (doi,))
 
     def get_all_items(self) -> Iterator[ZoteroItem]:
-        return self.search_items(ZoteroQuery())
+        return self._fetch_items_with_filter()
 
-    def get_orphan_items(self) -> Iterator[ZoteroItem]:
-        for item in self.search_items(ZoteroQuery()):
-            if not item.collections:
-                yield item
+    def get_orphan_items(self, top_only: bool = False) -> Iterator[ZoteroItem]:
+        filter_sql = "AND i.itemID NOT IN (SELECT itemID FROM collectionItems)"
+        if top_only:
+            filter_sql += " AND i.parentItemID IS NULL"
+        return self._fetch_items_with_filter(filter_sql)
 
     def verify_credentials(self) -> bool:
         return os.path.exists(self.original_db_path)

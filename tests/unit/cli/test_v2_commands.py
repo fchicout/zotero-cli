@@ -3,7 +3,6 @@ from unittest.mock import patch
 
 import pytest
 
-from zotero_cli.cli.commands.report_cmd import ReportCommand
 from zotero_cli.cli.commands.slr.decide_cmd import DecideCommand
 from zotero_cli.core.services.report_service import PrismaReport
 
@@ -82,9 +81,9 @@ def test_decide_not_english(mock_clients, env_vars, capsys):
 
 
 def test_report_status_dashboard(mock_clients, env_vars, capsys):
-    # Mock ReportService usage inside ReportCommand
-    with patch("zotero_cli.cli.commands.report_cmd.ReportService") as mock_cls:
-        mock_service = mock_cls.value = mock_cls.return_value
+    # Mock ReportService usage inside SLRReportCommand
+    with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_cls:
+        mock_service = mock_cls.return_value
         report = PrismaReport(
             collection_name="TestCol",
             total_items=100,
@@ -94,28 +93,30 @@ def test_report_status_dashboard(mock_clients, env_vars, capsys):
         )
         mock_service.generate_prisma_report.return_value = report
 
-        args = argparse.Namespace(
-            report_type="status", collection="TestCol", output=None, user=False
-        )
-        ReportCommand().execute(args)
+        args = argparse.Namespace(report_verb="status", collection="TestCol", user=False)
+        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
+
+        SLRReportCommand.execute(mock_clients["gateway"], args)
 
         out = capsys.readouterr().out
-        assert "Status Report: TestCol" in out
-        assert "50/100" in out  # Progress
+        assert "SLR Funnel Status: TestCol" in out
+        assert "50/100" in out
 
 
 def test_report_status_fallback_to_file(mock_clients, env_vars, capsys, tmp_path):
-    with patch("zotero_cli.cli.commands.report_cmd.ReportService") as mock_cls:
+    with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_cls:
         mock_service = mock_cls.return_value
         mock_service.generate_prisma_report.return_value = PrismaReport("TestCol")
         mock_service.generate_screening_markdown.return_value = "# MD Content"
 
         out_file = tmp_path / "dash.md"
         args = argparse.Namespace(
-            report_type="status", collection="TestCol", output=str(out_file), user=False
+            report_verb="screening", collection="TestCol", output=str(out_file), user=False
         )
 
-        ReportCommand().execute(args)
+        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
+
+        SLRReportCommand.execute(mock_clients["gateway"], args)
 
         assert "Screening report saved" in capsys.readouterr().out
         assert out_file.read_text() == "# MD Content"

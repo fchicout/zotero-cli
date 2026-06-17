@@ -25,7 +25,7 @@ def test_import_arxiv_basic(run_cli, temp_collection):
     assert "Imported 1 items" in res.stdout
 
     # Verify content
-    time.sleep(3)
+    time.sleep(10)
     list_res = run_cli(["item", "list", "--collection", temp_collection])
 
     # Robustness: Extract key and inspect detail to avoid Table Truncation issues
@@ -35,7 +35,7 @@ def test_import_arxiv_basic(run_cli, temp_collection):
     assert keys, "No items found in list output"
     item_key = keys[0]
 
-    show_res = run_cli(["item", "inspect", item_key])
+    show_res = run_cli(["item", "inspect", "--key", item_key])
     assert "Attention Is All You Need" in show_res.stdout
     assert "Vaswani" in show_res.stdout
 

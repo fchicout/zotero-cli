@@ -256,7 +256,7 @@ class ZoteroGateway(
         pass
 
     @abstractmethod
-    def get_orphan_items(self) -> Iterator[ZoteroItem]:
+    def get_orphan_items(self, top_only: bool = False) -> Iterator[ZoteroItem]:
         pass
 
 
@@ -352,6 +352,8 @@ class RAGService(ABC):
         prune: bool = False,
         min_qa_score: Optional[float] = None,
         on_item_processed: Optional[Callable[[ZoteroItem, int], None]] = None,
+        qa_approved_only: bool = False,
+        tree_filter: Optional[str] = None,
     ) -> Dict[str, Any]:
         pass
 

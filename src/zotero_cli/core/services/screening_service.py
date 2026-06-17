@@ -85,13 +85,16 @@ class ScreeningService(IScreeningService):
                         existing_version = int(child.get("version") or data.get("version") or 0)
                         break
 
+        if sdb_decision == "accepted":
+            reason_codes = []
+        else:
+            reason_codes = [c.strip() for c in code.split(",")] if code else []
+
         # 2. Create the Audit Note using SDB v1.2
         decision_data = {
             "audit_version": "1.2",
             "decision": sdb_decision,
-            "reason_code": []
-            if sdb_decision == "accepted"
-            else ([code.strip() for code in code.split(",")] if code else []),
+            "reason_code": reason_codes,
             "reason_text": reason if reason else "",
             "evidence": evidence if evidence else "",
             "timestamp": datetime.now(timezone.utc).isoformat(),

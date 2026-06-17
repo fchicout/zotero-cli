@@ -1,7 +1,14 @@
+import logging
 from typing import Any, Dict, Optional
 
 import requests
-from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+from tenacity import (
+    after_log,
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 
 def is_http_retryable(exception: BaseException) -> bool:
@@ -12,6 +19,9 @@ def is_http_retryable(exception: BaseException) -> bool:
         status_code = exception.response.status_code
         return status_code == 429 or 500 <= status_code < 600
     return False
+
+
+logger = logging.getLogger(__name__)
 
 
 class ZoteroHttpClient:
@@ -46,9 +56,10 @@ class ZoteroHttpClient:
         self.last_library_version = 0
 
     @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=2, min=2, max=30),
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
         retry=retry_if_exception(is_http_retryable),
+        after=after_log(logger, logging.DEBUG),
         reraise=True,
     )
     def get(
@@ -64,9 +75,10 @@ class ZoteroHttpClient:
         return response
 
     @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=2, min=2, max=30),
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
         retry=retry_if_exception(is_http_retryable),
+        after=after_log(logger, logging.DEBUG),
         reraise=True,
     )
     def post(
@@ -90,9 +102,10 @@ class ZoteroHttpClient:
         return response
 
     @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=2, min=2, max=30),
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
         retry=retry_if_exception(is_http_retryable),
+        after=after_log(logger, logging.DEBUG),
         reraise=True,
     )
     def patch(
@@ -117,9 +130,10 @@ class ZoteroHttpClient:
         return response
 
     @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=2, min=2, max=30),
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
         retry=retry_if_exception(is_http_retryable),
+        after=after_log(logger, logging.DEBUG),
         reraise=True,
     )
     def delete(
@@ -137,6 +151,13 @@ class ZoteroHttpClient:
         self._update_version(response)
         return response
 
+    @retry(
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
+        retry=retry_if_exception(is_http_retryable),
+        after=after_log(logger, logging.DEBUG),
+        reraise=True,
+    )
     def upload_file(self, url: str, data: Dict, files: Dict) -> requests.Response:
         """
         Direct upload bypasses the Zotero Prefix, usually going to S3 or a specific upload URL.
@@ -145,6 +166,13 @@ class ZoteroHttpClient:
         response.raise_for_status()
         return response
 
+    @retry(
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
+        retry=retry_if_exception(is_http_retryable),
+        after=after_log(logger, logging.DEBUG),
+        reraise=True,
+    )
     def post_form(
         self, endpoint: str, data: Dict, headers: Optional[Dict] = None
     ) -> requests.Response:

@@ -24,13 +24,13 @@ The `import arxiv` command is a high-level automation tool that skips the manual
 The command is unique because it supports a **DSL Query** (using the `all:`, `ti:`, `au:`, etc. syntax) for precise filtering. Before importing, it performs a local check to avoid duplicating items that might already exist in your Zotero library. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--query` | String | The ArXiv DSL query string. | E.g., `ti:"Attention is all you need"`. |
-| `--file` | Path | Local path to a text file containing the DSL query. | Useful for complex, multi-line searches. |
-| `--collection` | String | Target collection Name or Key. | Required. |
-| `--limit` | Integer | Maximum number of results to fetch. | Optional. Default: 50. |
-| `--verbose` | Flag | Displays the status of each item during the import process. | Optional. |
+| `--collection` | String | N/A | Required. |
+| `--file` | String | Path to file containing DSL query | Optional. |
+| `--limit` | Integer | N/A | Optional. Default: 100. |
+| `--query` | String | DSL Search Query | Required. |
+| `--verbose` | Boolean | N/A | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Automated tracking of new papers on a topic

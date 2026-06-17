@@ -133,6 +133,44 @@ def test_get_items_in_collection_top_only(client):
     assert "/collections/C1/items/top" in args[0]
 
 
+def test_get_orphan_items_all(client):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [
+        {"key": "K1", "data": {"title": "Orphan Item"}, "meta": {}, "version": 1}
+    ]
+    mock_response.headers = {}
+    client.http.session.get.return_value = mock_response
+
+    items = list(client.get_orphan_items(top_only=False))
+    assert len(items) == 1
+    assert items[0].key == "K1"
+
+    # Verify correct endpoint and parameters
+    args, kwargs = client.http.session.get.call_args
+    assert args[0].endswith("/items")
+    assert kwargs["params"]["collection"] == "none"
+
+
+def test_get_orphan_items_top_only(client):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [
+        {"key": "K2", "data": {"title": "Top Orphan Item"}, "meta": {}, "version": 1}
+    ]
+    mock_response.headers = {}
+    client.http.session.get.return_value = mock_response
+
+    items = list(client.get_orphan_items(top_only=True))
+    assert len(items) == 1
+    assert items[0].key == "K2"
+
+    # Verify correct endpoint and parameters
+    args, kwargs = client.http.session.get.call_args
+    assert args[0].endswith("/items/top")
+    assert kwargs["params"]["collection"] == "none"
+
+
 # --- Item Modification Methods ---
 
 
@@ -336,3 +374,195 @@ def test_delete_tags_chunking(client):
     success = client.delete_tags(tags, 1)
     assert success is True
     assert client.http.session.delete.call_count == 2
+
+
+def test_get_item_template(client):
+    mock_resp = Mock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {}
+    mock_resp.json.return_value = {"itemType": "thesis", "title": ""}
+    client.http.session.get.return_value = mock_resp
+
+    template = client.get_item_template("thesis")
+    assert template["itemType"] == "thesis"
+    client.http.session.get.assert_called_with(
+        "https://api.zotero.org/items/new", params={"itemType": "thesis"}
+    )
+
+
+def test_update_items_success(client):
+    mock_resp = Mock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {}
+    client.http.session.post.return_value = mock_resp
+
+    items = [{"key": f"K{i}", "version": 1, "title": f"T{i}"} for i in range(60)]
+    success = client.update_items(items)
+    assert success is True
+    assert client.http.session.post.call_count == 2  # 50 + 10 chunking
+
+
+def test_update_items_failure(client):
+    client.http.session.post.side_effect = Exception("API Error")
+    success = client.update_items([{"key": "K1"}])
+    assert success is False
+
+
+def test_update_note_412(client):
+    res412 = Mock()
+    res412.status_code = 412
+    res412.headers = {}
+
+    res200 = Mock()
+    res200.status_code = 200
+    res200.headers = {}
+
+    client.http.session.patch.side_effect = [res412, res200]
+    client.http.last_library_version = 150
+
+    success = client.update_note("N1", 100, "New content")
+    assert success is True
+    assert client.http.session.patch.call_count == 2
+
+
+def test_update_item_metadata(client):
+    mock_resp = Mock()
+    mock_resp.status_code = 204
+    mock_resp.headers = {}
+    client.http.session.patch.return_value = mock_resp
+
+    success = client.update_item_metadata("K1", 1, {"title": "New"})
+    assert success is True
+
+
+@patch("builtins.open", new_callable=mock_open)
+def test_download_attachment_success(mock_file, client):
+    mock_resp = Mock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {}
+    mock_resp.iter_content.return_value = [b"chunk1", b"chunk2"]
+    client.http.session.get.return_value = mock_resp
+
+    success = client.download_attachment("K1", "save.pdf")
+    assert success is True
+    mock_file.assert_called_once_with("save.pdf", "wb")
+    mock_file().write.assert_any_call(b"chunk1")
+    mock_file().write.assert_any_call(b"chunk2")
+
+
+def test_download_attachment_failure(client):
+    client.http.session.get.side_effect = Exception("Download error")
+    success = client.download_attachment("K1", "save.pdf")
+    assert success is False
+
+
+def test_update_attachment_link(client):
+    mock_resp = Mock()
+    mock_resp.status_code = 204
+    mock_resp.headers = {}
+    client.http.session.patch.return_value = mock_resp
+
+    success = client.update_attachment_link("K1", 1, "new_path.pdf")
+    assert success is True
+
+
+def test_is_thesis_paper(client):
+    # Case 1: Degree Level in extra
+    paper1 = ResearchPaper(title="T1", abstract="A1", extra="Degree Level: masterThesis")
+    assert client._is_thesis_paper(paper1) is True
+
+    # Case 2: URL has academic repository markers
+    paper2 = ResearchPaper(title="T2", abstract="A2", url="http://bdtd.ibict.br/tede/123")
+    assert client._is_thesis_paper(paper2) is True
+
+    # Case 3: Standard journal article
+    paper3 = ResearchPaper(title="T3", abstract="A3", url="http://example.com/paper")
+    assert client._is_thesis_paper(paper3) is False
+
+
+def test_build_thesis_payload(client):
+    paper = ResearchPaper(
+        title="My Thesis",
+        abstract="Abstract of my thesis",
+        publication="My University",
+        url="http://example.com/thesis",
+        doi="10.1234/thesis",
+        year="2024",
+        extra="Degree Level: doctoralDissertation\nAdvisor: Prof. Smith\nSome extra info",
+    )
+    creators = [{"creatorType": "author", "name": "John Doe"}]
+
+    payload = client._build_thesis_payload(paper, creators, "COL_123")
+
+    assert payload["itemType"] == "thesis"
+    assert payload["title"] == "My Thesis"
+    assert payload["abstractNote"] == "Abstract of my thesis"
+    assert payload["creators"] == creators
+    assert payload["collections"] == ["COL_123"]
+    assert payload["thesisType"] == "Doctoral Dissertation"
+    assert payload["university"] == "My University"
+    assert payload["url"] == "http://example.com/thesis"
+    assert payload["DOI"] == "10.1234/thesis"
+    assert payload["date"] == "2024"
+    assert payload["extra"] == "Advisor: Prof. Smith\nSome extra info"
+
+
+@patch("zotero_cli.infra.zotero_api.requests.get")
+@patch("pathlib.Path.unlink")
+def test_create_item_thesis_with_pdf(mock_unlink, mock_get, client):
+    paper = ResearchPaper(
+        title="BDTD Thesis",
+        abstract="Thesis abstract",
+        extra="Degree Level: masterThesis",
+        pdf_url="http://bdtd.ibict.br/thesis.pdf",
+    )
+
+    # Mock post item response
+    mock_post_resp = Mock()
+    mock_post_resp.status_code = 200
+    mock_post_resp.json.return_value = {"successful": {"0": {"key": "THESIS_KEY"}}}
+    mock_post_resp.headers = {}
+    client.http.session.post.return_value = mock_post_resp
+
+    # Mock PDF download response
+    mock_pdf_resp = Mock()
+    mock_pdf_resp.status_code = 200
+    mock_pdf_resp.iter_content.return_value = [b"pdf chunk"]
+    mock_get.return_value = mock_pdf_resp
+
+    # Mock upload_attachment
+    client.upload_attachment = Mock(return_value=True)
+
+    with patch("zotero_cli.infra.zotero_api.open", mock_open()):
+        success = client.create_item(paper, "COL_123")
+        assert success is True
+        client.upload_attachment.assert_called_once()
+        mock_unlink.assert_called_once()
+
+
+@patch("zotero_cli.infra.zotero_api.requests.get")
+def test_create_item_thesis_pdf_download_exception(mock_get, client):
+    paper = ResearchPaper(
+        title="BDTD Thesis Failed",
+        abstract="Thesis abstract",
+        extra="Degree Level: masterThesis",
+        pdf_url="http://bdtd.ibict.br/thesis.pdf",
+    )
+
+    # Mock post item response
+    mock_post_resp = Mock()
+    mock_post_resp.status_code = 200
+    mock_post_resp.json.return_value = {"successful": {"0": {"key": "THESIS_KEY"}}}
+    mock_post_resp.headers = {}
+    client.http.session.post.return_value = mock_post_resp
+
+    # Mock PDF download exception
+    mock_get.side_effect = Exception("Network Timeout")
+    client.upload_attachment = Mock()
+
+    # We patch open locally in zotero_api to prevent any potential crashes in other imports
+    with patch("zotero_cli.infra.zotero_api.open", mock_open()):
+        # Should handle the exception gracefully without failing the overall create_item
+        success = client.create_item(paper, "COL_123")
+        assert success is True
+        client.upload_attachment.assert_not_called()

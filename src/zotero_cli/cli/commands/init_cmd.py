@@ -93,7 +93,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             if client.verify_credentials():
                 console.print("[green]✔ Credentials verified successfully![/]")
             else:
-                raise Exception("API request returned failure status")
+                raise RuntimeError("API request returned failure status")
         except Exception as e:
             console.print(f"[bold red]✘ Verification failed:[/] {e}")
             if not Confirm.ask("Do you want to save the configuration anyway?"):

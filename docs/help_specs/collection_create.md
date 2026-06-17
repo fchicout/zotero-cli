@@ -26,10 +26,10 @@ The `collection create` command is the fundamental tool for organizing your rese
 If a `--parent` is specified, the CLI will attempt to resolve it by name first. If multiple collections have the same name, it is highly recommended to use the `Collection Key` (obtained via `collection list`) as the parent identifier to ensure deterministic behavior.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--name` | String | The desired name for the new collection. | Required. |
-| `--parent` | String | Name or Key of the existing parent collection. | Optional. If omitted, the folder is created at the root. |
+| `--name` | String | Collection name | Required. |
+| `--parent` | String | Parent collection name or key | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Organizing papers for a specific study

@@ -27,12 +27,12 @@ The `search` command is the primary discovery tool for your personal or group li
 You can perform a generic "Keyword" search which matches against the item's title, creators (authors), and publication year. For more precise results, the command provides specific flags for exact DOI matching and title substring filtering. Results are presented in a formatted table, including the unique `Item Key` which is required for subsequent operations like `item inspect` or `item move`.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `query` | String | Keyword search term (Title, Creator, Year). | Positional argument. |
-| `--doi` | String | Search for a specific Digital Object Identifier. | Useful for exact matches. |
-| `--title`| String | Search for a specific substring within item titles. | Targeted discovery. |
-| `--limit`| Integer| Maximum number of search results to display. | Default: 50. |
+| `--doi` | String | Search by exact DOI | Optional. |
+| `--limit` | Integer | Limit results (default: 50) | Optional. Default: 50. |
+| `--title` | String | Search by title substring | Optional. |
+| `query` | String | Keyword search (matches title, creator, or year) | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Finding a paper's key for inspection

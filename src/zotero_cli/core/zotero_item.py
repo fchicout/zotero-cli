@@ -20,6 +20,8 @@ class ZoteroItem:
     authors: List[str] = field(default_factory=list)
     creators: List[Dict[str, Any]] = field(default_factory=list)
     extra: Optional[str] = None
+    date_added: Optional[str] = None
+    date_modified: Optional[str] = None
     has_pdf: bool = False  # Will be set by auditor or via child items processing later
     raw_data: Dict[str, Any] = field(default_factory=dict)
 
@@ -67,6 +69,8 @@ class ZoteroItem:
             authors=authors,
             creators=creators,
             extra=extra,
+            date_added=data.get("dateAdded"),
+            date_modified=data.get("dateModified"),
             collections=data.get("collections", []),
             tags=tags,
             has_pdf=False,  # Default, actual check done by service

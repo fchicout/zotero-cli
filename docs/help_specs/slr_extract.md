@@ -37,13 +37,13 @@ This command scans the full text of papers (relying on previously ingested PDF d
 In `--agent` mode, the CLI leverages Large Language Models to perform this extraction autonomously, generating a structured "Extraction Matrix" that can be exported for final analysis.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--collection` | String | Name or Key of the folder to process. | Bulk extraction. |
-| `--key` | String | Unique Zotero Item Key. | Single item extraction. |
-| `--agent`  | Flag | Enables AI-driven automated extraction. | Requires RAG ingestion. |
-| `--persona`| String | The AI persona used for extraction. | e.g., `MethodologyExpert`. |
-| `--export` | Path | File path to save the extraction results. | Supports `.json`. |
+| `--agent` | Boolean | Run in Agent-led mode | Optional. Default: False. |
+| `--collection` | String | Collection name or key | Optional. |
+| `--export` | String | Export extraction matrix to file (JSON/BibTeX) | Optional. |
+| `--key` | String | Item key (for single item extraction) | Optional. |
+| `--persona` | String | Reviewer persona (for Agent-led mode) | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Building a summary table of research methods

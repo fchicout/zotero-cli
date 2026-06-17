@@ -22,11 +22,11 @@ The `collection rename` command is the standard way to reorganize your library s
 It requires the current `Collection Key` (or the existing name) to identify the target, and the new name as the replacement. The unique key of the collection remains the same after a rename operation, ensuring that automated scripts or integrations that rely on that key are not broken. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--key` | String | Current name or unique identifier (Key) of the collection. | Required. |
-| `--name` | String | The new display name for the collection. | Required. |
-| `--version` | Integer | The version identifier for concurrency protection. | Optional. |
+| `--key` | String | Current name or key | Required. |
+| `--name` | String | New name | Required. |
+| `--version` | Integer | Collection version | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Evolving a research focus

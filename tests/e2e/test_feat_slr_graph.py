@@ -24,7 +24,7 @@ def test_slr_graph_execution(run_cli, temp_collection):
     time.sleep(3)
 
     # 2. Execute Graph command
-    res = run_cli(["slr", "graph", "--collections", temp_collection])
+    res = run_cli(["slr", "report", "graph", "--collections", temp_collection])
 
     assert res.returncode == 0
     # Output should be a DOT format digraph

@@ -60,6 +60,22 @@ def test_from_raw_zotero_item_arxiv_from_url():
     assert item.arxiv_id == "2403.12345"
 
 
+def test_from_raw_zotero_item_dates():
+    raw_item = {
+        "key": "DATE123",
+        "data": {
+            "version": 1,
+            "itemType": "journalArticle",
+            "title": "Dated Article",
+            "dateAdded": "2023-01-01T12:00:00Z",
+            "dateModified": "2023-02-01T15:30:00Z",
+        },
+    }
+    item = ZoteroItem.from_raw_zotero_item(raw_item)
+    assert item.date_added == "2023-01-01T12:00:00Z"
+    assert item.date_modified == "2023-02-01T15:30:00Z"
+
+
 def test_has_identifier():
     item_with_doi = ZoteroItem.from_raw_zotero_item(
         {"key": "A", "data": {"DOI": "1.2/3", "version": 1, "itemType": "journalArticle"}}

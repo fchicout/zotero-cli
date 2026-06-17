@@ -24,10 +24,10 @@ The `slr prune` command is a "Data Hygiene" tool designed to fix errors in libra
 The command identifies items that are present in both the `--included` (winner) and `--excluded` (loser) collections and automatically removes the link to the excluded folder. It's important to note that the item itself is not deleted from Zotero; it is merely unlinked from the redundant folder to ensure your datasets are disjoint and ready for reporting.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--included` | String | Name or Key of the primary (winner) collection. | Required. |
-| `--excluded` | String | Name or Key of the secondary (loser) collection. | Required. Items removed from here. |
+| `--excluded` | String | Secondary collection (Loser/Excluded - items removed from here) | Required. |
+| `--included` | String | Primary collection (Winner/Included) | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Fixing overlapping folders before a PRISMA report

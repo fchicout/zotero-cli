@@ -12,6 +12,7 @@ from zotero_cli.core.interfaces import (
     ZoteroGateway,
 )
 from zotero_cli.infra.arxiv_lib import ArxivLibGateway
+from zotero_cli.infra.bdtd_api import BDTDAPIClient
 from zotero_cli.infra.bibtex_lib import BibtexLibGateway
 from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
 from zotero_cli.infra.crossref_api import CrossRefAPIClient
@@ -27,7 +28,7 @@ from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient
 from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
 from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
 from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
-from zotero_cli.infra.zbmath_api import zbMATHAPIClient
+from zotero_cli.infra.zbmath_api import ZBMathAPIClient
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
 if TYPE_CHECKING:
@@ -210,8 +211,8 @@ class GatewayFactory:
         return PubMedAPIClient(api_key=config.ncbi_api_key)
 
     @staticmethod
-    def get_zbmath_client() -> zbMATHAPIClient:
-        return zbMATHAPIClient()
+    def get_zbmath_client() -> ZBMathAPIClient:
+        return ZBMathAPIClient()
 
     @staticmethod
     def get_eric_client() -> ERICAPIClient:
@@ -224,6 +225,10 @@ class GatewayFactory:
     @staticmethod
     def get_hal_client() -> HALAPIClient:
         return HALAPIClient()
+
+    @staticmethod
+    def get_bdtd_client() -> BDTDAPIClient:
+        return BDTDAPIClient()
 
     @staticmethod
     def get_inspire_hep_client() -> InspireHEPAPIClient:
@@ -256,6 +261,7 @@ class GatewayFactory:
         hal_client = GatewayFactory.get_hal_client()
         ih_client = GatewayFactory.get_inspire_hep_client()
         dblp_client = GatewayFactory.get_dblp_client()
+        bdtd_client = GatewayFactory.get_bdtd_client()
 
         from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
@@ -271,6 +277,7 @@ class GatewayFactory:
                 hal_client,
                 ih_client,
                 dblp_client,
+                bdtd_client,
             ]
         )
 
@@ -285,6 +292,7 @@ class GatewayFactory:
         aggregator.hal = hal_client
         aggregator.inspire_hep = ih_client
         aggregator.dblp = dblp_client
+        setattr(aggregator, "bdtd", bdtd_client)
 
         return aggregator
 
@@ -518,11 +526,6 @@ class GatewayFactory:
 
     @staticmethod
     def get_job_queue_service(config: Optional[ZoteroConfig] = None) -> "JobQueueService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
-
         # Decouple from Zotero's main DB. Store jobs in the config directory.
         from zotero_cli.core.config import get_config_path
 
@@ -573,6 +576,7 @@ class GatewayFactory:
             GatewayFactory.get_openalex_resolver(),
             GatewayFactory.get_arxiv_resolver(),
             GatewayFactory.get_semantic_scholar_resolver(config),
+            GatewayFactory.get_bdtd_resolver(),
         ]
         # Add YAML-configured scrapers
         resolvers.extend(GatewayFactory.get_generic_resolvers())
@@ -653,6 +657,13 @@ class GatewayFactory:
 
         gateway = GatewayFactory.get_network_gateway()
         return SemanticScholarResolver(gateway, api_key=config.semantic_scholar_api_key)
+
+    @staticmethod
+    def get_bdtd_resolver() -> "PDFResolver":
+        from zotero_cli.core.services.resolvers.bdtd import BDTDResolver
+
+        gateway = GatewayFactory.get_network_gateway()
+        return BDTDResolver(gateway)
 
     @staticmethod
     def get_generic_resolvers() -> List["PDFResolver"]:

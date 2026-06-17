@@ -28,9 +28,9 @@ The `init` command is the gateway to using `zotero-cli`. It simplifies the confi
 The command identifies your Zotero profile (Personal or Group) and establishes an authenticated connection to the Zotero API. It also defines where your PDF attachments should be stored and where the local database cache will be maintained. The result of this process is a `config.toml` file, which is used by all other commands in the library. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--force` | Flag | Overwrites any existing `config.toml` file. | Required if re-configuring. |
+| `--force` | Boolean | Overwrite existing config | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: First-time setup of the CLI

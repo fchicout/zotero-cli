@@ -8,10 +8,18 @@ from zotero_cli.infra.factory import GatewayFactory
 
 @CommandRegistry.register
 class ImportCommand(BaseCommand):
+    """
+    CLI Command handler for importing research papers from various sources.
+    Supports importing from local files (RIS, BibTeX, CSV), arXiv queries, BDTD Brazil database, DOIs, and manual entry.
+    """
+
     name = "import"
     help = "Import papers from various sources"
 
     def register_args(self, parser: argparse.ArgumentParser):
+        """
+        Registers argument subparsers for files, arXiv, DOI, BDTD, and manual imports.
+        """
         sub = parser.add_subparsers(dest="import_type", required=True)
 
         # File
@@ -94,6 +102,36 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         doi_p.add_argument("--collection", required=True)
         doi_p.add_argument("--verbose", action="store_true")
 
+        # BDTD
+        bdtd_p = sub.add_parser(
+            "bdtd",
+            help="Import thesis/dissertation from Brazilian BDTD",
+            description="Imports a thesis or dissertation from the Brazilian Biblioteca Digital de Teses e Dissertações (BDTD) into a Zotero collection. Accepts BDTD record IDs, institutional repository handle URLs, or DOIs.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario 1: Importing a UFPE doctoral thesis by handle URL
+Problem: I've found a UFPE thesis on AI accountability and want to add it to my "Brazilian Theses" folder (Key: BR_THESES).
+Action:  zotero-cli import bdtd "https://repositorio.ufpe.br/handle/123456789/51746" --collection "BR_THESES"
+Result:  The thesis is created in Zotero as itemType "thesis" with University, Degree Level, and full metadata.
+
+Scenario 2: Importing by BDTD internal ID
+Problem: I know the BDTD record ID from a previous search.
+Action:  zotero-cli import bdtd "UFPE_7b608eaa5ba57bf5bbf9b98f3bbce938" --collection "BR_THESES"
+Result:  Same result — full metadata extraction from BDTD's VuFind API.
+
+Cognitive Safeguards
+--------------------
+• Supported identifiers: BDTD record IDs (e.g. UFPE_xxx), handle URLs (e.g. https://repositorio.ufpe.br/handle/...), and DOIs.
+• The thesis PDF is automatically resolved from the institutional repository when available.
+• Items are created as Zotero "thesis" type with university and degree level fields.
+""",
+        )
+        bdtd_p.add_argument("identifier", help="BDTD record ID, repository handle URL, or DOI")
+        bdtd_p.add_argument("--collection", required=True)
+        bdtd_p.add_argument("--verbose", action="store_true")
+
         # Manual
         man_p = sub.add_parser(
             "manual",
@@ -122,6 +160,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         man_p.add_argument("--collection", required=True)
 
     def execute(self, args: argparse.Namespace):
+        """
+        Routes and executes the import logic based on the user-selected import source type.
+        """
         import_service = GatewayFactory.get_import_service(force_user=getattr(args, "user", False))
 
         if args.import_type == "file":
@@ -130,6 +171,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             self._handle_arxiv(import_service, args)
         elif args.import_type == "doi":
             self._handle_doi(import_service, args)
+        elif args.import_type == "bdtd":
+            self._handle_bdtd(import_service, args)
         elif args.import_type == "manual":
             self._handle_manual(import_service, args)
 
@@ -202,6 +245,29 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         papers = strategy.fetch_papers(args.doi)
         count = service.import_papers(papers, args.collection, args.verbose)
         print(f"Imported {count} items.")
+
+    def _handle_bdtd(self, service, args):
+        bdtd_client = GatewayFactory.get_bdtd_client()
+        paper = bdtd_client.get_paper_metadata(args.identifier)
+
+        if not paper:
+            print(f"Error: No thesis found in BDTD for identifier: {args.identifier}")
+            return
+
+        if args.verbose:
+            print(f"Title: {paper.title}")
+            print(f"Authors: {', '.join(paper.authors)}")
+            print(f"University: {paper.publication or 'N/A'}")
+            print(f"Year: {paper.year or 'N/A'}")
+            if paper.extra:
+                for line in paper.extra.split("\n"):
+                    print(f"  {line}")
+            if paper.pdf_url:
+                print(f"PDF URL: {paper.pdf_url}")
+            print("---")
+
+        count = service.import_papers(iter([paper]), args.collection, args.verbose)
+        print(f"Imported {count} thesis item(s).")
 
     def _handle_manual(self, service, args):
         from zotero_cli.core.models import ResearchPaper

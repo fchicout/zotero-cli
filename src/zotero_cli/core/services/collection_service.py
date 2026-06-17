@@ -172,8 +172,14 @@ class CollectionService:
 
     def get_or_create_collection_id(self, name: str) -> str:
         col_id = self.collection_repo.get_collection_id_by_name(name)
+
+        # If not found by name, check if 'name' is actually a valid collection key
+        if not col_id and self.collection_repo.get_collection(name):
+            col_id = name
+
         if not col_id:
             col_id = self.collection_repo.create_collection(name)
+
         if not col_id:
             raise ValueError(f"Collection '{name}' not found and could not be created.")
         return col_id
@@ -181,7 +187,7 @@ class CollectionService:
     def empty_collection(
         self,
         collection_name: str,
-        verbose: bool = False,
+        _verbose: bool = False,
         parent_collection_name: Optional[str] = None,
     ) -> int:
         """
@@ -254,15 +260,11 @@ class CollectionService:
         for item in secondary_items:
             is_duplicate = False
 
-            # Match by Key (Shared object)
-            if item.key in primary_keys:
-                is_duplicate = True
-            # Match by DOI
-            elif item.doi and self._normalize_id(item.doi) in primary_identifiers:
-                is_duplicate = True
-            # Match by ArXiv
-            elif item.arxiv_id and self._normalize_id(item.arxiv_id) in primary_identifiers:
-                is_duplicate = True
+            is_duplicate = (
+                item.key in primary_keys
+                or bool(item.doi and self._normalize_id(item.doi) in primary_identifiers)
+                or bool(item.arxiv_id and self._normalize_id(item.arxiv_id) in primary_identifiers)
+            )
 
             if is_duplicate:
                 # ACTION: Remove from secondary

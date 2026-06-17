@@ -1,9 +1,9 @@
 import argparse
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from zotero_cli.cli.commands.slr.verify_cmd import VerifyCommand
+from zotero_cli.cli.commands.report_cmd import ReportCommand
 
 
 @pytest.fixture
@@ -23,9 +23,9 @@ def test_verify_collection_pass(mock_deps, capsys):
     mock_integrity.audit_collection.return_value = report
 
     args = argparse.Namespace(
-        collection="MyColl", latex=None, verbose=False, export_missing=None, user=False
+        report_type="audit", collection="MyColl", verbose=False, export_missing=None, user=False
     )
-    VerifyCommand.execute(MagicMock(), args)
+    ReportCommand().execute(args)
 
     out = capsys.readouterr().out
     assert "Verification PASSED" in out
@@ -38,8 +38,8 @@ def test_verify_latex_pass(mock_deps, capsys):
         "items": {"K1": {"exists": True, "screened": True, "decision": "ACCEPTED", "title": "T1"}},
     }
 
-    args = argparse.Namespace(latex="paper.tex", collection=None, user=False)
-    VerifyCommand.execute(MagicMock(), args)
+    args = argparse.Namespace(report_type="verify-latex", latex="paper.tex", user=False)
+    ReportCommand().execute(args)
 
     out = capsys.readouterr().out
     assert "Verification Success" in out

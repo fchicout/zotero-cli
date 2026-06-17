@@ -1,4 +1,4 @@
-import random
+import secrets
 from typing import List
 
 
@@ -24,7 +24,7 @@ class IdentityManager:
     def __init__(self):
         self._current_index = 0
         # Shuffle initially to ensure randomness across runs
-        random.shuffle(self.USER_AGENTS)
+        secrets.SystemRandom().shuffle(self.USER_AGENTS)
 
     def get_current_identity(self) -> str:
         """Returns the current User-Agent string."""
@@ -40,4 +40,4 @@ class IdentityManager:
 
     def get_random_identity(self) -> str:
         """Returns a random User-Agent from the pool without changing state."""
-        return random.choice(self.USER_AGENTS)
+        return secrets.SystemRandom().choice(self.USER_AGENTS)

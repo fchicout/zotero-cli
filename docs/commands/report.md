@@ -1,53 +1,53 @@
 # Command: `report`
 
-Generate screening statistics, PRISMA flow diagrams, and audit snapshots.
+General library analytics and metadata reports.
 
 ## Verbs
 
-### `prisma`
-Generate PRISMA screening statistics and optionally a Mermaid flow diagram.
+### `duplicates`
+Find and list duplicate items across specified collections.
 
 **Usage:**
 ```bash
-zotero-cli report prisma --collection "SLR-Core" --output-chart prisma.png
+zotero-cli report duplicates --collections "ColA,ColB"
 ```
 
 ---
 
-### `snapshot`
-Create a JSON snapshot of a collection's current state for auditing and drift detection.
+### `audit`
+Audits collection metadata completeness (e.g. missing DOIs, abstracts, titles, or PDFs).
 
 **Usage:**
 ```bash
-zotero-cli report snapshot --collection "Included" --output included_2026.json
+zotero-cli report audit --collection "My Collection" [--verbose] [--export-missing missing.txt]
 ```
 
 ---
 
-### `screening`
-Generate a detailed Markdown report with all screening decisions and reasons.
+### `verify-latex`
+Audits citations in a LaTeX manuscript against Zotero items to ensure they exist and are screened.
 
 **Usage:**
 ```bash
-zotero-cli report screening --collection "SLR-Core" --output screening_report.md
+zotero-cli report verify-latex --latex "manuscript.tex"
 ```
 
 ---
 
-### `status`
-Display a real-time progress dashboard of the screening process in the terminal.
+### `stats`
+Displays an overview of library item types and counts, publication years, and total authors.
 
 **Usage:**
 ```bash
-zotero-cli report status --collection "Raw"
+zotero-cli report stats [--collection "My Collection"]
 ```
 
 ---
 
-### `pdf`
-Generate a report of PDF discovery jobs (success, failure, retry status).
+### `attachments`
+Analyzes disk usage and missing PDF files in your library or a collection.
 
 **Usage:**
 ```bash
-zotero-cli report pdf --output pdf_jobs_report.md
+zotero-cli report attachments [--collection "My Collection"] [--output report.md]
 ```

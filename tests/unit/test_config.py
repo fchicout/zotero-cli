@@ -52,7 +52,8 @@ def test_precedence_env_over_file(tmp_path):
 
     env = {"ZOTERO_API_KEY": "env_key"}
 
-    with patch.dict(os.environ, env):
+    # Use clear=True to prevent outside env vars (like those injected by Infisical CLI) from polluting the config loader's resolution
+    with patch.dict(os.environ, env, clear=True):
         loader = ConfigLoader(config_path=config_file)
         config = loader.load()
         assert config.api_key == "env_key"  # Env wins

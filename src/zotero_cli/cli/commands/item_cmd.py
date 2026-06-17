@@ -11,6 +11,8 @@ from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
 
+ITEM_KEY_HELP = "Item Key"
+
 
 class InspectCommand(BaseCommand):
     name = "inspect"
@@ -24,7 +26,7 @@ Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
 Scenario: Verifying metadata after an import
 Problem: I've imported a paper and want to ensure the DOI was correctly captured and check for any existing notes.
-Action:  zotero-cli item inspect "ABCD1234"
+Action:  zotero-cli item inspect --key "ABCD1234"
 Result:  The CLI displays a detailed view of the item, including its DOI, abstract, and list of child PDF attachments.
 
 Cognitive Safeguards
@@ -34,7 +36,8 @@ Cognitive Safeguards
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_inspect.md
 """
-        parser.add_argument("key", help="Zotero Item Key")
+        parser.add_argument("--key", help="Zotero Item Key(s) - comma-separated, e.g. K1,K2,K3")
+        parser.add_argument("--file", help="Path to file containing keys (one key per line)")
         parser.add_argument("--raw", action="store_true", help="Show raw JSON")
         parser.add_argument(
             "--format", choices=["bibtex", "ris"], help="Export in specific bibliographic format"
@@ -48,56 +51,123 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
 
-        item = gateway.get_item(args.key)
-        if not item:
-            console.print(f"[bold red]Item '{args.key}' not found.[/bold red]")
+        keys = []
+        if args.key:
+            keys.extend([k.strip() for k in args.key.split(",") if k.strip()])
+        if args.file:
+            with open(args.file, "r", encoding="utf-8") as f:
+                keys.extend([line.strip() for line in f if line.strip()])
+
+        if not keys:
+            console.print("[bold red]Error: You must specify --key or --file.[/bold red]")
             return
 
-        if args.raw:
-            print(json.dumps(item.raw_data, indent=2))
-            return
+        for idx, key in enumerate(keys):
+            item = gateway.get_item(key)
+            if not item:
+                console.print(f"[bold red]Item '{key}' not found.[/bold red]")
+                continue
 
-        if args.format:
-            export_service = GatewayFactory.get_export_service(
-                force_user=getattr(args, "user", False)
+            if len(keys) > 1:
+                console.print(
+                    f"\n[bold yellow]--- Inspecting Item {idx + 1}/{len(keys)}: {key} ---[/bold yellow]"
+                )
+
+            if args.raw:
+                print(json.dumps(item.raw_data, indent=2))
+                continue
+
+            if args.format:
+                export_service = GatewayFactory.get_export_service(
+                    force_user=getattr(args, "user", False)
+                )
+                if args.format == "bibtex":
+                    print(export_service.serialize_bibtex([item]))
+                elif args.format == "ris":
+                    print(export_service.serialize_ris([item]))
+                continue
+
+            # Resolve collections
+            col_list = []
+            for ckey in item.collections:
+                c = gateway.get_collection(ckey)
+                name = c.get("data", {}).get("name", ckey) if c else ckey
+                col_list.append(f"{name} ({ckey})")
+            collections_str = ", ".join(col_list) if col_list else "None"
+
+            abstract_display = (
+                item.abstract
+                if item.abstract
+                else "[blink bright_red]<no abstract>[/blink bright_red] ❗"
             )
-            if args.format == "bibtex":
-                print(export_service.serialize_bibtex([item]))
-            elif args.format == "ris":
-                print(export_service.serialize_ris([item]))
-            return
 
-        console.print(
-            Panel(
-                f"[bold]Title:[/bold] {item.title}\n"
-                f"[bold]Type:[/bold] {item.item_type}\n"
-                f"[bold]Date:[/bold] {item.date}\n"
-                f"[bold]Authors:[/bold] {', '.join(item.authors)}\n"
-                f"[bold]DOI:[/bold] {item.doi}\n"
-                f"[bold]URL:[/bold] {item.url}\n\n"
-                f"[bold]Abstract:[/bold]\n{item.abstract}",
-                title=f"Item: {args.key}",
+            console.print(
+                Panel(
+                    f"[bold]Collections:[/bold] {collections_str}\n"
+                    f"[bold]Title:[/bold] {item.title}\n"
+                    f"[bold]Type:[/bold] {item.item_type}\n"
+                    f"[bold]Date:[/bold] {item.date}\n"
+                    f"[bold]Added:[/bold] {item.date_added}\n"
+                    f"[bold]Modified:[/bold] {item.date_modified}\n"
+                    f"[bold]Authors:[/bold] {', '.join(item.authors)}\n"
+                    f"[bold]DOI:[/bold] {item.doi}\n"
+                    f"[bold]URL:[/bold] {item.url}\n\n"
+                    f"[bold]Abstract:[/bold]\n{abstract_display}",
+                    title=f"Item: {key}",
+                )
             )
-        )
 
-        # Children (Notes/Attachments)
-        children = gateway.get_item_children(args.key)
-        if children:
-            console.print(f"\n[bold]Children ({len(children)}):[/bold]")
-            for child in children:
-                ctype = child.get("data", {}).get("itemType", "unknown")
-                ckey = child.get("key")
-                if ctype == "note":
-                    note_full = child.get("data", {}).get("note", "")
-                    if args.full_notes:
-                        console.print(f"  - [cyan]Note[/cyan] ({ckey}):")
-                        console.print(Panel(note_full, border_style="cyan"))
+            # Children (Notes/Attachments)
+            children = gateway.get_item_children(key)
+            if children:
+                console.print(f"\n[bold]Children ({len(children)}):[/bold]")
+                for child in children:
+                    ctype = child.get("data", {}).get("itemType", "unknown")
+                    ckey = str(child.get("key", ""))
+                    cdata = child.get("data", {})
+                    if ctype == "note":
+                        note_full = cdata.get("note", "")
+                        date_added = cdata.get("dateAdded", "N/A")
+                        date_modified = cdata.get("dateModified", "N/A")
+
+                        # Try to parse as JSON (handling common <div> wrapper)
+                        is_json = False
+                        raw_json = note_full
+                        if note_full.startswith("<div>") and note_full.endswith("</div>"):
+                            raw_json = note_full[5:-6].strip()
+
+                        try:
+                            parsed_data = json.loads(raw_json)
+                            is_json = True
+                        except (json.JSONDecodeError, TypeError):
+                            parsed_data = None
+
+                        if args.full_notes:
+                            console.print(
+                                f"  - [cyan]Note[/cyan] ({ckey}) [dim]Added: {date_added} | Mod: {date_modified}[/dim]"
+                            )
+                            if is_json:
+                                from rich.json import JSON
+
+                                console.print(Panel(JSON(raw_json), border_style="cyan"))
+                            else:
+                                console.print(Panel(note_full, border_style="cyan"))
+                        else:
+                            if is_json:
+                                display_content = json.dumps(
+                                    parsed_data, indent=2, ensure_ascii=False
+                                )
+                            else:
+                                display_content = note_full
+
+                            note_snippet = display_content[:150].replace("\n", " ")
+                            console.print(
+                                f"  - [cyan]Note[/cyan] ({ckey}) [dim]Added: {date_added} | Mod: {date_modified}[/dim]\n"
+                                f"    {note_snippet}..."
+                            )
                     else:
-                        note_snippet = note_full[:100].replace("\n", " ")
-                        console.print(f"  - [cyan]Note[/cyan] ({ckey}): {note_snippet}...")
-                else:
-                    filename = child.get("data", {}).get("filename", "N/A")
-                    console.print(f"  - [green]Attachment[/green] ({ckey}): {filename}")
+                        filename = cdata.get("filename", "N/A")
+                        console.print(f"  - [green]Attachment[/green] ({ckey}): {filename}")
 
 
 @CommandRegistry.register
@@ -162,16 +232,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         list_p.add_argument("--collection", help="Collection name or key")
         list_p.add_argument("--trash", action="store_true", help="List items in the trash")
+        list_p.add_argument(
+            "--root", action="store_true", help="List top-level items not in any collection"
+        )
         list_p.add_argument("--top-only", action="store_true", help="Only show top-level items")
-        list_p.add_argument(
-            "--included", action="store_true", help="Filter for items with decision 'accepted'"
-        )
-        list_p.add_argument(
-            "--excluded", action="store_true", help="Filter for items with decision 'rejected'"
-        )
-        list_p.add_argument("--criteria", help="Filter for items with specific exclusion code")
-        list_p.add_argument("--persona", help="Filter by reviewer persona")
-        list_p.add_argument("--phase", help="Filter by screening phase")
 
         # Update
         update_p = sub.add_parser(
@@ -195,7 +259,7 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_update.md
 """,
         )
-        update_p.add_argument("--key", required=True, help="Item Key")
+        update_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         update_p.add_argument("--doi", help="Update DOI")
         update_p.add_argument("--title", help="Update Title")
         update_p.add_argument("--abstract", help="Update Abstract")
@@ -228,7 +292,7 @@ Cognitive Safeguards
 • Safety Tips: Use fetch as your first attempt for mass metadata enrichment.
 """,
         )
-        fetch_p.add_argument("--key", help="Item Key")
+        fetch_p.add_argument("--key", help=ITEM_KEY_HELP)
         fetch_p.add_argument("--collection", help="Fetch PDFs for all items in a collection")
         fetch_p.add_argument("--file", help="Fetch PDFs for all items in a key-list file")
         fetch_p.add_argument("--verbose", action="store_true")
@@ -244,7 +308,7 @@ Cognitive Safeguards
 • Common Failure Modes: strip is irreversible and will permanently delete files from your Zotero storage.
 """,
         )
-        strip_p.add_argument("--key", required=True, help="Item Key")
+        strip_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         strip_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
         strip_p.add_argument("--verbose", action="store_true")
 
@@ -266,7 +330,7 @@ Cognitive Safeguards
 • Common Failure Modes: Attaching a file that is too large for your Zotero storage quota.
 """,
         )
-        attach_p.add_argument("--key", required=True, help="Item Key")
+        attach_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         attach_p.add_argument("--file", required=True, help="Path to local file")
 
         # Hydrate
@@ -291,7 +355,7 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_hydrate.md
 """,
         )
-        hydrate_p.add_argument("--key", help="Item Key")
+        hydrate_p.add_argument("--key", help=ITEM_KEY_HELP)
         hydrate_p.add_argument("--collection", help="Hydrate all items in a collection")
         hydrate_p.add_argument(
             "--all", action="store_true", help="Scan entire library for hydration"
@@ -322,7 +386,7 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_purge.md
 """,
         )
-        purge_p.add_argument("--key", required=True, help="Item Key")
+        purge_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
         purge_p.add_argument("--notes", action="store_true", help="Purge notes")
         purge_p.add_argument("--tags", action="store_true", help="Purge tags")
@@ -380,7 +444,7 @@ Cognitive Safeguards
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_export.md
 """,
         )
-        export_p.add_argument("--key", required=True, help="Item Key")
+        export_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         export_p.add_argument(
             "--format", default="bibtex", choices=["bibtex", "ris", "md"], help="Export format"
         )
@@ -439,7 +503,7 @@ Cognitive Safeguards
 • Safety Tips: Ensure you have enough disk space for the generated audio.
 """,
         )
-        speech_p.add_argument("--key", required=True, help="Item Key")
+        speech_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         speech_p.add_argument("--output", required=True, help="Output audio file path (.wav)")
         speech_p.add_argument("--voice", help="Override default voice")
 
@@ -473,24 +537,17 @@ Cognitive Safeguards
             self._handle_speech(args)
 
     def _handle_list(self, gateway, args):
-        from zotero_cli.core.services.sdb.sdb_service import SDBService
-
-        is_sdb_filter = any(
-            [
-                getattr(args, "included", False),
-                getattr(args, "excluded", False),
-                getattr(args, "criteria", None),
-                getattr(args, "persona", None),
-                getattr(args, "phase", None),
-            ]
-        )
-
         if getattr(args, "trash", False):
             items = list(gateway.get_trash_items())
             title = "Trash Items"
+        elif getattr(args, "root", False):
+            items = list(gateway.get_orphan_items(top_only=getattr(args, "top_only", False)))
+            title = "Root/Orphan Items (unfiled)"
         else:
             if not getattr(args, "collection", None):
-                console.print("[red]Error: --collection required for non-trash listings.[/red]")
+                console.print(
+                    "[red]Error: --collection or --root required for non-trash listings.[/red]"
+                )
                 return
             col_id = gateway.get_collection_id_by_name(args.collection)
             if not col_id:
@@ -501,50 +558,12 @@ Cognitive Safeguards
             )
             title = f"Items in {args.collection}"
 
-        if is_sdb_filter:
-            sdb_service = SDBService(gateway)
-            filtered_results = sdb_service.filter_items_by_sdb(
-                items=items,
-                included=getattr(args, "included", False),
-                excluded=getattr(args, "excluded", False),
-                criteria=getattr(args, "criteria", None),
-                persona=getattr(args, "persona", None),
-                phase=getattr(args, "phase", None),
-            )
-
-            if not filtered_results:
-                console.print(
-                    "[yellow]No items found matching criteria. Ensure SDB metadata is populated.[/yellow]"
-                )
-                return
-
-            table = Table(title=f"{title} (SDB Filtered)")
-            table.add_column("Key", style="cyan")
-            table.add_column("Title")
-            table.add_column("Decision")
-            table.add_column("Criteria")
-            table.add_column("Persona")
-
-            for item, entry in filtered_results:
-                decision = entry.get("decision", "N/A")
-                color = "green" if decision == "accepted" else "red"
-                criteria = ", ".join(entry.get("reason_code", []))
-                table.add_row(
-                    item.key,
-                    (item.title or "Untitled")[:50],
-                    f"[{color}]{decision}[/{color}]",
-                    criteria,
-                    entry.get("persona", "N/A"),
-                )
-            # Re-assign items for the summary line
-            items = [r[0] for r in filtered_results]
-        else:
-            table = Table(title=title)
-            table.add_column("Key", style="cyan")
-            table.add_column("Title")
-            table.add_column("Type")
-            for item in items:
-                table.add_row(item.key, item.title or "Untitled", item.item_type)
+        table = Table(title=title)
+        table.add_column("Key", style="cyan")
+        table.add_column("Title")
+        table.add_column("Type")
+        for item in items:
+            table.add_row(item.key, item.title or "Untitled", item.item_type)
 
         console.print(table)
         console.print(f"\n[dim]Showing {len(items)} items.[/dim]")

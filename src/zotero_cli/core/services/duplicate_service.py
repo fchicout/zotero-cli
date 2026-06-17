@@ -16,10 +16,22 @@ class DuplicateGroup:
 
 
 class DuplicateFinder:
+    """
+    Finder service to detect duplicate research items across different collections.
+    Supports matching items by DOI, ArXiv ID, or normalized title.
+    """
+
     def __init__(self, gateway: ZoteroGateway):
+        """
+        Initializes the DuplicateFinder with a Zotero gateway.
+        """
         self.gateway = gateway
 
     def find_duplicates(self, collection_ids: List[str]) -> List[dict]:
+        """
+        Analyzes the specified collections to find duplicate Zotero items.
+        Returns a list of dictionaries detailing the duplicate items found.
+        """
         all_items_by_identifier = defaultdict(list)
 
         for col_id in collection_ids:

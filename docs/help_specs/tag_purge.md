@@ -26,10 +26,10 @@ The `tag purge` command is a bulk maintenance tool. It is designed for researche
 The command targets a specific collection and scans all contained items. It then identifies all tags associated with those items and prepares to remove them. By default, the command runs in a "Preview" mode, showing you exactly how many items will be affected and which tags will be removed. The `--execute` flag is required to perform the actual deletions on the Zotero API. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--collection` | String | Name or unique identifier (Key) of the collection. | Required. |
-| `--execute` | Flag | Commits the tag removals to the Zotero API. | Omit for a safe preview. |
+| `--collection` | String | Collection name or key | Required. |
+| `--execute` | Boolean | Actually perform deletions | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Resetting tags for a new project phase

@@ -64,13 +64,13 @@ def test_shift_e2e(run_cli, sentinel, timestamp, tmp_path):
 
     # Wait for import to stabilize
     time.sleep(15)
-    run_cli(["report", "snapshot", "--collection", col_a, "--output", str(snap1)])
+    run_cli(["slr", "report", "snapshot", "--collection", col_a, "--output", str(snap1)])
 
     sentinel.create_collection(col_b)
     # Wait for collection B to be discoverable
     time.sleep(10)
 
-    list_res = run_cli(["list", "items", "--collection", col_a])
+    list_res = run_cli(["item", "list", "--collection", col_a])
 
     # Filter for journalArticle to avoid picking attachments
     matches = re.findall(r"│\s*([A-Z0-9]{8})\s*│.*│\s*journalArticle\s*│", list_res.stdout)
@@ -97,8 +97,8 @@ def test_shift_e2e(run_cli, sentinel, timestamp, tmp_path):
 
     # Wait for movement to propagate
     time.sleep(20)
-    run_cli(["report", "snapshot", "--collection", col_a, "--output", str(snap2)])
+    run_cli(["slr", "report", "snapshot", "--collection", col_a, "--output", str(snap2)])
 
-    shift_res = run_cli(["slr", "shift", "--old", str(snap1), "--new", str(snap2)])
+    shift_res = run_cli(["slr", "report", "shift", "--old", str(snap1), "--new", str(snap2)])
     assert shift_res.returncode == 0
     assert key in shift_res.stdout

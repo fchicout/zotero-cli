@@ -24,9 +24,9 @@ The `system switch` command is the "Context Toggler" for your research workflow.
 You can provide either the numeric `Group ID` (discovered via `system groups`) or a substring of the group's name. The command will resolve the query, identify the correct target, and update your local `config.toml` file. From that point forward, all commands (like `search`, `import`, or `collection list`) will target the newly selected group library instead of your personal one.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `query` | String | Numeric Group ID or a partial name of the group. | Positional argument. |
+| `query` | String | Group ID or Name (partial match) | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Moving from personal research to a team project

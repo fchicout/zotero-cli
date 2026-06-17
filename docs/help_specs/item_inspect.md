@@ -25,11 +25,13 @@ The `item inspect` command is the "Deep Dive" tool for individual research items
 It retrieves information about the item's authors, identifiers (DOI, ISBN), publication data, and its relationships with other items (like child notes and file attachments). By default, it presents this in a human-readable "Rich" format. The `--raw` flag is particularly useful for developers or researchers who want to see the exact JSON response from the Zotero API for troubleshooting or programmatic processing.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `key` | String | Unique Zotero Item Key (e.g., `ABCD1234`). | Positional argument. |
-| `--raw` | Flag | Displays the raw JSON metadata from the API. | Useful for debugging or piping to `jq`. |
-| `--full-notes` | Flag | Displays the complete text content of all associated notes. | Default: Truncates notes for brevity. |
+| `--file` | String | Path to file containing keys (one key per line) | Optional. |
+| `--format` | String | Export in specific bibliographic format | Optional. |
+| `--full-notes` | Boolean | Show full content of child notes | Optional. Default: False. |
+| `--key` | String | Zotero Item Key(s) - comma-separated, e.g. K1,K2,K3 | Optional. |
+| `--raw` | Boolean | Show raw JSON | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Verifying metadata after an import

@@ -1,5 +1,5 @@
 import argparse
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -126,3 +126,126 @@ def test_rag_query_no_results_json(mock_rag_service, env_vars, capsys):
 
     out = capsys.readouterr().out
     assert out.strip() == "[]"
+
+
+def test_rag_ingest_collection(mock_rag_service, env_vars, capsys):
+    mock_rag_service.ingest.return_value = {"processed": 3, "skipped_low_qa": 0}
+
+    args = argparse.Namespace(
+        verb="ingest",
+        target=None,
+        tree=None,
+        collection="COL123",
+        key=None,
+        approved=True,
+        prune=True,
+        qa_limit=0.8,
+        user=False,
+    )
+    RAGCommand().execute(args)
+
+    mock_rag_service.ingest.assert_called_once()
+    out = capsys.readouterr().out
+    assert "Ingestion complete" in out
+    assert "Processed: 3 items" in out
+
+
+def test_rag_ingest_invalid_params(mock_rag_service, env_vars, capsys):
+    # qa-approved with collection
+    args = argparse.Namespace(
+        verb="ingest",
+        target="qa-approved",
+        tree=None,
+        collection="COL123",
+        key=None,
+        approved=False,
+        prune=False,
+        qa_limit=None,
+        user=False,
+    )
+    RAGCommand().execute(args)
+    out = capsys.readouterr().out
+    assert "Cannot specify --collection or --key with 'qa-approved' target" in out
+
+    # tree without qa-approved
+    args2 = argparse.Namespace(
+        verb="ingest",
+        target=None,
+        tree="tree_name",
+        collection=None,
+        key=None,
+        approved=False,
+        prune=False,
+        qa_limit=None,
+        user=False,
+    )
+    RAGCommand().execute(args2)
+    out2 = capsys.readouterr().out
+    assert "Cannot specify --tree without 'qa-approved' target" in out2
+
+
+def test_rag_context_success(mock_rag_service, env_vars, capsys):
+    mock_rag_service.get_context.return_value = "This is full paper context"
+    args = argparse.Namespace(verb="context", key="KEY123", user=False)
+    RAGCommand().execute(args)
+    out = capsys.readouterr().out
+    assert "This is full paper context" in out
+
+
+def test_rag_context_empty(mock_rag_service, env_vars, capsys):
+    mock_rag_service.get_context.return_value = None
+    args = argparse.Namespace(verb="context", key="KEY123", user=False)
+    RAGCommand().execute(args)
+    out = capsys.readouterr().out
+    assert "No context found for this item" in out
+
+
+def test_rag_purge_all_and_col(mock_rag_service, env_vars):
+    args_all = argparse.Namespace(verb="purge", all=True, key=None, collection=None, user=False)
+    RAGCommand().execute(args_all)
+    mock_rag_service.purge.assert_called_with(purge_all=True)
+
+    args_col = argparse.Namespace(
+        verb="purge", all=False, key=None, collection="COL_KEY", user=False
+    )
+    RAGCommand().execute(args_col)
+    mock_rag_service.purge.assert_called_with(collection_key="COL_KEY")
+
+
+@patch("huggingface_hub.scan_cache_dir")
+@patch("shutil.rmtree")
+@patch("rich.prompt.Confirm.ask", return_value=True)
+def test_rag_model_clean(mock_confirm, mock_rmtree, mock_scan, env_vars, capsys):
+    mock_repo = MagicMock()
+    mock_repo.repo_path = "/path/to/repo"
+    mock_scan.return_value.size_on_disk_str = "1.5GB"
+    mock_scan.return_value.repos = [mock_repo]
+
+    args = argparse.Namespace(verb="model", model_verb="clean", user=False)
+    RAGCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "Model Cleanup Utility" in out
+    assert "HF cache usage: 1.5GB" in out
+    mock_rmtree.assert_called()
+
+
+@patch("rich.prompt.Prompt.ask", side_effect=["1", "3", "y"])
+@patch("huggingface_hub.snapshot_download")
+def test_rag_model_set(mock_download, mock_prompt, env_vars, capsys):
+    args = argparse.Namespace(verb="model", model_verb="set", user=False)
+    RAGCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "Embedding Models" in out
+    assert "Generative Models" in out
+    assert "Configuration updated" in out
+    mock_download.assert_called_once()
+
+
+def test_rag_register_args():
+    parser = argparse.ArgumentParser()
+    RAGCommand().register_args(parser)
+    # verify main subparsers are added
+    actions = parser._actions
+    assert len(actions) > 0

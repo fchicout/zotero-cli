@@ -24,10 +24,10 @@ The `system normalize` command is the "Data Pre-processor" for the SLR workflow.
 `system normalize` solves this by recognizing the specific schema of major providers and mapping their fields to a single, unified "Canonical" CSV format. It cleans up common issues like malformed author lists, encoded characters, and inconsistent date formats. The resulting CSV is perfectly formatted for use with the `import file` command, ensuring a high-fidelity ingestion into your Zotero library.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `file` | Path | Local path to the raw input CSV from a provider. | Positional argument. |
-| `--output` | Path | File path where the normalized CSV will be saved. | Required. |
+| `--output` | String | Output Canonical CSV path | Required. |
+| `file` | String | Input CSV file | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Preparing search results from multiple databases

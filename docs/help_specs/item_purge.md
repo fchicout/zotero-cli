@@ -30,13 +30,13 @@ The `item purge` command is a surgical cleanup tool. It is designed for research
 You can choose to purge file attachments (freeing up storage space), child notes (removing outdated annotations), or all tags associated with the item. By default, the command is interactive and will ask for confirmation before deleting anything. The `--force` flag can be used in automated scripts to bypass this safety check.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--key` | String | Unique Zotero Item Key (e.g., `ABCD1234`). | Required. |
-| `--files` | Flag | Deletes all attached files (PDFs, images). | Selective purge. |
-| `--notes` | Flag | Deletes all associated child notes. | Selective purge. |
-| `--tags` | Flag | Removes all tags from the item. | Selective purge. |
-| `--force` | Flag | Skips the interactive confirmation prompt. | Use with caution in scripts. |
+| `--files` | Boolean | Purge attachments/files | Optional. Default: False. |
+| `--force` | Boolean | Skip confirmation | Optional. Default: False. |
+| `--key` | String | Item Key | Required. |
+| `--notes` | Boolean | Purge notes | Optional. Default: False. |
+| `--tags` | Boolean | Purge tags | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Cleaning up annotations before a re-read

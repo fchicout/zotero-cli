@@ -24,11 +24,11 @@ The `import file` command is the "Ingestion Engine" for transitioning your exter
 The command parses the metadata from the input file, maps the fields to the Zotero data model, and performs an authenticated upload to the Zotero API. If the target collection does not exist, it is recommended to create it first using `collection create`. 
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `file` | Path | Local path to the source file (`.bib`, `.ris`, `.csv`). | Positional argument. |
-| `--collection` | String | Name or unique identifier (Key) of the target collection. | Required. |
-| `--verbose` | Flag | Displays detailed processing logs for each item. | Optional. |
+| `--collection` | String | N/A | Required. |
+| `--verbose` | Boolean | N/A | Optional. Default: False. |
+| `file` | String | Path to input file | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Importing search results from IEEE Xplore

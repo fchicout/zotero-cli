@@ -27,11 +27,11 @@ The `item transfer` command facilitates cross-boundary research collaboration. I
 The command performs a "Deep Copy" of the item: it fetches the complete JSON metadata and all physical file attachments from the source library and reconstructs them in the target library. This ensures that no data is lost during the move. If the `--delete-source` flag is used, the command acts as a true move operation by removing the item from the original location once the transfer is verified.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--key` | String | Unique Zotero Item Key (e.g., `ABCD1234`). | Required. |
-| `--target-group` | String | The numeric ID or Name of the destination group. | Required. |
-| `--delete-source` | Flag | Deletes the item from the source library after successful transfer. | Optional. Defaults to copying. |
+| `--delete-source` | Boolean | Delete item from source library after transfer | Optional. Default: False. |
+| `--key` | String | Zotero Item Key | Required. |
+| `--target-group` | String | Target Group ID | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Moving a paper to a shared project group

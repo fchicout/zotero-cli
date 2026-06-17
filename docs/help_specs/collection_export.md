@@ -30,11 +30,11 @@ Supported formats include:
 - **`md` (Markdown)**: Generates individual Markdown files for every item in the collection. This is particularly powerful for personal knowledge management (PKM) tools like Obsidian, Logseq, or Notion, as it creates an "Item Page" for each paper.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--name` | String | Target collection Name or unique identifier (Key). | Required. |
-| `--format` | Choice | `bibtex`, `ris`, or `md`. | Optional. Default: `bibtex`. |
-| `--output` | String | Output file path (for bib/ris) or directory (for md). | Required. |
+| `--format` | String | Export format | Optional. Default: bibtex. |
+| `--name` | String | Collection name or key | Required. |
+| `--output` | String | Output file path or directory (for md) | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Syncing literature with a LaTeX project

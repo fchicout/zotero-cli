@@ -65,6 +65,7 @@ class MetadataAggregatorService:
         best_venue = ""
         best_url = None
         best_pdf_url = None
+        best_extra = None
 
         for p in candidates:
             # Title Selection Strategy:
@@ -108,6 +109,16 @@ class MetadataAggregatorService:
             if p.pdf_url:
                 best_pdf_url = p.pdf_url
 
+            # Extra
+            if p.extra:
+                if not best_extra:
+                    best_extra = p.extra
+                else:
+                    current_lines = set(best_extra.split("\n"))
+                    new_lines = [line for line in p.extra.split("\n") if line not in current_lines]
+                    if new_lines:
+                        best_extra += "\n" + "\n".join(new_lines)
+
             # Authors: Pick the list with the most authors (avoids et al.)
             if len(p.authors) > len(all_authors):
                 all_authors = p.authors
@@ -124,6 +135,7 @@ class MetadataAggregatorService:
         base.arxiv_id = best_arxiv
         base.url = best_url
         base.pdf_url = best_pdf_url
+        base.extra = best_extra
         base.references = list(all_references)
         base.citation_count = len(all_references)
 

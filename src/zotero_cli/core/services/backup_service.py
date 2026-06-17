@@ -4,7 +4,7 @@ import os
 import tempfile
 import zipfile
 from datetime import datetime, timezone
-from typing import IO, Any, Callable, Dict, List, Optional, Set, Union
+from typing import IO, Any, Callable, Dict, List, Optional, Set
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -26,7 +26,7 @@ class BackupService:
     def backup_collection(
         self,
         collection_key: str,
-        output: Union[str, IO[bytes]],
+        output: str | IO[bytes],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
     ):
         """
@@ -55,7 +55,7 @@ class BackupService:
 
     def backup_system(
         self,
-        output: Union[str, IO[bytes]],
+        output: str | IO[bytes],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
     ):
         """
@@ -75,7 +75,7 @@ class BackupService:
 
     def _write_zip(
         self,
-        output: Union[str, IO[bytes]],
+        output: str | IO[bytes],
         manifest: dict,
         items: List[ZoteroItem],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
@@ -94,6 +94,9 @@ class BackupService:
 
                 item_data.append(item.raw_data)
                 processed_keys.add(item.key)
+
+                # Download attachment file if it's an attachment directly
+                self._download_attachment_file(item, zf, manifest, errors)
 
                 # Process children
                 self._process_item_recursive(item, zf, manifest, errors, item_data, processed_keys)
@@ -116,6 +119,57 @@ class BackupService:
             # Write Errors if any
             if errors:
                 zf.writestr("errors.log", "\n".join(errors))
+
+    def _download_attachment_file(
+        self,
+        item: ZoteroItem,
+        zf: zipfile.ZipFile,
+        manifest: dict,
+        errors: List[str],
+        parent_key: Optional[str] = None,
+    ) -> None:
+        """Downloads the physical attachment file, calculates its checksum, and registers it."""
+        data = item.raw_data.get("data", {})
+        if data.get("itemType") == "attachment" and data.get("linkMode") in [
+            "imported_file",
+            "linked_file",
+        ]:
+            if item.key in manifest["file_map"]:
+                return
+
+            filename = data.get("filename") or data.get("title")
+            if filename:
+                p_key = parent_key or data.get("parentItem") or "orphan"
+                storage_path = f"attachments/{p_key}/{filename}"
+                try:
+                    with tempfile.NamedTemporaryFile(delete=False) as tf:
+                        temp_path = tf.name
+
+                    if self.gateway.download_attachment(item.key, temp_path):
+                        zf.write(temp_path, storage_path)
+
+                        # Calculate SHA-256 checksum [SPEC-ZAF-001]
+                        import hashlib
+
+                        sha256_hash = hashlib.sha256()
+                        with open(temp_path, "rb") as f:
+                            for byte_block in iter(lambda: f.read(4096), b""):
+                                sha256_hash.update(byte_block)
+                        checksum = sha256_hash.hexdigest()
+
+                        manifest["file_map"][item.key] = {
+                            "path": storage_path,
+                            "checksum": checksum,
+                        }
+                    else:
+                        errors.append(f"Failed to download attachment {item.key} ({filename})")
+
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+                except Exception as e:
+                    errors.append(f"Error processing attachment {item.key}: {str(e)}")
+                    if "temp_path" in locals() and os.path.exists(temp_path):
+                        os.remove(temp_path)
 
     def _process_item_recursive(
         self,
@@ -146,44 +200,8 @@ class BackupService:
             item_data.append(child.raw_data)
             processed_keys.add(child.key)
 
-            # Check if it's an attachment with a file
-            data = child.raw_data.get("data", {})
-            if data.get("itemType") == "attachment" and data.get("linkMode") in [
-                "imported_file",
-                "linked_file",
-            ]:
-                filename = data.get("filename") or data.get("title")
-                if filename:
-                    storage_path = f"attachments/{item.key}/{filename}"
-                    try:
-                        with tempfile.NamedTemporaryFile(delete=False) as tf:
-                            temp_path = tf.name
-
-                        if self.gateway.download_attachment(child_key, temp_path):
-                            zf.write(temp_path, storage_path)
-
-                            # Calculate SHA-256 checksum [SPEC-ZAF-001]
-                            import hashlib
-
-                            sha256_hash = hashlib.sha256()
-                            with open(temp_path, "rb") as f:
-                                for byte_block in iter(lambda: f.read(4096), b""):
-                                    sha256_hash.update(byte_block)
-                            checksum = sha256_hash.hexdigest()
-
-                            manifest["file_map"][child_key] = {
-                                "path": storage_path,
-                                "checksum": checksum,
-                            }
-                        else:
-                            errors.append(f"Failed to download attachment {child_key} ({filename})")
-
-                        if os.path.exists(temp_path):
-                            os.remove(temp_path)
-                    except Exception as e:
-                        errors.append(f"Error processing attachment {child_key}: {str(e)}")
-                        if "temp_path" in locals() and os.path.exists(temp_path):
-                            os.remove(temp_path)
+            # Download attachment file if the child is an attachment
+            self._download_attachment_file(child, zf, manifest, errors, parent_key=item.key)
 
             # Recurse
             self._process_item_recursive(child, zf, manifest, errors, item_data, processed_keys)

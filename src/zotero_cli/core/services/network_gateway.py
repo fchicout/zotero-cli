@@ -100,9 +100,3 @@ class NetworkGateway:
                 # Should be caught by the manual check, but just in case
                 raise RetryableError(f"HTTP Error {e.response.status_code}") from e
             raise e
-        except (httpx.ConnectError, httpx.ReadTimeout) as e:
-            # Let tenacity handle these
-            raise e
-        except Exception as e:
-            # Propagate other errors
-            raise e

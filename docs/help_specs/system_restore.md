@@ -28,10 +28,10 @@ The `system restore` command is the counterpart to `system backup`. It allows yo
 The command carefully parses the `.zaf` archive, identifies all bibliographic records and files, and uses the Zotero API to recreate the library structure exactly as it was when the backup was taken. This includes the recreation of folders (collections) and the re-attachment of physical PDF files. The `--dry-run` flag is an essential safety feature that allows you to see exactly what will be created or modified before the operation begins.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--file` | Path | Local path to the source `.zaf` archive. | Required. |
-| `--dry-run` | Flag | Simulates the restore process without modifying the API. | Recommended for safety. |
+| `--dry-run` | Boolean | Simulate restore | Optional. Default: False. |
+| `--file` | String | Input .zaf file | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Recovering from an accidental library deletion

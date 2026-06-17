@@ -9,11 +9,11 @@ def test_item_hydrate_dry_run(run_cli, temp_collection):
     """
     Verifies the 'item hydrate' command integration and reporting.
     """
-    # 1. Import a known ArXiv paper (SimSiam)
+    # 1. Import a known ArXiv paper (Transformers)
     # Even if it already has a DOI, we want to verify the command logic executes.
-    arxiv_id = "2103.10433"
+    arxiv_id = "1706.03762"
 
-    run_cli(
+    res_import = run_cli(
         [
             "import",
             "arxiv",
@@ -25,9 +25,10 @@ def test_item_hydrate_dry_run(run_cli, temp_collection):
             temp_collection,
         ]
     )
+    assert res_import.returncode == 0
 
     # 2. Get the key
-    time.sleep(3)
+    time.sleep(10)
     list_res = run_cli(["item", "list", "--collection", temp_collection])
     keys = re.findall(r"\b([A-Z0-9]{8})\b", list_res.stdout)
     assert keys, "Item key not found after import"

@@ -274,4 +274,4 @@ def test_system_jobs_watch(system_cmd, capsys):
             verb="jobs", jobs_verb="run", type="fetch_pdf", count=None, watch=True
         )
         system_cmd.execute(args)
-        assert True
+        assert mock_job_service.repo.list_jobs.called

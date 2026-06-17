@@ -25,9 +25,9 @@ The `rag context` command is the "Extraction Layer" for LLMs. While `rag query` 
 This command is essential for workflows that involve detailed summarization or cross-referencing within a single document. It retrieves all text chunks associated with a specific Zotero Item Key (which must have been previously indexed via `rag ingest`) and presents them as a continuous stream of text, framed for easy consumption by an LLM prompt.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--key` | String | Unique Zotero Item Key (e.g., ABCD1234). | Required. |
+| `--key` | String | Item Key | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Summarizing a single paper via LLM

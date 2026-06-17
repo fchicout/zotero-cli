@@ -31,11 +31,13 @@ def mock_db():
         CREATE TABLE itemTags (itemID INTEGER, tagID INTEGER);
         CREATE TABLE deletedItems (itemID INTEGER PRIMARY KEY);
 
-        INSERT INTO itemTypes VALUES (1, 'journalArticle');
+        INSERT INTO itemTypes VALUES (1, 'journalArticle'), (2, 'attachment');
         INSERT INTO items VALUES (1, 'ITEMKEY1', 1, 0, 1, NULL);
+        INSERT INTO items VALUES (2, 'ITEMKEY2', 1, 0, 1, NULL);
+        INSERT INTO items VALUES (3, 'ITEMKEY3', 1, 0, 2, 2);
         INSERT INTO fields VALUES (1, 'title'), (2, 'abstractNote'), (3, 'date'), (4, 'DOI'), (5, 'url'), (6, 'extra');
-        INSERT INTO itemData VALUES (1, 1, 1);
-        INSERT INTO itemDataValues VALUES (1, 'Test Title');
+        INSERT INTO itemData VALUES (1, 1, 1), (2, 1, 2), (3, 1, 3);
+        INSERT INTO itemDataValues VALUES (1, 'Test Title'), (2, 'Orphan Parent Title'), (3, 'Orphan Attachment');
 
         INSERT INTO collections VALUES (1, 'COLKEY1', NULL);
         INSERT INTO collectionData VALUES (1, 'Test Collection');
@@ -53,7 +55,8 @@ def test_sqlite_read_items(mock_db):
     gateway = SqliteZoteroGateway(mock_db)
     items = list(gateway.search_items(ZoteroQuery()))
 
-    assert len(items) == 1
+    # ITEMKEY1, ITEMKEY2, ITEMKEY3
+    assert len(items) == 3
     assert items[0].key == "ITEMKEY1"
     assert items[0].title == "Test Title"
 
@@ -65,6 +68,48 @@ def test_sqlite_read_collections(mock_db):
     assert len(cols) == 1
     assert cols[0]["key"] == "COLKEY1"
     assert cols[0]["data"]["name"] == "Test Collection"
+
+
+def test_sqlite_orphan_items(mock_db):
+    gateway = SqliteZoteroGateway(mock_db)
+
+    # Without top_only: should return ITEMKEY2 and ITEMKEY3 (since ITEMKEY1 is in a collection)
+    orphans = list(gateway.get_orphan_items(top_only=False))
+    assert len(orphans) == 2
+    keys = {o.key for o in orphans}
+    assert keys == {"ITEMKEY2", "ITEMKEY3"}
+
+    # With top_only: should only return ITEMKEY2 because ITEMKEY3 has ITEMKEY2 as parent
+    top_orphans = list(gateway.get_orphan_items(top_only=True))
+    assert len(top_orphans) == 1
+    assert top_orphans[0].key == "ITEMKEY2"
+
+
+def test_sqlite_collection_items_top_only(mock_db):
+    # Setup: Put item 1 and item 3 in collection 1.
+    # Note: item 3 has parentItemID = 2. But parentItemID 2 is NOT in the collection or is in the collection.
+    # Let's insert a direct test. In mock_db setup:
+    # Item 1 is JOURNALARTICLE (parent = NULL)
+    # Item 2 is JOURNALARTICLE (parent = NULL)
+    # Item 3 is ATTACHMENT (parent = 2)
+    # Collection Items has (1, 1). Let's add (1, 3) to test it.
+    conn = sqlite3.connect(mock_db)
+    conn.execute("INSERT INTO collectionItems VALUES (1, 3)")
+    conn.commit()
+    conn.close()
+
+    gateway = SqliteZoteroGateway(mock_db)
+
+    # Without top_only: should return both ITEMKEY1 and ITEMKEY3 (since both are in collection 1)
+    items = list(gateway.get_items_in_collection("COLKEY1", top_only=False))
+    assert len(items) == 2
+    keys = {item.key for item in items}
+    assert keys == {"ITEMKEY1", "ITEMKEY3"}
+
+    # With top_only: should only return ITEMKEY1 because ITEMKEY3 has parentItemID = 2 (so it's not a top-level item)
+    top_items = list(gateway.get_items_in_collection("COLKEY1", top_only=True))
+    assert len(top_items) == 1
+    assert top_items[0].key == "ITEMKEY1"
 
 
 def test_sqlite_write_fails(mock_db):

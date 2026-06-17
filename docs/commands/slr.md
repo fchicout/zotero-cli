@@ -10,6 +10,41 @@ The `slr` command is organized into a flat 2-level structure:
 
 ## Verbs
 
+### `report`
+SLR reporting and funnel analytics. This sub-namespace aggregates all analytical and reporting utilities.
+
+**Subcommands:**
+*   `status`: Displays SLR funnel progress dashboard.
+*   `prisma`: Generates PRISMA flow diagrams.
+*   `shift`: Detects items that moved between snapshots.
+*   `graph`: Generates citation graph in DOT format.
+*   `snapshot`: Creates a frozen JSON audit trail snapshot of a collection.
+*   `screening`: Generates a Markdown Screening Report.
+*   `exclusion-summary`: Summarizes rejection reason codes and percentages.
+*   `consensus`: Highlights double-screening discrepancy conflicts.
+
+**Usage:**
+```bash
+zotero-cli slr report <subcommand> [options]
+```
+
+---
+
+### `source`
+SLR Search Source Ingestion & Infrastructure.
+
+**Subcommands:**
+*   `init`: Automates initializing SLR folders inside `raw_<name>`.
+*   `add`: Mass search result ingester targeting raw source collections.
+*   `list`: Scans active SLR sources showing metadata completeness % and PDF presence.
+
+**Usage:**
+```bash
+zotero-cli slr source <subcommand> [options]
+```
+
+---
+
 ### `screen`
 Starts the interactive Terminal User Interface (TUI) for screening items.
 
@@ -37,6 +72,8 @@ zotero-cli slr screen --source "RAW_COLLECTION" --include "INC_COLLECTION" --exc
 **Scenario-Based Example:**
 - **Problem:** I have 200 papers in "Unscreened" and need to review them quickly.
 - **Action:** `zotero-cli slr screen --source "Unscreened" --include "Accepted" --exclude "Rejected"`
+
+---
 
 ### `decide`
 Records a single screening decision for an item via CLI. Supports SDB v1.2 with phase isolation and evidence capture.
@@ -66,6 +103,8 @@ zotero-cli slr decide --key "ITEMKEY" --vote "INCLUDE|EXCLUDE" --code "REASON_CO
 - **Problem:** I am reading an abstract and realized it's a survey paper.
 - **Action:** `zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" --reason "Is a survey paper" --phase "title_abstract"`
 
+---
+
 ### `load`
 Retroactively imports screening decisions from a CSV file. Matches items by Key, DOI, or Title.
 
@@ -92,201 +131,7 @@ zotero-cli slr load "decisions.csv" --reviewer "Persona" --phase "title_abstract
 - **Problem:** Screened 500 papers in Rayyan and exported a CSV. Need decisions reflected in Zotero.
 - **Action:** `zotero-cli slr load --file "rayyan_export.csv" --reviewer "Chicout" --phase "full_text" --move-to-included "Accepted" --force`
 
-### `status`
-Displays a quantitative summary of the SLR funnel across all `raw_*` sources. Silently ensures the 4-phase hierarchy exists for every source.
-
-**Usage:**
-```bash
-zotero-cli slr status
-```
-
-### `reconcile`
-Synchronizes physical folder locations with SDB audit notes. Automatically moves papers to their correct phase folder based on verified decisions. Enforces exclusive membership in exactly one phase folder per SLR tree.
-
-**Usage:**
-```bash
-zotero-cli slr reconcile --tree "raw_source" [--qa-threshold 5.0] [--execute]
-```
-
-### `promote`
-Atomic command to record a screening decision (Include/Exclude) and automatically move the paper into its target phase folder if accepted. Reuses the "Sticky Move" logic to carry children along.
-
-**Usage:**
-```bash
-zotero-cli slr promote --key "ITEMKEY" --vote "INCLUDE" --phase "full_text" --tree "raw_source" --persona "Name"
-```
-
-### `verify`
-Performs verification tasks for the SLR. Supports both LaTeX manuscript citation auditing and collection completeness validation.
-
-**Usage:**
-```bash
-# Verify LaTeX citations
-zotero-cli slr verify --latex "manuscript.tex"
-
-# Verify collection completeness
-zotero-cli slr verify --collection "SCREENED_COLLECTION" [--verbose]
-```
-
-**Parameters:**
-*   `--latex`: Path to the main LaTeX file to audit.
-*   `--collection`: Collection Name or Key to validate.
-*   `--verbose`: Show detailed validation results for collections.
-
-### `lookup`
-Performs bulk metadata lookup for Zotero items using external APIs (Semantic Scholar, CrossRef, PubMed, zbMATH, ERIC, HAL).
-
-**Usage:**
-```bash
-zotero-cli slr lookup --keys \"KEY1,KEY2\"
-```
-
-### `graph`
-Generates a Citation Graph (DOT format) for the specified collections.
-
-**Usage:**
-```bash
-zotero-cli slr graph --collections "Collection A, Collection B"
-```
-
-### `shift`
-Detects drift/shifts between two library snapshots (JSON). Useful for auditing collection movements.
-
-**Usage:**
-```bash
-zotero-cli slr shift --old snap1.json --new snap2.json
-```
-
-### `migrate`
-Migrates existing SDB notes to the latest schema version (e.g., v1.1 to v1.2).
-
-**Usage:**
-```bash
-zotero-cli slr migrate --collection "COLLECTION" [--dry-run]
-```
-
-### `sync-csv`
-Synchronizes a local CSV state from Zotero screening notes. Useful for recovery or external analysis.
-
-**Usage:**
-```bash
-zotero-cli slr sync-csv --collection "COLLECTION" --output "synced.csv"
-```
-
-### `prune`
-Enforces mutual exclusivity between an 'Included' and 'Excluded' collection by removing intersections from the excluded set.
-
-**Logic Flow:**
-```mermaid
-graph TD
-    A[Start Prune] --> B{Identify Items}
-    B --> C[Primary Collection: 'Included']
-    B --> D[Secondary Collection: 'Excluded']
-    C --> E{Find Intersection}
-    D --> E
-    E -- Found in both? --> F[Remove from 'Excluded']
-    E -- Unique to 'Excluded'? --> G[Keep in 'Excluded']
-    F --> H[End: Sets are now Disjoint]
-    G --> H
-```
-
-**Usage:**
-```bash
-zotero-cli slr prune --included "Accepted" --excluded "Rejected"
-```
-
-**Scenario-Based Example:**
-- **Problem:** During the screening, some papers were accidentally left in the "Excluded" folder after being promoted. This skews PRISMA statistics.
-- **Action:** `zotero-cli slr prune --included "Full Text Included" --excluded "Full Text Excluded"`
-
-### `extract`
-Manages data extraction schemas and operations. Supports initializing a new schema and validating an existing one.
-
-**Usage:**
-```bash
-# Initialize a new schema template
-zotero-cli slr extract --init [--output schema.yaml]
-
-# Validate an existing schema
-zotero-cli slr extract --validate [--schema schema.yaml]
-```
-
 ---
-
-### `snowball`
-Citation snowballing workflow (Discovery and Review).
-
-#### `snowball seed`
-Adds seed papers to the snowballing discovery graph.
-```bash
-zotero-cli slr snowball seed KEY1 KEY2
-```
-
-#### `snowball discovery`
-Runs the background discovery worker to find citations (Forward/Backward) for pending nodes.
-```bash
-zotero-cli slr snowball discovery [--limit 10]
-```
-
-#### `snowball review`
-Starts the interactive TUI to review discovered citation candidates.
-```bash
-zotero-cli slr snowball review
-```
-
-#### `snowball import`
-Ingests all `ACCEPTED` candidates from the graph into Zotero.
-```bash
-zotero-cli slr snowball import --collection "Discovery"
-```
-
----
-
-### `sdb`
-Management and maintenance of the Screening Database (SDB) layer embedded in Zotero notes.
-
-#### `sdb inspect`
-Visualizes all SDB entries (decisions, criteria, personas) attached to an item in a detailed table.
-
-**Usage:**
-```bash
-zotero-cli slr sdb inspect "ITEMKEY"
-```
-
-#### `sdb edit`
-Surgically updates a specific SDB entry matched by persona and phase. Defaults to Dry-Run mode.
-
-**Usage:**
-```bash
-zotero-cli slr sdb edit "ITEMKEY" --persona "Name" --phase "title_abstract" --set-decision "accepted"
-```
-
-**Parameters:**
-*   `--persona`: (Required) The reviewer identity to match.
-*   `--phase`: (Required) The screening phase to match.
-*   `--set-decision`: Update decision to `accepted` or `rejected`.
-*   `--set-criteria`: Update comma-separated reason codes.
-*   `--set-reason`: Update detailed reason text.
-*   `--set-reviewer`: Change the persona name on the record.
-*   `--execute`: Actually commit changes to Zotero.
-
-#### `sdb upgrade`
-Batch upgrades legacy SDB notes within a collection to the latest schema (v1.2).
-
-**Usage:**
-```bash
-zotero-cli slr sdb upgrade --collection "My Collection" [--execute]
-```
-
----
-
-### `reset`
-Safely resets items by stripping all screening metadata (SDB notes, tags) and optionally moving them back to a raw collection.
-
-**Usage:**
-```bash
-zotero-cli slr reset --collection "To Reset" [--target-collection "Raw"] [--execute]
-```
 
 ### `list`
 Lists papers in the SLR funnel by status (pending, included, excluded) and phase. This command identifies papers physically in a phase's queue folder but missing an SDB note, or lists decided papers based on their SDB truth.
@@ -316,15 +161,100 @@ zotero-cli slr list excluded [--tree <source>] [--ta] [--ft|--fullscreen] [--qa 
 ```
 
 **Key Features:**
-- **Note-First Truth:** The `included` and `excluded` commands scan the entire tree of a source (Root + all 4 phase subfolders) to find audit notes. This ensures we see the real status regardless of where the paper is physically located.
-- **Phase Aliases:** Supported `--fullscreen` as an alias for the `--ft` (full_text) phase.
+- **Note-First Truth:** Scans the entire tree of a source (Root + all 4 phase subfolders) to find audit notes.
+- **Phase Aliases:** Supports `--fullscreen` as an alias for the `--ft` (full_text) phase.
 - **QA Thresholds:** The `--qa` flag defaults to a threshold of 2.0 but accepts custom values to filter Quality Assessment results.
-- **Grouped Output:** Results are automatically sorted and grouped by SLR phase for better readability.
+- **Grouped Output:** Results are automatically sorted and grouped by SLR phase.
 
-**Scenario-Based Example (ACM Source):**
-- **List Pending:** `zotero-cli slr list pending --tree raw_acm` (e.g., identifies items awaiting data extraction).
-- **List Included (TA):** `zotero-cli slr list included --tree raw_acm --ta` (lists papers accepted during Title/Abstract).
-- **List Excluded (TA):** `zotero-cli slr list excluded --tree raw_acm --ta` (lists papers rejected during Title/Abstract with exclusion codes).
+---
 
+### `reconcile`
+Synchronizes physical folder locations with SDB audit notes. Automatically moves papers to their correct phase folder based on verified decisions. Enforces exclusive membership in exactly one phase folder per SLR tree.
 
+**Usage:**
+```bash
+zotero-cli slr reconcile --tree "raw_source" [--qa-threshold 5.0] [--execute]
+```
 
+---
+
+### `promote`
+Atomic command to record a screening decision (Include/Exclude) and automatically move the paper into its target phase folder if accepted. Reuses the "Sticky Move" logic to carry children along.
+
+**Usage:**
+```bash
+zotero-cli slr promote --key "ITEMKEY" --vote "INCLUDE" --phase "full_text" --tree "raw_source" --persona "Name"
+```
+
+---
+
+### `snowball`
+Citation snowballing workflow (Seed, Discovery, Review, and Import).
+
+**Subcommands:**
+*   `seed`: Adds seed papers to the snowballing discovery graph.
+*   `discovery`: Runs background discovery worker to find citations.
+*   `review`: Starts interactive TUI to review candidate matches.
+*   `import`: Ingests all accepted candidates into Zotero.
+
+**Usage:**
+```bash
+zotero-cli slr snowball <subcommand> [options]
+```
+
+---
+
+### `sdb`
+Management and maintenance of the Screening Database (SDB) layer embedded in Zotero notes.
+
+**Subcommands:**
+*   `inspect`: Visualizes all SDB entries (decisions, criteria, personas) attached to an item.
+*   `edit`: Surgically updates a specific SDB entry.
+*   `upgrade`: Batch upgrades legacy SDB notes to the latest schema (v1.2).
+
+**Usage:**
+```bash
+zotero-cli slr sdb <subcommand> [options]
+```
+
+---
+
+### `extract`
+Manages data extraction schemas and operations. Supports initializing a new schema template or validating an existing schema.
+
+**Usage:**
+```bash
+# Initialize a new schema template
+zotero-cli slr extract --init [--output schema.yaml]
+
+# Validate an existing schema
+zotero-cli slr extract --validate [--schema schema.yaml]
+```
+
+---
+
+### `prune`
+Enforces mutual exclusivity between an 'Included' and 'Excluded' collection by removing intersections from the excluded set.
+
+**Logic Flow:**
+```mermaid
+graph TD
+    A[Start Prune] --> B{Identify Items}
+    B --> C[Primary Collection: 'Included']
+    B --> D[Secondary Collection: 'Excluded']
+    C --> E{Find Intersection}
+    D --> E
+    E -- Found in both? --> F[Remove from 'Excluded']
+    E -- Unique to 'Excluded'? --> G[Keep in 'Excluded']
+    F --> H[End: Sets are now Disjoint]
+    G --> H
+```
+
+**Usage:**
+```bash
+zotero-cli slr prune --included "Accepted" --excluded "Rejected"
+```
+
+**Scenario-Based Example:**
+- **Problem:** During screening, some papers were accidentally left in the "Excluded" folder after being promoted.
+- **Action:** `zotero-cli slr prune --included "Full Text Included" --excluded "Full Text Excluded"`

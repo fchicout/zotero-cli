@@ -54,3 +54,43 @@ def test_get_paper_metadata_not_found(client):
     with patch.object(client, "_get", return_value=mock_response):
         paper = client.get_paper_metadata("none")
         assert paper is None
+
+
+def test_get_paper_metadata_http_error_404(client):
+    import requests
+
+    mock_response = MagicMock()
+    mock_response.status_code = 404
+    http_err = requests.exceptions.HTTPError(response=mock_response)
+
+    with patch.object(client, "_get", side_effect=http_err):
+        paper = client.get_paper_metadata("none")
+        assert paper is None
+
+
+def test_get_paper_metadata_http_error_generic(client):
+    import requests
+
+    mock_response = MagicMock()
+    mock_response.status_code = 500
+    http_err = requests.exceptions.HTTPError(response=mock_response)
+
+    with patch.object(client, "_get", side_effect=http_err):
+        paper = client.get_paper_metadata("none")
+        assert paper is None
+
+
+def test_get_paper_metadata_exception(client):
+    with patch.object(client, "_get", side_effect=ValueError("crashed")):
+        paper = client.get_paper_metadata("none")
+        assert paper is None
+
+
+def test_map_to_research_paper_string_author(client):
+    info = {
+        "title": "A Great CS Paper.",
+        "authors": {"author": ["Knuth, Donald E."]},
+        "year": "1980",
+    }
+    paper = client._map_to_research_paper(info)
+    assert paper.authors == ["Knuth, Donald E."]

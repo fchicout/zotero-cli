@@ -29,14 +29,21 @@ The `slr load` command is the "Integration Bridge" for large-scale review projec
 It uses a flexible matching logic that attempts to link CSV rows to Zotero items using the unique `Key` or the `DOI`. You can customize the column mappings to match your specific CSV header names. By default, the command runs in **Dry Run** mode, showing you exactly which items were matched and what decisions will be recorded. The `--force` flag is required to actually commit these changes to Zotero.
 
 ## 5. Parameter Matrix
-| Flag | Type | Description | Ergonomic Note |
+| Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--file` | Path | Local path to the source CSV file. | Required. |
-| `--reviewer`| String | Reviewer name for the audit trail. | Required. |
-| `--phase` | String | Review phase (e.g., `Full_Text`). | Optional. |
-| `--force` | Flag | Commits changes to the Zotero API. | Omit for a safe Dry Run. |
-| `--col-vote`| String | Name of the "Decision" column in your CSV. | Default: `Vote`. |
-| `--col-code`| String | Name of the "Exclusion Code" column. | Default: `Code`. |
+| `--col-code` | String | CSV column mapping for Exclusion Code (Default: 'Code'). | Optional. |
+| `--col-doi` | String | CSV column mapping for DOI (Default: 'DOI'). Used for matching if Key is missing. | Optional. |
+| `--col-evidence` | String | CSV column mapping for Evidence or snippets (Default: 'Evidence'). | Optional. |
+| `--col-key` | String | CSV column mapping for Zotero Key (Default: 'Key'). | Optional. |
+| `--col-reason` | String | CSV column mapping for the Reason for decision (Default: 'Reason'). | Optional. |
+| `--col-title` | String | CSV column mapping for Item Title (Default: 'Title'). Used as a secondary anchor. | Optional. |
+| `--col-vote` | String | CSV column mapping for Decision/Vote (Default: 'Vote'). Expected: INCLUDE/EXCLUDE. | Optional. |
+| `--file` | String | Path to the input CSV file. Must contain a 'Key' or 'DOI' column. | Required. |
+| `--force` | Boolean | Apply changes to the Zotero library. Omit for a non-destructive dry-run. | Optional. Default: False. |
+| `--move-to-excluded` | String | Target collection for items with an 'EXCLUDE' or 'REJECTED' decision. | Optional. |
+| `--move-to-included` | String | Target collection for items with an 'INCLUDE' or 'ACCEPTED' decision. | Optional. |
+| `--phase` | String | Review phase identifier (e.g., 'title_abstract', 'full_text'). | Optional. Default: title_abstract. |
+| `--reviewer` | String | Reviewer persona/name (e.g., 'Chicout') for audit tracking. | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Importing Rayyan screening results

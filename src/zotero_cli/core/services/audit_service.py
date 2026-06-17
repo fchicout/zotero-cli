@@ -53,7 +53,7 @@ class AuditService:
 
         from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 
-        for key in sorted(list(citations)):
+        for key in sorted(citations):
             item = self.gateway.get_item(key)
             if not item:
                 items_report[key] = {"exists": False, "screened": False}
