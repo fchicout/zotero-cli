@@ -98,7 +98,9 @@ class SDBCommand:
                 sys.stdout.flush()
 
             print(f"Syncing local CSV from '{args.collection}' notes...")
-            success = sync_service.recover_state_from_notes(args.collection, args.output, cli_progress)
+            success = sync_service.recover_state_from_notes(
+                args.collection, args.output, cli_progress
+            )
             print("")
             if not success:
                 sys.exit(1)

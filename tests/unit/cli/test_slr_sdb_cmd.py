@@ -117,13 +117,25 @@ def test_slr_sdb_upgrade_dry_run(mock_gateway, mock_sdb_service, capsys):
 
 
 def test_slr_sdb_export(mock_gateway, capsys):
-    with patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway
-    ), patch("zotero_cli.core.services.sync_service.SyncService") as mock_sync_cls:
+    with (
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway
+        ),
+        patch("zotero_cli.core.services.sync_service.SyncService") as mock_sync_cls,
+    ):
         sync_inst = mock_sync_cls.return_value
         sync_inst.recover_state_from_notes.return_value = True
 
-        test_args = ["zotero-cli", "slr", "sdb", "export", "--collection", "Col1", "--output", "out.csv"]
+        test_args = [
+            "zotero-cli",
+            "slr",
+            "sdb",
+            "export",
+            "--collection",
+            "Col1",
+            "--output",
+            "out.csv",
+        ]
         with patch.object(sys, "argv", test_args):
             main()
 
@@ -138,14 +150,27 @@ def test_slr_sdb_reset_dry_run(mock_gateway, capsys):
     mock_gateway.get_collection_id_by_name.return_value = "COL1"
     mock_gateway.get_items_in_collection.return_value = [item]
 
-    with patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway
-    ), patch("zotero_cli.core.services.purge_service.PurgeService") as mock_purge_cls:
+    with (
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway
+        ),
+        patch("zotero_cli.core.services.purge_service.PurgeService") as mock_purge_cls,
+    ):
         purge_inst = mock_purge_cls.return_value
         purge_inst.purge_notes.return_value = {"deleted": 2}
         purge_inst.purge_tags.return_value = {"deleted": 1}
 
-        test_args = ["zotero-cli", "slr", "sdb", "reset", "--name", "Col1", "--phase", "title_abstract", "--force"]
+        test_args = [
+            "zotero-cli",
+            "slr",
+            "sdb",
+            "reset",
+            "--name",
+            "Col1",
+            "--phase",
+            "title_abstract",
+            "--force",
+        ]
         with patch.object(sys, "argv", test_args):
             main()
 
@@ -154,4 +179,3 @@ def test_slr_sdb_reset_dry_run(mock_gateway, capsys):
         out = capsys.readouterr().out
         assert "Reset results for 'Col1'" in out
         assert "Reset complete." in out
-

@@ -140,7 +140,7 @@ def test_rag_ingest_collection(mock_rag_service, env_vars, capsys):
         approved=True,
         prune=True,
         qa_limit=0.8,
-        user=False
+        user=False,
     )
     RAGCommand().execute(args)
 
@@ -161,7 +161,7 @@ def test_rag_ingest_invalid_params(mock_rag_service, env_vars, capsys):
         approved=False,
         prune=False,
         qa_limit=None,
-        user=False
+        user=False,
     )
     RAGCommand().execute(args)
     out = capsys.readouterr().out
@@ -177,7 +177,7 @@ def test_rag_ingest_invalid_params(mock_rag_service, env_vars, capsys):
         approved=False,
         prune=False,
         qa_limit=None,
-        user=False
+        user=False,
     )
     RAGCommand().execute(args2)
     out2 = capsys.readouterr().out
@@ -186,11 +186,7 @@ def test_rag_ingest_invalid_params(mock_rag_service, env_vars, capsys):
 
 def test_rag_context_success(mock_rag_service, env_vars, capsys):
     mock_rag_service.get_context.return_value = "This is full paper context"
-    args = argparse.Namespace(
-        verb="context",
-        key="KEY123",
-        user=False
-    )
+    args = argparse.Namespace(verb="context", key="KEY123", user=False)
     RAGCommand().execute(args)
     out = capsys.readouterr().out
     assert "This is full paper context" in out
@@ -198,11 +194,7 @@ def test_rag_context_success(mock_rag_service, env_vars, capsys):
 
 def test_rag_context_empty(mock_rag_service, env_vars, capsys):
     mock_rag_service.get_context.return_value = None
-    args = argparse.Namespace(
-        verb="context",
-        key="KEY123",
-        user=False
-    )
+    args = argparse.Namespace(verb="context", key="KEY123", user=False)
     RAGCommand().execute(args)
     out = capsys.readouterr().out
     assert "No context found for this item" in out
@@ -213,7 +205,9 @@ def test_rag_purge_all_and_col(mock_rag_service, env_vars):
     RAGCommand().execute(args_all)
     mock_rag_service.purge.assert_called_with(purge_all=True)
 
-    args_col = argparse.Namespace(verb="purge", all=False, key=None, collection="COL_KEY", user=False)
+    args_col = argparse.Namespace(
+        verb="purge", all=False, key=None, collection="COL_KEY", user=False
+    )
     RAGCommand().execute(args_col)
     mock_rag_service.purge.assert_called_with(collection_key="COL_KEY")
 
@@ -255,5 +249,3 @@ def test_rag_register_args():
     # verify main subparsers are added
     actions = parser._actions
     assert len(actions) > 0
-
-

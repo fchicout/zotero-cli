@@ -84,12 +84,7 @@ def test_slr_load_dispatch(mock_load_execute, mock_gateway, slr_cmd):
 @patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")
 @patch("zotero_cli.cli.commands.slr.report_cmd.SLRReportCommand.execute")
 def test_slr_report_dispatch(mock_report_execute, mock_gateway, slr_cmd):
-    args = argparse.Namespace(
-        verb="report",
-        report_verb="status",
-        collection="C1",
-        user=False
-    )
+    args = argparse.Namespace(verb="report", report_verb="status", collection="C1", user=False)
     slr_cmd.execute(args)
     mock_report_execute.assert_called_once_with(mock_gateway.return_value, args)
 
@@ -97,12 +92,7 @@ def test_slr_report_dispatch(mock_report_execute, mock_gateway, slr_cmd):
 @patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")
 @patch("zotero_cli.cli.commands.slr.source_cmd.SLRSourceCommand.execute")
 def test_slr_source_dispatch(mock_source_execute, mock_gateway, slr_cmd):
-    args = argparse.Namespace(
-        verb="source",
-        source_verb="init",
-        name="acm",
-        user=False
-    )
+    args = argparse.Namespace(verb="source", source_verb="init", name="acm", user=False)
     slr_cmd.execute(args)
     mock_source_execute.assert_called_once_with(mock_gateway.return_value, args)
 
@@ -210,5 +200,3 @@ def test_slr_bulk_decide_exception(mock_gateway, mock_open_file, slr_cmd, capsys
 
     out = capsys.readouterr().out
     assert "Error processing CSV: Read error" in out
-
-

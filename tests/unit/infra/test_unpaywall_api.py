@@ -38,13 +38,8 @@ def test_get_paper_metadata_success():
         "doi_url": "https://doi.org/10.1000/xyz123",
         "year": 2024,
         "publisher": "Awesome Publisher",
-        "z_authors": [
-            {"given": "Fábio", "family": "Chicout"},
-            {"given": "Jane", "family": "Doe"}
-        ],
-        "best_oa_location": {
-            "url_for_pdf": "https://example.com/best.pdf"
-        }
+        "z_authors": [{"given": "Fábio", "family": "Chicout"}, {"given": "Jane", "family": "Doe"}],
+        "best_oa_location": {"url_for_pdf": "https://example.com/best.pdf"},
     }
 
     with patch.object(client, "_get", return_value=mock_response):
@@ -67,8 +62,8 @@ def test_get_paper_metadata_journal_name_and_oa_locations_fallback():
         "best_oa_location": None,
         "oa_locations": [
             {"url_for_pdf": None},
-            {"url_for_pdf": "https://example.com/fallback.pdf"}
-        ]
+            {"url_for_pdf": "https://example.com/fallback.pdf"},
+        ],
     }
 
     with patch.object(client, "_get", return_value=mock_response):

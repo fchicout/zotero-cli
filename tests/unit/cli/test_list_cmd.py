@@ -35,11 +35,7 @@ def test_register_args():
 def test_handle_pending_empty(mock_slr_status_service, capsys):
     mock_slr_status_service.get_pending_items.return_value = []
 
-    args = argparse.Namespace(
-        list_verb="pending",
-        tree="raw_acm",
-        user=False
-    )
+    args = argparse.Namespace(list_verb="pending", tree="raw_acm", user=False)
 
     ListCommand.execute(args)
     mock_slr_status_service.get_pending_items.assert_called_once_with(root_key="raw_acm")
@@ -64,11 +60,7 @@ def test_handle_pending_success(mock_slr_status_service, capsys):
 
     mock_slr_status_service.get_pending_items.return_value = [item1, item2]
 
-    args = argparse.Namespace(
-        list_verb="pending",
-        tree="raw_acm",
-        user=False
-    )
+    args = argparse.Namespace(list_verb="pending", tree="raw_acm", user=False)
 
     ListCommand.execute(args)
 
@@ -84,12 +76,7 @@ def test_handle_decided_included_empty(mock_slr_status_service, capsys):
     mock_slr_status_service.get_decided_items.return_value = []
 
     args = argparse.Namespace(
-        list_verb="included",
-        tree="raw_acm",
-        ta=True,
-        fullscreen=False,
-        qa=None,
-        user=False
+        list_verb="included", tree="raw_acm", ta=True, fullscreen=False, qa=None, user=False
     )
 
     ListCommand.execute(args)
@@ -111,12 +98,7 @@ def test_handle_decided_excluded_success(mock_slr_status_service, capsys):
     mock_slr_status_service.get_decided_items.return_value = [item]
 
     args = argparse.Namespace(
-        list_verb="excluded",
-        tree="raw_acm",
-        ta=False,
-        fullscreen=True,
-        qa=None,
-        user=False
+        list_verb="excluded", tree="raw_acm", ta=False, fullscreen=True, qa=None, user=False
     )
 
     ListCommand.execute(args)
@@ -133,12 +115,7 @@ def test_handle_decided_qa_filter(mock_slr_status_service, capsys):
     mock_slr_status_service.get_decided_items.return_value = []
 
     args = argparse.Namespace(
-        list_verb="included",
-        tree="raw_acm",
-        ta=False,
-        fullscreen=False,
-        qa=2.0,
-        user=False
+        list_verb="included", tree="raw_acm", ta=False, fullscreen=False, qa=2.0, user=False
     )
 
     ListCommand.execute(args)
@@ -157,7 +134,7 @@ def test_handle_qa_approved_empty(mock_slr_status_service, capsys):
         json=None,
         xlsx=None,
         ods=None,
-        user=False
+        user=False,
     )
 
     ListCommand.execute(args)
@@ -185,7 +162,7 @@ def test_handle_qa_approved_csv_json_export(mock_file, mock_slr_status_service, 
         json="out.json",
         xlsx=None,
         ods=None,
-        user=False
+        user=False,
     )
 
     ListCommand.execute(args)
@@ -211,7 +188,7 @@ def test_handle_qa_approved_xlsx_export(mock_slr_status_service, capsys):
         json=None,
         xlsx="out.xlsx",
         ods=None,
-        user=False
+        user=False,
     )
 
     mock_wb = MagicMock()
@@ -238,7 +215,7 @@ def test_handle_qa_approved_ods_export(mock_slr_status_service, capsys):
         json=None,
         xlsx=None,
         ods="out.ods",
-        user=False
+        user=False,
     )
 
     mock_doc = MagicMock()
@@ -247,7 +224,7 @@ def test_handle_qa_approved_ods_export(mock_slr_status_service, capsys):
         patch("odf.table.Table"),
         patch("odf.table.TableRow"),
         patch("odf.table.TableCell"),
-        patch("odf.text.P")
+        patch("odf.text.P"),
     ):
         ListCommand.execute(args)
 
@@ -271,7 +248,7 @@ def test_handle_qa_approved_import_errors(mock_slr_status_service, capsys):
         json=None,
         xlsx="out.xlsx",
         ods="out.ods",
-        user=False
+        user=False,
     )
 
     with patch.dict("sys.modules", {"openpyxl": None, "odf.opendocument": None}):
@@ -299,7 +276,7 @@ def test_handle_qa_approved_console_table(mock_slr_status_service, capsys):
         json=None,
         xlsx=None,
         ods=None,
-        user=False
+        user=False,
     )
 
     ListCommand.execute(args)
@@ -310,4 +287,3 @@ def test_handle_qa_approved_console_table(mock_slr_status_service, capsys):
     assert "raw_acm" in out
     assert "3.5" in out
     assert "QA Paper Title" in out
-

@@ -19,7 +19,6 @@ class ConfigurationError(Exception):
 OFFLINE_READ_ONLY = "Offline mode is read-only"
 
 
-
 class SqliteZoteroGateway(ZoteroGateway):
     """
     Read-only implementation of ZoteroGateway using local zotero.sqlite.

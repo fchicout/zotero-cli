@@ -92,6 +92,7 @@ def test_item_pdf_fetch_failure(mock_clients, env_vars, capsys):
     assert "Starting resilient PDF discovery for 1 items" in out
     assert "Discovery workers finished" in out
 
+
 def test_item_inspect_success(mock_clients, env_vars, capsys):
     mock_gateway = mock_clients["gateway"]
     item = MagicMock()
@@ -318,5 +319,3 @@ def test_item_list_no_collection_or_root(mock_clients, env_vars, capsys):
 
     out = capsys.readouterr().out
     assert "Error: --collection or --root required for non-trash listings" in out
-
-

@@ -95,7 +95,7 @@ def test_local_transformers_llm_provider():
     mock_tokenizer_obj.return_value = mock_inputs
 
     mock_model_obj.device = "cpu"
-    mock_model_obj.generate.return_value = [[1, 2, 3, 4, 5]] # output_ids length > input_ids length
+    mock_model_obj.generate.return_value = [[1, 2, 3, 4, 5]]  # output_ids length > input_ids length
 
     mock_tokenizer_obj.batch_decode.return_value = ["local transformers response"]
 

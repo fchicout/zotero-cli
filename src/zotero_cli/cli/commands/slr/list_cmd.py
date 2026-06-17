@@ -12,7 +12,6 @@ BOLD_MAGENTA = "bold magenta"
 SCORE_REASON = "Score/Reason"
 
 
-
 class ListCommand:
     """
     CLI command to list papers in the SLR funnel by status (pending, included, excluded).
@@ -123,7 +122,9 @@ Cognitive Safeguards:
 
         # Console output if no export or alongside export
         if not (args.csv or args.json or args.xlsx or args.ods):
-            table = Table(title="QA-Approved SLR Items", show_header=True, header_style=BOLD_MAGENTA)
+            table = Table(
+                title="QA-Approved SLR Items", show_header=True, header_style=BOLD_MAGENTA
+            )
             table.add_column("Key", style="dim")
             table.add_column("Source", style="blue")
             table.add_column("Score", style="green")
@@ -132,9 +133,7 @@ Cognitive Safeguards:
             items.sort(key=lambda x: (x.source_collection, x.item_key))
             for item in items:
                 title_display = (item.title[:77] + "...") if len(item.title) > 80 else item.title
-                table.add_row(
-                    item.item_key, item.source_collection, item.reason, title_display
-                )
+                table.add_row(item.item_key, item.source_collection, item.reason, title_display)
 
             console.print(table)
             console.print(f"\n[bold yellow]Total QA-Approved Items: {len(items)}[/bold yellow]")

@@ -161,6 +161,7 @@ class RAGServiceBase(RAGService):
         items_to_process: List[ZoteroItem] = []
         if qa_approved_only:
             from zotero_cli.core.services.slr.status_service import SLRStatusService
+
             status_service = SLRStatusService(self.gateway, self.orchestrator)
             decided_items = status_service.get_decided_items(
                 decision_type="accepted",

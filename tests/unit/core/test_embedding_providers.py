@@ -15,10 +15,13 @@ def test_is_api_retryable():
 
     class MockRateLimitError(Exception):
         pass
+
     class MockInternalServerError(Exception):
         pass
+
     class MockResourceExhausted(Exception):
         pass
+
     class MockServiceUnavailable(Exception):
         pass
 
@@ -32,12 +35,12 @@ def test_is_api_retryable():
     google_mock.InternalServerError = MockInternalServerError
     google_mock.ServiceUnavailable = MockServiceUnavailable
 
-    with patch.dict(sys.modules, {"openai": openai_mock, "google.api_core.exceptions": google_mock}):
+    with patch.dict(
+        sys.modules, {"openai": openai_mock, "google.api_core.exceptions": google_mock}
+    ):
         assert is_api_retryable(openai_mock.RateLimitError()) is True
         assert is_api_retryable(openai_mock.InternalServerError()) is True
         assert is_api_retryable(Exception()) is False
-
-
 
 
 def test_mock_embedding_provider():

@@ -167,16 +167,21 @@ async def test_process_job_resolver_crashes(
     # Scenario 1: ResolutionError
     async def mock_resolve_err(item):
         raise ResolutionError("Resolution failed")
+
     mock_resolver.resolve = mock_resolve_err
 
     await finder_service._process_job(job)
-    mock_job_queue.fail_job.assert_called_with(1, "Errors: MagicMock: Resolution failed", retry=True)
+    mock_job_queue.fail_job.assert_called_with(
+        1, "Errors: MagicMock: Resolution failed", retry=True
+    )
 
     # Scenario 2: Generic Exception
     async def mock_resolve_crash(item):
         raise ValueError("Crashed")
+
     mock_resolver.resolve = mock_resolve_crash
 
     await finder_service._process_job(job)
-    mock_job_queue.fail_job.assert_called_with(1, "Errors: MagicMock: Unexpected error: Crashed", retry=True)
-
+    mock_job_queue.fail_job.assert_called_with(
+        1, "Errors: MagicMock: Unexpected error: Crashed", retry=True
+    )

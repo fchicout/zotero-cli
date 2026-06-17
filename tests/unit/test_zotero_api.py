@@ -385,8 +385,9 @@ def test_get_item_template(client):
 
     template = client.get_item_template("thesis")
     assert template["itemType"] == "thesis"
-    client.http.session.get.assert_called_with("https://api.zotero.org/items/new", params={"itemType": "thesis"})
-
+    client.http.session.get.assert_called_with(
+        "https://api.zotero.org/items/new", params={"itemType": "thesis"}
+    )
 
 
 def test_update_items_success(client):
@@ -398,7 +399,7 @@ def test_update_items_success(client):
     items = [{"key": f"K{i}", "version": 1, "title": f"T{i}"} for i in range(60)]
     success = client.update_items(items)
     assert success is True
-    assert client.http.session.post.call_count == 2 # 50 + 10 chunking
+    assert client.http.session.post.call_count == 2  # 50 + 10 chunking
 
 
 def test_update_items_failure(client):
@@ -487,7 +488,7 @@ def test_build_thesis_payload(client):
         url="http://example.com/thesis",
         doi="10.1234/thesis",
         year="2024",
-        extra="Degree Level: doctoralDissertation\nAdvisor: Prof. Smith\nSome extra info"
+        extra="Degree Level: doctoralDissertation\nAdvisor: Prof. Smith\nSome extra info",
     )
     creators = [{"creatorType": "author", "name": "John Doe"}]
 
@@ -513,7 +514,7 @@ def test_create_item_thesis_with_pdf(mock_unlink, mock_get, client):
         title="BDTD Thesis",
         abstract="Thesis abstract",
         extra="Degree Level: masterThesis",
-        pdf_url="http://bdtd.ibict.br/thesis.pdf"
+        pdf_url="http://bdtd.ibict.br/thesis.pdf",
     )
 
     # Mock post item response
@@ -545,7 +546,7 @@ def test_create_item_thesis_pdf_download_exception(mock_get, client):
         title="BDTD Thesis Failed",
         abstract="Thesis abstract",
         extra="Degree Level: masterThesis",
-        pdf_url="http://bdtd.ibict.br/thesis.pdf"
+        pdf_url="http://bdtd.ibict.br/thesis.pdf",
     )
 
     # Mock post item response
@@ -565,6 +566,3 @@ def test_create_item_thesis_pdf_download_exception(mock_get, client):
         success = client.create_item(paper, "COL_123")
         assert success is True
         client.upload_attachment.assert_not_called()
-
-
-

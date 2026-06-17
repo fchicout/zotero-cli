@@ -152,4 +152,3 @@ def test_gateway_factory_offline_no_db(monkeypatch):
 
     with pytest.raises(SystemExit):
         GatewayFactory.get_zotero_gateway(config=config, offline=True)
-

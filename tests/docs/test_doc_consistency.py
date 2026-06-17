@@ -143,7 +143,21 @@ def extract_md_parameters(content: str) -> set[str]:
             table_lines.append(line)
 
     params = set()
-    ignored = {"flag", "type", "description", "ergonomic", "note", "string", "choice", "path", "integer", "boolean", "command", "float", "none"}
+    ignored = {
+        "flag",
+        "type",
+        "description",
+        "ergonomic",
+        "note",
+        "string",
+        "choice",
+        "path",
+        "integer",
+        "boolean",
+        "command",
+        "float",
+        "none",
+    }
 
     for line in table_lines:
         if "|" not in line or "---" in line:
@@ -204,7 +218,7 @@ def test_help_specs_compliance():
         r"^## 4\. Description \(Instructional Architecture\)",
         r"^## 5\. Parameter Matrix",
         r"^## 6\. Scenario-Based Examples \(Cognitive Anchors\)",
-        r"^## 7\. Cognitive Safeguards"
+        r"^## 7\. Cognitive Safeguards",
     ]
 
     non_compliant = []
@@ -222,12 +236,16 @@ def test_help_specs_compliance():
                 non_compliant.append(f"'{filepath.name}' is missing section matching: '{section}'")
 
         # 2. Classification Level Validation
-        classification_section = re.search(r"## 1\. Classification\n(.*?)(?=\n##|$)", content, re.DOTALL)
+        classification_section = re.search(
+            r"## 1\. Classification\n(.*?)(?=\n##|$)", content, re.DOTALL
+        )
         if classification_section:
             class_text = classification_section.group(1)
             valid_levels = ["🔴 DESTRUCTIVE", "🟡 MODIFICATION", "🟢 READ-ONLY"]
             if not any(level in class_text for level in valid_levels):
-                non_compliant.append(f"'{filepath.name}' does not state a valid Classification Level.")
+                non_compliant.append(
+                    f"'{filepath.name}' does not state a valid Classification Level."
+                )
 
     assert not non_compliant, "Template compliance errors:\n" + "\n".join(non_compliant)
 
@@ -276,30 +294,62 @@ def test_help_specs_drift():
 
         # Filter out sub-verbs/actions if they appear in MD parameter table (like 'fetch', 'strip')
         for path, parser in path_parsers:
-            if hasattr(parser, '_choices') and parser._choices:
+            if hasattr(parser, "_choices") and parser._choices:
                 deprecated_in_doc -= set(parser._choices.keys())
 
         # Filter out argument names matching other sub-namespace verbs
-        deprecated_in_doc -= {"fetch", "strip", "attach", "seed", "discovery", "review", "import", "status", "export", "upgrade", "reset", "edit", "inspect", "run", "retry", "list", "add", "clean", "set"}
+        deprecated_in_doc -= {
+            "fetch",
+            "strip",
+            "attach",
+            "seed",
+            "discovery",
+            "review",
+            "import",
+            "status",
+            "export",
+            "upgrade",
+            "reset",
+            "edit",
+            "inspect",
+            "run",
+            "retry",
+            "list",
+            "add",
+            "clean",
+            "set",
+        }
 
         # We also need to ignore generic default argparse options if they leak into dest like 'verb'
-        cli_params.discard('verb')
-        undocumented.discard('verb')
+        cli_params.discard("verb")
+        undocumented.discard("verb")
 
         # Ignore sub-command verb dests (e.g. source_verb, report_verb, model_verb, list_verb, snowball_verb, sdb_verb, job_verb)
-        for v in ["source_verb", "report_verb", "model_verb", "list_verb", "snowball_verb", "sdb_verb", "job_verb", "import_type", "report_type"]:
+        for v in [
+            "source_verb",
+            "report_verb",
+            "model_verb",
+            "list_verb",
+            "snowball_verb",
+            "sdb_verb",
+            "job_verb",
+            "import_type",
+            "report_type",
+        ]:
             cli_params.discard(v)
             undocumented.discard(v)
 
         if undocumented:
             commands_str = ", ".join([" ".join(p) for p, _ in path_parsers])
-            drifts.append(f"Commands ({commands_str}) have undocumented parameters in '{doc_name}': {sorted(list(undocumented))}")
+            drifts.append(
+                f"Commands ({commands_str}) have undocumented parameters in '{doc_name}': {sorted(list(undocumented))}"
+            )
         if deprecated_in_doc:
             # Clean up the output by ignoring simple command verb names
             real_deprecated = [d for d in deprecated_in_doc if d.startswith("-") or d in cli_params]
             if real_deprecated:
-                drifts.append(f"Doc '{doc_name}' references obsolete/unused options: {sorted(real_deprecated)}")
+                drifts.append(
+                    f"Doc '{doc_name}' references obsolete/unused options: {sorted(real_deprecated)}"
+                )
 
     assert not drifts, "Documentation drift detected:\n" + "\n".join(drifts)
-
-

@@ -3,8 +3,6 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-import requests
-
 from zotero_cli.core.interfaces import PDFResolver, ResolutionError
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.openalex_api import OpenAlexAPIClient
@@ -43,6 +41,7 @@ class OpenAlexResolver(PDFResolver):
             # Let's keep it consistent with other resolvers if they use gateway.
 
             import httpx
+
             async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
                 response = await client.get(pdf_url)
                 response.raise_for_status()

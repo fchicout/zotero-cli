@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 DOI_ORG = "doi.org/"
 
 
-
 class BDTDAPIClient(BaseAPIClient, MetadataProvider):
     def __init__(self):
         base_url = "https://bdtd.ibict.br/vufind/api/v1"

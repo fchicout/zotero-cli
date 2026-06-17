@@ -168,8 +168,8 @@ def test_get_all_papers_in_tree(orchestrator, mock_gateway):
         [paper1],  # root
         [paper2],  # C1
         [paper3],  # C2
-        [],        # C3
-        []         # C4
+        [],  # C3
+        [],  # C4
     ]
 
     papers = orchestrator.get_all_papers_in_tree("ROOT")
@@ -183,8 +183,8 @@ def test_reconcile_qa_audit_success(orchestrator, mock_gateway):
         "version": 5,
         "data": {
             "itemType": "note",
-            "note": '{"phase": "quality_assessment", "decision": "rejected", "audit_version": "1.2"}'
-        }
+            "note": '{"phase": "quality_assessment", "decision": "rejected", "audit_version": "1.2"}',
+        },
     }
     mock_gateway.get_item_children.return_value = [mock_note]
     mock_gateway.update_note.return_value = True
@@ -198,6 +198,3 @@ def test_reconcile_qa_audit_not_found(orchestrator, mock_gateway):
     mock_gateway.get_item_children.return_value = []
     res = orchestrator.reconcile_qa_audit("I1", 3.0, "accepted", "reconciler")
     assert res is False
-
-
-

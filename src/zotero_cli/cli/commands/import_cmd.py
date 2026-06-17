@@ -12,6 +12,7 @@ class ImportCommand(BaseCommand):
     CLI Command handler for importing research papers from various sources.
     Supports importing from local files (RIS, BibTeX, CSV), arXiv queries, BDTD Brazil database, DOIs, and manual entry.
     """
+
     name = "import"
     help = "Import papers from various sources"
 
@@ -259,7 +260,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             print(f"University: {paper.publication or 'N/A'}")
             print(f"Year: {paper.year or 'N/A'}")
             if paper.extra:
-                for line in paper.extra.split('\n'):
+                for line in paper.extra.split("\n"):
                     print(f"  {line}")
             if paper.pdf_url:
                 print(f"PDF URL: {paper.pdf_url}")

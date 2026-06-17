@@ -59,7 +59,8 @@ class SLRStatusService:
         if source_filter:
             actual_filter = self.gateway.get_collection_id_by_name(source_filter) or source_filter
             raw_collections = [
-                c for c in all_collections
+                c
+                for c in all_collections
                 if c["key"] == actual_filter or c["data"]["name"] == source_filter
             ]
         else:

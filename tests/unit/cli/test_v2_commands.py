@@ -93,10 +93,9 @@ def test_report_status_dashboard(mock_clients, env_vars, capsys):
         )
         mock_service.generate_prisma_report.return_value = report
 
-        args = argparse.Namespace(
-            report_verb="status", collection="TestCol", user=False
-        )
+        args = argparse.Namespace(report_verb="status", collection="TestCol", user=False)
         from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
+
         SLRReportCommand.execute(mock_clients["gateway"], args)
 
         out = capsys.readouterr().out
@@ -116,6 +115,7 @@ def test_report_status_fallback_to_file(mock_clients, env_vars, capsys, tmp_path
         )
 
         from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
+
         SLRReportCommand.execute(mock_clients["gateway"], args)
 
         assert "Screening report saved" in capsys.readouterr().out

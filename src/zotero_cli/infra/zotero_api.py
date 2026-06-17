@@ -293,7 +293,9 @@ class ZoteroAPIClient(ZoteroGateway):
                     temp_dir = Path(tempfile.gettempdir())
                     dest = temp_dir / f"thesis_{item_key}.pdf"
 
-                    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0"}
+                    headers = {
+                        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0"
+                    }
                     resp = requests.get(paper.pdf_url, stream=True, timeout=30, headers=headers)
 
                     if resp.status_code == 200:
@@ -304,7 +306,9 @@ class ZoteroAPIClient(ZoteroGateway):
                         self.upload_attachment(item_key, str(dest))
                         dest.unlink(missing_ok=True)
                 except Exception as attach_err:
-                    print(f"Warning: Failed to download and attach PDF for thesis {item_key}: {attach_err}")
+                    print(
+                        f"Warning: Failed to download and attach PDF for thesis {item_key}: {attach_err}"
+                    )
 
             return bool(item_key)
         except Exception as e:

@@ -13,6 +13,7 @@ def is_api_retryable(exception: BaseException) -> bool:
     # Import inside to avoid dependency issues if providers aren't used
     try:
         import openai
+
         if isinstance(exception, openai.RateLimitError):
             return True
         if isinstance(exception, openai.InternalServerError):
@@ -22,7 +23,15 @@ def is_api_retryable(exception: BaseException) -> bool:
 
     try:
         from google.api_core import exceptions
-        if isinstance(exception, (exceptions.ResourceExhausted, exceptions.InternalServerError, exceptions.ServiceUnavailable)):
+
+        if isinstance(
+            exception,
+            (
+                exceptions.ResourceExhausted,
+                exceptions.InternalServerError,
+                exceptions.ServiceUnavailable,
+            ),
+        ):
             return True
     except ImportError:
         pass

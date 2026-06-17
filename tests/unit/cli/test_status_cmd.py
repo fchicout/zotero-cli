@@ -21,7 +21,7 @@ def test_status_command_execute(mock_deps, capsys):
         screened_items=5,
         accepted_items=2,
         rejected_items=3,
-        rejections_by_code={"EXC01": 3}
+        rejections_by_code={"EXC01": 3},
     )
 
     with patch(
@@ -48,10 +48,14 @@ def test_status_command_grid_view(mock_deps, capsys):
         tree_total=10,
         phases={
             "title_abstract": PhaseStats(accepted=5, rejected=3, pending=2),
-            "full_text": PhaseStats(accepted=2, rejected=1, pending=0),  # pen=0 triggers ✔ checkmark
-            "quality_assessment": PhaseStats(accepted=1, rejected=0, pending=0),  # pen=0 triggers ✔ checkmark
+            "full_text": PhaseStats(
+                accepted=2, rejected=1, pending=0
+            ),  # pen=0 triggers ✔ checkmark
+            "quality_assessment": PhaseStats(
+                accepted=1, rejected=0, pending=0
+            ),  # pen=0 triggers ✔ checkmark
             "data_extraction": PhaseStats(accepted=1, rejected=0, pending=0),
-        }
+        },
     )
 
     with patch(

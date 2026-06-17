@@ -19,6 +19,7 @@ def find_parser_paths(parser, current_path=[]):
     if not subparsers_found:
         yield current_path, parser
 
+
 def get_all_cli_command_paths():
     command_paths = {}
     for cmd in CommandRegistry.get_commands():
@@ -34,8 +35,10 @@ def get_all_cli_command_paths():
                 command_paths[tuple(path)] = sub_parser
     return command_paths
 
+
 def get_expected_doc_filename(path):
     return "_".join(path[:2]) + ".md"
+
 
 def get_action_details(action):
     # Determine name/flag
@@ -69,6 +72,7 @@ def get_action_details(action):
 
     return name, type_str, desc, note
 
+
 def main():
     cli_paths = get_all_cli_command_paths()
     specs_dir = Path("docs/help_specs")
@@ -83,7 +87,17 @@ def main():
         for action in parser._actions:
             if isinstance(action, argparse._HelpAction):
                 continue
-            if action.dest == "verb" or action.dest in ["source_verb", "report_verb", "model_verb", "list_verb", "snowball_verb", "sdb_verb", "job_verb", "import_type", "report_type"]:
+            if action.dest == "verb" or action.dest in [
+                "source_verb",
+                "report_verb",
+                "model_verb",
+                "list_verb",
+                "snowball_verb",
+                "sdb_verb",
+                "job_verb",
+                "import_type",
+                "report_type",
+            ]:
                 continue
 
             name, type_str, desc, note = get_action_details(action)
@@ -102,7 +116,7 @@ def main():
         table_lines = [
             "## 5. Parameter Matrix",
             "| Flag / Parameter | Type | Description | Ergonomic Note |",
-            "| :--- | :--- | :--- | :--- |"
+            "| :--- | :--- | :--- | :--- |",
         ]
 
         for name, type_str, desc, note in sorted(actions.values()):
@@ -120,6 +134,7 @@ def main():
             print(f"Updated parameter matrix in {doc_name}")
         else:
             print(f"Failed to find Parameter Matrix section in {doc_name}")
+
 
 if __name__ == "__main__":
     main()

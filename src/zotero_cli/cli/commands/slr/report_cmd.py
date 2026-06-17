@@ -17,7 +17,6 @@ console = Console()
 COLLECTION_NAME_OR_KEY_HELP = "Collection name or key"
 
 
-
 class SLRReportCommand:
     """
     Subcommands under 'slr report' namespace for SLR funnel analytics.
@@ -31,21 +30,21 @@ class SLRReportCommand:
         status_p = sub.add_parser(
             "status",
             help="Displays SLR funnel progress dashboard",
-            description="Scans SLR collections to report screening progress."
+            description="Scans SLR collections to report screening progress.",
         )
         status_group = status_p.add_mutually_exclusive_group(required=True)
         status_group.add_argument("--collection", help=COLLECTION_NAME_OR_KEY_HELP)
         status_group.add_argument(
             "--all-sources",
             action="store_true",
-            help="Display status for all raw search sources in the library"
+            help="Display status for all raw search sources in the library",
         )
 
         # slr report prisma
         prisma_p = sub.add_parser(
             "prisma",
             help="Generate PRISMA flow diagram",
-            description="Generates PRISMA flow diagram data and flowchart image for a collection."
+            description="Generates PRISMA flow diagram data and flowchart image for a collection.",
         )
         prisma_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         prisma_p.add_argument("--output-chart", help="Path to save flowchart image (uses mmdc)")
@@ -55,7 +54,7 @@ class SLRReportCommand:
         shift_p = sub.add_parser(
             "shift",
             help="Detect items that moved between snapshots",
-            description="Compares two snapshots to identify items that shifted between collections."
+            description="Compares two snapshots to identify items that shifted between collections.",
         )
         shift_p.add_argument("--old", required=True, help="Path to old Snapshot JSON file")
         shift_p.add_argument("--new", required=True, help="Path to new Snapshot JSON file")
@@ -64,15 +63,17 @@ class SLRReportCommand:
         graph_p = sub.add_parser(
             "graph",
             help="Generate citation graph",
-            description="Generates citation network mapping (DOT format) across collections."
+            description="Generates citation network mapping (DOT format) across collections.",
         )
-        graph_p.add_argument("--collections", required=True, help="Comma-separated collection names or keys")
+        graph_p.add_argument(
+            "--collections", required=True, help="Comma-separated collection names or keys"
+        )
 
         # slr report snapshot
         snap_p = sub.add_parser(
             "snapshot",
             help="Create a frozen JSON audit trail snapshot of a collection",
-            description="Generates a machine-readable JSON freeze snapshot of a collection including all SDB decisions."
+            description="Generates a machine-readable JSON freeze snapshot of a collection including all SDB decisions.",
         )
         snap_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         snap_p.add_argument("--output", required=True, help="Output JSON path")
@@ -81,7 +82,7 @@ class SLRReportCommand:
         screen_p = sub.add_parser(
             "screening",
             help="Generate Markdown Screening Report",
-            description="Generates human-readable Markdown summary of screening phase decisions."
+            description="Generates human-readable Markdown summary of screening phase decisions.",
         )
         screen_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         screen_p.add_argument("--output", required=True, help="Output Markdown path")
@@ -90,7 +91,7 @@ class SLRReportCommand:
         excl_p = sub.add_parser(
             "exclusion-summary",
             help="Summarize rejection reason codes and percentages",
-            description="Aggregates and reports counts and percentages for rejection reason codes across screened papers."
+            description="Aggregates and reports counts and percentages for rejection reason codes across screened papers.",
         )
         excl_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
 
@@ -98,7 +99,7 @@ class SLRReportCommand:
         cons_p = sub.add_parser(
             "consensus",
             help="Double-screening consensus and conflict report",
-            description="Finds and highlights discrepancies/conflicts in items screened by multiple reviewers."
+            description="Finds and highlights discrepancies/conflicts in items screened by multiple reviewers.",
         )
         cons_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
 
@@ -137,13 +138,18 @@ class SLRReportCommand:
                 report = service.generate_prisma_report(args.collection)
 
             if not report:
-                console.print(f"[bold red]Error:[/bold red] Source collection '{args.collection}' not found.")
+                console.print(
+                    f"[bold red]Error:[/bold red] Source collection '{args.collection}' not found."
+                )
                 sys.exit(1)
 
             from rich.progress import BarColumn, Progress, TextColumn
+
             console.print(f"\n[bold]SLR Funnel Status: {report.collection_name}[/bold]\n")
 
-            percent_screened = ((report.screened_items / report.total_items * 100) if report.total_items else 0)
+            percent_screened = (
+                (report.screened_items / report.total_items * 100) if report.total_items else 0
+            )
 
             with Progress(
                 TextColumn("[progress.description]{task.description}"),
@@ -160,14 +166,34 @@ class SLRReportCommand:
             table.add_column("Count")
             table.add_column("Percentage")
 
-            percent_accepted = ((report.accepted_items / report.screened_items * 100) if report.screened_items else 0)
-            percent_rejected = ((report.rejected_items / report.screened_items * 100) if report.screened_items else 0)
+            percent_accepted = (
+                (report.accepted_items / report.screened_items * 100)
+                if report.screened_items
+                else 0
+            )
+            percent_rejected = (
+                (report.rejected_items / report.screened_items * 100)
+                if report.screened_items
+                else 0
+            )
 
             table.add_row("Total Funnel Items", str(report.total_items), "100%")
             table.add_row("Screened", str(report.screened_items), f"{percent_screened:.1f}%")
-            table.add_row("Remaining", str(report.total_items - report.screened_items), f"{100 - percent_screened:.1f}%")
-            table.add_row("Accepted (Included)", f"[green]{report.accepted_items}[/green]", f"{percent_accepted:.1f}%")
-            table.add_row("Rejected (Excluded)", f"[red]{report.rejected_items}[/red]", f"{percent_rejected:.1f}%")
+            table.add_row(
+                "Remaining",
+                str(report.total_items - report.screened_items),
+                f"{100 - percent_screened:.1f}%",
+            )
+            table.add_row(
+                "Accepted (Included)",
+                f"[green]{report.accepted_items}[/green]",
+                f"{percent_accepted:.1f}%",
+            )
+            table.add_row(
+                "Rejected (Excluded)",
+                f"[red]{report.rejected_items}[/red]",
+                f"{percent_rejected:.1f}%",
+            )
 
             console.print(table)
             return
@@ -181,7 +207,7 @@ class SLRReportCommand:
             show_header=True,
             header_style="bold magenta",
             box=box.SQUARE,
-            expand=True
+            expand=True,
         )
         table.add_column("Source Collection")
         table.add_column("Tree Total", justify="right", style="bold yellow")
@@ -245,7 +271,7 @@ class SLRReportCommand:
                 format_stats(ta),
                 format_stats(ft),
                 format_stats(qa),
-                de_val
+                de_val,
             )
 
         # Add divider line before total row
@@ -258,12 +284,7 @@ class SLRReportCommand:
         de_tot = str(sum_de_acc)
 
         table.add_row(
-            "[bold yellow]TOTAL (SUM)[/bold yellow]",
-            str(sum_tree),
-            ta_tot,
-            ft_tot,
-            qa_tot,
-            de_tot
+            "[bold yellow]TOTAL (SUM)[/bold yellow]", str(sum_tree), ta_tot, ft_tot, qa_tot, de_tot
         )
 
         console.print(table)
@@ -301,7 +322,9 @@ class SLRReportCommand:
         if args.output_chart:
             mermaid_code = service.generate_mermaid_prisma(report)
             if service.render_diagram(mermaid_code, args.output_chart):
-                console.print(f"\n[bold green]✓ Flowchart saved to {args.output_chart}[/bold green]")
+                console.print(
+                    f"\n[bold green]✓ Flowchart saved to {args.output_chart}[/bold green]"
+                )
             else:
                 console.print("\n[bold red]✗ Failed to render flowchart diagram.[/bold red]")
 
@@ -338,6 +361,7 @@ class SLRReportCommand:
     @staticmethod
     def _handle_snapshot(gateway, args):
         service = SnapshotService(gateway)
+
         def cli_progress(current, total, msg):
             percent = (current / total * 100) if total > 0 else 0
             sys.stdout.write(f"\r[{percent:5.1f}%] {msg:<60}")
@@ -381,7 +405,9 @@ class SLRReportCommand:
             sys.exit(1)
 
         console.print(f"\n[bold]Exclusion Summary Report: {report.collection_name}[/bold]\n")
-        console.print(f"Total Papers Excluded: [red]{report.rejected_items}[/red] (out of {report.screened_items} screened)")
+        console.print(
+            f"Total Papers Excluded: [red]{report.rejected_items}[/red] (out of {report.screened_items} screened)"
+        )
 
         if not report.rejections_by_code:
             console.print("[green]No exclusion decisions found in this collection.[/green]")
@@ -392,7 +418,9 @@ class SLRReportCommand:
         table.add_column("Excluded Count", justify="right", style="magenta")
         table.add_column("Percentage", justify="right", style="green")
 
-        for code, count in sorted(report.rejections_by_code.items(), key=lambda x: x[1], reverse=True):
+        for code, count in sorted(
+            report.rejections_by_code.items(), key=lambda x: x[1], reverse=True
+        ):
             percent = (count / report.rejected_items * 100) if report.rejected_items > 0 else 0
             table.add_row(code, str(count), f"{percent:.2f}%")
         console.print(table)
@@ -409,7 +437,9 @@ class SLRReportCommand:
         agreements = 0
         total_double_screened = 0
 
-        with console.status("[bold green]Scanning and analyzing SDB notes for reviewer consensus...[/bold green]"):
+        with console.status(
+            "[bold green]Scanning and analyzing SDB notes for reviewer consensus...[/bold green]"
+        ):
             for item in items:
                 children = gateway.get_item_children(item.key)
                 reviewer_decisions = {}
@@ -419,6 +449,7 @@ class SLRReportCommand:
                         note = data_raw.get("note", "")
                         # Try to parse JSON from note
                         import re
+
                         match = re.search(r"\{.*\}", note, re.DOTALL)
                         if match:
                             try:
@@ -435,11 +466,9 @@ class SLRReportCommand:
                     decisions_set = set(reviewer_decisions.values())
                     if len(decisions_set) > 1:
                         # Conflict!
-                        discrepancies.append({
-                            "key": item.key,
-                            "title": item.title,
-                            "decisions": reviewer_decisions
-                        })
+                        discrepancies.append(
+                            {"key": item.key, "title": item.title, "decisions": reviewer_decisions}
+                        )
                     else:
                         agreements += 1
 
@@ -452,14 +481,20 @@ class SLRReportCommand:
         console.print(Panel(summary, title="Double Screening Consensus Report", expand=False))
 
         if discrepancies:
-            table = Table(title="Review Discrepancies / Conflicts", show_header=True, header_style="bold red")
+            table = Table(
+                title="Review Discrepancies / Conflicts", show_header=True, header_style="bold red"
+            )
             table.add_column("Key", style="dim")
             table.add_column("Reviewer Decisions")
             table.add_column("Title")
 
             for d in discrepancies:
                 dec_strings = [f"{rev}: {dec.upper()}" for rev, dec in d["decisions"].items()]
-                table.add_row(d["key"], ", ".join(dec_strings), d["title"][:50] + ("..." if len(d["title"]) > 50 else ""))
+                table.add_row(
+                    d["key"],
+                    ", ".join(dec_strings),
+                    d["title"][:50] + ("..." if len(d["title"]) > 50 else ""),
+                )
             console.print(table)
         else:
             console.print("[green]Perfect consensus! No double-screening conflicts found.[/green]")

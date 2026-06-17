@@ -15,7 +15,6 @@ console = Console()
 COLLECTION_NAME_OR_KEY_HELP = "Collection name or key"
 
 
-
 @CommandRegistry.register
 class CollectionCommand(BaseCommand):
     name = "collection"
@@ -153,8 +152,6 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         clean_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         clean_p.add_argument("--verbose", action="store_true")
-
-
 
         # Backup
         backup_p = sub.add_parser(
@@ -356,8 +353,6 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         service = GatewayFactory.get_collection_service(force_user=force_user)
         count = service.empty_collection(args.collection, args.verbose)
         print(f"Deleted {count} items from '{args.collection}'.")
-
-
 
     def _handle_backup(self, gateway, args):
         from rich.progress import (

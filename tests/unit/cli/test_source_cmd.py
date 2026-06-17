@@ -21,10 +21,7 @@ def test_handle_init_collection_does_not_exist():
     mock_gateway.get_collection_id_by_name.return_value = None
     mock_gateway.create_collection.side_effect = ["PARENT_KEY", "K1", "K2", "K3", "K4"]
 
-    args = argparse.Namespace(
-        source_verb="init",
-        name="acm"
-    )
+    args = argparse.Namespace(source_verb="init", name="acm")
 
     SLRSourceCommand.execute(mock_gateway, args)
 
@@ -41,10 +38,7 @@ def test_handle_init_collection_already_exists():
     mock_gateway.get_collection_id_by_name.return_value = "EXISTING_KEY"
     mock_gateway.create_collection.return_value = "SUB_KEY"
 
-    args = argparse.Namespace(
-        source_verb="init",
-        name="ieee"
-    )
+    args = argparse.Namespace(source_verb="init", name="ieee")
 
     SLRSourceCommand.execute(mock_gateway, args)
 
@@ -58,12 +52,7 @@ def test_handle_add_collection_not_found():
     mock_gateway = MagicMock()
     mock_gateway.get_collection_id_by_name.return_value = None
 
-    args = argparse.Namespace(
-        source_verb="add",
-        name="nonexistent",
-        file="test.ris",
-        verbose=False
-    )
+    args = argparse.Namespace(source_verb="add", name="nonexistent", file="test.ris", verbose=False)
 
     with pytest.raises(SystemExit) as excinfo:
         SLRSourceCommand.execute(mock_gateway, args)
@@ -84,12 +73,7 @@ def test_handle_add_ris_success(mock_fetch, mock_ris_gateway, mock_import_servic
     mock_imp_service.import_papers.return_value = 5
     mock_import_service.return_value = mock_imp_service
 
-    args = argparse.Namespace(
-        source_verb="add",
-        name="acm",
-        file="test.ris",
-        verbose=True
-    )
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.ris", verbose=True)
 
     SLRSourceCommand.execute(mock_gateway, args)
 
@@ -111,12 +95,7 @@ def test_handle_add_bib_success(mock_fetch, mock_bib_gateway, mock_import_servic
     mock_imp_service.import_papers.return_value = 3
     mock_import_service.return_value = mock_imp_service
 
-    args = argparse.Namespace(
-        source_verb="add",
-        name="acm",
-        file="test.bib",
-        verbose=False
-    )
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.bib", verbose=False)
 
     SLRSourceCommand.execute(mock_gateway, args)
 
@@ -128,7 +107,9 @@ def test_handle_add_bib_success(mock_fetch, mock_bib_gateway, mock_import_servic
 @patch("zotero_cli.infra.factory.GatewayFactory.get_import_service")
 @patch("zotero_cli.infra.factory.GatewayFactory.get_springer_csv_gateway")
 @patch("zotero_cli.core.strategies.SpringerCsvImportStrategy.fetch_papers")
-def test_handle_add_springer_csv_success(mock_fetch, mock_springer_gateway, mock_import_service, mock_file):
+def test_handle_add_springer_csv_success(
+    mock_fetch, mock_springer_gateway, mock_import_service, mock_file
+):
     mock_gateway = MagicMock()
     mock_gateway.get_collection_id_by_name.return_value = "RAW_KEY"
 
@@ -139,12 +120,7 @@ def test_handle_add_springer_csv_success(mock_fetch, mock_springer_gateway, mock
     mock_imp_service.import_papers.return_value = 10
     mock_import_service.return_value = mock_imp_service
 
-    args = argparse.Namespace(
-        source_verb="add",
-        name="acm",
-        file="test.csv",
-        verbose=False
-    )
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.csv", verbose=False)
 
     SLRSourceCommand.execute(mock_gateway, args)
 
@@ -167,12 +143,7 @@ def test_handle_add_ieee_csv_success(mock_fetch, mock_ieee_gateway, mock_import_
     mock_imp_service.import_papers.return_value = 8
     mock_import_service.return_value = mock_imp_service
 
-    args = argparse.Namespace(
-        source_verb="add",
-        name="acm",
-        file="test.csv",
-        verbose=False
-    )
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.csv", verbose=False)
 
     SLRSourceCommand.execute(mock_gateway, args)
 
@@ -184,7 +155,9 @@ def test_handle_add_ieee_csv_success(mock_fetch, mock_ieee_gateway, mock_import_
 @patch("zotero_cli.infra.factory.GatewayFactory.get_import_service")
 @patch("zotero_cli.infra.factory.GatewayFactory.get_canonical_csv_gateway")
 @patch("zotero_cli.core.strategies.CanonicalCsvImportStrategy.fetch_papers")
-def test_handle_add_canonical_csv_success(mock_fetch, mock_canonical_gateway, mock_import_service, mock_file):
+def test_handle_add_canonical_csv_success(
+    mock_fetch, mock_canonical_gateway, mock_import_service, mock_file
+):
     mock_gateway = MagicMock()
     mock_gateway.get_collection_id_by_name.return_value = "RAW_KEY"
 
@@ -195,12 +168,7 @@ def test_handle_add_canonical_csv_success(mock_fetch, mock_canonical_gateway, mo
     mock_imp_service.import_papers.return_value = 2
     mock_import_service.return_value = mock_imp_service
 
-    args = argparse.Namespace(
-        source_verb="add",
-        name="acm",
-        file="test.csv",
-        verbose=False
-    )
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.csv", verbose=False)
 
     SLRSourceCommand.execute(mock_gateway, args)
 
@@ -213,12 +181,7 @@ def test_handle_add_unknown_csv(mock_file):
     mock_gateway = MagicMock()
     mock_gateway.get_collection_id_by_name.return_value = "RAW_KEY"
 
-    args = argparse.Namespace(
-        source_verb="add",
-        name="acm",
-        file="test.csv",
-        verbose=False
-    )
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.csv", verbose=False)
 
     with pytest.raises(SystemExit) as excinfo:
         SLRSourceCommand.execute(mock_gateway, args)
@@ -229,12 +192,7 @@ def test_handle_add_unsupported_ext():
     mock_gateway = MagicMock()
     mock_gateway.get_collection_id_by_name.return_value = "RAW_KEY"
 
-    args = argparse.Namespace(
-        source_verb="add",
-        name="acm",
-        file="test.txt",
-        verbose=False
-    )
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.txt", verbose=False)
 
     with pytest.raises(SystemExit) as excinfo:
         SLRSourceCommand.execute(mock_gateway, args)
@@ -266,17 +224,13 @@ def test_handle_list_success(capsys):
             "title": "Paper 1",
             "abstractNote": "My Abstract",
             "DOI": "10.1000/xyz123",
-            "extra": "arxiv: 2101.00000"
+            "extra": "arxiv: 2101.00000",
         }
     }
 
     # K2 has missing abstract, no doi, no pdf, no note
     mock_item2 = ZoteroItem(key="K2", version=1, item_type="journalArticle", title="Paper 2")
-    mock_item2.raw_data = {
-        "data": {
-            "title": "Paper 2"
-        }
-    }
+    mock_item2.raw_data = {"data": {"title": "Paper 2"}}
 
     mock_gateway.get_items_in_collection.return_value = [mock_item1, mock_item2]
 
@@ -285,8 +239,10 @@ def test_handle_list_success(capsys):
     mock_gateway.get_item_children.side_effect = lambda key: (
         [
             {"data": {"itemType": "attachment", "contentType": "application/pdf"}},
-            {"data": {"itemType": "note", "note": "<div>Decision: include</div>"}}
-        ] if key == "K1" else []
+            {"data": {"itemType": "note", "note": "<div>Decision: include</div>"}},
+        ]
+        if key == "K1"
+        else []
     )
 
     args = argparse.Namespace(source_verb="list")
@@ -314,4 +270,3 @@ def test_handle_list_success_empty_source(capsys):
     assert "Active SLR Sources & Pipeline Health" in out
     assert "raw_acm" in out
     assert "0" in out
-

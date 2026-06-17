@@ -56,7 +56,9 @@ Action:  zotero-cli report audit --collection "Final Selection" --verbose
 Result:  A completeness report table is printed, and missing items are detailed.
 """,
         )
-        audit_p.add_argument("--collection", required=True, help="Collection Name or Key to validate")
+        audit_p.add_argument(
+            "--collection", required=True, help="Collection Name or Key to validate"
+        )
         audit_p.add_argument("--verbose", action="store_true", help="Show detailed failure logs")
         audit_p.add_argument(
             "--export-missing", help="Path to export keys of missing items to a file"
@@ -85,7 +87,8 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             description="Gathers and displays global statistics about your Zotero library, including item types, total counts, and temporal distributions.",
         )
         stats_p.add_argument(
-            "--collection", help="Filter statistics to a specific collection instead of the entire library"
+            "--collection",
+            help="Filter statistics to a specific collection instead of the entire library",
         )
 
         # report attachments
@@ -95,9 +98,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             description="Performs an audit of PDF attachments and other files in your library or a collection, detailing disk usage and identifying items missing PDFs.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
-        attach_p.add_argument(
-            "--collection", help="Filter analysis to a specific collection"
-        )
+        attach_p.add_argument("--collection", help="Filter analysis to a specific collection")
         attach_p.add_argument(
             "--output", help="Optional path to save the Markdown attachments report"
         )
@@ -179,9 +180,13 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             if report.items_missing_id:
                 console.print(f"Missing ID: {', '.join([i.key for i in report.items_missing_id])}")
             if report.items_missing_pdf:
-                console.print(f"Missing PDF: {', '.join([i.key for i in report.items_missing_pdf])}")
+                console.print(
+                    f"Missing PDF: {', '.join([i.key for i in report.items_missing_pdf])}"
+                )
             if report.items_missing_note:
-                console.print(f"Missing Note: {', '.join([i.key for i in report.items_missing_note])}")
+                console.print(
+                    f"Missing Note: {', '.join([i.key for i in report.items_missing_note])}"
+                )
 
         if args.export_missing:
             missing_keys = set()
@@ -206,7 +211,9 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             )
             sys.exit(1)
         else:
-            console.print("\n[bold green]Verification PASSED.[/bold green] All items are submission-ready.")
+            console.print(
+                "\n[bold green]Verification PASSED.[/bold green] All items are submission-ready."
+            )
 
     def _handle_verify_latex(self, args):
         service = GatewayFactory.get_audit_service(force_user=getattr(args, "user", False))
@@ -322,7 +329,9 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             console.print(year_table)
 
     def _handle_attachments(self, gateway, args):
-        with console.status("[bold green]Analyzing library attachments and PDF space...[/bold green]"):
+        with console.status(
+            "[bold green]Analyzing library attachments and PDF space...[/bold green]"
+        ):
             if args.collection:
                 col_id = gateway.get_collection_id_by_name(args.collection) or args.collection
                 items = list(gateway.get_items_in_collection(col_id))
@@ -347,7 +356,13 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
                     pdf_counts += 1
                 else:
                     other_attachment_counts += 1
-            elif item.item_type in ["journalArticle", "thesis", "conferencePaper", "book", "report"]:
+            elif item.item_type in [
+                "journalArticle",
+                "thesis",
+                "conferencePaper",
+                "book",
+                "report",
+            ]:
                 # Check children for PDFs
                 children = gateway.get_item_children(item.key)
                 has_pdf = False
@@ -390,7 +405,9 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
                 table.add_row(item.key, item.item_type, title_display)
             console.print(table)
             if len(missing_pdf) > 25:
-                console.print(f"[dim]... and {len(missing_pdf) - 25} more items missing PDFs.[/dim]")
+                console.print(
+                    f"[dim]... and {len(missing_pdf) - 25} more items missing PDFs.[/dim]"
+                )
 
         # Export if requested
         if args.output:
@@ -414,4 +431,6 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
 
             with open(args.output, "w", encoding="utf-8") as f:
                 f.write("\n".join(md))
-            console.print(f"[bold green]✓ Attachment report successfully exported to {args.output}[/bold green]")
+            console.print(
+                f"[bold green]✓ Attachment report successfully exported to {args.output}[/bold green]"
+            )

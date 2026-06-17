@@ -70,7 +70,11 @@ def test_collection_list_table(mock_gateway, capsys):
 def test_collection_list_tree(mock_gateway, capsys):
     mock_gateway.get_all_collections.return_value = [
         {"key": "C1", "data": {"name": "Col 1", "parentCollection": None}, "meta": {"numItems": 5}},
-        {"key": "C2", "data": {"name": "Sub Col", "parentCollection": "C1"}, "meta": {"numItems": 2}}
+        {
+            "key": "C2",
+            "data": {"name": "Sub Col", "parentCollection": "C1"},
+            "meta": {"numItems": 2},
+        },
     ]
 
     args = argparse.Namespace(verb="list", table=False, user=False)
@@ -111,7 +115,9 @@ def test_collection_delete_success(mock_gateway, mock_collection_service, capsys
     mock_gateway.get_collection.return_value = {"version": 42}
     mock_collection_service.delete_collection.return_value = True
 
-    args = argparse.Namespace(verb="delete", key="COL_KEY", version=None, recursive=True, user=False)
+    args = argparse.Namespace(
+        verb="delete", key="COL_KEY", version=None, recursive=True, user=False
+    )
     CollectionCommand().execute(args)
 
     mock_collection_service.delete_collection.assert_called_with("COL_KEY", 42, recursive=True)
@@ -123,7 +129,9 @@ def test_collection_delete_not_found(mock_gateway, mock_collection_service, caps
     mock_gateway.get_collection_id_by_name.return_value = None
     mock_gateway.get_collection.return_value = None
 
-    args = argparse.Namespace(verb="delete", key="INVALID_KEY", version=None, recursive=False, user=False)
+    args = argparse.Namespace(
+        verb="delete", key="INVALID_KEY", version=None, recursive=False, user=False
+    )
     CollectionCommand().execute(args)
 
     out = capsys.readouterr().out
@@ -134,7 +142,9 @@ def test_collection_rename_success(mock_gateway, capsys):
     mock_gateway.get_collection_id_by_name.return_value = "COL_KEY"
     mock_gateway.rename_collection.return_value = True
 
-    args = argparse.Namespace(verb="rename", key="COL_KEY", name="New Name", version=100, user=False)
+    args = argparse.Namespace(
+        verb="rename", key="COL_KEY", name="New Name", version=100, user=False
+    )
     CollectionCommand().execute(args)
 
     mock_gateway.rename_collection.assert_called_with("COL_KEY", 100, "New Name")
@@ -146,7 +156,9 @@ def test_collection_rename_fail(mock_gateway, capsys):
     mock_gateway.get_collection_id_by_name.return_value = "COL_KEY"
     mock_gateway.rename_collection.return_value = False
 
-    args = argparse.Namespace(verb="rename", key="COL_KEY", name="New Name", version=100, user=False)
+    args = argparse.Namespace(
+        verb="rename", key="COL_KEY", name="New Name", version=100, user=False
+    )
     CollectionCommand().execute(args)
 
     out = capsys.readouterr().out
@@ -194,7 +206,9 @@ def test_collection_backup_not_found(mock_gateway, capsys):
 def test_collection_export_metadata_success(mock_export_service, capsys):
     mock_export_service.export_collection.return_value = True
 
-    args = argparse.Namespace(verb="export", name="COL_KEY", format="bibtex", output="out.bib", user=False)
+    args = argparse.Namespace(
+        verb="export", name="COL_KEY", format="bibtex", output="out.bib", user=False
+    )
     CollectionCommand().execute(args)
 
     mock_export_service.export_collection.assert_called_with("COL_KEY", "out.bib", "bibtex")
@@ -205,7 +219,9 @@ def test_collection_export_metadata_success(mock_export_service, capsys):
 def test_collection_export_metadata_fail(mock_export_service, capsys):
     mock_export_service.export_collection.return_value = False
 
-    args = argparse.Namespace(verb="export", name="COL_KEY", format="ris", output="out.ris", user=False)
+    args = argparse.Namespace(
+        verb="export", name="COL_KEY", format="ris", output="out.ris", user=False
+    )
     with pytest.raises(SystemExit):
         CollectionCommand().execute(args)
 
@@ -221,7 +237,9 @@ def test_collection_export_markdown_success(mock_gateway, mock_attachment_servic
 
     mock_attachment_service._export_item_markdown.side_effect = ["success", "skipped"]
 
-    args = argparse.Namespace(verb="export", name="COL_KEY", format="md", output="md_dir", user=False)
+    args = argparse.Namespace(
+        verb="export", name="COL_KEY", format="md", output="md_dir", user=False
+    )
     CollectionCommand().execute(args)
 
     out = capsys.readouterr().out
@@ -241,7 +259,7 @@ def test_collection_purge_success(mock_purge_service, capsys):
         tags=False,
         force=True,
         recursive=True,
-        user=False
+        user=False,
     )
     CollectionCommand().execute(args)
 

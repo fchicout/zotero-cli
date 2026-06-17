@@ -58,6 +58,7 @@ def test_get_paper_metadata_not_found(client):
 
 def test_get_paper_metadata_http_error_404(client):
     import requests
+
     mock_response = MagicMock()
     mock_response.status_code = 404
     http_err = requests.exceptions.HTTPError(response=mock_response)
@@ -69,6 +70,7 @@ def test_get_paper_metadata_http_error_404(client):
 
 def test_get_paper_metadata_http_error_generic(client):
     import requests
+
     mock_response = MagicMock()
     mock_response.status_code = 500
     http_err = requests.exceptions.HTTPError(response=mock_response)
@@ -92,4 +94,3 @@ def test_map_to_research_paper_string_author(client):
     }
     paper = client._map_to_research_paper(info)
     assert paper.authors == ["Knuth, Donald E."]
-

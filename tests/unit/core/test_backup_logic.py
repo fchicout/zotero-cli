@@ -240,6 +240,7 @@ def test_backup_on_item_processed_callback(service, mock_gateway):
     mock_gateway.get_all_collections.return_value = []
 
     callback_called_with = []
+
     def callback(i):
         callback_called_with.append(i)
 
@@ -268,6 +269,7 @@ def test_backup_attachment_already_in_manifest(service, mock_gateway):
 
     # We will subclass/intercept backup_system to inject a pre-populated file_map
     original_write_zip = service._write_zip
+
     def mock_write_zip(output, manifest, items, on_item_processed):
         manifest["file_map"]["A1"] = {"path": "already/there.pdf", "checksum": "123"}
         return original_write_zip(output, manifest, items, on_item_processed)

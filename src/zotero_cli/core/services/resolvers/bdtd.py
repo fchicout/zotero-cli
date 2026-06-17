@@ -32,8 +32,7 @@ class BDTDResolver(PDFResolver):
         # Check if the URL points to an academic repository or item is a thesis
         is_thesis = item.item_type == "thesis"
         is_repo_url = any(
-            x in repo_url.lower()
-            for x in ["handle", "jspui", "tede", "bitstream", "bdtd.ibict.br"]
+            x in repo_url.lower() for x in ["handle", "jspui", "tede", "bitstream", "bdtd.ibict.br"]
         )
 
         if not (is_thesis or is_repo_url):
@@ -52,7 +51,9 @@ class BDTDResolver(PDFResolver):
             # Fetch the landing page
             response = await self.gateway.get(repo_url, headers=headers)
             if response.status_code != 200:
-                logger.warning(f"BDTDResolver: Failed to fetch {repo_url}, status: {response.status_code}")
+                logger.warning(
+                    f"BDTDResolver: Failed to fetch {repo_url}, status: {response.status_code}"
+                )
                 return None
 
             soup = BeautifulSoup(response.text, "html.parser")
@@ -92,7 +93,7 @@ class BDTDResolver(PDFResolver):
                             "HEAD",
                             u_link,
                             headers={**headers, "Referer": u_link, "Accept": "*/*;q=0.8"},
-                            timeout=5
+                            timeout=5,
                         )
                         ct = h.headers.get("content-type", "").lower()
                         if ct and "text" not in ct and "html" not in ct:
@@ -119,7 +120,9 @@ class BDTDResolver(PDFResolver):
 
             max_ratio = max(levenshtein_ratios, key=lambda x: x[0])
             resolved_pdf_url = max_ratio[1]
-            logger.info(f"BDTDResolver: Selected best PDF URL {resolved_pdf_url} with ratio {max_ratio[0]}")
+            logger.info(
+                f"BDTDResolver: Selected best PDF URL {resolved_pdf_url} with ratio {max_ratio[0]}"
+            )
 
             return await self._download_pdf(resolved_pdf_url, item.key)
 
@@ -136,7 +139,9 @@ class BDTDResolver(PDFResolver):
             # Verify %PDF header or Content-Type
             if "application/pdf" not in response.headers.get("Content-Type", "").lower():
                 if not response.content.startswith(b"%PDF"):
-                    logger.warning(f"BDTDResolver: URL {pdf_url} did not return a valid PDF signature.")
+                    logger.warning(
+                        f"BDTDResolver: URL {pdf_url} did not return a valid PDF signature."
+                    )
                     return None
 
             temp_dir = Path(tempfile.gettempdir())

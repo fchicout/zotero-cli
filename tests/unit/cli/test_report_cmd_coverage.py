@@ -4,6 +4,7 @@ Coverage tests for:
   - src/zotero_cli/cli/commands/slr/report_cmd.py (prisma, shift, snapshot, screening,
     exclusion-summary, consensus)
 """
+
 import argparse
 import json
 from pathlib import Path
@@ -46,7 +47,9 @@ class TestReportCommandStats:
 
         args = argparse.Namespace(report_type="stats", collection=None, user=False)
         cmd = ReportCommand()
-        with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway):
+        with patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway
+        ):
             cmd.execute(args)
 
         out = capsys.readouterr().out
@@ -61,7 +64,9 @@ class TestReportCommandStats:
 
         args = argparse.Namespace(report_type="stats", collection="TestCol", user=False)
         cmd = ReportCommand()
-        with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway):
+        with patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway
+        ):
             cmd.execute(args)
 
         out = capsys.readouterr().out
@@ -73,7 +78,9 @@ class TestReportCommandStats:
         mock_gateway.get_all_items.return_value = []
         args = argparse.Namespace(report_type="stats", collection=None, user=False)
         cmd = ReportCommand()
-        with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway):
+        with patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway
+        ):
             cmd.execute(args)
 
         out = capsys.readouterr().out
@@ -95,9 +102,13 @@ class TestReportCommandAttachments:
         items = [self._make_attach_item("A1"), self._make_attach_item("A2", "text/html", 512)]
         mock_gateway.get_all_items.return_value = items
 
-        args = argparse.Namespace(report_type="attachments", collection=None, output=None, user=False)
+        args = argparse.Namespace(
+            report_type="attachments", collection=None, output=None, user=False
+        )
         cmd = ReportCommand()
-        with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway):
+        with patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway
+        ):
             cmd.execute(args)
 
         out = capsys.readouterr().out
@@ -111,9 +122,13 @@ class TestReportCommandAttachments:
         mock_gateway.get_items_in_collection.return_value = [article]
         mock_gateway.get_item_children.return_value = []  # no children = no PDF
 
-        args = argparse.Namespace(report_type="attachments", collection="TestCol", output=None, user=False)
+        args = argparse.Namespace(
+            report_type="attachments", collection="TestCol", output=None, user=False
+        )
         cmd = ReportCommand()
-        with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway):
+        with patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway
+        ):
             cmd.execute(args)
 
         out = capsys.readouterr().out
@@ -125,9 +140,13 @@ class TestReportCommandAttachments:
         mock_gateway.get_all_items.return_value = []
         out_file = str(tmp_path / "report.md")
 
-        args = argparse.Namespace(report_type="attachments", collection=None, output=out_file, user=False)
+        args = argparse.Namespace(
+            report_type="attachments", collection=None, output=out_file, user=False
+        )
         cmd = ReportCommand()
-        with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway):
+        with patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=mock_gateway
+        ):
             cmd.execute(args)
 
         assert Path(out_file).exists()
@@ -140,8 +159,18 @@ class TestReportCommandVerifyLatex:
         mock_report = {
             "total_citations": 2,
             "items": {
-                "K1": {"exists": True, "screened": True, "decision": "accepted", "title": "Paper A"},
-                "K2": {"exists": True, "screened": True, "decision": "included", "title": "Paper B"},
+                "K1": {
+                    "exists": True,
+                    "screened": True,
+                    "decision": "accepted",
+                    "title": "Paper A",
+                },
+                "K2": {
+                    "exists": True,
+                    "screened": True,
+                    "decision": "included",
+                    "title": "Paper B",
+                },
             },
         }
 
@@ -293,7 +322,9 @@ class TestSLRReportCommandShift:
         old_snap.write_text(json.dumps([]))
         new_snap.write_text(json.dumps([]))
 
-        shifts = [{"key": "K1", "title": "Paper A", "from": ["raw_ieee"], "to": ["1-title_abstract"]}]
+        shifts = [
+            {"key": "K1", "title": "Paper A", "from": ["raw_ieee"], "to": ["1-title_abstract"]}
+        ]
         args = argparse.Namespace(report_verb="shift", old=str(old_snap), new=str(new_snap))
         with patch("zotero_cli.cli.commands.slr.report_cmd.CollectionAuditor") as mock_aud:
             mock_aud.return_value.detect_shifts.return_value = shifts
@@ -363,9 +394,7 @@ class TestSLRReportCommandExclusionSummary:
         from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
         from zotero_cli.core.services.report_service import PrismaReport
 
-        report = PrismaReport(
-            "TestCol", 20, 15, 5, 10, rejections_by_code={"EXC01": 6, "EXC02": 4}
-        )
+        report = PrismaReport("TestCol", 20, 15, 5, 10, rejections_by_code={"EXC01": 6, "EXC02": 4})
         args = argparse.Namespace(report_verb="exclusion-summary", collection="TestCol")
 
         with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_svc_cls:
@@ -422,8 +451,18 @@ class TestSLRReportCommandConsensus:
         item.title = "Paper K1"
         # Two reviewers agree
         children = [
-            {"data": {"itemType": "note", "note": json.dumps({"decision": "accepted", "reviewer": "Alice"})}},
-            {"data": {"itemType": "note", "note": json.dumps({"decision": "accepted", "reviewer": "Bob"})}},
+            {
+                "data": {
+                    "itemType": "note",
+                    "note": json.dumps({"decision": "accepted", "reviewer": "Alice"}),
+                }
+            },
+            {
+                "data": {
+                    "itemType": "note",
+                    "note": json.dumps({"decision": "accepted", "reviewer": "Bob"}),
+                }
+            },
         ]
         mock_gateway.get_items_in_collection.return_value = [item]
         mock_gateway.get_item_children.return_value = children
@@ -442,8 +481,18 @@ class TestSLRReportCommandConsensus:
         item.title = "Paper K1"
         # Two reviewers disagree
         children = [
-            {"data": {"itemType": "note", "note": json.dumps({"decision": "accepted", "reviewer": "Alice"})}},
-            {"data": {"itemType": "note", "note": json.dumps({"decision": "rejected", "reviewer": "Bob"})}},
+            {
+                "data": {
+                    "itemType": "note",
+                    "note": json.dumps({"decision": "accepted", "reviewer": "Alice"}),
+                }
+            },
+            {
+                "data": {
+                    "itemType": "note",
+                    "note": json.dumps({"decision": "rejected", "reviewer": "Bob"}),
+                }
+            },
         ]
         mock_gateway.get_items_in_collection.return_value = [item]
         mock_gateway.get_item_children.return_value = children

@@ -14,7 +14,6 @@ console = Console()
 ITEM_KEY_HELP = "Item Key"
 
 
-
 class InspectCommand(BaseCommand):
     name = "inspect"
     help = "Inspect item details"
@@ -70,7 +69,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 continue
 
             if len(keys) > 1:
-                console.print(f"\n[bold yellow]--- Inspecting Item {idx + 1}/{len(keys)}: {key} ---[/bold yellow]")
+                console.print(
+                    f"\n[bold yellow]--- Inspecting Item {idx + 1}/{len(keys)}: {key} ---[/bold yellow]"
+                )
 
             if args.raw:
                 print(json.dumps(item.raw_data, indent=2))
@@ -147,12 +148,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                             )
                             if is_json:
                                 from rich.json import JSON
+
                                 console.print(Panel(JSON(raw_json), border_style="cyan"))
                             else:
                                 console.print(Panel(note_full, border_style="cyan"))
                         else:
                             if is_json:
-                                display_content = json.dumps(parsed_data, indent=2, ensure_ascii=False)
+                                display_content = json.dumps(
+                                    parsed_data, indent=2, ensure_ascii=False
+                                )
                             else:
                                 display_content = note_full
 
@@ -541,7 +545,9 @@ Cognitive Safeguards
             title = "Root/Orphan Items (unfiled)"
         else:
             if not getattr(args, "collection", None):
-                console.print("[red]Error: --collection or --root required for non-trash listings.[/red]")
+                console.print(
+                    "[red]Error: --collection or --root required for non-trash listings.[/red]"
+                )
                 return
             col_id = gateway.get_collection_id_by_name(args.collection)
             if not col_id:

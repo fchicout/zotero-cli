@@ -458,7 +458,9 @@ def test_item_move(mock_clients, env_vars, capsys):
 
 # --- 9. SLR ---
 def test_report_audit(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_integrity_service") as mock_integrity_get:
+    with patch(
+        "zotero_cli.infra.factory.GatewayFactory.get_integrity_service"
+    ) as mock_integrity_get:
         mock_service = mock_integrity_get.return_value
         mock_report = Mock()
         mock_report.total_items = 0

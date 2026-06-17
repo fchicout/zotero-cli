@@ -152,7 +152,7 @@ def test_get_slr_status_complex(service, mock_gateway):
     child_note = {
         "data": {
             "itemType": "note",
-            "note": '{"phase": "title_abstract", "decision": "accepted", "audit_version": "1.2"}'
+            "note": '{"phase": "title_abstract", "decision": "accepted", "audit_version": "1.2"}',
         }
     }
     mock_gateway.get_item_children.return_value = [child_note]
@@ -173,7 +173,7 @@ def test_get_pending_items(service, mock_gateway):
     item.item_type = "document"
     item.title = "Paper 1"
     mock_gateway.get_items_in_collection.return_value = [item]
-    mock_gateway.get_item_children.return_value = [] # no note, so it's pending
+    mock_gateway.get_item_children.return_value = []  # no note, so it's pending
 
     pending = service.get_pending_items(root_key="raw_test")
     assert len(pending) == 4
@@ -196,15 +196,15 @@ def test_get_decided_items(service, mock_gateway, mock_orchestrator):
     child_note = {
         "data": {
             "itemType": "note",
-            "note": '{"phase": "title_abstract", "decision": "rejected", "reason_code": ["EX1"], "audit_version": "1.2"}'
+            "note": '{"phase": "title_abstract", "decision": "rejected", "reason_code": ["EX1"], "audit_version": "1.2"}',
         }
     }
     mock_gateway.get_item_children.return_value = [child_note]
 
-    decided = service.get_decided_items("rejected", root_key="raw_test", phase_filter="title_abstract")
+    decided = service.get_decided_items(
+        "rejected", root_key="raw_test", phase_filter="title_abstract"
+    )
     assert len(decided) == 1
     assert decided[0].item_key == "K1"
     assert decided[0].decision == "rejected"
     assert decided[0].reason == "EX1"
-
-

@@ -22,7 +22,9 @@ def test_map_to_research_paper_full(client):
             "primary": {"Silva, Maria da": {}},
             "secondary": {"Santos, João dos": {}},
         },
-        "urls": [{"url": "https://tedebc.ufma.br/jspui/handle/tede/6900", "desc": "Acesso ao documento"}],
+        "urls": [
+            {"url": "https://tedebc.ufma.br/jspui/handle/tede/6900", "desc": "Acesso ao documento"}
+        ],
         "summary": ["Resumo da tese sobre IA na educação.", "Segundo parágrafo do resumo."],
         "publicationDates": ["2023"],
         "institutions": ["Universidade Federal do Maranhão"],

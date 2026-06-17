@@ -2,7 +2,9 @@ from typing import Dict, List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
+
 OFFLINE_ERROR_MSG = "Offline Veto: PurgeService cannot execute in offline mode."
+
 
 class PurgeService:
     """

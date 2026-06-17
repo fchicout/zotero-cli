@@ -35,7 +35,7 @@ class SLRCommand(BaseCommand):
         report_p = sub.add_parser(
             "report",
             help="SLR reporting and funnel analytics",
-            description="Access subcommands for generating SLR status summaries, PRISMA diagrams, citation graphs, screening statistics, consensus discrepancy audits, and library collection drift reports."
+            description="Access subcommands for generating SLR status summaries, PRISMA diagrams, citation graphs, screening statistics, consensus discrepancy audits, and library collection drift reports.",
         )
         SLRReportCommand.register_args(report_p)
 
@@ -43,7 +43,7 @@ class SLRCommand(BaseCommand):
         source_p = sub.add_parser(
             "source",
             help="SLR Search Source Ingestion & Infrastructure",
-            description="Allows for organizing, importing, and listing paper search sources in standard raw_ collections."
+            description="Allows for organizing, importing, and listing paper search sources in standard raw_ collections.",
         )
         SLRSourceCommand.register_args(source_p)
 

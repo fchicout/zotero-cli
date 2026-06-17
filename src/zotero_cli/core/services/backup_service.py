@@ -4,7 +4,7 @@ import os
 import tempfile
 import zipfile
 from datetime import datetime, timezone
-from typing import IO, Any, Callable, Dict, List, Optional, Set, Union
+from typing import IO, Any, Callable, Dict, List, Optional, Set
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.zotero_item import ZoteroItem

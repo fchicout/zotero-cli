@@ -29,7 +29,7 @@ def test_import_file_bib(mock_splitext, mock_import_service, capsys):
         file="references.bib",
         collection="COL123",
         verbose=True,
-        user=False
+        user=False,
     )
     mock_import_service.import_papers.return_value = 2
 
@@ -51,7 +51,7 @@ def test_import_file_ris(mock_splitext, mock_import_service, capsys):
         file="references.ris",
         collection="COL123",
         verbose=True,
-        user=False
+        user=False,
     )
     mock_import_service.import_papers.return_value = 1
 
@@ -74,14 +74,16 @@ def test_import_file_springer_csv(mock_file, mock_splitext, mock_import_service,
         file="springer.csv",
         collection="COL123",
         verbose=True,
-        user=False
+        user=False,
     )
     mock_import_service.import_papers.return_value = 5
 
     with patch("zotero_cli.infra.factory.GatewayFactory.get_springer_csv_gateway"):
         strategy_mock = MagicMock()
         strategy_mock.fetch_papers.return_value = []
-        with patch("zotero_cli.core.strategies.SpringerCsvImportStrategy", return_value=strategy_mock):
+        with patch(
+            "zotero_cli.core.strategies.SpringerCsvImportStrategy", return_value=strategy_mock
+        ):
             ImportCommand().execute(args)
 
     out = capsys.readouterr().out
@@ -97,14 +99,16 @@ def test_import_file_canonical_csv(mock_file, mock_splitext, mock_import_service
         file="canonical.csv",
         collection="COL123",
         verbose=True,
-        user=False
+        user=False,
     )
     mock_import_service.import_papers.return_value = 3
 
     with patch("zotero_cli.infra.factory.GatewayFactory.get_canonical_csv_gateway"):
         strategy_mock = MagicMock()
         strategy_mock.fetch_papers.return_value = []
-        with patch("zotero_cli.core.strategies.CanonicalCsvImportStrategy", return_value=strategy_mock):
+        with patch(
+            "zotero_cli.core.strategies.CanonicalCsvImportStrategy", return_value=strategy_mock
+        ):
             ImportCommand().execute(args)
 
     out = capsys.readouterr().out
@@ -120,7 +124,7 @@ def test_import_file_unknown_csv(mock_file, mock_splitext, mock_import_service, 
         file="unknown.csv",
         collection="COL123",
         verbose=True,
-        user=False
+        user=False,
     )
 
     ImportCommand().execute(args)
@@ -138,7 +142,7 @@ def test_import_arxiv_file(mock_file, mock_import_service, capsys):
         limit=10,
         collection="COL123",
         verbose=True,
-        user=False
+        user=False,
     )
     mock_import_service.import_papers.return_value = 10
 
@@ -162,7 +166,7 @@ def test_import_arxiv_parsed(mock_import_service, capsys):
         limit=10,
         collection="COL123",
         verbose=True,
-        user=False
+        user=False,
     )
     mock_import_service.import_papers.return_value = 5
 
@@ -183,7 +187,7 @@ def test_import_bdtd(mock_import_service, capsys):
         identifier="12345",
         collection="COL123",
         verbose=True,
-        user=False
+        user=False,
     )
     mock_import_service.import_papers.return_value = 1
 

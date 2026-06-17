@@ -10,7 +10,9 @@ from zotero_cli.core.utils.speech_filter import TextCleaningFilter
 
 
 def test_kokoro_speech_provider_init():
-    provider = KokoroSpeechProvider(model_path="custom_model.pth", lang_code="b", voice="custom_voice")
+    provider = KokoroSpeechProvider(
+        model_path="custom_model.pth", lang_code="b", voice="custom_voice"
+    )
     assert provider.model_path == "custom_model.pth"
     assert provider.lang_code == "b"
     assert provider.voice == "custom_voice"
@@ -54,7 +56,7 @@ def test_kokoro_speech_provider_synthesize_success():
     mock_pipeline.return_value = [
         ("g1", "p1", audio_segment),
         ("g2", "p2", None),  # None audio should be ignored
-        ("g3", "p3", audio_segment)
+        ("g3", "p3", audio_segment),
     ]
 
     provider = KokoroSpeechProvider(voice="af_heart")
@@ -65,13 +67,14 @@ def test_kokoro_speech_provider_synthesize_success():
         res = provider.synthesize("Hello world", Path("out.wav"))
         assert res is True
 
-        mock_pipeline.assert_called_once_with("Hello world", voice="af_heart", speed=1, split_pattern=r"\n+")
+        mock_pipeline.assert_called_once_with(
+            "Hello world", voice="af_heart", speed=1, split_pattern=r"\n+"
+        )
         mock_sf.write.assert_called_once()
         args, kwargs = mock_sf.write.call_args
         assert args[0] == "out.wav"
         assert np.array_equal(args[1], np.concatenate([audio_segment, audio_segment]))
         assert args[2] == 24000
-
 
 
 def test_speech_service_init_defaults():
@@ -126,17 +129,31 @@ def test_text_cleaning_filter():
     assert filt.clean("$$block math$$ inline $math$ text") == "inline text"
 
     # Test LaTeX command removal
-    assert filt.clean("This is a \\section{Introduction} and \\textbf{bold} text.") == "This is a and text."
+    assert (
+        filt.clean("This is a \\section{Introduction} and \\textbf{bold} text.")
+        == "This is a and text."
+    )
 
     # Test citation removal
-    assert filt.clean("According to [1], we found [1, 2] and [1-3] to be true.") == "According to , we found and to be true."
+    assert (
+        filt.clean("According to [1], we found [1, 2] and [1-3] to be true.")
+        == "According to , we found and to be true."
+    )
 
     # Test author-year citation removal
-    assert filt.clean("Some claim (Smith, 2020) and others (Smith et al., 2020) say otherwise.") == "Some claim and others say otherwise."
+    assert (
+        filt.clean("Some claim (Smith, 2020) and others (Smith et al., 2020) say otherwise.")
+        == "Some claim and others say otherwise."
+    )
 
     # Test URL removal
-    assert filt.clean("Check https://google.com or http://foo.bar/baz for info.") == "Check or for info."
+    assert (
+        filt.clean("Check https://google.com or http://foo.bar/baz for info.")
+        == "Check or for info."
+    )
 
     # Test whitespace compression
-    assert filt.clean("   Leading,    multiple spaces, and trailing    ") == "Leading, multiple spaces, and trailing"
-
+    assert (
+        filt.clean("   Leading,    multiple spaces, and trailing    ")
+        == "Leading, multiple spaces, and trailing"
+    )
