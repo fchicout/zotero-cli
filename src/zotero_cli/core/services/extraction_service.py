@@ -209,7 +209,8 @@ class ExtractionService(IExtractionService):
                             note_payload = json.loads(json_str)
                             extracted_values = note_payload.get("data", {})
                             break
-                        except Exception:
+                        # best-effort note parsing; next note may still be valid
+                        except Exception:  # nosec B112
                             continue
 
             # Map extracted values to row

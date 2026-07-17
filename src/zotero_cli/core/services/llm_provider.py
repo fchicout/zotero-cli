@@ -92,8 +92,9 @@ class LocalTransformersLLMProvider(LLMProvider):
 
     def generate(self, prompt: str, system_instruction: Optional[str] = None) -> str:
         self._init_model()
-        assert self._tokenizer is not None
-        assert self._model is not None
+        # invariants enforced by _init_model, not user input
+        assert self._tokenizer is not None  # nosec B101
+        assert self._model is not None  # nosec B101
 
         messages = []
         if system_instruction:

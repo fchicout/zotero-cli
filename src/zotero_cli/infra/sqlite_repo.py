@@ -134,7 +134,7 @@ class SqliteZoteroGateway(ZoteroGateway):
     ) -> Iterator[ZoteroItem]:
         conn = self._get_connection()
         try:
-            query_sql = f"""
+            query_sql_template = """
                 SELECT i.key, i.version, i.libraryID, it.typeName,
                        (SELECT key FROM items WHERE itemID = i.parentItemID) as parentKey,
                        MAX(CASE WHEN f.fieldName = 'title' THEN dv.value END) as title,
@@ -152,6 +152,10 @@ class SqliteZoteroGateway(ZoteroGateway):
                   {filter_sql}
                 GROUP BY i.itemID
             """
+            # filter_sql is always a fixed literal fragment supplied by call sites in this
+            # file (never user input); actual values are passed via the parameterized
+            # `params` tuple below, not interpolated into the SQL text.
+            query_sql = query_sql_template.format(filter_sql=filter_sql)  # nosec B608
             cursor = conn.execute(query_sql, params)
             for row in cursor:
                 creator_cursor = conn.execute(

@@ -52,7 +52,8 @@ class PDFFinderService:
     async def _process_job(self, job: Job):
         item_key = job.item_key
         job_id = job.id
-        assert job_id is not None, "Job ID must not be None for processing"
+        # internal invariant, not user input
+        assert job_id is not None, "Job ID must not be None for processing"  # nosec B101
 
         logger.info(f"Worker: Processing job {job_id} for item {item_key}")
 

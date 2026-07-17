@@ -53,7 +53,8 @@ class SnowballDiscoveryWorker:
 
     async def _process_job(self, job: Job):
         job_id = job.id
-        assert job_id is not None
+        # internal invariant, not user input
+        assert job_id is not None  # nosec B101
 
         doi = job.item_key  # We use item_key to store the DOI for these tasks
         task_type = job.task_type

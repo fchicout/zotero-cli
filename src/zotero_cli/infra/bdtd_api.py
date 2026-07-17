@@ -240,7 +240,8 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider):
                         ct = h.headers.get("content-type", "").lower()
                         if ct and "text" not in ct and "html" not in ct:
                             pdf_links.add(u_link)
-                    except Exception:
+                    # probing one candidate link; others may still resolve
+                    except Exception:  # nosec B112
                         continue
 
             if not pdf_links:

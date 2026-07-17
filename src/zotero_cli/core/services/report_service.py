@@ -1,7 +1,9 @@
 import json
 import os
 import re
-import subprocess
+
+# subprocess: only used with fixed argv lists below, never shell=True
+import subprocess  # nosec B404
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -70,7 +72,8 @@ class ReportService:
 
         try:
             cmd = ["mmdc", "-i", tmp_path, "-o", output_path]
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            # fixed argv list, no shell
+            result = subprocess.run(cmd, capture_output=True, text=True)  # nosec B603
             if result.returncode != 0:
                 print(f"Error running mmdc: {result.stderr}")
                 return False

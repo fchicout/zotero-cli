@@ -1,5 +1,6 @@
+# subprocess: only used with fixed argv lists below, never shell=True
 import os
-import subprocess
+import subprocess  # nosec B404
 import sys
 
 from zotero_cli.core.interfaces import OpenerService as IOpenerService
@@ -24,12 +25,14 @@ class OpenerService(IOpenerService):
 
         try:
             if sys.platform == "win32":
-                os.startfile(path)  # type: ignore
+                # OS-native opener, no shell involved
+                os.startfile(path)  # type: ignore  # nosec B606
             elif sys.platform == "darwin":  # macOS
-                subprocess.run(["open", path], check=True)
+                # "open" resolved via PATH by design (cross-platform opener), fixed argv, no shell
+                subprocess.run(["open", path], check=True)  # nosec B607, B603
             else:  # Linux/Unix
-                # Check for xdg-open or similar
-                subprocess.run(["xdg-open", path], check=True)
+                # "xdg-open" resolved via PATH by design (cross-platform opener), fixed argv, no shell
+                subprocess.run(["xdg-open", path], check=True)  # nosec B607, B603
             return True
         except Exception:
             # Fallback
