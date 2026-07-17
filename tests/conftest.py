@@ -1,6 +1,17 @@
+import os
 import sys
 from importlib.machinery import ModuleSpec
 from unittest.mock import MagicMock
+
+# Force deterministic Rich console output for capsys-based assertions in CLI tests.
+# Rich's terminal-capability detection considers the invoking shell's TERM value
+# (not just isatty()), so tests asserting plain-text substrings against captured
+# output were flaky depending on whether the outer environment's TERM looked
+# color-capable — passing in CI/GitHub Actions but failing in some interactive or
+# sandboxed shells. Set before any app module (which may construct a module-level
+# `Console()`) is imported.
+os.environ["TERM"] = "dumb"
+os.environ["NO_COLOR"] = "1"
 
 # Global fallback mocks for optional dependencies on CI environments to prevent ModuleNotFoundError
 try:
