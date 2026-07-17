@@ -167,9 +167,13 @@ We follow strict **SOLID** principles, 100% Mypy compliance, and mandatory E2E v
 ```bash
 git clone https://github.com/fchicout/zotero-cli.git
 cd zotero-cli
+python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
+pre-commit install --hook-type pre-commit --hook-type pre-push
 pytest --cov=src
 ```
+
+`pre-commit install` wires up the quality gate from `docs/PROCESS.md` (ruff, mypy, and bandit run automatically on `git commit`; `pytest tests/unit` runs on `git push`) so it's enforced mechanically instead of relying on a manual checklist. See `.pre-commit-config.yaml`.
 
 ## License
 MIT License. See [LICENSE](LICENSE) for details.

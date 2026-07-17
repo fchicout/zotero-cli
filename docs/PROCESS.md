@@ -36,12 +36,14 @@
     *   Adhere to PEP8 (Ruff) and Type Hints (Mypy).
 7.  **The High-Integrity Hexa-Gate:**
     *   Must pass ALL six before committing:
-        1.  `ruff check . --fix` (Linting & Style)
-        2.  `mypy .` (Type Safety)
-        3.  `bandit -r src/` (Security SAST)
-        4.  `safety check` (Vulnerability Audit)
-        5.  `pytest tests/unit` (Logic)
-        6.  `pytest tests/integration` (Iron Gauntlet - Workflow)
+        1.  `ruff check . --fix` (Linting & Style) — **enforced automatically** by the `pre-commit` hook (`.pre-commit-config.yaml`)
+        2.  `mypy .` (Type Safety) — **enforced automatically**, same hook
+        3.  `bandit -r src/` (Security SAST) — **enforced automatically**, same hook
+        4.  `safety check` (Vulnerability Audit) — manual/CI-only (network access required)
+        5.  `pytest tests/unit` (Logic) — **enforced automatically** on `git push` (pre-push hook)
+        6.  `pytest tests/integration` / `tests/e2e` (Iron Gauntlet - Workflow) — manual/CI-only (live credentials required; never run autonomously by an agent — see `CLAUDE.md`)
+
+    Run `pre-commit install --hook-type pre-commit --hook-type pre-push` once (see `README.md`) to activate 1–3 and 5. This turns the Hexa-Gate from a checklist a human has to remember into something that either ran and passed or didn't let the commit/push happen.
 8.  **Green Commit:**
     *   `git commit -m "type(scope): description (Issue #ID)"`
     *   *Repeat Phase C for each logical unit of the feature.*

@@ -1,0 +1,50 @@
+# Mechanical enforcement of docs/PROCESS.md's "Hexa-Gate" (Phase C), so passing
+# it is no longer something a human (or an agent) has to remember and claim —
+# it either ran and passed, or the commit/push didn't happen. See CLAUDE.md's
+# "Status and roadmap: source of truth" section for why this exists.
+#
+# One-time setup (after `pip install -e ".[dev]"` inside .venv/):
+#   pre-commit install --hook-type pre-commit --hook-type pre-push
+#
+# Entries call .venv/bin/<tool> directly (not just `ruff`/`mypy`/etc.) because
+# git hooks run in a fresh, non-interactive shell that does NOT inherit an
+# activated venv — relying on PATH here silently picks up the wrong/no
+# interpreter (verified: unactivated shells found no `bandit` at all, and a
+# different `mypy` lacking this project's installed type stubs). This assumes
+# the standard `.venv` at the repo root from README.md/CLAUDE.md's setup steps.
+#
+# `safety check` and `pytest tests/e2e` are intentionally NOT wired in here —
+# they need network access / live credentials and stay CI-only or manual.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: .venv/bin/ruff check
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: mypy
+        name: mypy
+        entry: .venv/bin/mypy .
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: bandit
+        name: bandit (security SAST)
+        entry: .venv/bin/bandit -r src/ -q
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: pytest-unit
+        name: pytest tests/unit
+        entry: .venv/bin/pytest tests/unit -q
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

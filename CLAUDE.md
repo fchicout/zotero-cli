@@ -14,6 +14,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Install for development
 pip install -e ".[dev]"
 
+# One-time: activate the pre-commit/pre-push hooks (ruff+mypy+bandit on commit, pytest tests/unit on push)
+pre-commit install --hook-type pre-commit --hook-type pre-push
+
 # Run the CLI
 zotero-cli <command> ...
 # or during development
