@@ -90,12 +90,12 @@ Download the pre-compiled binary for your operating system. **No Python installa
 *   **Generic Linux:** Download the `zotero-cli-linux-amd64.tar.gz`.
 
 ### Option 2: Installation from Source (Python 3.10+)
-If you prefer to run the tool within a Python environment:
+If you prefer to run the tool within a Python environment, using [uv](https://docs.astral.sh/uv/):
 
 ```bash
 git clone https://github.com/fchicout/zotero-cli.git
 cd zotero-cli
-pip install .
+uv tool install .
 ```
 
 > *Note: Official PyPI distribution is coming soon. Use source installation for the latest SLR features.*
@@ -167,13 +167,12 @@ We follow strict **SOLID** principles, 100% Mypy compliance, and mandatory E2E v
 ```bash
 git clone https://github.com/fchicout/zotero-cli.git
 cd zotero-cli
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-pre-commit install --hook-type pre-commit --hook-type pre-push
-pytest --cov=src
+uv sync --extra dev
+uv run pre-commit install --hook-type pre-commit --hook-type pre-push
+uv run pytest --cov=src
 ```
 
-`pre-commit install` wires up the quality gate from `docs/PROCESS.md` (ruff, mypy, and bandit run automatically on `git commit`; `pytest tests/unit` runs on `git push`) so it's enforced mechanically instead of relying on a manual checklist. See `.pre-commit-config.yaml`.
+`uv sync` creates `.venv/` (pinned to the Python version in `.python-version`) and installs the project in editable mode from `uv.lock` — commit `uv.lock` alongside any dependency change so everyone (and CI) resolves the exact same versions. `pre-commit install` wires up the quality gate from `docs/PROCESS.md` (ruff, mypy, and bandit run automatically on `git commit`; `pytest tests/unit` runs on `git push`) so it's enforced mechanically instead of relying on a manual checklist. See `.pre-commit-config.yaml`.
 
 ## License
 MIT License. See [LICENSE](LICENSE) for details.

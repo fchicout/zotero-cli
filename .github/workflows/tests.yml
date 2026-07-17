@@ -10,23 +10,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.3.2
         with:
           python-version: '3.10'
+          enable-cache: true
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+        run: uv sync --extra dev
 
       - name: Lint with Ruff
-        run: |
-          ruff check .
+        run: uv run ruff check .
 
       - name: Type Check with Mypy
-        run: |
-          mypy .
+        run: uv run mypy .
 
       - name: Install Infisical CLI
         run: |
@@ -39,7 +36,7 @@ jobs:
           INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
           PYTHONPATH: src
         run: |
-          infisical run --domain https://infisical.fchicout.dev --token "$INFISICAL_TOKEN" --env dev -- pytest tests/unit --cov=src/zotero_cli --cov-report=xml
+          infisical run --domain https://infisical.fchicout.dev --token "$INFISICAL_TOKEN" --env dev -- uv run pytest tests/unit --cov=src/zotero_cli --cov-report=xml
 
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v6
@@ -61,5 +58,4 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          python -m pip install requests
-          python scratch/debug_sonar_gate.py
+          uv run python scratch/debug_sonar_gate.py

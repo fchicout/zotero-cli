@@ -3,15 +3,17 @@
 # it either ran and passed, or the commit/push didn't happen. See CLAUDE.md's
 # "Status and roadmap: source of truth" section for why this exists.
 #
-# One-time setup (after `pip install -e ".[dev]"` inside .venv/):
-#   pre-commit install --hook-type pre-commit --hook-type pre-push
+# One-time setup (after `uv sync --extra dev`, which creates .venv/):
+#   uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 #
-# Entries call .venv/bin/<tool> directly (not just `ruff`/`mypy`/etc.) because
-# git hooks run in a fresh, non-interactive shell that does NOT inherit an
-# activated venv — relying on PATH here silently picks up the wrong/no
-# interpreter (verified: unactivated shells found no `bandit` at all, and a
-# different `mypy` lacking this project's installed type stubs). This assumes
-# the standard `.venv` at the repo root from README.md/CLAUDE.md's setup steps.
+# Entries call .venv/bin/<tool> directly (not `ruff`/`mypy`/etc. on PATH, and
+# deliberately not `uv run <tool>` either) because git hooks run in a fresh,
+# non-interactive shell that inherits neither an activated venv NOR
+# necessarily ~/.local/bin (where uv itself often lives) on PATH — relying on
+# either silently picks up the wrong/no interpreter (verified: unactivated
+# shells found no `bandit` at all, and a different `mypy` lacking this
+# project's installed type stubs). `uv sync` still populates `.venv/bin/` in
+# the same layout, so these paths are stable across the pip -> uv migration.
 #
 # `safety check` and `pytest tests/e2e` are intentionally NOT wired in here —
 # they need network access / live credentials and stay CI-only or manual.

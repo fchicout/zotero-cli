@@ -17,24 +17,24 @@ fi
 run_unit() {
     echo "--- Running Unit Tests ---"
     if [ "$COVERAGE" = "true" ]; then
-        pytest --cov=src/zotero_cli tests/unit
+        uv run pytest --cov=src/zotero_cli tests/unit
     else
-        pytest tests/unit
+        uv run pytest tests/unit
     fi
 }
 
 run_e2e() {
     echo "--- Running E2E Tests ---"
     if [ "$COVERAGE" = "true" ]; then
-        pytest --cov=src/zotero_cli --cov-append tests/e2e
+        uv run pytest --cov=src/zotero_cli --cov-append tests/e2e
     else
-        pytest tests/e2e
+        uv run pytest tests/e2e
     fi
 }
 
 run_docs() {
     echo "--- Running Documentation Tests ---"
-    pytest tests/docs
+    uv run pytest tests/docs
 }
 
 case $CATEGORY in

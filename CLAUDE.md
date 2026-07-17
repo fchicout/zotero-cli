@@ -10,35 +10,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+This project uses [uv](https://docs.astral.sh/uv/), not pip/bare venv, for dependency management — `uv.lock` is the source of truth for exact resolved versions and must be committed alongside any `pyproject.toml` dependency change. `.python-version` pins the project to Python 3.10 (matches CI); `uv sync` will download that interpreter if it isn't already available.
+
 ```bash
-# Install for development
-pip install -e ".[dev]"
+# Install for development (creates .venv/, installs from uv.lock, installs the project in editable mode)
+uv sync --extra dev
 
 # One-time: activate the pre-commit/pre-push hooks (ruff+mypy+bandit on commit, pytest tests/unit on push)
-pre-commit install --hook-type pre-commit --hook-type pre-push
+uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 
 # Run the CLI
 zotero-cli <command> ...
 # or during development
-python -m zotero_cli.cli.main <command> ...
+uv run zotero-cli <command> ...
+uv run python -m zotero_cli.cli.main <command> ...
 
 # Lint / format / type-check (must all pass before committing)
-ruff check .
-ruff check . --fix
-mypy .
+uv run ruff check .
+uv run ruff check . --fix
+uv run mypy .
 
 # Security/dependency checks
-bandit -r src/
-safety check
+uv run bandit -r src/
+uv run safety check
 
 # Tests — categorized via scripts/test_runner.sh [unit|e2e|docs|all] [true|false coverage]
-pytest tests/unit                                   # fast, isolated logic tests
-pytest tests/e2e                                     # hits real external APIs/state
-pytest tests/docs                                    # doc/repo-structure consistency checks
-pytest tests/unit --cov=src/zotero_cli --cov-report=xml   # matches CI coverage run
+uv run pytest tests/unit                                   # fast, isolated logic tests
+uv run pytest tests/e2e                                     # hits real external APIs/state
+uv run pytest tests/docs                                    # doc/repo-structure consistency checks
+uv run pytest tests/unit --cov=src/zotero_cli --cov-report=xml   # matches CI coverage run
 
 # Run a single test
-pytest tests/unit/core/test_attachment_service.py::test_looks_like_pdf -v
+uv run pytest tests/unit/core/test_attachment_service.py::test_looks_like_pdf -v
+
+# Add/remove a dependency (updates pyproject.toml + uv.lock together — don't hand-edit either)
+uv add <package>
+uv add --optional dev <package>
+uv remove <package>
 ```
 
 CI (`.github/workflows/tests.yml`) runs `ruff check .`, `mypy .`, then `pytest tests/unit` with coverage, followed by a SonarQube scan/quality gate. Only `tests/unit` runs in CI — `tests/e2e` needs live credentials/network and is not gated automatically.
