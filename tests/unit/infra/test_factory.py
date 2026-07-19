@@ -17,7 +17,7 @@ def mock_config():
 
 
 def test_get_zotero_gateway_online(mock_config):
-    with patch("zotero_cli.infra.factory.ZoteroAPIClient") as mock_client:
+    with patch("zotero_cli.infra.repository_factory.ZoteroAPIClient") as mock_client:
         gateway = GatewayFactory.get_zotero_gateway(mock_config, offline=False)
         assert gateway == mock_client.return_value
 
@@ -66,10 +66,10 @@ def test_get_pdf_finder_service(mock_config):
 
 def test_get_rag_service(mock_config):
     with (
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_vector_repository"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_embedding_provider"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_attachment_service"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"),
+        patch("zotero_cli.infra.ai_provider_factory.AIProviderFactory.get_vector_repository"),
+        patch("zotero_cli.infra.ai_provider_factory.AIProviderFactory.get_embedding_provider"),
+        patch("zotero_cli.infra.service_factory.ServiceFactory.get_attachment_service"),
     ):
         service = GatewayFactory.get_rag_service(mock_config)
         from zotero_cli.core.services.rag_service import RAGServiceBase
@@ -104,7 +104,7 @@ def test_get_embedding_provider_openai(mock_config):
 
 
 def test_get_item_repository(mock_config):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"):
+    with patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"):
         repo = GatewayFactory.get_item_repository(mock_config)
         from zotero_cli.infra.repositories import ZoteroItemRepository
 
@@ -112,7 +112,7 @@ def test_get_item_repository(mock_config):
 
 
 def test_get_collection_repository(mock_config):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"):
+    with patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"):
         repo = GatewayFactory.get_collection_repository(mock_config)
         from zotero_cli.infra.repositories import ZoteroCollectionRepository
 
@@ -120,7 +120,7 @@ def test_get_collection_repository(mock_config):
 
 
 def test_get_attachment_repository(mock_config):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"):
+    with patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"):
         repo = GatewayFactory.get_attachment_repository(mock_config)
         from zotero_cli.infra.repositories import ZoteroAttachmentRepository
 
@@ -128,7 +128,7 @@ def test_get_attachment_repository(mock_config):
 
 
 def test_get_note_repository(mock_config):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"):
+    with patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"):
         repo = GatewayFactory.get_note_repository(mock_config)
         from zotero_cli.infra.repositories import ZoteroNoteRepository
 
@@ -136,7 +136,7 @@ def test_get_note_repository(mock_config):
 
 
 def test_get_tag_repository(mock_config):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"):
+    with patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"):
         repo = GatewayFactory.get_tag_repository(mock_config)
         from zotero_cli.infra.repositories import ZoteroTagRepository
 
@@ -144,7 +144,7 @@ def test_get_tag_repository(mock_config):
 
 
 def test_get_collection_service(mock_config):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"):
+    with patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"):
         service = GatewayFactory.get_collection_service(mock_config)
         from zotero_cli.core.services.collection_service import CollectionService
 
@@ -153,8 +153,8 @@ def test_get_collection_service(mock_config):
 
 def test_get_import_service(mock_config):
     with (
-        patch("zotero_cli.infra.factory.GatewayFactory.get_item_repository"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_collection_repository"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_item_repository"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_collection_repository"),
     ):
         service = GatewayFactory.get_import_service(mock_config)
         from zotero_cli.core.services.import_service import ImportService
@@ -164,12 +164,12 @@ def test_get_import_service(mock_config):
 
 def test_get_enrichment_service(mock_config):
     with (
-        patch("zotero_cli.infra.factory.GatewayFactory.get_item_repository"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_collection_repository"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_attachment_repository"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_note_repository"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_metadata_aggregator"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_purge_service"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_item_repository"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_collection_repository"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_attachment_repository"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_note_repository"),
+        patch("zotero_cli.infra.metadata_client_factory.MetadataClientFactory.get_metadata_aggregator"),
+        patch("zotero_cli.infra.service_factory.ServiceFactory.get_purge_service"),
     ):
         service = GatewayFactory.get_enrichment_service(mock_config)
         from zotero_cli.core.services.enrichment_service import EnrichmentService
@@ -179,11 +179,11 @@ def test_get_enrichment_service(mock_config):
 
 def test_get_screening_service(mock_config):
     with (
-        patch("zotero_cli.infra.factory.GatewayFactory.get_item_repository"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_collection_repository"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_note_repository"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_tag_repository"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_collection_service"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_item_repository"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_collection_repository"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_note_repository"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_tag_repository"),
+        patch("zotero_cli.infra.service_factory.ServiceFactory.get_collection_service"),
     ):
         service = GatewayFactory.get_screening_service(mock_config)
         from zotero_cli.core.services.screening_service import ScreeningService
@@ -193,9 +193,9 @@ def test_get_screening_service(mock_config):
 
 def test_get_snowball_worker(mock_config):
     with (
-        patch("zotero_cli.infra.factory.GatewayFactory.get_network_gateway"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_snowball_graph_service"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_job_queue_service"),
+        patch("zotero_cli.infra.resolver_factory.ResolverFactory.get_network_gateway"),
+        patch("zotero_cli.infra.resolver_factory.ResolverFactory.get_snowball_graph_service"),
+        patch("zotero_cli.infra.service_factory.ServiceFactory.get_job_queue_service"),
     ):
         service = GatewayFactory.get_snowball_worker(mock_config)
         from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
@@ -291,11 +291,11 @@ def test_get_snowball_graph_service():
 
 def test_get_snowball_ingestion_service(mock_config):
     with (
-        patch("zotero_cli.infra.factory.GatewayFactory.get_snowball_graph_service"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_metadata_aggregator"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_item_repository"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_collection_repository"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
+        patch("zotero_cli.infra.resolver_factory.ResolverFactory.get_snowball_graph_service"),
+        patch("zotero_cli.infra.metadata_client_factory.MetadataClientFactory.get_metadata_aggregator"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_item_repository"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_collection_repository"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"),
     ):
         from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
 
@@ -311,7 +311,7 @@ def test_get_vector_repository(mock_config):
 
 
 def test_get_purge_service(mock_config):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"):
+    with patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"):
         from zotero_cli.core.services.purge_service import PurgeService
 
         assert isinstance(GatewayFactory.get_purge_service(mock_config), PurgeService)
@@ -337,7 +337,7 @@ def test_get_zotero_gateway_group_parsing():
         user_id="123",
         target_group_url="https://www.zotero.org/groups/456/items",
     )
-    with patch("zotero_cli.infra.factory.ZoteroAPIClient") as mock_client:
+    with patch("zotero_cli.infra.repository_factory.ZoteroAPIClient") as mock_client:
         GatewayFactory.get_zotero_gateway(mock_config)
         # Check that library_id was parsed from URL
         args, _ = mock_client.call_args
@@ -353,7 +353,7 @@ def test_get_zotero_gateway_user_id_fallback():
         user_id="123",
         target_group_url=None,
     )
-    with patch("zotero_cli.infra.factory.ZoteroAPIClient") as mock_client:
+    with patch("zotero_cli.infra.repository_factory.ZoteroAPIClient") as mock_client:
         GatewayFactory.get_zotero_gateway(mock_config)
         args, _ = mock_client.call_args
         assert args[1] == "123"

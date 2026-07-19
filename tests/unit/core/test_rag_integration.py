@@ -4,6 +4,8 @@ import pytest
 
 from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.infra.factory import GatewayFactory
+from zotero_cli.infra.repository_factory import RepositoryFactory
+from zotero_cli.infra.service_factory import ServiceFactory
 
 
 @pytest.mark.unit
@@ -41,13 +43,13 @@ def test_rag_full_flow(tmp_path, monkeypatch):
     gateway.get_items_in_collection.return_value = [mock_item]
 
     # Ensure Factory returns our mock gateway
-    monkeypatch.setattr(GatewayFactory, "get_zotero_gateway", lambda *args, **kwargs: gateway)
+    monkeypatch.setattr(RepositoryFactory, "get_zotero_gateway", lambda *args, **kwargs: gateway)
 
     # Mock AttachmentService.get_fulltext
     attachment_service = MagicMock()
     attachment_service.get_fulltext.return_value = "This is a test document about RAG."
     monkeypatch.setattr(
-        GatewayFactory, "get_attachment_service", lambda *args, **kwargs: attachment_service
+        ServiceFactory, "get_attachment_service", lambda *args, **kwargs: attachment_service
     )
 
     # 3. Execution
