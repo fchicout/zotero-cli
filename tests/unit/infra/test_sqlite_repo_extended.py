@@ -108,6 +108,45 @@ def test_gateway_read_tags(sample_zotero_db):
     assert items[0].key == "K1"
 
 
+def test_gateway_read_item_by_key(sample_zotero_db):
+    gateway = SqliteZoteroGateway(sample_zotero_db)
+    conn = sqlite3.connect(sample_zotero_db)
+    conn.execute("INSERT INTO items VALUES (1, 'K1', 3, 1, 1, NULL)")
+    conn.execute("INSERT INTO itemTypes VALUES (1, 'journalArticle')")
+    conn.execute("INSERT INTO fields VALUES (100, 'title')")
+    conn.execute("INSERT INTO itemDataValues VALUES (200, 'Direct SQL Lookup')")
+    conn.execute("INSERT INTO itemData VALUES (1, 100, 200)")
+    conn.commit()
+    conn.close()
+
+    item = gateway.get_item("K1")
+
+    assert item is not None
+    assert item.key == "K1"
+    assert item.version == 3
+    assert item.title == "Direct SQL Lookup"
+    assert gateway.get_item("MISSING") is None
+
+
+def test_gateway_read_items_by_doi(sample_zotero_db):
+    gateway = SqliteZoteroGateway(sample_zotero_db)
+    conn = sqlite3.connect(sample_zotero_db)
+    conn.execute("INSERT INTO items VALUES (1, 'K1', 1, 1, 1, NULL)")
+    conn.execute("INSERT INTO itemTypes VALUES (1, 'journalArticle')")
+    conn.execute("INSERT INTO fields VALUES (101, 'DOI')")
+    conn.execute("INSERT INTO itemDataValues VALUES (201, '10.1234/example')")
+    conn.execute("INSERT INTO itemData VALUES (1, 101, 201)")
+    conn.commit()
+    conn.close()
+
+    items = list(gateway.get_items_by_doi("10.1234/example"))
+
+    assert len(items) == 1
+    assert items[0].key == "K1"
+    assert items[0].doi == "10.1234/example"
+    assert list(gateway.get_items_by_doi("10.9999/missing")) == []
+
+
 def test_job_repo_list_jobs(tmp_path):
     db_path = str(tmp_path / "jobs.sqlite")
     repo = SqliteJobRepository(db_path)
