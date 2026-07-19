@@ -94,11 +94,13 @@ class ServiceFactory:
     ) -> "ExportService":
         from zotero_cli.core.services.export_service import ExportService
 
-        gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
+        collection_repo = RepositoryFactory.get_collection_repository(
+            config, force_user, offline=offline
+        )
         bibtex_gateway = MetadataClientFactory.get_bibtex_gateway()
         ris_gateway = MetadataClientFactory.get_ris_gateway()
         sdb_service = ServiceFactory.get_sdb_service(config, force_user, offline=offline)
-        return ExportService(gateway, bibtex_gateway, ris_gateway, sdb_service)
+        return ExportService(collection_repo, bibtex_gateway, ris_gateway, sdb_service)
 
     @staticmethod
     def get_transfer_service() -> "TransferService":
@@ -144,10 +146,10 @@ class ServiceFactory:
         force_user: bool = False,
         offline: Optional[bool] = None,
     ) -> "AuditService":
-        gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
+        item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
         from zotero_cli.core.services.audit_service import AuditService
 
-        return AuditService(gateway)
+        return AuditService(item_repo)
 
     @staticmethod
     def get_restore_service(
@@ -269,12 +271,13 @@ class ServiceFactory:
 
             config = main_get_config()
 
-        gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
+        item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
+        tag_repo = RepositoryFactory.get_tag_repository(config, force_user, offline=offline)
         purge_service = ServiceFactory.get_purge_service(config, force_user, offline=offline)
 
         from zotero_cli.core.services.tag_service import TagService
 
-        return TagService(gateway, purge_service)
+        return TagService(item_repo, tag_repo, purge_service)
 
     @staticmethod
     def get_job_queue_service(config: Optional[ZoteroConfig] = None) -> "JobQueueService":

@@ -14,7 +14,7 @@ def mock_gateway():
 
 @pytest.fixture
 def snapshot_service(mock_gateway):
-    return SnapshotService(mock_gateway)
+    return SnapshotService(mock_gateway, mock_gateway)
 
 
 def test_freeze_collection_success(snapshot_service, mock_gateway, tmp_path):

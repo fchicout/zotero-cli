@@ -90,7 +90,7 @@ class SDBCommand:
 
             from zotero_cli.core.services.sync_service import SyncService
 
-            sync_service = SyncService(gateway)
+            sync_service = SyncService(gateway, gateway)
 
             def cli_progress(current, total, msg):
                 percent = (current / total * 100) if total > 0 else 0

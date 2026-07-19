@@ -360,7 +360,7 @@ class SLRReportCommand:
 
     @staticmethod
     def _handle_snapshot(gateway, args):
-        service = SnapshotService(gateway)
+        service = SnapshotService(gateway, gateway)
 
         def cli_progress(current, total, msg):
             percent = (current / total * 100) if total > 0 else 0

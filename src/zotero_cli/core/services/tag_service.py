@@ -1,18 +1,21 @@
 from typing import List
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import ItemRepository, TagRepository
 from zotero_cli.core.services.purge_service import PurgeService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
 class TagService:
-    def __init__(self, gateway: ZoteroGateway, purge_service: PurgeService):
-        self.gateway = gateway
+    def __init__(
+        self, item_repo: ItemRepository, tag_repo: TagRepository, purge_service: PurgeService
+    ):
+        self.item_repo = item_repo
+        self.tag_repo = tag_repo
         self.purge_service = purge_service
 
     def list_tags(self) -> List[str]:
         """Returns a list of all unique tags in the library."""
-        return self.gateway.get_tags()
+        return self.tag_repo.get_tags()
 
     def add_tags_to_item(self, _item_key: str, item: ZoteroItem, tags_to_add: List[str]) -> bool:
         """
@@ -49,7 +52,7 @@ class TagService:
         Returns the number of items updated.
         """
         count = 0
-        for item in self.gateway.get_items_by_tag(old_tag):
+        for item in self.item_repo.get_items_by_tag(old_tag):
             # Atomic-like update: remove old, add new
             current_tags = set(item.tags)
             if old_tag in current_tags:
@@ -62,4 +65,4 @@ class TagService:
     def _update_tags(self, item_key: str, version: int, tags: List[str]) -> bool:
         # Zotero API expects tags as a list of objects: [{"tag": "name"}, ...]
         tag_payload = [{"tag": t} for t in tags]
-        return self.gateway.update_item_metadata(item_key, version, {"tags": tag_payload})
+        return self.item_repo.update_item_metadata(item_key, version, {"tags": tag_payload})
