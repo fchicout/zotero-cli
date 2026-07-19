@@ -30,6 +30,7 @@ import argparse  # noqa: E402
 from zotero_cli.cli import commands  # noqa: F401, E402 (Trigger registration)
 from zotero_cli.cli.base import CommandRegistry  # noqa: E402
 from zotero_cli.core.config import get_config  # noqa: E402
+from zotero_cli.core.exceptions import ConfigurationError  # noqa: E402
 
 # --- Global State ---
 FORCE_USER = False
@@ -68,6 +69,9 @@ def main():
     if hasattr(args, "func"):
         try:
             args.func(args)
+        except ConfigurationError as e:
+            print(str(e), file=sys.stderr)
+            sys.exit(1)
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
             import traceback

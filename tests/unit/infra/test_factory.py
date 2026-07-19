@@ -1,8 +1,9 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from zotero_cli.core.config import ZoteroConfig
+from zotero_cli.core.exceptions import ConfigurationError
 from zotero_cli.infra.factory import GatewayFactory
 
 
@@ -45,9 +46,8 @@ def test_get_zotero_gateway_offline_no_path(mock_config):
         library_type="user",
         database_path=None,
     )
-    with patch("sys.stderr", new_callable=MagicMock):
-        with pytest.raises(SystemExit):
-            GatewayFactory.get_zotero_gateway(mock_config, offline=True)
+    with pytest.raises(ConfigurationError):
+        GatewayFactory.get_zotero_gateway(mock_config, offline=True)
 
 
 def test_get_job_queue_service(mock_config):
@@ -212,6 +212,7 @@ def test_get_metadata_aggregator(mock_config):
 
 def test_get_config_not_provided():
     with patch("zotero_cli.core.config.get_config") as mock_get:
+        mock_get.return_value = ZoteroConfig(api_key="key", library_id="123", library_type="user")
         GatewayFactory.get_zotero_gateway()
         mock_get.assert_called_once()
 

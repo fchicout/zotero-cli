@@ -1,8 +1,11 @@
 import os
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
+
+from zotero_cli.core.exceptions import ConfigurationError
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -34,6 +37,42 @@ class ZoteroConfig:
 
     def is_valid(self) -> bool:
         return bool(self.api_key and self.library_id)
+
+    def resolve_library_target(
+        self, force_user: bool = False, require_group: bool = True
+    ) -> Tuple[str, str]:
+        """
+        Resolve which Zotero library (id, type) an online gateway should
+        target, mirroring the priority cascade previously inline in
+        GatewayFactory: force_user > explicit library_id > target_group_url
+        (parsed for a numeric group id) > user_id > require_group fallback.
+        Raises ConfigurationError instead of exiting when nothing resolves.
+        """
+        library_id = self.library_id
+        library_type = self.library_type
+
+        if force_user:
+            library_id = self.user_id
+            library_type = "user"
+        elif not library_id:
+            if self.target_group_url:
+                match = re.search(r"/groups/(\d+)", self.target_group_url)
+                if not match:
+                    raise ConfigurationError(
+                        f"Error: Could not extract Group ID from URL: {self.target_group_url}"
+                    )
+                library_id = match.group(1)
+                library_type = "group"
+            elif self.user_id:
+                library_id = self.user_id
+                library_type = "user"
+
+        if not library_id:
+            if require_group:
+                raise ConfigurationError("Error: No target library defined.")
+            return "0", "user"
+
+        return library_id, library_type
 
 
 class ConfigLoader:

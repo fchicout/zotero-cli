@@ -1,8 +1,7 @@
-import re
-import sys
 from typing import Optional
 
 from zotero_cli.core.config import ZoteroConfig
+from zotero_cli.core.exceptions import ConfigurationError
 from zotero_cli.core.interfaces import (
     AttachmentRepository,
     CollectionRepository,
@@ -44,44 +43,14 @@ class RepositoryFactory:
 
         if offline:
             if not config.database_path:
-                print("Error: Offline mode requires 'database_path' in config.", file=sys.stderr)
-                sys.exit(1)
+                raise ConfigurationError("Error: Offline mode requires 'database_path' in config.")
             return SqliteZoteroGateway(config.database_path)
 
         api_key = config.api_key
         if not api_key:
-            print("Error: Zotero API Key not set.", file=sys.stderr)
-            sys.exit(1)
+            raise ConfigurationError("Error: Zotero API Key not set.")
 
-        library_id = config.library_id
-        library_type = config.library_type
-
-        # Priority logic mirrored from main.py
-        if force_user:
-            library_id = config.user_id
-            library_type = "user"
-        elif not library_id:
-            if config.target_group_url:
-                match = re.search(r"/groups/(\d+)", config.target_group_url)
-                if not match:
-                    print(
-                        f"Error: Could not extract Group ID from URL: {config.target_group_url}",
-                        file=sys.stderr,
-                    )
-                    sys.exit(1)
-                library_id = match.group(1)
-                library_type = "group"
-            elif config.user_id:
-                library_id = config.user_id
-                library_type = "user"
-
-        if not library_id:
-            if require_group:
-                print("Error: No target library defined.", file=sys.stderr)
-                sys.exit(1)
-            else:
-                library_id = "0"
-                library_type = "user"
+        library_id, library_type = config.resolve_library_target(force_user, require_group)
 
         return ZoteroAPIClient(api_key, library_id, library_type)
 

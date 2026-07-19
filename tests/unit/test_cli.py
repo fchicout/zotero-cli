@@ -28,6 +28,12 @@ def mock_clients():
         mock_ris = mock_ris_get.return_value
         mock_bib = mock_bib_get.return_value
 
+        # Code paths that build a service directly via ServiceFactory/RepositoryFactory
+        # (bypassing the patched GatewayFactory.get_zotero_gateway facade method) still
+        # call config.resolve_library_target(...) for real, so it needs a real return
+        # value rather than an unconfigured MagicMock (which can't unpack as a tuple).
+        mock_config.return_value.resolve_library_target.return_value = ("123", "user")
+
         yield {
             "zotero": mock_zotero,
             "arxiv": mock_arxiv,
