@@ -85,6 +85,14 @@ Documented in full in `docs/PROCESS.md` ("The Golden Path"). Key points relevant
 - If a change touches CLI args or workflow, update `README.md`'s command table and `docs/commands/*.md` (and Mermaid diagrams if flow changed) — these command docs are also asserted against by `tests/docs`.
 - Version bumps touch both `pyproject.toml` and `src/zotero_cli/__init__.py`; changelog entries go in `CHANGELOG.md`.
 
+## Agent safety boundaries
+
+`tests/e2e` (hits real external APIs/live Zotero state) and `zotero-cli serve` (binds an unauthenticated HTTP server — see `src/zotero_cli/api/`) must **always** require explicit, in-the-moment human invocation. Never run either from an autonomous loop, a scheduled/cron-triggered agent, a git hook, or any other unattended trigger — only when a human directly asks for it in the current turn. `tests/unit` and `tests/docs` have no such restriction. If a hook or automation surface is ever added to this repo, it must not expand to cover `tests/e2e` or `serve` without the user explicitly widening this rule.
+
+`serve`'s lack of authentication (tracked separately, not a harness concern) is exactly why the boundary matters: an autonomous process that started it unattended could expose read/write access to the live Zotero library to anything reaching the bound host.
+
+PR review is manual and on-demand (`gh pr diff`/`gh pr checkout` fed into an interactive session) — there is no CI-triggered AI review bot in this repo, and none should be added without the user explicitly deciding to take on the separate Anthropic API billing that a non-interactive CI job would require (distinct from a Claude Code subscription seat, which only covers interactive sessions).
+
 ## Status and roadmap: source of truth
 
 Never hand-narrate project status, quality-gate results, or roadmap state — this repo has a documented history of exactly that drifting silently out of sync with reality (see `docs/archive/README.md`). Instead:
