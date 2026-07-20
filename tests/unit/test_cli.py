@@ -420,7 +420,7 @@ def test_item_pdf_strip(mock_clients, env_vars, capsys):
 def test_report_duplicates(mock_clients, env_vars, capsys):
     with patch("zotero_cli.core.services.duplicate_service.DuplicateFinder") as mock_finder_cls:
         mock_finder = mock_finder_cls.return_value
-        mock_finder.find_duplicates.return_value = []
+        mock_finder.compare_collections.return_value = []
         test_args = ["zotero-cli", "report", "duplicates", "--collections", "A,B"]
         with patch.object(sys, "argv", test_args):
             main()
