@@ -78,6 +78,8 @@ class BadgeGenerator:
 
         badges = [
             self.create_version_badge(version),
+            "![Build Status](https://github.com/fchicout/zotero-cli/actions/workflows/release.yml/badge.svg)",
+            "![Tests](https://github.com/fchicout/zotero-cli/actions/workflows/tests.yml/badge.svg)",
             self.create_coverage_badge(cov_data),
             self.create_ruff_badge(ruff_errors),
             self.create_mypy_badge(mypy_ok),
