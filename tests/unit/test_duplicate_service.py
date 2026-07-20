@@ -100,6 +100,47 @@ def test_find_duplicates_with_missing_collection(finder, mock_gateway):
     assert len(duplicates) == 0
 
 
+def test_compare_collections_no_duplicates(finder, mock_gateway):
+    item1 = create_zotero_item("KEY1", "Unique Title 1", "10.1/1")
+    item2 = create_zotero_item("KEY2", "Unique Title 2", "10.1/2")
+    mock_gateway.get_items_in_collection.side_effect = [iter([item1]), iter([item2])]
+    mock_gateway.get_collection.return_value = {"key": "ID_A"}
+
+    duplicates = finder.compare_collections(["ID_A", "ID_B"])
+    assert len(duplicates) == 0
+
+
+def test_compare_collections_tracks_provenance(finder, mock_gateway):
+    item1 = create_zotero_item("KEY1", "Title A", "10.1/DUPLICATE")
+    item2 = create_zotero_item("KEY2", "Title B", "10.1/DUPLICATE")
+
+    mock_gateway.get_items_in_collection.side_effect = [iter([item1]), iter([item2])]
+    mock_gateway.get_collection.return_value = {"key": "ID_A"}
+
+    duplicates = finder.compare_collections(["ID_A", "ID_B"])
+    assert len(duplicates) == 1
+    group = duplicates[0]
+    assert group["match_type"] == "doi"
+    assert group["identifier"] == "10.1/duplicate"
+
+    occurrences_by_key = {o["key"]: o for o in group["occurrences"]}
+    assert occurrences_by_key["KEY1"]["collection_id"] == "ID_A"
+    assert occurrences_by_key["KEY2"]["collection_id"] == "ID_B"
+
+
+def test_compare_collections_by_title_and_arxiv(finder, mock_gateway):
+    item_title_1 = create_zotero_item("KEY_T1", "Common Title", None)
+    item_title_2 = create_zotero_item("KEY_T2", "Common Title", None)
+
+    mock_gateway.get_items_in_collection.side_effect = [iter([item_title_1]), iter([item_title_2])]
+    mock_gateway.get_collection.return_value = {"key": "ID_A"}
+
+    duplicates = finder.compare_collections(["ID_A", "ID_B"])
+    assert len(duplicates) == 1
+    assert duplicates[0]["match_type"] == "title"
+    assert duplicates[0]["identifier"] == "common title"
+
+
 @pytest.mark.parametrize(
     "input_doi, expected",
     [

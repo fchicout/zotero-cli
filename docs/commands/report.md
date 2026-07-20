@@ -5,11 +5,12 @@ General library analytics and metadata reports.
 ## Verbs
 
 ### `duplicates`
-Find and list duplicate items across specified collections.
+Find and list duplicate items across specified collections (matched by DOI, ArXiv ID, or normalized title). Reports which collection each occurrence came from and whether their SDB screening decisions agree (`MATCHING`/`CONFLICTING`/`UNSCREENED`). Read-only — unlike `slr prune`, nothing is modified.
 
 **Usage:**
 ```bash
 zotero-cli report duplicates --collections "ColA,ColB"
+zotero-cli report duplicates --collections "ColA,ColB" --csv duplicates.csv
 ```
 
 ---

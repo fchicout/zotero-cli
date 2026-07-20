@@ -1,7 +1,8 @@
 import argparse
+import csv
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 from rich.console import Console
 from rich.panel import Panel
@@ -34,12 +35,18 @@ Scenario-Based Examples
 Scenario: Identifying overlaps between search databases
 Problem: I've imported search results from IEEE (Key: IEEE_01) and Springer (Key: SPR_01) and want to see which papers are duplicates.
 Action:  zotero-cli report duplicates --collections "IEEE_01,SPR_01"
-Result:  The CLI displays a table showing papers that were found in both collections, including their titles and keys.
+Result:  The CLI displays a table showing papers found in both collections, which collection each
+         copy came from, and whether their SDB screening decisions agree.
+
+Scenario: Exporting a duplicate report for methodological audit records
+Problem: I need a CSV record of every duplicate found before pruning, for my SLR audit trail.
+Action:  zotero-cli report duplicates --collections "IEEE_01,SPR_01" --csv duplicates.csv
 """,
         )
         dupe_p.add_argument(
             "--collections", required=True, help="Comma-separated list of collection names or keys"
         )
+        dupe_p.add_argument("--csv", help="Optional path to export the duplicate report as CSV")
 
         # report audit
         audit_p = sub.add_parser(
@@ -108,7 +115,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
         if args.report_type == "duplicates":
-            self._handle_duplicates(gateway, args)
+            self._handle_duplicates(gateway, args, force_user)
         elif args.report_type == "audit":
             self._handle_audit(gateway, args)
         elif args.report_type == "verify-latex":
@@ -118,25 +125,82 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
         elif args.report_type == "attachments":
             self._handle_attachments(gateway, args)
 
-    def _handle_duplicates(self, gateway, args):
+    def _handle_duplicates(self, gateway, args, force_user: bool = False):
         service = DuplicateFinder(gateway)
         col_ids = []
+        col_names_by_id: Dict[str, str] = {}
         for c in args.collections.split(","):
             c = c.strip()
             cid = gateway.get_collection_id_by_name(c) or c
             col_ids.append(cid)
+            col_names_by_id[cid] = c
 
-        dupes = service.find_duplicates(col_ids)
+        dupes = service.compare_collections(col_ids)
         if not dupes:
             console.print("[green]No duplicates found.[/green]")
             return
+
+        sdb_service = GatewayFactory.get_sdb_service(force_user=force_user)
+        rows = self._build_duplicate_rows(dupes, col_names_by_id, sdb_service)
+
+        if args.csv:
+            self._export_duplicates_csv(rows, args.csv)
+            console.print(f"[green]Exported {len(rows)} duplicate occurrences to {args.csv}[/green]")
+
+        status_color = {"MATCHING": "green", "CONFLICTING": "red", "UNSCREENED": "yellow"}
         table = Table(title="Duplicate Items across Collections")
+        table.add_column("Match Type")
         table.add_column("Title")
-        table.add_column("DOI")
-        table.add_column("Keys")
-        for d in dupes:
-            table.add_row(d["title"] or "No Title", d["doi"] or "N/A", ", ".join(d["keys"]))
+        table.add_column("Key")
+        table.add_column("Collection")
+        table.add_column("SDB Status")
+        for row in rows:
+            color = status_color.get(row["sdb_status"], "white")
+            table.add_row(
+                row["match_type"],
+                row["title"],
+                row["key"],
+                row["collection"],
+                f"[{color}]{row['sdb_status']}[/{color}]",
+            )
         console.print(table)
+
+    def _build_duplicate_rows(self, dupes, col_names_by_id: Dict[str, str], sdb_service) -> List[dict]:
+        rows = []
+        for group in dupes:
+            decisions = set()
+            for occ in group["occurrences"]:
+                entries = sdb_service.inspect_item_sdb(occ["key"])
+                decisions |= {e.get("decision") for e in entries if e.get("decision")}
+
+            if not decisions:
+                sdb_status = "UNSCREENED"
+            elif len(decisions) == 1:
+                sdb_status = "MATCHING"
+            else:
+                sdb_status = "CONFLICTING"
+
+            for occ in group["occurrences"]:
+                rows.append(
+                    {
+                        "match_type": group["match_type"],
+                        "identifier": group["identifier"],
+                        "key": occ["key"],
+                        "title": occ["title"] or "No Title",
+                        "collection": col_names_by_id.get(occ["collection_id"], occ["collection_id"]),
+                        "sdb_status": sdb_status,
+                    }
+                )
+        return rows
+
+    def _export_duplicates_csv(self, rows: List[dict], path: str):
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=["match_type", "identifier", "key", "title", "collection", "sdb_status"],
+            )
+            writer.writeheader()
+            writer.writerows(rows)
 
     def _handle_audit(self, _gateway, args: argparse.Namespace):
         force_user = getattr(args, "user", False)

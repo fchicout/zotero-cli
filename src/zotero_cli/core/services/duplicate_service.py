@@ -2,7 +2,7 @@ import re
 import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import List
+from typing import Dict, List, Optional, Tuple
 
 from zotero_cli.core.interfaces import CollectionRepository
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -32,26 +32,13 @@ class DuplicateFinder:
         Analyzes the specified collections to find duplicate Zotero items.
         Returns a list of dictionaries detailing the duplicate items found.
         """
-        all_items_by_identifier = defaultdict(list)
+        all_items_by_identifier: Dict[Tuple[str, str], List[ZoteroItem]] = defaultdict(list)
 
         for col_id in collection_ids:
-            # col_id is already expected to be a Zotero Key/ID
-            items = list(self.gateway.get_items_in_collection(col_id))
-            if not items and not self.gateway.get_collection(col_id):
-                print(f"Warning: Collection '{col_id}' not found or empty. Skipping.")
-                continue
-
-            for item in items:
-                normalized_doi = self._normalize_doi(item.doi) if item.doi else None
-                normalized_arxiv = item.arxiv_id.strip().lower() if item.arxiv_id else None
-                normalized_title = self._normalize_title(item.title) if item.title else None
-
-                if normalized_doi:
-                    all_items_by_identifier[("doi", normalized_doi)].append(item)
-                elif normalized_arxiv:
-                    all_items_by_identifier[("arxiv", normalized_arxiv)].append(item)
-                elif normalized_title:
-                    all_items_by_identifier[("title", normalized_title)].append(item)
+            for item in self._fetch_collection_items(col_id):
+                identifier = self._identifier_for(item)
+                if identifier:
+                    all_items_by_identifier[identifier].append(item)
 
         duplicates = []
         for (id_type, identifier_value), items in all_items_by_identifier.items():
@@ -60,6 +47,59 @@ class DuplicateFinder:
                     {"title": items[0].title, "doi": items[0].doi, "keys": [i.key for i in items]}
                 )
         return duplicates
+
+    def compare_collections(self, collection_ids: List[str]) -> List[dict]:
+        """
+        Like `find_duplicates`, but preserves which collection each duplicate
+        occurrence came from, for read-only cross-collection duplicate reports
+        (e.g. `report duplicates`) that need to show provenance rather than
+        just a pooled list of keys.
+        """
+        all_items_by_identifier: Dict[Tuple[str, str], List[Tuple[ZoteroItem, str]]] = defaultdict(
+            list
+        )
+
+        for col_id in collection_ids:
+            for item in self._fetch_collection_items(col_id):
+                identifier = self._identifier_for(item)
+                if identifier:
+                    all_items_by_identifier[identifier].append((item, col_id))
+
+        duplicates = []
+        for (id_type, identifier_value), occurrences in all_items_by_identifier.items():
+            if len(occurrences) > 1:
+                duplicates.append(
+                    {
+                        "match_type": id_type,
+                        "identifier": identifier_value,
+                        "occurrences": [
+                            {"key": item.key, "collection_id": col_id, "title": item.title}
+                            for item, col_id in occurrences
+                        ],
+                    }
+                )
+        return duplicates
+
+    def _fetch_collection_items(self, col_id: str) -> List[ZoteroItem]:
+        # col_id is already expected to be a Zotero Key/ID
+        items = list(self.gateway.get_items_in_collection(col_id))
+        if not items and not self.gateway.get_collection(col_id):
+            print(f"Warning: Collection '{col_id}' not found or empty. Skipping.")
+            return []
+        return items
+
+    def _identifier_for(self, item: ZoteroItem) -> Optional[Tuple[str, str]]:
+        normalized_doi = self._normalize_doi(item.doi) if item.doi else None
+        normalized_arxiv = item.arxiv_id.strip().lower() if item.arxiv_id else None
+        normalized_title = self._normalize_title(item.title) if item.title else None
+
+        if normalized_doi:
+            return ("doi", normalized_doi)
+        if normalized_arxiv:
+            return ("arxiv", normalized_arxiv)
+        if normalized_title:
+            return ("title", normalized_title)
+        return None
 
     def _normalize_doi(self, doi: str) -> str:
         return doi.strip().lower()
