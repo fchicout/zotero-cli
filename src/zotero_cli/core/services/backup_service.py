@@ -28,7 +28,7 @@ class BackupService:
         collection_key: str,
         output: str | IO[bytes],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
-    ):
+    ) -> None:
         """
         Backs up a specific collection, its items, and their attachments to a .zaf file.
         """
@@ -57,7 +57,7 @@ class BackupService:
         self,
         output: str | IO[bytes],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
-    ):
+    ) -> None:
         """
         Backs up the entire library, including all collections and orphan items.
         """
@@ -79,7 +79,7 @@ class BackupService:
         manifest: dict,
         items: List[ZoteroItem],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
-    ):
+    ) -> None:
         # Use LZMA if available (standard in Py3.3+)
         compression = zipfile.ZIP_LZMA if hasattr(zipfile, "ZIP_LZMA") else zipfile.ZIP_DEFLATED
 
@@ -179,7 +179,7 @@ class BackupService:
         errors: List[str],
         item_data: List[Dict[str, Any]],
         processed_keys: Set[str],
-    ):
+    ) -> None:
         """
         Recursively processes an item and its children (attachments/notes).
         """

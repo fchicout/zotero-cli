@@ -9,7 +9,9 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.duplicate_service import DuplicateFinder
+from zotero_cli.core.services.sdb.sdb_service import SDBService
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -20,7 +22,7 @@ class ReportCommand(BaseCommand):
     name = "report"
     help = "General library analytics and metadata reports"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         sub = parser.add_subparsers(dest="report_type", required=True)
 
         # report duplicates
@@ -110,7 +112,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             "--output", help="Optional path to save the Markdown attachments report"
         )
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
@@ -125,7 +127,9 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
         elif args.report_type == "attachments":
             self._handle_attachments(gateway, args)
 
-    def _handle_duplicates(self, gateway, args, force_user: bool = False):
+    def _handle_duplicates(
+        self, gateway: ZoteroGateway, args: argparse.Namespace, force_user: bool = False
+    ) -> None:
         service = DuplicateFinder(gateway)
         col_ids = []
         col_names_by_id: Dict[str, str] = {}
@@ -165,7 +169,9 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             )
         console.print(table)
 
-    def _build_duplicate_rows(self, dupes, col_names_by_id: Dict[str, str], sdb_service) -> List[dict]:
+    def _build_duplicate_rows(
+        self, dupes: List[dict], col_names_by_id: Dict[str, str], sdb_service: SDBService
+    ) -> List[dict]:
         rows = []
         for group in dupes:
             decisions = set()
@@ -193,7 +199,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
                 )
         return rows
 
-    def _export_duplicates_csv(self, rows: List[dict], path: str):
+    def _export_duplicates_csv(self, rows: List[dict], path: str) -> None:
         with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(
                 f,
@@ -202,7 +208,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             writer.writeheader()
             writer.writerows(rows)
 
-    def _handle_audit(self, _gateway, args: argparse.Namespace):
+    def _handle_audit(self, _gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_integrity_service(force_user=force_user)
         console.print(f"[bold green]Auditing collection: {args.collection}...[/bold green]")
@@ -216,7 +222,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
         table.add_column("Status", justify="right")
         table.add_column("Missing", justify="right", style="red")
 
-        def add_row(name, items):
+        def add_row(name: str, items: list) -> None:
             status = "[green]PASS[/green]" if not items else "[red]FAIL[/red]"
             table.add_row(name, status, str(len(items)))
 
@@ -279,7 +285,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
                 "\n[bold green]Verification PASSED.[/bold green] All items are submission-ready."
             )
 
-    def _handle_verify_latex(self, args):
+    def _handle_verify_latex(self, args: argparse.Namespace) -> None:
         service = GatewayFactory.get_audit_service(force_user=getattr(args, "user", False))
         with console.status(f"[bold green]Verifying LaTeX manuscript: {args.latex}..."):
             report = service.audit_manuscript(Path(args.latex))
@@ -330,7 +336,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
                 "\n[bold green]Verification Success:[/] All citations are verified and screened."
             )
 
-    def _handle_stats(self, gateway, args):
+    def _handle_stats(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         with console.status("[bold green]Compiling library statistics...[/bold green]"):
             if args.collection:
                 col_id = gateway.get_collection_id_by_name(args.collection) or args.collection
@@ -392,7 +398,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
                 year_table.add_row(year, str(count))
             console.print(year_table)
 
-    def _handle_attachments(self, gateway, args):
+    def _handle_attachments(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         with console.status(
             "[bold green]Analyzing library attachments and PDF space...[/bold green]"
         ):
@@ -465,7 +471,8 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
 
             # Show top 25 missing
             for item in missing_pdf[:25]:
-                title_display = (item.title[:77] + "...") if len(item.title) > 80 else item.title
+                item_title = item.title or ""
+                title_display = (item_title[:77] + "...") if len(item_title) > 80 else item_title
                 table.add_row(item.key, item.item_type, title_display)
             console.print(table)
             if len(missing_pdf) > 25:

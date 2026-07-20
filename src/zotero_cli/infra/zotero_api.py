@@ -91,7 +91,7 @@ class ZoteroAPIClient(ZoteroGateway):
         )
 
     def get_tags(self) -> List[str]:
-        def _fetch_tags():
+        def _fetch_tags() -> List[str]:
             response = self.http.get("tags", params={"limit": 100})
             tags_data = cast(List[Dict[str, Any]], response.json())
             return [t["tag"] for t in tags_data]

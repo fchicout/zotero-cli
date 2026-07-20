@@ -42,7 +42,7 @@ class SqliteZoteroGateway(ZoteroGateway):
         conn.row_factory = sqlite3.Row
         return conn
 
-    def __del__(self):
+    def __del__(self) -> None:
         if self._temp_db_path and os.path.exists(self._temp_db_path):
             try:
                 os.remove(self._temp_db_path)
@@ -363,7 +363,7 @@ class SqliteJobRepository(JobRepository):
         conn.row_factory = sqlite3.Row
         return conn
 
-    def _init_db(self):
+    def _init_db(self) -> None:
         conn = self._get_connection()
         try:
             with conn:

@@ -15,7 +15,7 @@ class InitCommand(BaseCommand):
     name = "init"
     help = "Interactive configuration wizard"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         parser.description = "Launches an interactive setup wizard to configure the Zotero CLI, establishing connection credentials and local storage paths."
         parser.formatter_class = argparse.RawDescriptionHelpFormatter
         parser.epilog = """
@@ -35,7 +35,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 """
         parser.add_argument("--force", action="store_true", help="Overwrite existing config")
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         console = Console()
         console.rule("[bold blue]Zotero CLI Configuration Wizard[/]")
 

@@ -19,7 +19,7 @@ class SQLiteVectorRepository(VectorRepository):
     def _get_connection(self) -> sqlite3.Connection:
         return sqlite3.connect(self.db_path)
 
-    def _init_db(self):
+    def _init_db(self) -> None:
         conn = self._get_connection()
         try:
             with conn:

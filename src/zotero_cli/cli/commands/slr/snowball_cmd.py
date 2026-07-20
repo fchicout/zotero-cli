@@ -4,6 +4,7 @@ import asyncio
 from rich.console import Console
 
 from zotero_cli.cli.tui.factory import TUIFactory
+from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -11,7 +12,7 @@ console = Console()
 
 class SnowballCommand:
     @staticmethod
-    def register_args(parser: argparse.ArgumentParser):
+    def register_args(parser: argparse.ArgumentParser) -> None:
         snow_sub = parser.add_subparsers(dest="snow_verb", required=True)
 
         # seed
@@ -49,7 +50,7 @@ class SnowballCommand:
         export_p.add_argument("--output", help="Output file path")
 
     @staticmethod
-    def execute(gateway, args: argparse.Namespace):
+    def execute(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
 
         if args.snow_verb == "seed":
@@ -71,7 +72,7 @@ class SnowballCommand:
             SnowballCommand._handle_export(args)
 
     @staticmethod
-    def _handle_seed(gateway, args):
+    def _handle_seed(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
 
         job_queue = GatewayFactory.get_job_queue_service()
@@ -106,7 +107,7 @@ class SnowballCommand:
         console.print(f"[green]Enqueued {enqueued} discovery jobs.[/green]")
 
     @staticmethod
-    def _handle_import(gateway, args, force_user):
+    def _handle_import(gateway: ZoteroGateway, args: argparse.Namespace, force_user: bool) -> None:
         service = GatewayFactory.get_snowball_ingestion_service(force_user=force_user)
         col_id = gateway.get_collection_id_by_name(args.target)
         if not col_id:
@@ -125,7 +126,7 @@ class SnowballCommand:
             console.print(f"[green]Ingestion Complete: {stats['imported']} imported.[/green]")
 
     @staticmethod
-    def _handle_status():
+    def _handle_status() -> None:
         graph_service = GatewayFactory.get_snowball_graph_service()
         stats = graph_service.get_stats()
         console.print("\n[bold blue]Snowballing Discovery Graph Status[/bold blue]\n")
@@ -134,7 +135,7 @@ class SnowballCommand:
         # Additional tables could be added here...
 
     @staticmethod
-    def _handle_export(args):
+    def _handle_export(args: argparse.Namespace) -> None:
         graph_service = GatewayFactory.get_snowball_graph_service()
         if args.format == "mermaid":
             output = graph_service.to_mermaid()

@@ -15,7 +15,7 @@ class PromoteCommand:
     """
 
     @staticmethod
-    def register_args(parser: argparse.ArgumentParser):
+    def register_args(parser: argparse.ArgumentParser) -> None:
         parser.description = (
             "Records a decision and automatically moves the paper into the phase folder."
         )
@@ -37,7 +37,7 @@ class PromoteCommand:
         parser.add_argument("--persona", default="unknown", help="Researcher name (e.g. Paula)")
 
     @staticmethod
-    def execute(args: argparse.Namespace):
+    def execute(args: argparse.Namespace) -> None:
         if args.vote == "EXCLUDE" and not args.code:
             console.print("[bold red]Error:[/bold red] --code is required for EXCLUDE decisions.")
             sys.exit(1)

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class ERICAPIClient(BaseAPIClient, MetadataProvider):
-    def __init__(self):
+    def __init__(self) -> None:
         # ERIC base URL (IES)
         base_url = "https://api.ies.ed.gov/eric"
         super().__init__(base_url=base_url)

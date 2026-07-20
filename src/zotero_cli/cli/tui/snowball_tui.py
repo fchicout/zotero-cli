@@ -24,7 +24,7 @@ class SnowballReviewTUI:
         self.graph_service = graph_service
         self.console = Console()
 
-    def run_review_session(self):
+    def run_review_session(self) -> None:
         self.console.clear()
         self.console.print("[bold cyan]Initializing Snowballing Review Session...[/bold cyan]")
 
@@ -70,7 +70,7 @@ class SnowballReviewTUI:
 
         self.console.print("[bold cyan]Session Complete.[/bold cyan]")
 
-    def _display_candidate(self, candidate: Dict[str, Any], current: int, total: int):
+    def _display_candidate(self, candidate: Dict[str, Any], current: int, total: int) -> None:
         layout = Layout()
         layout.split_column(
             Layout(name="header", size=3), Layout(name="main"), Layout(name="footer", size=3)

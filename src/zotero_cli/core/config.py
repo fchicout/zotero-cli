@@ -178,14 +178,14 @@ class ConfigManager:
     def __init__(self, config_path: Optional[Path] = None):
         self.config_path = config_path or ConfigLoader().config_path
 
-    def save_group_context(self, group_id: str):
+    def save_group_context(self, group_id: str) -> None:
         """
         Updates the library_id and library_type in the config file to point to a group.
         Preserves other keys.
         """
         self.update_config({"library_id": group_id, "library_type": "group"})
 
-    def update_config(self, updates: Dict[str, Any]):
+    def update_config(self, updates: Dict[str, Any]) -> None:
         """
         Updates the config file with the provided key-value pairs.
         Preserves other keys.
@@ -228,7 +228,7 @@ _GLOBAL_CONFIG: Optional[ZoteroConfig] = None
 _GLOBAL_CONFIG_PATH: Optional[Path] = None
 
 
-def reset_config():
+def reset_config() -> None:
     """Reset global config cache (mainly for testing)."""
     global _GLOBAL_CONFIG, _GLOBAL_CONFIG_PATH
     _GLOBAL_CONFIG = None

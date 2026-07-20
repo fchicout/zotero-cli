@@ -77,7 +77,7 @@ class LocalTransformersLLMProvider(LLMProvider):
         self._model: Any = None
         self._tokenizer: Any = None
 
-    def _init_model(self):
+    def _init_model(self) -> None:
         if self._model is None:
             from transformers import AutoModelForCausalLM, AutoTokenizer
 

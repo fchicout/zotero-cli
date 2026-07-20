@@ -15,7 +15,7 @@ class SearchCommand(BaseCommand):
     name = "search"
     help = "Search for items in the Zotero library"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         parser.description = "Performs a fast, targeted search across your Zotero library to find items matching keywords, titles, or DOIs."
         parser.formatter_class = argparse.RawDescriptionHelpFormatter
         parser.epilog = """
@@ -40,7 +40,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         parser.add_argument("--title", help="Search by title substring")
         parser.add_argument("--limit", type=int, default=50, help="Limit results (default: 50)")
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class DBLPAPIClient(BaseAPIClient, MetadataProvider):
-    def __init__(self):
+    def __init__(self) -> None:
         # DBLP base URL
         base_url = "https://dblp.org/search/publ/api"
         super().__init__(base_url=base_url)

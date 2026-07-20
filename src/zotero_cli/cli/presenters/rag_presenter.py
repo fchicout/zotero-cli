@@ -16,7 +16,7 @@ class SearchResultPresenter(ABC):
     """
 
     @abstractmethod
-    def present(self, results: Sequence[SearchResult]):
+    def present(self, results: Sequence[SearchResult]) -> None:
         pass
 
 
@@ -25,7 +25,7 @@ class HumanPresenter(SearchResultPresenter):
     Renders results in a beautiful, human-readable format using Rich.
     """
 
-    def present(self, results: Sequence[SearchResult]):
+    def present(self, results: Sequence[SearchResult]) -> None:
         if not results:
             console.print("[yellow]No relevant snippets found.[/yellow]")
             return
@@ -50,7 +50,7 @@ class JsonPresenter(SearchResultPresenter):
     Generates the 'Evidence Pack' in structured JSON for audit and automation.
     """
 
-    def present(self, results: Sequence[SearchResult]):
+    def present(self, results: Sequence[SearchResult]) -> None:
         output = []
         for res in results:
             item_data: Dict[str, Any] = {
@@ -75,7 +75,7 @@ class ContextPresenter(SearchResultPresenter):
     Prepares a tagged text block optimized for direct LLM ingestion.
     """
 
-    def present(self, results: Sequence[SearchResult]):
+    def present(self, results: Sequence[SearchResult]) -> None:
         print("[CITED_EVIDENCE_START]")
         for i, res in enumerate(results, 1):
             meta = res.metadata

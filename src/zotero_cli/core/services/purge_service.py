@@ -215,7 +215,7 @@ class PurgeService:
 
         return combined_stats
 
-    def _merge_stats(self, target: Dict[str, int], source: Dict[str, int]):
+    def _merge_stats(self, target: Dict[str, int], source: Dict[str, int]) -> None:
         """Helper to merge stats dictionaries."""
         for k in target:
             target[k] += source.get(k, 0)

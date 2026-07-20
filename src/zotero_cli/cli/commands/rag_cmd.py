@@ -1,5 +1,5 @@
 import argparse
-from typing import Sequence
+from typing import Optional, Sequence
 
 from rich.console import Console
 
@@ -9,6 +9,7 @@ from zotero_cli.cli.presenters.rag_presenter import (
     HumanPresenter,
     JsonPresenter,
 )
+from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -19,7 +20,7 @@ class RAGCommand(BaseCommand):
     name = "rag"
     help = "Retrieval-Augmented Generation (RAG) Core operations"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # ingest
@@ -149,7 +150,7 @@ Cognitive Safeguards
             help="Remove all downloaded embedding models from disk",
         )
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         from rich.progress import (
             BarColumn,
             MofNCompleteColumn,
@@ -195,7 +196,7 @@ Cognitive Safeguards
                 # we start with indeterminate or 0.
                 task = progress.add_task("Ingesting...", total=None)
 
-                def on_item(item, total):
+                def on_item(item: Optional[ZoteroItem], total: int) -> None:
                     if item is None:
                         progress.update(task, total=total)
                     else:
@@ -281,7 +282,7 @@ Cognitive Safeguards
             elif args.model_verb == "clean":
                 self._execute_clean_model()
 
-    def _execute_clean_model(self):
+    def _execute_clean_model(self) -> None:
         import os
         import shutil
 
@@ -333,7 +334,7 @@ Cognitive Safeguards
         except Exception as e:
             console.print(f"[bold red]Error during cleanup:[/bold red] {e}")
 
-    def _execute_set_model(self):
+    def _execute_set_model(self) -> None:
         from rich.prompt import Prompt
         from rich.table import Table
 

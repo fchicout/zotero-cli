@@ -8,7 +8,7 @@ class TagCommand(BaseCommand):
     name = "tag"
     help = "Manage Zotero tags"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # List
@@ -84,7 +84,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         purge_p.add_argument("--collection", required=True, help="Collection name or key")
         purge_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         from zotero_cli.infra.factory import GatewayFactory
 
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))

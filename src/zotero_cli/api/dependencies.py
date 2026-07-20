@@ -23,7 +23,7 @@ def get_gateway() -> ZoteroGateway:
     return _GATEWAY
 
 
-def set_gateway_instance(gateway: ZoteroGateway):
+def set_gateway_instance(gateway: ZoteroGateway) -> None:
     """
     Sets the global gateway instance. Should be called on app startup.
     """

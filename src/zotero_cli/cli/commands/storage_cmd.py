@@ -11,7 +11,7 @@ class StorageCommand(BaseCommand):
     name = "storage"
     help = "Manage storage and attachments"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         subparsers = parser.add_subparsers(dest="subcommand", help="Storage subcommands")
 
         # checkout
@@ -39,7 +39,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         checkout_parser.add_argument("--limit", type=int, default=50, help="Max items to process")
         # checkout_parser.add_argument("--sort", choices=["size", "date"], default="size", help="Sort order")
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         if not args.subcommand:
             print("Please specify a subcommand (e.g., checkout)")
             return
@@ -47,7 +47,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if args.subcommand == "checkout":
             self._handle_checkout(args)
 
-    def _handle_checkout(self, args: argparse.Namespace):
+    def _handle_checkout(self, args: argparse.Namespace) -> None:
         config = get_config()
         if not config:
             print("Config not loaded.")

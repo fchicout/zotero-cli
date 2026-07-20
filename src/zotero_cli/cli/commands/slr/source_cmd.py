@@ -6,6 +6,7 @@ from typing import Any
 from rich.console import Console
 from rich.table import Table
 
+from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -17,7 +18,7 @@ class SLRSourceCommand:
     """
 
     @staticmethod
-    def register_args(parser: argparse.ArgumentParser):
+    def register_args(parser: argparse.ArgumentParser) -> None:
         sub = parser.add_subparsers(dest="source_verb", required=True)
 
         # slr source init
@@ -52,7 +53,7 @@ class SLRSourceCommand:
         )
 
     @staticmethod
-    def execute(gateway, args: argparse.Namespace):
+    def execute(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         if args.source_verb == "init":
             SLRSourceCommand._handle_init(gateway, args)
         elif args.source_verb == "add":
@@ -61,7 +62,7 @@ class SLRSourceCommand:
             SLRSourceCommand._handle_list(gateway, args)
 
     @staticmethod
-    def _handle_init(gateway, args):
+    def _handle_init(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         parent_name = f"raw_{args.name}"
         parent_key = gateway.get_collection_id_by_name(parent_name)
         if not parent_key:
@@ -96,7 +97,7 @@ class SLRSourceCommand:
         )
 
     @staticmethod
-    def _handle_add(gateway, args):
+    def _handle_add(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         target_name = args.name
         if not target_name.startswith("raw_"):
             target_name = f"raw_{target_name}"
@@ -164,7 +165,7 @@ class SLRSourceCommand:
         )
 
     @staticmethod
-    def _handle_list(gateway, args):
+    def _handle_list(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         with console.status("[bold green]Scanning for active SLR sources..."):
             cols = gateway.get_all_collections()
 

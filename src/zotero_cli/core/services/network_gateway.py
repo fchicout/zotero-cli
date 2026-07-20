@@ -25,7 +25,7 @@ class NetworkGateway:
         self.identity_manager = identity_manager
         self._client = httpx.AsyncClient(timeout=30.0, follow_redirects=True)
 
-    async def close(self):
+    async def close(self) -> None:
         await self._client.aclose()
 
     async def get(

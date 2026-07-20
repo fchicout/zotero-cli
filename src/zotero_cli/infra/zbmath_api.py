@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class ZBMathAPIClient(BaseAPIClient, MetadataProvider):
-    def __init__(self):
+    def __init__(self) -> None:
         # zbMATH base URL
         base_url = "https://api.zbmath.org/v1"
         super().__init__(base_url=base_url)

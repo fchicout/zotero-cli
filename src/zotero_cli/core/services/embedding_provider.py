@@ -165,7 +165,7 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
         self._model: Any = None
 
     @property
-    def model(self):
+    def model(self) -> Any:
         if self._model is None:
             try:
                 from sentence_transformers import SentenceTransformer

@@ -2,7 +2,12 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from zotero_cli.core.config import ZoteroConfig
-from zotero_cli.core.interfaces import EmbeddingProvider, LLMProvider, ZoteroGateway
+from zotero_cli.core.interfaces import (
+    EmbeddingProvider,
+    LLMProvider,
+    MetadataProvider,
+    ZoteroGateway,
+)
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
 # A stable, long-lived DOI used purely as a lightweight connectivity/credential
@@ -91,10 +96,14 @@ class DiagnosticsService:
             )
         return self._probe_metadata_client(_CHECK_PUBMED, self.metadata_aggregator.pubmed)
 
-    def _probe_metadata_client(self, name: str, client) -> CheckResult:
+    def _probe_metadata_client(
+        self, name: str, client: Optional[MetadataProvider]
+    ) -> CheckResult:
         # These clients never raise - they catch every error internally and
         # return None, so a None response (not an exception) is the failure
         # signal here. The try/except is still a defensive backstop.
+        if client is None:
+            return CheckResult(name, STATUS_FAILED, "Client not initialized")
         try:
             result = client.get_paper_metadata(_PROBE_DOI)
         except Exception as e:

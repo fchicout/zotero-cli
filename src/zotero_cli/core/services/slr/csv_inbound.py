@@ -255,7 +255,7 @@ class CSVInboundService:
 
     def _handle_movement(
         self, key: str, decision: str, inc: Optional[str], excl: Optional[str], svc: Any
-    ):
+    ) -> None:
         if decision == "accepted":
             target = inc
         elif decision == "rejected":

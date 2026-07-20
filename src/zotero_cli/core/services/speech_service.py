@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from zotero_cli.core.interfaces import SpeechProvider
 from zotero_cli.core.utils.speech_filter import TextCleaningFilter
@@ -12,14 +12,14 @@ class KokoroSpeechProvider(SpeechProvider):
 
     def __init__(
         self, model_path: Optional[str] = None, lang_code: str = "a", voice: str = "af_heart"
-    ):
+    ) -> None:
         self.model_path = model_path
         self.lang_code = lang_code
         self.voice = voice
         self._pipeline = None
 
     @property
-    def pipeline(self):
+    def pipeline(self) -> Any:
         if self._pipeline is None:
             try:
                 from kokoro import KPipeline

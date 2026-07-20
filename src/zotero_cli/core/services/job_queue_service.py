@@ -21,7 +21,7 @@ class JobQueueService:
     def pop_next_job(self, task_type: str) -> Optional[Job]:
         return self.repo.get_next_pending(task_type)
 
-    def complete_job(self, job_id: int, result: Optional[Dict[str, Any]] = None):
+    def complete_job(self, job_id: int, result: Optional[Dict[str, Any]] = None) -> None:
         job = self.repo.get_job(job_id)
         if not job:
             return
@@ -31,7 +31,7 @@ class JobQueueService:
             job.payload["result"] = result
         self.repo.update_job(job)
 
-    def fail_job(self, job_id: int, error: str, retry: bool = True):
+    def fail_job(self, job_id: int, error: str, retry: bool = True) -> None:
         job = self.repo.get_job(job_id)
         if not job:
             return

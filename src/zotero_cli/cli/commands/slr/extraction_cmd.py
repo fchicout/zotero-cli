@@ -11,7 +11,7 @@ console = Console()
 
 class ExtractionCommand:
     @staticmethod
-    def register_args(parser: argparse.ArgumentParser):
+    def register_args(parser: argparse.ArgumentParser) -> None:
         parser.add_argument("--collection", help="Collection name or key")
         parser.add_argument("--key", help="Item key (for single item extraction)")
         parser.add_argument("--agent", action="store_true", help="Run in Agent-led mode")
@@ -19,7 +19,7 @@ class ExtractionCommand:
         parser.add_argument("--export", help="Export extraction matrix to file (JSON/BibTeX)")
 
     @staticmethod
-    def execute(args: argparse.Namespace):
+    def execute(args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         ext_service = GatewayFactory.get_extraction_service(force_user=force_user)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)

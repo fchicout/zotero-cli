@@ -14,7 +14,7 @@ class ReconcileCommand:
     """
 
     @staticmethod
-    def register_args(parser: argparse.ArgumentParser):
+    def register_args(parser: argparse.ArgumentParser) -> None:
         parser.description = "Synchronizes the physical folder location of papers with their highest verified SLR phase."
         parser.add_argument(
             "--tree", required=True, help="Root collection name or key (e.g. raw_acm)"
@@ -31,7 +31,7 @@ class ReconcileCommand:
         parser.add_argument("--verbose", action="store_true", help="Show detailed move logs")
 
     @staticmethod
-    def execute(args: argparse.Namespace):
+    def execute(args: argparse.Namespace) -> None:
         from typing import Any, Dict, List
 
         from zotero_cli.core.zotero_item import ZoteroItem

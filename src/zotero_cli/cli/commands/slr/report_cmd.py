@@ -1,14 +1,17 @@
 import argparse
 import json
 import sys
+from typing import Any, Dict, List, Optional
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.audit_service import CollectionAuditor
 from zotero_cli.core.services.graph_service import CitationGraphService
 from zotero_cli.core.services.report_service import ReportService
+from zotero_cli.core.services.slr.status_service import PhaseStats
 from zotero_cli.core.services.snapshot_service import SnapshotService
 from zotero_cli.infra.factory import GatewayFactory
 
@@ -23,7 +26,7 @@ class SLRReportCommand:
     """
 
     @staticmethod
-    def register_args(parser: argparse.ArgumentParser):
+    def register_args(parser: argparse.ArgumentParser) -> None:
         sub = parser.add_subparsers(dest="report_verb", required=True)
 
         # slr report status
@@ -104,7 +107,7 @@ class SLRReportCommand:
         cons_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
 
     @staticmethod
-    def execute(gateway, args: argparse.Namespace):
+    def execute(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         if args.report_verb == "status":
             SLRReportCommand._handle_status(gateway, args)
         elif args.report_verb == "prisma":
@@ -123,7 +126,7 @@ class SLRReportCommand:
             SLRReportCommand._handle_consensus(gateway, args)
 
     @staticmethod
-    def _handle_status(gateway, args):
+    def _handle_status(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         status_service = GatewayFactory.get_slr_status_service()
 
         # Calculate status using SLRStatusService
@@ -238,7 +241,7 @@ class SLRReportCommand:
             qa = status.phases.get("quality_assessment")
             de = status.phases.get("data_extraction")
 
-            def format_stats(phase_stats) -> str:
+            def format_stats(phase_stats: Optional[PhaseStats]) -> str:
                 if not phase_stats:
                     return "[green]0[/green]/[red]0[/red]/[yellow]0[/yellow]"
                 acc = phase_stats.accepted
@@ -290,7 +293,7 @@ class SLRReportCommand:
         console.print(table)
 
     @staticmethod
-    def _handle_prisma(gateway, args):
+    def _handle_prisma(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         service = ReportService(gateway)
         console.print(f"Generating PRISMA report for '{args.collection}'...")
         report = service.generate_prisma_report(args.collection)
@@ -329,7 +332,7 @@ class SLRReportCommand:
                 console.print("\n[bold red]✗ Failed to render flowchart diagram.[/bold red]")
 
     @staticmethod
-    def _handle_shift(gateway, args):
+    def _handle_shift(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         service = CollectionAuditor(gateway)
         with open(args.old, "r") as f:
             old_data = json.load(f)
@@ -351,7 +354,7 @@ class SLRReportCommand:
         console.print(table)
 
     @staticmethod
-    def _handle_graph(gateway, args):
+    def _handle_graph(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         meta_service = GatewayFactory.get_metadata_aggregator()
         service = CitationGraphService(gateway, meta_service)
         col_ids = [c.strip() for c in args.collections.split(",")]
@@ -359,10 +362,10 @@ class SLRReportCommand:
         console.print(dot)
 
     @staticmethod
-    def _handle_snapshot(gateway, args):
+    def _handle_snapshot(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         service = SnapshotService(gateway, gateway)
 
-        def cli_progress(current, total, msg):
+        def cli_progress(current: int, total: int, msg: str) -> None:
             percent = (current / total * 100) if total > 0 else 0
             sys.stdout.write(f"\r[{percent:5.1f}%] {msg:<60}")
             sys.stdout.flush()
@@ -376,7 +379,7 @@ class SLRReportCommand:
             sys.exit(1)
 
     @staticmethod
-    def _handle_screening(gateway, args):
+    def _handle_screening(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         service = ReportService(gateway)
         console.print(f"Generating Markdown screening report for '{args.collection}'...")
         report = service.generate_prisma_report(args.collection)
@@ -395,7 +398,7 @@ class SLRReportCommand:
             sys.exit(1)
 
     @staticmethod
-    def _handle_exclusion_summary(gateway, args):
+    def _handle_exclusion_summary(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         service = ReportService(gateway)
         with console.status("[bold green]Compiling exclusion reasons summary..."):
             report = service.generate_prisma_report(args.collection)
@@ -426,14 +429,14 @@ class SLRReportCommand:
         console.print(table)
 
     @staticmethod
-    def _handle_consensus(gateway, args):
+    def _handle_consensus(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         col_id = gateway.get_collection_id_by_name(args.collection) or args.collection
         if not col_id:
             console.print(f"[bold red]Error: Collection '{args.collection}' not found.[/bold red]")
             sys.exit(1)
 
         items = list(gateway.get_items_in_collection(col_id))
-        discrepancies = []
+        discrepancies: List[Dict[str, Any]] = []
         agreements = 0
         total_double_screened = 0
 

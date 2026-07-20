@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import Annotated, Any, Dict, List
 
 from fastapi import APIRouter, Depends
 
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/collections", tags=["collections"])
 @router.get("", response_model=List[dict])
 async def list_collections(
     gateway: Annotated[ZoteroGateway, Depends(get_gateway)],
-):
+) -> List[Dict[str, Any]]:
     """
     Get all collections in flat structure (for now).
     """

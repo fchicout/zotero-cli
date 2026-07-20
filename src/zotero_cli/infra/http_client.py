@@ -188,7 +188,7 @@ class ZoteroHttpClient:
         response.raise_for_status()
         return response
 
-    def _update_version(self, response: requests.Response):
+    def _update_version(self, response: requests.Response) -> None:
         version = response.headers.get("Last-Modified-Version")
         if version:
             self.last_library_version = int(version)

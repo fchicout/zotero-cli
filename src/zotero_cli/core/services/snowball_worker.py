@@ -30,7 +30,7 @@ class SnowballDiscoveryWorker:
         self.job_queue = job_queue
         self.s2_api_key = s2_api_key
 
-    async def process_jobs(self, count: Optional[int] = None):
+    async def process_jobs(self, count: Optional[int] = None) -> None:
         """
         Pops and processes jobs from the queue.
         """
@@ -51,7 +51,7 @@ class SnowballDiscoveryWorker:
             await self._process_job(job)
             processed += 1
 
-    async def _process_job(self, job: Job):
+    async def _process_job(self, job: Job) -> None:
         job_id = job.id
         # internal invariant, not user input
         assert job_id is not None  # nosec B101
@@ -78,7 +78,7 @@ class SnowballDiscoveryWorker:
             retry = isinstance(e, RetryableError)
             self.job_queue.fail_job(job_id, str(e), retry=retry)
 
-    async def _discover_backward(self, doi: str, generation: int):
+    async def _discover_backward(self, doi: str, generation: int) -> None:
         """
         Fetch references via CrossRef.
         """
@@ -112,7 +112,7 @@ class SnowballDiscoveryWorker:
 
         logger.info(f"CrossRef: Added {count} backward candidates for {doi}")
 
-    async def _discover_forward(self, doi: str, generation: int):
+    async def _discover_forward(self, doi: str, generation: int) -> None:
         """
         Fetch citations via Semantic Scholar.
         """

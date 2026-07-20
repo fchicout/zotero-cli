@@ -15,7 +15,7 @@ class ScreeningStateService:
         self.screened_keys: Set[str] = set()
         self._load_state()
 
-    def _load_state(self):
+    def _load_state(self) -> None:
         if not os.path.exists(self.state_file):
             return
 
@@ -32,7 +32,9 @@ class ScreeningStateService:
     def is_screened(self, item_key: str) -> bool:
         return item_key in self.screened_keys
 
-    def record_decision(self, item_key: str, decision: str, code: str, persona: str, phase: str):
+    def record_decision(
+        self, item_key: str, decision: str, code: str, persona: str, phase: str
+    ) -> None:
         """Appends a decision to the state file."""
         file_exists = os.path.exists(self.state_file)
 

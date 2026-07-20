@@ -2,12 +2,14 @@ import argparse
 
 from rich.console import Console
 
+from zotero_cli.core.interfaces import ZoteroGateway
+
 console = Console()
 
 
 class SDBCommand:
     @staticmethod
-    def register_args(parser: argparse.ArgumentParser):
+    def register_args(parser: argparse.ArgumentParser) -> None:
         sdb_sub = parser.add_subparsers(dest="sdb_verb", required=True)
 
         # inspect
@@ -50,7 +52,7 @@ class SDBCommand:
         export_p.add_argument("--output", required=True, help="Path to output CSV")
 
     @staticmethod
-    def execute(gateway, args: argparse.Namespace):
+    def execute(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         from zotero_cli.core.services.sdb.sdb_service import SDBService
 
         service = SDBService(gateway)
@@ -92,7 +94,7 @@ class SDBCommand:
 
             sync_service = SyncService(gateway, gateway)
 
-            def cli_progress(current, total, msg):
+            def cli_progress(current: int, total: int, msg: str) -> None:
                 percent = (current / total * 100) if total > 0 else 0
                 sys.stdout.write(f"\r[{percent:5.1f}%] {msg:<60}")
                 sys.stdout.flush()
