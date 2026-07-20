@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [2.8.1] - 2026-07-19
 
+### ✨ Features & Improvements
+- **Deeper Duplicate Analysis (Issue #107):** `report duplicates` now reports which collection each duplicate occurrence came from and whether their SDB screening decisions agree (`MATCHING`/`CONFLICTING`/`UNSCREENED`), plus a `--csv` export flag for audit records.
+
 ### 🛡️ Quality & Infrastructure
 - **`GatewayFactory` Decomposition:** Split the 941-line, 58-method `GatewayFactory` "God Object" into 5 focused sub-factories (`RepositoryFactory`, `MetadataClientFactory`, `ResolverFactory`, `AIProviderFactory`, `ServiceFactory`); `GatewayFactory` itself is now a thin, fully backward-compatible facade.
 - **No More `sys.exit()` in Infra:** Removed all `sys.exit()` calls from gateway construction; invalid configuration (missing credentials, unparseable group URL, unresolved library) now raises a typed `ConfigurationError`, caught cleanly at the CLI boundary.
