@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - **Docker / Dev Container / Installer Scaffolding (Issue #131):** Added a root `Dockerfile` (lightweight runtime image packaging the same PyInstaller binary as the standalone releases), `.devcontainer/` for GitHub Codespaces/VS Code, and `install.sh`/`install.ps1` one-line installer scripts fetching the latest release binary.
 
 ### 🛡️ Quality & Infrastructure
+- **Strict Type Checking (Issue #132):** `mypy`'s `disallow_untyped_defs` is now `true` for `src/` (annotating the ~1050 pre-existing test-function signatures under `tests/` is a separate follow-up, kept lenient via an override for now); fixed all 231 real gaps this surfaced across 69 files.
 - **`GatewayFactory` Decomposition:** Split the 941-line, 58-method `GatewayFactory` "God Object" into 5 focused sub-factories (`RepositoryFactory`, `MetadataClientFactory`, `ResolverFactory`, `AIProviderFactory`, `ServiceFactory`); `GatewayFactory` itself is now a thin, fully backward-compatible facade.
 - **No More `sys.exit()` in Infra:** Removed all `sys.exit()` calls from gateway construction; invalid configuration (missing credentials, unparseable group URL, unresolved library) now raises a typed `ConfigurationError`, caught cleanly at the CLI boundary.
 - **Interface Segregation:** Narrowed `TagService`, `AuditService`, `ExportService`, `CitationGraphService`, `DuplicateFinder`, `SnapshotService`, and `SyncService` off the full `ZoteroGateway` onto the specific narrow repositories (Item/Collection/Tag) they actually use.
