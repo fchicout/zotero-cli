@@ -2,7 +2,10 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 
-from zotero_cli.core.config import ConfigLoader
+import pytest
+
+from zotero_cli.core.config import ConfigLoader, ZoteroConfig
+from zotero_cli.core.exceptions import ConfigurationError
 
 
 def test_config_loader_default_path():
@@ -58,3 +61,61 @@ def test_precedence_env_over_file(tmp_path):
         config = loader.load()
         assert config.api_key == "env_key"  # Env wins
         assert config.user_id == "file_user"  # File falls back
+
+
+def test_resolve_library_target_explicit_library_id():
+    config = ZoteroConfig(api_key="k", library_id="123", library_type="group")
+    assert config.resolve_library_target() == ("123", "group")
+
+
+def test_resolve_library_target_force_user():
+    config = ZoteroConfig(api_key="k", library_id="123", library_type="group", user_id="u1")
+    assert config.resolve_library_target(force_user=True) == ("u1", "user")
+
+
+def test_resolve_library_target_force_user_no_user_id_falls_through():
+    config = ZoteroConfig(api_key="k", user_id=None)
+    with pytest.raises(ConfigurationError):
+        config.resolve_library_target(force_user=True, require_group=True)
+
+
+def test_resolve_library_target_force_user_no_user_id_non_required():
+    config = ZoteroConfig(api_key="k", user_id=None)
+    assert config.resolve_library_target(force_user=True, require_group=False) == ("0", "user")
+
+
+def test_resolve_library_target_group_url_parsed():
+    config = ZoteroConfig(
+        api_key="k",
+        library_id=None,
+        library_type="",
+        target_group_url="https://www.zotero.org/groups/456/items",
+    )
+    assert config.resolve_library_target() == ("456", "group")
+
+
+def test_resolve_library_target_group_url_unparseable():
+    config = ZoteroConfig(
+        api_key="k",
+        library_id=None,
+        library_type="",
+        target_group_url="https://www.zotero.org/not-a-group-url",
+    )
+    with pytest.raises(ConfigurationError):
+        config.resolve_library_target()
+
+
+def test_resolve_library_target_user_id_fallback():
+    config = ZoteroConfig(api_key="k", library_id=None, library_type="", user_id="u2")
+    assert config.resolve_library_target() == ("u2", "user")
+
+
+def test_resolve_library_target_no_library_defined_required():
+    config = ZoteroConfig(api_key="k", library_id=None, library_type="", user_id=None)
+    with pytest.raises(ConfigurationError):
+        config.resolve_library_target(require_group=True)
+
+
+def test_resolve_library_target_no_library_defined_not_required():
+    config = ZoteroConfig(api_key="k", library_id=None, library_type="", user_id=None)
+    assert config.resolve_library_target(require_group=False) == ("0", "user")

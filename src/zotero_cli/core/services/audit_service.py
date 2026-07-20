@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import ItemRepository, ZoteroGateway
 from zotero_cli.core.services.slr.csv_inbound import CSVInboundService
 from zotero_cli.core.services.slr.integrity import AuditReport, IntegrityService
 from zotero_cli.core.services.slr.snapshot import SnapshotService
@@ -35,8 +35,8 @@ class CollectionAuditor:
 
 
 class AuditService:
-    def __init__(self, gateway: ZoteroGateway):
-        self.gateway = gateway
+    def __init__(self, item_repo: ItemRepository):
+        self.item_repo = item_repo
 
     def audit_manuscript(self, path: Path) -> Dict[str, Any]:
         """
@@ -54,13 +54,13 @@ class AuditService:
         from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 
         for key in sorted(citations):
-            item = self.gateway.get_item(key)
+            item = self.item_repo.get_item(key)
             if not item:
                 items_report[key] = {"exists": False, "screened": False}
                 continue
 
             # Check for SDB note
-            children = self.gateway.get_item_children(key)
+            children = self.item_repo.get_item_children(key)
             screened = False
             decision = None
 

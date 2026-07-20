@@ -3,7 +3,7 @@ import sys
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.zotero_item import ZoteroItem
 
 # Type alias for the progress callback
@@ -17,8 +17,9 @@ class SnapshotService:
     Adheres to SOLID principles: Single Responsibility (Snapshotting).
     """
 
-    def __init__(self, gateway: ZoteroGateway):
-        self.gateway = gateway
+    def __init__(self, collection_repo: CollectionRepository, item_repo: ItemRepository):
+        self.collection_repo = collection_repo
+        self.item_repo = item_repo
 
     def freeze_collection(
         self, collection_name: str, output_path: str, callback: Optional[ProgressCallback] = None
@@ -38,7 +39,7 @@ class SnapshotService:
         if callback:
             callback(0, 0, "Resolving collection ID...")
 
-        collection_id = self.gateway.get_collection_id_by_name(collection_name)
+        collection_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not collection_id:
             print(f"Error: Collection '{collection_name}' not found.", file=sys.stderr)
             return False
@@ -48,7 +49,7 @@ class SnapshotService:
             callback(0, 0, f"Fetching items from '{collection_name}'...")
 
         # We fetch raw items first to get the count
-        items_iter = self.gateway.get_items_in_collection(collection_id)
+        items_iter = self.collection_repo.get_items_in_collection(collection_id)
         parent_items = list(items_iter)
         total_items = len(parent_items)
 
@@ -68,7 +69,7 @@ class SnapshotService:
                 item_data = self._serialize_item(item)
 
                 # Fetch Children (Notes/Attachments)
-                children_raw = self.gateway.get_item_children(item.key)
+                children_raw = self.item_repo.get_item_children(item.key)
 
                 # Nest children
                 item_data["children"] = children_raw

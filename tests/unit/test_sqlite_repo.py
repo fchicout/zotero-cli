@@ -146,9 +146,10 @@ def test_gateway_factory_offline(mock_db, monkeypatch):
 
 def test_gateway_factory_offline_no_db(monkeypatch):
     from zotero_cli.core.config import ZoteroConfig
+    from zotero_cli.core.exceptions import ConfigurationError
     from zotero_cli.infra.factory import GatewayFactory
 
     config = ZoteroConfig(database_path=None)
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ConfigurationError):
         GatewayFactory.get_zotero_gateway(config=config, offline=True)

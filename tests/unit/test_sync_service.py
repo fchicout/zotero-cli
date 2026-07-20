@@ -8,7 +8,7 @@ from zotero_cli.core.zotero_item import ZoteroItem
 class TestSyncService(unittest.TestCase):
     def setUp(self):
         self.gateway = MagicMock()
-        self.service = SyncService(self.gateway)
+        self.service = SyncService(self.gateway, self.gateway)
 
     def test_recover_state_from_notes_success(self):
         # Mock Collection ID

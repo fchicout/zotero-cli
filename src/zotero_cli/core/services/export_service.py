@@ -1,6 +1,6 @@
 from typing import List
 
-from zotero_cli.core.interfaces import BibtexGateway, RisGateway, ZoteroGateway
+from zotero_cli.core.interfaces import BibtexGateway, CollectionRepository, RisGateway
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.core.services.sdb.sdb_service import SDBService
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -11,12 +11,12 @@ class ExportService:
 
     def __init__(
         self,
-        gateway: ZoteroGateway,
+        collection_repo: CollectionRepository,
         bibtex_gateway: BibtexGateway,
         ris_gateway: RisGateway,
         sdb_service: SDBService,
     ):
-        self.gateway = gateway
+        self.collection_repo = collection_repo
         self.bibtex_gateway = bibtex_gateway
         self.ris_gateway = ris_gateway
         self.sdb_service = sdb_service
@@ -27,12 +27,12 @@ class ExportService:
         """
         Exports all items in a collection to a file.
         """
-        col_id = self.gateway.get_collection_id_by_name(collection_name)
+        col_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not col_id:
             print(f"Error: Collection '{collection_name}' not found.")
             return False
 
-        items = list(self.gateway.get_items_in_collection(col_id))
+        items = list(self.collection_repo.get_items_in_collection(col_id))
         if not items:
             print(f"Warning: Collection '{collection_name}' is empty.")
             return False

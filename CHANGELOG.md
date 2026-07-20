@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.8.1] - 2026-07-19
+
+### 🛡️ Quality & Infrastructure
+- **`GatewayFactory` Decomposition:** Split the 941-line, 58-method `GatewayFactory` "God Object" into 5 focused sub-factories (`RepositoryFactory`, `MetadataClientFactory`, `ResolverFactory`, `AIProviderFactory`, `ServiceFactory`); `GatewayFactory` itself is now a thin, fully backward-compatible facade.
+- **No More `sys.exit()` in Infra:** Removed all `sys.exit()` calls from gateway construction; invalid configuration (missing credentials, unparseable group URL, unresolved library) now raises a typed `ConfigurationError`, caught cleanly at the CLI boundary.
+- **Interface Segregation:** Narrowed `TagService`, `AuditService`, `ExportService`, `CitationGraphService`, `DuplicateFinder`, `SnapshotService`, and `SyncService` off the full `ZoteroGateway` onto the specific narrow repositories (Item/Collection/Tag) they actually use.
+- **AI-Ready SDLC Pivot:** Retired the stale Gemini-persona process-doc layer in favor of `CLAUDE.md` + GitHub Issues as the single source of truth; added mechanically-enforced quality gates (pre-commit hooks for ruff/mypy/bandit/pytest) and migrated tooling from pip to `uv`.
+
 ## [2.7.0] - 2026-05-07
 
 ### ✨ Features & Improvements

@@ -4,7 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import List
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import CollectionRepository
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -21,7 +21,7 @@ class DuplicateFinder:
     Supports matching items by DOI, ArXiv ID, or normalized title.
     """
 
-    def __init__(self, gateway: ZoteroGateway):
+    def __init__(self, gateway: CollectionRepository):
         """
         Initializes the DuplicateFinder with a Zotero gateway.
         """

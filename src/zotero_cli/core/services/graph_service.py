@@ -1,12 +1,14 @@
 from typing import Dict, List, Set, Tuple
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import CollectionRepository
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
 class CitationGraphService:
-    def __init__(self, zotero_gateway: ZoteroGateway, metadata_service: MetadataAggregatorService):
+    def __init__(
+        self, zotero_gateway: CollectionRepository, metadata_service: MetadataAggregatorService
+    ):
         self.zotero_gateway = zotero_gateway
         self.metadata_service = metadata_service
 

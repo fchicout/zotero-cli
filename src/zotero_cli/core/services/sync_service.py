@@ -3,7 +3,7 @@ import json
 import sys
 from typing import Any, Callable, Dict, List, Optional, cast
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.zotero_item import ZoteroItem
 
 # Progress Callback Type: current, total, message
@@ -15,8 +15,9 @@ class SyncService:
     Service responsible for synchronizing local state (CSV) from remote truth (Zotero Notes).
     """
 
-    def __init__(self, gateway: ZoteroGateway):
-        self.gateway = gateway
+    def __init__(self, collection_repo: CollectionRepository, item_repo: ItemRepository):
+        self.collection_repo = collection_repo
+        self.item_repo = item_repo
 
     def recover_state_from_notes(
         self,
@@ -38,7 +39,7 @@ class SyncService:
         # 1. Resolve ID
         if callback:
             callback(0, 0, "Resolving collection ID...")
-        collection_id = self.gateway.get_collection_id_by_name(collection_name)
+        collection_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not collection_id:
             print(f"Error: Collection '{collection_name}' not found.", file=sys.stderr)
             return False
@@ -46,7 +47,7 @@ class SyncService:
         # 2. Fetch Items
         if callback:
             callback(0, 0, f"Fetching items from '{collection_name}'...")
-        items = list(self.gateway.get_items_in_collection(collection_id))
+        items = list(self.collection_repo.get_items_in_collection(collection_id))
         total = len(items)
 
         recovered_rows: List[Dict[str, str]] = []
@@ -111,7 +112,7 @@ class SyncService:
     def _extract_screening_data(self, item: ZoteroItem) -> Optional[Dict[str, Any]]:
         """Helper to find and parse the screening decision note for an item."""
         try:
-            children = self.gateway.get_item_children(item.key)
+            children = self.item_repo.get_item_children(item.key)
         except Exception as e:
             print(f"Warning: Failed to fetch children for {item.key}: {e}", file=sys.stderr)
             return None
