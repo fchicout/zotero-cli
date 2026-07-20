@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.attachment_service import AttachmentService
     from zotero_cli.core.services.audit_service import AuditService
     from zotero_cli.core.services.collection_service import CollectionService
+    from zotero_cli.core.services.diagnostics_service import DiagnosticsService
     from zotero_cli.core.services.enrichment_service import EnrichmentService
     from zotero_cli.core.services.export_service import ExportService
     from zotero_cli.core.services.extraction_service import ExtractionService
@@ -368,6 +369,14 @@ class GatewayFactory:
     @staticmethod
     def get_verify_service() -> "VerifyService":
         return ServiceFactory.get_verify_service()
+
+    @staticmethod
+    def get_diagnostics_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "DiagnosticsService":
+        return ServiceFactory.get_diagnostics_service(config, force_user, offline)
 
     @staticmethod
     def get_vector_repository(config: Optional[ZoteroConfig] = None) -> "VectorRepository":
