@@ -1,0 +1,17 @@
+.git/
+.venv/
+data/
+scratch/
+.scannerwork/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+dist/
+build/
+md_dir/
+.coverage
+.coverage.*
+coverage.xml
+__pycache__/
+*.pyc
+.devcontainer/

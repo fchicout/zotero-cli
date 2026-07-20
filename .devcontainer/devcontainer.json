@@ -1,0 +1,17 @@
+{
+  "name": "zotero-cli",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff"
+      ]
+    }
+  },
+  "postCreateCommand": "uv sync --extra dev && uv run pre-commit install --hook-type pre-commit --hook-type pre-push",
+  "remoteUser": "root"
+}
