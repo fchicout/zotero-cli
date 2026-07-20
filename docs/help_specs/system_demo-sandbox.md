@@ -33,7 +33,7 @@ This command requires a live Zotero API connection (`--offline` mode is read-onl
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--name` | string | Custom name for the sandbox collection | Defaults to `Zotero-CLI Sandbox` |
-| `--clean` | flag | Delete the sandbox collection instead of creating it | Matches `--name` if you used a custom one |
+| `--clean` | Boolean | Delete the sandbox collection instead of creating it | Matches `--name` if you used a custom one |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Trying zotero-cli for the first time

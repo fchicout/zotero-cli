@@ -151,7 +151,7 @@ Cognitive Safeguards
 • Common Failure Modes: Running this in --offline mode (the sandbox needs a live, writable Zotero API connection to create real items).
 • Safety Tips: Use a custom --name if you want to keep multiple sandboxes side by side.
 
-Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_demo_sandbox.md
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_demo-sandbox.md
 """,
         )
         sandbox_p.add_argument(
