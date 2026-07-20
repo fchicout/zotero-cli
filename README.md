@@ -1,12 +1,8 @@
 <!-- BADGES_START -->
-![Version](https://img.shields.io/badge/version-2.4.1-blue)
+![Version](https://img.shields.io/badge/version-2.8.1-blue)
 ![Build Status](https://github.com/fchicout/zotero-cli/actions/workflows/release.yml/badge.svg)
 ![Tests](https://github.com/fchicout/zotero-cli/actions/workflows/tests.yml/badge.svg)
-![Coverage](https://img.shields.io/badge/coverage-80%25-green)
-![Lint](https://img.shields.io/badge/ruff-passing-brightgreen)
-![Types](https://img.shields.io/badge/mypy-passing-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-lightgrey)
-![Python](https://img.shields.io/badge/python-3.10+-blue)
+![Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen) ![Lint](https://img.shields.io/badge/ruff-passing-brightgreen) ![Types](https://img.shields.io/badge/mypy-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-lightgrey) ![Python](https://img.shields.io/badge/python-3.10+-blue)
 <!-- BADGES_END -->
 
 # Zotero CLI: The Systematic Review Forge
@@ -19,32 +15,37 @@
 
 ### 1. Direct Zotero Management (The Engine)
 For power users who need atomic control over their library without the GUI.
-*   **Item & Collection Ops:** Full lifecycle management (create, rename, recursive delete).
+*   **Item & Collection Ops:** Full lifecycle management (create, rename, recursive delete), plus Docker/dev-container packaging and one-line installer scripts for easy deployment.
+*   **Multi-Source Ingestion:** arXiv, DOI, BibTeX/RIS/CSV files, and the Brazilian BDTD thesis/dissertation repository.
 *   **Tagging:** Batch taxonomy processing and cleanup.
 *   **Storage Offloading:** Move heavy PDF attachments to local storage (NAS/External) while keeping metadata linked.
+*   **System Diagnostics:** `system check` probes every configured external service (Zotero, Semantic Scholar, Unpaywall, PubMed, LLM/embedding providers) for connectivity in one shot; `system demo-sandbox` provisions a disposable collection of mock papers for trying the tool risk-free.
 *   **Local API:** A FastAPI server to bridge your library with local scripts and dashboards.
 
 ### 2. Systematic Review Support (The Protocol)
 Advanced features mapped to the **Kitchenham/Wohlin** research methodology.
-*   **Search & Collect:** Direct arXiv integration and multi-source ingestion (BibTeX, RIS, CSV).
-*   **Interactive Screening:** High-velocity Title/Abstract screening via a custom TUI.
+*   **Interactive Screening:** High-velocity Title/Abstract screening via a custom TUI, with double-screening consensus/conflict reports.
 *   **SDB v1.2 (Standardized Decision Block):** Immutable, machine-readable audit trails for every screening decision stored in Zotero notes.
 *   **Hybrid Workflow:** Inject screening decisions from external researchers via CSV import.
-*   **Reporting:** Automated PRISMA 2020 statistics and Mermaid visualization.
+*   **Citation Snowballing:** Recursive forward/backward citation discovery from seed articles, with an interactive review TUI before import.
+*   **Data Extraction:** Structured extraction of research variables and results from full text, optionally AI-agent-assisted.
+*   **Knowledge Retrieval (RAG):** Local vector-store ingestion of full-text PDFs for semantic search and LLM-backed synthesis over your own library.
+*   **Reporting:** Automated PRISMA 2020 statistics, citation graphs, and Mermaid visualization.
 
-## 🌟 The SLR Workflow (v2.4)
+## 🌟 The SLR Workflow
 
 We support the rigorous **Kitchenham/Wohlin** review protocol.
 
 ```mermaid
 graph LR
-    A[Raw Source] -->|import| B(Collection: Raw)
+    A[Raw Source] -->|import / slr source| B(Collection: Raw)
     B -->|slr screen| C{Screening}
     C -->|slr decide| D(Collection: Screened)
     C -->|slr decide| E(Collection: Excluded)
-    D -->|report snapshot| F[Audit Snapshot]
-    D -->|report prisma| G[PRISMA Flow]
-    D -->|slr lookup| H[Synthesis Table]
+    D -->|slr extract| X[Data Extraction Matrix]
+    D -->|slr report snapshot| F[Audit Snapshot]
+    D -->|slr report prisma| G[PRISMA Flow]
+    D -->|rag ingest + rag query| H[Semantic Synthesis]
 ```
 
 ## 📚 Command Reference
@@ -72,9 +73,13 @@ Detailed documentation is available for each command noun:
 *   **Automated Relocation:** Automatic item movement to target collections during CSV import with `slr load`.
 *   **SDB v1.2 Intelligence:** Machine-readable audit trails with persona and phase-aware metadata.
 *   **System Portability:** Full library or scoped collection backup to `.zaf` (LZMA compressed).
-*   **Drift Detection:** `slr shift` detects if items have moved between snapshots.
+*   **Drift Detection:** `slr report shift` detects if items have moved between snapshots.
 *   **Set Integrity:** `slr prune` ensures your Included and Excluded sets are disjoint.
-*   **Audit Dashboard:** `report status` provides a Rich TUI dashboard of your screening progress.
+*   **Audit Dashboard:** `slr report status` provides a Rich TUI dashboard of your screening progress across one or all raw search sources.
+*   **Pre-Flight Diagnostics:** `system check` verifies every configured integration (Zotero, metadata providers, LLM/embedding) is reachable before a long-running job.
+*   **Zero-Risk Onboarding:** `system demo-sandbox` spins up a disposable collection with mock papers so new users can try screening/reporting/RAG without touching a real library.
+*   **Deeper Duplicate Analysis:** `report duplicates` cross-references SDB screening decisions across collections, flagging `MATCHING`/`CONFLICTING`/`UNSCREENED` overlaps.
+*   **Containerized Deployment:** A lightweight `Dockerfile`, `.devcontainer/` config, and one-line `install.sh`/`install.ps1` scripts for zero-Python-environment setup.
 
 ---
 
@@ -98,7 +103,7 @@ curl -fsSL https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.sh
 irm https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.ps1 | iex
 ```
 
-### 🐳 Option 3: Containers
+### 🐳 Option 2: Containers
 A pre-built, lightweight `Dockerfile` is included at the repo root (multi-stage build producing the same PyInstaller binary as the standalone releases — no `torch`/ML stack baked in).
 
 ```bash
@@ -117,7 +122,7 @@ docker run --rm -v ~/.config/zotero-cli:/root/.config/zotero-cli zotero-cli syst
 
 A `.devcontainer/` configuration is also included for GitHub Codespaces / VS Code Dev Containers — it installs the full development environment (`uv sync --extra dev` + pre-commit hooks) rather than the lightweight runtime image above, for contributing to `zotero-cli` itself.
 
-### Option 4: Installation from Source (Python 3.10+)
+### Option 3: Installation from Source (Python 3.10+)
 If you prefer to run the tool within a Python environment, using [uv](https://docs.astral.sh/uv/):
 
 ```bash
@@ -137,17 +142,31 @@ zotero-cli system info  # Check if config is found
 
 Translate your research intentions directly into execution.
 
-### 1. The "Clean Start" (Ingestion & Validation)
+### 1. The "First Try" (Zero-Risk Onboarding)
+**Intent:** *"I just installed this and want to try screening/reporting/RAG without touching my real library."*
+```bash
+# Verify every configured integration is reachable before doing anything else
+zotero-cli system check
+
+# Spin up a disposable collection with mock papers (one pre-seeded with an SDB note)
+zotero-cli system demo-sandbox
+zotero-cli slr screen --source "Zotero-CLI Sandbox"
+
+# Tear it down when done
+zotero-cli system demo-sandbox --clean
+```
+
+### 2. The "Clean Start" (Ingestion & Validation)
 **Intent:** *"Get everything about Deep Learning from ArXiv, put it in 'Raw', and tell me what's missing metadata or PDFs."*
 ```bash
 # Ingest papers directly from ArXiv into a specific collection
-zotero-cli import arxiv "deep learning" --collection "Raw"
+zotero-cli import arxiv --query "deep learning" --collection "Raw"
 
 # Audit the collection for missing PDFs, DOIs, or Abstracts
-zotero-cli slr validate --collection "Raw"
+zotero-cli report audit --collection "Raw" --verbose
 ```
 
-### 2. The "High-Velocity Screen" (Protocol Execution)
+### 3. The "High-Velocity Screen" (Protocol Execution)
 **Intent:** *"I want to screen these 500 papers using my keyboard and record machine-readable audit trails."*
 ```bash
 # Launch the interactive TUI to screen papers. 
@@ -155,32 +174,41 @@ zotero-cli slr validate --collection "Raw"
 zotero-cli slr screen --source "Raw" --include "Phase1" --exclude "Excluded"
 ```
 
-### 3. The "Smart Discovery" (Deep Search)
-**Intent:** *"List all the papers that Dr. Silas rejected specifically because they were 'Short Papers' (EC1)."*
+### 4. The "Smart Discovery" (Deep Search)
+**Intent:** *"Tell me which exclusion reasons dominate my review, and let me drill into who made a specific call."*
 ```bash
-# Filter your library using the SDB intelligence engine. 
-# Dynamic UI highlights the exclusion criteria and persona.
-zotero-cli item list --excluded --criteria EC1 --persona "Dr. Silas"
+# Aggregate rejection reason codes and their percentages across the collection
+zotero-cli slr report exclusion-summary --collection "Phase1"
+
+# Drill into one paper's full audit history (persona, reason, timestamp)
+zotero-cli slr sdb inspect "ABCD1234"
 ```
 
-### 4. The "Retroactive Sync" (Automation)
+### 5. The "Retroactive Sync" (Automation)
 **Intent:** *"Import screening decisions from my colleague's CSV, update Zotero, and move the accepted items to the 'Final' folder."*
 ```bash
 # Enrich metadata from CSV and automate the physical organization of items
-zotero-cli slr load results.csv --reviewer "Elena" --move-to-included "Final" --force
+zotero-cli slr load --file results.csv --reviewer "Elena" --move-to-included "Final" --force
 ```
 
-### 5. The "Scientific Evidence" (Reporting)
+### 6. The "Scientific Evidence" (Reporting)
 **Intent:** *"Give me the exact numbers for my PRISMA flowchart and generate a citation graph."*
 ```bash
-# Calculate PRISMA 2020 statistics across the entire library
-zotero-cli report prisma
+# Calculate PRISMA 2020 statistics for a collection
+zotero-cli slr report prisma --collection "Final Selection"
 
 # Export a DOT file of the citation relationships between collections
-zotero-cli slr graph --collections "Phase1,Phase2" > graph.dot
+zotero-cli slr report graph --collections "Phase1,Phase2" > graph.dot
 ```
 
-### 6. The "Portable Vault" (System Backup)
+### 7. The "Brazilian Thesis" (BDTD Import)
+**Intent:** *"I found a relevant doctoral thesis in Brazil's BDTD digital library and want it in my review with full metadata."*
+```bash
+# Import by institutional repository handle URL, BDTD record ID, or DOI
+zotero-cli import bdtd "https://repositorio.ufpe.br/handle/123456789/51746" --collection "BR_THESES"
+```
+
+### 8. The "Portable Vault" (System Backup)
 **Intent:** *"Back up my entire research project, including all those heavy PDFs, into a single compressed file I can send to my supervisor."*
 ```bash
 # Create a full system backup (.zaf) containing items, collections, tags, and attachments.

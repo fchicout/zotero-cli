@@ -214,15 +214,20 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         list_p = sub.add_parser(
             "list",
             help="List items in a collection",
-            description="Displays a table of research items within a collection, optionally filtering them based on screening decisions, exclusion criteria, or reviewer persona.",
+            description="Displays a table of research items within a collection, the trash, or unfiled at the library root. For filtering by screening decision (included/excluded), phase, or persona, use `slr list` instead.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
-Scenario: Verifying the final selection for a review
-Problem: I want to see a list of all 25 items that were accepted in my "Final Selection" folder (Key: FIN_01).
-Action:  zotero-cli item list --collection "FIN_01" --included
-Result:  The table displays only the 25 accepted items, showing their titles and unique keys.
+Scenario: Browsing everything in a folder
+Problem: I want to see all items currently in my "Final Selection" folder (Key: FIN_01).
+Action:  zotero-cli item list --collection "FIN_01"
+Result:  The table displays every item in that collection, showing their titles and unique keys.
+
+Scenario: Filtering by screening decision instead
+Problem: I want only the items that were accepted, not everything in the folder.
+Action:  zotero-cli slr list included --tree "FIN_01"
+Result:  Only items with an 'Accepted' SDB audit note are shown.
 
 Cognitive Safeguards
 --------------------

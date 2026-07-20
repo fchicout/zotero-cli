@@ -62,7 +62,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         # Purge
         purge_p = sub.add_parser(
             "purge",
-            help="Remove all tags from a collection (Deprecated)",
+            help="Remove all tags from a collection",
             description="Removes all tags from every item within a specific collection.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
@@ -102,9 +102,6 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             else:
                 print(f"Failed to add tags to {args.item}")
         elif args.verb == "purge":
-            print(
-                "[yellow]Warning: 'tag purge' is deprecated. Use 'collection purge --tags' instead.[/yellow]"
-            )
             purge_service = GatewayFactory.get_purge_service(
                 force_user=getattr(args, "user", False)
             )
