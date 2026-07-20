@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.pdf_finder_service import PDFFinderService
     from zotero_cli.core.services.purge_service import PurgeService
     from zotero_cli.core.services.restore_service import RestoreService
+    from zotero_cli.core.services.sandbox_service import SandboxService
     from zotero_cli.core.services.screening_service import ScreeningService
     from zotero_cli.core.services.sdb.sdb_service import SDBService
     from zotero_cli.core.services.slr.citation_service import CitationService
@@ -355,6 +356,22 @@ class ServiceFactory:
         from zotero_cli.core.services.diagnostics_service import DiagnosticsService
 
         return DiagnosticsService(gateway, aggregator, llm_provider, embedding_provider, config)
+
+    @staticmethod
+    def get_sandbox_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "SandboxService":
+        collection_repo = RepositoryFactory.get_collection_repository(
+            config, force_user, offline=offline
+        )
+        item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
+        note_repo = RepositoryFactory.get_note_repository(config, force_user, offline=offline)
+
+        from zotero_cli.core.services.sandbox_service import SandboxService
+
+        return SandboxService(collection_repo, item_repo, note_repo)
 
     @staticmethod
     def get_slr_orchestrator(

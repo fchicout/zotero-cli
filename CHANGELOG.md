@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### ✨ Features & Improvements
 - **Deeper Duplicate Analysis (Issue #107):** `report duplicates` now reports which collection each duplicate occurrence came from and whether their SDB screening decisions agree (`MATCHING`/`CONFLICTING`/`UNSCREENED`), plus a `--csv` export flag for audit records.
 - **Diagnostic Health Checks (Issue #129):** New `system check` command probes Zotero, Semantic Scholar, Unpaywall, PubMed/NCBI, and the configured LLM/embedding providers, reporting CONNECTED/FAILED/NOT CONFIGURED for each.
+- **Onboarding Demo Sandbox (Issue #130):** New `system demo-sandbox` command provisions a temporary collection with 6 mock papers (one pre-seeded with a mock SDB note) so new users can try screening/reporting/RAG commands without touching their real library; `--clean` removes it afterward.
 
 ### 🛡️ Quality & Infrastructure
 - **`GatewayFactory` Decomposition:** Split the 941-line, 58-method `GatewayFactory` "God Object" into 5 focused sub-factories (`RepositoryFactory`, `MetadataClientFactory`, `ResolverFactory`, `AIProviderFactory`, `ServiceFactory`); `GatewayFactory` itself is now a thin, fully backward-compatible facade.

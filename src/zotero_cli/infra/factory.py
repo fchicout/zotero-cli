@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.pdf_finder_service import PDFFinderService
     from zotero_cli.core.services.purge_service import PurgeService
     from zotero_cli.core.services.restore_service import RestoreService
+    from zotero_cli.core.services.sandbox_service import SandboxService
     from zotero_cli.core.services.screening_service import ScreeningService
     from zotero_cli.core.services.sdb.sdb_service import SDBService
     from zotero_cli.core.services.slr.citation_service import CitationService
@@ -377,6 +378,14 @@ class GatewayFactory:
         offline: Optional[bool] = None,
     ) -> "DiagnosticsService":
         return ServiceFactory.get_diagnostics_service(config, force_user, offline)
+
+    @staticmethod
+    def get_sandbox_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "SandboxService":
+        return ServiceFactory.get_sandbox_service(config, force_user, offline)
 
     @staticmethod
     def get_vector_repository(config: Optional[ZoteroConfig] = None) -> "VectorRepository":

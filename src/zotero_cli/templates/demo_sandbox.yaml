@@ -1,0 +1,45 @@
+# Mock dataset for `zotero-cli system demo-sandbox` (Issue #130).
+# Fictional papers used purely to demonstrate screening/reporting/RAG
+# workflows on first run, without touching a user's real library.
+papers:
+  - title: "Deep Learning Approaches for Systematic Literature Review Automation"
+    abstract: "This paper surveys machine learning techniques applied to automating the screening phase of systematic literature reviews, proposing a taxonomy of classifier-assisted and LLM-assisted approaches."
+    creators: ["Ada Researcher", "Grace Reviewer"]
+    tags: ["machine-learning", "slr-automation"]
+    date: "2024"
+    seed_sdb: true
+
+  - title: "A Taxonomy of Duplicate Detection Strategies in Bibliographic Databases"
+    abstract: "We compare exact-match, fuzzy-match, and embedding-based duplicate detection strategies across five major bibliographic databases, reporting precision/recall trade-offs for each."
+    creators: ["Alan Cataloguer"]
+    tags: ["deduplication", "bibliometrics"]
+    date: "2023"
+    seed_sdb: false
+
+  - title: "PRISMA 2020: An Updated Guideline for Reporting Systematic Reviews"
+    abstract: "This guideline provides an updated checklist and flow diagram for transparent reporting of why a review was done, what the authors did, and what they found."
+    creators: ["Matthew Page", "David Moher"]
+    tags: ["prisma", "reporting-standard"]
+    date: "2021"
+    seed_sdb: false
+
+  - title: "Retrieval-Augmented Generation for Grounded Question Answering over Research Corpora"
+    abstract: "We evaluate retrieval-augmented generation pipelines for answering research questions grounded in a local corpus of screened papers, measuring citation faithfulness."
+    creators: ["Grace Reviewer", "Ivan Embedder"]
+    tags: ["rag", "llm"]
+    date: "2025"
+    seed_sdb: false
+
+  - title: "Inter-Rater Reliability in Double-Blind Title/Abstract Screening"
+    abstract: "A meta-analysis of Cohen's Kappa scores reported across 40 published systematic reviews, examining factors that predict reviewer agreement during title/abstract screening."
+    creators: ["Priya Statistician"]
+    tags: ["inter-rater-reliability", "screening"]
+    date: "2022"
+    seed_sdb: false
+
+  - title: "Snowball Sampling for Citation Discovery: A Practical Comparison"
+    abstract: "This study compares forward and backward snowball sampling against database search alone for discovering relevant primary studies, using three published SLRs as case studies."
+    creators: ["Ola Snowballer"]
+    tags: ["snowball", "citation-discovery"]
+    date: "2020"
+    seed_sdb: false
