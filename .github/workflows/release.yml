@@ -21,8 +21,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install --system .
-          uv pip install --system pyinstaller
+          uv venv
+          uv pip install .
+          uv pip install pyinstaller
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Build Binary with PyInstaller
         run: |
@@ -97,8 +99,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install --system .
-          uv pip install --system pyinstaller
+          uv venv
+          uv pip install .
+          uv pip install pyinstaller
+          Add-Content -Path $env:GITHUB_PATH -Value "$PWD\.venv\Scripts"
 
       - name: Build Binary with PyInstaller
         run: |
