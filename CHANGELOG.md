@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - **No More `sys.exit()` in Infra:** Removed all `sys.exit()` calls from gateway construction; invalid configuration (missing credentials, unparseable group URL, unresolved library) now raises a typed `ConfigurationError`, caught cleanly at the CLI boundary.
 - **Interface Segregation:** Narrowed `TagService`, `AuditService`, `ExportService`, `CitationGraphService`, `DuplicateFinder`, `SnapshotService`, and `SyncService` off the full `ZoteroGateway` onto the specific narrow repositories (Item/Collection/Tag) they actually use.
 - **AI-Ready SDLC Pivot:** Retired the stale Gemini-persona process-doc layer in favor of `CLAUDE.md` + GitHub Issues as the single source of truth; added mechanically-enforced quality gates (pre-commit hooks for ruff/mypy/bandit/pytest) and migrated tooling from pip to `uv`.
+- **Documentation Consistency Sweep:** Removed 23 stale doc files describing commands renamed/removed in earlier refactors (`slr reset`/`migrate` → `slr sdb reset`/`upgrade`, `collection duplicates` → `report duplicates`, `find-pdf` → `item pdf`, and others), corrected the README command-reference table's key-verb listings, and fixed `tests/docs` to catch this class of drift going forward (header-row false positive in the Parameter Matrix parser, and new orphan-doc checks for both `docs/help_specs/` and `docs/commands/`).
 
 ## [2.7.0] - 2026-05-07
 

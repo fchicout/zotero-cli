@@ -52,6 +52,29 @@ def test_documentation_structure():
 
 
 @pytest.mark.docs
+def test_documentation_no_orphans():
+    """Ensures every file in docs/commands/ corresponds to a currently registered noun.
+
+    Prevents stale docs for removed/renamed top-level commands (e.g. a doc left
+    behind after `find-pdf` was folded into `item pdf`) from lingering
+    undetected, since test_documentation_structure only checks the
+    noun-to-docs direction.
+    """
+    project_root = Path(__file__).parent.parent.parent
+    docs_dir = project_root / "docs/commands"
+
+    registry = get_registered_commands()
+    expected_names = {f"{noun}.md" for noun in registry}
+
+    orphans = sorted(
+        f.name for f in docs_dir.glob("*.md") if f.name not in expected_names
+    )
+    assert not orphans, "Command doc files with no matching registered noun:\n" + "\n".join(
+        orphans
+    )
+
+
+@pytest.mark.docs
 def test_verb_coverage():
     """Ensures every verb for a noun is documented in its markdown file."""
     project_root = Path(__file__).parent.parent.parent
@@ -165,8 +188,10 @@ def extract_md_parameters(content: str) -> set[str]:
         cells = [c.strip() for c in line.split("|")[1:-1]]
         if not cells:
             continue
-        # Check if this is the header row
-        if any(c.lower() in {"flag", "command"} for c in cells):
+        # Check if this is the header row (header label is always the first cell,
+        # e.g. "Flag", "Command", "Flag / Parameter" - checking any cell caused
+        # false positives on data rows whose Type column value is "Flag")
+        if cells and any(c.lower() in {"flag", "command"} for c in cells[0].split(" / ")):
             continue
 
         for cell in cells[:2]:
@@ -202,6 +227,34 @@ def test_help_specs_presence():
     # Group and uniq missing to prevent duplicates for multi-level commands sharing a doc
     missing = sorted(list(set(missing)))
     assert not missing, "Absent documentation files:\n" + "\n".join(missing)
+
+
+@pytest.mark.docs
+def test_help_specs_no_orphans():
+    """Ensures every help spec file corresponds to a currently registered CLI command.
+
+    Prevents stale docs for renamed/removed commands (e.g. a doc left behind
+    after `slr reset` was consolidated into `slr sdb reset`) from lingering
+    undetected, since test_help_specs_presence only checks the CLI-to-docs
+    direction.
+    """
+    project_root = Path(__file__).parent.parent.parent
+    specs_dir = project_root / "docs/help_specs"
+
+    cli_paths = get_all_cli_command_paths()
+    expected_names = {get_expected_doc_filename(path) for path in cli_paths}
+
+    orphans = []
+    for filepath in specs_dir.glob("*.md"):
+        if filepath.name == "DOC_TEMPLATE.md":
+            continue
+        if filepath.name not in expected_names:
+            orphans.append(filepath.name)
+
+    orphans = sorted(orphans)
+    assert not orphans, "Help spec files with no matching registered command:\n" + "\n".join(
+        orphans
+    )
 
 
 @pytest.mark.docs
