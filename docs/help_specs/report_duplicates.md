@@ -16,21 +16,26 @@ graph TD
 ```
 
 ## 3. Synopsis
-Identifies duplicate papers that exist across multiple specified collections.
+Identifies duplicate papers that exist across multiple specified collections, reporting which collection each copy came from and whether their SDB screening decisions agree.
 
 ## 4. Description (Instructional Architecture)
-The `report duplicates` command helps you find overlaps between search databases or folders. During an SLR, you might import search results from IEEE, ACM, and Springer into separate collections. This command matches records by exact DOI or normalized title comparison to locate duplicate entries.
+The `report duplicates` command helps you find overlaps between search databases or folders. During an SLR, you might import search results from IEEE, ACM, and Springer into separate collections. This command matches records by exact DOI, ArXiv ID, or normalized title comparison to locate duplicate entries, and for each duplicate group looks up existing SDB screening notes to flag whether the copies were screened consistently (`MATCHING`), inconsistently (`CONFLICTING`), or not yet screened (`UNSCREENED`).
 
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--collections` | String | Comma-separated list of collection names or keys | Required. |
+| `--csv` | String | Optional path to export the duplicate report as CSV | Includes match type, identifier, key, collection, and SDB status columns. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Finding overlaps between IEEE and Springer search results
 **Problem:** I want to check which papers appeared in both databases.
 **Action:** `zotero-cli report duplicates --collections "IEEE_01,SPR_01"`
-**Result:** A table listing the duplicate titles, DOIs, and item keys is displayed.
+**Result:** A table listing the duplicate titles, keys, source collection, and SDB screening status is displayed.
+
+### Scenario: Exporting a duplicate report for methodological audit records
+**Problem:** I need a CSV record of every duplicate found before pruning, for my SLR audit trail.
+**Action:** `zotero-cli report duplicates --collections "IEEE_01,SPR_01" --csv duplicates.csv`
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Providing misspelled collection names.
