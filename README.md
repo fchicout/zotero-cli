@@ -89,7 +89,36 @@ Download the pre-compiled binary for your operating system. **No Python installa
 *   **Linux (Fedora/RHEL):** Download the `.rpm` package.
 *   **Generic Linux:** Download the `zotero-cli-linux-amd64.tar.gz`.
 
-### Option 2: Installation from Source (Python 3.10+)
+Or use the one-line installer scripts, which fetch the latest release for you:
+```bash
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.sh | bash
+```
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.ps1 | iex
+```
+
+### 🐳 Option 3: Containers
+A pre-built, lightweight `Dockerfile` is included at the repo root (multi-stage build producing the same PyInstaller binary as the standalone releases — no `torch`/ML stack baked in).
+
+```bash
+git clone https://github.com/fchicout/zotero-cli.git
+cd zotero-cli
+docker build -t zotero-cli .
+
+# Configure via env vars...
+docker run --rm -e ZOTERO_API_KEY=... -e ZOTERO_LIBRARY_ID=... zotero-cli system info
+
+# ...or mount your existing config.toml
+docker run --rm -v ~/.config/zotero-cli:/root/.config/zotero-cli zotero-cli system info
+```
+
+> *Note: `--offline` mode (reading a local `zotero.sqlite`) needs that file mounted into the container too, e.g. `-v /path/to/zotero.sqlite:/data/zotero.sqlite`.*
+
+A `.devcontainer/` configuration is also included for GitHub Codespaces / VS Code Dev Containers — it installs the full development environment (`uv sync --extra dev` + pre-commit hooks) rather than the lightweight runtime image above, for contributing to `zotero-cli` itself.
+
+### Option 4: Installation from Source (Python 3.10+)
 If you prefer to run the tool within a Python environment, using [uv](https://docs.astral.sh/uv/):
 
 ```bash
