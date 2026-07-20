@@ -105,6 +105,29 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 """,
         )
 
+        # Check
+        sub.add_parser(
+            "check",
+            help="Diagnose connectivity/credentials for all configured services",
+            description="Runs lightweight, read-only connectivity and credential checks against Zotero, Semantic Scholar, Unpaywall, PubMed/NCBI, and the configured LLM/embedding providers.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: A command fails and you don't know why
+Problem: `import doi` silently returns no metadata and you're not sure if it's a bad key or a network issue.
+Action:  zotero-cli system check
+Result:  A table shows each configured service's status (CONNECTED/FAILED/NOT CONFIGURED) with details.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Running this before setting any optional API keys - most rows will show NOT CONFIGURED, which is expected, not an error.
+• Safety Tips: Run this after editing config.toml to confirm the new credentials actually work before a long-running import.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_check.md
+""",
+        )
+
         # Backup
         backup_p = sub.add_parser(
             "backup",
@@ -286,6 +309,8 @@ Cognitive Safeguards
             InfoCommand().execute(args)
         elif args.verb == "groups":
             self._handle_groups(args)
+        elif args.verb == "check":
+            self._handle_check(args)
         elif args.verb == "backup":
             self._handle_backup(args)
         elif args.verb == "verify":
@@ -385,6 +410,21 @@ Cognitive Safeguards
             name = g.get("data", {}).get("name", "N/A")
             url = f"https://www.zotero.org/groups/{gid}"
             table.add_row(gid, name, url)
+        console.print(table)
+
+    def _handle_check(self, args):
+        force_user = getattr(args, "user", False)
+        service = GatewayFactory.get_diagnostics_service(force_user=force_user)
+        results = service.run_checks()
+
+        status_color = {"CONNECTED": "green", "FAILED": "red", "NOT_CONFIGURED": "yellow"}
+        table = Table(title="Zotero CLI Diagnostics")
+        table.add_column("Service", style="cyan")
+        table.add_column("Status")
+        table.add_column("Details")
+        for r in results:
+            color = status_color.get(r.status, "white")
+            table.add_row(r.name, f"[{color}]{r.status.replace('_', ' ')}[/{color}]", r.details)
         console.print(table)
 
     def _handle_jobs(self, args):

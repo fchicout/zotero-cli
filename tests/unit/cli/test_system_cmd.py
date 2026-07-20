@@ -133,6 +133,29 @@ def test_system_restore_dry_run(system_cmd, capsys):
         assert "RESTORE SIMULATED" in out
 
 
+def test_system_check(system_cmd, capsys):
+    from zotero_cli.core.services.diagnostics_service import CheckResult
+
+    with patch(
+        "zotero_cli.infra.factory.GatewayFactory.get_diagnostics_service"
+    ) as mock_get_service:
+        mock_service = mock_get_service.return_value
+        mock_service.run_checks.return_value = [
+            CheckResult("Zotero API", "CONNECTED", "Credentials verified"),
+            CheckResult("Semantic Scholar", "NOT_CONFIGURED", "No API key set"),
+            CheckResult("LLM Provider", "FAILED", "bad key"),
+        ]
+
+        args = argparse.Namespace(verb="check", user=False)
+        system_cmd.execute(args)
+
+        out = capsys.readouterr().out
+        assert "Zotero CLI Diagnostics" in out
+        assert "Zotero API" in out
+        assert "NOT CONFIGURED" in out
+        assert "FAILED" in out
+
+
 def test_system_groups(system_cmd, capsys):
     with (
         patch("zotero_cli.core.config.get_config") as mock_get_config,

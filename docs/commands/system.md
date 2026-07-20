@@ -24,6 +24,16 @@ zotero-cli system groups
 
 ---
 
+### `check`
+Runs lightweight, read-only connectivity/credential checks against Zotero, Semantic Scholar, Unpaywall, PubMed/NCBI, and the configured LLM/embedding providers.
+
+**Usage:**
+```bash
+zotero-cli system check
+```
+
+---
+
 ### `switch`
 Switch the active library context to a specific Zotero Group.
 This updates the local configuration to point to the selected group's library.

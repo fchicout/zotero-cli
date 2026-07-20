@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.attachment_service import AttachmentService
     from zotero_cli.core.services.audit_service import AuditService
     from zotero_cli.core.services.collection_service import CollectionService
+    from zotero_cli.core.services.diagnostics_service import DiagnosticsService
     from zotero_cli.core.services.enrichment_service import EnrichmentService
     from zotero_cli.core.services.export_service import ExportService
     from zotero_cli.core.services.extraction_service import ExtractionService
@@ -331,6 +332,29 @@ class ServiceFactory:
         from zotero_cli.core.services.verify_service import VerifyService
 
         return VerifyService()
+
+    @staticmethod
+    def get_diagnostics_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "DiagnosticsService":
+        if not config:
+            from zotero_cli.core.config import get_config as main_get_config
+
+            config = main_get_config()
+
+        gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
+        aggregator = MetadataClientFactory.get_metadata_aggregator(config)
+
+        from zotero_cli.infra.ai_provider_factory import AIProviderFactory
+
+        llm_provider = AIProviderFactory.get_llm_provider(config)
+        embedding_provider = AIProviderFactory.get_embedding_provider(config)
+
+        from zotero_cli.core.services.diagnostics_service import DiagnosticsService
+
+        return DiagnosticsService(gateway, aggregator, llm_provider, embedding_provider, config)
 
     @staticmethod
     def get_slr_orchestrator(
