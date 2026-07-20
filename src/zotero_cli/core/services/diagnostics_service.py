@@ -9,11 +9,15 @@ from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorServi
 # probe against metadata providers - not a real research dependency.
 _PROBE_DOI = "10.1038/nphys1170"
 
+STATUS_CONNECTED = "CONNECTED"
+STATUS_FAILED = "FAILED"
+STATUS_NOT_CONFIGURED = "NOT_CONFIGURED"
+
 
 @dataclass
 class CheckResult:
     name: str
-    status: str  # "CONNECTED" | "FAILED" | "NOT_CONFIGURED"
+    status: str  # STATUS_CONNECTED | STATUS_FAILED | STATUS_NOT_CONFIGURED
     details: str
 
 
@@ -50,16 +54,16 @@ class DiagnosticsService:
     def _check_zotero(self) -> CheckResult:
         try:
             if self.gateway.verify_credentials():
-                return CheckResult("Zotero API", "CONNECTED", "Credentials verified")
-            return CheckResult("Zotero API", "FAILED", "Credentials rejected")
+                return CheckResult("Zotero API", STATUS_CONNECTED, "Credentials verified")
+            return CheckResult("Zotero API", STATUS_FAILED, "Credentials rejected")
         except Exception as e:
-            return CheckResult("Zotero API", "FAILED", str(e))
+            return CheckResult("Zotero API", STATUS_FAILED, str(e))
 
     def _check_semantic_scholar(self) -> CheckResult:
         if not self.config.semantic_scholar_api_key:
             return CheckResult(
                 "Semantic Scholar",
-                "NOT_CONFIGURED",
+                STATUS_NOT_CONFIGURED,
                 "No API key set (works anonymously, rate-limited)",
             )
         return self._probe_metadata_client(
@@ -68,13 +72,15 @@ class DiagnosticsService:
 
     def _check_unpaywall(self) -> CheckResult:
         if not self.config.unpaywall_email:
-            return CheckResult("Unpaywall", "NOT_CONFIGURED", "No contact email set")
+            return CheckResult("Unpaywall", STATUS_NOT_CONFIGURED, "No contact email set")
         return self._probe_metadata_client("Unpaywall", self.metadata_aggregator.unpaywall)
 
     def _check_pubmed(self) -> CheckResult:
         if not self.config.ncbi_api_key:
             return CheckResult(
-                "PubMed/NCBI", "NOT_CONFIGURED", "No NCBI key set (works anonymously, rate-limited)"
+                "PubMed/NCBI",
+                STATUS_NOT_CONFIGURED,
+                "No NCBI key set (works anonymously, rate-limited)",
             )
         return self._probe_metadata_client("PubMed/NCBI", self.metadata_aggregator.pubmed)
 
@@ -85,25 +91,27 @@ class DiagnosticsService:
         try:
             result = client.get_paper_metadata(_PROBE_DOI)
         except Exception as e:
-            return CheckResult(name, "FAILED", str(e))
+            return CheckResult(name, STATUS_FAILED, str(e))
         if result is None:
-            return CheckResult(name, "FAILED", "No response (check network/API key/rate limit)")
-        return CheckResult(name, "CONNECTED", "Reachable")
+            return CheckResult(
+                name, STATUS_FAILED, "No response (check network/API key/rate limit)"
+            )
+        return CheckResult(name, STATUS_CONNECTED, "Reachable")
 
     def _check_llm_provider(self) -> CheckResult:
         if self.llm_provider is None:
-            return CheckResult("LLM Provider", "NOT_CONFIGURED", "No provider configured")
+            return CheckResult("LLM Provider", STATUS_NOT_CONFIGURED, "No provider configured")
         try:
             self.llm_provider.generate("Reply with the single word: pong")
-            return CheckResult("LLM Provider", "CONNECTED", type(self.llm_provider).__name__)
+            return CheckResult("LLM Provider", STATUS_CONNECTED, type(self.llm_provider).__name__)
         except Exception as e:
-            return CheckResult("LLM Provider", "FAILED", str(e))
+            return CheckResult("LLM Provider", STATUS_FAILED, str(e))
 
     def _check_embedding_provider(self) -> CheckResult:
         try:
             self.embedding_provider.embed_text("ping")
             return CheckResult(
-                "Embedding Provider", "CONNECTED", type(self.embedding_provider).__name__
+                "Embedding Provider", STATUS_CONNECTED, type(self.embedding_provider).__name__
             )
         except Exception as e:
-            return CheckResult("Embedding Provider", "FAILED", str(e))
+            return CheckResult("Embedding Provider", STATUS_FAILED, str(e))

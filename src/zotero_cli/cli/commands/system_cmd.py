@@ -413,11 +413,21 @@ Cognitive Safeguards
         console.print(table)
 
     def _handle_check(self, args):
+        from zotero_cli.core.services.diagnostics_service import (
+            STATUS_CONNECTED,
+            STATUS_FAILED,
+            STATUS_NOT_CONFIGURED,
+        )
+
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_diagnostics_service(force_user=force_user)
         results = service.run_checks()
 
-        status_color = {"CONNECTED": "green", "FAILED": "red", "NOT_CONFIGURED": "yellow"}
+        status_color = {
+            STATUS_CONNECTED: "green",
+            STATUS_FAILED: "red",
+            STATUS_NOT_CONFIGURED: "yellow",
+        }
         table = Table(title="Zotero CLI Diagnostics")
         table.add_column("Service", style="cyan")
         table.add_column("Status")
