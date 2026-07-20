@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import os
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 from rich.table import Table
@@ -16,12 +16,16 @@ from zotero_cli.core.strategies import (
     RisImportStrategy,
     SpringerCsvImportStrategy,
 )
+from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.bibtex_lib import BibtexLibGateway
 from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
 from zotero_cli.infra.ris_lib import RisLibGateway
 from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
+
+if TYPE_CHECKING:
+    from zotero_cli.core.services.job_queue_service import JobQueueService
 
 console = Console()
 
@@ -30,10 +34,10 @@ class InfoCommand(BaseCommand):
     name = "info"
     help = "Display environment and configuration"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         pass  # No extra args for info
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         from zotero_cli.core.config import get_config, get_config_path
 
         config = get_config(args.config)
@@ -56,7 +60,7 @@ class SystemCommand(BaseCommand):
     name = "system"
     help = "System maintenance & information"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # Info
@@ -337,7 +341,7 @@ Cognitive Safeguards
         run_p.add_argument("--count", type=int, help="Number of jobs to process")
         run_p.add_argument("--watch", action="store_true", help="Live progress monitor")
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         if args.verb == "info":
             InfoCommand().execute(args)
         elif args.verb == "groups":
@@ -359,7 +363,7 @@ Cognitive Safeguards
         elif args.verb == "jobs":
             self._handle_jobs(args)
 
-    def _handle_verify(self, args):
+    def _handle_verify(self, args: argparse.Namespace) -> None:
         from zotero_cli.infra.factory import GatewayFactory
 
         verify_service = GatewayFactory.get_verify_service()
@@ -383,7 +387,7 @@ Cognitive Safeguards
             for error in report.errors:
                 console.print(f"  - [red]Error:[/red] {error}")
 
-    def _handle_restore(self, args):
+    def _handle_restore(self, args: argparse.Namespace) -> None:
         from zotero_cli.infra.factory import GatewayFactory
 
         restore_service = GatewayFactory.get_restore_service(
@@ -419,7 +423,7 @@ Cognitive Safeguards
             status = "SIMULATED" if args.dry_run else "COMPLETE"
             console.print(f"\n[bold green]RESTORE {status}[/bold green]")
 
-    def _handle_groups(self, args):
+    def _handle_groups(self, args: argparse.Namespace) -> None:
         from zotero_cli.core.config import get_config
         from zotero_cli.infra.factory import GatewayFactory
 
@@ -447,7 +451,7 @@ Cognitive Safeguards
             table.add_row(gid, name, url)
         console.print(table)
 
-    def _handle_check(self, args):
+    def _handle_check(self, args: argparse.Namespace) -> None:
         from zotero_cli.core.services.diagnostics_service import (
             STATUS_CONNECTED,
             STATUS_FAILED,
@@ -472,7 +476,7 @@ Cognitive Safeguards
             table.add_row(r.name, f"[{color}]{r.status.replace('_', ' ')}[/{color}]", r.details)
         console.print(table)
 
-    def _handle_demo_sandbox(self, args):
+    def _handle_demo_sandbox(self, args: argparse.Namespace) -> None:
         from rich.panel import Panel
 
         from zotero_cli.infra.factory import GatewayFactory
@@ -505,7 +509,7 @@ Cognitive Safeguards
             )
         )
 
-    def _handle_jobs(self, args):
+    def _handle_jobs(self, args: argparse.Namespace) -> None:
         from rich.table import Table
 
         from zotero_cli.infra.factory import GatewayFactory
@@ -580,11 +584,11 @@ Cognitive Safeguards
                 asyncio.run(worker_service.process_jobs(count=args.count))
                 console.print("[bold green]Done.[/bold green]")
 
-    def _watch_jobs(self, job_service, task_type):
+    def _watch_jobs(self, job_service: "JobQueueService", task_type: str) -> None:
         from rich.live import Live
         from rich.table import Table
 
-        def generate_table():
+        def generate_table() -> Table:
             jobs = job_service.repo.list_jobs(task_type=task_type, limit=20)
             table = Table(title=f"Live Jobs Monitor: {task_type}")
             table.add_column("ID", justify="right")
@@ -629,7 +633,7 @@ Cognitive Safeguards
                 asyncio.run(svc.process_jobs(count=1))
                 time.sleep(0.5)
 
-    def _handle_switch(self, args):
+    def _handle_switch(self, args: argparse.Namespace) -> None:
         from rich.prompt import Confirm
 
         from zotero_cli.core.config import ConfigManager, get_config
@@ -675,7 +679,7 @@ Cognitive Safeguards
             except Exception as e:
                 print(f"[red]Failed to save configuration: {e}[/red]")
 
-    def _handle_normalize(self, args):
+    def _handle_normalize(self, args: argparse.Namespace) -> None:
         ext = os.path.splitext(args.file)[1].lower()
         strategy: Any = None
         gateway: Any = None
@@ -714,7 +718,7 @@ Cognitive Safeguards
         canon_gw.write_file(iter(papers), args.output)
         print(f"Normalization complete. Saved {len(papers)} items to {args.output}")
 
-    def _handle_backup(self, args):
+    def _handle_backup(self, args: argparse.Namespace) -> None:
         from rich.progress import (
             BarColumn,
             MofNCompleteColumn,
@@ -746,7 +750,7 @@ Cognitive Safeguards
                     "Backing up items...", total=None
                 )  # Indeterminate initially
 
-                def on_item(item):
+                def on_item(item: ZoteroItem) -> None:
                     progress.update(task, advance=1, description=f"Backing up: {item.key}")
 
                 # For system backup, we might not know total easily without a pre-fetch.

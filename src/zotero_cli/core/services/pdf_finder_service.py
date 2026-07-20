@@ -33,7 +33,7 @@ class PDFFinderService:
         """
         return self.job_queue.enqueue(item_key, "fetch_pdf", {})
 
-    async def process_jobs(self, count: Optional[int] = None):
+    async def process_jobs(self, count: Optional[int] = None) -> None:
         """
         Processes pending fetch_pdf jobs.
         """
@@ -49,7 +49,7 @@ class PDFFinderService:
             await self._process_job(job)
             processed += 1
 
-    async def _process_job(self, job: Job):
+    async def _process_job(self, job: Job) -> None:
         item_key = job.item_key
         job_id = job.id
         # internal invariant, not user input

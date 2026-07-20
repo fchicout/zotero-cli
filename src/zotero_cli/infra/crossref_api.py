@@ -8,7 +8,7 @@ from zotero_cli.infra.base_api_client import BaseAPIClient
 
 
 class CrossRefAPIClient(BaseAPIClient, MetadataProvider):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(base_url="https://api.crossref.org/works")
 
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:

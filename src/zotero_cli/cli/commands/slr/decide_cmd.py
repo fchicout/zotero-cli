@@ -10,7 +10,7 @@ console = Console()
 
 class DecideCommand:
     @staticmethod
-    def register_args(parser: argparse.ArgumentParser):
+    def register_args(parser: argparse.ArgumentParser) -> None:
         parser.add_argument("--key", required=True, help="Item Key")
         parser.add_argument("--vote", choices=["INCLUDE", "EXCLUDE"], help="Screening decision")
         parser.add_argument("--code", help="Reason code (required for EXCLUDE)")
@@ -28,7 +28,7 @@ class DecideCommand:
         parser.add_argument("--no-pdf", help="Exclusion code for missing PDFs")
 
     @staticmethod
-    def execute(args: argparse.Namespace):
+    def execute(args: argparse.Namespace) -> None:
         service = GatewayFactory.get_screening_service(force_user=getattr(args, "user", False))
         vote = args.vote
         code = args.code

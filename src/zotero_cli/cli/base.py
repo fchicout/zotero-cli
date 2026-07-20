@@ -22,12 +22,12 @@ class BaseCommand(ABC):
         pass
 
     @abstractmethod
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         """Register arguments for this command's subparser."""
         pass
 
     @abstractmethod
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         """Execute the command logic."""
         pass
 
@@ -36,7 +36,7 @@ class CommandRegistry:
     _commands: Dict[str, BaseCommand] = {}
 
     @classmethod
-    def register(cls, command_cls: Type[BaseCommand]):
+    def register(cls, command_cls: Type[BaseCommand]) -> Type[BaseCommand]:
         """Decorator to register a command class."""
         command = command_cls()
         cls._commands[command.name] = command

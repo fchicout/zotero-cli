@@ -57,7 +57,7 @@ class BadgeGenerator:
         res = subprocess.run(["mypy", "."], capture_output=True, text=True)
         return res.returncode == 0
 
-    def generate_all(self):
+    def generate_all(self) -> None:
         # 1. Run Tests and Coverage
         subprocess.run(
             ["pytest", "--cov=src/zotero_cli", "--cov-report=json", "tests/unit"],
@@ -89,7 +89,7 @@ class BadgeGenerator:
         self.update_readme(badge_section)
         print("Badges generated and README.md updated.")
 
-    def update_readme(self, badge_section: str):
+    def update_readme(self, badge_section: str) -> None:
         readme_path = "README.md"
         with open(readme_path, "r") as f:
             content = f.read()

@@ -28,7 +28,7 @@ class ScreeningTUI:
 
     def run_screening(
         self, items: List[ZoteroItem], agent: bool = False, persona: Optional[str] = None
-    ):
+    ) -> None:
         """Simple wrapper for ScreenCommand compatibility."""
         _ = agent
         _ = persona
@@ -41,7 +41,7 @@ class ScreeningTUI:
 
     def run_screening_session(
         self, source_collection: str, target_included: str, target_excluded: str
-    ):
+    ) -> None:
         self.console.clear()
         self.console.print("[bold cyan]Initializing Screening Session...[/bold cyan]")
         if self.state_manager:
@@ -141,7 +141,7 @@ class ScreeningTUI:
 
         self.console.print("[bold cyan]Session Complete.[/bold cyan]")
 
-    def _display_item(self, item: ZoteroItem, current: int, total: int):
+    def _display_item(self, item: ZoteroItem, current: int, total: int) -> None:
         layout = Layout()
         layout.split_column(
             Layout(name="header", size=3), Layout(name="body"), Layout(name="footer", size=3)

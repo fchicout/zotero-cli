@@ -3,6 +3,7 @@ import argparse
 from rich.console import Console
 from rich.table import Table
 
+from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -10,7 +11,7 @@ console = Console()
 
 class LoadCommand:
     @staticmethod
-    def register_args(parser: argparse.ArgumentParser):
+    def register_args(parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
             "--file",
             required=True,
@@ -66,7 +67,7 @@ class LoadCommand:
         )
 
     @staticmethod
-    def execute(gateway, args: argparse.Namespace):
+    def execute(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         service = GatewayFactory.get_csv_inbound_service(force_user=getattr(args, "user", False))
         dry_run = not args.force
 

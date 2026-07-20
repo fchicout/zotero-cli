@@ -10,7 +10,7 @@ class ServeCommand(BaseCommand):
     name = "serve"
     help = "Start the local API server"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         parser.description = "Starts a local HTTP API server that exposes your Zotero library and semantic search capabilities via standard REST endpoints."
         parser.formatter_class = argparse.RawDescriptionHelpFormatter
         parser.epilog = """
@@ -32,7 +32,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         parser.add_argument("--port", type=int, default=1969, help="Bind port (Default: 1969)")
         parser.add_argument("--reload", action="store_true", help="Enable auto-reload (Dev mode)")
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         print(f"Starting Zotero CLI API on http://{args.host}:{args.port}")
 
         # Enforce security veto: If not localhost, warn/block if needed.

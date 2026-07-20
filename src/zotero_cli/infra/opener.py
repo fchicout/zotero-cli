@@ -40,7 +40,7 @@ class OpenerService(IOpenerService):
             return False
 
     @staticmethod
-    def print_link(path: str):
+    def print_link(path: str) -> None:
         """
         Prints a clickable file URL for terminal emulators that support it.
         """

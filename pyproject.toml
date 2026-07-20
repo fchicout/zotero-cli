@@ -68,11 +68,18 @@ known-first-party = ["zotero_cli"]
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false # We'll tighten this gradually
+disallow_untyped_defs = true
 check_untyped_defs = true
 ignore_missing_imports = true
 disable_error_code = ["import-untyped"]
-exclude = ["build/", "scratch/"]
+exclude = ["build/", "scratch/", "scripts/"]
+
+# tests/ stays lenient for now (Issue #132): src/ is fully strict-typed as
+# of this change, but annotating ~1050 pre-existing test-function
+# signatures is a separate, larger follow-up left for later.
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

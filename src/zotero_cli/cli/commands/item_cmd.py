@@ -1,12 +1,14 @@
 import argparse
 import asyncio
 import sys
+from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -18,7 +20,7 @@ class InspectCommand(BaseCommand):
     name = "inspect"
     help = "Inspect item details"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         parser.description = "Provides a comprehensive view of all metadata, attachments, and child notes associated with a specific Zotero item."
         parser.formatter_class = argparse.RawDescriptionHelpFormatter
         parser.epilog = """
@@ -46,7 +48,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--full-notes", action="store_true", help="Show full content of child notes"
         )
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         import json
 
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
@@ -175,7 +177,7 @@ class ItemCommand(BaseCommand):
     name = "item"
     help = "Paper/Item operations (move, inspect, delete, etc.)"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # Inspect
@@ -507,7 +509,7 @@ Cognitive Safeguards
         speech_p.add_argument("--output", required=True, help="Output audio file path (.wav)")
         speech_p.add_argument("--voice", help="Override default voice")
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
@@ -536,7 +538,7 @@ Cognitive Safeguards
         elif args.verb == "speech":
             self._handle_speech(args)
 
-    def _handle_list(self, gateway, args):
+    def _handle_list(self, gateway: Any, args: argparse.Namespace) -> None:
         if getattr(args, "trash", False):
             items = list(gateway.get_trash_items())
             title = "Trash Items"
@@ -568,7 +570,7 @@ Cognitive Safeguards
         console.print(table)
         console.print(f"\n[dim]Showing {len(items)} items.[/dim]")
 
-    def _handle_transfer(self, args):
+    def _handle_transfer(self, args: argparse.Namespace) -> None:
         from dataclasses import replace
 
         from zotero_cli.core.config import get_config
@@ -593,7 +595,7 @@ Cognitive Safeguards
             print("Transfer failed.", file=sys.stderr)
             sys.exit(1)
 
-    def _handle_purge(self, args):
+    def _handle_purge(self, args: argparse.Namespace) -> None:
         from rich.prompt import Confirm
 
         types = []
@@ -621,7 +623,7 @@ Cognitive Safeguards
             f"[green]Purge Complete:[/green] Deleted: {stats['deleted']}, Errors: {stats['errors']}"
         )
 
-    def _handle_hydrate(self, args):
+    def _handle_hydrate(self, args: argparse.Namespace) -> None:
         from rich.table import Table
 
         force_user = getattr(args, "user", False)
@@ -665,7 +667,7 @@ Cognitive Safeguards
         console.print(table)
         print(f"\nTotal items hydrated: {len(results)}")
 
-    def _handle_pdf_ops(self, args):
+    def _handle_pdf_ops(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         if args.pdf_verb == "fetch":
             gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -732,7 +734,7 @@ Cognitive Safeguards
             gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
             self._handle_pdf_attach(gateway, args)
 
-    def _handle_pdf_attach(self, gateway, args):
+    def _handle_pdf_attach(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         import mimetypes
         import os
 
@@ -750,7 +752,7 @@ Cognitive Safeguards
         else:
             print("Failed to attach file.")
 
-    def _handle_delete(self, gateway, args):
+    def _handle_delete(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         version = args.version
         if version is None:
             item = gateway.get_item(args.key)
@@ -764,7 +766,7 @@ Cognitive Safeguards
         else:
             print(f"Failed to delete item {args.key}.")
 
-    def _handle_update(self, gateway, args):
+    def _handle_update(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         import json
 
         payload = {}
@@ -795,7 +797,7 @@ Cognitive Safeguards
         else:
             print(f"Failed to update item {args.key}.")
 
-    def _handle_move(self, args):
+    def _handle_move(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_collection_service(force_user=force_user)
         if service.move_item(args.source, args.target, args.item_id):
@@ -810,7 +812,7 @@ Cognitive Safeguards
         else:
             print("Failed to move item.")
 
-    def _handle_export(self, args):
+    def _handle_export(self, args: argparse.Namespace) -> None:
         from pathlib import Path
 
         force_user = getattr(args, "user", False)
@@ -850,7 +852,7 @@ Cognitive Safeguards
             else:
                 console.print("[bold red]Export failed.[/bold red]")
 
-    def _handle_add(self, gateway, args):
+    def _handle_add(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         # 1. Resolve Collection
         col_id = gateway.get_collection_id_by_name(args.collection)
         if not col_id:
@@ -902,7 +904,7 @@ Cognitive Safeguards
         else:
             console.print("[bold red]Error:[/bold red] Failed to create item.")
 
-    def _handle_speech(self, args):
+    def _handle_speech(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
         item = gateway.get_item(args.key)

@@ -1,4 +1,4 @@
-from typing import Annotated, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -16,7 +16,7 @@ async def list_items(
     limit: Annotated[int, Query(ge=1, le=100)] = 25,
     sort: Annotated[str, Query(description="Sort field")] = "date",
     direction: Annotated[str, Query(description="Sort direction (asc/desc)")] = "desc",
-):
+) -> List[Dict[str, Any]]:
     query = ZoteroQuery(q=q, sort=sort, direction=direction)
     # Zotero API search pagination is tricky with search_items generator.
     # We'll fetch from the iterator up to limit.
@@ -58,7 +58,7 @@ async def list_items(
 async def get_item(
     key: str,
     gateway: Annotated[ZoteroGateway, Depends(get_gateway)],
-):
+) -> Dict[str, Any]:
     item = gateway.get_item(key)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")

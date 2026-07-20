@@ -30,7 +30,7 @@ class CanonicalCsvLibGateway(CanonicalCsvGateway):
                     url=row.get("url"),
                 )
 
-    def write_file(self, papers: Iterator[ResearchPaper], file_path: str):
+    def write_file(self, papers: Iterator[ResearchPaper], file_path: str) -> None:
         headers = ["title", "doi", "arxiv_id", "abstract", "authors", "year", "publication", "url"]
         with open(file_path, mode="w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=headers)

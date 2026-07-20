@@ -125,7 +125,7 @@ class SnowballIngestionService:
             )
         return None
 
-    def _inject_lineage(self, paper: ResearchPaper, cand: dict):
+    def _inject_lineage(self, paper: ResearchPaper, cand: dict) -> None:
         """Adds audit trail to the extra field."""
         doi = cand["doi"]
         parent_doi = None

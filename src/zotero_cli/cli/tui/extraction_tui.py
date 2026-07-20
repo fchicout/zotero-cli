@@ -19,7 +19,7 @@ class ExtractionTUI:
         items: List[ZoteroItem],
         agent: str = "zotero-cli",
         persona: str = "unknown",
-    ):
+    ) -> None:
         """
         Main loop for extraction TUI.
         """

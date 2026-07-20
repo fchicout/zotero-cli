@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from typing import Dict
+from typing import AsyncIterator, Dict
 
 from fastapi import FastAPI
 
@@ -11,7 +11,7 @@ from zotero_cli.infra.factory import GatewayFactory
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Startup: Load Config and Init Gateway
     print("Initializing Zotero Gateway...")
     config = get_config()

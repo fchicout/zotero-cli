@@ -1,7 +1,7 @@
 import sys
 
 
-def verify_environment():
+def verify_environment() -> None:
     """
     Ensure the runtime environment meets minimum requirements before loading dependencies.
     """
@@ -39,7 +39,7 @@ OFFLINE_MODE = False
 # --- Main Router ---
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Zotero CLI - The Systematic Review Engine")
     parser.add_argument("--user", action="store_true", help="Force Personal Library mode")
     parser.add_argument(

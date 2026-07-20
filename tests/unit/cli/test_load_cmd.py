@@ -1,5 +1,5 @@
 import argparse
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -43,7 +43,7 @@ def test_load_command_execute_dry_run(mock_deps, capsys):
         user=False,
     )
 
-    LoadCommand.execute(None, args)
+    LoadCommand.execute(MagicMock(), args)
 
     out = capsys.readouterr().out
     assert "Import CSV Results" in out
@@ -77,6 +77,6 @@ def test_load_command_error(mock_deps, capsys):
         user=False,
     )
 
-    LoadCommand.execute(None, args)
+    LoadCommand.execute(MagicMock(), args)
     out = capsys.readouterr().out
     assert "Error: File not found" in out

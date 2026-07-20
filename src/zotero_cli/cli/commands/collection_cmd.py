@@ -7,7 +7,9 @@ from rich.table import Table
 from rich.tree import Tree
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.backup_service import BackupService
+from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -20,7 +22,7 @@ class CollectionCommand(BaseCommand):
     name = "collection"
     help = "Collection/Folder management"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # List
@@ -206,7 +208,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         export_p.add_argument("--output", help="Output file path or directory (for md)")
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
@@ -263,7 +265,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         elif args.verb == "purge":
             self._handle_purge(args)
 
-    def _handle_list(self, gateway, args):
+    def _handle_list(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         cols = gateway.get_all_collections()
 
         if args.table:
@@ -296,7 +298,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         # 3. Build Tree
         tree = Tree("Zotero Library (ROOT)")
 
-        def add_nodes(parent_tree, parent_key):
+        def add_nodes(parent_tree: Tree, parent_key: str) -> None:
             children = by_parent.get(parent_key, [])
             for child in children:
                 name = child["data"]["name"]
@@ -314,7 +316,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         add_nodes(tree, "ROOT")
         console.print(tree)
 
-    def _handle_purge(self, args):
+    def _handle_purge(self, args: argparse.Namespace) -> None:
         from rich.prompt import Confirm
 
         types = []
@@ -348,13 +350,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             f"[green]Purge Complete:[/green] Deleted: {stats['deleted']}, Errors: {stats['errors']}"
         )
 
-    def _handle_clean(self, args):
+    def _handle_clean(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_collection_service(force_user=force_user)
         count = service.empty_collection(args.collection, args.verbose)
         print(f"Deleted {count} items from '{args.collection}'.")
 
-    def _handle_backup(self, gateway, args):
+    def _handle_backup(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         from rich.progress import (
             BarColumn,
             MofNCompleteColumn,
@@ -390,7 +392,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             ) as progress:
                 task = progress.add_task("Backing up items...", total=total_items)
 
-                def on_item(item):
+                def on_item(item: ZoteroItem) -> None:
                     progress.update(task, advance=1, description=f"Backing up: {item.key}")
 
                 service.backup_collection(col_id, args.output, on_item_processed=on_item)
@@ -400,13 +402,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         except Exception as e:
             console.print(f"[bold red]Backup failed:[/bold red] {e}")
 
-    def _handle_export(self, args):
+    def _handle_export(self, args: argparse.Namespace) -> None:
         if args.format == "md":
             self._handle_export_markdown(args)
         else:
             self._handle_export_metadata(args)
 
-    def _handle_export_metadata(self, args):
+    def _handle_export_metadata(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_export_service(force_user=force_user)
 
@@ -421,7 +423,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             print("Export failed.", file=sys.stderr)
             sys.exit(1)
 
-    def _handle_export_markdown(self, args):
+    def _handle_export_markdown(self, args: argparse.Namespace) -> None:
         from pathlib import Path
 
         from rich.progress import (

@@ -125,7 +125,7 @@ class ReportService:
 
         return "\n".join(md)
 
-    def _process_item_notes(self, item: ZoteroItem, report: PrismaReport):
+    def _process_item_notes(self, item: ZoteroItem, report: PrismaReport) -> None:
         children = self.gateway.get_item_children(item.key)
 
         for child in children:

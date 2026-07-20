@@ -26,7 +26,7 @@ class SLRCommand(BaseCommand):
     name = "slr"
     help = "Systematic Literature Review (SLR) workflow tools"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # --- Sub-Namespaces ---
@@ -155,7 +155,7 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
             help="Secondary collection (Loser/Excluded - items removed from here)",
         )
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
@@ -187,7 +187,7 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
         elif args.verb == "snowball":
             SnowballCommand.execute(gateway, args)
 
-    def _handle_bulk_decide(self, args):
+    def _handle_bulk_decide(self, args: argparse.Namespace) -> None:
         import csv
 
         service = GatewayFactory.get_screening_service(force_user=getattr(args, "user", False))
@@ -222,7 +222,7 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
         except Exception as e:
             print(f"Error processing CSV: {e}")
 
-    def _handle_prune(self, args):
+    def _handle_prune(self, args: argparse.Namespace) -> None:
         service = GatewayFactory.get_collection_service(force_user=getattr(args, "user", False))
         print(f"Pruning intersection: '{args.included}' vs '{args.excluded}'...")
         count = service.prune_intersection(args.included, args.excluded)

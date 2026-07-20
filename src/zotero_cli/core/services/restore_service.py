@@ -60,8 +60,8 @@ class RestoreService:
 
         return report
 
-    def _restore_collections(self, colls: List[dict], report: RestoreReport):
-        def get_depth(c, all_colls):
+    def _restore_collections(self, colls: List[dict], report: RestoreReport) -> None:
+        def get_depth(c: dict, all_colls: List[dict]) -> int:
             parent = c.get("data", {}).get("parentCollection")
             if not parent:
                 return 0
@@ -105,7 +105,7 @@ class RestoreService:
 
     def _restore_single_item(
         self, item_raw: dict, zf: zipfile.ZipFile, manifest: dict, report: RestoreReport
-    ):
+    ) -> None:
         data = item_raw.get("data", {})
         item_type = data.get("itemType")
         old_key = item_raw["key"]
@@ -152,7 +152,7 @@ class RestoreService:
 
     def _restore_child_item(
         self, child_raw: dict, zf: zipfile.ZipFile, manifest: dict, report: RestoreReport
-    ):
+    ) -> None:
         data = child_raw.get("data", {})
         item_type = data.get("itemType")
         old_parent = data.get("parentItem")
@@ -166,7 +166,7 @@ class RestoreService:
         elif item_type == "attachment":
             self._restore_attachment(child_raw, zf, manifest, new_parent, report)
 
-    def _restore_note(self, data: dict, new_parent: str, report: RestoreReport):
+    def _restore_note(self, data: dict, new_parent: str, report: RestoreReport) -> None:
         note_content = data.get("note", "")
         if report.is_dry_run:
             return
@@ -186,7 +186,7 @@ class RestoreService:
         manifest: dict,
         new_parent: str,
         report: RestoreReport,
-    ):
+    ) -> None:
         data = child_raw.get("data", {})
         old_key = child_raw["key"]
         link_mode = data.get("linkMode")

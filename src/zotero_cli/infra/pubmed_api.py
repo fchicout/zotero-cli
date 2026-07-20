@@ -72,7 +72,7 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
             print(f"Error converting PMCID {pmcid} to PMID: {e}")
             return None
 
-    def _apply_rate_limit(self):
+    def _apply_rate_limit(self) -> None:
         """NCBI allows 3 requests/sec without API key, 10 with it."""
         delay = 0.34 if not self.api_key else 0.1
         elapsed = time.time() - self.last_request_time

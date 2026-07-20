@@ -1,8 +1,10 @@
 import argparse
+from typing import List
 
 from rich.console import Console
 from rich.table import Table
 
+from zotero_cli.core.services.slr.status_service import DecidedItem, SLRStatusService
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -18,7 +20,7 @@ class ListCommand:
     """
 
     @staticmethod
-    def register_args(parser: argparse.ArgumentParser):
+    def register_args(parser: argparse.ArgumentParser) -> None:
         parser.description = "Lists items in the SLR funnel based on their status (pending evaluation, accepted/included, or rejected/excluded) and phase."
         parser.formatter_class = argparse.RawDescriptionHelpFormatter
         parser.epilog = """
@@ -87,7 +89,7 @@ Cognitive Safeguards:
         qa_p.add_argument("--ods", help="Export to ODS file")
 
     @staticmethod
-    def execute(args: argparse.Namespace):
+    def execute(args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_slr_status_service(force_user=force_user)
 
@@ -99,7 +101,7 @@ Cognitive Safeguards:
             ListCommand._handle_qa_approved(service, args)
 
     @staticmethod
-    def _handle_qa_approved(service, args):
+    def _handle_qa_approved(service: SLRStatusService, args: argparse.Namespace) -> None:
         with console.status("[bold green]Scanning for QA-approved papers..."):
             # We want items accepted at quality_assessment phase
             items = service.get_decided_items(
@@ -139,7 +141,7 @@ Cognitive Safeguards:
             console.print(f"\n[bold yellow]Total QA-Approved Items: {len(items)}[/bold yellow]")
 
     @staticmethod
-    def _export_csv(items, filename):
+    def _export_csv(items: List[DecidedItem], filename: str) -> None:
         import csv
 
         with open(filename, "w", newline="", encoding="utf-8") as f:
@@ -150,7 +152,7 @@ Cognitive Safeguards:
         console.print(f"[green]Successfully exported to CSV: {filename}[/green]")
 
     @staticmethod
-    def _export_json(items, filename):
+    def _export_json(items: List[DecidedItem], filename: str) -> None:
         import json
 
         data = [
@@ -167,7 +169,7 @@ Cognitive Safeguards:
         console.print(f"[green]Successfully exported to JSON: {filename}[/green]")
 
     @staticmethod
-    def _export_xlsx(items, filename):
+    def _export_xlsx(items: List[DecidedItem], filename: str) -> None:
         try:
             from openpyxl import Workbook
 
@@ -183,7 +185,7 @@ Cognitive Safeguards:
             console.print("[red]Error: openpyxl not installed. Cannot export to XLSX.[/red]")
 
     @staticmethod
-    def _export_ods(items, filename):
+    def _export_ods(items: List[DecidedItem], filename: str) -> None:
         try:
             from odf.opendocument import OpenDocumentSpreadsheet
             from odf.table import Table as OdfTable
@@ -219,7 +221,7 @@ Cognitive Safeguards:
             )
 
     @staticmethod
-    def _handle_pending(service, args):
+    def _handle_pending(service: SLRStatusService, args: argparse.Namespace) -> None:
         with console.status("[bold green]Scanning for pending papers..."):
             pending_items = service.get_pending_items(root_key=args.tree)
 
@@ -245,7 +247,7 @@ Cognitive Safeguards:
         console.print(f"\n[bold yellow]Total Pending Items: {len(pending_items)}[/bold yellow]")
 
     @staticmethod
-    def _handle_decided(service, args):
+    def _handle_decided(service: SLRStatusService, args: argparse.Namespace) -> None:
         decision_type = "accepted" if args.list_verb == "included" else "rejected"
         phase_filter = None
         if args.ta:

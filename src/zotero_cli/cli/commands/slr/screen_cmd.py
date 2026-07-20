@@ -10,7 +10,7 @@ console = Console()
 
 class ScreenCommand:
     @staticmethod
-    def register_args(parser: argparse.ArgumentParser):
+    def register_args(parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
             "--collection", "--source", dest="collection", help="Collection name or key to screen"
         )
@@ -20,7 +20,7 @@ class ScreenCommand:
         parser.add_argument("--persona", help="Reviewer persona (for Agent-led mode)")
 
     @staticmethod
-    def execute(args: argparse.Namespace):
+    def execute(args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_screening_service(force_user=force_user)
 

@@ -31,7 +31,7 @@ class SnowballGraphService(ISnowballGraphService):
         parent_doi: Optional[str] = None,
         direction: str = "forward",
         generation: int = 1,
-    ):
+    ) -> None:
         """
         Adds a candidate paper to the graph.
         """
@@ -78,7 +78,7 @@ class SnowballGraphService(ISnowballGraphService):
             else:
                 self.graph.add_edge(doi, parent_doi, direction="backward")
 
-    def update_status(self, doi: str, status: str):
+    def update_status(self, doi: str, status: str) -> None:
         """Transitions node state."""
         if doi in self.graph:
             self.graph.nodes[doi]["status"] = status
@@ -125,14 +125,14 @@ class SnowballGraphService(ISnowballGraphService):
         # Sort by relevance score descending
         return sorted(candidates, key=lambda x: x["relevance_score"], reverse=True)
 
-    def save_graph(self):
+    def save_graph(self) -> None:
         """Persistence logic."""
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         data = nx.node_link_data(self.graph)
         with open(self.storage_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
-    def load_graph(self):
+    def load_graph(self) -> None:
         """Loads graph from storage."""
         if self.storage_path.exists():
             try:

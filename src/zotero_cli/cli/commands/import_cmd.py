@@ -3,6 +3,7 @@ import os
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
+from zotero_cli.core.services.import_service import ImportService
 from zotero_cli.infra.factory import GatewayFactory
 
 
@@ -16,7 +17,7 @@ class ImportCommand(BaseCommand):
     name = "import"
     help = "Import papers from various sources"
 
-    def register_args(self, parser: argparse.ArgumentParser):
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
         """
         Registers argument subparsers for files, arXiv, DOI, BDTD, and manual imports.
         """
@@ -159,7 +160,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         man_p.add_argument("--abstract", default="")
         man_p.add_argument("--collection", required=True)
 
-    def execute(self, args: argparse.Namespace):
+    def execute(self, args: argparse.Namespace) -> None:
         """
         Routes and executes the import logic based on the user-selected import source type.
         """
@@ -176,7 +177,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         elif args.import_type == "manual":
             self._handle_manual(import_service, args)
 
-    def _handle_file(self, service, args):
+    def _handle_file(self, service: ImportService, args: argparse.Namespace) -> None:
         from zotero_cli.core.strategies import (
             BibtexImportStrategy,
             CanonicalCsvImportStrategy,
@@ -217,7 +218,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         count = service.import_papers(papers, args.collection, args.verbose)
         print(f"Imported {count} items.")
 
-    def _handle_arxiv(self, service, args):
+    def _handle_arxiv(self, service: ImportService, args: argparse.Namespace) -> None:
         from zotero_cli.core.strategies import ArxivImportStrategy
 
         q = args.query
@@ -237,7 +238,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         count = service.import_papers(papers, args.collection, args.verbose)
         print(f"Imported {count} items.")
 
-    def _handle_doi(self, service, args):
+    def _handle_doi(self, service: ImportService, args: argparse.Namespace) -> None:
         from zotero_cli.core.strategies import DoiImportStrategy
 
         aggregator = GatewayFactory.get_metadata_aggregator()
@@ -246,7 +247,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         count = service.import_papers(papers, args.collection, args.verbose)
         print(f"Imported {count} items.")
 
-    def _handle_bdtd(self, service, args):
+    def _handle_bdtd(self, service: ImportService, args: argparse.Namespace) -> None:
         bdtd_client = GatewayFactory.get_bdtd_client()
         paper = bdtd_client.get_paper_metadata(args.identifier)
 
@@ -269,7 +270,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         count = service.import_papers(iter([paper]), args.collection, args.verbose)
         print(f"Imported {count} thesis item(s).")
 
-    def _handle_manual(self, service, args):
+    def _handle_manual(self, service: ImportService, args: argparse.Namespace) -> None:
         from zotero_cli.core.models import ResearchPaper
 
         paper = ResearchPaper(arxiv_id=args.arxiv_id, abstract=args.abstract, title=args.title)

@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from zotero_cli.core.interfaces import ItemRepository, ZoteroGateway
 from zotero_cli.core.services.slr.csv_inbound import CSVInboundService
@@ -26,7 +26,7 @@ class CollectionAuditor:
     def detect_shifts(self, snapshot_old: List[dict], snapshot_new: List[dict]) -> List[dict]:
         return self.snapshot.detect_shifts(snapshot_old, snapshot_new)
 
-    def enrich_from_csv(self, csv_path: str, **kwargs) -> Dict[str, Any]:
+    def enrich_from_csv(self, csv_path: str, **kwargs: Any) -> Dict[str, Any]:
         return self.csv_inbound.enrich_from_csv(csv_path=csv_path, **kwargs)
 
     def _audit_children(self, item_key: str) -> tuple[bool, bool]:
@@ -82,7 +82,9 @@ class AuditService:
 
         return report
 
-    def _get_citations_recursive(self, latex_file: Path, visited=None) -> set:
+    def _get_citations_recursive(
+        self, latex_file: Path, visited: Optional[Set[Path]] = None
+    ) -> set:
         if visited is None:
             visited = set()
 

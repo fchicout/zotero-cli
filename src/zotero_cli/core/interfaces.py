@@ -446,11 +446,11 @@ class SnowballGraphService(ABC):
         pass
 
     @abstractmethod
-    def update_status(self, doi: str, status: str):
+    def update_status(self, doi: str, status: str) -> None:
         pass
 
     @abstractmethod
-    def save_graph(self):
+    def save_graph(self) -> None:
         pass
 
     @abstractmethod
