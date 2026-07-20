@@ -128,6 +128,39 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 """,
         )
 
+        # Demo Sandbox
+        sandbox_p = sub.add_parser(
+            "demo-sandbox",
+            help="Provision a temporary collection with mock papers",
+            description="Creates a temporary collection populated with mock papers so you can try screening, reporting, and RAG commands without touching your real library.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Trying zotero-cli for the first time
+Problem: I just installed zotero-cli and don't have a populated collection I'm comfortable experimenting on yet.
+Action:  zotero-cli system demo-sandbox
+Result:  A "Zotero-CLI Sandbox" collection is created with mock papers, ready for `slr screen --source "Zotero-CLI Sandbox"`.
+
+Scenario: Cleaning up after trying the tool
+Problem: I'm done exploring and want to remove the mock data from my library.
+Action:  zotero-cli system demo-sandbox --clean
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Running this in --offline mode (the sandbox needs a live, writable Zotero API connection to create real items).
+• Safety Tips: Use a custom --name if you want to keep multiple sandboxes side by side.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_demo_sandbox.md
+""",
+        )
+        sandbox_p.add_argument(
+            "--name", default="Zotero-CLI Sandbox", help="Name for the sandbox collection"
+        )
+        sandbox_p.add_argument(
+            "--clean", action="store_true", help="Delete the sandbox collection instead of creating it"
+        )
+
         # Backup
         backup_p = sub.add_parser(
             "backup",
@@ -311,6 +344,8 @@ Cognitive Safeguards
             self._handle_groups(args)
         elif args.verb == "check":
             self._handle_check(args)
+        elif args.verb == "demo-sandbox":
+            self._handle_demo_sandbox(args)
         elif args.verb == "backup":
             self._handle_backup(args)
         elif args.verb == "verify":
@@ -436,6 +471,39 @@ Cognitive Safeguards
             color = status_color.get(r.status, "white")
             table.add_row(r.name, f"[{color}]{r.status.replace('_', ' ')}[/{color}]", r.details)
         console.print(table)
+
+    def _handle_demo_sandbox(self, args):
+        from rich.panel import Panel
+
+        from zotero_cli.infra.factory import GatewayFactory
+
+        force_user = getattr(args, "user", False)
+        service = GatewayFactory.get_sandbox_service(force_user=force_user)
+
+        if args.clean:
+            if service.clean_sandbox(args.name):
+                console.print(f"[green]Sandbox collection '{args.name}' removed.[/green]")
+            else:
+                console.print(f"[yellow]No sandbox collection named '{args.name}' found.[/yellow]")
+            return
+
+        try:
+            name, created = service.create_sandbox(args.name)
+        except RuntimeError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            return
+
+        console.print(
+            Panel(
+                f"Created collection [bold]'{name}'[/bold] with {created} mock papers.\n\n"
+                f"Try it out:\n"
+                f"  [cyan]zotero-cli slr screen --source '{name}'[/cyan]\n"
+                f"  [cyan]zotero-cli report prisma[/cyan] (after screening a few items)\n\n"
+                f"When you're done: [cyan]zotero-cli system demo-sandbox --clean[/cyan]",
+                title="Sandbox Ready",
+                border_style="green",
+            )
+        )
 
     def _handle_jobs(self, args):
         from rich.table import Table

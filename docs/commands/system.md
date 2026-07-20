@@ -34,6 +34,18 @@ zotero-cli system check
 
 ---
 
+### `demo-sandbox`
+Creates a temporary collection populated with mock papers so you can try screening, reporting, and RAG commands without touching your real library. Requires a live (non-`--offline`) Zotero connection.
+
+**Usage:**
+```bash
+zotero-cli system demo-sandbox
+zotero-cli system demo-sandbox --name "My Sandbox"
+zotero-cli system demo-sandbox --clean
+```
+
+---
+
 ### `switch`
 Switch the active library context to a specific Zotero Group.
 This updates the local configuration to point to the selected group's library.

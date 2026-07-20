@@ -156,6 +156,71 @@ def test_system_check(system_cmd, capsys):
         assert "FAILED" in out
 
 
+def test_system_demo_sandbox_create(system_cmd, capsys):
+    with patch(
+        "zotero_cli.infra.factory.GatewayFactory.get_sandbox_service"
+    ) as mock_get_service:
+        mock_service = mock_get_service.return_value
+        mock_service.create_sandbox.return_value = ("Zotero-CLI Sandbox", 6)
+
+        args = argparse.Namespace(
+            verb="demo-sandbox", name="Zotero-CLI Sandbox", clean=False, user=False
+        )
+        system_cmd.execute(args)
+
+        out = capsys.readouterr().out
+        assert "Sandbox Ready" in out
+        assert "6 mock papers" in out
+        mock_service.create_sandbox.assert_called_once_with("Zotero-CLI Sandbox")
+
+
+def test_system_demo_sandbox_create_failure(system_cmd, capsys):
+    with patch(
+        "zotero_cli.infra.factory.GatewayFactory.get_sandbox_service"
+    ) as mock_get_service:
+        mock_service = mock_get_service.return_value
+        mock_service.create_sandbox.side_effect = RuntimeError("boom")
+
+        args = argparse.Namespace(
+            verb="demo-sandbox", name="Zotero-CLI Sandbox", clean=False, user=False
+        )
+        system_cmd.execute(args)
+
+        out = capsys.readouterr().out
+        assert "Error: boom" in out
+
+
+def test_system_demo_sandbox_clean(system_cmd, capsys):
+    with patch(
+        "zotero_cli.infra.factory.GatewayFactory.get_sandbox_service"
+    ) as mock_get_service:
+        mock_service = mock_get_service.return_value
+        mock_service.clean_sandbox.return_value = True
+
+        args = argparse.Namespace(
+            verb="demo-sandbox", name="Zotero-CLI Sandbox", clean=True, user=False
+        )
+        system_cmd.execute(args)
+
+        out = capsys.readouterr().out
+        assert "removed" in out
+        mock_service.clean_sandbox.assert_called_once_with("Zotero-CLI Sandbox")
+
+
+def test_system_demo_sandbox_clean_not_found(system_cmd, capsys):
+    with patch(
+        "zotero_cli.infra.factory.GatewayFactory.get_sandbox_service"
+    ) as mock_get_service:
+        mock_service = mock_get_service.return_value
+        mock_service.clean_sandbox.return_value = False
+
+        args = argparse.Namespace(verb="demo-sandbox", name="Missing", clean=True, user=False)
+        system_cmd.execute(args)
+
+        out = capsys.readouterr().out
+        assert "No sandbox collection" in out
+
+
 def test_system_groups(system_cmd, capsys):
     with (
         patch("zotero_cli.core.config.get_config") as mock_get_config,
