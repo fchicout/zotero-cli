@@ -13,6 +13,13 @@ STATUS_CONNECTED = "CONNECTED"
 STATUS_FAILED = "FAILED"
 STATUS_NOT_CONFIGURED = "NOT_CONFIGURED"
 
+_CHECK_ZOTERO = "Zotero API"
+_CHECK_SEMANTIC_SCHOLAR = "Semantic Scholar"
+_CHECK_UNPAYWALL = "Unpaywall"
+_CHECK_PUBMED = "PubMed/NCBI"
+_CHECK_LLM_PROVIDER = "LLM Provider"
+_CHECK_EMBEDDING_PROVIDER = "Embedding Provider"
+
 
 @dataclass
 class CheckResult:
@@ -54,35 +61,35 @@ class DiagnosticsService:
     def _check_zotero(self) -> CheckResult:
         try:
             if self.gateway.verify_credentials():
-                return CheckResult("Zotero API", STATUS_CONNECTED, "Credentials verified")
-            return CheckResult("Zotero API", STATUS_FAILED, "Credentials rejected")
+                return CheckResult(_CHECK_ZOTERO, STATUS_CONNECTED, "Credentials verified")
+            return CheckResult(_CHECK_ZOTERO, STATUS_FAILED, "Credentials rejected")
         except Exception as e:
-            return CheckResult("Zotero API", STATUS_FAILED, str(e))
+            return CheckResult(_CHECK_ZOTERO, STATUS_FAILED, str(e))
 
     def _check_semantic_scholar(self) -> CheckResult:
         if not self.config.semantic_scholar_api_key:
             return CheckResult(
-                "Semantic Scholar",
+                _CHECK_SEMANTIC_SCHOLAR,
                 STATUS_NOT_CONFIGURED,
                 "No API key set (works anonymously, rate-limited)",
             )
         return self._probe_metadata_client(
-            "Semantic Scholar", self.metadata_aggregator.semantic_scholar
+            _CHECK_SEMANTIC_SCHOLAR, self.metadata_aggregator.semantic_scholar
         )
 
     def _check_unpaywall(self) -> CheckResult:
         if not self.config.unpaywall_email:
-            return CheckResult("Unpaywall", STATUS_NOT_CONFIGURED, "No contact email set")
-        return self._probe_metadata_client("Unpaywall", self.metadata_aggregator.unpaywall)
+            return CheckResult(_CHECK_UNPAYWALL, STATUS_NOT_CONFIGURED, "No contact email set")
+        return self._probe_metadata_client(_CHECK_UNPAYWALL, self.metadata_aggregator.unpaywall)
 
     def _check_pubmed(self) -> CheckResult:
         if not self.config.ncbi_api_key:
             return CheckResult(
-                "PubMed/NCBI",
+                _CHECK_PUBMED,
                 STATUS_NOT_CONFIGURED,
                 "No NCBI key set (works anonymously, rate-limited)",
             )
-        return self._probe_metadata_client("PubMed/NCBI", self.metadata_aggregator.pubmed)
+        return self._probe_metadata_client(_CHECK_PUBMED, self.metadata_aggregator.pubmed)
 
     def _probe_metadata_client(self, name: str, client) -> CheckResult:
         # These clients never raise - they catch every error internally and
@@ -100,18 +107,20 @@ class DiagnosticsService:
 
     def _check_llm_provider(self) -> CheckResult:
         if self.llm_provider is None:
-            return CheckResult("LLM Provider", STATUS_NOT_CONFIGURED, "No provider configured")
+            return CheckResult(_CHECK_LLM_PROVIDER, STATUS_NOT_CONFIGURED, "No provider configured")
         try:
             self.llm_provider.generate("Reply with the single word: pong")
-            return CheckResult("LLM Provider", STATUS_CONNECTED, type(self.llm_provider).__name__)
+            return CheckResult(
+                _CHECK_LLM_PROVIDER, STATUS_CONNECTED, type(self.llm_provider).__name__
+            )
         except Exception as e:
-            return CheckResult("LLM Provider", STATUS_FAILED, str(e))
+            return CheckResult(_CHECK_LLM_PROVIDER, STATUS_FAILED, str(e))
 
     def _check_embedding_provider(self) -> CheckResult:
         try:
             self.embedding_provider.embed_text("ping")
             return CheckResult(
-                "Embedding Provider", STATUS_CONNECTED, type(self.embedding_provider).__name__
+                _CHECK_EMBEDDING_PROVIDER, STATUS_CONNECTED, type(self.embedding_provider).__name__
             )
         except Exception as e:
-            return CheckResult("Embedding Provider", STATUS_FAILED, str(e))
+            return CheckResult(_CHECK_EMBEDDING_PROVIDER, STATUS_FAILED, str(e))
