@@ -14,6 +14,7 @@ class ZoteroItem:
     title: Optional[str] = None
     abstract: Optional[str] = None
     doi: Optional[str] = None
+    isbn: Optional[str] = None
     arxiv_id: Optional[str] = None
     url: Optional[str] = None
     date: Optional[str] = None
@@ -31,6 +32,9 @@ class ZoteroItem:
 
         # Extract DOI
         doi = data.get("DOI")
+
+        # Extract ISBN
+        isbn = data.get("ISBN")
 
         # Extract arXiv ID
         arxiv_id = None
@@ -63,6 +67,7 @@ class ZoteroItem:
             title=data.get("title"),
             abstract=data.get("abstractNote"),
             doi=doi,
+            isbn=isbn,
             arxiv_id=arxiv_id,
             url=data.get("url"),
             date=data.get("date"),

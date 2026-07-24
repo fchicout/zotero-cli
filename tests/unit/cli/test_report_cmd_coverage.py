@@ -184,6 +184,35 @@ class TestReportCommandDuplicates:
 
         assert "No duplicates found" in capsys.readouterr().out
 
+    def test_duplicates_whole_library_scan_when_collections_omitted(self, mock_gateway, capsys):
+        from zotero_cli.cli.commands.report_cmd import ReportCommand
+
+        item_a = self._make_dupe_item("KEY_A")
+        item_b = self._make_dupe_item("KEY_B")
+        mock_gateway.get_all_items.return_value = iter([item_a, item_b])
+
+        mock_sdb_service = MagicMock()
+        mock_sdb_service.inspect_item_sdb.return_value = []
+
+        args = argparse.Namespace(report_type="duplicates", collections=None, csv=None, user=False)
+        cmd = ReportCommand()
+        with (
+            patch(
+                "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway",
+                return_value=mock_gateway,
+            ),
+            patch(
+                "zotero_cli.infra.factory.GatewayFactory.get_sdb_service",
+                return_value=mock_sdb_service,
+            ),
+        ):
+            cmd.execute(args)
+
+        mock_gateway.get_all_items.assert_called_once()
+        mock_gateway.get_items_in_collection.assert_not_called()
+        out = capsys.readouterr().out
+        assert "KEY_A" in out and "KEY_B" in out
+
 
 class TestReportCommandAttachments:
     def _make_attach_item(self, key, content_type="application/pdf", filesize=1024):
