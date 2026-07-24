@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.extraction_service import ExtractionService
     from zotero_cli.core.services.import_service import ImportService
     from zotero_cli.core.services.job_queue_service import JobQueueService
+    from zotero_cli.core.services.merge_service import MergeService
     from zotero_cli.core.services.pdf_finder_service import PDFFinderService
     from zotero_cli.core.services.purge_service import PurgeService
     from zotero_cli.core.services.restore_service import RestoreService
@@ -261,6 +262,24 @@ class ServiceFactory:
         from zotero_cli.core.services.purge_service import PurgeService
 
         return PurgeService(gateway)
+
+    @staticmethod
+    def get_merge_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "MergeService":
+        if not config:
+            from zotero_cli.core.config import get_config as main_get_config
+
+            config = main_get_config()
+
+        item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
+        note_repo = RepositoryFactory.get_note_repository(config, force_user, offline=offline)
+
+        from zotero_cli.core.services.merge_service import MergeService
+
+        return MergeService(item_repo, note_repo)
 
     @staticmethod
     def get_tag_service(

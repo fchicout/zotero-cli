@@ -514,6 +514,44 @@ Cognitive Safeguards
         speech_p.add_argument("--output", required=True, help="Output audio file path (.wav)")
         speech_p.add_argument("--voice", help="Override default voice")
 
+        # Merge
+        merge_p = sub.add_parser(
+            "merge",
+            help="Merge duplicate items into one survivor",
+            description="Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates. Use `report duplicates` first to find candidate keys.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Consolidating a paper imported twice from different search databases
+Problem: report duplicates found the same paper as items IEEE_KEY1 (master, more complete) and SPR_KEY2 (duplicate).
+Action:  zotero-cli item merge --master "IEEE_KEY1" --duplicates "SPR_KEY2" --execute
+Result:  SPR_KEY2's tags, collections, notes, and attachments move onto IEEE_KEY1; SPR_KEY2 is permanently deleted.
+
+Scenario: Previewing a merge before committing
+Problem: I want to see what a merge would do without touching my library yet.
+Action:  zotero-cli item merge --master "IEEE_KEY1" --duplicates "SPR_KEY2"
+Result:  A preview table is shown (tags/collections to add, notes/attachments to move); nothing is written since --execute was omitted.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Master and duplicates must share the same item type - Zotero Desktop enforces the same rule. Conflicting scalar fields (title, date, DOI, ISBN, URL, abstract) must be resolved interactively before --execute can proceed; there is no silent "first wins" default.
+• Safety Tips: This is PERMANENT - the Zotero Web API only supports hard delete, there is no undo the way Zotero Desktop's internal merge has. Run without --execute first to preview. Any citation-management document referencing a duplicate's key by that key will break.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_merge.md
+""",
+        )
+        merge_p.add_argument("--master", required=True, help="Zotero Key of the item to keep")
+        merge_p.add_argument(
+            "--duplicates",
+            required=True,
+            help="Comma-separated Zotero Keys of the duplicate items to merge into --master",
+        )
+        merge_p.add_argument(
+            "--execute", action="store_true", help="Actually perform the merge (default: preview only)"
+        )
+        merge_p.add_argument("--force", action="store_true", help="Skip the confirmation prompt")
+
     def execute(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
@@ -542,6 +580,89 @@ Cognitive Safeguards
             self._handle_add(gateway, args)
         elif args.verb == "speech":
             self._handle_speech(args)
+        elif args.verb == "merge":
+            self._handle_merge(args)
+
+    def _handle_merge(self, args: argparse.Namespace) -> None:
+        from rich.prompt import Confirm, Prompt
+
+        force_user = getattr(args, "user", False)
+        service = GatewayFactory.get_merge_service(force_user=force_user)
+
+        master_key = args.master
+        duplicate_keys = [k.strip() for k in args.duplicates.split(",") if k.strip()]
+
+        conflicts = service.detect_conflicts(master_key, duplicate_keys)
+        field_resolutions: dict = {}
+        if conflicts:
+            console.print(
+                f"[yellow]{len(conflicts)} conflicting field(s) need an explicit resolution:[/yellow]"
+            )
+            for conflict in conflicts:
+                console.print(f"  [bold]{conflict.field_name}[/bold]:")
+                for key, value in conflict.values.items():
+                    console.print(f"    {key}: {value!r}")
+                choices = [v for v in conflict.values.values() if v]
+                field_resolutions[conflict.field_name] = Prompt.ask(
+                    f"  Value to keep for '{conflict.field_name}'",
+                    choices=choices,
+                    default=choices[0],
+                )
+
+        # Always preview first, regardless of --execute: this both shows the
+        # user what will happen and surfaces unresolved-conflict errors
+        # before any write is attempted.
+        preview = service.merge(
+            master_key, duplicate_keys, field_resolutions=field_resolutions, dry_run=True
+        )
+
+        if not preview.success:
+            for error in preview.errors:
+                console.print(f"[red]Error:[/red] {error}")
+            return
+
+        table = Table(title="Merge Preview")
+        table.add_column("Field")
+        table.add_column("Value")
+        table.add_row("Master", preview.master_key)
+        table.add_row("Duplicates", ", ".join(duplicate_keys))
+        table.add_row("Tags to add", str(preview.tags_added))
+        table.add_row("Collections to add", str(preview.collections_added))
+        table.add_row("Notes to move", str(preview.notes_moved))
+        table.add_row("Attachments to move", str(preview.attachments_moved))
+        if preview.field_resolutions_applied:
+            table.add_row("Field resolutions", str(preview.field_resolutions_applied))
+        console.print(table)
+
+        if not args.execute:
+            console.print(
+                "[yellow]Preview only - nothing was written. This merge is PERMANENT and "
+                "cannot be undone once run with --execute (the Zotero Web API only supports "
+                "hard delete). Re-run with --execute to apply.[/yellow]"
+            )
+            return
+
+        if not args.force:
+            console.print(
+                f"[yellow]About to permanently delete {len(duplicate_keys)} item(s) after "
+                "moving their notes/attachments to the master. This cannot be undone.[/yellow]"
+            )
+            if not Confirm.ask("Proceed?"):
+                console.print("[yellow]Aborted - no writes were made.[/yellow]")
+                return
+
+        result = service.merge(
+            master_key, duplicate_keys, field_resolutions=field_resolutions, dry_run=False
+        )
+        for error in result.errors:
+            console.print(f"[red]Warning:[/red] {error}")
+        if result.success:
+            console.print(
+                f"[green]Merged {len(result.merged_keys)} duplicate(s) into "
+                f"'{result.master_key}'.[/green]"
+            )
+        else:
+            console.print("[red]Merge did not complete successfully - see warnings above.[/red]")
 
     def _handle_list(self, gateway: Any, args: argparse.Namespace) -> None:
         if getattr(args, "trash", False):
