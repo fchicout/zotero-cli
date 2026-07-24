@@ -10,10 +10,27 @@ from zotero_cli.core.zotero_item import ZoteroItem
 
 
 @dataclass
+class DuplicateOccurrence:
+    """One item's appearance within a DuplicateGroup."""
+
+    key: str
+    collection_id: str
+    title: Optional[str] = None
+
+
+@dataclass
 class DuplicateGroup:
-    # A string representing the identifier that caused the duplication (e.g., "DOI: 10.xxxx" or "Title: My Paper")
-    identifier_key: str
-    items: List[ZoteroItem] = field(default_factory=list)
+    """
+    A set of items detected as duplicates of one another.
+
+    `match_type` is one of "doi" / "isbn" / "arxiv" / "title" (exact tier) or
+    "fuzzy" / "preprint-published-pair" (fallback tier). `identifier` is the
+    normalized value that caused the match (a DOI, ISBN, ArXiv ID, or title).
+    """
+
+    match_type: str
+    identifier: str
+    occurrences: List[DuplicateOccurrence] = field(default_factory=list)
 
 
 class DuplicateFinder:
@@ -23,6 +40,12 @@ class DuplicateFinder:
     with a fuzzy year/author/title fallback tier for `compare_collections` that
     reaches (and, for preprint/published pairs, exceeds) Zotero Desktop's own
     duplicate-detection algorithm (https://www.zotero.org/support/duplicate_detection).
+
+    Directly importable/callable by external consumers (e.g. Corbenic-SLR): no
+    stdout side effects and no bare-dict return shapes. Non-fatal issues found
+    while scanning (e.g. a named collection that doesn't exist) are collected
+    in `self.warnings` after each call instead of being printed, so callers can
+    decide whether/how to surface them.
     """
 
     # Same-item-type is required for a real merge in Zotero Desktop, but a preprint
@@ -43,29 +66,33 @@ class DuplicateFinder:
         Initializes the DuplicateFinder with a Zotero gateway.
         """
         self.gateway = gateway
+        self.warnings: List[str] = []
 
-    def find_duplicates(self, collection_ids: List[str]) -> List[dict]:
+    def find_duplicates(self, collection_ids: List[str]) -> List[DuplicateGroup]:
         """
-        Analyzes the specified collections to find duplicate Zotero items.
-        Returns a list of dictionaries detailing the duplicate items found.
+        Analyzes the specified collections to find duplicate Zotero items
+        (exact tier only: DOI / ISBN / ArXiv / normalized title).
         """
-        all_items_by_identifier: Dict[Tuple[str, str], List[ZoteroItem]] = defaultdict(list)
+        self.warnings = []
+        items_with_scope = self._collect_from_collections(collection_ids)
 
-        for col_id in collection_ids:
-            for item in self._fetch_collection_items(col_id):
-                identifier = self._identifier_for(item)
-                if identifier:
-                    all_items_by_identifier[identifier].append(item)
+        all_items_by_identifier: Dict[Tuple[str, str], List[Tuple[ZoteroItem, str]]] = defaultdict(
+            list
+        )
+        for item, scope in items_with_scope:
+            identifier = self._identifier_for(item)
+            if identifier:
+                all_items_by_identifier[identifier].append((item, scope))
 
-        duplicates = []
-        for (id_type, identifier_value), items in all_items_by_identifier.items():
-            if len(items) > 1:
-                duplicates.append(
-                    {"title": items[0].title, "doi": items[0].doi, "keys": [i.key for i in items]}
-                )
-        return duplicates
+        return [
+            self._build_group(id_type, identifier_value, occurrences)
+            for (id_type, identifier_value), occurrences in all_items_by_identifier.items()
+            if len(occurrences) > 1
+        ]
 
-    def compare_collections(self, collection_ids: Optional[List[str]] = None) -> List[dict]:
+    def compare_collections(
+        self, collection_ids: Optional[List[str]] = None
+    ) -> List[DuplicateGroup]:
         """
         Like `find_duplicates`, but preserves which collection each duplicate
         occurrence came from, for read-only cross-collection duplicate reports
@@ -82,6 +109,7 @@ class DuplicateFinder:
         approach Desktop uses for items whose primary fields don't cleanly
         resolve on their own.
         """
+        self.warnings = []
         items_with_scope = self._collect_items(collection_ids)
 
         all_items_by_identifier: Dict[Tuple[str, str], List[Tuple[ZoteroItem, str]]] = defaultdict(
@@ -96,21 +124,24 @@ class DuplicateFinder:
         singletons: List[Tuple[ZoteroItem, str]] = []
         for (id_type, identifier_value), occurrences in all_items_by_identifier.items():
             if len(occurrences) > 1:
-                duplicates.append(
-                    {
-                        "match_type": id_type,
-                        "identifier": identifier_value,
-                        "occurrences": [
-                            {"key": item.key, "collection_id": scope, "title": item.title}
-                            for item, scope in occurrences
-                        ],
-                    }
-                )
+                duplicates.append(self._build_group(id_type, identifier_value, occurrences))
             else:
                 singletons.extend(occurrences)
 
         duplicates.extend(self._fuzzy_fallback_groups(singletons))
         return duplicates
+
+    def _build_group(
+        self, match_type: str, identifier: str, occurrences: List[Tuple[ZoteroItem, str]]
+    ) -> DuplicateGroup:
+        return DuplicateGroup(
+            match_type=match_type,
+            identifier=identifier,
+            occurrences=[
+                DuplicateOccurrence(key=item.key, collection_id=scope, title=item.title)
+                for item, scope in occurrences
+            ],
+        )
 
     def _collect_items(
         self, collection_ids: Optional[List[str]]
@@ -120,7 +151,11 @@ class DuplicateFinder:
                 (item, item.collections[0] if item.collections else "UNFILED")
                 for item in self.gateway.get_all_items()
             ]
+        return self._collect_from_collections(collection_ids)
 
+    def _collect_from_collections(
+        self, collection_ids: List[str]
+    ) -> List[Tuple[ZoteroItem, str]]:
         items_with_scope: List[Tuple[ZoteroItem, str]] = []
         for col_id in collection_ids:
             for item in self._fetch_collection_items(col_id):
@@ -131,7 +166,7 @@ class DuplicateFinder:
         # col_id is already expected to be a Zotero Key/ID
         items = list(self.gateway.get_items_in_collection(col_id))
         if not items and not self.gateway.get_collection(col_id):
-            print(f"Warning: Collection '{col_id}' not found or empty. Skipping.")
+            self.warnings.append(f"Collection '{col_id}' not found or empty. Skipping.")
             return []
         return items
 
@@ -151,7 +186,9 @@ class DuplicateFinder:
             return ("title", normalized_title)
         return None
 
-    def _fuzzy_fallback_groups(self, singletons: List[Tuple[ZoteroItem, str]]) -> List[dict]:
+    def _fuzzy_fallback_groups(
+        self, singletons: List[Tuple[ZoteroItem, str]]
+    ) -> List[DuplicateGroup]:
         """
         Pairwise fallback over items that didn't exactly match anything else:
         fuzzy title similarity + year-within-1 + shared author signature, all
@@ -220,18 +257,18 @@ class DuplicateFinder:
             label = component_label.get(root, "fuzzy")
             representative_title = norm_titles[idxs[0]] or ""
             results.append(
-                {
-                    "match_type": label,
-                    "identifier": representative_title,
-                    "occurrences": [
-                        {
-                            "key": singletons[idx][0].key,
-                            "collection_id": singletons[idx][1],
-                            "title": singletons[idx][0].title,
-                        }
+                DuplicateGroup(
+                    match_type=label,
+                    identifier=representative_title,
+                    occurrences=[
+                        DuplicateOccurrence(
+                            key=singletons[idx][0].key,
+                            collection_id=singletons[idx][1],
+                            title=singletons[idx][0].title,
+                        )
                         for idx in idxs
                     ],
-                }
+                )
             )
         return results
 

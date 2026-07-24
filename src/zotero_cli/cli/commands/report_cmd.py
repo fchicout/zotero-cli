@@ -10,7 +10,7 @@ from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.services.duplicate_service import DuplicateFinder
+from zotero_cli.core.services.duplicate_service import DuplicateFinder, DuplicateGroup
 from zotero_cli.core.services.sdb.sdb_service import SDBService
 from zotero_cli.infra.factory import GatewayFactory
 
@@ -149,6 +149,9 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
                 col_names_by_id[cid] = c
 
         dupes = service.compare_collections(col_ids)
+        for warning in service.warnings:
+            console.print(f"[yellow]Warning:[/yellow] {warning}")
+
         if not dupes:
             console.print("[green]No duplicates found.[/green]")
             return
@@ -179,13 +182,13 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
         console.print(table)
 
     def _build_duplicate_rows(
-        self, dupes: List[dict], col_names_by_id: Dict[str, str], sdb_service: SDBService
+        self, dupes: List[DuplicateGroup], col_names_by_id: Dict[str, str], sdb_service: SDBService
     ) -> List[dict]:
         rows = []
         for group in dupes:
             decisions = set()
-            for occ in group["occurrences"]:
-                entries = sdb_service.inspect_item_sdb(occ["key"])
+            for occ in group.occurrences:
+                entries = sdb_service.inspect_item_sdb(occ.key)
                 decisions |= {e.get("decision") for e in entries if e.get("decision")}
 
             if not decisions:
@@ -195,14 +198,14 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             else:
                 sdb_status = "CONFLICTING"
 
-            for occ in group["occurrences"]:
+            for occ in group.occurrences:
                 rows.append(
                     {
-                        "match_type": group["match_type"],
-                        "identifier": group["identifier"],
-                        "key": occ["key"],
-                        "title": occ["title"] or "No Title",
-                        "collection": col_names_by_id.get(occ["collection_id"], occ["collection_id"]),
+                        "match_type": group.match_type,
+                        "identifier": group.identifier,
+                        "key": occ.key,
+                        "title": occ.title or "No Title",
+                        "collection": col_names_by_id.get(occ.collection_id, occ.collection_id),
                         "sdb_status": sdb_status,
                     }
                 )

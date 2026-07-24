@@ -46,6 +46,10 @@ def create_zotero_item(
     return ZoteroItem.from_raw_zotero_item(raw_item)
 
 
+def occurrence_keys(group):
+    return {occ.key for occ in group.occurrences}
+
+
 def test_find_duplicates_no_duplicates(finder, mock_gateway):
     item1 = create_zotero_item("KEY1", "Unique Title 1", "10.1/1")
     item2 = create_zotero_item("KEY2", "Unique Title 2", "10.1/2")
@@ -66,8 +70,9 @@ def test_find_duplicates_by_doi(finder, mock_gateway):
 
     duplicates = finder.find_duplicates(["ID_A", "ID_B"])
     assert len(duplicates) == 1
-    assert duplicates[0]["doi"] == "10.1/DUPLICATE"
-    assert set(duplicates[0]["keys"]) == {"KEY1", "KEY2"}
+    assert duplicates[0].match_type == "doi"
+    assert duplicates[0].identifier == "10.1/duplicate"
+    assert occurrence_keys(duplicates[0]) == {"KEY1", "KEY2"}
 
 
 def test_find_duplicates_by_title(finder, mock_gateway):
@@ -80,8 +85,9 @@ def test_find_duplicates_by_title(finder, mock_gateway):
 
     duplicates = finder.find_duplicates(["ID_A", "ID_B"])
     assert len(duplicates) == 1
-    assert duplicates[0]["title"] == "Duplicate Title"
-    assert set(duplicates[0]["keys"]) == {"KEY1", "KEY2"}
+    assert duplicates[0].match_type == "title"
+    assert duplicates[0].identifier == "duplicate title"
+    assert occurrence_keys(duplicates[0]) == {"KEY1", "KEY2"}
 
 
 def test_find_duplicates_mixed_identifiers(finder, mock_gateway):
@@ -100,20 +106,24 @@ def test_find_duplicates_mixed_identifiers(finder, mock_gateway):
     duplicates = finder.find_duplicates(["ID_A", "ID_B"])
     assert len(duplicates) == 2
 
-    doi_group = next(g for g in duplicates if g["doi"] == "10.1/MIXED")
-    assert set(doi_group["keys"]) == {"KEY_DOI_1", "KEY_DOI_2"}
+    doi_group = next(g for g in duplicates if g.match_type == "doi")
+    assert occurrence_keys(doi_group) == {"KEY_DOI_1", "KEY_DOI_2"}
 
-    title_group = next(g for g in duplicates if g["title"] == "Common Title")
-    assert set(title_group["keys"]) == {"KEY_TITLE_1", "KEY_TITLE_2"}
+    title_group = next(g for g in duplicates if g.match_type == "title")
+    assert occurrence_keys(title_group) == {"KEY_TITLE_1", "KEY_TITLE_2"}
 
 
 def test_find_duplicates_with_missing_collection(finder, mock_gateway):
     item1 = create_zotero_item("KEY1", "Title 1", "10.1/1")
+    # get_collection is only actually called for "MISSING": for "A", `not items`
+    # is already False (items non-empty), so the `and` short-circuits before
+    # get_collection is ever invoked for it.
     mock_gateway.get_items_in_collection.side_effect = [iter([item1]), iter([])]
-    mock_gateway.get_collection.side_effect = [{"key": "A"}, None]
+    mock_gateway.get_collection.side_effect = [None]
 
     duplicates = finder.find_duplicates(["A", "MISSING"])
     assert len(duplicates) == 0
+    assert finder.warnings == ["Collection 'MISSING' not found or empty. Skipping."]
 
 
 def test_compare_collections_no_duplicates(finder, mock_gateway):
@@ -136,12 +146,12 @@ def test_compare_collections_tracks_provenance(finder, mock_gateway):
     duplicates = finder.compare_collections(["ID_A", "ID_B"])
     assert len(duplicates) == 1
     group = duplicates[0]
-    assert group["match_type"] == "doi"
-    assert group["identifier"] == "10.1/duplicate"
+    assert group.match_type == "doi"
+    assert group.identifier == "10.1/duplicate"
 
-    occurrences_by_key = {o["key"]: o for o in group["occurrences"]}
-    assert occurrences_by_key["KEY1"]["collection_id"] == "ID_A"
-    assert occurrences_by_key["KEY2"]["collection_id"] == "ID_B"
+    occurrences_by_key = {o.key: o for o in group.occurrences}
+    assert occurrences_by_key["KEY1"].collection_id == "ID_A"
+    assert occurrences_by_key["KEY2"].collection_id == "ID_B"
 
 
 def test_compare_collections_by_title_and_arxiv(finder, mock_gateway):
@@ -153,8 +163,8 @@ def test_compare_collections_by_title_and_arxiv(finder, mock_gateway):
 
     duplicates = finder.compare_collections(["ID_A", "ID_B"])
     assert len(duplicates) == 1
-    assert duplicates[0]["match_type"] == "title"
-    assert duplicates[0]["identifier"] == "common title"
+    assert duplicates[0].match_type == "title"
+    assert duplicates[0].identifier == "common title"
 
 
 def test_compare_collections_by_isbn(finder, mock_gateway):
@@ -166,8 +176,8 @@ def test_compare_collections_by_isbn(finder, mock_gateway):
 
     duplicates = finder.compare_collections(["ID_A", "ID_B"])
     assert len(duplicates) == 1
-    assert duplicates[0]["match_type"] == "isbn"
-    assert duplicates[0]["identifier"] == "9783161484100"
+    assert duplicates[0].match_type == "isbn"
+    assert duplicates[0].identifier == "9783161484100"
 
 
 def test_compare_collections_whole_library_scan(finder, mock_gateway):
@@ -180,7 +190,7 @@ def test_compare_collections_whole_library_scan(finder, mock_gateway):
     mock_gateway.get_all_items.assert_called_once()
     mock_gateway.get_items_in_collection.assert_not_called()
     assert len(duplicates) == 1
-    assert set(o["key"] for o in duplicates[0]["occurrences"]) == {"KEY1", "KEY2"}
+    assert occurrence_keys(duplicates[0]) == {"KEY1", "KEY2"}
 
 
 def test_compare_collections_fuzzy_fallback_matches_near_duplicate_titles(finder, mock_gateway):
@@ -202,8 +212,8 @@ def test_compare_collections_fuzzy_fallback_matches_near_duplicate_titles(finder
 
     duplicates = finder.compare_collections(["ID_A", "ID_B"])
     assert len(duplicates) == 1
-    assert duplicates[0]["match_type"] == "fuzzy"
-    assert set(o["key"] for o in duplicates[0]["occurrences"]) == {"KEY1", "KEY2"}
+    assert duplicates[0].match_type == "fuzzy"
+    assert occurrence_keys(duplicates[0]) == {"KEY1", "KEY2"}
 
 
 def test_compare_collections_fuzzy_fallback_labels_preprint_published_pair(finder, mock_gateway):
@@ -227,7 +237,7 @@ def test_compare_collections_fuzzy_fallback_labels_preprint_published_pair(finde
 
     duplicates = finder.compare_collections(["ID_A", "ID_B"])
     assert len(duplicates) == 1
-    assert duplicates[0]["match_type"] == "preprint-published-pair"
+    assert duplicates[0].match_type == "preprint-published-pair"
 
 
 def test_compare_collections_fuzzy_fallback_ignores_unrelated_item_types(finder, mock_gateway):
@@ -293,6 +303,20 @@ def test_compare_collections_fuzzy_fallback_rejects_no_shared_author(finder, moc
 
     duplicates = finder.compare_collections(["ID_A", "ID_B"])
     assert len(duplicates) == 0
+
+
+def test_compare_collections_resets_warnings_between_calls(finder, mock_gateway):
+    mock_gateway.get_items_in_collection.side_effect = [iter([]), iter([])]
+    mock_gateway.get_collection.side_effect = [None, None]
+    finder.compare_collections(["MISSING_A", "MISSING_B"])
+    assert len(finder.warnings) == 2
+
+    mock_gateway.get_items_in_collection.side_effect = [
+        iter([create_zotero_item("KEY1", "Title", "10.1/1")])
+    ]
+    mock_gateway.get_collection.side_effect = [{"key": "ID_A"}]
+    finder.compare_collections(["ID_A"])
+    assert finder.warnings == []
 
 
 @pytest.mark.parametrize(
