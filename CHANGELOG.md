@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### ✨ Features & Improvements
+- **Duplicate Detection Parity + Improvements (Issue #152):** `report duplicates` now matches by ISBN in addition to DOI/ArXiv/title, and can scan the whole library instead of specified collections (`--collections` is now optional). Items that don't exactly match anything else are additionally compared via a fuzzy fallback tier (title similarity + publication year within 1 year + at least one shared author last-name/first-initial), the same corroborating-signal approach Zotero Desktop uses — including a distinct `preprint-published-pair` label for a preprint matched against its later published version, a common SLR case Desktop's own algorithm doesn't call out explicitly.
+
 ### 🛡️ Quality & Infrastructure
 - **README & Help-Text Accuracy Sweep:** Refreshed `README.md` to cover features that existed but weren't documented (BDTD import, `system check`, `system demo-sandbox`, Docker/devcontainer packaging, citation snowballing, RAG); fixed several dead command references left over from prior refactors (`slr validate` → `report audit`, `slr graph`/`slr shift`/`report status`/`report prisma` → their real `slr report <verb>` forms). Fixed two real bugs found in the process: `item list --help`'s description/example referenced SDB filtering flags (`--included`, `--criteria`, `--persona`) that were removed from that command in an earlier refactor (that filtering now lives in `slr list`), and `tag purge`'s runtime deprecation warning pointed to `collection purge --tags`, a command that was never implemented. Also fixed `scripts/generate_badges.py` silently dropping the CI status badges on every regeneration.
 

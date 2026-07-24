@@ -2,7 +2,7 @@ import argparse
 import csv
 import sys
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from rich.console import Console
 from rich.panel import Panel
@@ -28,8 +28,8 @@ class ReportCommand(BaseCommand):
         # report duplicates
         dupe_p = sub.add_parser(
             "duplicates",
-            help="Find duplicate items across collections",
-            description="Identifies duplicate items that exist across multiple specified collections, facilitating library cleanup.",
+            help="Find duplicate items across collections or the whole library",
+            description="Identifies duplicate items across specified collections, or the entire library if --collections is omitted, facilitating library cleanup. Matches by DOI, ISBN, ArXiv ID, or normalized title (exact tier), plus a fuzzy year/author/title fallback tier for near-duplicates that don't exactly match.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Scenario-Based Examples
@@ -40,13 +40,19 @@ Action:  zotero-cli report duplicates --collections "IEEE_01,SPR_01"
 Result:  The CLI displays a table showing papers found in both collections, which collection each
          copy came from, and whether their SDB screening decisions agree.
 
+Scenario: Scanning the whole library for duplicates, not just specific collections
+Problem: I want Desktop-style duplicate detection across everything in my library, not just named collections.
+Action:  zotero-cli report duplicates
+Result:  Every item in the library is scanned; duplicate groups are reported the same way.
+
 Scenario: Exporting a duplicate report for methodological audit records
 Problem: I need a CSV record of every duplicate found before pruning, for my SLR audit trail.
 Action:  zotero-cli report duplicates --collections "IEEE_01,SPR_01" --csv duplicates.csv
 """,
         )
         dupe_p.add_argument(
-            "--collections", required=True, help="Comma-separated list of collection names or keys"
+            "--collections",
+            help="Comma-separated list of collection names or keys. Omit to scan the whole library.",
         )
         dupe_p.add_argument("--csv", help="Optional path to export the duplicate report as CSV")
 
@@ -131,13 +137,16 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
         self, gateway: ZoteroGateway, args: argparse.Namespace, force_user: bool = False
     ) -> None:
         service = DuplicateFinder(gateway)
-        col_ids = []
-        col_names_by_id: Dict[str, str] = {}
-        for c in args.collections.split(","):
-            c = c.strip()
-            cid = gateway.get_collection_id_by_name(c) or c
-            col_ids.append(cid)
-            col_names_by_id[cid] = c
+        col_names_by_id: Dict[str, str] = {"UNFILED": "Unfiled"}
+
+        col_ids: Optional[List[str]] = None
+        if args.collections:
+            col_ids = []
+            for c in args.collections.split(","):
+                c = c.strip()
+                cid = gateway.get_collection_id_by_name(c) or c
+                col_ids.append(cid)
+                col_names_by_id[cid] = c
 
         dupes = service.compare_collections(col_ids)
         if not dupes:
