@@ -3717,7 +3717,7 @@ wheels = [
 
 [[package]]
 name = "zotero-cli"
-version = "2.8.1"
+version = "2.8.2"
 source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
