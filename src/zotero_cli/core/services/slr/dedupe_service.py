@@ -210,21 +210,20 @@ class SLRDedupeService:
                 ]
 
         result = self.merge_service.execute_plan(plan, dry_run=dry_run)
-        if dry_run or not result.success:
-            return result
 
-        for entry in plan.entries:
-            decision = entry.decision
-            if decision is None or not decision.merge_keys:
-                continue
-            provenance = provenance_by_group.get(entry.group_id, [])
-            for dup_key in decision.merge_keys:
-                self.orchestrator.record_duplicate_resolution(
-                    item_key=decision.master_key,
-                    duplicate_key=dup_key,
-                    reason=decision.reason
-                    or f"SLR dedupe reconciliation ({entry.match_type}:{entry.identifier})",
-                    provenance=provenance,
-                )
+        if not dry_run and result.success:
+            for entry in plan.entries:
+                decision = entry.decision
+                if decision is None or not decision.merge_keys:
+                    continue
+                provenance = provenance_by_group.get(entry.group_id, [])
+                for dup_key in decision.merge_keys:
+                    self.orchestrator.record_duplicate_resolution(
+                        item_key=decision.master_key,
+                        duplicate_key=dup_key,
+                        reason=decision.reason
+                        or f"SLR dedupe reconciliation ({entry.match_type}:{entry.identifier})",
+                        provenance=provenance,
+                    )
 
         return result
