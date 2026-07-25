@@ -3,7 +3,8 @@ from unittest.mock import Mock
 import pytest
 
 from zotero_cli.core.interfaces import ItemRepository, NoteRepository
-from zotero_cli.core.services.merge_service import MergeService
+from zotero_cli.core.services.duplicate_service import DuplicateGroup, DuplicateOccurrence
+from zotero_cli.core.services.merge_service import MergeDecision, MergeService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -225,3 +226,138 @@ def test_merge_continues_and_reports_partial_failures(service, item_repo, note_r
     assert result.success is False
     assert "Failed to delete duplicate item 'D1' after merge." in result.errors
     assert result.merged_keys == []
+
+
+# --- build_plan / execute_plan ---------------------------------------------
+
+
+def make_group(match_type="doi", identifier="10.1/x", keys=("M1", "D1")):
+    return DuplicateGroup(
+        match_type=match_type,
+        identifier=identifier,
+        occurrences=[DuplicateOccurrence(key=k, collection_id="C1", title="T") for k in keys],
+    )
+
+
+def test_build_plan_produces_undecided_entries_with_deterministic_group_id():
+    plan = MergeService.build_plan([make_group(match_type="doi", identifier="10.1/x")])
+    assert len(plan.entries) == 1
+    entry = plan.entries[0]
+    assert entry.group_id == "doi:10.1/x"
+    assert entry.decision is None
+    assert [o.key for o in entry.occurrences] == ["M1", "D1"]
+
+
+def test_execute_plan_refuses_all_writes_if_any_entry_undecided(service, item_repo):
+    plan = MergeService.build_plan([make_group(), make_group(identifier="10.1/y", keys=("M2", "D2"))])
+    plan.entries[0].decision = MergeDecision(master_key="M1", merge_keys=["D1"], reason="dup")
+    # entries[1] left undecided
+
+    result = service.execute_plan(plan, dry_run=False)
+
+    assert result.success is False
+    assert result.group_results == []
+    assert any("has no decision" in e for e in result.errors)
+    item_repo.update_item.assert_not_called()
+    item_repo.delete_item.assert_not_called()
+
+
+def test_execute_plan_rejects_decision_missing_reason(service):
+    plan = MergeService.build_plan([make_group()])
+    plan.entries[0].decision = MergeDecision(master_key="M1", merge_keys=["D1"], reason="")
+
+    result = service.execute_plan(plan, dry_run=False)
+    assert result.success is False
+    assert any("no reason" in e for e in result.errors)
+
+
+def test_execute_plan_rejects_incomplete_role_coverage(service):
+    plan = MergeService.build_plan([make_group(keys=("M1", "D1", "D2"))])
+    # D2 has no role at all
+    plan.entries[0].decision = MergeDecision(master_key="M1", merge_keys=["D1"], reason="dup")
+
+    result = service.execute_plan(plan, dry_run=False)
+    assert result.success is False
+    assert any("D2" in e and "no role" in e for e in result.errors)
+
+
+def test_execute_plan_rejects_master_key_not_in_group():
+    plan = MergeService.build_plan([make_group()])
+    plan.entries[0].decision = MergeDecision(master_key="NOT_IN_GROUP", merge_keys=["D1"], reason="x")
+
+    result = MergeService(Mock(spec=ItemRepository), Mock(spec=NoteRepository)).execute_plan(
+        plan, dry_run=False
+    )
+    assert result.success is False
+    assert any("not one of this group" in e for e in result.errors)
+
+
+def test_execute_plan_skips_group_with_no_merge_keys(service, item_repo):
+    plan = MergeService.build_plan([make_group(keys=("M1", "D1"))])
+    plan.entries[0].decision = MergeDecision(master_key="M1", keep_keys=["D1"], reason="not a dup")
+
+    result = service.execute_plan(plan, dry_run=False)
+
+    assert result.success is True
+    assert result.group_results == []
+    item_repo.get_item.assert_not_called()
+
+
+def test_execute_plan_dry_run_previews_without_writing(service, item_repo):
+    master = make_item("M1", tags=["a"])
+    item_repo.get_item.side_effect = lambda k: {"M1": master}.get(k, make_item(k))
+    item_repo.get_item_children.return_value = []
+
+    plan = MergeService.build_plan([make_group()])
+    plan.entries[0].decision = MergeDecision(master_key="M1", merge_keys=["D1"], reason="dup")
+
+    result = service.execute_plan(plan, dry_run=True)
+
+    assert result.success is True
+    assert result.dry_run is True
+    assert len(result.group_results) == 1
+    assert result.group_results[0].dry_run is True
+    item_repo.update_item.assert_not_called()
+    item_repo.delete_item.assert_not_called()
+
+
+def test_execute_plan_executes_and_auto_resolves_conflicts_to_master_value(
+    service, item_repo, note_repo
+):
+    master = make_item("M1", title="Master Title", version=1)
+    dup = make_item("D1", title="Duplicate Title", version=3)
+    item_repo.get_item.side_effect = lambda k: {"M1": master, "D1": dup}[k]
+    item_repo.get_item_children.return_value = []
+    item_repo.update_item.return_value = True
+    item_repo.delete_item.return_value = True
+
+    plan = MergeService.build_plan([make_group()])
+    plan.entries[0].decision = MergeDecision(master_key="M1", merge_keys=["D1"], reason="dup")
+
+    result = service.execute_plan(plan, dry_run=False)
+
+    assert result.success is True
+    assert len(result.group_results) == 1
+    assert result.group_results[0].success is True
+    # Master's own title was used to auto-resolve the title conflict - no
+    # interactive prompt possible in a batch execution path.
+    update_payload = item_repo.update_item.call_args[0][2]
+    assert update_payload["title"] == "Master Title"
+    item_repo.delete_item.assert_called_once_with("D1", 3)
+
+
+def test_execute_plan_reports_partial_group_failure(service, item_repo):
+    master = make_item("M1")
+    dup = make_item("D1")
+    item_repo.get_item.side_effect = lambda k: {"M1": master, "D1": dup}[k]
+    item_repo.get_item_children.return_value = []
+    item_repo.update_item.return_value = False
+
+    plan = MergeService.build_plan([make_group()])
+    plan.entries[0].decision = MergeDecision(master_key="M1", merge_keys=["D1"], reason="dup")
+
+    result = service.execute_plan(plan, dry_run=False)
+
+    assert result.success is False
+    assert len(result.group_results) == 1
+    assert result.group_results[0].success is False

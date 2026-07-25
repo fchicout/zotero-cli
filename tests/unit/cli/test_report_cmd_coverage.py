@@ -213,6 +213,81 @@ class TestReportCommandDuplicates:
         out = capsys.readouterr().out
         assert "KEY_A" in out and "KEY_B" in out
 
+    def test_duplicates_export_plan_csv(self, mock_gateway, capsys, tmp_path):
+        from zotero_cli.cli.commands.report_cmd import ReportCommand
+
+        item_a = self._make_dupe_item("KEY_A")
+        item_b = self._make_dupe_item("KEY_B")
+        mock_gateway.get_collection_id_by_name.side_effect = ["COL_A", "COL_B"]
+        mock_gateway.get_items_in_collection.side_effect = [iter([item_a]), iter([item_b])]
+
+        mock_sdb_service = MagicMock()
+        mock_sdb_service.inspect_item_sdb.return_value = []
+
+        out_file = str(tmp_path / "plan.csv")
+        args = argparse.Namespace(
+            report_type="duplicates",
+            collections="Source,Target",
+            csv=None,
+            export_plan=out_file,
+            user=False,
+        )
+        cmd = ReportCommand()
+        with (
+            patch(
+                "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway",
+                return_value=mock_gateway,
+            ),
+            patch(
+                "zotero_cli.infra.factory.GatewayFactory.get_sdb_service",
+                return_value=mock_sdb_service,
+            ),
+        ):
+            cmd.execute(args)
+
+        content = Path(out_file).read_text()
+        assert "group_id" in content and "role" in content and "reason" in content
+        assert "KEY_A" in content and "KEY_B" in content
+        assert "Exported a merge plan" in capsys.readouterr().out
+
+    def test_duplicates_export_plan_json_includes_sdb_history(self, mock_gateway, capsys, tmp_path):
+        from zotero_cli.cli.commands.report_cmd import ReportCommand
+
+        item_a = self._make_dupe_item("KEY_A")
+        item_b = self._make_dupe_item("KEY_B")
+        mock_gateway.get_collection_id_by_name.side_effect = ["COL_A", "COL_B"]
+        mock_gateway.get_items_in_collection.side_effect = [iter([item_a]), iter([item_b])]
+
+        mock_sdb_service = MagicMock()
+        mock_sdb_service.inspect_item_sdb.return_value = [
+            {"decision": "INCLUDE", "persona": "reviewer-a"}
+        ]
+
+        out_file = str(tmp_path / "plan.json")
+        args = argparse.Namespace(
+            report_type="duplicates",
+            collections="Source,Target",
+            csv=None,
+            export_plan=out_file,
+            user=False,
+        )
+        cmd = ReportCommand()
+        with (
+            patch(
+                "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway",
+                return_value=mock_gateway,
+            ),
+            patch(
+                "zotero_cli.infra.factory.GatewayFactory.get_sdb_service",
+                return_value=mock_sdb_service,
+            ),
+        ):
+            cmd.execute(args)
+
+        content = Path(out_file).read_text()
+        assert "reviewer-a" in content
+        assert '"version"' in content
+
 
 class TestReportCommandAttachments:
     def _make_attach_item(self, key, content_type="application/pdf", filesize=1024):

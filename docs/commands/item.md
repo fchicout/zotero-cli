@@ -171,21 +171,25 @@ zotero-cli item transfer "ITEMKEY" --target-group "123456" [--delete-source]
 ---
 
 ### `merge`
-Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates. Use `report duplicates` first to find candidate keys. This is **permanent** — the Zotero Web API only supports hard delete, there is no undo the way Zotero Desktop's internal merge has.
+Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates. Use `report duplicates` first to find candidate keys, or `report duplicates --export-plan` for a bulk-editable plan file. This is **permanent** — the Zotero Web API only supports hard delete, there is no undo the way Zotero Desktop's internal merge has.
 
 **Usage:**
 ```bash
 zotero-cli item merge --master "MASTERKEY" --duplicates "DUPKEY1,DUPKEY2"
 zotero-cli item merge --master "MASTERKEY" --duplicates "DUPKEY1" --execute
+zotero-cli item merge --from-plan duplicates_plan.csv --execute
 ```
 
 **Parameters:**
-*   `--master`: (Required) Zotero Key of the item to keep.
-*   `--duplicates`: (Required) Comma-separated Zotero Keys of the duplicate items to merge into `--master`.
+*   `--master`: Zotero Key of the item to keep. Required unless `--from-plan` is given.
+*   `--duplicates`: Comma-separated Zotero Keys of the duplicate items to merge into `--master`. Required unless `--from-plan` is given.
+*   `--from-plan`: Path to a merge plan file (`.csv` or `.json`, from `report duplicates --export-plan`) for bulk execution of many groups at once, instead of a single `--master`/`--duplicates` group.
 *   `--execute`: Actually perform the merge. Without it, only a preview is shown and nothing is written.
 *   `--force`: Skip the interactive confirmation prompt (still requires `--execute`).
 
-If master and duplicates disagree on a scalar field (title, date, DOI, ISBN, URL, abstract), you're prompted to pick which value to keep for each — there is no silent "first wins" default. Master and duplicates must share the same item type, matching the rule Zotero Desktop enforces for its own merge.
+If master and duplicates disagree on a scalar field (title, date, DOI, ISBN, URL, abstract), the single-group form prompts you to pick which value to keep for each — there is no silent "first wins" default. Master and duplicates must share the same item type, matching the rule Zotero Desktop enforces for its own merge.
+
+With `--from-plan`, every group in the file must already have a filled-in decision (`role`/`reason` columns in CSV, or a `decision` object in JSON) — if even one group is still unresolved, **nothing in the whole plan is written**, not just that group. Bulk merges default any conflicting scalar field to the chosen master's own current value rather than prompting (there's no interactive path in a batch run) — the human already made the real decision by choosing which occurrence is master.
 
 ---
 

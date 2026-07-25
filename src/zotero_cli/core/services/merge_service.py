@@ -2,7 +2,10 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from zotero_cli.core.interfaces import ItemRepository, NoteRepository
+from zotero_cli.core.services.duplicate_service import DuplicateGroup, DuplicateOccurrence
 from zotero_cli.core.zotero_item import ZoteroItem
+
+MERGE_PLAN_SCHEMA_VERSION = "1.0"
 
 
 @dataclass
@@ -32,6 +35,68 @@ class MergeResult:
     collections_added: int = 0
     field_resolutions_applied: Dict[str, str] = field(default_factory=dict)
     unresolved_conflicts: List[FieldConflict] = field(default_factory=list)
+    errors: List[str] = field(default_factory=list)
+
+
+@dataclass
+class MergeDecision:
+    """
+    A resolved decision for one MergePlanEntry (duplicate group): which
+    occurrence becomes the master, which fold into it, which are left alone
+    (a false positive from detection - not actually a duplicate), and why.
+
+    `reason` is required (non-empty) for a decision to count as resolved,
+    regardless of whether the group had any SDB-decision conflict - this
+    keeps plan *execution* fully agnostic of what "conflicting" even means
+    (that judgment belongs to whichever producer built the plan, e.g. an
+    SLR-aware caller), while still capturing rigor whenever one is behind it.
+    """
+
+    master_key: str
+    merge_keys: List[str] = field(default_factory=list)
+    keep_keys: List[str] = field(default_factory=list)
+    reason: str = ""
+
+
+@dataclass
+class MergePlanEntry:
+    """One duplicate group within a MergePlan, plus its (optional) decision."""
+
+    group_id: str
+    match_type: str
+    identifier: str
+    occurrences: List[DuplicateOccurrence] = field(default_factory=list)
+    decision: Optional[MergeDecision] = None
+
+
+@dataclass
+class MergePlan:
+    """
+    A batch of duplicate groups awaiting (or carrying) merge decisions.
+
+    Built from `DuplicateFinder`'s detection output via `MergeService.build_plan`.
+    Consumed either directly as Python objects (Corbenic-SLR: build it, let the
+    caller fill in `entries[i].decision` in-memory, then call `execute_plan` -
+    no serialization involved) or round-tripped through CSV/JSON for the plain
+    CLI/shell workflow (see `merge_plan_io.py`).
+    """
+
+    version: str = MERGE_PLAN_SCHEMA_VERSION
+    entries: List[MergePlanEntry] = field(default_factory=list)
+
+
+@dataclass
+class PlanExecutionResult:
+    """
+    Outcome of `MergeService.execute_plan`. `success=False` with a non-empty
+    `errors` and empty `group_results` means the plan failed *completeness*
+    validation - nothing was written for any group, not just the invalid one
+    (partial execution of an incompletely-reviewed plan isn't attempted).
+    """
+
+    success: bool
+    dry_run: bool
+    group_results: List[MergeResult] = field(default_factory=list)
     errors: List[str] = field(default_factory=list)
 
 
@@ -73,6 +138,127 @@ class MergeService:
     def __init__(self, item_repo: ItemRepository, note_repo: NoteRepository):
         self.item_repo = item_repo
         self.note_repo = note_repo
+
+    @staticmethod
+    def build_plan(groups: List[DuplicateGroup]) -> MergePlan:
+        """
+        Wraps detection output (e.g. from `DuplicateFinder.compare_collections`)
+        into an undecided MergePlan. Pure/no repository access - `group_id` is
+        deterministic (`match_type:identifier`) so the same detection result
+        produces stable IDs across re-runs.
+        """
+        return MergePlan(
+            entries=[
+                MergePlanEntry(
+                    group_id=f"{g.match_type}:{g.identifier}",
+                    match_type=g.match_type,
+                    identifier=g.identifier,
+                    occurrences=list(g.occurrences),
+                )
+                for g in groups
+            ]
+        )
+
+    def execute_plan(self, plan: MergePlan, dry_run: bool = True) -> PlanExecutionResult:
+        """
+        Executes every resolved group in `plan`. Refuses to write anything at
+        all - not even for otherwise-valid groups - if any entry is missing a
+        decision or fails validation (completeness is all-or-nothing, matching
+        the "only update Zotero once the full review session is complete"
+        model this plan format is designed for).
+
+        Bulk merges default every conflicting scalar field to the chosen
+        master's own current value rather than prompting per-field the way the
+        single-group `merge()` CLI path does: the human/producer already made
+        the real decision by choosing which occurrence is master, so this
+        doesn't re-litigate it - it's simply not appropriate to prompt
+        interactively inside a batch/programmatic execution path.
+
+        Each group's underlying `merge()` call re-fetches items (and their
+        current version) fresh at execution time, so a stale plan can't
+        silently clobber an item that changed since the plan was built.
+        """
+        validation_errors: List[str] = []
+        for entry in plan.entries:
+            validation_errors.extend(self._validate_entry(entry))
+        if validation_errors:
+            return PlanExecutionResult(success=False, dry_run=dry_run, errors=validation_errors)
+
+        group_results: List[MergeResult] = []
+        overall_success = True
+        for entry in plan.entries:
+            decision = entry.decision
+            if decision is None:
+                continue  # Unreachable: _validate_entry above already rejected this.
+            if not decision.merge_keys:
+                continue  # Nothing to merge in this group (e.g. all KEEP).
+
+            master_item = self.item_repo.get_item(decision.master_key)
+            if master_item is None:
+                overall_success = False
+                group_results.append(
+                    MergeResult(
+                        success=False,
+                        dry_run=dry_run,
+                        master_key=decision.master_key,
+                        errors=[f"Master item '{decision.master_key}' not found."],
+                    )
+                )
+                continue
+
+            field_resolutions = {
+                attr: getattr(master_item, attr)
+                for attr in self.MERGEABLE_FIELDS
+                if getattr(master_item, attr)
+            }
+            result = self.merge(
+                decision.master_key,
+                decision.merge_keys,
+                field_resolutions=field_resolutions,
+                dry_run=dry_run,
+            )
+            group_results.append(result)
+            if not result.success:
+                overall_success = False
+
+        return PlanExecutionResult(
+            success=overall_success, dry_run=dry_run, group_results=group_results
+        )
+
+    def _validate_entry(self, entry: MergePlanEntry) -> List[str]:
+        decision = entry.decision
+        if decision is None:
+            return [f"Group '{entry.group_id}' has no decision."]
+        if not decision.reason.strip():
+            return [f"Group '{entry.group_id}' decision has no reason."]
+
+        occurrence_keys = {occ.key for occ in entry.occurrences}
+        if decision.master_key not in occurrence_keys:
+            return [
+                f"Group '{entry.group_id}': master_key '{decision.master_key}' is not "
+                "one of this group's occurrences."
+            ]
+
+        assigned = {decision.master_key, *decision.merge_keys, *decision.keep_keys}
+        missing = occurrence_keys - assigned
+        if missing:
+            return [
+                f"Group '{entry.group_id}': occurrence(s) {sorted(missing)} have no "
+                "role (must be the master, in merge_keys, or in keep_keys)."
+            ]
+        extra = assigned - occurrence_keys
+        if extra:
+            return [
+                f"Group '{entry.group_id}': decision references key(s) {sorted(extra)} "
+                "that aren't occurrences of this group."
+            ]
+        overlap = set(decision.merge_keys) & set(decision.keep_keys)
+        if overlap:
+            return [
+                f"Group '{entry.group_id}': key(s) {sorted(overlap)} are in both "
+                "merge_keys and keep_keys."
+            ]
+        return []
 
     def detect_conflicts(self, master_key: str, duplicate_keys: List[str]) -> List[FieldConflict]:
         """
