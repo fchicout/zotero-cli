@@ -3,7 +3,7 @@
 # the image doesn't ship torch/numpy/etc.), then copies just the binary
 # into a slim base with no Python interpreter needed at runtime.
 
-FROM python:3.10-slim AS builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /build
 COPY . .
@@ -30,7 +30,7 @@ RUN pyinstaller --onefile --name zotero-cli \
     --exclude-module matplotlib \
     --clean src/zotero_cli/cli/main.py
 
-FROM python:3.10-slim AS runtime
+FROM python:3.11-slim AS runtime
 
 # Reuses the same base as the builder stage rather than a separately-tagged
 # distro (e.g. debian:bookworm-slim) - a mismatched glibc between build and

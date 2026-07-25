@@ -35,5 +35,5 @@
 
 - **REQ-NF-1 (Security):** API keys MUST NEVER be logged or displayed in plain text during normal operation.
 - **REQ-NF-2 (Usability):** The screening TUI MUST support keyboard shortcuts for high-velocity operation.
-- **REQ-NF-3 (Portability):** The system MUST run on Linux, macOS, and Windows with Python 3.10+.
+- **REQ-NF-3 (Portability):** The system MUST run on Linux, macOS, and Windows with Python 3.11+.
 - **REQ-NF-4 (Performance):** Bulk operations (like PDF-to-Markdown export) SHOULD support parallel processing.

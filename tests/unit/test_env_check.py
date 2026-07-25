@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 def test_verify_environment_valid():
     from zotero_cli.cli.main import verify_environment
 
-    with patch("sys.version_info", (3, 10, 0)):
+    with patch("sys.version_info", (3, 11, 0)):
         # Should not raise SystemExit
         verify_environment()
 
@@ -15,7 +15,7 @@ def test_verify_environment_valid():
 def test_verify_environment_invalid():
     from zotero_cli.cli.main import verify_environment
 
-    with patch("sys.version_info", (3, 9, 0)):
+    with patch("sys.version_info", (3, 10, 0)):
         with patch("sys.exit") as mock_exit:
             verify_environment()
             mock_exit.assert_called_once_with(1)
@@ -24,7 +24,7 @@ def test_verify_environment_invalid():
 def test_verify_environment_invalid_rich_available(capsys):
     from zotero_cli.cli.main import verify_environment
 
-    with patch("sys.version_info", (3, 9, 0)):
+    with patch("sys.version_info", (3, 10, 0)):
         with patch("sys.exit"):
             # Mock rich to ensure it's used
             mock_console = MagicMock()
@@ -38,7 +38,7 @@ def test_verify_environment_invalid_rich_available(capsys):
 def test_verify_environment_invalid_rich_unavailable(capsys):
     from zotero_cli.cli.main import verify_environment
 
-    with patch("sys.version_info", (3, 9, 0)):
+    with patch("sys.version_info", (3, 10, 0)):
         with patch("sys.exit"):
             # Force ImportError for rich
             with patch("builtins.__import__", side_effect=ImportError("No module named 'rich'")):

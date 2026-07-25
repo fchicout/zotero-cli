@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "zotero-cli"
 version = "2.8.2"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 dependencies = [
     "requests>=2.33.0",
@@ -32,6 +32,7 @@ dependencies = [
     "openai>=1.0.0",
     "google-generativeai>=0.3.0",
     "accelerate>=0.26.0",
+    "onnxruntime>=1.24.2",
 ]
 
 [project.scripts]
@@ -65,7 +66,7 @@ ignore = [
 known-first-party = ["zotero_cli"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

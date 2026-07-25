@@ -5,10 +5,10 @@ def verify_environment() -> None:
     """
     Ensure the runtime environment meets minimum requirements before loading dependencies.
     """
-    if sys.version_info < (3, 10):
+    if sys.version_info < (3, 11):
         error_msg = (
             "Incompatible Environment Detected\n\n"
-            "Zotero CLI requires Python 3.10 or higher.\n"
+            "Zotero CLI requires Python 3.11 or higher.\n"
             f"Current version: {sys.version}."
         )
         try:

@@ -84,7 +84,7 @@ class BadgeGenerator:
             self.create_ruff_badge(ruff_errors),
             self.create_mypy_badge(mypy_ok),
             self.create_license_badge("MIT"),
-            "![Python](https://img.shields.io/badge/python-3.10+-blue)",
+            "![Python](https://img.shields.io/badge/python-3.11+-blue)",
         ]
 
         badge_section = " ".join(badges)
