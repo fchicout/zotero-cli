@@ -399,6 +399,33 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         purge_p.add_argument("--tags", action="store_true", help="Purge tags")
         purge_p.add_argument("--force", action="store_true", help="Skip confirmation")
 
+        # Delete
+        delete_p = sub.add_parser(
+            "delete",
+            help="Permanently delete an item",
+            description="Permanently deletes a research item from the Zotero library. The Zotero Web API only exposes a hard, permanent DELETE - there is no soft-delete/trash-write path, so this cannot be undone.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Removing a genuine duplicate/junk record
+Problem: I manually added a test item (Key: JUNK_01) by mistake and want it gone entirely.
+Action:  zotero-cli item delete --key "JUNK_01"
+Result:  The item is permanently removed from the library. This cannot be undone.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Assuming this moves the item to a recoverable trash - it does not, the Web API has no such mechanism.
+• Safety Tips: ALWAYS verify the item key using item inspect before deleting. For consolidating duplicates instead of discarding one outright, use item merge.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_delete.md
+""",
+        )
+        delete_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
+        delete_p.add_argument(
+            "--version", type=int, help="Current version (auto-resolved if omitted)"
+        )
+
         # Transfer
         transfer_p = sub.add_parser(
             "transfer",
