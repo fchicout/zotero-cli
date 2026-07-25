@@ -106,10 +106,7 @@ class TestReportCommandDuplicates:
         mock_gateway.get_items_in_collection.side_effect = [iter([item_a]), iter([item_b])]
 
         mock_sdb_service = MagicMock()
-        mock_sdb_service.inspect_item_sdb.side_effect = [
-            [{"decision": "accepted"}],
-            [{"decision": "accepted"}],
-        ]
+        mock_sdb_service.classify_decision_agreement.return_value = "MATCHING"
 
         args = argparse.Namespace(
             report_type="duplicates", collections="Source,Target", csv=None, user=False
@@ -140,10 +137,7 @@ class TestReportCommandDuplicates:
         mock_gateway.get_items_in_collection.side_effect = [iter([item_a]), iter([item_b])]
 
         mock_sdb_service = MagicMock()
-        mock_sdb_service.inspect_item_sdb.side_effect = [
-            [{"decision": "accepted"}],
-            [{"decision": "rejected"}],
-        ]
+        mock_sdb_service.classify_decision_agreement.return_value = "CONFLICTING"
 
         out_file = str(tmp_path / "dupes.csv")
         args = argparse.Namespace(

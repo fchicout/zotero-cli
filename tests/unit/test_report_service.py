@@ -66,6 +66,34 @@ def test_generate_prisma_report_malformed(report_service, mock_gateway):
     assert report.malformed_notes[0] == "K1"
 
 
+def test_generate_prisma_report_with_duplicates_removed(report_service, mock_gateway):
+    mock_gateway.get_collection_id_by_name.return_value = "COL_ID"
+    item1 = ZoteroItem(key="K1", version=1, item_type="journalArticle")
+    mock_gateway.get_items_in_collection.return_value = [item1]
+    mock_gateway.get_item_children.return_value = []
+
+    report = report_service.generate_prisma_report("Test Col", duplicates_removed=5)
+
+    assert report.duplicates_removed == 5
+
+
+def test_generate_mermaid_prisma_with_duplicates_removed(report_service):
+    from zotero_cli.core.services.report_service import PrismaReport
+
+    report = PrismaReport(
+        collection_name="Test",
+        total_items=95,
+        screened_items=80,
+        accepted_items=30,
+        rejected_items=50,
+        duplicates_removed=5,
+    )
+
+    mermaid = report_service.generate_mermaid_prisma(report)
+    assert "Identification: 100 records" in mermaid
+    assert "Duplicates removed: 5" in mermaid
+
+
 def test_generate_mermaid_prisma(report_service):
     from zotero_cli.core.services.report_service import PrismaReport
 

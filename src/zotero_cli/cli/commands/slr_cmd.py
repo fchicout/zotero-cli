@@ -5,6 +5,7 @@ from rich.console import Console
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.commands.slr import (
     DecideCommand,
+    DedupeCommand,
     ExtractionCommand,
     ListCommand,
     LoadCommand,
@@ -112,6 +113,14 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
         )
         PromoteCommand.register_args(promote_p)
 
+        # --- Duplicate Reconciliation ---
+        dedupe_p = sub.add_parser(
+            "dedupe",
+            help="SLR-specific duplicate reconciliation",
+            description="Detects duplicates across the SLR source tree, classifies them by SDB screening-decision agreement, and auto-merges the safe cases.",
+        )
+        DedupeCommand.register_args(dedupe_p)
+
         # --- Snowballing ---
         snow_p = sub.add_parser(
             "snowball",
@@ -178,6 +187,8 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
             ReconcileCommand.execute(args)
         elif args.verb == "promote":
             PromoteCommand.execute(args)
+        elif args.verb == "dedupe":
+            DedupeCommand.execute(gateway, args)
         elif args.verb == "prune":
             self._handle_prune(args)
         elif args.verb == "extract":

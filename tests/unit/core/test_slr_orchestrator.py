@@ -144,6 +144,28 @@ def test_record_duplicate_resolution(orchestrator, mock_gateway):
     orchestrator.record_duplicate_resolution("I1", "I2", "Exact match")
     mock_gateway.create_note.assert_called_once()
 
+    import json
+
+    note_json = json.loads(mock_gateway.create_note.call_args[0][1])
+    assert "provenance" not in note_json
+
+
+def test_record_duplicate_resolution_with_provenance(orchestrator, mock_gateway):
+    import json
+
+    mock_gateway.create_note.return_value = "NOTE123"
+    provenance = [
+        {"key": "I1", "collection_id": "COL_A", "decisions": ["accepted"]},
+        {"key": "I2", "collection_id": "COL_B", "decisions": ["rejected"]},
+    ]
+    orchestrator.record_duplicate_resolution(
+        "I1", "I2", "SLR dedupe reconciliation", provenance=provenance
+    )
+    mock_gateway.create_note.assert_called_once()
+
+    note_json = json.loads(mock_gateway.create_note.call_args[0][1])
+    assert note_json["provenance"] == provenance
+
 
 def test_get_all_papers_in_tree(orchestrator, mock_gateway):
     mock_gateway.get_all_collections.return_value = [
