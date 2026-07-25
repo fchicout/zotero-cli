@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.sdb.sdb_service import SDBService
     from zotero_cli.core.services.slr.citation_service import CitationService
     from zotero_cli.core.services.slr.csv_inbound import CSVInboundService
+    from zotero_cli.core.services.slr.dedupe_service import SLRDedupeService
     from zotero_cli.core.services.slr.integrity import IntegrityService
     from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
     from zotero_cli.core.services.slr.snapshot import SnapshotService
@@ -402,6 +403,23 @@ class ServiceFactory:
         from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
 
         return SLROrchestrator(gateway)
+
+    @staticmethod
+    def get_slr_dedupe_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "SLRDedupeService":
+        gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
+        merge_service = ServiceFactory.get_merge_service(config, force_user, offline=offline)
+        sdb_service = ServiceFactory.get_sdb_service(config, force_user, offline=offline)
+        orchestrator = ServiceFactory.get_slr_orchestrator(config, force_user, offline=offline)
+
+        from zotero_cli.core.services.duplicate_service import DuplicateFinder
+        from zotero_cli.core.services.slr.dedupe_service import SLRDedupeService
+
+        duplicate_finder = DuplicateFinder(gateway)
+        return SLRDedupeService(gateway, duplicate_finder, merge_service, sdb_service, orchestrator)
 
     @staticmethod
     def get_slr_status_service(

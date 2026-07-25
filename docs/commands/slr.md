@@ -188,6 +188,25 @@ zotero-cli slr promote --key "ITEMKEY" --vote "INCLUDE" --phase "full_text" --tr
 
 ---
 
+### `dedupe`
+SLR-specific duplicate reconciliation. Detects duplicates across the SLR source tree (every `raw_*` collection and its phase subfolders), or a given `--sources` set, and classifies each group by whether existing SDB screening decisions agree (`MATCHING`/`CONFLICTING`/`UNSCREENED`). Auto-merges MATCHING/UNSCREENED groups via `item merge`'s underlying `MergeService`; CONFLICTING groups are left for manual review (e.g. export via `--export-plan` and resolve through `item merge --from-plan`). A richer SDB reconciliation note - capturing every folded occurrence's own prior decisions and source collection - is written per merge, on top of the flat "merged" note `item merge` itself writes.
+
+**Usage:**
+```bash
+zotero-cli slr dedupe
+zotero-cli slr dedupe --sources "raw_ieee,raw_acm"
+zotero-cli slr dedupe --execute
+zotero-cli slr dedupe --export-plan slr_dedupe_plan.csv
+```
+
+**Parameters:**
+*   `--sources`: Comma-separated collection names or keys to scope detection to. Omit to scan the entire SLR source tree.
+*   `--export-plan`: Optional path (`.csv` or `.json`) to export the full reconciliation plan for manual resolution via `item merge --from-plan`.
+*   `--execute`: Merge the auto-resolved (MATCHING/UNSCREENED) groups. CONFLICTING groups are never auto-merged.
+*   `--force`: Skip the interactive confirmation prompt (still requires `--execute`).
+
+---
+
 ### `snowball`
 Citation snowballing workflow (Seed, Discovery, Review, and Import).
 

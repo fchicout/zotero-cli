@@ -23,6 +23,7 @@ class PrismaReport:
     rejected_items: int = 0
     rejections_by_code: Dict[str, int] = field(default_factory=dict)
     malformed_notes: List[str] = field(default_factory=list)
+    duplicates_removed: int = 0
 
 
 class ReportService:
@@ -34,12 +35,20 @@ class ReportService:
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
 
-    def generate_prisma_report(self, collection_name: str) -> Optional[PrismaReport]:
+    def generate_prisma_report(
+        self, collection_name: str, duplicates_removed: int = 0
+    ) -> Optional[PrismaReport]:
+        """
+        `duplicates_removed` is an optional, externally-computed count (e.g.
+        from `SLRDedupeService.find_and_classify`) surfaced at the
+        Identification stage - this service doesn't do its own duplicate
+        detection, to avoid a second, forked matching implementation.
+        """
         col_id = self.gateway.get_collection_id_by_name(collection_name)
         if not col_id:
             return None
 
-        report = PrismaReport(collection_name=collection_name)
+        report = PrismaReport(collection_name=collection_name, duplicates_removed=duplicates_removed)
         items = self.gateway.get_items_in_collection(col_id)
 
         for item in items:
@@ -50,9 +59,16 @@ class ReportService:
 
     def generate_mermaid_prisma(self, report: PrismaReport) -> str:
         """Generates Mermaid DSL for a PRISMA Flow Diagram."""
-        mermaid = [
-            "graph TD",
-            f"  A[Identification: {report.total_items} items] --> B[Screening: {report.screened_items} items]",
+        identification_count = report.total_items + report.duplicates_removed
+        mermaid = ["graph TD"]
+        if report.duplicates_removed:
+            mermaid.append(f"  A[Identification: {identification_count} records] --> A2[Duplicates removed: {report.duplicates_removed}]")
+            mermaid.append(f"  A2 --> B[Screening: {report.screened_items} items]")
+        else:
+            mermaid.append(
+                f"  A[Identification: {report.total_items} items] --> B[Screening: {report.screened_items} items]"
+            )
+        mermaid += [
             "  B --> C{Decision}",
             f"  C -- Included --> D[Accepted: {report.accepted_items}]",
             f"  C -- Excluded --> E[Rejected: {report.rejected_items}]",
@@ -97,6 +113,10 @@ class ReportService:
             "",
             "## 1. Executive Summary",
             f"*   **Total Items in Collection:** {report.total_items}",
+        ]
+        if report.duplicates_removed:
+            md.append(f"*   **Duplicates Removed (Identification):** {report.duplicates_removed}")
+        md.extend([
             f"*   **Items Screened:** {report.screened_items} ({percent_complete:.1f}%)",
             f"*   **Included (Accepted):** {report.accepted_items}",
             f"*   **Excluded (Rejected):** {report.rejected_items}",
@@ -104,7 +124,7 @@ class ReportService:
             "## 2. Rejection Reasons",
             "| Reason Code | Count | Percentage |",
             "| :--- | :---: | :---: |",
-        ]
+        ])
 
         for code, count in sorted(report.rejections_by_code.items()):
             percent = (count / report.rejected_items * 100) if report.rejected_items > 0 else 0

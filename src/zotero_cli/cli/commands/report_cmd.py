@@ -204,17 +204,9 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
     ) -> List[dict]:
         rows = []
         for group in dupes:
-            decisions = set()
-            for occ in group.occurrences:
-                entries = sdb_service.inspect_item_sdb(occ.key)
-                decisions |= {e.get("decision") for e in entries if e.get("decision")}
-
-            if not decisions:
-                sdb_status = "UNSCREENED"
-            elif len(decisions) == 1:
-                sdb_status = "MATCHING"
-            else:
-                sdb_status = "CONFLICTING"
+            sdb_status = sdb_service.classify_decision_agreement(
+                [occ.key for occ in group.occurrences]
+            )
 
             for occ in group.occurrences:
                 rows.append(

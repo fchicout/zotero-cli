@@ -1,4 +1,5 @@
 from .decide_cmd import DecideCommand
+from .dedupe_cmd import DedupeCommand
 from .extraction_cmd import ExtractionCommand
 from .list_cmd import ListCommand
 from .load_cmd import LoadCommand
@@ -10,6 +11,7 @@ from .snowball_cmd import SnowballCommand
 
 __all__ = [
     "DecideCommand",
+    "DedupeCommand",
     "ExtractionCommand",
     "ListCommand",
     "LoadCommand",

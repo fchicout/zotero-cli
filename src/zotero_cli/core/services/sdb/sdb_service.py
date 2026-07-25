@@ -5,6 +5,10 @@ from rich.table import Table
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 
+SDB_STATUS_MATCHING = "MATCHING"
+SDB_STATUS_CONFLICTING = "CONFLICTING"
+SDB_STATUS_UNSCREENED = "UNSCREENED"
+
 
 class SDBService:
     """
@@ -34,6 +38,26 @@ class SDBService:
                     sdb_entries.append(parsed)
 
         return sdb_entries
+
+    def classify_decision_agreement(self, item_keys: List[str]) -> str:
+        """
+        Classifies whether a set of items' recorded SDB screening decisions
+        agree: MATCHING (all decided the same way), CONFLICTING (decided
+        differently), or UNSCREENED (none has a decision yet). Used to flag
+        duplicate groups where independently-screened copies of the same
+        paper may disagree - a real SLR audit concern, not just noise.
+        """
+        decisions = {
+            entry.get("decision")
+            for key in item_keys
+            for entry in self.inspect_item_sdb(key)
+            if entry.get("decision")
+        }
+        if not decisions:
+            return SDB_STATUS_UNSCREENED
+        if len(decisions) == 1:
+            return SDB_STATUS_MATCHING
+        return SDB_STATUS_CONFLICTING
 
     def build_inspect_table(self, item_key: str, entries: List[Dict[str, Any]]) -> Table:
         table = Table(title=f"SDB Inspect: {item_key}")

@@ -35,6 +35,46 @@ def test_inspect_item_sdb(service, mock_gateway):
     assert entries[0]["_note_version"] == 10
 
 
+def test_classify_decision_agreement_unscreened(service, mock_gateway):
+    mock_gateway.get_item_children.return_value = []
+    assert service.classify_decision_agreement(["I1", "I2"]) == "UNSCREENED"
+
+
+def test_classify_decision_agreement_matching(service, mock_gateway):
+    def children_for(item_key):
+        return [
+            {
+                "key": f"N-{item_key}",
+                "version": 1,
+                "data": {
+                    "itemType": "note",
+                    "note": '<div>{"audit_version": "1.2", "decision": "accepted"}</div>',
+                },
+            }
+        ]
+
+    mock_gateway.get_item_children.side_effect = children_for
+    assert service.classify_decision_agreement(["I1", "I2"]) == "MATCHING"
+
+
+def test_classify_decision_agreement_conflicting(service, mock_gateway):
+    def children_for(item_key):
+        decision = "accepted" if item_key == "I1" else "rejected"
+        return [
+            {
+                "key": f"N-{item_key}",
+                "version": 1,
+                "data": {
+                    "itemType": "note",
+                    "note": f'<div>{{"audit_version": "1.2", "decision": "{decision}"}}</div>',
+                },
+            }
+        ]
+
+    mock_gateway.get_item_children.side_effect = children_for
+    assert service.classify_decision_agreement(["I1", "I2"]) == "CONFLICTING"
+
+
 def test_build_inspect_table(service):
     entries = [
         {

@@ -1,7 +1,7 @@
 # mypy: ignore-errors
 import json
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
@@ -197,11 +197,23 @@ class SLROrchestrator:
 
         return source_key, target_key
 
-    def record_duplicate_resolution(self, item_key: str, duplicate_key: str, reason: str):
+    def record_duplicate_resolution(
+        self,
+        item_key: str,
+        duplicate_key: str,
+        reason: str,
+        provenance: Optional[List[Dict[str, Any]]] = None,
+    ):
         """
         Records a permanent audit trail in SDB for duplicate resolution.
+
+        `provenance` optionally captures every occurrence's own SDB decisions
+        and source collection at the moment of resolution - used by SLR-aware
+        dedupe reconciliation, which may be folding items whose independent
+        screening decisions genuinely disagreed. Preserved in full on the
+        note rather than collapsed into the flat "merged" outcome alone.
         """
-        audit_note = {
+        audit_note: Dict[str, Any] = {
             "audit_version": "1.2",
             "phase": "system",
             "action": "duplicate_detected",
@@ -211,6 +223,8 @@ class SLROrchestrator:
             "persona": "orchestrator",
             "agent": "zotero-cli",
         }
+        if provenance:
+            audit_note["provenance"] = provenance
 
         self.gateway.create_note(item_key, json.dumps(audit_note))
 

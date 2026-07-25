@@ -52,6 +52,12 @@ class SLRReportCommand:
         prisma_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         prisma_p.add_argument("--output-chart", help="Path to save flowchart image (uses mmdc)")
         prisma_p.add_argument("--verbose", action="store_true", help="Verbose details")
+        prisma_p.add_argument(
+            "--dedupe-source",
+            help="Comma-separated collection names or keys to scan for duplicates (read-only) "
+            "and surface as the Identification-stage 'duplicates removed' count. "
+            "Omit to skip duplicate detection entirely.",
+        )
 
         # slr report shift
         shift_p = sub.add_parser(
@@ -294,9 +300,21 @@ class SLRReportCommand:
 
     @staticmethod
     def _handle_prisma(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
+        force_user = getattr(args, "user", False)
         service = ReportService(gateway)
+
+        duplicates_removed = 0
+        if getattr(args, "dedupe_source", None):
+            dedupe_service = GatewayFactory.get_slr_dedupe_service(force_user=force_user)
+            dedupe_ids = []
+            for name in args.dedupe_source.split(","):
+                name = name.strip()
+                dedupe_ids.append(gateway.get_collection_id_by_name(name) or name)
+            classified = dedupe_service.find_and_classify(dedupe_ids)
+            duplicates_removed = sum(len(g.occurrences) - 1 for g in classified)
+
         console.print(f"Generating PRISMA report for '{args.collection}'...")
-        report = service.generate_prisma_report(args.collection)
+        report = service.generate_prisma_report(args.collection, duplicates_removed=duplicates_removed)
 
         if not report:
             console.print(f"[bold red]Error:[/bold red] Collection '{args.collection}' not found.")
@@ -305,6 +323,10 @@ class SLRReportCommand:
         summary = (
             f"[bold blue]Collection:[/bold blue] {report.collection_name}\n"
             f"[bold blue]Total Items:[/bold blue] {report.total_items}\n"
+        )
+        if report.duplicates_removed:
+            summary += f"[bold blue]Duplicates Removed:[/bold blue] {report.duplicates_removed}\n"
+        summary += (
             f"[bold blue]Screened:[/bold blue] {report.screened_items} "
             f"({(report.screened_items / report.total_items * 100) if report.total_items > 0 else 0:.1f}%)\n"
             f"[bold green]Accepted:[/bold green] {report.accepted_items}\n"

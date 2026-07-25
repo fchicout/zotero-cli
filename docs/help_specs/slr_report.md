@@ -36,6 +36,7 @@ The `slr report` subcommands provide a detailed dashboard of your systematic lit
 | `--all-sources` | Boolean | Display status for all raw search sources in the library | Optional. Default: False. |
 | `--collection` | String | Collection name or key | Required. |
 | `--collections` | String | Comma-separated collection names or keys | Required. |
+| `--dedupe-source` | String | Comma-separated collection names or keys to scan (read-only) for duplicates | Optional, `prisma` only. Feeds the count into the Identification-stage "duplicates removed" metric. Omit to skip duplicate detection. |
 | `--new` | String | Path to new Snapshot JSON file | Required. |
 | `--old` | String | Path to old Snapshot JSON file | Required. |
 | `--output` | String | Output Markdown path | Required. |
