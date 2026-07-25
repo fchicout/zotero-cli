@@ -29,6 +29,7 @@ The `report duplicates` command helps you find overlaps between search databases
 | :--- | :--- | :--- | :--- |
 | `--collections` | String | Comma-separated list of collection names or keys | Optional — omit to scan the whole library instead. |
 | `--csv` | String | Optional path to export the duplicate report as CSV | Includes match type, identifier, key, collection, and SDB status columns. |
+| `--export-plan` | String | Optional path to export a bulk-editable merge plan (`.csv` or `.json`) | Consumed by `item merge --from-plan`. `.json` also embeds each occurrence's full SDB screening history; `.csv` opens cleanly in a spreadsheet with blank `role`/`reason` columns to fill in. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Finding overlaps between IEEE and Springer search results
@@ -45,6 +46,11 @@ The `report duplicates` command helps you find overlaps between search databases
 **Problem:** I need a CSV record of every duplicate found before pruning, for my SLR audit trail.
 **Action:** `zotero-cli report duplicates --collections "IEEE_01,SPR_01" --csv duplicates.csv`
 
+### Scenario: Exporting a bulk-editable merge plan
+**Problem:** I found dozens of duplicate groups and want to review/resolve them in a spreadsheet, then commit them all at once.
+**Action:** `zotero-cli report duplicates --export-plan duplicates_plan.csv`
+**Result:** A CSV with one row per occurrence (blank `role`/`reason` columns) is written. Fill those in, then run `zotero-cli item merge --from-plan duplicates_plan.csv --execute`.
+
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Providing misspelled collection names; expecting the fuzzy tier to catch title changes with no year/author corroboration (it deliberately won't, to avoid false positives).
-- **Safety Tips:** Ensure collection names are spelt exactly right or use their unique 8-character keys. `preprint-published-pair` results still need a human decision — this command only reports, it never merges (see `slr dedupe` / `item merge` in later releases).
+- **Safety Tips:** Ensure collection names are spelt exactly right or use their unique 8-character keys. `preprint-published-pair` results still need a human decision — this command only reports, it never merges (see `item merge` / `item merge --from-plan`, or `slr dedupe` in a later release for SLR-specific reconciliation rigor).

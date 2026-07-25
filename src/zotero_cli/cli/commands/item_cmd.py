@@ -518,7 +518,7 @@ Cognitive Safeguards
         merge_p = sub.add_parser(
             "merge",
             help="Merge duplicate items into one survivor",
-            description="Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates. Use `report duplicates` first to find candidate keys.",
+            description="Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates. Use `report duplicates` first to find candidate keys, or `report duplicates --export-plan` for a bulk-editable plan file.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Scenario-Based Examples (Cognitive Anchors)
@@ -533,19 +533,28 @@ Problem: I want to see what a merge would do without touching my library yet.
 Action:  zotero-cli item merge --master "IEEE_KEY1" --duplicates "SPR_KEY2"
 Result:  A preview table is shown (tags/collections to add, notes/attachments to move); nothing is written since --execute was omitted.
 
+Scenario: Bulk-resolving a batch of duplicate groups from a plan file
+Problem: I exported duplicates.csv via `report duplicates --export-plan`, filled in the role/reason columns for every group, and want to commit them all at once.
+Action:  zotero-cli item merge --from-plan duplicates.csv --execute
+Result:  Every fully-resolved group is merged in one pass; if any group is still missing a decision, nothing is written and the incomplete groups are listed.
+
 Cognitive Safeguards
 --------------------
-• Common Failure Modes: Master and duplicates must share the same item type - Zotero Desktop enforces the same rule. Conflicting scalar fields (title, date, DOI, ISBN, URL, abstract) must be resolved interactively before --execute can proceed; there is no silent "first wins" default.
+• Common Failure Modes: Master and duplicates must share the same item type - Zotero Desktop enforces the same rule. Conflicting scalar fields (title, date, DOI, ISBN, URL, abstract) must be resolved interactively (single-group form) before --execute can proceed; there is no silent "first wins" default. With --from-plan, an incomplete plan (any group missing a decision) blocks the entire batch, not just that group.
 • Safety Tips: This is PERMANENT - the Zotero Web API only supports hard delete, there is no undo the way Zotero Desktop's internal merge has. Run without --execute first to preview. Any citation-management document referencing a duplicate's key by that key will break.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_merge.md
 """,
         )
-        merge_p.add_argument("--master", required=True, help="Zotero Key of the item to keep")
+        merge_p.add_argument("--master", help="Zotero Key of the item to keep")
         merge_p.add_argument(
             "--duplicates",
-            required=True,
             help="Comma-separated Zotero Keys of the duplicate items to merge into --master",
+        )
+        merge_p.add_argument(
+            "--from-plan",
+            help="Path to a merge plan file (.csv or .json, from `report duplicates --export-plan`) "
+            "for bulk execution instead of a single --master/--duplicates group",
         )
         merge_p.add_argument(
             "--execute", action="store_true", help="Actually perform the merge (default: preview only)"
@@ -584,6 +593,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             self._handle_merge(args)
 
     def _handle_merge(self, args: argparse.Namespace) -> None:
+        if getattr(args, "from_plan", None):
+            self._handle_merge_from_plan(args)
+            return
+
+        if not args.master or not args.duplicates:
+            console.print(
+                "[red]Error: Provide either (--master and --duplicates) or --from-plan.[/red]"
+            )
+            return
+
         from rich.prompt import Confirm, Prompt
 
         force_user = getattr(args, "user", False)
@@ -663,6 +682,87 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             )
         else:
             console.print("[red]Merge did not complete successfully - see warnings above.[/red]")
+
+    def _handle_merge_from_plan(self, args: argparse.Namespace) -> None:
+        from pathlib import Path
+
+        from rich.prompt import Confirm
+
+        from zotero_cli.core.services.merge_plan_io import parse_plan_from_csv, parse_plan_from_json
+
+        path = Path(args.from_plan)
+        if not path.exists():
+            console.print(f"[red]Error: Plan file '{path}' not found.[/red]")
+            return
+
+        text = path.read_text(encoding="utf-8")
+        if path.suffix.lower() == ".json":
+            plan = parse_plan_from_json(text)
+        else:
+            plan = parse_plan_from_csv(text)
+
+        force_user = getattr(args, "user", False)
+        service = GatewayFactory.get_merge_service(force_user=force_user)
+
+        # Always preview first, regardless of --execute: surfaces incomplete
+        # groups before any write is attempted, and shows what would happen.
+        preview = service.execute_plan(plan, dry_run=True)
+
+        table = Table(title="Merge Plan Preview")
+        table.add_column("Group")
+        table.add_column("Status")
+        table.add_column("Master")
+        table.add_column("Merge Keys")
+        table.add_column("Reason")
+        for entry in plan.entries:
+            if entry.decision is None:
+                table.add_row(entry.group_id, "[yellow]UNRESOLVED[/yellow]", "-", "-", "-")
+            else:
+                table.add_row(
+                    entry.group_id,
+                    "[green]resolved[/green]",
+                    entry.decision.master_key,
+                    ", ".join(entry.decision.merge_keys) or "(none - kept as-is)",
+                    entry.decision.reason,
+                )
+        console.print(table)
+
+        if not preview.success:
+            console.print(
+                "[red]Plan is incomplete - nothing will be written until every group has a "
+                "decision:[/red]"
+            )
+            for error in preview.errors:
+                console.print(f"  [red]{error}[/red]")
+            return
+
+        if not args.execute:
+            console.print(
+                "[yellow]Preview only - nothing was written. This merge is PERMANENT and "
+                "cannot be undone once run with --execute. Re-run with --execute to apply.[/yellow]"
+            )
+            return
+
+        if not args.force:
+            groups_with_merges = sum(1 for e in plan.entries if e.decision and e.decision.merge_keys)
+            console.print(
+                f"[yellow]About to execute {groups_with_merges} merge(s) from this plan. "
+                "This cannot be undone.[/yellow]"
+            )
+            if not Confirm.ask("Proceed?"):
+                console.print("[yellow]Aborted - no writes were made.[/yellow]")
+                return
+
+        result = service.execute_plan(plan, dry_run=False)
+        for group_result in result.group_results:
+            for error in group_result.errors:
+                console.print(f"[red]Warning ({group_result.master_key}):[/red] {error}")
+        succeeded = sum(1 for g in result.group_results if g.success)
+        console.print(
+            f"[green]Merged {succeeded}/{len(result.group_results)} group(s) from the plan.[/green]"
+            if result.success
+            else "[red]Plan execution did not fully succeed - see warnings above.[/red]"
+        )
 
     def _handle_list(self, gateway: Any, args: argparse.Namespace) -> None:
         if getattr(args, "trash", False):

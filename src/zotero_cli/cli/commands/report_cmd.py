@@ -48,6 +48,13 @@ Result:  Every item in the library is scanned; duplicate groups are reported the
 Scenario: Exporting a duplicate report for methodological audit records
 Problem: I need a CSV record of every duplicate found before pruning, for my SLR audit trail.
 Action:  zotero-cli report duplicates --collections "IEEE_01,SPR_01" --csv duplicates.csv
+
+Scenario: Exporting a bulk-editable merge plan
+Problem: I found dozens of duplicate groups and want to review/resolve them in a spreadsheet, then commit them all at once with `item merge --from-plan`.
+Action:  zotero-cli report duplicates --export-plan duplicates_plan.csv
+Result:  A CSV with one row per occurrence (role/reason columns blank) is written; fill those in, then run
+         `zotero-cli item merge --from-plan duplicates_plan.csv --execute`. Use a `.json` extension instead
+         for a nested format that also carries each occurrence's full SDB screening history.
 """,
         )
         dupe_p.add_argument(
@@ -55,6 +62,11 @@ Action:  zotero-cli report duplicates --collections "IEEE_01,SPR_01" --csv dupli
             help="Comma-separated list of collection names or keys. Omit to scan the whole library.",
         )
         dupe_p.add_argument("--csv", help="Optional path to export the duplicate report as CSV")
+        dupe_p.add_argument(
+            "--export-plan",
+            help="Optional path to export a bulk-editable merge plan (.csv or .json) for "
+            "`item merge --from-plan`, instead of/in addition to the audit --csv report",
+        )
 
         # report audit
         audit_p = sub.add_parser(
@@ -163,6 +175,12 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             self._export_duplicates_csv(rows, args.csv)
             console.print(f"[green]Exported {len(rows)} duplicate occurrences to {args.csv}[/green]")
 
+        if getattr(args, "export_plan", None):
+            self._export_merge_plan(dupes, args.export_plan, sdb_service)
+            console.print(
+                f"[green]Exported a merge plan for {len(dupes)} group(s) to {args.export_plan}[/green]"
+            )
+
         status_color = {"MATCHING": "green", "CONFLICTING": "red", "UNSCREENED": "yellow"}
         table = Table(title="Duplicate Items across Collections")
         table.add_column("Match Type")
@@ -219,6 +237,28 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             )
             writer.writeheader()
             writer.writerows(rows)
+
+    def _export_merge_plan(
+        self, dupes: List[DuplicateGroup], path: str, sdb_service: SDBService
+    ) -> None:
+        from zotero_cli.core.services.merge_plan_io import (
+            serialize_plan_to_csv,
+            serialize_plan_to_json,
+        )
+        from zotero_cli.core.services.merge_service import MergeService
+
+        plan = MergeService.build_plan(dupes)
+        if path.lower().endswith(".json"):
+            sdb_history = {
+                occ.key: sdb_service.inspect_item_sdb(occ.key)
+                for group in dupes
+                for occ in group.occurrences
+            }
+            content = serialize_plan_to_json(plan, sdb_history=sdb_history)
+        else:
+            content = serialize_plan_to_csv(plan)
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            f.write(content)
 
     def _handle_audit(self, _gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
