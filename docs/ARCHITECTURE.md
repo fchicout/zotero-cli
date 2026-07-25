@@ -87,6 +87,7 @@ sequenceDiagram
     UP-->>Aggregator: {PDF_URL}
     Aggregator->>Aggregator: Merge & Deduplicate
     Aggregator-->>CLI: ResearchPaper(Merged)
+```
 
 ## Data Contracts
 
@@ -137,4 +138,21 @@ The snapshot command produces a single JSON file that serves as an immutable aud
 }
 ```
 
+## Distribution: Consuming `zotero-cli` as a Library
+
+`zotero-cli` is not published to PyPI - `.github/workflows/release.yml` only builds PyInstaller `--onefile` binaries for GitHub Releases, there is no `twine`/PyPI publish step. `pyproject.toml` uses a standard `setuptools.build_meta` backend, so the package is structurally installable; it just isn't published anywhere a `pip install zotero-cli` could reach.
+
+For a Python consumer that needs `zotero-cli`'s `core/` domain services directly (e.g. Corbenic-SLR's screening UI calling `MergeService`/`SLRDedupeService` in-process, per Issue #153's API-hygiene work), the chosen path is a **git dependency pinned to a release tag**, not a PyPI publish:
+
+```bash
+pip install "git+https://github.com/fchicout/zotero-cli@v2.8.1"
+# or, in a uv-managed project's pyproject.toml:
+[tool.uv.sources]
+zotero-cli = { git = "https://github.com/fchicout/zotero-cli", tag = "v2.8.1" }
 ```
+
+This needs zero new release infrastructure - every release already gets a `vX.Y.Z` git tag (see `docs/PROCESS.md`) that a consumer can pin to directly, and `pyproject.toml`'s existing `setuptools.build_meta` backend builds correctly from a git checkout with no changes. The tradeoff is that dependency resolution is tied to git refs/tags rather than a PyPI index with semver ranges - acceptable here since Corbenic-SLR and zotero-cli are developed by the same team in lockstep, not independent third-party consumers.
+
+**Known caveat for library consumers:** `pyproject.toml`'s base `dependencies` list includes the full RAG/embedding stack (`torch`, `sentence-transformers`, etc.) unconditionally - there is no lighter "core services only" extras group today. A consumer that only needs e.g. `MergeService`/`SLRDedupeService` still pulls the full ML dependency tree via a plain git install. Splitting that out into an optional extras group is real, separate scope (would need dependency-injection changes in `infra/ai_provider_factory.py` to make those imports lazy/optional) and is not part of this decision - tracked as a future concern if it becomes a practical problem for Corbenic-SLR's install footprint.
+
+If Corbenic-SLR and `zotero-cli` ever move into a shared monorepo/workspace layout, a path/workspace dependency would be worth revisiting; that is not the current plan.
