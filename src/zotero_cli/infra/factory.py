@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.extraction_service import ExtractionService
     from zotero_cli.core.services.import_service import ImportService
     from zotero_cli.core.services.job_queue_service import JobQueueService
+    from zotero_cli.core.services.merge_service import MergeService
     from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
     from zotero_cli.core.services.network_gateway import NetworkGateway
     from zotero_cli.core.services.pdf_finder_service import PDFFinderService
@@ -278,6 +279,14 @@ class GatewayFactory:
         offline: Optional[bool] = None,
     ) -> "PurgeService":
         return ServiceFactory.get_purge_service(config, force_user, offline)
+
+    @staticmethod
+    def get_merge_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "MergeService":
+        return ServiceFactory.get_merge_service(config, force_user, offline)
 
     @staticmethod
     def get_tag_service(

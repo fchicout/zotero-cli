@@ -170,6 +170,25 @@ zotero-cli item transfer "ITEMKEY" --target-group "123456" [--delete-source]
 
 ---
 
+### `merge`
+Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates. Use `report duplicates` first to find candidate keys. This is **permanent** — the Zotero Web API only supports hard delete, there is no undo the way Zotero Desktop's internal merge has.
+
+**Usage:**
+```bash
+zotero-cli item merge --master "MASTERKEY" --duplicates "DUPKEY1,DUPKEY2"
+zotero-cli item merge --master "MASTERKEY" --duplicates "DUPKEY1" --execute
+```
+
+**Parameters:**
+*   `--master`: (Required) Zotero Key of the item to keep.
+*   `--duplicates`: (Required) Comma-separated Zotero Keys of the duplicate items to merge into `--master`.
+*   `--execute`: Actually perform the merge. Without it, only a preview is shown and nothing is written.
+*   `--force`: Skip the interactive confirmation prompt (still requires `--execute`).
+
+If master and duplicates disagree on a scalar field (title, date, DOI, ISBN, URL, abstract), you're prompted to pick which value to keep for each — there is no silent "first wins" default. Master and duplicates must share the same item type, matching the rule Zotero Desktop enforces for its own merge.
+
+---
+
 ### `speech`
 Converts the text content of a research paper into audio (Read Aloud) using a local AI model (Kokoro TTS).
 
