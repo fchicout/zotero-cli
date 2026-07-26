@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`zotero-cli` is a Python CLI (`zotero-cli` entry point, Python 3.10+) that combines two things:
+`zotero-cli` is a Python CLI (`zotero-cli` entry point, Python 3.11+) that combines two things:
 1. **Direct Zotero library management** (items, collections, tags, storage, a local FastAPI bridge server).
 2. **Systematic Literature Review (SLR) tooling** implementing the Kitchenham/Wohlin protocol: screening, decisions recorded as immutable SDB (Standardized Decision Block) notes, PRISMA reporting, snowball citation discovery, and RAG-based knowledge retrieval over the library.
 
 ## Commands
 
-This project uses [uv](https://docs.astral.sh/uv/), not pip/bare venv, for dependency management — `uv.lock` is the source of truth for exact resolved versions and must be committed alongside any `pyproject.toml` dependency change. `.python-version` pins the project to Python 3.10 (matches CI); `uv sync` will download that interpreter if it isn't already available.
+This project uses [uv](https://docs.astral.sh/uv/), not pip/bare venv, for dependency management — `uv.lock` is the source of truth for exact resolved versions and must be committed alongside any `pyproject.toml` dependency change. `.python-version` pins the project to Python 3.11 (matches CI); `uv sync` will download that interpreter if it isn't already available.
 
 ```bash
 # Install for development (creates .venv/, installs from uv.lock, installs the project in editable mode)

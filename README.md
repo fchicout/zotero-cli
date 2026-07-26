@@ -2,7 +2,7 @@
 ![Version](https://img.shields.io/badge/version-2.8.1-blue)
 ![Build Status](https://github.com/fchicout/zotero-cli/actions/workflows/release.yml/badge.svg)
 ![Tests](https://github.com/fchicout/zotero-cli/actions/workflows/tests.yml/badge.svg)
-![Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen) ![Lint](https://img.shields.io/badge/ruff-passing-brightgreen) ![Types](https://img.shields.io/badge/mypy-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-lightgrey) ![Python](https://img.shields.io/badge/python-3.10+-blue)
+![Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen) ![Lint](https://img.shields.io/badge/ruff-passing-brightgreen) ![Types](https://img.shields.io/badge/mypy-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-lightgrey) ![Python](https://img.shields.io/badge/python-3.11+-blue)
 <!-- BADGES_END -->
 
 # Zotero CLI: The Systematic Review Forge
@@ -122,7 +122,7 @@ docker run --rm -v ~/.config/zotero-cli:/root/.config/zotero-cli zotero-cli syst
 
 A `.devcontainer/` configuration is also included for GitHub Codespaces / VS Code Dev Containers — it installs the full development environment (`uv sync --extra dev` + pre-commit hooks) rather than the lightweight runtime image above, for contributing to `zotero-cli` itself.
 
-### Option 3: Installation from Source (Python 3.10+)
+### Option 3: Installation from Source (Python 3.11+)
 If you prefer to run the tool within a Python environment, using [uv](https://docs.astral.sh/uv/):
 
 ```bash

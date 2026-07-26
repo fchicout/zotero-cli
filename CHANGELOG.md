@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### ⚠️ Breaking Changes
+- **Minimum Python version raised to 3.11 (Issue #166):** Fixes 2 transitive `onnxruntime` path-traversal advisories (PVE-2026-88357/88358, pulled in via `markitdown` -> `magika`) disclosed as a Known Issue in v2.8.2. `onnxruntime` >= 1.24.2 (the first fixed release) ships no Python 3.10 wheels at all, so remediating this required raising the floor rather than a plain version bump. `requires-python`, `.python-version`, both CI workflows, the Docker/dev-container base images, and `sonar-project.properties` are all updated to 3.11; `onnxruntime` is now pinned directly (`>=1.24.2`, resolved to 1.28.0) instead of floating on whatever `magika` happens to pull in. `uv run safety check` now reports zero vulnerabilities.
+
+### 🐛 Bug Fixes
+- **`item delete` unreachable (Issue #161):** Registers the `delete` subparser that `_handle_delete` was missing (same bug class as #146) — `item delete --key <KEY>` now actually works, matching the `--key` convention every other `item` verb uses. Also corrected `docs/commands/item.md`'s description, which wrongly called this a "move to trash": the Web API only exposes a hard, permanent `DELETE`, no soft-delete path exists.
+
 ## [2.8.2] - 2026-07-25
 
 ### ✨ Features & Improvements
