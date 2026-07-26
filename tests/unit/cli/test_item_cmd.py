@@ -1,3 +1,4 @@
+import argparse
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
@@ -319,3 +320,51 @@ def test_item_list_no_collection_or_root(mock_clients, env_vars, capsys):
 
     out = capsys.readouterr().out
     assert "Error: --collection or --root required for non-trash listings" in out
+
+
+def test_item_delete_subparser_is_reachable():
+    """Regression test for Issue #161: `delete` must have a registered
+    subparser, not just an `execute()` dispatch branch - argparse's
+    `required=True` subparser choice set otherwise rejects the command
+    before `_handle_delete` is ever reached (same bug class as #146)."""
+    parser = argparse.ArgumentParser()
+    ItemCommand().register_args(parser)
+
+    args = parser.parse_args(["delete", "--key", "ABCD1234"])
+
+    assert args.verb == "delete"
+    assert args.key == "ABCD1234"
+    assert args.version is None
+
+
+def test_item_delete_success(mock_clients, env_vars, capsys):
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5)
+    gateway.delete_item.return_value = True
+
+    args = MagicMock()
+    args.verb = "delete"
+    args.key = "ABCD1234"
+    args.version = None
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    gateway.delete_item.assert_called_once_with("ABCD1234", 5)
+    assert "Deleted item ABCD1234 successfully." in capsys.readouterr().out
+
+
+def test_item_delete_missing_item(mock_clients, env_vars, capsys):
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = None
+
+    args = MagicMock()
+    args.verb = "delete"
+    args.key = "MISSING"
+    args.version = None
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    gateway.delete_item.assert_not_called()
+    assert "Error: Item MISSING not found." in capsys.readouterr().out

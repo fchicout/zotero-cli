@@ -86,16 +86,16 @@ zotero-cli item update "ITEMKEY" --doi "10.1101/new-doi" --title "Corrected Titl
 ---
 
 ### `delete`
-Move an item to the Zotero trash.
+Permanently deletes an item from the Zotero library. The Zotero Web API only exposes a hard, permanent `DELETE` - there is no soft-delete/trash-write path, so this **cannot be undone**. To consolidate a genuine duplicate into another item instead of discarding it outright, use `item merge`.
 
 **Usage:**
 ```bash
-zotero-cli item delete "ITEMKEY"
+zotero-cli item delete --key "ITEMKEY"
 ```
 
 **Parameters:**
-*   `key`: (Positional, Required) The Zotero Item Key.
-*   `--version`: Optional item version.
+*   `--key`: (Required) The Zotero Item Key.
+*   `--version`: Optional item version (auto-resolved if omitted).
 
 ---
 
