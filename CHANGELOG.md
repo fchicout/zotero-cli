@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.8.3] - 2026-07-26
+
+Resolves both Known Issues disclosed in v2.8.2's release notes.
+
 ### ⚠️ Breaking Changes
 - **Minimum Python version raised to 3.11 (Issue #166):** Fixes 2 transitive `onnxruntime` path-traversal advisories (PVE-2026-88357/88358, pulled in via `markitdown` -> `magika`) disclosed as a Known Issue in v2.8.2. `onnxruntime` >= 1.24.2 (the first fixed release) ships no Python 3.10 wheels at all, so remediating this required raising the floor rather than a plain version bump. `requires-python`, `.python-version`, both CI workflows, the Docker/dev-container base images, and `sonar-project.properties` are all updated to 3.11; `onnxruntime` is now pinned directly (`>=1.24.2`, resolved to 1.28.0) instead of floating on whatever `magika` happens to pull in. `uv run safety check` now reports zero vulnerabilities.
 
