@@ -12,16 +12,21 @@ from zotero_cli.infra.sqlite_repo import (
 
 @pytest.fixture
 def sample_zotero_db(tmp_path):
+    """Schema matches a real Zotero Desktop zotero.sqlite exactly (see Issue
+    #174): no collectionData/creatorData tables, no items.parentItemID --
+    parent linkage for attachments/notes lives on itemAttachments/itemNotes."""
     db_path = str(tmp_path / "zotero.sqlite")
     conn = sqlite3.connect(db_path)
-    conn.execute("CREATE TABLE collections (key TEXT, parentCollection TEXT, collectionID INTEGER)")
-    conn.execute("CREATE TABLE collectionData (collectionID INTEGER, name TEXT)")
-    conn.execute("INSERT INTO collections VALUES ('COL1', NULL, 1)")
-    conn.execute("INSERT INTO collectionData VALUES (1, 'Test Collection')")
+    conn.execute(
+        "CREATE TABLE collections (key TEXT, collectionName TEXT, collectionID INTEGER, parentCollectionID INTEGER)"
+    )
+    conn.execute("INSERT INTO collections VALUES ('COL1', 'Test Collection', 1, NULL)")
     # Add items tables
     conn.execute(
-        "CREATE TABLE items (itemID INTEGER PRIMARY KEY, key TEXT, version INTEGER, libraryID INTEGER, itemTypeID INTEGER, parentItemID INTEGER)"
+        "CREATE TABLE items (itemID INTEGER PRIMARY KEY, key TEXT, version INTEGER, libraryID INTEGER, itemTypeID INTEGER)"
     )
+    conn.execute("CREATE TABLE itemAttachments (itemID INTEGER, parentItemID INTEGER)")
+    conn.execute("CREATE TABLE itemNotes (itemID INTEGER, parentItemID INTEGER)")
     conn.execute("CREATE TABLE itemTypes (itemTypeID INTEGER PRIMARY KEY, typeName TEXT)")
     conn.execute("CREATE TABLE itemData (itemID INTEGER, fieldID INTEGER, valueID INTEGER)")
     conn.execute("CREATE TABLE fields (fieldID INTEGER, fieldName TEXT)")
@@ -30,8 +35,7 @@ def sample_zotero_db(tmp_path):
     conn.execute(
         "CREATE TABLE itemCreators (itemID INTEGER, creatorID INTEGER, creatorTypeID INTEGER, orderIndex INTEGER)"
     )
-    conn.execute("CREATE TABLE creators (creatorID INTEGER, creatorDataID INTEGER)")
-    conn.execute("CREATE TABLE creatorData (creatorDataID INTEGER, firstName TEXT, lastName TEXT)")
+    conn.execute("CREATE TABLE creators (creatorID INTEGER, firstName TEXT, lastName TEXT)")
     conn.execute("CREATE TABLE creatorTypes (creatorTypeID INTEGER, creatorType TEXT)")
     conn.execute("CREATE TABLE collectionItems (itemID INTEGER, collectionID INTEGER)")
     conn.execute("CREATE TABLE itemTags (itemID INTEGER, tagID INTEGER)")
@@ -95,7 +99,7 @@ def test_gateway_forbidden_writes(sample_zotero_db):
 def test_gateway_read_tags(sample_zotero_db):
     gateway = SqliteZoteroGateway(sample_zotero_db)
     conn = sqlite3.connect(sample_zotero_db)
-    conn.execute("INSERT INTO items VALUES (1, 'K1', 1, 1, 1, NULL)")
+    conn.execute("INSERT INTO items VALUES (1, 'K1', 1, 1, 1)")
     conn.execute("INSERT INTO itemTypes VALUES (1, 'journalArticle')")
     conn.execute("INSERT INTO tags VALUES (1, 'Tag1')")
     conn.execute("INSERT INTO itemTags VALUES (1, 1)")
@@ -111,7 +115,7 @@ def test_gateway_read_tags(sample_zotero_db):
 def test_gateway_read_item_by_key(sample_zotero_db):
     gateway = SqliteZoteroGateway(sample_zotero_db)
     conn = sqlite3.connect(sample_zotero_db)
-    conn.execute("INSERT INTO items VALUES (1, 'K1', 3, 1, 1, NULL)")
+    conn.execute("INSERT INTO items VALUES (1, 'K1', 3, 1, 1)")
     conn.execute("INSERT INTO itemTypes VALUES (1, 'journalArticle')")
     conn.execute("INSERT INTO fields VALUES (100, 'title')")
     conn.execute("INSERT INTO itemDataValues VALUES (200, 'Direct SQL Lookup')")
@@ -131,7 +135,7 @@ def test_gateway_read_item_by_key(sample_zotero_db):
 def test_gateway_read_items_by_doi(sample_zotero_db):
     gateway = SqliteZoteroGateway(sample_zotero_db)
     conn = sqlite3.connect(sample_zotero_db)
-    conn.execute("INSERT INTO items VALUES (1, 'K1', 1, 1, 1, NULL)")
+    conn.execute("INSERT INTO items VALUES (1, 'K1', 1, 1, 1)")
     conn.execute("INSERT INTO itemTypes VALUES (1, 'journalArticle')")
     conn.execute("INSERT INTO fields VALUES (101, 'DOI')")
     conn.execute("INSERT INTO itemDataValues VALUES (201, '10.1234/example')")

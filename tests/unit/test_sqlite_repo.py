@@ -10,37 +10,55 @@ from zotero_cli.infra.sqlite_repo import ConfigurationError, SqliteZoteroGateway
 
 @pytest.fixture
 def mock_db():
+    """
+    Schema matches a real Zotero Desktop zotero.sqlite exactly (verified
+    against an actual local Desktop database - see Issue #174): items has no
+    parentItemID column (attachment/note parent linkage lives on
+    itemAttachments/itemNotes instead), collections has collectionName +
+    parentCollectionID directly (no collectionData table), and creators has
+    firstName/lastName directly (no creatorData table). A prior version of
+    this fixture baked in the wrong schema, which the production code copied
+    -- so tests and implementation drifted together instead of one catching
+    the other.
+    """
     fd, path = tempfile.mkstemp()
     conn = sqlite3.connect(path)
 
     # Setup Zotero Schema
     conn.executescript("""
         CREATE TABLE itemTypes (itemTypeID INTEGER PRIMARY KEY, typeName TEXT);
-        CREATE TABLE items (itemID INTEGER PRIMARY KEY, key TEXT, version INTEGER, libraryID INTEGER, itemTypeID INTEGER, parentItemID INTEGER, dateModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, clientDateModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, synced INTEGER DEFAULT 1);
+        CREATE TABLE items (itemID INTEGER PRIMARY KEY, key TEXT, version INTEGER, libraryID INTEGER, itemTypeID INTEGER, dateAdded TIMESTAMP DEFAULT CURRENT_TIMESTAMP, dateModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, clientDateModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, synced INTEGER DEFAULT 1);
+        CREATE TABLE itemAttachments (itemID INTEGER PRIMARY KEY, parentItemID INTEGER, linkMode INTEGER, contentType TEXT, path TEXT);
+        CREATE TABLE itemNotes (itemID INTEGER PRIMARY KEY, parentItemID INTEGER, note TEXT, title TEXT);
         CREATE TABLE fields (fieldID INTEGER PRIMARY KEY, fieldName TEXT);
         CREATE TABLE itemData (itemID INTEGER, fieldID INTEGER, valueID INTEGER);
         CREATE TABLE itemDataValues (valueID INTEGER PRIMARY KEY, value TEXT);
-        CREATE TABLE creators (creatorID INTEGER PRIMARY KEY, creatorDataID INTEGER);
-        CREATE TABLE creatorData (creatorDataID INTEGER PRIMARY KEY, firstName TEXT, lastName TEXT);
+        CREATE TABLE creators (creatorID INTEGER PRIMARY KEY, firstName TEXT, lastName TEXT, fieldMode INTEGER);
         CREATE TABLE creatorTypes (creatorTypeID INTEGER PRIMARY KEY, creatorType TEXT);
         CREATE TABLE itemCreators (itemID INTEGER, creatorID INTEGER, creatorTypeID INTEGER, orderIndex INTEGER);
-        CREATE TABLE collections (collectionID INTEGER PRIMARY KEY, key TEXT, parentCollection TEXT);
-        CREATE TABLE collectionData (collectionID INTEGER, name TEXT);
+        CREATE TABLE collections (collectionID INTEGER PRIMARY KEY, key TEXT, collectionName TEXT, parentCollectionID INTEGER);
         CREATE TABLE collectionItems (collectionID INTEGER, itemID INTEGER);
         CREATE TABLE tags (tagID INTEGER PRIMARY KEY, name TEXT);
         CREATE TABLE itemTags (itemID INTEGER, tagID INTEGER);
-        CREATE TABLE deletedItems (itemID INTEGER PRIMARY KEY);
+        CREATE TABLE deletedItems (itemID INTEGER PRIMARY KEY, dateDeleted TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 
-        INSERT INTO itemTypes VALUES (1, 'journalArticle'), (2, 'attachment');
-        INSERT INTO items (itemID, key, version, libraryID, itemTypeID, parentItemID) VALUES (1, 'ITEMKEY1', 1, 0, 1, NULL);
-        INSERT INTO items (itemID, key, version, libraryID, itemTypeID, parentItemID) VALUES (2, 'ITEMKEY2', 1, 0, 1, NULL);
-        INSERT INTO items (itemID, key, version, libraryID, itemTypeID, parentItemID) VALUES (3, 'ITEMKEY3', 1, 0, 2, 2);
+        INSERT INTO itemTypes VALUES (1, 'journalArticle'), (2, 'attachment'), (3, 'note');
+        INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES (1, 'ITEMKEY1', 1, 0, 1);
+        INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES (2, 'ITEMKEY2', 1, 0, 1);
+        INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES (3, 'ITEMKEY3', 1, 0, 2);
+        INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES (4, 'ITEMKEY4', 1, 0, 3);
+        INSERT INTO itemAttachments (itemID, parentItemID) VALUES (3, 2);
+        INSERT INTO itemNotes (itemID, parentItemID) VALUES (4, 2);
         INSERT INTO fields VALUES (1, 'title'), (2, 'abstractNote'), (3, 'date'), (4, 'DOI'), (5, 'url'), (6, 'extra');
         INSERT INTO itemData VALUES (1, 1, 1), (2, 1, 2), (3, 1, 3);
         INSERT INTO itemDataValues VALUES (1, 'Test Title'), (2, 'Orphan Parent Title'), (3, 'Orphan Attachment');
 
-        INSERT INTO collections VALUES (1, 'COLKEY1', NULL);
-        INSERT INTO collectionData VALUES (1, 'Test Collection');
+        INSERT INTO creators (creatorID, firstName, lastName, fieldMode) VALUES (1, 'Jane', 'Doe', 0);
+        INSERT INTO creatorTypes VALUES (1, 'author');
+        INSERT INTO itemCreators VALUES (1, 1, 1, 0);
+
+        INSERT INTO collections (collectionID, key, collectionName, parentCollectionID) VALUES (1, 'COLKEY1', 'Test Collection', NULL);
+        INSERT INTO collections (collectionID, key, collectionName, parentCollectionID) VALUES (2, 'COLKEY2', 'Child Collection', 1);
         INSERT INTO collectionItems VALUES (1, 1);
     """)
     conn.commit()
@@ -55,31 +73,67 @@ def test_sqlite_read_items(mock_db):
     gateway = SqliteZoteroGateway(mock_db)
     items = list(gateway.search_items(ZoteroQuery()))
 
-    # ITEMKEY1, ITEMKEY2, ITEMKEY3
-    assert len(items) == 3
+    # ITEMKEY1, ITEMKEY2, ITEMKEY3 (attachment child), ITEMKEY4 (note child)
+    assert len(items) == 4
     assert items[0].key == "ITEMKEY1"
     assert items[0].title == "Test Title"
+
+    # Regression for Issue #174: creators must resolve via creators.firstName/
+    # lastName directly -- the real schema has no separate creatorData table.
+    assert items[0].authors == ["Jane Doe"]
+
+
+def test_sqlite_item_parent_key_resolves_via_attachments_and_notes(mock_db):
+    """Regression test for Issue #174: parentKey must be resolved via
+    itemAttachments/itemNotes -- the real schema has no items.parentItemID
+    column at all."""
+    gateway = SqliteZoteroGateway(mock_db)
+    items = {i.key: i for i in gateway.search_items(ZoteroQuery())}
+
+    assert items["ITEMKEY3"].parent_item == "ITEMKEY2"  # attachment child
+    assert items["ITEMKEY4"].parent_item == "ITEMKEY2"  # note child
+    assert items["ITEMKEY2"].parent_item is None or items["ITEMKEY2"].parent_item == ""
+
+
+def test_sqlite_get_item_children(mock_db):
+    """Regression test for Issue #174: get_item_children must find children
+    via itemAttachments/itemNotes, not a nonexistent items.parentItemID."""
+    gateway = SqliteZoteroGateway(mock_db)
+    children = {c["key"] for c in gateway.get_item_children("ITEMKEY2")}
+    assert children == {"ITEMKEY3", "ITEMKEY4"}
+    assert gateway.get_item_children("ITEMKEY1") == []
 
 
 def test_sqlite_read_collections(mock_db):
     gateway = SqliteZoteroGateway(mock_db)
-    cols = gateway.get_all_collections()
+    cols = {c["key"]: c for c in gateway.get_all_collections()}
 
-    assert len(cols) == 1
-    assert cols[0]["key"] == "COLKEY1"
-    assert cols[0]["data"]["name"] == "Test Collection"
+    assert len(cols) == 2
+    assert cols["COLKEY1"]["data"]["name"] == "Test Collection"
+    assert cols["COLKEY1"]["data"]["parentCollection"] is None
+
+    # Regression for Issue #174: parentCollectionID (an integer FK) must
+    # resolve to the parent's key string, matching ZoteroAPIClient's shape --
+    # the real schema has no collectionData table or parentCollection column.
+    assert cols["COLKEY2"]["data"]["name"] == "Child Collection"
+    assert cols["COLKEY2"]["data"]["parentCollection"] == "COLKEY1"
+
+    col = gateway.get_collection("COLKEY2")
+    assert col is not None
+    assert col["data"]["parentCollection"] == "COLKEY1"
 
 
 def test_sqlite_orphan_items(mock_db):
     gateway = SqliteZoteroGateway(mock_db)
 
-    # Without top_only: should return ITEMKEY2 and ITEMKEY3 (since ITEMKEY1 is in a collection)
+    # Without top_only: ITEMKEY2, ITEMKEY3, ITEMKEY4 (ITEMKEY1 is in a collection)
     orphans = list(gateway.get_orphan_items(top_only=False))
-    assert len(orphans) == 2
+    assert len(orphans) == 3
     keys = {o.key for o in orphans}
-    assert keys == {"ITEMKEY2", "ITEMKEY3"}
+    assert keys == {"ITEMKEY2", "ITEMKEY3", "ITEMKEY4"}
 
-    # With top_only: should only return ITEMKEY2 because ITEMKEY3 has ITEMKEY2 as parent
+    # With top_only: only ITEMKEY2 -- ITEMKEY3/ITEMKEY4 are children (via
+    # itemAttachments/itemNotes) of ITEMKEY2, not top-level themselves.
     top_orphans = list(gateway.get_orphan_items(top_only=True))
     assert len(top_orphans) == 1
     assert top_orphans[0].key == "ITEMKEY2"
@@ -90,7 +144,7 @@ def test_sqlite_get_trash_items(mock_db):
     be implemented on the offline SqliteZoteroGateway too, not just the
     live ZoteroAPIClient."""
     conn = sqlite3.connect(mock_db)
-    conn.execute("INSERT INTO deletedItems VALUES (2)")  # ITEMKEY2
+    conn.execute("INSERT INTO deletedItems (itemID) VALUES (2)")  # ITEMKEY2
     conn.commit()
     conn.close()
 
@@ -102,7 +156,7 @@ def test_sqlite_get_trash_items(mock_db):
 
     # Everything else must still exclude the trashed item, as before.
     all_items = list(gateway.search_items(ZoteroQuery()))
-    assert {i.key for i in all_items} == {"ITEMKEY1", "ITEMKEY3"}
+    assert {i.key for i in all_items} == {"ITEMKEY1", "ITEMKEY3", "ITEMKEY4"}
 
 
 def test_sqlite_trash_and_restore_item(mock_db):
@@ -159,11 +213,9 @@ def test_sqlite_trash_writes_to_real_file_not_shadow_copy(mock_db):
 
 def test_sqlite_collection_items_top_only(mock_db):
     # Setup: Put item 1 and item 3 in collection 1.
-    # Note: item 3 has parentItemID = 2. But parentItemID 2 is NOT in the collection or is in the collection.
-    # Let's insert a direct test. In mock_db setup:
-    # Item 1 is JOURNALARTICLE (parent = NULL)
-    # Item 2 is JOURNALARTICLE (parent = NULL)
-    # Item 3 is ATTACHMENT (parent = 2)
+    # Item 1 is a journalArticle (top-level).
+    # Item 2 is a journalArticle (top-level).
+    # Item 3 is an attachment, a child of item 2 via itemAttachments.
     # Collection Items has (1, 1). Let's add (1, 3) to test it.
     conn = sqlite3.connect(mock_db)
     conn.execute("INSERT INTO collectionItems VALUES (1, 3)")
@@ -178,7 +230,7 @@ def test_sqlite_collection_items_top_only(mock_db):
     keys = {item.key for item in items}
     assert keys == {"ITEMKEY1", "ITEMKEY3"}
 
-    # With top_only: should only return ITEMKEY1 because ITEMKEY3 has parentItemID = 2 (so it's not a top-level item)
+    # With top_only: should only return ITEMKEY1 because ITEMKEY3 is a child (via itemAttachments) so it's not top-level
     top_items = list(gateway.get_items_in_collection("COLKEY1", top_only=True))
     assert len(top_items) == 1
     assert top_items[0].key == "ITEMKEY1"
