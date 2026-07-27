@@ -85,6 +85,26 @@ def test_sqlite_orphan_items(mock_db):
     assert top_orphans[0].key == "ITEMKEY2"
 
 
+def test_sqlite_get_trash_items(mock_db):
+    """Regression test for Issue #140: ZoteroGateway.get_trash_items() must
+    be implemented on the offline SqliteZoteroGateway too, not just the
+    live ZoteroAPIClient."""
+    conn = sqlite3.connect(mock_db)
+    conn.execute("INSERT INTO deletedItems VALUES (2)")  # ITEMKEY2
+    conn.commit()
+    conn.close()
+
+    gateway = SqliteZoteroGateway(mock_db)
+
+    trashed = list(gateway.get_trash_items())
+    assert len(trashed) == 1
+    assert trashed[0].key == "ITEMKEY2"
+
+    # Everything else must still exclude the trashed item, as before.
+    all_items = list(gateway.search_items(ZoteroQuery()))
+    assert {i.key for i in all_items} == {"ITEMKEY1", "ITEMKEY3"}
+
+
 def test_sqlite_collection_items_top_only(mock_db):
     # Setup: Put item 1 and item 3 in collection 1.
     # Note: item 3 has parentItemID = 2. But parentItemID 2 is NOT in the collection or is in the collection.

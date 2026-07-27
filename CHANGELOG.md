@@ -7,6 +7,9 @@ All notable changes to this project will be documented in this file.
 ### 🐛 Bug Fixes
 - **`collection purge` unreachable (Issue #146):** Registers the `purge` subparser that `_handle_purge` was missing (same dead-dispatch-branch bug class as #161) — `collection purge --name <NAME> --files --notes --tags` now actually works. Also corrected `docs/commands/collection.md`'s stale positional-argument example to the `--name` flag convention every other `collection` verb uses, and added `docs/help_specs/collection_purge.md` per the DOC-SPEC template.
 
+### 🛡️ Quality & Infrastructure
+- **`ZoteroGateway.get_trash_items` declared in the contract (Issue #140):** `item_cmd.py::_handle_list` called `gateway.get_trash_items()` on a gateway typed `Any` (a workaround from the #132 mypy-strictness pass, since the real `ZoteroGateway` ABC didn't declare the method the concrete `ZoteroAPIClient` already implemented). Added `get_trash_items` to the `ZoteroGateway` ABC, implemented it on the offline `SqliteZoteroGateway` too (previously missing entirely - `item list --trash --offline` would have crashed with `AttributeError`), and retyped `_handle_list`'s `gateway` parameter back to the honest `ZoteroGateway` type.
+
 ## [2.8.3] - 2026-07-26
 
 Resolves both Known Issues disclosed in v2.8.2's release notes.

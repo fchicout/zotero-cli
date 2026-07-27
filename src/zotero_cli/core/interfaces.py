@@ -259,6 +259,10 @@ class ZoteroGateway(
     def get_orphan_items(self, top_only: bool = False) -> Iterator[ZoteroItem]:
         pass
 
+    @abstractmethod
+    def get_trash_items(self) -> Iterator[ZoteroItem]:
+        pass
+
 
 class PDFResolver(ABC):
     """
