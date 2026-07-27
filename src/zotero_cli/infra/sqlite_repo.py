@@ -81,16 +81,32 @@ class SqliteZoteroGateway(ZoteroGateway):
 
     # --- Read Operations ---
 
+    # A top-level item is one that isn't a child row in either
+    # itemAttachments or itemNotes (real Zotero has no items.parentItemID
+    # column -- parent linkage lives on those two child-specific tables).
+    _TOP_LEVEL_ONLY_SQL = """ AND i.itemID NOT IN (
+        SELECT itemID FROM itemAttachments WHERE parentItemID IS NOT NULL
+        UNION
+        SELECT itemID FROM itemNotes WHERE parentItemID IS NOT NULL
+    )"""
+
+    # Real Zotero schema has no `collectionData` table and no `parentCollection`
+    # string column: `collections` carries `collectionName` directly, and its
+    # parent is `parentCollectionID`, an integer FK to another row's
+    # `collectionID` -- not a key string. Resolve it to the parent's key via a
+    # self-join so the external contract (data.parentCollection = key string,
+    # matching ZoteroAPIClient's shape) stays unchanged for callers.
+    _COLLECTION_SELECT = """
+        SELECT c.key, c.collectionName AS name,
+               (SELECT p.key FROM collections p WHERE p.collectionID = c.parentCollectionID)
+                   AS parentCollection
+        FROM collections c
+    """
+
     def get_all_collections(self) -> List[Dict[str, Any]]:
         conn = self._get_connection()
         try:
-            cursor = conn.execute(
-                """
-                SELECT c.key, c.parentCollection, cd.name
-                FROM collections c
-                JOIN collectionData cd ON c.collectionID = cd.collectionID
-            """
-            )
+            cursor = conn.execute(self._COLLECTION_SELECT)
             return [
                 {
                     "key": r["key"],
@@ -105,12 +121,7 @@ class SqliteZoteroGateway(ZoteroGateway):
         conn = self._get_connection()
         try:
             row = conn.execute(
-                """
-                SELECT c.key, c.parentCollection, cd.name
-                FROM collections c
-                JOIN collectionData cd ON c.collectionID = cd.collectionID
-                WHERE c.key = ?
-            """,
+                self._COLLECTION_SELECT + " WHERE c.key = ?",
                 (collection_key,),
             ).fetchone()
             if row:
@@ -137,7 +148,10 @@ class SqliteZoteroGateway(ZoteroGateway):
             membership = "IN" if trash_only else "NOT IN"
             query_sql_template = """
                 SELECT i.key, i.version, i.libraryID, it.typeName,
-                       (SELECT key FROM items WHERE itemID = i.parentItemID) as parentKey,
+                       (SELECT k.key FROM items k WHERE k.itemID = COALESCE(
+                           (SELECT parentItemID FROM itemAttachments WHERE itemID = i.itemID),
+                           (SELECT parentItemID FROM itemNotes WHERE itemID = i.itemID)
+                       )) as parentKey,
                        MAX(CASE WHEN f.fieldName = 'title' THEN dv.value END) as title,
                        MAX(CASE WHEN f.fieldName = 'abstractNote' THEN dv.value END) as abstractNote,
                        MAX(CASE WHEN f.fieldName = 'date' THEN dv.value END) as date,
@@ -163,10 +177,9 @@ class SqliteZoteroGateway(ZoteroGateway):
             for row in cursor:
                 creator_cursor = conn.execute(
                     """
-                    SELECT cd.firstName, cd.lastName, ct.creatorType
+                    SELECT c.firstName, c.lastName, ct.creatorType
                     FROM itemCreators ic
                     JOIN creators c ON ic.creatorID = c.creatorID
-                    JOIN creatorData cd ON c.creatorDataID = cd.creatorDataID
                     JOIN creatorTypes ct ON ic.creatorTypeID = ct.creatorTypeID
                     WHERE ic.itemID = (SELECT itemID FROM items WHERE key = ?)
                     ORDER BY ic.orderIndex
@@ -223,7 +236,7 @@ class SqliteZoteroGateway(ZoteroGateway):
             )
         """
         if top_only:
-            filter_sql += " AND i.parentItemID IS NULL"
+            filter_sql += self._TOP_LEVEL_ONLY_SQL
         return self._fetch_items_with_filter(filter_sql, (collection_id,))
 
     def get_item(self, item_key: str) -> Optional[ZoteroItem]:
@@ -243,14 +256,22 @@ class SqliteZoteroGateway(ZoteroGateway):
         return item.tags if item else []
 
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
+        # No items.parentItemID in the real schema -- child linkage lives on
+        # itemAttachments/itemNotes instead (see _TOP_LEVEL_ONLY_SQL above).
         conn = self._get_connection()
         try:
             cursor = conn.execute(
                 """
                 SELECT key FROM items
-                WHERE parentItemID = (SELECT itemID FROM items WHERE key = ?)
+                WHERE itemID IN (
+                    SELECT itemID FROM itemAttachments
+                    WHERE parentItemID = (SELECT itemID FROM items WHERE key = ?)
+                    UNION
+                    SELECT itemID FROM itemNotes
+                    WHERE parentItemID = (SELECT itemID FROM items WHERE key = ?)
+                )
             """,
-                (item_key,),
+                (item_key, item_key),
             )
             return [{"key": r["key"]} for r in cursor]
         finally:
@@ -342,7 +363,7 @@ class SqliteZoteroGateway(ZoteroGateway):
     def get_orphan_items(self, top_only: bool = False) -> Iterator[ZoteroItem]:
         filter_sql = "AND i.itemID NOT IN (SELECT itemID FROM collectionItems)"
         if top_only:
-            filter_sql += " AND i.parentItemID IS NULL"
+            filter_sql += self._TOP_LEVEL_ONLY_SQL
         return self._fetch_items_with_filter(filter_sql)
 
     def get_trash_items(self) -> Iterator[ZoteroItem]:
