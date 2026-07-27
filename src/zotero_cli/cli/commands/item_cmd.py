@@ -13,6 +13,7 @@ from zotero_cli.infra.factory import GatewayFactory
 console = Console()
 
 ITEM_KEY_HELP = "Item Key"
+ABORTED_NO_WRITES_MSG = "[yellow]Aborted - no writes were made.[/yellow]"
 
 
 class InspectCommand(BaseCommand):
@@ -731,7 +732,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 "moving their notes/attachments to the master. This cannot be undone.[/yellow]"
             )
             if not Confirm.ask("Proceed?"):
-                console.print("[yellow]Aborted - no writes were made.[/yellow]")
+                console.print(ABORTED_NO_WRITES_MSG)
                 return
 
         result = service.merge(
@@ -814,7 +815,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 "This cannot be undone.[/yellow]"
             )
             if not Confirm.ask("Proceed?"):
-                console.print("[yellow]Aborted - no writes were made.[/yellow]")
+                console.print(ABORTED_NO_WRITES_MSG)
                 return
 
         result = service.execute_plan(plan, dry_run=False)
@@ -1088,7 +1089,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 "Zotero Desktop reads. Close Desktop first to avoid a database lock.[/yellow]"
             )
             if not Confirm.ask(f"Move '{item.title}' ({args.key}) to trash?"):
-                console.print("[yellow]Aborted - no writes were made.[/yellow]")
+                console.print(ABORTED_NO_WRITES_MSG)
                 return
 
         if gateway.trash_item(args.key):
@@ -1127,7 +1128,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 "Zotero Desktop reads. Close Desktop first to avoid a database lock.[/yellow]"
             )
             if not Confirm.ask(f"Restore '{item.title}' ({args.key}) from trash?"):
-                console.print("[yellow]Aborted - no writes were made.[/yellow]")
+                console.print(ABORTED_NO_WRITES_MSG)
                 return
 
         if gateway.restore_item(args.key):
