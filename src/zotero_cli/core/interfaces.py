@@ -478,7 +478,3 @@ class AuditService(ABC):
         pass
 
 
-class SpeechProvider(ABC):
-    @abstractmethod
-    def synthesize(self, text: str, output_path: Path) -> bool:
-        pass

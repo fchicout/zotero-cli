@@ -10,6 +10,9 @@ All notable changes to this project will be documented in this file.
 ### 🛡️ Quality & Infrastructure
 - **`ZoteroGateway.get_trash_items` declared in the contract (Issue #140):** `item_cmd.py::_handle_list` called `gateway.get_trash_items()` on a gateway typed `Any` (a workaround from the #132 mypy-strictness pass, since the real `ZoteroGateway` ABC didn't declare the method the concrete `ZoteroAPIClient` already implemented). Added `get_trash_items` to the `ZoteroGateway` ABC, implemented it on the offline `SqliteZoteroGateway` too (previously missing entirely - `item list --trash --offline` would have crashed with `AttributeError`), and retyped `_handle_list`'s `gateway` parameter back to the honest `ZoteroGateway` type.
 
+### 🔥 Removed
+- **Text-to-speech feature removed (Issue #149):** Deleted `item speech`, `core/services/speech_service.py`, `core/utils/speech_filter.py`, the `SpeechProvider` interface, `GatewayFactory.get_speech_service`, and the `tts_lang`/`tts_voice` config fields. Reading a paper aloud isn't part of Zotero library management or SLR tooling — this was flagged as a confirmed removal candidate in an external architecture review and never actioned. The `kokoro`/`soundfile` TTS engine was always a lazy runtime import, never a declared dependency, so no `pyproject.toml`/`uv.lock` change was needed.
+
 ## [2.8.3] - 2026-07-26
 
 Resolves both Known Issues disclosed in v2.8.2's release notes.

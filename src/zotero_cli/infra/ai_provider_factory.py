@@ -10,14 +10,13 @@ if TYPE_CHECKING:
         RAGService,
         VectorRepository,
     )
-    from zotero_cli.core.services.speech_service import SpeechService
 
 
 class AIProviderFactory:
     """
     Constructs the RAG subsystem's dependencies: the vector store, the
     embedding/LLM providers (local, OpenAI, or Gemini depending on config),
-    the composed RAGService, and the text-to-speech service.
+    and the composed RAGService.
     """
 
     @staticmethod
@@ -147,19 +146,3 @@ class AIProviderFactory:
             text_splitter=MarkdownRecursiveSplitter(chunk_size=1500),
             llm_provider=llm_provider,
         )
-
-    @staticmethod
-    def get_speech_service(config: Optional[ZoteroConfig] = None) -> "SpeechService":
-        if not config:
-            from zotero_cli.core.config import get_config
-
-            config = get_config()
-
-        from zotero_cli.core.services.speech_service import KokoroSpeechProvider, SpeechService
-        from zotero_cli.core.utils.speech_filter import TextCleaningFilter
-
-        provider = KokoroSpeechProvider(
-            lang_code=config.tts_lang or "a", voice=config.tts_voice or "af_heart"
-        )
-
-        return SpeechService(provider, TextCleaningFilter())
