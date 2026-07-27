@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import sys
-from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
@@ -791,7 +790,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             else "[red]Plan execution did not fully succeed - see warnings above.[/red]"
         )
 
-    def _handle_list(self, gateway: Any, args: argparse.Namespace) -> None:
+    def _handle_list(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         if getattr(args, "trash", False):
             items = list(gateway.get_trash_items())
             title = "Trash Items"

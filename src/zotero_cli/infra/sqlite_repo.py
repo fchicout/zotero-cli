@@ -130,10 +130,11 @@ class SqliteZoteroGateway(ZoteroGateway):
         return None
 
     def _fetch_items_with_filter(
-        self, filter_sql: str = "", params: tuple = ()
+        self, filter_sql: str = "", params: tuple = (), trash_only: bool = False
     ) -> Iterator[ZoteroItem]:
         conn = self._get_connection()
         try:
+            membership = "IN" if trash_only else "NOT IN"
             query_sql_template = """
                 SELECT i.key, i.version, i.libraryID, it.typeName,
                        (SELECT key FROM items WHERE itemID = i.parentItemID) as parentKey,
@@ -148,14 +149,16 @@ class SqliteZoteroGateway(ZoteroGateway):
                 LEFT JOIN itemData id ON i.itemID = id.itemID
                 LEFT JOIN fields f ON id.fieldID = f.fieldID
                 LEFT JOIN itemDataValues dv ON id.valueID = dv.valueID
-                WHERE i.itemID NOT IN (SELECT itemID FROM deletedItems)
+                WHERE i.itemID {membership} (SELECT itemID FROM deletedItems)
                   {filter_sql}
                 GROUP BY i.itemID
             """
-            # filter_sql is always a fixed literal fragment supplied by call sites in this
-            # file (never user input); actual values are passed via the parameterized
-            # `params` tuple below, not interpolated into the SQL text.
-            query_sql = query_sql_template.format(filter_sql=filter_sql)  # nosec B608
+            # filter_sql/membership are always fixed literal fragments supplied by call
+            # sites in this file (never user input); actual values are passed via the
+            # parameterized `params` tuple below, not interpolated into the SQL text.
+            query_sql = query_sql_template.format(
+                filter_sql=filter_sql, membership=membership
+            )  # nosec B608
             cursor = conn.execute(query_sql, params)
             for row in cursor:
                 creator_cursor = conn.execute(
@@ -341,6 +344,9 @@ class SqliteZoteroGateway(ZoteroGateway):
         if top_only:
             filter_sql += " AND i.parentItemID IS NULL"
         return self._fetch_items_with_filter(filter_sql)
+
+    def get_trash_items(self) -> Iterator[ZoteroItem]:
+        return self._fetch_items_with_filter(trash_only=True)
 
     def verify_credentials(self) -> bool:
         return os.path.exists(self.original_db_path)
