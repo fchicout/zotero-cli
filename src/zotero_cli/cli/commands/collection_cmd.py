@@ -208,6 +208,37 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         export_p.add_argument("--output", help="Output file path or directory (for md)")
 
+        # Purge
+        purge_p = sub.add_parser(
+            "purge",
+            help="Purge assets (files, notes, tags) from every item in a collection",
+            description="Permanently removes specific types of child assets (PDFs, notes, or tags) from every item in a collection, without deleting the items or the collection itself.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Clearing stale annotations before a re-screening pass
+Problem: My "Full Text Review" folder (Key: FT_01) has old notes and tags from a prior review round that no longer apply.
+Action:  zotero-cli collection purge --name "FT_01" --notes --tags
+Result:  All notes and tags are removed from every item in the collection, providing a clean slate.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Running this without at least one of --files/--notes/--tags - the command aborts with no changes. Forgetting --recursive when sub-collections also need purging.
+• Safety Tips: ALWAYS verify the collection with collection list before purging. This command is irreversible.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_purge.md
+""",
+        )
+        purge_p.add_argument("--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+        purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
+        purge_p.add_argument("--notes", action="store_true", help="Purge notes")
+        purge_p.add_argument("--tags", action="store_true", help="Purge tags")
+        purge_p.add_argument(
+            "--recursive", action="store_true", help="Apply the purge to sub-collections as well"
+        )
+        purge_p.add_argument("--force", action="store_true", help="Skip interactive confirmation")
+
     def execute(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)

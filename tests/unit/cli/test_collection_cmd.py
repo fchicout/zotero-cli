@@ -248,6 +248,44 @@ def test_collection_export_markdown_success(mock_gateway, mock_attachment_servic
     assert "Skipped (No PDF): 1" in out
 
 
+def test_collection_purge_subparser_is_reachable():
+    """Regression test for Issue #146: `purge` must have a registered
+    subparser, not just an `execute()` dispatch branch - argparse's
+    `required=True` subparser choice set otherwise rejects the command
+    before `_handle_purge` is ever reached (same bug class as #161)."""
+    parser = argparse.ArgumentParser()
+    CollectionCommand().register_args(parser)
+
+    args = parser.parse_args(
+        ["purge", "--name", "COL_KEY", "--files", "--notes", "--recursive", "--force"]
+    )
+
+    assert args.verb == "purge"
+    assert args.name == "COL_KEY"
+    assert args.files is True
+    assert args.notes is True
+    assert args.tags is False
+    assert args.recursive is True
+    assert args.force is True
+
+
+def test_collection_purge_no_asset_types_aborts(mock_purge_service, capsys):
+    args = argparse.Namespace(
+        verb="purge",
+        name="COL_KEY",
+        files=False,
+        notes=False,
+        tags=False,
+        force=True,
+        recursive=False,
+        user=False,
+    )
+    CollectionCommand().execute(args)
+
+    mock_purge_service.purge_collection_assets.assert_not_called()
+    assert "Specify what to purge" in capsys.readouterr().out
+
+
 def test_collection_purge_success(mock_purge_service, capsys):
     mock_purge_service.purge_collection_assets.return_value = {"deleted": 12, "errors": 0}
 

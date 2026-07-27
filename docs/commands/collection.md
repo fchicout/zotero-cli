@@ -124,15 +124,15 @@ zotero-cli collection export --name "COLLECTION_NAME" --format bibtex [--output 
 ---
 
 ### `purge`
-Purge specific assets (files, notes, tags) from all items in a collection.
+Permanently removes specific types of child assets (files, notes, tags) from every item in a collection, without deleting the items or the collection itself.
 
 **Usage:**
 ```bash
-zotero-cli collection purge "COLLECTION_NAME" --files --notes --tags --recursive
+zotero-cli collection purge --name "COLLECTION_NAME" --files --notes --tags --recursive
 ```
 
 **Parameters:**
-*   `name`: (Positional, Required) The collection Name or Key.
+*   `--name`: (Required) The collection Name or Key.
 *   `--files`: Purge attachments/files from all items in the collection.
 *   `--notes`: Purge notes from all items in the collection.
 *   `--tags`: Purge tags from all items in the collection.
