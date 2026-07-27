@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- **`collection purge` unreachable (Issue #146):** Registers the `purge` subparser that `_handle_purge` was missing (same dead-dispatch-branch bug class as #161) — `collection purge --name <NAME> --files --notes --tags` now actually works. Also corrected `docs/commands/collection.md`'s stale positional-argument example to the `--name` flag convention every other `collection` verb uses, and added `docs/help_specs/collection_purge.md` per the DOC-SPEC template.
+
 ## [2.8.3] - 2026-07-26
 
 Resolves both Known Issues disclosed in v2.8.2's release notes.
