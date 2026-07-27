@@ -348,6 +348,97 @@ class SqliteZoteroGateway(ZoteroGateway):
     def get_trash_items(self) -> Iterator[ZoteroItem]:
         return self._fetch_items_with_filter(trash_only=True)
 
+    # --- Narrow Write Exception: item trash/restore (Issue #145) ---
+    #
+    # Every other write in this class is forbidden (see OFFLINE_READ_ONLY
+    # below) because _get_connection()'s shadow-copy strategy makes writes
+    # pointless there -- they'd land on a throwaway temp file, not the real
+    # database. trash_item/restore_item are the sole exception: they open
+    # original_db_path directly and replicate, statement-for-statement, what
+    # Zotero Desktop's own Zotero.Items.trash()/trashTx() and
+    # `item.deleted = false; item.save()` write to zotero.sqlite (confirmed
+    # against Zotero's client source), so a CLI-initiated trash/restore is
+    # indistinguishable from one done in Desktop and safely picked up by
+    # Desktop's next real sync (synced=0 marks the row dirty; version is
+    # deliberately left untouched -- only the server bumps that on sync).
+
+    def _get_write_connection(self, timeout: float = 5.0) -> sqlite3.Connection:
+        """
+        Opens a direct connection to the real zotero.sqlite -- deliberately
+        NOT _get_connection()'s shadow copy, which is deleted on __del__ and
+        would silently discard any write made through it. `timeout` sets
+        SQLite's busy-retry window so a momentary lock (e.g. Desktop mid-write)
+        is retried rather than failing immediately.
+        """
+        conn = sqlite3.connect(self.original_db_path, timeout=timeout)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def trash_item(self, item_key: str) -> bool:
+        """
+        Moves an item to the trash, matching Desktop's Zotero.Items.trash():
+        bumps dateModified/clientDateModified, marks the row dirty (synced=0)
+        so Desktop's next sync pushes the deletion to the server, and adds a
+        deletedItems row. Idempotent (INSERT OR IGNORE), same as Desktop's own
+        query. Returns False if no item with this key exists.
+        """
+        conn = self._get_write_connection()
+        try:
+            row = conn.execute("SELECT itemID FROM items WHERE key = ?", (item_key,)).fetchone()
+            if not row:
+                return False
+            item_id = row["itemID"]
+            conn.execute(
+                "UPDATE items SET synced=0, clientDateModified=CURRENT_TIMESTAMP, "
+                "dateModified=CURRENT_TIMESTAMP WHERE itemID=?",
+                (item_id,),
+            )
+            conn.execute("INSERT OR IGNORE INTO deletedItems (itemID) VALUES (?)", (item_id,))
+            conn.commit()
+            return True
+        except sqlite3.OperationalError as e:
+            conn.rollback()
+            raise RuntimeError(
+                f"Could not write to zotero.sqlite ({e}). If Zotero Desktop is open and "
+                "busy, wait a moment and retry, or close it first."
+            ) from e
+        finally:
+            conn.close()
+
+    def restore_item(self, item_key: str) -> bool:
+        """
+        Reverses trash_item(), matching Desktop's `item.deleted = false;
+        item.save()` path: bumps dateModified/clientDateModified, marks the
+        row dirty (synced=0), and removes the deletedItems row. Does NOT
+        replicate Desktop's merge-relations cleanup (stripping dc:replaces
+        relations left by a prior `item merge` on this item) -- narrow edge
+        case, deliberately left untouched rather than guessing at the
+        Relations table's bookkeeping. Returns False if no item with this
+        key exists.
+        """
+        conn = self._get_write_connection()
+        try:
+            row = conn.execute("SELECT itemID FROM items WHERE key = ?", (item_key,)).fetchone()
+            if not row:
+                return False
+            item_id = row["itemID"]
+            conn.execute(
+                "UPDATE items SET dateModified=CURRENT_TIMESTAMP, synced=0, "
+                "clientDateModified=CURRENT_TIMESTAMP WHERE itemID=?",
+                (item_id,),
+            )
+            conn.execute("DELETE FROM deletedItems WHERE itemID=?", (item_id,))
+            conn.commit()
+            return True
+        except sqlite3.OperationalError as e:
+            conn.rollback()
+            raise RuntimeError(
+                f"Could not write to zotero.sqlite ({e}). If Zotero Desktop is open and "
+                "busy, wait a moment and retry, or close it first."
+            ) from e
+        finally:
+            conn.close()
+
     def verify_credentials(self) -> bool:
         return os.path.exists(self.original_db_path)
 

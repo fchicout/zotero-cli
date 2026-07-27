@@ -16,7 +16,7 @@ def mock_db():
     # Setup Zotero Schema
     conn.executescript("""
         CREATE TABLE itemTypes (itemTypeID INTEGER PRIMARY KEY, typeName TEXT);
-        CREATE TABLE items (itemID INTEGER PRIMARY KEY, key TEXT, version INTEGER, libraryID INTEGER, itemTypeID INTEGER, parentItemID INTEGER);
+        CREATE TABLE items (itemID INTEGER PRIMARY KEY, key TEXT, version INTEGER, libraryID INTEGER, itemTypeID INTEGER, parentItemID INTEGER, dateModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, clientDateModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, synced INTEGER DEFAULT 1);
         CREATE TABLE fields (fieldID INTEGER PRIMARY KEY, fieldName TEXT);
         CREATE TABLE itemData (itemID INTEGER, fieldID INTEGER, valueID INTEGER);
         CREATE TABLE itemDataValues (valueID INTEGER PRIMARY KEY, value TEXT);
@@ -32,9 +32,9 @@ def mock_db():
         CREATE TABLE deletedItems (itemID INTEGER PRIMARY KEY);
 
         INSERT INTO itemTypes VALUES (1, 'journalArticle'), (2, 'attachment');
-        INSERT INTO items VALUES (1, 'ITEMKEY1', 1, 0, 1, NULL);
-        INSERT INTO items VALUES (2, 'ITEMKEY2', 1, 0, 1, NULL);
-        INSERT INTO items VALUES (3, 'ITEMKEY3', 1, 0, 2, 2);
+        INSERT INTO items (itemID, key, version, libraryID, itemTypeID, parentItemID) VALUES (1, 'ITEMKEY1', 1, 0, 1, NULL);
+        INSERT INTO items (itemID, key, version, libraryID, itemTypeID, parentItemID) VALUES (2, 'ITEMKEY2', 1, 0, 1, NULL);
+        INSERT INTO items (itemID, key, version, libraryID, itemTypeID, parentItemID) VALUES (3, 'ITEMKEY3', 1, 0, 2, 2);
         INSERT INTO fields VALUES (1, 'title'), (2, 'abstractNote'), (3, 'date'), (4, 'DOI'), (5, 'url'), (6, 'extra');
         INSERT INTO itemData VALUES (1, 1, 1), (2, 1, 2), (3, 1, 3);
         INSERT INTO itemDataValues VALUES (1, 'Test Title'), (2, 'Orphan Parent Title'), (3, 'Orphan Attachment');
@@ -103,6 +103,58 @@ def test_sqlite_get_trash_items(mock_db):
     # Everything else must still exclude the trashed item, as before.
     all_items = list(gateway.search_items(ZoteroQuery()))
     assert {i.key for i in all_items} == {"ITEMKEY1", "ITEMKEY3"}
+
+
+def test_sqlite_trash_and_restore_item(mock_db):
+    """Regression test for Issue #145: item trash/restore in --offline mode
+    must write the same SQL Zotero Desktop itself writes (confirmed against
+    Desktop's actual client source): bump dateModified/clientDateModified,
+    mark the row dirty (synced=0) so Desktop's next sync picks it up, and
+    add/remove the deletedItems row. version must be left untouched."""
+    gateway = SqliteZoteroGateway(mock_db)
+
+    assert gateway.trash_item("ITEMKEY1") is True
+    assert gateway.trash_item("DOES_NOT_EXIST") is False
+
+    # Verify against a *fresh* gateway instance, since the shadow-copy read
+    # strategy means a stale gateway's own reads wouldn't reflect a write
+    # made through its write connection -- but real CLI usage always
+    # constructs a new gateway per invocation, so this is the honest check.
+    fresh = SqliteZoteroGateway(mock_db)
+    trashed = list(fresh.get_trash_items())
+    assert {i.key for i in trashed} == {"ITEMKEY1"}
+
+    conn = sqlite3.connect(mock_db)
+    row = conn.execute(
+        "SELECT synced, version FROM items WHERE key = 'ITEMKEY1'"
+    ).fetchone()
+    conn.close()
+    assert row[0] == 0  # synced=0, marked dirty for next real sync
+    assert row[1] == 1  # version untouched -- only the server bumps it
+
+    assert gateway.restore_item("ITEMKEY1") is True
+    assert gateway.restore_item("DOES_NOT_EXIST") is False
+
+    fresh2 = SqliteZoteroGateway(mock_db)
+    assert list(fresh2.get_trash_items()) == []
+
+
+def test_sqlite_trash_writes_to_real_file_not_shadow_copy(mock_db):
+    """The shadow-copy strategy (_get_connection) exists precisely so reads
+    never lock/touch the live file -- but that means it must NOT be reused
+    for writes, since writes to a throwaway temp copy would be silently
+    lost. This proves trash_item() writes to original_db_path directly."""
+    gateway = SqliteZoteroGateway(mock_db)
+    # Force the shadow copy to be created first.
+    gateway.get_all_collections()
+    assert gateway._temp_db_path is not None
+
+    gateway.trash_item("ITEMKEY1")
+
+    conn = sqlite3.connect(mock_db)  # the real file, not the shadow copy
+    count = conn.execute("SELECT COUNT(*) FROM deletedItems WHERE itemID = 1").fetchone()[0]
+    conn.close()
+    assert count == 1
 
 
 def test_sqlite_collection_items_top_only(mock_db):

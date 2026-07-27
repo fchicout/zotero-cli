@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### ✨ Features & Improvements
+- **`item trash`/`item restore`, Zotero-Desktop-compatible (Issue #145, Phase 1):** New offline-only commands that move an item to/from the trash by writing directly to the local `zotero.sqlite`, replicating exactly what Zotero Desktop's own client writes (confirmed against Desktop's real source: `Zotero.Items.trash()`/`trashTx()` and `item.deleted = false; item.save()`) — bumps `dateModified`/`clientDateModified`, marks the row dirty (`synced=0`) so Desktop's next real sync pushes the change to the server, and adds/removes a `deletedItems` row. `version` is deliberately left untouched, matching Desktop (only the server bumps it on sync). This is the first write path ever added to the previously fully-read-only `SqliteZoteroGateway`; every other offline mutation still raises `Offline mode is read-only`. Preview-only by default (`--execute` required, confirmation prompt unless `--force`); rejected outright against an online/API gateway, which has no documented reversible trash write. Does not replicate Desktop's merge-relations cleanup on restore (stripping `dc:replaces` relations from a prior `item merge`) — narrow edge case, documented as a known limitation rather than guessed at. Phase 2 (online mode) is intentionally out of scope for this change.
+
 ### 🐛 Bug Fixes
 - **`collection purge` unreachable (Issue #146):** Registers the `purge` subparser that `_handle_purge` was missing (same dead-dispatch-branch bug class as #161) — `collection purge --name <NAME> --files --notes --tags` now actually works. Also corrected `docs/commands/collection.md`'s stale positional-argument example to the `--name` flag convention every other `collection` verb uses, and added `docs/help_specs/collection_purge.md` per the DOC-SPEC template.
 

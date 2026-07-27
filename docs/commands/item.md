@@ -99,6 +99,36 @@ zotero-cli item delete --key "ITEMKEY"
 
 ---
 
+### `trash`
+Moves an item into Zotero's trash, in `--offline` mode only, by writing directly to the local `zotero.sqlite` the same way Zotero Desktop's own client writes it (bumps `dateModified`/`clientDateModified`, marks the row dirty so Desktop's next sync pushes the change to the server, adds a `deletedItems` row - `version` is left untouched). Preview-only by default. Not supported in online/API mode, which has no documented reversible trash write - see `item delete` for the permanent alternative there.
+
+**Usage:**
+```bash
+zotero-cli item trash --key "ITEMKEY" --offline --execute
+```
+
+**Parameters:**
+*   `--key`: (Required) The Zotero Item Key.
+*   `--execute`: Actually perform the write (default: preview only).
+*   `--force`: Skip the interactive confirmation prompt.
+
+---
+
+### `restore`
+Reverses `item trash`: removes an item from the trash, in `--offline` mode only, writing the same way Zotero Desktop's own client writes a restore. Does not undo any prior `item merge` relations left on the item - see `docs/help_specs/item_restore.md` for that known limitation.
+
+**Usage:**
+```bash
+zotero-cli item restore --key "ITEMKEY" --offline --execute
+```
+
+**Parameters:**
+*   `--key`: (Required) The Zotero Item Key.
+*   `--execute`: Actually perform the write (default: preview only).
+*   `--force`: Skip the interactive confirmation prompt.
+
+---
+
 ### `hydrate`
 
 Retroactively fetches latest metadata (DOI and Journal/Publication) for items originating from ArXiv. This is useful for "hydrating" pre-prints that were published in a peer-reviewed journal after they were added to Zotero.

@@ -13,6 +13,7 @@ from zotero_cli.infra.factory import GatewayFactory
 console = Console()
 
 ITEM_KEY_HELP = "Item Key"
+ABORTED_NO_WRITES_MSG = "[yellow]Aborted - no writes were made.[/yellow]"
 
 
 class InspectCommand(BaseCommand):
@@ -425,6 +426,66 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--version", type=int, help="Current version (auto-resolved if omitted)"
         )
 
+        # Trash
+        trash_p = sub.add_parser(
+            "trash",
+            help="Move an item to the trash (--offline mode only)",
+            description="Moves an item into Zotero's trash by writing directly to the local zotero.sqlite, replicating exactly what Zotero Desktop itself writes when you delete an item from its UI (bumps dateModified/clientDateModified, marks the row dirty so Desktop's next sync pushes the change to the server, adds a deletedItems row). Only supported in --offline mode: the Zotero Web API has no documented, reversible trash write, only a permanent DELETE - see `item delete`.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Cleaning up a duplicate found while working offline
+Problem: I want to trash item ABCD1234 in my local library, the same as clicking delete in Zotero Desktop.
+Action:  zotero-cli item trash --key "ABCD1234" --offline --execute
+Result:  The item is moved to the trash in zotero.sqlite. It appears in Zotero Desktop's trash next time Desktop opens or syncs.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Running without --offline (not supported in online/API mode); running while Zotero Desktop is actively writing to the same file - fails cleanly with a lock error, just retry or close Desktop first.
+• Safety Tips: Close Zotero Desktop first to avoid a database lock. Reversible via `item restore`, unless you also run Desktop's "Empty Trash".
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_trash.md
+""",
+        )
+        trash_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
+        trash_p.add_argument(
+            "--execute", action="store_true", help="Actually perform the write (default: preview only)"
+        )
+        trash_p.add_argument(
+            "--force", action="store_true", help="Skip the interactive confirmation prompt"
+        )
+
+        # Restore
+        restore_p = sub.add_parser(
+            "restore",
+            help="Restore an item from the trash (--offline mode only)",
+            description="Restores a trashed item by writing directly to the local zotero.sqlite, replicating exactly what Zotero Desktop itself writes when you restore an item from its trash (bumps dateModified/clientDateModified, marks the row dirty so Desktop's next sync pushes the change to the server, removes the deletedItems row). Only supported in --offline mode. Does not undo any prior `item merge` relations left on the item - a narrow edge case left untouched rather than guessed at.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Undoing an accidental trash
+Problem: I ran `item trash --key ABCD1234 --execute` by mistake and want it back.
+Action:  zotero-cli item restore --key "ABCD1234" --offline --execute
+Result:  The item is removed from the trash in zotero.sqlite and appears normally again in Zotero Desktop.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: Running without --offline (not supported in online/API mode); trying to restore an item Desktop's "Empty Trash" already permanently deleted - restore only works before that point.
+• Safety Tips: Close Zotero Desktop first to avoid a database lock.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_restore.md
+""",
+        )
+        restore_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
+        restore_p.add_argument(
+            "--execute", action="store_true", help="Actually perform the write (default: preview only)"
+        )
+        restore_p.add_argument(
+            "--force", action="store_true", help="Skip the interactive confirmation prompt"
+        )
+
         # Transfer
         transfer_p = sub.add_parser(
             "transfer",
@@ -577,6 +638,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             self._handle_update(gateway, args)
         elif args.verb == "delete":
             self._handle_delete(gateway, args)
+        elif args.verb == "trash":
+            self._handle_trash(gateway, args)
+        elif args.verb == "restore":
+            self._handle_restore(gateway, args)
         elif args.verb == "pdf":
             self._handle_pdf_ops(args)
         elif args.verb == "hydrate":
@@ -667,7 +732,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 "moving their notes/attachments to the master. This cannot be undone.[/yellow]"
             )
             if not Confirm.ask("Proceed?"):
-                console.print("[yellow]Aborted - no writes were made.[/yellow]")
+                console.print(ABORTED_NO_WRITES_MSG)
                 return
 
         result = service.merge(
@@ -750,7 +815,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 "This cannot be undone.[/yellow]"
             )
             if not Confirm.ask("Proceed?"):
-                console.print("[yellow]Aborted - no writes were made.[/yellow]")
+                console.print(ABORTED_NO_WRITES_MSG)
                 return
 
         result = service.execute_plan(plan, dry_run=False)
@@ -991,6 +1056,85 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             print(f"Deleted item {args.key} successfully.")
         else:
             print(f"Failed to delete item {args.key}.")
+
+    def _handle_trash(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
+        from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
+
+        if not isinstance(gateway, SqliteZoteroGateway):
+            console.print(
+                "[red]Error:[/red] `item trash` currently only supports [bold]--offline[/bold] "
+                "mode. The Zotero Web API has no documented, reversible trash write - only a "
+                "permanent DELETE (see `item delete`)."
+            )
+            return
+
+        item = gateway.get_item(args.key)
+        if not item:
+            console.print(f"[bold red]Item '{args.key}' not found.[/bold red]")
+            return
+
+        if not args.execute:
+            console.print(
+                f"[yellow]Preview only[/yellow] - would move '[cyan]{item.title}[/cyan]' "
+                f"([magenta]{args.key}[/magenta]) to the trash in zotero.sqlite. Re-run with "
+                "--execute to apply."
+            )
+            return
+
+        if not args.force:
+            from rich.prompt import Confirm
+
+            console.print(
+                "[yellow]This writes directly to your local zotero.sqlite, the same file "
+                "Zotero Desktop reads. Close Desktop first to avoid a database lock.[/yellow]"
+            )
+            if not Confirm.ask(f"Move '{item.title}' ({args.key}) to trash?"):
+                console.print(ABORTED_NO_WRITES_MSG)
+                return
+
+        if gateway.trash_item(args.key):
+            console.print(f"[bold green]Moved to trash:[/bold green] {args.key}")
+        else:
+            console.print(f"[bold red]Failed to trash item {args.key}.[/bold red]")
+
+    def _handle_restore(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
+        from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
+
+        if not isinstance(gateway, SqliteZoteroGateway):
+            console.print(
+                "[red]Error:[/red] `item restore` currently only supports [bold]--offline[/bold] "
+                "mode."
+            )
+            return
+
+        item = gateway.get_item(args.key)
+        if not item:
+            console.print(f"[bold red]Item '{args.key}' not found.[/bold red]")
+            return
+
+        if not args.execute:
+            console.print(
+                f"[yellow]Preview only[/yellow] - would restore '[cyan]{item.title}[/cyan]' "
+                f"([magenta]{args.key}[/magenta]) from the trash in zotero.sqlite. Re-run with "
+                "--execute to apply."
+            )
+            return
+
+        if not args.force:
+            from rich.prompt import Confirm
+
+            console.print(
+                "[yellow]This writes directly to your local zotero.sqlite, the same file "
+                "Zotero Desktop reads. Close Desktop first to avoid a database lock.[/yellow]"
+            )
+            if not Confirm.ask(f"Restore '{item.title}' ({args.key}) from trash?"):
+                console.print(ABORTED_NO_WRITES_MSG)
+                return
+
+        if gateway.restore_item(args.key):
+            console.print(f"[bold green]Restored from trash:[/bold green] {args.key}")
+        else:
+            console.print(f"[bold red]Failed to restore item {args.key}.[/bold red]")
 
     def _handle_update(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         import json
