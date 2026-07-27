@@ -32,8 +32,6 @@ class ZoteroConfig:
     generative_provider: str = "auto"
     generative_model: Optional[str] = None
     huggingface_token: Optional[str] = None
-    tts_lang: Optional[str] = None
-    tts_voice: Optional[str] = None
 
     def is_valid(self) -> bool:
         return bool(self.api_key and self.library_id)
@@ -126,8 +124,6 @@ class ConfigLoader:
         )
         gen_model = os.environ.get("GENERATIVE_MODEL") or file_config.get("generative_model")
         hf_token = os.environ.get("HUGGINGFACE_TOKEN") or file_config.get("huggingface_token")
-        tts_lang = os.environ.get("TTS_LANG") or file_config.get("tts_lang")
-        tts_voice = os.environ.get("TTS_VOICE") or file_config.get("tts_voice")
 
         storage_path = os.environ.get("ZOTERO_STORAGE_PATH") or file_config.get("storage_path")
         database_path = os.environ.get("ZOTERO_DATABASE_PATH") or file_config.get("database_path")
@@ -150,8 +146,6 @@ class ConfigLoader:
             generative_provider=gen_provider,
             generative_model=gen_model,
             huggingface_token=hf_token,
-            tts_lang=tts_lang,
-            tts_voice=tts_voice,
         )
 
     def _load_from_file(self) -> Dict[str, Any]:

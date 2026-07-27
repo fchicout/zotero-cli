@@ -51,7 +51,6 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.snowball_graph import SnowballGraphService
     from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
     from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
-    from zotero_cli.core.services.speech_service import SpeechService
     from zotero_cli.core.services.tag_service import TagService
     from zotero_cli.core.services.transfer_service import TransferService
     from zotero_cli.core.services.verify_service import VerifyService
@@ -444,7 +443,3 @@ class GatewayFactory:
         offline: Optional[bool] = None,
     ) -> "RAGService":
         return AIProviderFactory.get_rag_service(config, force_user, offline)
-
-    @staticmethod
-    def get_speech_service(config: Optional[ZoteroConfig] = None) -> "SpeechService":
-        return AIProviderFactory.get_speech_service(config)
