@@ -368,3 +368,181 @@ def test_item_delete_missing_item(mock_clients, env_vars, capsys):
 
     gateway.delete_item.assert_not_called()
     assert "Error: Item MISSING not found." in capsys.readouterr().out
+
+
+def test_item_trash_subparser_is_reachable():
+    """Regression test for Issue #145: `trash`/`restore` must have registered
+    subparsers, not just execute() dispatch branches (same bug class as
+    #146/#161)."""
+    parser = argparse.ArgumentParser()
+    ItemCommand().register_args(parser)
+
+    args = parser.parse_args(["trash", "--key", "ABCD1234", "--execute", "--force"])
+    assert args.verb == "trash"
+    assert args.key == "ABCD1234"
+    assert args.execute is True
+    assert args.force is True
+
+
+def test_item_restore_subparser_is_reachable():
+    parser = argparse.ArgumentParser()
+    ItemCommand().register_args(parser)
+
+    args = parser.parse_args(["restore", "--key", "ABCD1234"])
+    assert args.verb == "restore"
+    assert args.key == "ABCD1234"
+    assert args.execute is False
+    assert args.force is False
+
+
+def test_item_trash_online_mode_rejected(env_vars, capsys):
+    from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get:
+        gateway = MagicMock(spec=ZoteroAPIClient)
+        mock_get.return_value = gateway
+
+        args = MagicMock()
+        args.verb = "trash"
+        args.key = "ABCD1234"
+        args.execute = True
+        args.force = True
+        args.user = False
+
+        ItemCommand().execute(args)
+
+    # ZoteroAPIClient (the online gateway) has no trash_item/restore_item
+    # method at all -- calling one would raise AttributeError on this
+    # spec'd mock, so a clean rejection message (and no such call) is the
+    # only possible correct outcome here.
+    assert "only supports --offline mode" in capsys.readouterr().out
+
+
+def test_item_restore_online_mode_rejected(env_vars, capsys):
+    from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get:
+        gateway = MagicMock(spec=ZoteroAPIClient)
+        mock_get.return_value = gateway
+
+        args = MagicMock()
+        args.verb = "restore"
+        args.key = "ABCD1234"
+        args.execute = True
+        args.force = True
+        args.user = False
+
+        ItemCommand().execute(args)
+
+    assert "only supports --offline mode" in capsys.readouterr().out
+
+
+def test_item_trash_preview_only_without_execute(env_vars, capsys):
+    from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
+
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get:
+        gateway = MagicMock(spec=SqliteZoteroGateway)
+        gateway.get_item.return_value = MagicMock(title="Some Paper")
+        mock_get.return_value = gateway
+
+        args = MagicMock()
+        args.verb = "trash"
+        args.key = "ABCD1234"
+        args.execute = False
+        args.force = False
+        args.user = False
+
+        ItemCommand().execute(args)
+
+    gateway.trash_item.assert_not_called()
+    assert "Preview only" in capsys.readouterr().out
+
+
+def test_item_trash_missing_item(env_vars, capsys):
+    from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
+
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get:
+        gateway = MagicMock(spec=SqliteZoteroGateway)
+        gateway.get_item.return_value = None
+        mock_get.return_value = gateway
+
+        args = MagicMock()
+        args.verb = "trash"
+        args.key = "MISSING"
+        args.execute = True
+        args.force = True
+        args.user = False
+
+        ItemCommand().execute(args)
+
+    gateway.trash_item.assert_not_called()
+    assert "not found" in capsys.readouterr().out
+
+
+def test_item_trash_execute_force_writes(env_vars, capsys):
+    from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
+
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get:
+        gateway = MagicMock(spec=SqliteZoteroGateway)
+        gateway.get_item.return_value = MagicMock(title="Some Paper")
+        gateway.trash_item.return_value = True
+        mock_get.return_value = gateway
+
+        args = MagicMock()
+        args.verb = "trash"
+        args.key = "ABCD1234"
+        args.execute = True
+        args.force = True
+        args.user = False
+
+        ItemCommand().execute(args)
+
+    gateway.trash_item.assert_called_once_with("ABCD1234")
+    assert "Moved to trash" in capsys.readouterr().out
+
+
+def test_item_restore_execute_force_writes(env_vars, capsys):
+    from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
+
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get:
+        gateway = MagicMock(spec=SqliteZoteroGateway)
+        gateway.get_item.return_value = MagicMock(title="Some Paper")
+        gateway.restore_item.return_value = True
+        mock_get.return_value = gateway
+
+        args = MagicMock()
+        args.verb = "restore"
+        args.key = "ABCD1234"
+        args.execute = True
+        args.force = True
+        args.user = False
+
+        ItemCommand().execute(args)
+
+    gateway.restore_item.assert_called_once_with("ABCD1234")
+    assert "Restored from trash" in capsys.readouterr().out
+
+
+def test_item_trash_execute_without_force_prompts_and_aborts(env_vars, capsys):
+    from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
+
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get,
+        patch("rich.prompt.Confirm.ask", return_value=False) as mock_confirm,
+    ):
+        gateway = MagicMock(spec=SqliteZoteroGateway)
+        gateway.get_item.return_value = MagicMock(title="Some Paper")
+        mock_get.return_value = gateway
+
+        args = MagicMock()
+        args.verb = "trash"
+        args.key = "ABCD1234"
+        args.execute = True
+        args.force = False
+        args.user = False
+
+        ItemCommand().execute(args)
+
+    mock_confirm.assert_called_once()
+    gateway.trash_item.assert_not_called()
+    assert "Aborted" in capsys.readouterr().out
