@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
-from zotero_cli.core.config import ZoteroConfig, get_storage_dir
+from zotero_cli.core.config import ZoteroConfig, get_config, get_storage_dir
 from zotero_cli.infra.metadata_client_factory import MetadataClientFactory
 from zotero_cli.infra.repository_factory import RepositoryFactory
 from zotero_cli.infra.resolver_factory import ResolverFactory
@@ -325,9 +325,15 @@ class ServiceFactory:
 
         repo = SqliteJobRepository(db_path)
 
+        # Scope jobs to the active library (Issue #150): a config directory
+        # can in principle be shared or omitted across invocations, and
+        # without this, two SLR projects would silently share one job pool.
+        resolved_config = config or get_config()
+        library_id = resolved_config.library_id or resolved_config.user_id or "default"
+
         from zotero_cli.core.services.job_queue_service import JobQueueService
 
-        return JobQueueService(repo)
+        return JobQueueService(repo, library_id=library_id)
 
     @staticmethod
     def get_pdf_finder_service(

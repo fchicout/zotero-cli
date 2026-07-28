@@ -253,7 +253,7 @@ def test_system_jobs_list(system_cmd, capsys):
         mock_job.next_retry_at = None
         mock_job.last_error = None
 
-        mock_job_service.repo.list_jobs.return_value = [mock_job]
+        mock_job_service.list_jobs.return_value = [mock_job]
 
         args = argparse.Namespace(verb="jobs", jobs_verb="list", type=None, limit=50)
         system_cmd.execute(args)
@@ -356,10 +356,10 @@ def test_system_jobs_watch(system_cmd, capsys):
                 return [mock_job]
             return []
 
-        mock_job_service.repo.list_jobs.side_effect = list_jobs_side_effect
+        mock_job_service.list_jobs.side_effect = list_jobs_side_effect
 
         args = argparse.Namespace(
             verb="jobs", jobs_verb="run", type="fetch_pdf", count=None, watch=True
         )
         system_cmd.execute(args)
-        assert mock_job_service.repo.list_jobs.called
+        assert mock_job_service.list_jobs.called

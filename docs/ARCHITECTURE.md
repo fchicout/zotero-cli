@@ -148,6 +148,18 @@ needless overhead. The two are not meant to converge.
 }
 ```
 
+## Background Job Queue: Execution Model (Issue #150)
+
+`JobQueueService` (`core/services/job_queue_service.py`, SQLite-backed via `SqliteJobRepository`) is used by `PDFFinderService` and `SnowballDiscoveryWorker` to persist and retry async work. This section settles how a consumer like Corbenic-SLR (whose SRS commits to sourcing async job status from this queue, `NOTIFY-2`) is meant to integrate with it, once for every job-queue-backed feature rather than per-feature.
+
+**1. Execution model: `zotero-cli` does not grow a daemon.** `system jobs run --count N` (and `--watch`, a progress monitor that drains until the queue is empty then exits) remain the only ways to process jobs; there is deliberately no `--daemon`/continuous-loop mode. This matches the project's existing identity as a CLI tool + library, not a hosted service - the one already-existing exception, `serve`, is explicitly opt-in and gated by a human-invocation-only safety boundary (see "Agent safety boundaries" in `CLAUDE.md`) precisely because a long-running, unauthenticated process is a meaningfully larger operational commitment (crash recovery, log rotation, restart policy) than a CLI invocation. Consumers that need continuous draining (Corbenic-SLR's own backend) own that scheduling themselves - e.g. a Celery-style periodic task invoking `system jobs run --count N` - treating `zotero-cli` purely as a CLI/library dependency, consistent with the git-dependency distribution model below.
+
+**2. API surface: `GET /jobs` and `GET /jobs/{id}`** (`api/routes/jobs.py`) expose read-only job status through `serve`'s existing FastAPI layer, so a consumer observes status through the service/API layer rather than reading `jobs.sqlite` directly - the same boundary already established for the rest of `api/routes/`.
+
+**3. Multi-tenancy: `library_id` scoping, not incidental isolation.** Before this issue, `jobs.sqlite`'s location was derived from the active config file's directory with no scoping inside the table itself - two SLR projects sharing (or, more likely, both omitting) `--config` would have silently pooled their jobs together with no way to tell them apart. `JobQueueService` now takes a `library_id` (resolved by `ServiceFactory.get_job_queue_service` as `config.library_id or config.user_id or "default"`) that tags every job it enqueues and filters every read; a `NULL` `library_id` (jobs enqueued before this migration existed) is treated as legacy/unscoped and stays visible to every queue rather than becoming silently orphaned. The `/jobs/{id}` route applies the same scoping, returning 404 rather than another library's job.
+
+**4. WAL mode is deliberate.** `SqliteJobRepository` now explicitly sets `PRAGMA journal_mode=WAL` on connect, so a status-polling reader (the API route, or a human running `system jobs list`) doesn't block behind an in-flight writer (a worker popping/completing a job) the way the default rollback-journal mode would once this queue is driven by a web backend instead of a single local CLI invocation.
+
 ## Distribution: Consuming `zotero-cli` as a Library
 
 `zotero-cli` is not published to PyPI - `.github/workflows/release.yml` only builds PyInstaller `--onefile` binaries for GitHub Releases, there is no `twine`/PyPI publish step. `pyproject.toml` uses a standard `setuptools.build_meta` backend, so the package is structurally installable; it just isn't published anywhere a `pip install zotero-cli` could reach.
