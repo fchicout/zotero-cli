@@ -503,8 +503,10 @@ class TestSLRReportCommandShift:
         new_snap.write_text(json.dumps({"items": []}))
 
         args = argparse.Namespace(report_verb="shift", old=str(old_snap), new=str(new_snap))
-        with patch("zotero_cli.cli.commands.slr.report_cmd.CollectionAuditor") as mock_aud:
-            mock_aud.return_value.detect_shifts.return_value = []
+        with patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_snapshot_diff_service"
+        ) as mock_get_diff:
+            mock_get_diff.return_value.detect_shifts.return_value = []
             SLRReportCommand.execute(mock_gateway, args)
 
         out = capsys.readouterr().out
@@ -522,8 +524,10 @@ class TestSLRReportCommandShift:
             {"key": "K1", "title": "Paper A", "from": ["raw_ieee"], "to": ["1-title_abstract"]}
         ]
         args = argparse.Namespace(report_verb="shift", old=str(old_snap), new=str(new_snap))
-        with patch("zotero_cli.cli.commands.slr.report_cmd.CollectionAuditor") as mock_aud:
-            mock_aud.return_value.detect_shifts.return_value = shifts
+        with patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_snapshot_diff_service"
+        ) as mock_get_diff:
+            mock_get_diff.return_value.detect_shifts.return_value = shifts
             SLRReportCommand.execute(mock_gateway, args)
 
         out = capsys.readouterr().out
@@ -536,8 +540,10 @@ class TestSLRReportCommandSnapshot:
 
         out_file = str(tmp_path / "snap.json")
         args = argparse.Namespace(report_verb="snapshot", collection="TestCol", output=out_file)
-        with patch("zotero_cli.cli.commands.slr.report_cmd.SnapshotService") as mock_svc:
-            mock_svc.return_value.freeze_collection.return_value = True
+        with patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_snapshot_writer_service"
+        ) as mock_get_writer:
+            mock_get_writer.return_value.freeze_collection.return_value = True
             SLRReportCommand.execute(mock_gateway, args)
 
         out = capsys.readouterr().out
@@ -548,8 +554,10 @@ class TestSLRReportCommandSnapshot:
 
         out_file = str(tmp_path / "snap.json")
         args = argparse.Namespace(report_verb="snapshot", collection="TestCol", output=out_file)
-        with patch("zotero_cli.cli.commands.slr.report_cmd.SnapshotService") as mock_svc:
-            mock_svc.return_value.freeze_collection.return_value = False
+        with patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_snapshot_writer_service"
+        ) as mock_get_writer:
+            mock_get_writer.return_value.freeze_collection.return_value = False
             with pytest.raises(SystemExit):
                 SLRReportCommand.execute(mock_gateway, args)
 

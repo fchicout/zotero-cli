@@ -1,37 +1,8 @@
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Optional, Set
 
-from zotero_cli.core.interfaces import ItemRepository, ZoteroGateway
-from zotero_cli.core.services.slr.csv_inbound import CSVInboundService
-from zotero_cli.core.services.slr.integrity import AuditReport, IntegrityService
-from zotero_cli.core.services.slr.snapshot import SnapshotService
-
-
-class CollectionAuditor:
-    """
-    DEPRECATED: Use IntegrityService, SnapshotService, or CSVInboundService directly.
-    Maintained for backward compatibility during Phase B.
-    """
-
-    def __init__(self, gateway: ZoteroGateway):
-        self.gateway = gateway
-        self.integrity = IntegrityService(gateway)
-        self.snapshot = SnapshotService()
-        self.csv_inbound = CSVInboundService(gateway)
-
-    def audit_collection(self, collection_name: str) -> Optional[AuditReport]:
-        return self.integrity.audit_collection(collection_name)
-
-    def detect_shifts(self, snapshot_old: List[dict], snapshot_new: List[dict]) -> List[dict]:
-        return self.snapshot.detect_shifts(snapshot_old, snapshot_new)
-
-    def enrich_from_csv(self, csv_path: str, **kwargs: Any) -> Dict[str, Any]:
-        return self.csv_inbound.enrich_from_csv(csv_path=csv_path, **kwargs)
-
-    def _audit_children(self, item_key: str) -> tuple[bool, bool]:
-        """Backward compatibility for tests."""
-        return self.integrity._audit_children(item_key)
+from zotero_cli.core.interfaces import ItemRepository
 
 
 class AuditService:

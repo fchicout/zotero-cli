@@ -52,7 +52,7 @@ The application follows a **Hexagonal Architecture** (Ports & Adapters) variant.
         *   `MetadataAggregatorService`: Merges data from multiple sources.
         *   `CitationGraphService`: Builds Graphviz DOT files.
         *   `DuplicateFinder`: Identifies dupes by DOI/Title.
-        *   `CollectionAuditor`: Verifies item completeness.
+        *   `IntegrityService`: Verifies item completeness.
 
 4.  **Infrastructure Layer (`zotero_cli.infra`)**
     *   **Responsibility:** Implementation of interfaces (Gateways).
@@ -93,6 +93,16 @@ sequenceDiagram
 
 ### 1. Snapshot Artifact (`report snapshot`)
 The snapshot command produces a single JSON file that serves as an immutable audit trail for a collection.
+Written by `core/services/snapshot_service.py::SnapshotWriter`; diffed between two runs by
+`core/services/slr/snapshot.py::SnapshotDiffService` (`slr report shift`'s `detect_shifts`). These two
+classes both used to be named `SnapshotService` — same name, different modules, different jobs — which was
+confusing enough to become its own issue (#148); they were renamed to make the split explicit.
+
+This is intentionally a separate, lighter-weight format from `system backup`'s ZAF archives
+(`core/services/backup_service.py::BackupService`): ZAF is a full-fidelity zip (attachments + manifest +
+checksums) meant for disaster recovery/restore, whereas this JSON artifact exists purely to be diffed by
+`slr report shift` — pulling a full ZAF just to compare which collections an item belongs to would be
+needless overhead. The two are not meant to converge.
 
 **Schema Version:** 1.0
 

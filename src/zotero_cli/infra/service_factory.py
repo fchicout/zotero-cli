@@ -27,8 +27,9 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.slr.dedupe_service import SLRDedupeService
     from zotero_cli.core.services.slr.integrity import IntegrityService
     from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
-    from zotero_cli.core.services.slr.snapshot import SnapshotService
+    from zotero_cli.core.services.slr.snapshot import SnapshotDiffService
     from zotero_cli.core.services.slr.status_service import SLRStatusService
+    from zotero_cli.core.services.snapshot_service import SnapshotWriter
     from zotero_cli.core.services.tag_service import TagService
     from zotero_cli.core.services.transfer_service import TransferService
     from zotero_cli.core.services.verify_service import VerifyService
@@ -179,10 +180,22 @@ class ServiceFactory:
         return IntegrityService(gateway)
 
     @staticmethod
-    def get_snapshot_service() -> "SnapshotService":
-        from zotero_cli.core.services.slr.snapshot import SnapshotService
+    def get_snapshot_diff_service() -> "SnapshotDiffService":
+        from zotero_cli.core.services.slr.snapshot import SnapshotDiffService
 
-        return SnapshotService()
+        return SnapshotDiffService()
+
+    @staticmethod
+    def get_snapshot_writer_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "SnapshotWriter":
+        collection_repo = RepositoryFactory.get_collection_repository(config, force_user, offline=offline)
+        item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
+        from zotero_cli.core.services.snapshot_service import SnapshotWriter
+
+        return SnapshotWriter(collection_repo, item_repo)
 
     @staticmethod
     def get_csv_inbound_service(

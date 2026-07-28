@@ -46,8 +46,9 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.slr.dedupe_service import SLRDedupeService
     from zotero_cli.core.services.slr.integrity import IntegrityService
     from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
-    from zotero_cli.core.services.slr.snapshot import SnapshotService
+    from zotero_cli.core.services.slr.snapshot import SnapshotDiffService
     from zotero_cli.core.services.slr.status_service import SLRStatusService
+    from zotero_cli.core.services.snapshot_service import SnapshotWriter
     from zotero_cli.core.services.snowball_graph import SnowballGraphService
     from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
     from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
@@ -237,8 +238,16 @@ class GatewayFactory:
         return ServiceFactory.get_integrity_service(config, force_user, offline)
 
     @staticmethod
-    def get_snapshot_service() -> "SnapshotService":
-        return ServiceFactory.get_snapshot_service()
+    def get_snapshot_diff_service() -> "SnapshotDiffService":
+        return ServiceFactory.get_snapshot_diff_service()
+
+    @staticmethod
+    def get_snapshot_writer_service(
+        config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
+        offline: Optional[bool] = None,
+    ) -> "SnapshotWriter":
+        return ServiceFactory.get_snapshot_writer_service(config, force_user, offline)
 
     @staticmethod
     def get_csv_inbound_service(
