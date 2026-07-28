@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from zotero_cli.core.services.snapshot_service import SnapshotService
+from zotero_cli.core.services.snapshot_service import SnapshotWriter
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -14,7 +14,7 @@ def mock_gateway():
 
 @pytest.fixture
 def snapshot_service(mock_gateway):
-    return SnapshotService(mock_gateway, mock_gateway)
+    return SnapshotWriter(mock_gateway, mock_gateway)
 
 
 def test_freeze_collection_success(snapshot_service, mock_gateway, tmp_path):

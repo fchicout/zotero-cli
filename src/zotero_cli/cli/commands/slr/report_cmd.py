@@ -8,11 +8,9 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.services.audit_service import CollectionAuditor
 from zotero_cli.core.services.graph_service import CitationGraphService
 from zotero_cli.core.services.report_service import ReportService
 from zotero_cli.core.services.slr.status_service import PhaseStats
-from zotero_cli.core.services.snapshot_service import SnapshotService
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -355,7 +353,7 @@ class SLRReportCommand:
 
     @staticmethod
     def _handle_shift(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
-        service = CollectionAuditor(gateway)
+        service = GatewayFactory.get_snapshot_diff_service()
         with open(args.old, "r") as f:
             old_data = json.load(f)
             snap_old = old_data.get("items", old_data) if isinstance(old_data, dict) else old_data
@@ -385,7 +383,8 @@ class SLRReportCommand:
 
     @staticmethod
     def _handle_snapshot(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
-        service = SnapshotService(gateway, gateway)
+        force_user = getattr(args, "user", False)
+        service = GatewayFactory.get_snapshot_writer_service(force_user=force_user)
 
         def cli_progress(current: int, total: int, msg: str) -> None:
             percent = (current / total * 100) if total > 0 else 0

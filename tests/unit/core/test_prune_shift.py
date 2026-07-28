@@ -2,8 +2,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from zotero_cli.core.services.audit_service import CollectionAuditor
 from zotero_cli.core.services.collection_service import CollectionService
+from zotero_cli.core.services.slr.snapshot import SnapshotDiffService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -82,8 +82,8 @@ def test_analyze_shift():
         {"key": "B", "title": "Paper B", "collections": ["Raw"]},  # Same
     ]
 
-    auditor = CollectionAuditor(Mock())
-    shifts = auditor.detect_shifts(snap_old, snap_new)
+    diff_service = SnapshotDiffService()
+    shifts = diff_service.detect_shifts(snap_old, snap_new)
 
     assert len(shifts) == 1
     assert shifts[0]["key"] == "A"

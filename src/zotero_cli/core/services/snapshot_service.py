@@ -11,7 +11,7 @@ from zotero_cli.core.zotero_item import ZoteroItem
 ProgressCallback = Callable[[int, int, str], None]
 
 
-class SnapshotService:
+class SnapshotWriter:
     """
     Service responsible for creating immutable snapshots of Zotero collections.
     Adheres to SOLID principles: Single Responsibility (Snapshotting).

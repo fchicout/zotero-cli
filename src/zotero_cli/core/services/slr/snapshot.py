@@ -1,7 +1,7 @@
 from typing import List
 
 
-class SnapshotService:
+class SnapshotDiffService:
     """
     Analyzes shifts and changes between collection snapshots.
     """

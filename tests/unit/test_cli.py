@@ -324,8 +324,10 @@ def test_slr_report_prisma(mock_clients, env_vars, capsys):
 
 
 def test_slr_report_snapshot(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.slr.report_cmd.SnapshotService") as mock_snapshot_cls:
-        mock_snapshot = mock_snapshot_cls.return_value
+    with patch(
+        "zotero_cli.infra.factory.GatewayFactory.get_snapshot_writer_service"
+    ) as mock_get_writer:
+        mock_snapshot = mock_get_writer.return_value
         mock_snapshot.freeze_collection.return_value = True
         test_args = [
             "zotero-cli",
