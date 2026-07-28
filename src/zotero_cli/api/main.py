@@ -4,8 +4,8 @@ from typing import AsyncIterator, Dict
 from fastapi import FastAPI
 
 from zotero_cli import __version__
-from zotero_cli.api.dependencies import set_gateway_instance
-from zotero_cli.api.routes import collections, items
+from zotero_cli.api.dependencies import set_gateway_instance, set_job_queue_service_instance
+from zotero_cli.api.routes import collections, items, jobs
 from zotero_cli.core.config import get_config
 from zotero_cli.infra.factory import GatewayFactory
 
@@ -17,6 +17,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     config = get_config()
     gateway = GatewayFactory.get_zotero_gateway(config)
     set_gateway_instance(gateway)
+    set_job_queue_service_instance(GatewayFactory.get_job_queue_service(config))
     yield
     # Shutdown: (Optional cleanup)
 
@@ -36,6 +37,7 @@ def create_app() -> FastAPI:
 
     app.include_router(items.router)
     app.include_router(collections.router)
+    app.include_router(jobs.router)
 
     @app.get("/health")
     async def health_check() -> Dict[str, str]:

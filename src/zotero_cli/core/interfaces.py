@@ -151,7 +151,7 @@ class JobRepository(ABC):
         pass
 
     @abstractmethod
-    def get_next_pending(self, task_type: str) -> Optional[Job]:
+    def get_next_pending(self, task_type: str, library_id: Optional[str] = None) -> Optional[Job]:
         pass
 
     @abstractmethod
@@ -163,7 +163,9 @@ class JobRepository(ABC):
         pass
 
     @abstractmethod
-    def list_jobs(self, task_type: Optional[str] = None, limit: int = 100) -> List[Job]:
+    def list_jobs(
+        self, task_type: Optional[str] = None, library_id: Optional[str] = None, limit: int = 100
+    ) -> List[Job]:
         pass
 
 

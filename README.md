@@ -20,7 +20,7 @@ For power users who need atomic control over their library without the GUI.
 *   **Tagging:** Batch taxonomy processing and cleanup.
 *   **Storage Offloading:** Move heavy PDF attachments to local storage (NAS/External) while keeping metadata linked.
 *   **System Diagnostics:** `system check` probes every configured external service (Zotero, Semantic Scholar, Unpaywall, PubMed, LLM/embedding providers) for connectivity in one shot; `system demo-sandbox` provisions a disposable collection of mock papers for trying the tool risk-free.
-*   **Local API:** A FastAPI server to bridge your library with local scripts and dashboards.
+*   **Local API:** A FastAPI server to bridge your library with local scripts and dashboards, including read-only `GET /jobs`/`GET /jobs/{id}` status endpoints for the background job queue (`fetch_pdf`, snowball discovery).
 
 ### 2. Systematic Review Support (The Protocol)
 Advanced features mapped to the **Kitchenham/Wohlin** research methodology.

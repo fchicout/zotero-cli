@@ -161,6 +161,79 @@ def test_job_repo_list_jobs(tmp_path):
     assert repo.list_jobs(task_type="t1")[0].item_key == "K1"
 
 
+def test_job_repo_uses_wal_journal_mode(tmp_path):
+    db_path = str(tmp_path / "jobs.sqlite")
+    SqliteJobRepository(db_path)
+
+    conn = sqlite3.connect(db_path)
+    try:
+        mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
+        assert mode.lower() == "wal"
+    finally:
+        conn.close()
+
+
+def test_job_repo_library_id_scoping(tmp_path):
+    db_path = str(tmp_path / "jobs.sqlite")
+    repo = SqliteJobRepository(db_path)
+    repo.enqueue(Job(item_key="A1", task_type="t1", payload={}, library_id="lib-A"))
+    repo.enqueue(Job(item_key="B1", task_type="t1", payload={}, library_id="lib-B"))
+
+    jobs_a = repo.list_jobs(library_id="lib-A")
+    jobs_b = repo.list_jobs(library_id="lib-B")
+    assert [j.item_key for j in jobs_a] == ["A1"]
+    assert [j.item_key for j in jobs_b] == ["B1"]
+
+    popped_a = repo.get_next_pending("t1", library_id="lib-A")
+    assert popped_a is not None
+    assert popped_a.item_key == "A1"
+    assert repo.get_next_pending("t1", library_id="lib-A") is None
+
+
+def test_job_repo_legacy_null_library_id_stays_visible(tmp_path):
+    db_path = str(tmp_path / "jobs.sqlite")
+    repo = SqliteJobRepository(db_path)
+    repo.enqueue(Job(item_key="LEGACY", task_type="t1", payload={}))  # library_id=None
+
+    assert "LEGACY" in [j.item_key for j in repo.list_jobs(library_id="lib-A")]
+    popped = repo.get_next_pending("t1", library_id="lib-A")
+    assert popped is not None
+    assert popped.item_key == "LEGACY"
+
+
+def test_job_repo_migrates_pre_existing_db_missing_library_id_column(tmp_path):
+    """A jobs.sqlite created before Issue #150 has no library_id column at
+    all; opening it must migrate the schema instead of crashing."""
+    db_path = str(tmp_path / "jobs.sqlite")
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        CREATE TABLE jobs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_key TEXT NOT NULL,
+            task_type TEXT NOT NULL,
+            status TEXT NOT NULL,
+            attempts INTEGER DEFAULT 0,
+            next_retry_at TEXT,
+            payload TEXT NOT NULL,
+            last_error TEXT
+        )
+        """
+    )
+    conn.execute(
+        "INSERT INTO jobs (item_key, task_type, status, attempts, payload) "
+        "VALUES ('PRE', 't1', 'PENDING', 0, '{}')"
+    )
+    conn.commit()
+    conn.close()
+
+    repo = SqliteJobRepository(db_path)
+    jobs = repo.list_jobs()
+    assert len(jobs) == 1
+    assert jobs[0].item_key == "PRE"
+    assert jobs[0].library_id is None
+
+
 def test_gateway_missing_db():
     with pytest.raises(ConfigurationError, match="Zotero database not found"):
         SqliteZoteroGateway("/non/existent/path.sqlite")

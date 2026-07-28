@@ -479,6 +479,12 @@ class SqliteJobRepository(JobRepository):
     def _get_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.database_path)
         conn.row_factory = sqlite3.Row
+        # Deliberate, not incidental (Issue #150): once a web backend is
+        # polling/draining this queue alongside CLI invocations, WAL lets
+        # readers (status polls) proceed without blocking on an in-flight
+        # writer (a worker popping/completing a job), instead of the default
+        # rollback-journal mode's single-writer-blocks-everyone behavior.
+        conn.execute("PRAGMA journal_mode=WAL")
         return conn
 
     def _init_db(self) -> None:
@@ -495,10 +501,16 @@ class SqliteJobRepository(JobRepository):
                     attempts INTEGER DEFAULT 0,
                     next_retry_at TEXT,
                     payload TEXT NOT NULL,
-                    last_error TEXT
+                    last_error TEXT,
+                    library_id TEXT
                 )
             """
                 )
+                existing_columns = {
+                    row["name"] for row in conn.execute("PRAGMA table_info(jobs)")
+                }
+                if "library_id" not in existing_columns:
+                    conn.execute("ALTER TABLE jobs ADD COLUMN library_id TEXT")
         finally:
             conn.close()
 
@@ -508,8 +520,8 @@ class SqliteJobRepository(JobRepository):
             with conn:
                 cursor = conn.execute(
                     """
-                INSERT INTO jobs (item_key, task_type, status, attempts, next_retry_at, payload, last_error)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO jobs (item_key, task_type, status, attempts, next_retry_at, payload, last_error, library_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
                     (
                         job.item_key,
@@ -519,6 +531,7 @@ class SqliteJobRepository(JobRepository):
                         job.next_retry_at,
                         json.dumps(job.payload),
                         job.last_error,
+                        job.library_id,
                     ),
                 )
                 if cursor.lastrowid is None:
@@ -527,20 +540,26 @@ class SqliteJobRepository(JobRepository):
         finally:
             conn.close()
 
-    def get_next_pending(self, task_type: str) -> Optional[Job]:
+    def get_next_pending(self, task_type: str, library_id: Optional[str] = None) -> Optional[Job]:
         conn = self._get_connection()
         try:
             with conn:
                 conn.execute("BEGIN IMMEDIATE")
-                row = conn.execute(
-                    """
+                query = """
                     SELECT * FROM jobs
                     WHERE task_type = ? AND status IN ('PENDING', 'RETRY')
                     AND (next_retry_at IS NULL OR next_retry_at <= datetime('now'))
-                    ORDER BY id ASC LIMIT 1
-                """,
-                    (task_type,),
-                ).fetchone()
+                """
+                params: List[str] = [task_type]
+                if library_id is not None:
+                    # NULL library_id = a legacy/unscoped job (enqueued before
+                    # scoping existed, or by a caller with no library_id) -
+                    # visible to every queue rather than orphaned by the
+                    # filter below.
+                    query += " AND (library_id = ? OR library_id IS NULL)"
+                    params.append(library_id)
+                query += " ORDER BY id ASC LIMIT 1"
+                row = conn.execute(query, params).fetchone()
 
                 if row:
                     conn.execute("UPDATE jobs SET status = 'PROCESSING' WHERE id = ?", (row["id"],))
@@ -584,16 +603,27 @@ class SqliteJobRepository(JobRepository):
         finally:
             conn.close()
 
-    def list_jobs(self, task_type: Optional[str] = None, limit: int = 100) -> List[Job]:
+    def list_jobs(
+        self, task_type: Optional[str] = None, library_id: Optional[str] = None, limit: int = 100
+    ) -> List[Job]:
         conn = self._get_connection()
         try:
+            query = "SELECT * FROM jobs"
+            conditions = []
+            params: List[Any] = []
             if task_type:
-                cursor = conn.execute(
-                    "SELECT * FROM jobs WHERE task_type = ? ORDER BY id DESC LIMIT ?",
-                    (task_type, limit),
-                )
-            else:
-                cursor = conn.execute("SELECT * FROM jobs ORDER BY id DESC LIMIT ?", (limit,))
+                conditions.append("task_type = ?")
+                params.append(task_type)
+            if library_id is not None:
+                # See get_next_pending: NULL library_id is a legacy/unscoped
+                # job, shown regardless of which library is asking.
+                conditions.append("(library_id = ? OR library_id IS NULL)")
+                params.append(library_id)
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+            query += " ORDER BY id DESC LIMIT ?"
+            params.append(limit)
+            cursor = conn.execute(query, params)
             return [self._map_row_to_job(row) for row in cursor]
         finally:
             conn.close()
@@ -608,4 +638,5 @@ class SqliteJobRepository(JobRepository):
             next_retry_at=row["next_retry_at"],
             payload=json.loads(row["payload"]),
             last_error=row["last_error"],
+            library_id=row["library_id"],
         )

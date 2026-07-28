@@ -517,7 +517,7 @@ Cognitive Safeguards
         job_service = GatewayFactory.get_job_queue_service()
 
         if args.jobs_verb == "list":
-            jobs = job_service.repo.list_jobs(task_type=args.type, limit=args.limit)
+            jobs = job_service.list_jobs(task_type=args.type, limit=args.limit)
             if not jobs:
                 print("No jobs found.")
                 return
@@ -589,7 +589,7 @@ Cognitive Safeguards
         from rich.table import Table
 
         def generate_table() -> Table:
-            jobs = job_service.repo.list_jobs(task_type=task_type, limit=20)
+            jobs = job_service.list_jobs(task_type=task_type, limit=20)
             table = Table(title=f"Live Jobs Monitor: {task_type}")
             table.add_column("ID", justify="right")
             table.add_column("Key")
@@ -618,7 +618,7 @@ Cognitive Safeguards
             while True:
                 live.update(generate_table())
                 # Check if any active jobs remain
-                jobs = job_service.repo.list_jobs(task_type=task_type, limit=100)
+                jobs = job_service.list_jobs(task_type=task_type, limit=100)
                 active = [j for j in jobs if j.status in ("PENDING", "PROCESSING", "RETRY")]
                 if not active:
                     break

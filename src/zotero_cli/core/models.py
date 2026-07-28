@@ -74,6 +74,7 @@ class Job:
     attempts: int = 0
     next_retry_at: Optional[str] = None
     last_error: Optional[str] = None
+    library_id: Optional[str] = None
 
 
 @dataclass
