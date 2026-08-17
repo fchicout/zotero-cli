@@ -70,3 +70,23 @@ class ArxivLibGateway(ArxivGateway):
                 pdf_url=result.pdf_url,
                 publication=result.journal_ref,
             )
+
+    def count(self, query: str) -> int:
+        """
+        Returns the total result count for a query, reading it straight off
+        the Atom feed's <opensearch:totalResults> from a single-item page
+        request rather than fetching/discarding up to max_results full
+        results just to count them (Issue #181).
+
+        `arxiv.Client.results()`/`._results()` already fetches this same
+        total as part of the first page's feed metadata
+        (`feed.header.total_results`) - it's just not surfaced through the
+        public API, so this reaches one layer down to `_format_url`/
+        `_parse_feed` (both are the library's own internal helpers, not
+        third-party-private state we're guessing at).
+        """
+        search = arxiv.Search(query=query, max_results=1)
+        client = arxiv.Client(num_retries=10, delay_seconds=5.0)
+        url = client._format_url(search, 0, 1)
+        feed = client._parse_feed(url, first_page=True)
+        return int(feed.header.total_results)
