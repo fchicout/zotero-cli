@@ -1,13 +1,16 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 import requests
 
-from zotero_cli.core.interfaces import MetadataProvider
+from zotero_cli.core.interfaces import MetadataProvider, SearchableMetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
 
+# OpenAlex's max results per page (https://api.openalex.org/works?per-page=N)
+_MAX_PER_PAGE = 200
 
-class OpenAlexAPIClient(BaseAPIClient, MetadataProvider):
+
+class OpenAlexAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider):
     def __init__(self, email: Optional[str] = None):
         # OpenAlex prefers mailto: parameter for the "Polite Pool"
         base_url = "https://api.openalex.org/works"
@@ -47,6 +50,52 @@ class OpenAlexAPIClient(BaseAPIClient, MetadataProvider):
         except Exception as e:
             print(f"Error fetching metadata from OpenAlex for {identifier}: {e}")
             return None
+
+    def search(
+        self,
+        query: str,
+        max_results: int = 100,
+        sort_by: str = "relevance",
+        sort_order: str = "descending",
+    ) -> Iterator[ResearchPaper]:
+        """
+        Free-text/topic search via GET /works?search=<query> (Issue #179).
+        No API key required. sort_by="relevance" (the default) leaves
+        ordering to OpenAlex's own relevance ranking, which only applies
+        when a `search` param is present; any other sort_by value sorts by
+        publication_date instead.
+        """
+        base_params: Dict[str, Any] = {"search": query}
+        if sort_by != "relevance":
+            direction = "asc" if sort_order == "ascending" else "desc"
+            base_params["sort"] = f"publication_date:{direction}"
+
+        page = 1
+        fetched = 0
+        while fetched < max_results:
+            params = {
+                **base_params,
+                "page": page,
+                "per-page": min(_MAX_PER_PAGE, max_results - fetched),
+            }
+            try:
+                response = self._get(params=params)
+                data = response.json()
+            except Exception as e:
+                print(f"Error searching OpenAlex for '{query}': {e}")
+                return
+
+            results = data.get("results", [])
+            if not results:
+                return
+
+            for item in results:
+                yield self._map_to_research_paper(item)
+                fetched += 1
+                if fetched >= max_results:
+                    return
+
+            page += 1
 
     def _map_to_research_paper(self, data: Dict[str, Any]) -> ResearchPaper:
         # Title

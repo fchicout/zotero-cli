@@ -56,3 +56,74 @@ def test_get_paper_metadata_not_found(client):
     with patch.object(client, "_get", side_effect=error):
         paper = client.get_paper_metadata("non-existent")
         assert paper is None
+
+
+def _openalex_work(display_name: str) -> dict:
+    return {
+        "display_name": display_name,
+        "abstract_inverted_index": None,
+        "authorships": [],
+        "primary_location": {},
+        "publication_year": 2024,
+        "doi": None,
+        "id": "https://openalex.org/W1",
+        "best_oa_location": {},
+    }
+
+
+def test_search_single_page(client):
+    page1 = MagicMock()
+    page1.json.return_value = {"results": [_openalex_work("Paper A"), _openalex_work("Paper B")]}
+    page2 = MagicMock()
+    page2.json.return_value = {"results": []}
+
+    with patch.object(client, "_get", side_effect=[page1, page2]) as mock_get:
+        results = list(client.search("neural networks", max_results=10))
+
+    assert len(results) == 2
+    assert results[0].title == "Paper A"
+    assert results[1].title == "Paper B"
+    params = mock_get.call_args_list[0].kwargs["params"]
+    assert params["search"] == "neural networks"
+    assert params["per-page"] == 10
+    assert "sort" not in params
+
+
+def test_search_paginates_until_max_results(client):
+    page1 = MagicMock()
+    page1.json.return_value = {"results": [_openalex_work(f"P{i}") for i in range(200)]}
+    page2 = MagicMock()
+    page2.json.return_value = {"results": [_openalex_work("P200"), _openalex_work("P201")]}
+
+    with patch.object(client, "_get", side_effect=[page1, page2]) as mock_get:
+        results = list(client.search("topic", max_results=201))
+
+    assert len(results) == 201
+    assert mock_get.call_count == 2
+
+
+def test_search_stops_on_empty_page(client):
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"results": []}
+
+    with patch.object(client, "_get", return_value=mock_response):
+        results = list(client.search("no matches", max_results=50))
+
+    assert results == []
+
+
+def test_search_non_relevance_sort_sets_sort_param(client):
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"results": []}
+
+    with patch.object(client, "_get", return_value=mock_response) as mock_get:
+        list(client.search("topic", sort_by="submittedDate", sort_order="ascending"))
+
+    assert mock_get.call_args.kwargs["params"]["sort"] == "publication_date:asc"
+
+
+def test_search_error_stops_iteration(client):
+    with patch.object(client, "_get", side_effect=requests.exceptions.ConnectionError("boom")):
+        results = list(client.search("topic"))
+
+    assert results == []

@@ -175,6 +175,28 @@ class MetadataProvider(ABC):
         pass
 
 
+class SearchableMetadataProvider(ABC):
+    """
+    Optional capability mixin for a MetadataProvider whose underlying API
+    supports free-text/topic search, not just resolving an already-known
+    identifier (Issue #179). Not every MetadataProvider can do this (most
+    of this project's 11 metadata sources are ID-lookup-only), so this is
+    a separate, additionally-inherited interface rather than a method on
+    MetadataProvider itself - mirrors ArxivGateway.search's shape below so
+    callers can treat every searchable source the same way.
+    """
+
+    @abstractmethod
+    def search(
+        self,
+        query: str,
+        max_results: int = 100,
+        sort_by: str = "relevance",
+        sort_order: str = "descending",
+    ) -> Iterator[ResearchPaper]:
+        pass
+
+
 class ArxivGateway(ABC):
     @abstractmethod
     def search(

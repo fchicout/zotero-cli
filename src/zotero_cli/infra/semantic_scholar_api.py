@@ -1,15 +1,22 @@
 import os
 import time
-from typing import Optional
+from typing import Any, Dict, Iterator, Optional
 
 import requests
 
-from zotero_cli.core.interfaces import MetadataProvider
+from zotero_cli.core.interfaces import MetadataProvider, SearchableMetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
 
+# Semantic Scholar's max results per page for /paper/search
+_MAX_PER_PAGE = 100
 
-class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider):
+_SEARCH_FIELDS = (
+    "title,abstract,authors,year,venue,externalIds,url,references.externalIds,openAccessPdf"
+)
+
+
+class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider):
     def __init__(self, api_key: Optional[str] = None):
         super().__init__(base_url="https://api.semanticscholar.org/graph/v1/paper")
         self.api_key = api_key or os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
@@ -29,10 +36,7 @@ class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider):
             # Basic handling, might need more robust parsing if identifier is a URL
             pass
 
-        # Fields to retrieve
-        fields = (
-            "title,abstract,authors,year,venue,externalIds,url,references.externalIds,openAccessPdf"
-        )
+        fields = _SEARCH_FIELDS
 
         # Rate limiting: 1 request per second (keeping it polite)
         time.sleep(1.1)
@@ -51,6 +55,58 @@ class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider):
         except Exception as e:
             print(f"Error fetching metadata from Semantic Scholar for {identifier}: {e}")
             return None
+
+    def search(
+        self,
+        query: str,
+        max_results: int = 100,
+        sort_by: str = "relevance",
+        sort_order: str = "descending",
+    ) -> Iterator[ResearchPaper]:
+        """
+        Free-text/topic search via GET /graph/v1/paper/search?query=<query>
+        (Issue #179). No API key required (one is still respected if
+        configured, same as get_paper_metadata). sort_by/sort_order are
+        accepted for interface parity with ArxivGateway.search but not
+        honored - the basic search endpoint only offers relevance ordering,
+        with no override (Semantic Scholar's bulk-search endpoint supports
+        sorting but is a different API shape, out of scope here).
+        """
+        offset = 0
+        fetched = 0
+        total: Optional[int] = None
+
+        while fetched < max_results and (total is None or offset < total):
+            page_limit = min(_MAX_PER_PAGE, max_results - fetched)
+            time.sleep(1.1)  # Rate limiting: 1 request per second (keeping it polite)
+
+            try:
+                response = self._get(
+                    endpoint="search",
+                    params={
+                        "query": query,
+                        "fields": _SEARCH_FIELDS,
+                        "limit": page_limit,
+                        "offset": offset,
+                    },
+                )
+                data: Dict[str, Any] = response.json()
+            except Exception as e:
+                print(f"Error searching Semantic Scholar for '{query}': {e}")
+                return
+
+            total = data.get("total", 0)
+            papers = data.get("data", [])
+            if not papers:
+                return
+
+            for item in papers:
+                yield self._map_to_research_paper(item)
+                fetched += 1
+                if fetched >= max_results:
+                    return
+
+            offset += len(papers)
 
     def _map_to_research_paper(self, data: dict) -> ResearchPaper:
         # Extract authors
