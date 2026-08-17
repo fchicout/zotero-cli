@@ -133,6 +133,19 @@ uv tool install .
 
 > *Note: Official PyPI distribution is coming soon. Use source installation for the latest SLR features.*
 
+### 📦 Using `zotero-cli` as a Library (lite vs. full)
+The RAG/semantic-search stack (`torch`, `sentence-transformers`, `openai`, `google-generativeai`, etc.) is an optional extra, not a base dependency — a consumer that only needs Zotero I/O, SLR (`slr source`/`import`), screening, or extraction gets a much lighter install by default:
+
+```bash
+# Lite: core library only, no RAG/ML stack
+pip install "git+https://github.com/fchicout/zotero-cli@vX.Y.Z"
+
+# Full: adds rag ingest/rag query support
+pip install "git+https://github.com/fchicout/zotero-cli@vX.Y.Z#egg=zotero-cli[rag]"
+```
+
+See `docs/ARCHITECTURE.md`'s "Distribution: Consuming `zotero-cli` as a Library" section for the full rationale.
+
 ### ⚙️ Configuration
 ```bash
 zotero-cli system info  # Check if config is found

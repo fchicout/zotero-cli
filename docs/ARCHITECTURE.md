@@ -168,13 +168,17 @@ For a Python consumer that needs `zotero-cli`'s `core/` domain services directly
 
 ```bash
 pip install "git+https://github.com/fchicout/zotero-cli@v2.8.1"
+# with the RAG extra, if the consumer needs `rag ingest`/`rag query` too:
+pip install "git+https://github.com/fchicout/zotero-cli@v2.8.1#egg=zotero-cli[rag]"
 # or, in a uv-managed project's pyproject.toml:
 [tool.uv.sources]
 zotero-cli = { git = "https://github.com/fchicout/zotero-cli", tag = "v2.8.1" }
+[project]
+dependencies = ["zotero-cli"]  # or "zotero-cli[rag]"
 ```
 
 This needs zero new release infrastructure - every release already gets a `vX.Y.Z` git tag (see `docs/PROCESS.md`) that a consumer can pin to directly, and `pyproject.toml`'s existing `setuptools.build_meta` backend builds correctly from a git checkout with no changes. The tradeoff is that dependency resolution is tied to git refs/tags rather than a PyPI index with semver ranges - acceptable here since Corbenic-SLR and zotero-cli are developed by the same team in lockstep, not independent third-party consumers.
 
-**Known caveat for library consumers:** `pyproject.toml`'s base `dependencies` list includes the full RAG/embedding stack (`torch`, `sentence-transformers`, etc.) unconditionally - there is no lighter "core services only" extras group today. A consumer that only needs e.g. `MergeService`/`SLRDedupeService` still pulls the full ML dependency tree via a plain git install. Splitting that out into an optional extras group is real, separate scope (would need dependency-injection changes in `infra/ai_provider_factory.py` to make those imports lazy/optional) and is not part of this decision - tracked as a future concern if it becomes a practical problem for Corbenic-SLR's install footprint.
+**Resolved (Issue #180, was a known caveat here):** the RAG/embedding stack (`torch`, `sentence-transformers`, `huggingface-hub`, `numpy`, `einops`, `accelerate`, `openai`, `google-generativeai`) now lives in an optional `rag` extra rather than the base `dependencies` - `pip install "git+https://github.com/fchicout/zotero-cli@vX.Y.Z"` (or `zotero-cli` from a future PyPI publish) no longer pulls the full ML dependency tree; add `[rag]` (e.g. `zotero-cli[rag]`) only if RAG (`rag ingest`/`rag query`) is actually needed. This was a smaller change than the original "would need dependency-injection changes to make imports lazy" concern suggested: every import of these packages in `src/` was already function-local/lazy (verified by reading the code), so the fix is purely the `pyproject.toml` split - a lite-install consumer who does hit a RAG code path gets a clear `ImportError`, not a crash elsewhere. `markitdown` (and its `onnxruntime` dependency, for magika file-type detection) stayed in the base dependencies despite being large, since `item`/`collection export --format md` - a non-RAG feature - depends on it too.
 
 If Corbenic-SLR and `zotero-cli` ever move into a shared monorepo/workspace layout, a path/workspace dependency would be worth revisiting; that is not the current plan.

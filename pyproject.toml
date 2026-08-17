@@ -22,8 +22,30 @@ dependencies = [
     "PyYAML>=6.0.1",
     "beautifulsoup4>=4.12.0",
     "networkx>=3.0",
+    # markitdown (and its onnxruntime dependency, for magika file-type
+    # detection) is not RAG-only: item/collection export --format md
+    # (attachment_service.py::get_fulltext) uses it too, so it stays here
+    # rather than in the [rag] extra below (Issue #180).
     "markitdown>=0.1.5",
+    "onnxruntime>=1.24.2",
     "pygments>=2.20.0",
+]
+
+[project.scripts]
+zotero-cli = "zotero_cli.cli.main:main"
+
+[project.optional-dependencies]
+# RAG/semantic-search stack (Issue #180): every import of these packages in
+# src/ is already lazy (function-local, not module-level - verified by
+# reading the code, not assumed), so a consumer that never calls `rag ...`
+# or configures a local/HF-backed provider never pays for them. A
+# lite-install user who does hit one gets a clear ImportError, not a crash
+# elsewhere. openai/google-generativeai are here too since LLMProvider/
+# EmbeddingProvider (embedding_provider.py, llm_provider.py) are only
+# constructed by the RAG subsystem (AIProviderFactory.get_rag_service and
+# `system check`'s diagnostics, which degrades to a FAILED check row rather
+# than crashing if this extra isn't installed).
+rag = [
     "sentence-transformers>=3.0.0",
     "huggingface-hub>=0.20.0",
     "numpy>=1.24.0",
@@ -32,14 +54,9 @@ dependencies = [
     "openai>=1.0.0",
     "google-generativeai>=0.3.0",
     "accelerate>=0.26.0",
-    "onnxruntime>=1.24.2",
 ]
-
-[project.scripts]
-zotero-cli = "zotero_cli.cli.main:main"
-
-[project.optional-dependencies]
 dev = [
+    "zotero-cli[rag]",
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
     "mypy>=1.5.0",
