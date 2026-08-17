@@ -8,6 +8,7 @@ from rich.prompt import Confirm, Prompt
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.config import ConfigLoader, ZoteroConfig
 from zotero_cli.infra.factory import GatewayFactory
+from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
 
 @CommandRegistry.register
@@ -56,13 +57,31 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
         api_key = Prompt.ask("Enter your Zotero API Key", password=True)
+
+        # Resolve the key's owning identity up front - no library_id needed
+        # for this call (Issue #178) - so we can confirm the key itself is
+        # valid and prefill the personal userID before asking for it.
+        resolved_user_id = ""
+        try:
+            identity = ZoteroAPIClient.resolve_key_identity(api_key)
+            resolved_user_id = str(identity.user_id)
+            console.print(
+                f"[green]✔ Key belongs to '{identity.username}' (User ID: {identity.user_id})[/]\n"
+            )
+        except Exception as e:
+            console.print(f"[yellow]⚠ Could not resolve key identity yet: {e}[/]\n")
+
         lib_type = Prompt.ask("Library Type", choices=["user", "group"], default="group")
-        lib_id = Prompt.ask("Library ID (User ID or Group ID)")
+        if lib_type == "user" and resolved_user_id:
+            lib_id = Prompt.ask("Library ID (User ID or Group ID)", default=resolved_user_id)
+        else:
+            lib_id = Prompt.ask("Library ID (User ID or Group ID)")
 
         user_id = ""
         if lib_type == "group":
             user_id = Prompt.ask(
-                "Your personal User ID (optional, used for '--user' mode)", default=""
+                "Your personal User ID (optional, used for '--user' mode)",
+                default=resolved_user_id,
             )
 
         target_group = ""

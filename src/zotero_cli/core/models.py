@@ -104,3 +104,17 @@ class VerifiedSearchResult(SearchResult):
     verification_errors: List[str] = field(default_factory=list)
     screening_status: ScreeningStatus = ScreeningStatus.UNKNOWN
     citation_key: Optional[str] = None
+
+
+@dataclass
+class KeyIdentity:
+    """
+    Identity resolved from a bare Zotero API key via GET /keys/<key> - the
+    one Zotero REST endpoint that needs no library_id (Issue #178). For a
+    personal library, user_id *is* the library_id a caller would otherwise
+    have to already know.
+    """
+
+    user_id: int
+    username: str
+    access: Dict[str, Any]

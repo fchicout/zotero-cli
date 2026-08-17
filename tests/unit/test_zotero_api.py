@@ -38,6 +38,27 @@ def test_init_user_mode(api_key):
     assert c.http.api_prefix == f"https://api.zotero.org/users/{user_id}"
 
 
+def test_resolve_key_identity_returns_typed_identity(api_key):
+    raw = {"userID": 555, "username": "researcher1", "access": {"user": {"library": True}}}
+    with patch(
+        "zotero_cli.infra.zotero_api.ZoteroHttpClient.resolve_key_identity", return_value=raw
+    ) as mock_resolve:
+        identity = ZoteroAPIClient.resolve_key_identity(api_key)
+
+    mock_resolve.assert_called_once_with(api_key)
+    assert identity.user_id == 555
+    assert identity.username == "researcher1"
+    assert identity.access == {"user": {"library": True}}
+
+
+def test_resolve_key_identity_does_not_require_an_instance(api_key):
+    """The whole point (Issue #178): no library_id-carrying ZoteroAPIClient
+    needs to be constructed to call this."""
+    raw = {"userID": 1, "username": "u", "access": {}}
+    with patch("zotero_cli.infra.zotero_api.ZoteroHttpClient.resolve_key_identity", return_value=raw):
+        ZoteroAPIClient.resolve_key_identity(api_key)  # called on the class, not an instance
+
+
 def test_get_user_groups(client):
     mock_response = Mock()
     mock_response.status_code = 200

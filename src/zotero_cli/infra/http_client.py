@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 import requests
 from tenacity import (
@@ -187,6 +187,34 @@ class ZoteroHttpClient:
         response = self.session.post(url, data=data, headers=h)
         response.raise_for_status()
         return response
+
+    @staticmethod
+    @retry(
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
+        retry=retry_if_exception(is_http_retryable),
+        after=after_log(logger, logging.DEBUG),
+        reraise=True,
+    )
+    def resolve_key_identity(api_key: str) -> Dict[str, Any]:
+        """
+        Calls GET /keys/<api_key> - library-independent by design, since
+        resolving a personal library's userID from a bare key is exactly
+        what a caller with no library_id yet needs it for (Issue #178).
+        Raises requests.HTTPError (e.g. 403 for an invalid/revoked key) or
+        a connection error on failure; callers decide how to present that.
+        """
+        url = f"{ZoteroHttpClient.BASE_URL}/keys/{api_key}"
+        response = requests.get(
+            url,
+            headers={
+                "Zotero-API-Version": ZoteroHttpClient.API_VERSION,
+                "Zotero-API-Key": api_key,
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+        return cast(Dict[str, Any], response.json())
 
     def _update_version(self, response: requests.Response) -> None:
         version = response.headers.get("Last-Modified-Version")
