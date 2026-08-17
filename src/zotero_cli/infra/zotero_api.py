@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, TypeVar, cast
 import requests
 
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.models import ResearchPaper, ZoteroQuery
+from zotero_cli.core.models import KeyIdentity, ResearchPaper, ZoteroQuery
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.http_client import ZoteroHttpClient
 
@@ -20,6 +20,24 @@ class ZoteroAPIClient(ZoteroGateway):
 
     def __init__(self, api_key: str, library_id: str, library_type: str = "group"):
         self.http = ZoteroHttpClient(api_key, library_id, library_type)
+
+    @staticmethod
+    def resolve_key_identity(api_key: str) -> KeyIdentity:
+        """
+        Resolves the userID/username/access scopes for a bare Zotero API
+        key, with no library_id required (Issue #178) - this is how a
+        caller discovers their personal library_id (== userID) in the
+        first place, e.g. an account-setup flow that hasn't asked for a
+        library/group yet. A `@staticmethod` deliberately, since the
+        instance constructor above requires the library_id this method
+        exists to produce.
+        """
+        data = ZoteroHttpClient.resolve_key_identity(api_key)
+        return KeyIdentity(
+            user_id=data["userID"],
+            username=data.get("username", ""),
+            access=data.get("access", {}),
+        )
 
     def _safe_execute(self, operation: str, default_val: T, func: Callable[[], T]) -> T:
         try:

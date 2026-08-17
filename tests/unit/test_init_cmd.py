@@ -2,6 +2,7 @@ import sys
 from unittest.mock import patch
 
 from zotero_cli.cli.main import main
+from zotero_cli.core.models import KeyIdentity
 
 
 def test_init_command_basic(tmp_path, capsys):
@@ -12,6 +13,10 @@ def test_init_command_basic(tmp_path, capsys):
 
     with (
         patch("rich.prompt.Prompt.ask", side_effect=inputs),
+        patch(
+            "zotero_cli.cli.commands.init_cmd.ZoteroAPIClient.resolve_key_identity",
+            side_effect=Exception("mocked: no network in unit tests"),
+        ),
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
     ):
         mock_gw = mock_gw_get.return_value
@@ -36,6 +41,65 @@ def test_init_command_basic(tmp_path, capsys):
     assert 'unpaywall_email = "up@email.com"' in content
 
 
+def test_init_command_resolves_identity_and_prefills_user_library_id(tmp_path, capsys):
+    config_file = tmp_path / "config.toml"
+
+    # api_key, lib_type, lib_id, ss_key, up_email
+    inputs = ["test_api_key", "user", "999", "ss_key", ""]
+
+    with (
+        patch("rich.prompt.Prompt.ask", side_effect=inputs) as mock_prompt,
+        patch(
+            "zotero_cli.cli.commands.init_cmd.ZoteroAPIClient.resolve_key_identity",
+            return_value=KeyIdentity(user_id=999, username="janedoe", access={}),
+        ),
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
+    ):
+        mock_gw = mock_gw_get.return_value
+        mock_gw.verify_credentials.return_value = True
+
+        test_args = ["zotero-cli", "--config", str(config_file), "init"]
+        with patch.object(sys, "argv", test_args):
+            main()
+
+    out = capsys.readouterr().out
+    assert "Key belongs to 'janedoe' (User ID: 999)" in out
+
+    lib_id_call = next(
+        c for c in mock_prompt.call_args_list if c.args and c.args[0].startswith("Library ID")
+    )
+    assert lib_id_call.kwargs.get("default") == "999"
+
+    content = config_file.read_text()
+    assert 'library_id = "999"' in content
+
+
+def test_init_command_identity_resolution_failure_warns_and_continues(tmp_path, capsys):
+    config_file = tmp_path / "config.toml"
+
+    # api_key, lib_type, lib_id, user_id, target_group, ss_key, up_email
+    inputs = ["test_api_key", "group", "12345", "", "", "", ""]
+
+    with (
+        patch("rich.prompt.Prompt.ask", side_effect=inputs),
+        patch(
+            "zotero_cli.cli.commands.init_cmd.ZoteroAPIClient.resolve_key_identity",
+            side_effect=Exception("invalid key"),
+        ),
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
+    ):
+        mock_gw = mock_gw_get.return_value
+        mock_gw.verify_credentials.return_value = True
+
+        test_args = ["zotero-cli", "--config", str(config_file), "init"]
+        with patch.object(sys, "argv", test_args):
+            main()
+
+    out = capsys.readouterr().out
+    assert "Could not resolve key identity yet" in out
+    assert config_file.exists()
+
+
 def test_init_command_user_library(tmp_path, capsys):
     config_file = tmp_path / "config.toml"
 
@@ -45,6 +109,10 @@ def test_init_command_user_library(tmp_path, capsys):
 
     with (
         patch("rich.prompt.Prompt.ask", side_effect=inputs),
+        patch(
+            "zotero_cli.cli.commands.init_cmd.ZoteroAPIClient.resolve_key_identity",
+            side_effect=Exception("mocked: no network in unit tests"),
+        ),
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
     ):
         mock_gw = mock_gw_get.return_value
@@ -70,6 +138,10 @@ def test_init_command_verification_failure_save_anyway(tmp_path, capsys):
     with (
         patch("rich.prompt.Prompt.ask", side_effect=inputs),
         patch("rich.prompt.Confirm.ask", return_value=True),  # Save anyway? -> Yes
+        patch(
+            "zotero_cli.cli.commands.init_cmd.ZoteroAPIClient.resolve_key_identity",
+            side_effect=Exception("mocked: no network in unit tests"),
+        ),
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
     ):
         mock_gw = mock_gw_get.return_value
@@ -95,6 +167,10 @@ def test_init_command_overwrite_existing(tmp_path, capsys):
     with (
         patch("rich.prompt.Prompt.ask", side_effect=inputs),
         patch("rich.prompt.Confirm.ask", return_value=True),  # Overwrite? -> Yes
+        patch(
+            "zotero_cli.cli.commands.init_cmd.ZoteroAPIClient.resolve_key_identity",
+            side_effect=Exception("mocked: no network in unit tests"),
+        ),
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_get,
     ):
         mock_gw = mock_gw_get.return_value

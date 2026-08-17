@@ -49,7 +49,14 @@ class MarkdownRecursiveSplitter(TextSplitter):
 
     def __init__(self, chunk_size: int = 1500):
         self.chunk_size = chunk_size
-        self.header_regex = re.compile(r"^(#{1,6})\s+([^\r\n]*)$", re.MULTILINE)
+        # [ \t]++ (possessive) rather than \s+: \s also matches \n, and
+        # [ \t]/[^\r\n]* overlap (both match spaces/tabs) gave the engine an
+        # ambiguous super-linear-backtracking boundary between the two
+        # groups (SonarQube python:S8786). The possessive quantifier locks
+        # in each whitespace match with no backtracking into it, closing
+        # that off; markdown headers never have a literal newline between
+        # the #'s and the text anyway, so this is not a behavior change.
+        self.header_regex = re.compile(r"^(#{1,6})[ \t]++([^\r\n]*)$", re.MULTILINE)
 
     def split_text(self, text: str, context_title: Optional[str] = None) -> List[str]:
         if not text:
