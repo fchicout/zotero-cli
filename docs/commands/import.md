@@ -67,14 +67,19 @@ zotero-cli import manual --title "Paper Title" --arxiv-id "2401.xxx" --abstract 
 ---
 
 ### `bdtd`
-Import thesis/dissertation from Brazilian BDTD into a Zotero collection. Accepts BDTD record IDs, institutional repository handle URLs, or DOIs.
+Import thesis/dissertation metadata from Brazilian BDTD into a Zotero collection. Accepts a single BDTD record ID, institutional repository handle URL, or DOI, or a free-text `--query` to bulk-import multiple matching theses/dissertations.
 
 **Usage:**
 ```bash
 zotero-cli import bdtd "https://repositorio.ufpe.br/handle/123456789/51746" --collection "BR_THESES"
+zotero-cli import bdtd --query "aprendizado de maquina" --collection "Brazilian_ML" --limit 20
 ```
 
 **Parameters:**
-*   `identifier`: (Positional, Required) BDTD record ID, repository handle URL, or DOI.
+*   `identifier`: (Positional) BDTD record ID, repository handle URL, or DOI. Required unless `--query` is given.
+*   `--query`: Free-text search query for bulk import. Required unless `identifier` is given.
+*   `--limit`: Max results to import for `--query`. Default: `20`.
 *   `--collection`: (Required) Target collection name or key.
 *   `--verbose`: Show detailed import logs.
+
+> *Note: `--query` bulk imports skip PDF resolution (too slow to scrape per record) — run `item pdf fetch` afterward to attach PDFs.*

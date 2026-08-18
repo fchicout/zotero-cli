@@ -107,7 +107,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         bdtd_p = sub.add_parser(
             "bdtd",
             help="Import thesis/dissertation from Brazilian BDTD",
-            description="Imports a thesis or dissertation from the Brazilian Biblioteca Digital de Teses e Dissertações (BDTD) into a Zotero collection. Accepts BDTD record IDs, institutional repository handle URLs, or DOIs.",
+            description="Imports thesis/dissertation metadata from the Brazilian Biblioteca Digital de Teses e Dissertações (BDTD) into a Zotero collection. Accepts a single BDTD record ID, institutional repository handle URL, or DOI, or a free-text --query to bulk-import multiple matching theses/dissertations.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Scenario-Based Examples (Cognitive Anchors)
@@ -122,14 +122,25 @@ Problem: I know the BDTD record ID from a previous search.
 Action:  zotero-cli import bdtd "UFPE_7b608eaa5ba57bf5bbf9b98f3bbce938" --collection "BR_THESES"
 Result:  Same result — full metadata extraction from BDTD's VuFind API.
 
+Scenario 3: Harvesting Brazilian theses on a topic in bulk
+Problem: I want every BDTD thesis about "aprendizado de maquina" (machine learning) I can find, up to 20.
+Action:  zotero-cli import bdtd --query "aprendizado de maquina" --collection "Brazilian_ML" --limit 20
+Result:  Up to 20 matching theses/dissertations are imported. Use `item pdf fetch` afterward to attach PDFs — search results don't resolve them (too slow to scrape per-record during a bulk search).
+
 Cognitive Safeguards
 --------------------
-• Supported identifiers: BDTD record IDs (e.g. UFPE_xxx), handle URLs (e.g. https://repositorio.ufpe.br/handle/...), and DOIs.
-• The thesis PDF is automatically resolved from the institutional repository when available.
+• Supported identifiers: BDTD record IDs (e.g. UFPE_xxx), handle URLs (e.g. https://repositorio.ufpe.br/handle/...), and DOIs. Exactly one of the identifier or --query must be given, not both.
+• The thesis PDF is automatically resolved from the institutional repository when importing a single identifier; --query bulk imports skip PDF resolution (run `item pdf fetch` afterward).
 • Items are created as Zotero "thesis" type with university and degree level fields.
 """,
         )
-        bdtd_p.add_argument("identifier", help="BDTD record ID, repository handle URL, or DOI")
+        bdtd_p.add_argument(
+            "identifier", nargs="?", help="BDTD record ID, repository handle URL, or DOI"
+        )
+        bdtd_p.add_argument("--query", help="Free-text search query (bulk import)")
+        bdtd_p.add_argument(
+            "--limit", type=int, default=20, help="Max results to import for --query"
+        )
         bdtd_p.add_argument("--collection", required=True)
         bdtd_p.add_argument("--verbose", action="store_true")
 
@@ -248,7 +259,21 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         print(f"Imported {count} items.")
 
     def _handle_bdtd(self, service: ImportService, args: argparse.Namespace) -> None:
+        if bool(args.query) == bool(args.identifier):
+            print("Error: Provide exactly one of an identifier or --query, not both/neither.")
+            return
+
         bdtd_client = GatewayFactory.get_bdtd_client()
+
+        if args.query:
+            from zotero_cli.core.strategies import BdtdImportStrategy
+
+            strategy = BdtdImportStrategy(bdtd_client)
+            papers = strategy.fetch_papers(args.query, limit=args.limit)
+            count = service.import_papers(papers, args.collection, args.verbose)
+            print(f"Imported {count} thesis item(s).")
+            return
+
         paper = bdtd_client.get_paper_metadata(args.identifier)
 
         if not paper:

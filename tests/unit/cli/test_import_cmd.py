@@ -185,6 +185,8 @@ def test_import_bdtd(mock_import_service, capsys):
         verb="import",
         import_type="bdtd",
         identifier="12345",
+        query=None,
+        limit=20,
         collection="COL123",
         verbose=True,
         user=False,
@@ -208,3 +210,66 @@ def test_import_bdtd(mock_import_service, capsys):
     assert "Title: Thesis Title" in out
     assert "University: Uni" in out
     assert "Imported 1 thesis item(s)." in out
+
+
+def test_import_bdtd_query_bulk(mock_import_service, capsys):
+    args = argparse.Namespace(
+        verb="import",
+        import_type="bdtd",
+        identifier=None,
+        query="aprendizado de maquina",
+        limit=5,
+        collection="COL123",
+        verbose=False,
+        user=False,
+    )
+    mock_import_service.import_papers.return_value = 3
+
+    mock_client = MagicMock()
+    mock_papers = [MagicMock(), MagicMock(), MagicMock()]
+    mock_client.search.return_value = iter(mock_papers)
+
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_bdtd_client", return_value=mock_client):
+        ImportCommand().execute(args)
+
+    mock_client.search.assert_called_once_with("aprendizado de maquina", max_results=5)
+    out = capsys.readouterr().out
+    assert "Imported 3 thesis item(s)." in out
+
+
+def test_import_bdtd_requires_exactly_one_of_identifier_or_query(mock_import_service, capsys):
+    args = argparse.Namespace(
+        verb="import",
+        import_type="bdtd",
+        identifier=None,
+        query=None,
+        limit=20,
+        collection="COL123",
+        verbose=False,
+        user=False,
+    )
+
+    ImportCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "exactly one" in out.lower()
+    mock_import_service.import_papers.assert_not_called()
+
+
+def test_import_bdtd_rejects_both_identifier_and_query(mock_import_service, capsys):
+    args = argparse.Namespace(
+        verb="import",
+        import_type="bdtd",
+        identifier="12345",
+        query="topic",
+        limit=20,
+        collection="COL123",
+        verbose=False,
+        user=False,
+    )
+
+    ImportCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "exactly one" in out.lower()
+    mock_import_service.import_papers.assert_not_called()
