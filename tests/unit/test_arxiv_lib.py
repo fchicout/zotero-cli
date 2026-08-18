@@ -116,3 +116,38 @@ def test_search_extracts_doi_from_journal_ref(MockSearch, MockClient):
 
     assert len(papers) == 1
     assert papers[0].doi == "10.1038/s41586-021-03354-4"
+
+
+@patch("zotero_cli.infra.arxiv_lib.arxiv.Client")
+@patch("zotero_cli.infra.arxiv_lib.arxiv.Search")
+def test_count_returns_total_results_without_fetching_papers(MockSearch, MockClient):
+    mock_client_instance = MockClient.return_value
+    mock_feed = MagicMock()
+    mock_feed.header.total_results = 4321
+    mock_client_instance._parse_feed.return_value = mock_feed
+    mock_client_instance._format_url.return_value = "https://export.arxiv.org/api/query?..."
+
+    gateway = ArxivLibGateway()
+    total = gateway.count("transformers")
+
+    assert total == 4321
+    MockSearch.assert_called_once_with(query="transformers", max_results=1)
+    mock_client_instance._format_url.assert_called_once_with(MockSearch.return_value, 0, 1)
+    mock_client_instance._parse_feed.assert_called_once_with(
+        mock_client_instance._format_url.return_value, first_page=True
+    )
+    # The whole point: results() (which fetches full Result objects) is
+    # never called for a count-only query.
+    mock_client_instance.results.assert_not_called()
+
+
+@patch("zotero_cli.infra.arxiv_lib.arxiv.Client")
+@patch("zotero_cli.infra.arxiv_lib.arxiv.Search")
+def test_count_zero_results(MockSearch, MockClient):
+    mock_client_instance = MockClient.return_value
+    mock_feed = MagicMock()
+    mock_feed.header.total_results = 0
+    mock_client_instance._parse_feed.return_value = mock_feed
+
+    gateway = ArxivLibGateway()
+    assert gateway.count("no such papers exist xyz123") == 0

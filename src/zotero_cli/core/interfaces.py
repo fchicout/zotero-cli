@@ -208,6 +208,16 @@ class ArxivGateway(ABC):
     ) -> Iterator[ResearchPaper]:
         pass
 
+    @abstractmethod
+    def count(self, query: str) -> int:
+        """
+        Returns the total result count for a query without fetching
+        individual results (Issue #181) - for a read-only "About N
+        results" exploratory-search UI that shouldn't pay the bandwidth/
+        rate-limit cost of materializing full ResearchPaper objects.
+        """
+        pass
+
 
 class BibtexGateway(ABC):
     @abstractmethod
