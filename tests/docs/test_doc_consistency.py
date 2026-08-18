@@ -4,7 +4,20 @@ from pathlib import Path
 
 import pytest
 
+import zotero_cli.cli.main  # noqa: F401
 from zotero_cli.cli.base import CommandRegistry
+
+# The zotero_cli.cli.main import above is load-bearing, not unused: every
+# command class registers itself via a @CommandRegistry.register decorator on
+# its own module, which only runs once that module is imported. Without it,
+# CommandRegistry.get_commands() is silently empty when this file is run in
+# isolation (e.g. `pytest tests/docs`, exactly how this protocol's own step 1
+# instructs it to be run) - not because there's no documentation drift, but
+# because every check in this file that walks the registry (all but the two
+# *_no_orphans tests) then iterates over nothing and passes vacuously. The
+# two no-orphans tests only fail loudly because they check the other
+# direction (docs -> registry), where real files on disk make the
+# empty-registry bug visible instead of silent (Issue #147).
 
 
 def get_registered_commands():
