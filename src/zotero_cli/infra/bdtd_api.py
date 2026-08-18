@@ -33,6 +33,9 @@ _RECORD_FIELDS = [
 # BDTD's VuFind search endpoint's max results per page.
 _MAX_PER_PAGE = 20
 
+# VuFind's repeated-query-param syntax for requesting specific fields.
+_FIELD_PARAM = "field[]"
+
 
 class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider):
     def __init__(self):
@@ -61,7 +64,7 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider)
 
             if is_url or is_doi:
                 logger.info(f"BDTDAPIClient: Searching for identifier: {clean_id}")
-                response = self._get("search", params={"lookfor": clean_id, "field[]": fields})
+                response = self._get("search", params={"lookfor": clean_id, _FIELD_PARAM: fields})
                 data = response.json()
                 records = data.get("records", [])
                 if not records:
@@ -70,7 +73,7 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider)
                 record = records[0]
             else:
                 logger.info(f"BDTDAPIClient: Fetching record ID: {clean_id}")
-                response = self._get("record", params={"id": clean_id, "field[]": fields})
+                response = self._get("record", params={"id": clean_id, _FIELD_PARAM: fields})
                 data = response.json()
                 records = data.get("records", [])
                 if not records:
@@ -109,14 +112,14 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider)
                     "search",
                     params={
                         "lookfor": query,
-                        "field[]": _RECORD_FIELDS,
+                        _FIELD_PARAM: _RECORD_FIELDS,
                         "limit": limit,
                         "page": page,
                     },
                 )
                 data = response.json()
-            except Exception as e:
-                logger.error(f"BDTDAPIClient: Error searching for '{query}': {e}")
+            except Exception:
+                logger.exception(f"BDTDAPIClient: Error searching for '{query}'")
                 return
 
             records = data.get("records", [])
