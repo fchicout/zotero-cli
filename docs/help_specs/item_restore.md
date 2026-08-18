@@ -44,7 +44,7 @@ Like `item trash`, this is preview-only by default (`--execute` required), shows
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Undoing an accidental trash
 **Problem:** I ran `item trash --key ABCD1234 --execute` by mistake and want it back.
-**Action:** `zotero-cli item restore --key "ABCD1234" --offline --execute`
+**Action:** `zotero-cli --offline item restore --key "ABCD1234" --execute`
 **Result:** The item is removed from the trash in `zotero.sqlite` and appears normally again in Zotero Desktop.
 
 ## 7. Cognitive Safeguards
