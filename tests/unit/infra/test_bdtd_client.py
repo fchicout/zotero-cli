@@ -209,3 +209,75 @@ def test_get_paper_metadata_exception(client):
     with patch.object(client, "_get", side_effect=Exception("Connection error")):
         paper = client.get_paper_metadata("any_id")
         assert paper is None
+
+
+# -- search Tests --------------------------------------------------------------------
+
+
+def _bdtd_record(title: str, url: str = "https://repositorio.example/handle/1") -> dict:
+    return {
+        "title": title,
+        "authors": {},
+        "urls": [{"url": url}],
+        "summary": [],
+    }
+
+
+def test_search_single_page(client):
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "records": [_bdtd_record("Tese A"), _bdtd_record("Tese B")]
+    }
+
+    with patch.object(client, "_get", return_value=mock_response) as mock_get:
+        results = list(client.search("aprendizado de maquina", max_results=2))
+
+    assert len(results) == 2
+    assert results[0].title == "Tese A"
+    assert results[1].title == "Tese B"
+    kwargs = mock_get.call_args.kwargs
+    assert kwargs["params"]["lookfor"] == "aprendizado de maquina"
+    assert kwargs["params"]["limit"] == 2
+
+
+def test_search_does_not_resolve_pdf_urls(client):
+    """The whole point of skipping resolve_pdf for bulk search results."""
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"records": [_bdtd_record("Tese A")]}
+
+    with patch.object(client, "_get", return_value=mock_response):
+        with patch.object(client, "_resolve_pdf_url_sync") as mock_resolve:
+            results = list(client.search("topic", max_results=1))
+
+    assert results[0].pdf_url is None
+    mock_resolve.assert_not_called()
+
+
+def test_search_paginates_until_max_results(client):
+    page1 = MagicMock()
+    page1.json.return_value = {"records": [_bdtd_record(f"T{i}") for i in range(20)]}
+    page2 = MagicMock()
+    page2.json.return_value = {"records": [_bdtd_record("T20"), _bdtd_record("T21")]}
+
+    with patch.object(client, "_get", side_effect=[page1, page2]) as mock_get:
+        results = list(client.search("topic", max_results=22))
+
+    assert len(results) == 22
+    assert mock_get.call_count == 2
+
+
+def test_search_stops_on_empty_page(client):
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"records": []}
+
+    with patch.object(client, "_get", return_value=mock_response):
+        results = list(client.search("no matches", max_results=10))
+
+    assert results == []
+
+
+def test_search_error_stops_iteration(client):
+    with patch.object(client, "_get", side_effect=Exception("network error")):
+        results = list(client.search("topic"))
+
+    assert results == []

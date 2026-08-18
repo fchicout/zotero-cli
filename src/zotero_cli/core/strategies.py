@@ -7,6 +7,7 @@ from zotero_cli.core.interfaces import (
     CanonicalCsvGateway,
     IeeeCsvGateway,
     RisGateway,
+    SearchableMetadataProvider,
     SpringerCsvGateway,
 )
 from zotero_cli.core.models import ResearchPaper
@@ -33,6 +34,20 @@ class ArxivImportStrategy(ImportStrategy):
         sort_by = kwargs.get("sort_by", "relevance")
         sort_order = kwargs.get("sort_order", "descending")
         return self.gateway.search(source, limit, sort_by, sort_order)
+
+
+class BdtdImportStrategy(ImportStrategy):
+    """
+    Bulk import from a BDTD free-text/topic search (Issue #182), e.g.
+    `import bdtd --query "aprendizado de maquina"`.
+    """
+
+    def __init__(self, provider: SearchableMetadataProvider):
+        self.provider = provider
+
+    def fetch_papers(self, source: str, **kwargs: Any) -> Iterator[ResearchPaper]:
+        limit = kwargs.get("limit", 20)
+        return self.provider.search(source, max_results=limit)
 
 
 class BibtexImportStrategy(ImportStrategy):

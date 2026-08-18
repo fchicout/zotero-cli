@@ -1,13 +1,13 @@
 # mypy: ignore-errors
 import logging
 import urllib.parse
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterator, Optional
 
 import requests
 from bs4 import BeautifulSoup
 from rapidfuzz.distance import Levenshtein
 
-from zotero_cli.core.interfaces import MetadataProvider
+from zotero_cli.core.interfaces import MetadataProvider, SearchableMetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
 
@@ -15,8 +15,26 @@ logger = logging.getLogger(__name__)
 
 DOI_ORG = "doi.org/"
 
+# Fields requested from BDTD's VuFind API - shared between get_paper_metadata
+# and search() so both map the same record shape.
+_RECORD_FIELDS = [
+    "id",
+    "title",
+    "authors",
+    "urls",
+    "summary",
+    "publicationDates",
+    "institutions",
+    "formats",
+    "languages",
+    "subjects",
+]
 
-class BDTDAPIClient(BaseAPIClient, MetadataProvider):
+# BDTD's VuFind search endpoint's max results per page.
+_MAX_PER_PAGE = 20
+
+
+class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider):
     def __init__(self):
         base_url = "https://bdtd.ibict.br/vufind/api/v1"
         super().__init__(base_url=base_url)
@@ -39,18 +57,7 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider):
         is_doi = "/" in clean_id and "." in clean_id and not is_url
 
         try:
-            fields = [
-                "id",
-                "title",
-                "authors",
-                "urls",
-                "summary",
-                "publicationDates",
-                "institutions",
-                "formats",
-                "languages",
-                "subjects",
-            ]
+            fields = _RECORD_FIELDS
 
             if is_url or is_doi:
                 logger.info(f"BDTDAPIClient: Searching for identifier: {clean_id}")
@@ -77,7 +84,54 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider):
             logger.error(f"BDTDAPIClient: Error fetching metadata for {identifier}: {e}")
             return None
 
-    def _map_to_research_paper(self, item: Dict[str, Any]) -> ResearchPaper:
+    def search(
+        self,
+        query: str,
+        max_results: int = 100,
+        sort_by: str = "relevance",
+        sort_order: str = "descending",
+    ) -> Iterator[ResearchPaper]:
+        """
+        Free-text/topic search via BDTD's VuFind search endpoint (Issue
+        #182), e.g. `import bdtd --query "aprendizado de maquina"`.
+        sort_by/sort_order are accepted for interface parity with
+        ArxivGateway.search/SearchableMetadataProvider but not honored -
+        VuFind's relevance ranking is used as-is. PDF URLs are not resolved
+        here (see _map_to_research_paper's resolve_pdf) - that's deferred
+        to the async BDTDResolver once an item is actually imported.
+        """
+        page = 1
+        fetched = 0
+        while fetched < max_results:
+            limit = min(_MAX_PER_PAGE, max_results - fetched)
+            try:
+                response = self._get(
+                    "search",
+                    params={
+                        "lookfor": query,
+                        "field[]": _RECORD_FIELDS,
+                        "limit": limit,
+                        "page": page,
+                    },
+                )
+                data = response.json()
+            except Exception as e:
+                logger.error(f"BDTDAPIClient: Error searching for '{query}': {e}")
+                return
+
+            records = data.get("records", [])
+            if not records:
+                return
+
+            for record in records:
+                yield self._map_to_research_paper(record, resolve_pdf=False)
+                fetched += 1
+                if fetched >= max_results:
+                    return
+
+            page += 1
+
+    def _map_to_research_paper(self, item: Dict[str, Any], resolve_pdf: bool = True) -> ResearchPaper:
         # Title
         title = (item.get("title") or "").strip()
 
@@ -153,9 +207,14 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider):
 
         extra = "\n".join(extra_parts) if extra_parts else None
 
-        # Resolve PDF URL (synchronously in BDTDAPIClient)
+        # Resolve PDF URL (synchronously in BDTDAPIClient). Skipped for bulk
+        # search() results (Issue #182): scraping+HEAD-probing every
+        # landing page for up to max_results records is too slow/expensive
+        # for a search preview - PDF resolution there is deferred to the
+        # existing async BDTDResolver, run later via the normal PDF-fetch
+        # job pipeline once an item is actually imported.
         pdf_url = None
-        if url:
+        if url and resolve_pdf:
             try:
                 pdf_url = self._resolve_pdf_url_sync(url)
             except Exception as e:
