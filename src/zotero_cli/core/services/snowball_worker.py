@@ -71,7 +71,7 @@ class SnowballDiscoveryWorker:
             self.job_queue.complete_job(job_id)
             self.graph_service.save_graph()
         except Exception as e:
-            logger.error(f"Worker: Task {task_type} failed for {doi}: {e}")
+            logger.exception(f"Worker: Task {task_type} failed for {doi}")
             # RetryableError check (NetworkGateway raises this for 429/503)
             from zotero_cli.core.exceptions import RetryableError
 

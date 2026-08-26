@@ -83,8 +83,8 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider)
 
             return self._map_to_research_paper(record)
 
-        except Exception as e:
-            logger.error(f"BDTDAPIClient: Error fetching metadata for {identifier}: {e}")
+        except Exception:
+            logger.exception(f"BDTDAPIClient: Error fetching metadata for {identifier}")
             return None
 
     def search(
