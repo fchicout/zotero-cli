@@ -234,16 +234,20 @@ def test_handle_list_success(capsys):
 
     mock_gateway.get_items_in_collection.return_value = [mock_item1, mock_item2]
 
-    # Item children (PDF or Notes)
-    # mock_item1 has a PDF child and SDB note child
-    mock_gateway.get_item_children.side_effect = lambda key: (
-        [
-            {"data": {"itemType": "attachment", "contentType": "application/pdf"}},
-            {"data": {"itemType": "note", "note": "<div>Decision: include</div>"}},
-        ]
-        if key == "K1"
-        else []
-    )
+    # Library-wide PDF/note scan (Issue #189): K1 has a PDF attachment and
+    # an SDB note child, K2 has neither.
+    def _search_items_side_effect(query):
+        if query.item_type == "attachment":
+            att = ZoteroItem(key="ATT1", version=1, item_type="attachment")
+            att.raw_data = {"data": {"contentType": "application/pdf", "parentItem": "K1"}}
+            return iter([att])
+        if query.item_type == "note":
+            note = ZoteroItem(key="NOTE1", version=1, item_type="note")
+            note.raw_data = {"data": {"note": "<div>Decision: include</div>", "parentItem": "K1"}}
+            return iter([note])
+        return iter([])
+
+    mock_gateway.search_items.side_effect = _search_items_side_effect
 
     args = argparse.Namespace(source_verb="list")
 
@@ -254,6 +258,33 @@ def test_handle_list_success(capsys):
     assert "raw_acm" in out
     assert "2" in out  # Total Items
     assert "1/2" in out  # PDF count
+
+
+def test_handle_list_does_not_call_get_item_children_per_item(capsys):
+    """Issue #189: PDF/note detection must come from two library-wide
+    search_items() calls, not one get_item_children() call per item."""
+    mock_gateway = MagicMock()
+    mock_gateway.get_all_collections.return_value = [
+        {"key": "RAW_KEY", "data": {"name": "raw_acm"}}
+    ]
+
+    items = [
+        ZoteroItem(key=f"K{i}", version=1, item_type="journalArticle", title=f"Paper {i}")
+        for i in range(50)
+    ]
+    for item in items:
+        item.raw_data = {"data": {"title": item.title}}
+    mock_gateway.get_items_in_collection.return_value = items
+
+    mock_gateway.search_items.return_value = iter([])
+
+    args = argparse.Namespace(source_verb="list")
+    SLRSourceCommand.execute(mock_gateway, args)
+
+    # Exactly one attachment-type and one note-type query, regardless of
+    # how many items the source has - not one call per item.
+    assert mock_gateway.search_items.call_count == 2
+    mock_gateway.get_item_children.assert_not_called()
 
 
 def test_handle_list_success_empty_source(capsys):

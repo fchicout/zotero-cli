@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.table import Table
 
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.models import ZoteroQuery
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -165,6 +166,33 @@ class SLRSourceCommand:
         )
 
     @staticmethod
+    def _fetch_pdf_and_note_parent_keys(gateway: ZoteroGateway) -> tuple[set[str], set[str]]:
+        """
+        Library-wide, paginated scan for which items have a PDF attachment /
+        an SDB-note child, done once regardless of how many sources/items
+        `_handle_list` reports on - avoids the O(total items) per-item
+        `get_item_children` network calls this used to make (Issue #189).
+        """
+        pdf_parent_keys: set[str] = set()
+        note_parent_keys: set[str] = set()
+
+        for item in gateway.search_items(ZoteroQuery(item_type="attachment")):
+            data = item.raw_data.get("data", {})
+            if "pdf" in str(data.get("contentType", "")).lower():
+                parent_key = data.get("parentItem")
+                if parent_key:
+                    pdf_parent_keys.add(str(parent_key))
+
+        for item in gateway.search_items(ZoteroQuery(item_type="note")):
+            data = item.raw_data.get("data", {})
+            if "decision" in str(data.get("note", "")).lower():
+                parent_key = data.get("parentItem")
+                if parent_key:
+                    note_parent_keys.add(str(parent_key))
+
+        return pdf_parent_keys, note_parent_keys
+
+    @staticmethod
     def _handle_list(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         with console.status("[bold green]Scanning for active SLR sources..."):
             cols = gateway.get_all_collections()
@@ -183,6 +211,11 @@ class SLRSourceCommand:
         table.add_column("Metadata Compl. %", justify="right")
         table.add_column("Has PDF", justify="right")
         table.add_column("Missing Abstract", justify="right")
+
+        with console.status("[bold green]Checking PDF/SDB-note coverage..."):
+            pdf_parent_keys, note_parent_keys = SLRSourceCommand._fetch_pdf_and_note_parent_keys(
+                gateway
+            )
 
         for r in raw_cols:
             name = r["data"]["name"]
@@ -209,19 +242,10 @@ class SLRSourceCommand:
                 if "arxiv" in extra.lower() or "arxiv" in idata.get("url", "").lower():
                     arxiv = "exists"
 
-                # Check for PDF
-                children = gateway.get_item_children(item.key)
-                item_has_pdf = False
-                for child in children:
-                    cdata = child.get("data", child)
-                    if (
-                        cdata.get("itemType") == "attachment"
-                        and "pdf" in cdata.get("contentType", "").lower()
-                    ):
-                        item_has_pdf = True
-                        break
-
-                if item_has_pdf:
+                # PDF / SDB-note coverage, checked against the library-wide
+                # sets fetched once up front instead of a per-item
+                # get_item_children network call (Issue #189).
+                if item.key in pdf_parent_keys:
                     has_pdf += 1
                     completeness_points += 1
 
@@ -234,17 +258,7 @@ class SLRSourceCommand:
                 if doi or arxiv:
                     completeness_points += 1
 
-                # Check for SDB note
-                has_note = False
-                for child in children:
-                    cdata = child.get("data", child)
-                    if (
-                        cdata.get("itemType") == "note"
-                        and "decision" in cdata.get("note", "").lower()
-                    ):
-                        has_note = True
-                        break
-                if has_note:
+                if item.key in note_parent_keys:
                     completeness_points += 1
 
             compl_percent = (completeness_points / (total * 5)) * 100
