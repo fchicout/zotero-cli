@@ -43,10 +43,10 @@ class DOAJAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider,
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 return None
-            logger.error(f"DOAJAPIClient: Error fetching metadata for {identifier}: {e}")
+            logger.exception(f"DOAJAPIClient: Error fetching metadata for {identifier}")
             return None
-        except Exception as e:
-            logger.error(f"DOAJAPIClient: Error fetching metadata for {identifier}: {e}")
+        except Exception:
+            logger.exception(f"DOAJAPIClient: Error fetching metadata for {identifier}")
             return None
 
     def search(
@@ -69,8 +69,8 @@ class DOAJAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider,
             page_size = min(_MAX_PER_PAGE, max_results - fetched)
             try:
                 data = self._search_page(query, page=page, page_size=page_size)
-            except Exception as e:
-                logger.error(f"DOAJAPIClient: Error searching for '{query}': {e}")
+            except Exception:
+                logger.exception(f"DOAJAPIClient: Error searching for '{query}'")
                 return
 
             results = data.get("results", [])
@@ -93,8 +93,8 @@ class DOAJAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider,
         """
         try:
             data = self._search_page(query, page=1, page_size=1)
-        except Exception as e:
-            logger.error(f"DOAJAPIClient: Error counting results for '{query}': {e}")
+        except Exception:
+            logger.exception(f"DOAJAPIClient: Error counting results for '{query}'")
             return 0
         return int(data.get("total", 0))
 

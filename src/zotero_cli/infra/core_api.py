@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 # CORE's search endpoint's max results per page (api.core.ac.uk/docs/v3).
 _MAX_PER_PAGE = 100
 
+_SEARCH_ENDPOINT = "search/works"
+
 
 class CoreAPIClient(
     BaseAPIClient, MetadataProvider, SearchableMetadataProvider, CountableMetadataProvider
@@ -45,7 +47,7 @@ class CoreAPIClient(
                 return self._map_to_research_paper(data)
 
             response = self._get(
-                endpoint="search/works",
+                endpoint=_SEARCH_ENDPOINT,
                 params={"q": f'doi:"{clean_id}"', "limit": 1},
             )
             data = response.json()
@@ -56,10 +58,10 @@ class CoreAPIClient(
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 return None
-            logger.error(f"CoreAPIClient: Error fetching metadata for {identifier}: {e}")
+            logger.exception(f"CoreAPIClient: Error fetching metadata for {identifier}")
             return None
-        except Exception as e:
-            logger.error(f"CoreAPIClient: Error fetching metadata for {identifier}: {e}")
+        except Exception:
+            logger.exception(f"CoreAPIClient: Error fetching metadata for {identifier}")
             return None
 
     def search(
@@ -82,12 +84,12 @@ class CoreAPIClient(
             limit = min(_MAX_PER_PAGE, max_results - fetched)
             try:
                 response = self._get(
-                    endpoint="search/works",
+                    endpoint=_SEARCH_ENDPOINT,
                     params={"q": query, "limit": limit, "offset": offset},
                 )
                 data = response.json()
-            except Exception as e:
-                logger.error(f"CoreAPIClient: Error searching for '{query}': {e}")
+            except Exception:
+                logger.exception(f"CoreAPIClient: Error searching for '{query}'")
                 return
 
             results = data.get("results", [])
@@ -109,10 +111,10 @@ class CoreAPIClient(
         `totalHits`, the same total search() paginates against.
         """
         try:
-            response = self._get(endpoint="search/works", params={"q": query, "limit": 1})
+            response = self._get(endpoint=_SEARCH_ENDPOINT, params={"q": query, "limit": 1})
             data = response.json()
-        except Exception as e:
-            logger.error(f"CoreAPIClient: Error counting results for '{query}': {e}")
+        except Exception:
+            logger.exception(f"CoreAPIClient: Error counting results for '{query}'")
             return 0
         return int(data.get("totalHits", 0))
 
