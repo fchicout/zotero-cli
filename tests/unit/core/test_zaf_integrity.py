@@ -206,11 +206,12 @@ def test_restore_item_creation_failure(mock_gateway, mock_orchestrator):
 
 def test_verify_service_calculate_checksum_error(tmp_path):
     service = VerifyService()
-    # Mock zipfile.ZipFile object that fails on open
+    # Mock zipfile.ZipFile object that fails on open, simulating the kind of
+    # error zf.open() actually raises for a corrupt/unreadable entry.
     mock_zf = MagicMock()
-    mock_zf.open.side_effect = Exception("File read error")
+    mock_zf.open.side_effect = zipfile.BadZipFile("File read error")
 
-    with pytest.raises(Exception):
+    with pytest.raises(zipfile.BadZipFile):
         service._calculate_checksum(mock_zf, "any_path")
 
 
