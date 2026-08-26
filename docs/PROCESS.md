@@ -58,8 +58,10 @@
 10. **Documentation Sync:**
     *   **Sullivan** updates:
         *   `README.md` (if CLI args changed).
-        *   `docs/commands/*.md`.
+        *   `docs/commands/*.md` and `docs/help_specs/*.md`.
         *   Mermaid Diagrams (if flow changed).
+    *   Run `pytest tests/docs` to catch structural drift (missing/orphaned doc entries) before merging.
+    *   For a deliberate whole-tree sweep (not a single-issue PR's own slice) — release prep, batch doc cleanup — follow `docs/DOC_CONSISTENCY_PROTOCOL.md` instead of relying on memory.
 10. **Merge:**
     *   Merge branch into `develop` / `main`.
 11. **Close Issue:**

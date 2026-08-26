@@ -104,7 +104,7 @@ Moves an item into Zotero's trash, in `--offline` mode only, by writing directly
 
 **Usage:**
 ```bash
-zotero-cli item trash --key "ITEMKEY" --offline --execute
+zotero-cli --offline item trash --key "ITEMKEY" --execute
 ```
 
 **Parameters:**
@@ -119,7 +119,7 @@ Reverses `item trash`: removes an item from the trash, in `--offline` mode only,
 
 **Usage:**
 ```bash
-zotero-cli item restore --key "ITEMKEY" --offline --execute
+zotero-cli --offline item restore --key "ITEMKEY" --execute
 ```
 
 **Parameters:**

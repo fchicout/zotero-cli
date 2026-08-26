@@ -46,7 +46,7 @@ Online/API mode is **not supported**: the Zotero Web API has no documented, reve
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Cleaning up a duplicate found while working offline
 **Problem:** I want to trash item `ABCD1234` in my local library, the same as clicking delete in Zotero Desktop.
-**Action:** `zotero-cli item trash --key "ABCD1234" --offline --execute`
+**Action:** `zotero-cli --offline item trash --key "ABCD1234" --execute`
 **Result:** The item is moved to the trash in `zotero.sqlite`. It appears in Zotero Desktop's trash next time Desktop opens or syncs.
 
 ## 7. Cognitive Safeguards
