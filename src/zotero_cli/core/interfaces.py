@@ -197,6 +197,21 @@ class SearchableMetadataProvider(ABC):
         pass
 
 
+class CountableMetadataProvider(ABC):
+    """
+    Optional capability mixin for a MetadataProvider (typically also a
+    SearchableMetadataProvider) whose underlying API can report a query's
+    total result count cheaply, without paginating the full result set
+    (Issue #190) - mirrors ArxivGateway.count's shape. Lets a caller build a
+    read-only "About N results" exploratory-search UI without the
+    bandwidth/rate-limit cost of a capped fetch-and-count stopgap.
+    """
+
+    @abstractmethod
+    def count(self, query: str) -> int:
+        pass
+
+
 class ArxivGateway(ABC):
     @abstractmethod
     def search(
