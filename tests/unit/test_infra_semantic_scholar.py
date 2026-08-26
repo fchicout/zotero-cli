@@ -126,3 +126,24 @@ def test_search_error_stops_iteration(mock_get, client):
     results = list(client.search("topic"))
 
     assert results == []
+
+
+@patch("requests.Session.get")
+def test_count_returns_total_without_fetching_pages(mock_get, client):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"total": 4321, "data": [_s2_paper("Only for count")]}
+    mock_get.return_value = mock_response
+
+    total = client.count("attention mechanisms")
+
+    assert total == 4321
+    mock_get.assert_called_once()
+    assert mock_get.call_args.kwargs["params"]["limit"] == 1
+
+
+@patch("requests.Session.get")
+def test_count_error_returns_zero(mock_get, client):
+    mock_get.side_effect = Exception("network error")
+
+    assert client.count("topic") == 0

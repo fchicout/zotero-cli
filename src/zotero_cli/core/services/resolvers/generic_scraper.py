@@ -83,6 +83,6 @@ class GenericScraperResolver(PDFResolver):
 
             return dest
 
-        except Exception as e:
-            logger.error(f"{self.name}: Failed to resolve PDF for {item.key}: {e}")
+        except Exception:
+            logger.exception(f"{self.name}: Failed to resolve PDF for {item.key}")
             return None

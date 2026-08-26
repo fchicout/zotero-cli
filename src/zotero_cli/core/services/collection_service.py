@@ -82,7 +82,7 @@ class CollectionService:
                     # Item is already only in dest
                     return True
             elif len(candidates) == 1:
-                source_id = list(candidates)[0]
+                source_id = next(iter(candidates))
             else:
                 print(
                     f"Error: Ambiguous source. Item '{identifier}' is in multiple collections ({candidates}). Please specify --source to ensure correct movement.",

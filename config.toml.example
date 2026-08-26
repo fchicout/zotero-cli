@@ -21,3 +21,4 @@ user_id = "1909172"
 # (Optional) External API Keys
 semantic_scholar_api_key = "YOUR_SEMANTIC_SCHOLAR_KEY"
 unpaywall_email = "your-email@example.com"
+core_api_key = "YOUR_CORE_API_KEY"  # Free registration at core.ac.uk/services/api
