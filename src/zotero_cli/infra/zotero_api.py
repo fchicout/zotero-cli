@@ -482,6 +482,7 @@ class ZoteroAPIClient(ZoteroGateway):
     def upload_attachment(
         self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
     ) -> bool:
+        attachment_key: Optional[str] = None
         try:
             filename = os.path.basename(file_path)
             filesize = os.path.getsize(file_path)
@@ -511,12 +512,14 @@ class ZoteroAPIClient(ZoteroGateway):
 
             # 2. Get Upload Authorization
             auth_data = {"md5": md5, "filename": filename, "filesize": filesize, "mtime": mtime}
-            # Important: If-None-Match: * ensures we don't overwrite if not needed
-            # Issue #79: Zotero may require If-Unmodified-Since-Version for these posts
+            # If-None-Match: * signals "no existing version of this attachment"
+            # - true here since it was just created in step 1. Zotero 428s
+            # this request if If-Unmodified-Since-Version is also sent
+            # (Issue #191) - there's no prior version of *this* attachment to
+            # be "unmodified since".
             headers = {
                 "If-None-Match": "*",
                 "Content-Type": "application/x-www-form-urlencoded",
-                "If-Unmodified-Since-Version": str(self.http.last_library_version),
             }
 
             # Add params=1 as query param to get upload parameters
@@ -536,15 +539,22 @@ class ZoteroAPIClient(ZoteroGateway):
             with open(file_path, "rb") as f:
                 self.http.upload_file(upload_url, data=upload_params, files={"file": f})
 
-            # 4. Register the upload with Zotero
+            # 4. Register the upload with Zotero - also needs If-None-Match: *
+            # (Issue #191); Zotero rejects this call with 428 "If-Match/
+            # If-None-Match header not provided" without it.
             reg_data = {"upload": upload_key}
-            reg_headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            reg_headers = {"If-None-Match": "*", "Content-Type": "application/x-www-form-urlencoded"}
             self.http.post_form(f"items/{attachment_key}/file", data=reg_data, headers=reg_headers)
 
             return True
 
         except Exception as e:
             print(f"Error uploading attachment: {e}")
+            if attachment_key:
+                # Steps 2-4 failed after step 1 already created the
+                # attachment placeholder item - clean it up rather than
+                # leaving an empty orphaned item behind (Issue #191).
+                self.delete_item(attachment_key, 0)
             return False
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:
