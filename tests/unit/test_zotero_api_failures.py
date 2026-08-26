@@ -93,10 +93,12 @@ def test_upload_attachment_failure_post(client):
 
 @patch("os.path.basename")
 @patch("os.path.getmtime")
+@patch("os.path.getsize")
 @patch("builtins.open", new_callable=mock_open, read_data=b"data")
-def test_upload_attachment_failure_auth(mock_file, mock_mtime, mock_base, client):
+def test_upload_attachment_failure_auth(mock_file, mock_getsize, mock_mtime, mock_base, client):
     # Pass step 1, fail step 2
     mock_base.return_value = "f.pdf"
+    mock_getsize.return_value = 4
 
     # Step 1 success
     res1 = Mock()
@@ -107,3 +109,98 @@ def test_upload_attachment_failure_auth(mock_file, mock_mtime, mock_base, client
     client.http.post_form.side_effect = Exception("Auth Boom")
 
     assert client.upload_attachment("P1", "f.pdf") is False
+
+    # Issue #191: a failure after step 1 already created the placeholder
+    # attachment item must clean it up, not leave an orphaned empty item.
+    client.http.delete.assert_called_once_with("items/K", version_check=True)
+
+
+@patch("os.path.basename")
+@patch("os.path.getmtime")
+@patch("os.path.getsize")
+@patch("builtins.open", new_callable=mock_open, read_data=b"data")
+def test_upload_attachment_step2_headers_omit_if_unmodified_since_version(
+    mock_file, mock_getsize, mock_mtime, mock_base, client
+):
+    """Issue #191 bug 1: Zotero 428s step 2 (upload authorization) if
+    If-Unmodified-Since-Version is sent alongside If-None-Match: * - there's
+    no prior version of a just-created attachment to be unmodified since."""
+    mock_base.return_value = "f.pdf"
+    mock_getsize.return_value = 4
+
+    res1 = Mock()
+    res1.json.return_value = {"successful": {"0": {"key": "K"}}}
+    client.http.post.return_value = res1
+
+    res_auth = Mock()
+    res_auth.json.return_value = {"exists": 1}
+    client.http.post_form.return_value = res_auth
+
+    client.upload_attachment("P1", "f.pdf")
+
+    auth_call = client.http.post_form.call_args_list[0]
+    headers = auth_call.kwargs["headers"]
+    assert headers["If-None-Match"] == "*"
+    assert "If-Unmodified-Since-Version" not in headers
+
+
+@patch("os.path.basename")
+@patch("os.path.getmtime")
+@patch("os.path.getsize")
+@patch("builtins.open", new_callable=mock_open, read_data=b"data")
+def test_upload_attachment_step4_headers_include_if_none_match(
+    mock_file, mock_getsize, mock_mtime, mock_base, client
+):
+    """Issue #191 bug 2: Zotero 428s step 4 (registering the upload) with
+    "If-Match/If-None-Match header not provided" without this."""
+    mock_base.return_value = "f.pdf"
+    mock_getsize.return_value = 4
+
+    res1 = Mock()
+    res1.json.return_value = {"successful": {"0": {"key": "K"}}}
+    client.http.post.return_value = res1
+
+    res_auth = Mock()
+    res_auth.json.return_value = {
+        "exists": 0,
+        "url": "http://s3.upload",
+        "params": {},
+        "uploadKey": "UPLOAD_KEY",
+    }
+    client.http.post_form.return_value = res_auth
+
+    success = client.upload_attachment("P1", "f.pdf")
+
+    assert success is True
+    reg_call = client.http.post_form.call_args_list[1]
+    assert reg_call.kwargs["headers"]["If-None-Match"] == "*"
+
+
+@patch("os.path.basename")
+@patch("os.path.getmtime")
+@patch("os.path.getsize")
+@patch("builtins.open", new_callable=mock_open, read_data=b"data")
+def test_upload_attachment_failure_register_cleans_up_orphan(
+    mock_file, mock_getsize, mock_mtime, mock_base, client
+):
+    """Issue #191: a step-4 failure must also clean up the orphaned
+    placeholder item, not just a step-2 failure."""
+    mock_base.return_value = "f.pdf"
+    mock_getsize.return_value = 4
+
+    res1 = Mock()
+    res1.json.return_value = {"successful": {"0": {"key": "K"}}}
+
+    res_auth = Mock()
+    res_auth.json.return_value = {
+        "exists": 0,
+        "url": "http://s3.upload",
+        "params": {},
+        "uploadKey": "UPLOAD_KEY",
+    }
+
+    client.http.post.return_value = res1
+    client.http.post_form.side_effect = [res_auth, Exception("Register Boom")]
+
+    assert client.upload_attachment("P1", "f.pdf") is False
+    client.http.delete.assert_called_once_with("items/K", version_check=True)
