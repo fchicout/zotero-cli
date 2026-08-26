@@ -139,8 +139,8 @@ class SnowballGraphService(ISnowballGraphService):
                 with open(self.storage_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 self.graph = nx.node_link_graph(data)
-            except Exception as e:
-                logger.error(f"Failed to load discovery graph: {e}")
+            except Exception:
+                logger.exception("Failed to load discovery graph")
                 self.graph = nx.DiGraph()
 
     def get_stats(self) -> Dict[str, Any]:
