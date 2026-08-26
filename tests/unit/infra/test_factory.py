@@ -210,6 +210,31 @@ def test_get_metadata_aggregator(mock_config):
     assert isinstance(service, MetadataAggregatorService)
 
 
+def test_get_semantic_scholar_client(mock_config):
+    from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient
+
+    client = GatewayFactory.get_semantic_scholar_client(mock_config)
+    assert isinstance(client, SemanticScholarAPIClient)
+
+
+def test_get_core_client(mock_config):
+    import dataclasses
+
+    from zotero_cli.infra.core_api import CoreAPIClient
+
+    config_with_core_key = dataclasses.replace(mock_config, core_api_key="test_core_key")
+    client = GatewayFactory.get_core_client(config_with_core_key)
+    assert isinstance(client, CoreAPIClient)
+    assert client.api_key == "test_core_key"
+
+
+def test_get_doaj_client():
+    from zotero_cli.infra.doaj_api import DOAJAPIClient
+
+    client = GatewayFactory.get_doaj_client()
+    assert isinstance(client, DOAJAPIClient)
+
+
 def test_get_config_not_provided():
     with patch("zotero_cli.core.config.get_config") as mock_get:
         mock_get.return_value = ZoteroConfig(api_key="key", library_id="123", library_type="user")

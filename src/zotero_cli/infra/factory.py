@@ -59,7 +59,9 @@ if TYPE_CHECKING:
     from zotero_cli.infra.bdtd_api import BDTDAPIClient
     from zotero_cli.infra.bibtex_lib import BibtexLibGateway
     from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
+    from zotero_cli.infra.core_api import CoreAPIClient
     from zotero_cli.infra.dblp_api import DBLPAPIClient
+    from zotero_cli.infra.doaj_api import DOAJAPIClient
     from zotero_cli.infra.eric_api import ERICAPIClient
     from zotero_cli.infra.hal_api import HALAPIClient
     from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
@@ -67,6 +69,7 @@ if TYPE_CHECKING:
     from zotero_cli.infra.openalex_api import OpenAlexAPIClient
     from zotero_cli.infra.pubmed_api import PubMedAPIClient
     from zotero_cli.infra.ris_lib import RisLibGateway
+    from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient
     from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
     from zotero_cli.infra.zbmath_api import ZBMathAPIClient
 
@@ -158,6 +161,20 @@ class GatewayFactory:
     @staticmethod
     def get_bdtd_client() -> "BDTDAPIClient":
         return MetadataClientFactory.get_bdtd_client()
+
+    @staticmethod
+    def get_semantic_scholar_client(
+        config: Optional[ZoteroConfig] = None,
+    ) -> "SemanticScholarAPIClient":
+        return MetadataClientFactory.get_semantic_scholar_client(config)
+
+    @staticmethod
+    def get_core_client(config: Optional[ZoteroConfig] = None) -> "CoreAPIClient":
+        return MetadataClientFactory.get_core_client(config)
+
+    @staticmethod
+    def get_doaj_client() -> "DOAJAPIClient":
+        return MetadataClientFactory.get_doaj_client()
 
     @staticmethod
     def get_inspire_hep_client() -> "InspireHEPAPIClient":

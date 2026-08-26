@@ -266,9 +266,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         bdtd_client = GatewayFactory.get_bdtd_client()
 
         if args.query:
-            from zotero_cli.core.strategies import BdtdImportStrategy
+            from zotero_cli.core.strategies import SearchableProviderImportStrategy
 
-            strategy = BdtdImportStrategy(bdtd_client)
+            strategy = SearchableProviderImportStrategy(bdtd_client)
             papers = strategy.fetch_papers(args.query, limit=args.limit)
             count = service.import_papers(papers, args.collection, args.verbose)
             print(f"Imported {count} thesis item(s).")
