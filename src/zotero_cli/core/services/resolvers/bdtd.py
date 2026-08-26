@@ -150,6 +150,6 @@ class BDTDResolver(PDFResolver):
             dest.write_bytes(response.content)
             logger.info(f"BDTDResolver: Successfully downloaded PDF to {dest}")
             return dest
-        except Exception as e:
-            logger.error(f"BDTDResolver: Download failed for {pdf_url}: {e}")
+        except Exception:
+            logger.exception(f"BDTDResolver: Download failed for {pdf_url}")
             return None

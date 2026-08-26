@@ -36,10 +36,13 @@ class ArxivImportStrategy(ImportStrategy):
         return self.gateway.search(source, limit, sort_by, sort_order)
 
 
-class BdtdImportStrategy(ImportStrategy):
+class SearchableProviderImportStrategy(ImportStrategy):
     """
-    Bulk import from a BDTD free-text/topic search (Issue #182), e.g.
-    `import bdtd --query "aprendizado de maquina"`.
+    Bulk import from any free-text/topic search-capable metadata provider
+    (Issue #182 introduced this for BDTD; Issue #190 reuses it as-is for
+    CORE, Semantic Scholar, and DOAJ - every SearchableMetadataProvider
+    already shares the same search() shape, so one strategy class covers
+    all of them without duplication).
     """
 
     def __init__(self, provider: SearchableMetadataProvider):

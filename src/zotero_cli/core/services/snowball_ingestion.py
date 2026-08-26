@@ -89,8 +89,8 @@ class SnowballIngestionService:
                     logger.error(f"Failed to create Zotero item for {doi}")
                     stats["errors"] += 1
 
-            except Exception as e:
-                logger.error(f"Error during ingestion of {doi}: {e}")
+            except Exception:
+                logger.exception(f"Error during ingestion of {doi}")
                 stats["errors"] += 1
 
         self.graph_service.save_graph()

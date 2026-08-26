@@ -4,7 +4,11 @@ from typing import Any, Dict, Iterator, Optional
 
 import requests
 
-from zotero_cli.core.interfaces import MetadataProvider, SearchableMetadataProvider
+from zotero_cli.core.interfaces import (
+    CountableMetadataProvider,
+    MetadataProvider,
+    SearchableMetadataProvider,
+)
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
 
@@ -16,7 +20,9 @@ _SEARCH_FIELDS = (
 )
 
 
-class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider):
+class SemanticScholarAPIClient(
+    BaseAPIClient, MetadataProvider, SearchableMetadataProvider, CountableMetadataProvider
+):
     def __init__(self, api_key: Optional[str] = None):
         super().__init__(base_url="https://api.semanticscholar.org/graph/v1/paper")
         self.api_key = api_key or os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
@@ -107,6 +113,25 @@ class SemanticScholarAPIClient(BaseAPIClient, MetadataProvider, SearchableMetada
                     return
 
             offset += len(papers)
+
+    def count(self, query: str) -> int:
+        """
+        Returns the total result count for a query without fetching full
+        paper records (Issue #190) - requests a single-item page and reads
+        the same `total` field search() already paginates against, instead
+        of materializing/discarding results just to count them.
+        """
+        time.sleep(1.1)  # Rate limiting: 1 request per second (keeping it polite)
+        try:
+            response = self._get(
+                endpoint="search",
+                params={"query": query, "limit": 1, "fields": "title"},
+            )
+            data: Dict[str, Any] = response.json()
+        except Exception as e:
+            print(f"Error counting Semantic Scholar results for '{query}': {e}")
+            return 0
+        return int(data.get("total", 0))
 
     def _map_to_research_paper(self, data: dict) -> ResearchPaper:
         # Extract authors
