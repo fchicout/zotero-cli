@@ -49,7 +49,7 @@ class ZoteroAPIClient(ZoteroGateway):
     def _parse_write_response(self, response: requests.Response) -> Optional[str]:
         data = cast(Dict[str, Any], response.json())
         if "successful" in data and data["successful"]:
-            first_index = list(data["successful"].keys())[0]
+            first_index = next(iter(data["successful"].keys()))
             return str(data["successful"][first_index]["key"])
         if "failed" in data and data["failed"]:
             print(f"Write failed details: {data['failed']}")
