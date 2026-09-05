@@ -1,7 +1,7 @@
 import json
 import sys
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from zotero_cli.core.interfaces import (
     CollectionRepository,
@@ -55,6 +55,56 @@ class ScreeningService(IScreeningService):
         1. Finds or creates a child note with the decision metadata (JSON).
         2. Applies semantic tags (e.g., rsl:exclude:EC1).
         3. Optionally moves the item from source to target collection.
+
+        A thin convenience wrapper over record_decision_note +
+        apply_decision_outcome (Issue #201), kept so today's solo-screening
+        callers are unaffected. A double-blind/multi-persona consumer
+        should call the two primitives directly instead: record each
+        rater's decision independently via record_decision_note, then call
+        apply_decision_outcome exactly once - after reconciliation - so the
+        shared tags/collection-move represent the final outcome rather than
+        firing on every persona's call.
+        """
+        if not self.record_decision_note(
+            item_key,
+            decision,
+            code,
+            reason=reason,
+            agent=agent,
+            persona=persona,
+            phase=phase,
+            evidence=evidence,
+        ):
+            return False
+
+        return self.apply_decision_outcome(
+            item_key,
+            decision,
+            code,
+            source_collection=source_collection,
+            target_collection=target_collection,
+            phase=phase,
+        )
+
+    def record_decision_note(
+        self,
+        item_key: str,
+        decision: str,
+        code: str,
+        reason: Optional[str] = None,
+        agent: str = "zotero-cli",
+        persona: str = "unknown",
+        phase: str = "title_abstract",
+        evidence: Optional[str] = None,
+    ) -> bool:
+        """
+        Records (writes or upserts) a single persona's screening-decision
+        audit note only - no shared tags, no collection movement (Issue
+        #201's step 1, split out of record_decision). Upserts by
+        (persona, phase): a second call for the same persona/phase updates
+        the existing note in place rather than creating a duplicate, so two
+        different personas screening the same item each get their own
+        independent, upsert-safe note.
         """
         decision_upper = decision.upper()
         if decision_upper not in ["INCLUDE", "EXCLUDE"]:
@@ -67,7 +117,7 @@ class ScreeningService(IScreeningService):
         # Map internal decision to SDB decision
         sdb_decision = "accepted" if decision_upper == "INCLUDE" else "rejected"
 
-        # 1. Check for existing note by persona AND phase using robust parsing
+        # Check for existing note by persona AND phase using robust parsing
         children = self.note_repo.get_item_children(item_key)
         existing_note_key: Optional[str] = None
         existing_version: int = 0
@@ -90,7 +140,7 @@ class ScreeningService(IScreeningService):
         else:
             reason_codes = [c.strip() for c in code.split(",")] if code else []
 
-        # 2. Create the Audit Note using SDB v1.2
+        # Create the Audit Note using SDB v1.2
         decision_data = {
             "audit_version": "1.2",
             "decision": sdb_decision,
@@ -115,28 +165,51 @@ class ScreeningService(IScreeningService):
             print(f"Error: Failed to record audit note for item {item_key}.", file=sys.stderr)
             return False
 
-        # 3. Apply Tags
-        tags_to_add = []
-        # Phase Tag
-        tags_to_add.append(f"rsl:phase:{phase}")
+        return True
 
-        # Decision Tags
+    def apply_decision_outcome(
+        self,
+        item_key: str,
+        decision: str,
+        code: str,
+        source_collection: Optional[str] = None,
+        target_collection: Optional[str] = None,
+        phase: str = "title_abstract",
+    ) -> bool:
+        """
+        Applies the shared, item-level side effects of a *final* screening
+        outcome - tags and optional collection movement (Issue #201's steps
+        2-3, split out of record_decision). Call this exactly once a
+        decision is final: immediately after a solo decision, or after a
+        double-blind pair has been reconciled - not once per rater.
+        """
+        decision_upper = decision.upper()
+        if decision_upper not in ["INCLUDE", "EXCLUDE"]:
+            print(
+                f"Error: Invalid decision '{decision_upper}'. Must be INCLUDE or EXCLUDE.",
+                file=sys.stderr,
+            )
+            return False
+
+        sdb_decision = "accepted" if decision_upper == "INCLUDE" else "rejected"
+
+        # Apply Tags
+        tags_to_add = [f"rsl:phase:{phase}"]
         if sdb_decision == "rejected":
-            codes = decision_data["reason_code"]
+            codes = [c.strip() for c in code.split(",")] if code else []
             for c in codes:
                 tags_to_add.append(f"rsl:exclude:{c}")
         elif sdb_decision == "accepted":
             tags_to_add.append("rsl:include")
 
-        if tags_to_add:
-            tag_success = self.tag_repo.add_tags(item_key, tags_to_add)
-            if not tag_success:
-                print(
-                    f"Warning: Failed to apply tags {tags_to_add} to item {item_key}.",
-                    file=sys.stderr,
-                )
+        tag_success = self.tag_repo.add_tags(item_key, tags_to_add)
+        if not tag_success:
+            print(
+                f"Warning: Failed to apply tags {tags_to_add} to item {item_key}.",
+                file=sys.stderr,
+            )
 
-        # 4. Collection Movement (Optional)
+        # Collection Movement (Optional)
         if source_collection and target_collection:
             move_success = self.collection_service.move_item(
                 source_collection, target_collection, item_key
@@ -148,6 +221,25 @@ class ScreeningService(IScreeningService):
                 )
 
         return True
+
+    def get_decisions_for_item(self, item_key: str) -> List[Dict[str, Any]]:
+        """
+        Returns every persona's parsed screening-decision note on an item
+        (Issue #201), reusing parse_sdb_note, so a caller can check how many
+        independent decisions exist and what each persona decided without
+        hand-rolling note scanning (get_pending_items's own tag/note check
+        below only answers "has *any* decision been recorded", not "what
+        did each persona decide").
+        """
+        children = self.note_repo.get_item_children(item_key)
+        decisions: List[Dict[str, Any]] = []
+        for child in children:
+            data = child.get("data", child)
+            if data.get("itemType") == "note":
+                parsed = parse_sdb_note(data.get("note", ""))
+                if parsed and parsed.get("action") == "screening_decision":
+                    decisions.append(parsed)
+        return decisions
 
     def get_pending_items(self, collection_name: str) -> List[ZoteroItem]:
         """
