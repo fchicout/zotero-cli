@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.8.4] - 2026-09-05
+
 ### ✨ Features & Improvements
 - **`ScreeningService.record_decision` split into composable primitives (Issue #201):** `record_decision` used to unconditionally write the persona's audit note *and* apply shared, item-level tags/collection-movement in one call — fine for solo screening, but wrong for double-blind screening: two independent raters calling it on the same item would each fire the shared tags/move, driven by whichever called last, even when they disagreed. Split into `record_decision_note` (note write/upsert only, safe to call per-persona with no shared side effects), `apply_decision_outcome` (tags + collection move only, meant to be called once a decision is *final* — immediately after a solo decision, or after a double-blind pair is reconciled), and `get_decisions_for_item` (returns every persona's parsed decision, so a caller can check who decided what without hand-rolling note scanning). `record_decision` itself stays as a thin, non-breaking wrapper (`record_decision_note` + `apply_decision_outcome` in sequence) — every existing solo-screening caller (CLI, TUI) is unaffected.
 - **API clients for CORE, Semantic Scholar search/count, and DOAJ (Issue #190):** Three new/extended library-level metadata sources, following the exact `ArxivGateway`/`SearchableMetadataProvider` pattern already established, for a downstream consumer (Corbenic-SLR) building live "search + count + import" catalog pages: OpenAlex/PubMed/ERIC/INSPIRE-HEP already had clients, so no ask there.
