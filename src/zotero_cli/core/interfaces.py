@@ -488,6 +488,54 @@ class ScreeningService(ABC):
     ) -> bool:
         pass
 
+    @abstractmethod
+    def record_decision_note(
+        self,
+        item_key: str,
+        decision: str,
+        code: str,
+        reason: Optional[str] = None,
+        agent: str = "zotero-cli",
+        persona: str = "unknown",
+        phase: str = "title_abstract",
+        evidence: Optional[str] = None,
+    ) -> bool:
+        """
+        Records (writes or upserts) a single persona's audit note only - no
+        shared tags, no collection movement (Issue #201). Safe to call
+        independently per persona for double-blind screening, where each
+        rater's decision must be recorded without prematurely mutating the
+        item's shared state before reconciliation.
+        """
+        pass
+
+    @abstractmethod
+    def apply_decision_outcome(
+        self,
+        item_key: str,
+        decision: str,
+        code: str,
+        source_collection: Optional[str] = None,
+        target_collection: Optional[str] = None,
+        phase: str = "title_abstract",
+    ) -> bool:
+        """
+        Applies the shared, item-level outcome of a *final* screening
+        decision - tags and optional collection movement (Issue #201).
+        Call once a decision is final: immediately after a solo decision,
+        or after a double-blind pair has been reconciled.
+        """
+        pass
+
+    @abstractmethod
+    def get_decisions_for_item(self, item_key: str) -> List[Dict[str, Any]]:
+        """
+        Returns every persona's parsed screening-decision note on an item
+        (Issue #201), so a caller can check how many independent decisions
+        exist and what each persona decided.
+        """
+        pass
+
 
 class SnowballGraphService(ABC):
     STATUS_ACCEPTED = "ACCEPTED"
