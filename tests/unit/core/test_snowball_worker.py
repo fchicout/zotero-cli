@@ -85,6 +85,31 @@ async def test_discover_forward_success(worker, mock_gateway, mock_graph_service
         direction="forward",
         generation=1,
     )
+    # Issue #204: externalIds must be requested, or every citingPaper's DOI
+    # lookup comes back empty and every candidate is silently dropped.
+    _, kwargs = mock_gateway.get.call_args
+    assert "externalIds" in kwargs["params"]["fields"]
+
+
+@pytest.mark.anyio
+async def test_discover_forward_skips_citations_without_doi(
+    worker, mock_gateway, mock_graph_service
+):
+    """Issue #204 regression: a citingPaper missing externalIds.DOI (e.g. the
+    field genuinely wasn't returned) must be skipped, not crash or leak in."""
+    doi = "10.1001/paper1"
+
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "data": [
+            {"citingPaper": {"title": "No DOI Paper"}, "isInfluential": False},
+        ]
+    }
+    mock_gateway.get = AsyncMock(return_value=mock_response)
+
+    await worker._discover_forward(doi, generation=1)
+
+    mock_graph_service.add_candidate.assert_not_called()
 
 
 @pytest.mark.anyio

@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- **Forward snowballing never discovered any candidates (Issue #204):** `SnowballDiscoveryWorker._discover_forward`'s Semantic Scholar `/citations` request omitted `externalIds` from its `fields` param, so every `citingPaper.externalIds.DOI` lookup came back empty and every single forward candidate was silently dropped — confirmed live: a seed with 20 real citations (17 with a DOI) added 0 nodes via `slr snowball discovery`, with the job still reporting `COMPLETED`. Added `externalIds` to the requested fields; no other Semantic Scholar call site in the codebase shares this gap (`infra/semantic_scholar_api.py` already requests it).
+
 ## [2.8.4] - 2026-09-05
 
 ### ✨ Features & Improvements
