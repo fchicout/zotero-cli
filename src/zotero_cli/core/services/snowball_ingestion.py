@@ -6,6 +6,7 @@ from zotero_cli.core.models import ResearchPaper
 from zotero_cli.core.services.duplicate_service import DuplicateFinder
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 from zotero_cli.core.services.snowball_graph import SnowballGraphService
+from zotero_cli.core.utils.normalization import normalize_doi
 
 logger = logging.getLogger(__name__)
 
@@ -100,9 +101,12 @@ class SnowballIngestionService:
         """Checks if the paper already exists in the library."""
         # Use get_items_by_doi
         items = list(self.item_repo.get_items_by_doi(doi))
-        # Filter strictly for exact DOI match since search might be fuzzy
+        # Filter strictly for exact DOI match (normalized, since providers
+        # disagree on bare vs. URL-form DOIs - Issue #205) since search
+        # might be fuzzy.
+        target = normalize_doi(doi)
         for item in items:
-            if item.doi and item.doi.lower() == doi.lower():
+            if item.doi and normalize_doi(item.doi) == target:
                 return True
         return False
 

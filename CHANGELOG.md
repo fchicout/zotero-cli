@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
+- **Snowball import created duplicate Zotero items for URL-form DOIs (Issue #205):** `SnowballIngestionService._is_duplicate` lowercased both sides of a DOI comparison but never normalized *format* — a bare DOI already in the library (`10.1109/tse.2026.3694876`) and a URL-form DOI a metadata provider hydrated for the same paper during a snowball import (`https://doi.org/10.1109/tse.2026.3694876`) compared as unequal, so the paper was silently re-imported as a brand-new duplicate item. Switched to the project's existing `normalize_doi` helper (`core/utils/normalization.py`, already used by `slr csv_inbound`'s DOI matching) on both sides of the comparison instead of a bespoke `.lower()`-only check.
 - **Forward snowballing never discovered any candidates (Issue #204):** `SnowballDiscoveryWorker._discover_forward`'s Semantic Scholar `/citations` request omitted `externalIds` from its `fields` param, so every `citingPaper.externalIds.DOI` lookup came back empty and every single forward candidate was silently dropped — confirmed live: a seed with 20 real citations (17 with a DOI) added 0 nodes via `slr snowball discovery`, with the job still reporting `COMPLETED`. Added `externalIds` to the requested fields; no other Semantic Scholar call site in the codebase shares this gap (`infra/semantic_scholar_api.py` already requests it).
 
 ## [2.8.4] - 2026-09-05
