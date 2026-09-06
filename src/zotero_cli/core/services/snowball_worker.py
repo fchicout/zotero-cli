@@ -118,7 +118,7 @@ class SnowballDiscoveryWorker:
         """
         # S2 expects DOI: prefix or just DOI depending on endpoint
         url = f"https://api.semanticscholar.org/graph/v1/paper/DOI:{doi}/citations"
-        params = {"fields": "title,authors,year,abstract,isInfluential"}
+        params = {"fields": "externalIds,title,authors,year,abstract,isInfluential"}
 
         headers = {}
         if self.s2_api_key:
