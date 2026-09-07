@@ -6,6 +6,7 @@ import requests
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import KeyIdentity, ResearchPaper, ZoteroQuery
+from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.http_client import ZoteroHttpClient
 
@@ -144,9 +145,26 @@ class ZoteroAPIClient(ZoteroGateway):
         return self.search_items(ZoteroQuery(tag=tag))
 
     def get_items_by_doi(self, doi: str) -> Iterator[ZoteroItem]:
-        # Zotero API search by DOI
-        # Note: q search is general, but often used for DOIs
-        return self.search_items(ZoteroQuery(q=doi))
+        """
+        Zotero's `q`/`qmode` search does not index the structured DOI
+        field under either `qmode` value (Issue #205, reopened) -
+        confirmed directly against the live Web API: `q=<doi>` with both
+        `qmode=titleCreatorYear` and `qmode=everything` returns zero
+        results for a DOI that genuinely exists on an item in the
+        library. A client-side scan is the only approach that actually
+        works: paginate every item and filter locally with
+        `normalize_doi()`, so bare/URL-form/case differences in how a
+        DOI was stored don't matter either. This is a full library scan
+        per call - acceptably slow for a duplicate-detection check
+        that's normally called once per candidate during a snowball
+        import, not a hot path.
+        """
+        target = normalize_doi(doi)
+        if not target:
+            return
+        for item in self.get_all_items():
+            if item.doi and normalize_doi(item.doi) == target:
+                yield item
 
     def get_all_items(self) -> Iterator[ZoteroItem]:
         return self.search_items(ZoteroQuery())

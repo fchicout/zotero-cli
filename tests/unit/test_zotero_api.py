@@ -59,6 +59,39 @@ def test_resolve_key_identity_does_not_require_an_instance(api_key):
         ZoteroAPIClient.resolve_key_identity(api_key)  # called on the class, not an instance
 
 
+def test_get_items_by_doi_client_side_scan(client):
+    """Issue #205 (reopened): Zotero's q/qmode search does not index the
+    structured DOI field under either mode - confirmed directly against
+    the live Web API - so get_items_by_doi must not rely on
+    search_items(ZoteroQuery(q=doi)) (which always returns zero results).
+    It scans get_all_items() and filters locally with normalize_doi(), so
+    a stored URL-form/differently-cased DOI still matches a bare query."""
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.headers = {}
+    mock_response.json.return_value = [
+        {"key": "OTHER", "version": 1, "data": {"itemType": "journalArticle", "DOI": "10.1/other"}},
+        {
+            "key": "MATCH",
+            "version": 1,
+            "data": {
+                "itemType": "journalArticle",
+                "DOI": "https://doi.org/10.1109/TSE.2026.3694876",
+            },
+        },
+    ]
+    client.http.session.get.return_value = mock_response
+
+    results = list(client.get_items_by_doi("10.1109/tse.2026.3694876"))
+
+    assert [r.key for r in results] == ["MATCH"]
+    # Only one page was fetched (2 raw items < the 100-item page limit) -
+    # confirms this went through get_all_items()'s pagination, not q= search.
+    assert client.http.session.get.call_count == 1
+    called_params = client.http.session.get.call_args.kwargs["params"]
+    assert "q" not in called_params
+
+
 def test_get_user_groups(client):
     mock_response = Mock()
     mock_response.status_code = 200

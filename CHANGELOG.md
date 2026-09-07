@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- **Reopened Issue #205 - `get_items_by_doi` structurally cannot find matches via Zotero's search API:** The v2.8.5 fix normalized DOI *format* in the comparison, but Corbenic-SLR's re-test (verified directly against the live Zotero Web API, not just this codebase) found `_is_duplicate` still couldn't detect any duplicate: `get_items_by_doi` relies on `search_items(ZoteroQuery(q=doi))`, and Zotero's `q`/`qmode` search does not index the structured DOI field under either `qmode` value (`titleCreatorYear` or `everything`) - it always returns zero results for a DOI-only query, regardless of format. `ZoteroAPIClient.get_items_by_doi` now does a client-side scan instead: paginate `get_all_items()` and filter locally with `normalize_doi()` - the only approach that actually works given this Zotero API limitation. This also transitively fixes the same structural gap in `RestoreService` and `search --doi`, both of which call the same shared `get_items_by_doi`. Offline mode (`SqliteZoteroGateway`) was never affected - it already queries the local DOI column directly via SQL.
+
 ## [2.8.5] - 2026-09-06
 
 ### ✨ Features & Improvements
