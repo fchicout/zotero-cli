@@ -1,3 +1,5 @@
+from typing import Optional
+
 from zotero_cli.cli.tui.extraction_tui import ExtractionTUI
 from zotero_cli.cli.tui.screening_tui import ScreeningTUI
 from zotero_cli.cli.tui.snowball_tui import SnowballReviewTUI
@@ -7,6 +9,7 @@ from zotero_cli.core.interfaces import (
     ScreeningService,
     SnowballGraphService,
 )
+from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
 
 class TUIFactory:
@@ -23,5 +26,8 @@ class TUIFactory:
         return ExtractionTUI(service, opener)
 
     @staticmethod
-    def get_snowball_tui(service: SnowballGraphService) -> SnowballReviewTUI:
-        return SnowballReviewTUI(service)
+    def get_snowball_tui(
+        service: SnowballGraphService,
+        metadata_service: Optional[MetadataAggregatorService] = None,
+    ) -> SnowballReviewTUI:
+        return SnowballReviewTUI(service, metadata_service)
