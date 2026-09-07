@@ -45,7 +45,10 @@ async def test_generic_scraper_success(mock_gateway, doi_item):
     result = await resolver.resolve(doi_item)
 
     assert isinstance(result, Path)
-    assert result.name == "generic_TestScraper_GHI789.pdf"
+    # Issue #240: the filename is now a non-predictable mkstemp-generated
+    # name (prefixed, not fully deterministic from the item key).
+    assert result.name.startswith("generic_TestScraper_")
+    assert result.name.endswith(".pdf")
     assert result.read_bytes() == b"%PDF-1.4 generic test"
 
     # Verify first call URL

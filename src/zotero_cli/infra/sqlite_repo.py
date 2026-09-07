@@ -34,9 +34,17 @@ class SqliteZoteroGateway(ZoteroGateway):
     def _get_connection(self) -> sqlite3.Connection:
         # Create shadow copy
         if not self._temp_db_path:
-            temp_dir = tempfile.gettempdir()
-            self._temp_db_path = os.path.join(temp_dir, f"zotero_cli_shadow_{os.getpid()}.sqlite")
-            shutil.copy2(self.original_db_path, self._temp_db_path)
+            # Non-predictable temp path (Issue #240) - a manually joined
+            # tempfile.gettempdir()/f"zotero_cli_shadow_{os.getpid()}.sqlite"
+            # path is deterministic (PID space is bounded/reused), letting
+            # a local attacker on a shared host pre-plant a symlink there.
+            # tempfile.mkstemp creates the file itself (O_CREAT|O_EXCL,
+            # mode 0600), so there's nothing for an attacker to have
+            # pre-planted.
+            fd, temp_path = tempfile.mkstemp(prefix="zotero_cli_shadow_", suffix=".sqlite")
+            os.close(fd)
+            shutil.copy2(self.original_db_path, temp_path)
+            self._temp_db_path = temp_path
 
         conn = sqlite3.connect(self._temp_db_path)
         conn.row_factory = sqlite3.Row

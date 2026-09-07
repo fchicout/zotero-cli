@@ -336,12 +336,10 @@ class ZoteroAPIClient(ZoteroGateway):
 
             # Download and attach PDF for thesis items if available
             if item_key and is_thesis and paper.pdf_url:
+                dest = None
                 try:
                     import tempfile
                     from pathlib import Path
-
-                    temp_dir = Path(tempfile.gettempdir())
-                    dest = temp_dir / f"thesis_{item_key}.pdf"
 
                     headers = {
                         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0"
@@ -355,9 +353,19 @@ class ZoteroAPIClient(ZoteroGateway):
                     resp = safe_get(paper.pdf_url, stream=True, timeout=30, headers=headers)
 
                     if resp.status_code == 200:
+                        # Non-predictable temp path (Issue #240) - a
+                        # manually joined
+                        # tempfile.gettempdir()/f"thesis_{item_key}.pdf"
+                        # path is fully deterministic, letting a local
+                        # attacker on a shared host pre-plant a symlink
+                        # there. tempfile.mkstemp creates the file itself
+                        # (O_CREAT|O_EXCL, mode 0600), so there's nothing
+                        # for an attacker to have pre-planted.
+                        fd, dest_str = tempfile.mkstemp(prefix="thesis_", suffix=".pdf")
+                        dest = Path(dest_str)
                         is_pdf = True
                         first_chunk = True
-                        with open(dest, "wb") as f:
+                        with os.fdopen(fd, "wb") as f:
                             # iter_capped_content enforces a hard size cap
                             # (Issue #239) - a malicious/compromised
                             # metadata source could otherwise exhaust disk
@@ -385,12 +393,14 @@ class ZoteroAPIClient(ZoteroGateway):
                     )
                 except ResponseTooLargeError as attach_err:
                     print(f"Warning: PDF response too large for thesis {item_key}: {attach_err}")
-                    dest.unlink(missing_ok=True)
+                    if dest is not None:
+                        dest.unlink(missing_ok=True)
                 except Exception as attach_err:
                     print(
                         f"Warning: Failed to download and attach PDF for thesis {item_key}: {attach_err}"
                     )
-                    dest.unlink(missing_ok=True)
+                    if dest is not None:
+                        dest.unlink(missing_ok=True)
 
             return bool(item_key)
         except Exception as e:

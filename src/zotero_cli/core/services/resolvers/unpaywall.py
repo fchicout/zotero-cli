@@ -1,10 +1,10 @@
 import logging
-import tempfile
 from pathlib import Path
 from typing import Optional
 
 from zotero_cli.core.interfaces import PDFResolver, ResolutionError
 from zotero_cli.core.services.network_gateway import NetworkGateway
+from zotero_cli.core.utils.safe_tempfile import write_secure_temp_file
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -41,12 +41,8 @@ class UnpaywallResolver(PDFResolver):
             # Download PDF
             pdf_resp = await self.gateway.get(pdf_url)
 
-            # Save to temp file
-            temp_dir = Path(tempfile.gettempdir())
-            dest = temp_dir / f"unpaywall_{item.key}.pdf"
-            dest.write_bytes(pdf_resp.content)
-
-            return dest
+            # Save to a non-predictable temp file (Issue #240)
+            return write_secure_temp_file(pdf_resp.content, prefix="unpaywall_", suffix=".pdf")
         except Exception as e:
             msg = f"Unpaywall resolution failed for {item.doi}: {e}"
             logger.error(msg)

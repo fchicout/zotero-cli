@@ -1,6 +1,5 @@
 # mypy: ignore-errors
 import logging
-import tempfile
 import urllib.parse
 from pathlib import Path
 from typing import Optional
@@ -10,6 +9,7 @@ from rapidfuzz.distance import Levenshtein
 
 from zotero_cli.core.interfaces import PDFResolver, ResolutionError
 from zotero_cli.core.services.network_gateway import NetworkGateway
+from zotero_cli.core.utils.safe_tempfile import write_secure_temp_file
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class BDTDResolver(PDFResolver):
 
         # If repo_url itself ends with .pdf, download directly
         if repo_url.lower().endswith(".pdf"):
-            return await self._download_pdf(repo_url, item.key)
+            return await self._download_pdf(repo_url)
 
         try:
             logger.info(f"BDTDResolver: Attempting to resolve PDF from landing page: {repo_url}")
@@ -125,14 +125,14 @@ class BDTDResolver(PDFResolver):
                 f"BDTDResolver: Selected best PDF URL {resolved_pdf_url} with ratio {max_ratio[0]}"
             )
 
-            return await self._download_pdf(resolved_pdf_url, item.key)
+            return await self._download_pdf(resolved_pdf_url)
 
         except Exception as e:
             msg = f"BDTDResolver: Failed to resolve PDF for {item.key}: {e}"
             logger.error(msg)
             raise ResolutionError(msg) from e
 
-    async def _download_pdf(self, pdf_url: str, item_key: str) -> Optional[Path]:
+    async def _download_pdf(self, pdf_url: str) -> Optional[Path]:
         try:
             logger.info(f"BDTDResolver: Downloading PDF: {pdf_url}")
             response = await self.gateway.get(pdf_url)
@@ -145,9 +145,8 @@ class BDTDResolver(PDFResolver):
                     )
                     return None
 
-            temp_dir = Path(tempfile.gettempdir())
-            dest = temp_dir / f"bdtd_{item_key}.pdf"
-            dest.write_bytes(response.content)
+            # Save to a non-predictable temp file (Issue #240)
+            dest = write_secure_temp_file(response.content, prefix="bdtd_", suffix=".pdf")
             logger.info(f"BDTDResolver: Successfully downloaded PDF to {dest}")
             return dest
         except Exception:

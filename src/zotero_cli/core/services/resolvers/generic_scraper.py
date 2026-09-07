@@ -1,5 +1,4 @@
 import logging
-import tempfile
 from pathlib import Path
 from typing import Dict, Optional
 from urllib.parse import urljoin
@@ -8,6 +7,7 @@ from bs4 import BeautifulSoup
 
 from zotero_cli.core.interfaces import PDFResolver
 from zotero_cli.core.services.network_gateway import NetworkGateway
+from zotero_cli.core.utils.safe_tempfile import write_secure_temp_file
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -77,11 +77,10 @@ class GenericScraperResolver(PDFResolver):
                     logger.warning(f"{self.name}: URL {pdf_url} did not return a PDF.")
                     return None
 
-            temp_dir = Path(tempfile.gettempdir())
-            dest = temp_dir / f"generic_{self.name}_{item.key}.pdf"
-            dest.write_bytes(pdf_resp.content)
-
-            return dest
+            # Save to a non-predictable temp file (Issue #240)
+            return write_secure_temp_file(
+                pdf_resp.content, prefix=f"generic_{self.name}_", suffix=".pdf"
+            )
 
         except Exception:
             logger.exception(f"{self.name}: Failed to resolve PDF for {item.key}")

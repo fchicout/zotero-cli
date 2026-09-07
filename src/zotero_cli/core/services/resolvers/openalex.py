@@ -1,9 +1,9 @@
 import logging
-import tempfile
 from pathlib import Path
 from typing import Optional
 
 from zotero_cli.core.interfaces import PDFResolver, ResolutionError
+from zotero_cli.core.utils.safe_tempfile import write_secure_temp_file
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.openalex_api import OpenAlexAPIClient
 
@@ -51,12 +51,8 @@ class OpenAlexResolver(PDFResolver):
                 logger.warning(f"OpenAlex: URL {pdf_url} did not return a valid PDF signature.")
                 return None
 
-            # Save to temp file
-            temp_dir = Path(tempfile.gettempdir())
-            dest = temp_dir / f"openalex_{item.key}.pdf"
-            dest.write_bytes(response_content)
-
-            return dest
+            # Save to a non-predictable temp file (Issue #240)
+            return write_secure_temp_file(response_content, prefix="openalex_", suffix=".pdf")
         except Exception as e:
             msg = f"OpenAlex resolution failed for {item.doi}: {e}"
             logger.error(msg)

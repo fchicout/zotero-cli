@@ -252,6 +252,22 @@ def test_sqlite_shadow_copy(mock_db):
     assert gateway._temp_db_path != mock_db
 
 
+def test_sqlite_shadow_copy_filename_is_not_pid_predictable(mock_db):
+    """Issue #240: the shadow-copy path was previously a fully
+    deterministic f"zotero_cli_shadow_{os.getpid()}.sqlite" - guessable
+    since PID space is bounded/reused - letting a local attacker on a
+    shared host pre-plant a symlink at that path. It must now come from
+    tempfile.mkstemp instead."""
+    gateway = SqliteZoteroGateway(mock_db)
+    gateway.get_all_collections()
+
+    assert gateway._temp_db_path is not None
+    filename = os.path.basename(gateway._temp_db_path)
+    assert f"zotero_cli_shadow_{os.getpid()}.sqlite" != filename
+    assert filename.startswith("zotero_cli_shadow_")
+    assert filename.endswith(".sqlite")
+
+
 def test_gateway_factory_offline(mock_db, monkeypatch):
     from zotero_cli.core.config import ZoteroConfig
     from zotero_cli.infra.factory import GatewayFactory
