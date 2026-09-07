@@ -1,11 +1,13 @@
 import asyncio
 import logging
 from typing import Optional
+from urllib.parse import quote
 
 from zotero_cli.core.models import Job
 from zotero_cli.core.services.job_queue_service import JobQueueService
 from zotero_cli.core.services.network_gateway import NetworkGateway
 from zotero_cli.core.services.snowball_graph import SnowballGraphService
+from zotero_cli.core.utils.normalization import is_valid_doi
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +65,18 @@ class SnowballDiscoveryWorker:
 
         logger.info(f"Worker: Processing {task_type} for DOI: {doi} (Job {job_id})")
 
+        # Issue #242: doi seeding a backward/forward job can originate
+        # from a prior CrossRef/Semantic Scholar API response
+        # (ref.get("DOI")/cite_doi) - untrusted third-party metadata fed
+        # back into subsequent URL construction. Reject anything that
+        # isn't at least DOI-shaped before it reaches _discover_backward/
+        # _discover_forward's URL construction, rather than sending
+        # garbage to the external API.
+        if not is_valid_doi(doi):
+            logger.warning(f"Worker: Skipping job {job_id} - not a valid DOI: {doi!r}")
+            self.job_queue.fail_job(job_id, f"Invalid DOI: {doi!r}", retry=False)
+            return
+
         try:
             if task_type == self.TASK_BACKWARD:
                 await self._discover_backward(doi, generation)
@@ -83,7 +97,10 @@ class SnowballDiscoveryWorker:
         """
         Fetch references via CrossRef.
         """
-        url = f"https://api.crossref.org/works/{doi}"
+        # quote() as defense-in-depth (Issue #242): a DOI-shaped value can
+        # still legally contain characters like "?"/"#" that would
+        # otherwise inject into the URL path/query.
+        url = f"https://api.crossref.org/works/{quote(doi, safe='')}"
         logger.info(f"CrossRef: Fetching references for {doi}")
 
         response = await self.gateway.get(url)
@@ -117,8 +134,9 @@ class SnowballDiscoveryWorker:
         """
         Fetch citations via Semantic Scholar.
         """
-        # S2 expects DOI: prefix or just DOI depending on endpoint
-        url = f"https://api.semanticscholar.org/graph/v1/paper/DOI:{doi}/citations"
+        # S2 expects DOI: prefix or just DOI depending on endpoint. quote()
+        # as defense-in-depth (Issue #242) - see _discover_backward.
+        url = f"https://api.semanticscholar.org/graph/v1/paper/DOI:{quote(doi, safe='')}/citations"
         params = {"fields": "externalIds,title,authors,year,abstract,isInfluential"}
 
         # Polite, proactive pacing (Issue #223): the reactive 429 backoff in

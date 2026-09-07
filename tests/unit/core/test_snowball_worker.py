@@ -172,6 +172,49 @@ async def test_discover_forward_no_key_reraises_value_error(
 
 
 @pytest.mark.anyio
+async def test_discover_backward_quotes_doi_in_url(worker, mock_gateway, mock_graph_service):
+    """Issue #242: a DOI-shaped value can still legally contain characters
+    like '?'/'#' - must be URL-quoted before interpolation so it can't
+    inject extra query params or alter the request path against the
+    fixed CrossRef host."""
+    doi = "10.1001/paper?evil=1#frag"
+
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"message": {"reference": []}}
+    mock_gateway.get = AsyncMock(return_value=mock_response)
+
+    await worker._discover_backward(doi, generation=1)
+
+    called_url = mock_gateway.get.call_args.args[0]
+    assert "?" not in called_url.split("/works/", 1)[1]
+    assert "#" not in called_url
+
+
+@pytest.mark.anyio
+async def test_process_job_rejects_invalid_doi(mock_gateway, mock_graph_service, mock_job_queue):
+    """Issue #242: doi seeding a job can originate from untrusted
+    third-party CrossRef/Semantic Scholar response data - a value that
+    isn't even DOI-shaped must be rejected before it reaches URL
+    construction, and the job failed rather than silently sent onward."""
+    worker = SnowballDiscoveryWorker(mock_gateway, mock_graph_service, mock_job_queue)
+    job = Job(
+        id=1,
+        item_key="not-a-doi",
+        task_type=worker.TASK_BACKWARD,
+        payload={"generation": 1},
+    )
+
+    await worker._process_job(job)
+
+    mock_gateway.get.assert_not_called()
+    mock_job_queue.fail_job.assert_called_once()
+    args, kwargs = mock_job_queue.fail_job.call_args
+    assert args[0] == 1
+    assert kwargs.get("retry") is False
+    mock_job_queue.complete_job.assert_not_called()
+
+
+@pytest.mark.anyio
 async def test_process_jobs(worker, mock_job_queue):
     job = Job(
         id=1, item_key="10.1001/test", task_type=worker.TASK_BACKWARD, payload={"generation": 1}
