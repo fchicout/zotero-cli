@@ -677,5 +677,47 @@ def test_create_item_thesis_rejects_non_pdf_content(mock_unlink, mock_get, clien
         success = client.create_item(paper, "COL_123")
 
     assert success is True
+
+
+@patch("zotero_cli.infra.zotero_api.safe_get")
+@patch("pathlib.Path.unlink")
+def test_create_item_thesis_cleans_up_when_response_too_large(mock_unlink, mock_get, client):
+    """Issue #239: a thesis PDF response exceeding the size cap must not
+    be uploaded, and the partially-written temp file must be cleaned up
+    rather than left behind (the disk-exhaustion vector this cap exists
+    to prevent) - without failing the overall item creation."""
+    from zotero_cli.core.utils.url_safety import ResponseTooLargeError
+
+    paper = ResearchPaper(
+        title="BDTD Thesis",
+        abstract="Thesis abstract",
+        extra="Degree Level: masterThesis",
+        pdf_url="http://bdtd.ibict.br/thesis.pdf",
+    )
+
+    mock_post_resp = Mock()
+    mock_post_resp.status_code = 200
+    mock_post_resp.json.return_value = {"successful": {"0": {"key": "THESIS_KEY"}}}
+    mock_post_resp.headers = {}
+    client.http.session.post.return_value = mock_post_resp
+
+    mock_pdf_resp = Mock()
+    mock_pdf_resp.status_code = 200
+
+    def fake_iter_content(chunk_size=None):
+        yield b"%PDF-1.4 partial"
+        raise ResponseTooLargeError("too big")
+
+    mock_pdf_resp.iter_content.side_effect = fake_iter_content
+    mock_get.return_value = mock_pdf_resp
+
+    client.upload_attachment = Mock()
+
+    with patch("zotero_cli.infra.zotero_api.open", mock_open()):
+        success = client.create_item(paper, "COL_123")
+
+    assert success is True
+    client.upload_attachment.assert_not_called()
+    mock_unlink.assert_called_once()
     client.upload_attachment.assert_not_called()
     mock_unlink.assert_called_once()

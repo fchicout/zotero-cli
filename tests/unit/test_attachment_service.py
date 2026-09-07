@@ -1,4 +1,5 @@
 import os
+import tempfile
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -214,6 +215,42 @@ def test_download_file_rejects_non_pdf_content(service):
         result = service._download_file("http://93.184.216.34/fake.pdf")
 
     assert result is None
+
+
+def test_download_file_cleans_up_partial_file_when_response_too_large(service):
+    """Issue #239: a response exceeding the size cap must abort the
+    download and remove the partially-written temp file, not leave it
+    behind (the disk-exhaustion vector this cap exists to prevent)."""
+    from zotero_cli.core.utils.url_safety import ResponseTooLargeError
+
+    def fake_iter_capped_content(response, chunk_size=8192, max_bytes=None):
+        yield b"%PDF-1.4 partial"
+        raise ResponseTooLargeError("too big")
+
+    with (
+        patch("zotero_cli.core.services.attachment_service.safe_get") as mock_safe_get,
+        patch(
+            "zotero_cli.core.services.attachment_service.iter_capped_content",
+            side_effect=fake_iter_capped_content,
+        ),
+    ):
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_safe_get.return_value = mock_response
+
+        written_paths = []
+        original_mkstemp = tempfile.mkstemp
+
+        def tracking_mkstemp(*args, **kwargs):
+            fd, path = original_mkstemp(*args, **kwargs)
+            written_paths.append(path)
+            return fd, path
+
+        with patch("zotero_cli.core.services.attachment_service.tempfile.mkstemp", tracking_mkstemp):
+            result = service._download_file("http://93.184.216.34/huge.pdf")
+
+    assert result is None
+    assert written_paths and not os.path.exists(written_paths[0])
 
 
 def test_download_file_accepts_real_pdf(service):

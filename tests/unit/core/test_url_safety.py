@@ -5,13 +5,17 @@ access, so these tests stay fast and offline like the rest of tests/unit.
 """
 
 import socket
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 import requests
 
 from zotero_cli.core.utils.url_safety import (
+    ResponseTooLargeError,
     UnsafeURLError,
+    iter_capped_content,
+    read_capped_async,
     safe_get,
     validate_public_url,
 )
@@ -117,3 +121,95 @@ def test_gaierror_is_wrapped():
     with patch("socket.getaddrinfo", side_effect=socket.gaierror("name resolution failed")):
         with pytest.raises(UnsafeURLError, match="resolve"):
             validate_public_url("http://this-does-not-resolve.invalid/")
+
+
+# --- Issue #239: response body size cap ---
+
+
+def test_iter_capped_content_rejects_declared_oversized_content_length():
+    response = MagicMock(spec=requests.Response)
+    response.url = "http://93.184.216.34/big.pdf"
+    response.headers = {"content-length": "999"}
+    response.iter_content.return_value = iter([b"x" * 10])
+
+    with pytest.raises(ResponseTooLargeError, match="Content-Length"):
+        list(iter_capped_content(response, max_bytes=100))
+
+    # Rejected before ever touching the stream.
+    response.iter_content.assert_not_called()
+
+
+def test_iter_capped_content_passes_through_within_cap():
+    response = MagicMock(spec=requests.Response)
+    response.url = "http://93.184.216.34/small.pdf"
+    response.headers = {"content-length": "10"}
+    response.iter_content.return_value = iter([b"%PDF-1.4", b"..."])
+
+    chunks = list(iter_capped_content(response, max_bytes=100))
+    assert b"".join(chunks) == b"%PDF-1.4..."
+
+
+def test_iter_capped_content_aborts_mid_stream_when_content_length_lies():
+    """A hostile server can omit or under-report Content-Length and then
+    drip-feed an oversized body - the streaming cutoff must catch that
+    even when the upfront header check didn't."""
+    response = MagicMock(spec=requests.Response)
+    response.url = "http://93.184.216.34/lying.pdf"
+    response.headers = {}
+    response.iter_content.return_value = iter([b"x" * 50, b"y" * 50, b"z" * 50])
+
+    with pytest.raises(ResponseTooLargeError, match="streaming"):
+        list(iter_capped_content(response, max_bytes=80))
+
+
+@pytest.mark.anyio
+async def test_read_capped_async_rejects_declared_oversized_content_length():
+    response = MagicMock(spec=httpx.Response)
+    response.url = "http://93.184.216.34/big.pdf"
+    response.headers = {"content-length": "999"}
+    response.aiter_bytes = MagicMock()
+    response.aclose = AsyncMock()
+
+    with pytest.raises(ResponseTooLargeError, match="Content-Length"):
+        await read_capped_async(response, max_bytes=100)
+
+    response.aiter_bytes.assert_not_called()
+    response.aclose.assert_awaited()
+
+
+@pytest.mark.anyio
+async def test_read_capped_async_passes_through_within_cap():
+    async def aiter_bytes():
+        yield b"%PDF-1.4"
+        yield b"..."
+
+    response = MagicMock(spec=httpx.Response)
+    response.status_code = 200
+    response.url = "http://93.184.216.34/small.pdf"
+    response.headers = {}
+    response.aiter_bytes = MagicMock(return_value=aiter_bytes())
+    response.aclose = AsyncMock()
+    response.request = httpx.Request("GET", "http://93.184.216.34/small.pdf")
+
+    result = await read_capped_async(response, max_bytes=100)
+    assert result.content == b"%PDF-1.4..."
+    response.aclose.assert_awaited()
+
+
+@pytest.mark.anyio
+async def test_read_capped_async_aborts_mid_stream_when_content_length_lies():
+    async def aiter_bytes():
+        yield b"x" * 50
+        yield b"y" * 50
+        yield b"z" * 50
+
+    response = MagicMock(spec=httpx.Response)
+    response.url = "http://93.184.216.34/lying.pdf"
+    response.headers = {}
+    response.aiter_bytes = MagicMock(return_value=aiter_bytes())
+    response.aclose = AsyncMock()
+
+    with pytest.raises(ResponseTooLargeError, match="streaming"):
+        await read_capped_async(response, max_bytes=80)
+
+    response.aclose.assert_awaited()

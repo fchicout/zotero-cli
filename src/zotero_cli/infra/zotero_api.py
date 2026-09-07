@@ -7,7 +7,12 @@ import requests
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import KeyIdentity, ResearchPaper, ZoteroQuery
 from zotero_cli.core.utils.normalization import normalize_doi
-from zotero_cli.core.utils.url_safety import UnsafeURLError, safe_get
+from zotero_cli.core.utils.url_safety import (
+    ResponseTooLargeError,
+    UnsafeURLError,
+    iter_capped_content,
+    safe_get,
+)
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.http_client import ZoteroHttpClient
 
@@ -353,7 +358,11 @@ class ZoteroAPIClient(ZoteroGateway):
                         is_pdf = True
                         first_chunk = True
                         with open(dest, "wb") as f:
-                            for chunk in resp.iter_content(8192):
+                            # iter_capped_content enforces a hard size cap
+                            # (Issue #239) - a malicious/compromised
+                            # metadata source could otherwise exhaust disk
+                            # via an arbitrarily large or slow-drip body.
+                            for chunk in iter_capped_content(resp, chunk_size=8192):
                                 if first_chunk:
                                     # Verify the %PDF magic bytes before
                                     # ever uploading this into the library
@@ -374,10 +383,14 @@ class ZoteroAPIClient(ZoteroGateway):
                     print(
                         f"Warning: refusing unsafe PDF URL for thesis {item_key}: {attach_err}"
                     )
+                except ResponseTooLargeError as attach_err:
+                    print(f"Warning: PDF response too large for thesis {item_key}: {attach_err}")
+                    dest.unlink(missing_ok=True)
                 except Exception as attach_err:
                     print(
                         f"Warning: Failed to download and attach PDF for thesis {item_key}: {attach_err}"
                     )
+                    dest.unlink(missing_ok=True)
 
             return bool(item_key)
         except Exception as e:

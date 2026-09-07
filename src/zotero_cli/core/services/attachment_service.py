@@ -15,7 +15,12 @@ from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorServi
 from zotero_cli.core.services.pdf_finder_service import PDFFinderService
 from zotero_cli.core.services.purge_service import PurgeService
 from zotero_cli.core.utils.slugify import slugify
-from zotero_cli.core.utils.url_safety import UnsafeURLError, safe_get
+from zotero_cli.core.utils.url_safety import (
+    ResponseTooLargeError,
+    UnsafeURLError,
+    iter_capped_content,
+    safe_get,
+)
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -175,6 +180,7 @@ class AttachmentService(FullTextProvider):
         and the result is verified to actually be a PDF before being
         handed to a caller that uploads it back into the library.
         """
+        path = None
         try:
             response = safe_get(url, stream=True, timeout=30)
             response.raise_for_status()
@@ -186,7 +192,10 @@ class AttachmentService(FullTextProvider):
             is_pdf = True
             first_chunk = True
             with os.fdopen(fd, "wb") as tmp:
-                for chunk in response.iter_content(chunk_size=8192):
+                # iter_capped_content enforces a hard size cap (Issue
+                # #239) - a malicious/compromised source could otherwise
+                # exhaust disk via an arbitrarily large or slow-drip body.
+                for chunk in iter_capped_content(response, chunk_size=8192):
                     if first_chunk:
                         # Verify the %PDF magic bytes before ever handing
                         # this back to a caller that uploads it into the
@@ -204,9 +213,18 @@ class AttachmentService(FullTextProvider):
             return path
         except UnsafeURLError as e:
             print(f"Download error: refusing unsafe URL - {e}")
+            if path and os.path.exists(path):
+                os.remove(path)
+            return None
+        except ResponseTooLargeError as e:
+            print(f"Download error: response too large - {e}")
+            if path and os.path.exists(path):
+                os.remove(path)
             return None
         except Exception as e:
             print(f"Download error: {e}")
+            if path and os.path.exists(path):
+                os.remove(path)
             return None
 
     def get_fulltext(self, item_key: str) -> Optional[str]:
