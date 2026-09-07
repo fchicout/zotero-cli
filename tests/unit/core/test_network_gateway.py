@@ -123,6 +123,45 @@ async def test_persistent_403_with_api_key_header_raises_clear_error(gateway):
 
 
 @pytest.mark.anyio
+async def test_strips_sensitive_headers_on_cross_origin_redirect(gateway):
+    """Issue #241: httpx's built-in redirect handling strips Authorization
+    on a cross-origin hop, but NetworkGateway follows redirects manually
+    (Issue #235) and must apply the same protection itself - including to
+    non-standard auth headers like x-api-key (used by
+    SemanticScholarResolver)."""
+    redirect_resp = make_stream_response(
+        302, is_redirect=True, headers={"location": "http://other-host.example/final"}
+    )
+    final_resp = make_stream_response(200)
+
+    gateway._client.send = AsyncMock(side_effect=[redirect_resp, final_resp])
+
+    await gateway.get("http://example.com/start", headers={"x-api-key": "secret-key"})
+
+    assert gateway._client.send.call_count == 2
+    second_request = gateway._client.send.call_args_list[1].args[0]
+    assert "x-api-key" not in second_request.headers
+
+
+@pytest.mark.anyio
+async def test_keeps_sensitive_headers_on_same_origin_redirect(gateway):
+    """A same-origin redirect (e.g. http -> https on the same host, or a
+    path-only redirect) is not the cross-origin case Issue #241 is about
+    - the auth header must still reach the final hop."""
+    redirect_resp = make_stream_response(
+        302, is_redirect=True, headers={"location": "http://example.com/final"}
+    )
+    final_resp = make_stream_response(200)
+
+    gateway._client.send = AsyncMock(side_effect=[redirect_resp, final_resp])
+
+    await gateway.get("http://example.com/start", headers={"x-api-key": "secret-key"})
+
+    second_request = gateway._client.send.call_args_list[1].args[0]
+    assert second_request.headers["x-api-key"] == "secret-key"
+
+
+@pytest.mark.anyio
 async def test_response_over_size_cap_is_rejected(gateway):
     """Issue #239: a response body exceeding the size cap must be aborted
     mid-stream rather than fully buffered into memory - exercised through

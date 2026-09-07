@@ -1,5 +1,6 @@
 import logging
 from typing import Any, Dict, Optional
+from urllib.parse import urlparse
 
 import httpx
 from tenacity import (
@@ -19,6 +20,19 @@ from zotero_cli.core.utils.url_safety import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Issue #241: headers that must not survive a cross-origin redirect hop.
+# httpx's own built-in redirect handling only strips "Authorization" this
+# way - we manage redirects manually (Issue #235), so we're responsible
+# for the same protection, extended to non-standard auth headers this
+# codebase actually uses (e.g. Semantic Scholar's x-api-key).
+_SENSITIVE_HEADERS = {"authorization", "x-api-key"}
+
+
+def _origin(url: str) -> tuple:
+    parsed = urlparse(url)
+    default_port = 443 if parsed.scheme == "https" else 80
+    return (parsed.scheme, parsed.hostname, parsed.port or default_port)
 
 
 class NetworkGateway:
@@ -47,16 +61,26 @@ class NetworkGateway:
         may originate from Zotero item data or a third-party API
         response, neither of which is trustworthy."""
         current_url = url
+        current_headers = dict(headers)
         for _ in range(MAX_REDIRECTS + 1):
             validate_public_url(current_url)
-            request = self._client.build_request(method, current_url, headers=headers, **kwargs)
+            request = self._client.build_request(
+                method, current_url, headers=current_headers, **kwargs
+            )
             response = await self._client.send(request, stream=True)
             if response.is_redirect:
                 location = response.headers.get("location")
                 if not location:
                     return await read_capped_async(response)
                 await response.aclose()
+                previous_url = current_url
                 current_url = str(httpx.URL(current_url).join(location))
+                if _origin(previous_url) != _origin(current_url):
+                    current_headers = {
+                        k: v
+                        for k, v in current_headers.items()
+                        if k.lower() not in _SENSITIVE_HEADERS
+                    }
                 continue
             # Issue #239: enforce a hard response-size cap here, streamed
             # rather than trusting the client to buffer an unbounded body
