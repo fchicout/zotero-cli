@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.8.7] - 2026-09-07
+
 ### ✨ Features & Improvements
 - **Snowball review flags candidates already present in the library (Issue #224):** Library membership was only ever checked at import time (`SnowballIngestionService._is_duplicate`) - a researcher reviewing candidates had no way to know some were papers they already had until after accept + import, when the item was silently skipped with just a lower "N imported" count than "N accepted". `SnowballReviewTUI` now builds a normalized-DOI -> Zotero-key index in one batched `get_all_items()` pass at the start of a review session (reusing the same `normalize_doi()`-based matching #205 introduced, so a bare-DOI candidate still matches a library item stored in URL-form), and flags each candidate's metrics panel with `⚠ Already in library (KEY)` instead of presenting it identically to a genuinely new candidate. Optional (`gateway` param defaults to `None`) so a caller without one still gets a working, just un-annotated, review session. Export (`--format json`/`mermaid`) intentionally left untouched per the issue's own scoping - not urgent, a natural follow-on.
 
