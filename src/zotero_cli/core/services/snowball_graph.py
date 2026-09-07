@@ -92,10 +92,30 @@ class SnowballGraphService(ISnowballGraphService):
                     dois.append(node_id)
         return dois
 
-    def update_status(self, doi: str, status: str) -> None:
-        """Transitions node state."""
+    def update_status(
+        self,
+        doi: str,
+        status: str,
+        reason: Optional[str] = None,
+        depth: Optional[str] = None,
+    ) -> None:
+        """
+        Transitions node state, optionally recording *why* (Issue #211):
+        `reason` is a free-text justification and `depth` records how much
+        of the paper the decision was based on ("title", "abstract", or
+        "full_text") - mirroring the audit-trail pattern SDB screening
+        decisions already capture (`ScreeningService.record_decision`'s
+        reason/evidence), which snowball candidate triage previously had no
+        equivalent of. Both are optional so a caller with nothing to record
+        (or a status transition that isn't itself a triage decision) isn't
+        forced to supply them.
+        """
         if doi in self.graph:
             self.graph.nodes[doi]["status"] = status
+            if reason is not None:
+                self.graph.nodes[doi]["decision_reason"] = reason
+            if depth is not None:
+                self.graph.nodes[doi]["decision_depth"] = depth
             self.save_graph()
 
     def get_ranked_candidates(self) -> List[Dict[str, Any]]:

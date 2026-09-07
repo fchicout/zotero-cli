@@ -21,16 +21,20 @@ def mock_graph_service():
 def test_snowball_tui_accept(mock_console, mock_prompt, mock_graph_service):
     tui = SnowballReviewTUI(mock_graph_service)
 
-    # Mock user workflow: Press Enter to start, then 'a' for first candidate
-    # Since there's only 1 candidate, the loop will exit after 'a'
+    # Mock user workflow: Press Enter to start, 'a' for the action, then the
+    # decision-depth and reason prompts (Issue #211). Since there's only 1
+    # candidate, the loop will exit after this.
     mock_console.return_value.input.return_value = ""
-    mock_prompt.side_effect = ["a"]
+    mock_prompt.side_effect = ["a", "abstract", "Highly relevant"]
 
     tui.run_review_session()
 
     # Verify update_status was called
     mock_graph_service.update_status.assert_called_once_with(
-        "10.1001/test1", SnowballGraphService.STATUS_ACCEPTED
+        "10.1001/test1",
+        SnowballGraphService.STATUS_ACCEPTED,
+        reason="Highly relevant",
+        depth="abstract",
     )
 
 
@@ -54,12 +58,15 @@ def test_snowball_tui_reject(mock_console, mock_prompt, mock_graph_service):
     tui = SnowballReviewTUI(mock_graph_service)
 
     mock_console.return_value.input.return_value = ""
-    mock_prompt.side_effect = ["r"]
+    mock_prompt.side_effect = ["r", "title", ""]
 
     tui.run_review_session()
 
     mock_graph_service.update_status.assert_called_once_with(
-        "10.1001/test1", SnowballGraphService.STATUS_REJECTED
+        "10.1001/test1",
+        SnowballGraphService.STATUS_REJECTED,
+        reason=None,
+        depth="title",
     )
 
 
