@@ -1,6 +1,5 @@
 # mypy: ignore-errors
 import logging
-import tempfile
 import urllib.parse
 from pathlib import Path
 from typing import Optional
@@ -10,6 +9,7 @@ from rapidfuzz.distance import Levenshtein
 
 from zotero_cli.core.interfaces import PDFResolver, ResolutionError
 from zotero_cli.core.services.network_gateway import NetworkGateway
+from zotero_cli.core.utils.safe_tempfile import write_secure_temp_file
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -145,9 +145,8 @@ class BDTDResolver(PDFResolver):
                     )
                     return None
 
-            temp_dir = Path(tempfile.gettempdir())
-            dest = temp_dir / f"bdtd_{item_key}.pdf"
-            dest.write_bytes(response.content)
+            # Save to a non-predictable temp file (Issue #240)
+            dest = write_secure_temp_file(response.content, prefix="bdtd_", suffix=".pdf")
             logger.info(f"BDTDResolver: Successfully downloaded PDF to {dest}")
             return dest
         except Exception:
