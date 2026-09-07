@@ -37,8 +37,11 @@ This command ensures that your review is comprehensive and captures all relevant
 | `--collection` | String | Collection name or key | Optional. |
 | `--count` | Integer | Number of jobs to process | Optional. |
 | `--create` | Boolean | Create collection if missing | Optional. Default: False. |
+| `--dois` | String | Comma-separated bare DOIs (no Zotero lookup) | Optional. |
 | `--format` | String | Export format | Optional. Default: mermaid. |
 | `--forward` | Boolean | Fetch citations (Semantic Scholar) | Optional. Default: False. |
+| `--from-accepted` | Boolean | Seed from this graph's own ACCEPTED candidates | Optional. Default: False. |
+| `--from-generation` | Integer | With `--from-accepted`, scope to one prior generation | Optional. |
 | `--generation` | Integer | Graph generation (Default: 1) | Optional. Default: 1. |
 | `--keys` | String | Comma-separated Zotero keys | Optional. |
 | `--output` | String | Output file path | Optional. |
@@ -47,8 +50,13 @@ This command ensures that your review is comprehensive and captures all relevant
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Expanding a review from a single seminal paper
 **Problem:** I've found one "perfect" paper and I want to find everything it cites and everything that has cited it since.
-**Action:** `zotero-cli slr snowball seed --doi "10.1145/1234.567"` then `zotero-cli slr snowball discovery`.
+**Action:** `zotero-cli slr snowball seed --dois "10.1145/1234.567" --backward --forward` then `zotero-cli slr snowball discovery`.
 **Result:** The CLI builds a graph of related papers, which I can then review via `slr snowball review`.
+
+### Scenario: Starting the next generation from this generation's accepted candidates
+**Problem:** I've reviewed generation 1's candidates and accepted several, but haven't imported them into Zotero yet - I want to snowball from them directly, following Wohlin's iterative seed -> discover -> review -> re-seed cycle.
+**Action:** `zotero-cli slr snowball seed --from-accepted --from-generation 1 --backward --forward --generation 2` then `zotero-cli slr snowball discovery`.
+**Result:** Generation 1's ACCEPTED DOIs are enqueued directly as generation 2's seeds, with no import-then-reseed round trip through Zotero required.
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Attempting discovery on papers without DOIs. Snowballing relies on persistent identifiers for citation tracking. 

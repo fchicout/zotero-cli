@@ -40,6 +40,56 @@ def test_snowball_command_seed(mock_deps, capsys):
     assert "Enqueued 1 discovery jobs" in out
 
 
+def test_snowball_command_seed_from_dois(mock_deps, capsys):
+    """Issue #206: --dois seeds directly from bare DOIs, no Zotero lookup."""
+    mock_gw, mock_ingest, mock_graph, mock_jq = mock_deps
+
+    args = argparse.Namespace(
+        verb="snowball",
+        snow_verb="seed",
+        keys=None,
+        collection=None,
+        dois="10.1/a, 10.1/b",
+        from_accepted=False,
+        from_generation=None,
+        backward=True,
+        forward=False,
+        generation=2,
+        user=False,
+    )
+    SnowballCommand.execute(mock_gw, args)
+
+    mock_gw.get_item.assert_not_called()
+    out = capsys.readouterr().out
+    assert "Enqueued 2 discovery jobs" in out
+
+
+def test_snowball_command_seed_from_accepted(mock_deps, capsys):
+    """Issue #206: --from-accepted re-seeds from this graph's own ACCEPTED
+    DOIs, optionally scoped to --from-generation."""
+    mock_gw, mock_ingest, mock_graph, mock_jq = mock_deps
+    mock_graph.get_accepted_dois.return_value = ["10.1/accepted1", "10.1/accepted2"]
+
+    args = argparse.Namespace(
+        verb="snowball",
+        snow_verb="seed",
+        keys=None,
+        collection=None,
+        dois=None,
+        from_accepted=True,
+        from_generation=1,
+        backward=False,
+        forward=True,
+        generation=2,
+        user=False,
+    )
+    SnowballCommand.execute(mock_gw, args)
+
+    mock_graph.get_accepted_dois.assert_called_once_with(generation=1)
+    out = capsys.readouterr().out
+    assert "Enqueued 2 discovery jobs" in out
+
+
 def test_snowball_command_graph(mock_deps, capsys):
     mock_gw, mock_ingest, mock_graph, mock_jq = mock_deps
     mock_graph.to_mermaid.return_value = "graph TD; A-->B"

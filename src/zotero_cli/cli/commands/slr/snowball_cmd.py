@@ -19,6 +19,21 @@ class SnowballCommand:
         seed_p = snow_sub.add_parser("seed", help="Enqueue starting DOIs for discovery")
         seed_p.add_argument("--keys", help="Comma-separated Zotero keys")
         seed_p.add_argument("--collection", help="Collection name or key")
+        seed_p.add_argument("--dois", help="Comma-separated bare DOIs (no Zotero lookup)")
+        seed_p.add_argument(
+            "--from-accepted",
+            action="store_true",
+            help=(
+                "Seed from this discovery graph's own ACCEPTED candidates "
+                "(not yet imported into Zotero) - use --from-generation to "
+                "scope it to a single prior generation"
+            ),
+        )
+        seed_p.add_argument(
+            "--from-generation",
+            type=int,
+            help="With --from-accepted, only use candidates accepted at this generation",
+        )
         seed_p.add_argument("--backward", action="store_true", help="Fetch references (CrossRef)")
         seed_p.add_argument(
             "--forward", action="store_true", help="Fetch citations (Semantic Scholar)"
@@ -89,6 +104,13 @@ class SnowballCommand:
                 for item in items:
                     if item.doi:
                         dois.append(item.doi)
+        if getattr(args, "dois", None):
+            dois.extend(doi.strip() for doi in args.dois.split(",") if doi.strip())
+        if getattr(args, "from_accepted", False):
+            graph_service = GatewayFactory.get_snowball_graph_service()
+            dois.extend(
+                graph_service.get_accepted_dois(generation=getattr(args, "from_generation", None))
+            )
         if not dois:
             console.print("[yellow]No items with DOIs found to process.[/yellow]")
             return
