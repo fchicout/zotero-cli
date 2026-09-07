@@ -11,6 +11,7 @@ from tenacity import (
 
 from zotero_cli.core.exceptions import RetryableError
 from zotero_cli.core.services.identity_manager import IdentityManager
+from zotero_cli.core.utils.url_safety import MAX_REDIRECTS, UnsafeURLError, validate_public_url
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +24,35 @@ class NetworkGateway:
 
     def __init__(self, identity_manager: IdentityManager):
         self.identity_manager = identity_manager
-        self._client = httpx.AsyncClient(timeout=30.0, follow_redirects=True)
+        # follow_redirects=False deliberately: redirects are followed
+        # manually in _fetch_validated, re-validating each hop against
+        # validate_public_url (Issue #235) - trusting the client's
+        # built-in redirect handling would let a validated public URL
+        # redirect straight into a loopback/private/link-local address.
+        self._client = httpx.AsyncClient(timeout=30.0, follow_redirects=False)
 
     async def close(self) -> None:
         await self._client.aclose()
+
+    async def _fetch_validated(
+        self, method: str, url: str, headers: Dict[str, str], **kwargs: Any
+    ) -> httpx.Response:
+        """SSRF guard (Issue #235): validates the URL, and every redirect
+        hop, before it's fetched - every external URL this gateway sees
+        may originate from Zotero item data or a third-party API
+        response, neither of which is trustworthy."""
+        current_url = url
+        for _ in range(MAX_REDIRECTS + 1):
+            validate_public_url(current_url)
+            response = await self._client.request(method, current_url, headers=headers, **kwargs)
+            if response.is_redirect:
+                location = response.headers.get("location")
+                if not location:
+                    return response
+                current_url = str(httpx.URL(current_url).join(location))
+                continue
+            return response
+        raise UnsafeURLError(f"Too many redirects while fetching {url!r}")
 
     async def get(
         self, url: str, headers: Optional[Dict[str, str]] = None, **kwargs: Any
@@ -51,7 +77,7 @@ class NetworkGateway:
             request_headers["User-Agent"] = self.identity_manager.get_current_identity()
 
         try:
-            response = await self._client.request(method, url, headers=request_headers, **kwargs)
+            response = await self._fetch_validated(method, url, request_headers, **kwargs)
 
             # Policy: 200 -> Return
             if response.status_code == 200:
@@ -76,9 +102,7 @@ class NetworkGateway:
                 request_headers["User-Agent"] = new_ua
 
                 # Retry once
-                response = await self._client.request(
-                    method, url, headers=request_headers, **kwargs
-                )
+                response = await self._fetch_validated(method, url, request_headers, **kwargs)
 
                 if response.status_code == 403:
                     # Fail after retry. If an API key/auth header was sent

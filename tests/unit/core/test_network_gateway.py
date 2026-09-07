@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
@@ -20,10 +20,21 @@ async def gateway(identity_manager):
     await gw.close()
 
 
+@pytest.fixture(autouse=True)
+def no_ssrf_check():
+    """These tests exercise 403/429/redirect-rotation behavior, not the
+    SSRF guard itself (Issue #235, covered by test_network_gateway_ssrf.py)
+    - suppress it here so this file's mocked `example.com` URLs don't
+    trigger a real DNS lookup."""
+    with patch("zotero_cli.core.services.network_gateway.validate_public_url"):
+        yield
+
+
 @pytest.mark.anyio
 async def test_successful_request(gateway):
     mock_resp = MagicMock(spec=httpx.Response)
     mock_resp.status_code = 200
+    mock_resp.is_redirect = False
 
     gateway._client.request = AsyncMock(return_value=mock_resp)
 
@@ -39,6 +50,7 @@ async def test_successful_request(gateway):
 async def test_rate_limit_429(gateway):
     mock_resp = MagicMock(spec=httpx.Response)
     mock_resp.status_code = 429
+    mock_resp.is_redirect = False
     mock_resp.headers = {"Retry-After": "120"}
 
     gateway._client.request = AsyncMock(return_value=mock_resp)
@@ -54,9 +66,11 @@ async def test_soft_block_403_rotation(gateway):
     # First call 403, Second call 200
     mock_resp_403 = MagicMock(spec=httpx.Response)
     mock_resp_403.status_code = 403
+    mock_resp_403.is_redirect = False
 
     mock_resp_200 = MagicMock(spec=httpx.Response)
     mock_resp_200.status_code = 200
+    mock_resp_200.is_redirect = False
 
     gateway._client.request = AsyncMock(side_effect=[mock_resp_403, mock_resp_200])
 
@@ -80,6 +94,7 @@ async def test_persistent_403_with_no_auth_header_raises_generic_http_error(gate
     generic bot-block, not a bad-credential signal - unchanged behavior."""
     mock_resp_403 = MagicMock(spec=httpx.Response)
     mock_resp_403.status_code = 403
+    mock_resp_403.is_redirect = False
     mock_resp_403.raise_for_status.side_effect = httpx.HTTPStatusError(
         "403", request=MagicMock(), response=mock_resp_403
     )
@@ -98,6 +113,7 @@ async def test_persistent_403_with_api_key_header_raises_clear_error(gateway):
     fast with an actionable message, not a generic HTTPStatusError."""
     mock_resp_403 = MagicMock(spec=httpx.Response)
     mock_resp_403.status_code = 403
+    mock_resp_403.is_redirect = False
 
     gateway._client.request = AsyncMock(return_value=mock_resp_403)
 

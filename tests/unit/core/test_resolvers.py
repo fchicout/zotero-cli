@@ -60,6 +60,7 @@ async def test_openalex_resolver_success(zotero_item):
     mock_pdf_response = MagicMock()
     mock_pdf_response.content = b"%PDF-1.4 test alex"
     mock_pdf_response.status_code = 200
+    mock_pdf_response.is_redirect = False
     mock_pdf_response.raise_for_status = MagicMock()
 
     mock_client_instance = MagicMock()
@@ -67,7 +68,14 @@ async def test_openalex_resolver_success(zotero_item):
     mock_client_instance.__aexit__ = AsyncMock()
     mock_client_instance.get = AsyncMock(return_value=mock_pdf_response)
 
-    with patch("httpx.AsyncClient", return_value=mock_client_instance):
+    # Issue #235: OpenAlexResolver's SSRF guard is exercised in
+    # test_network_gateway_ssrf.py / test_resolvers_ssrf.py - this test is
+    # about the resolver's happy path, so suppress the real (DNS-hitting)
+    # validation for this mocked example.com URL.
+    with (
+        patch("httpx.AsyncClient", return_value=mock_client_instance),
+        patch("zotero_cli.core.utils.url_safety.validate_public_url"),
+    ):
         result = await resolver.resolve(zotero_item)
 
     assert isinstance(result, Path)

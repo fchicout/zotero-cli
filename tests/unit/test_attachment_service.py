@@ -1,3 +1,4 @@
+import os
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -189,3 +190,42 @@ def test_bulk_export_markdown(service, mock_gateway, tmp_path):
         # Check files created (slugify produces lowercase)
         assert (tmp_path / "K1_test_paper.md").exists()
         assert (tmp_path / "K2_test_paper.md").exists()
+
+
+def test_download_file_refuses_unsafe_url(service):
+    """Issue #235: item.url is attacker-settable by any collaborator with
+    write access to a shared library - _download_file must refuse a URL
+    that resolves to a private/loopback/link-local address rather than
+    fetching it."""
+    result = service._download_file("http://127.0.0.1/admin")
+    assert result is None
+
+
+def test_download_file_rejects_non_pdf_content(service):
+    """A response that passes URL validation but isn't actually a PDF
+    (wrong magic bytes) must not be handed to a caller that uploads it
+    back into the shared library (Issue #235)."""
+    with patch("zotero_cli.core.services.attachment_service.safe_get") as mock_safe_get:
+        mock_response = MagicMock()
+        mock_response.iter_content.return_value = [b"<html>not a pdf</html>"]
+        mock_response.raise_for_status = MagicMock()
+        mock_safe_get.return_value = mock_response
+
+        result = service._download_file("http://93.184.216.34/fake.pdf")
+
+    assert result is None
+
+
+def test_download_file_accepts_real_pdf(service):
+    with patch("zotero_cli.core.services.attachment_service.safe_get") as mock_safe_get:
+        mock_response = MagicMock()
+        mock_response.iter_content.return_value = [b"%PDF-1.4 real content"]
+        mock_response.raise_for_status = MagicMock()
+        mock_safe_get.return_value = mock_response
+
+        result = service._download_file("http://93.184.216.34/real.pdf")
+
+    assert result is not None
+    with open(result, "rb") as f:
+        assert f.read().startswith(b"%PDF")
+    os.remove(result)

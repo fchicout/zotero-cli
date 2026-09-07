@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- **SSRF + exfiltration via unvalidated URL fetch across every PDF-resolver code path (Issue #235):** Every PDF-acquisition path reachable from `item pdf fetch`/`item attach-pdfs` (`attachment_service.py`'s existing-URL check, every `core/services/resolvers/*.py` PDF resolver, and `zotero_api.py`'s thesis-import PDF fetch) fetched an externally-influenceable URL — `item.url` (attacker-settable by any collaborator with write access to a shared library) or a third-party API's `pdf_url` — with no scheme/IP validation, then uploaded the response back onto the Zotero item as an attachment, readable by that same collaborator. New shared `core/utils/url_safety.py` (`validate_public_url`/`safe_get`/`safe_async_get`) rejects non-`http(s)` schemes and any hostname resolving to a loopback/private/link-local/multicast/reserved address, re-validated on *every* redirect hop rather than trusting `requests`/`httpx`'s default redirect-following (a validated public URL could otherwise still redirect into an internal address). `NetworkGateway` (used by `bdtd.py`/`generic_scraper.py`/`unpaywall.py`/`semantic_scholar.py`/`arxiv.py`'s resolvers) now routes every request through this guard centrally; `attachment_service.py`, `zotero_api.py`'s thesis path, and `openalex.py`'s standalone httpx client were updated individually since they don't share the gateway. Also added a `%PDF` magic-byte check before upload at every site that lacked one (`attachment_service.py`, `openalex.py`, `zotero_api.py`), checked on the first streamed chunk rather than re-reading the file afterward. Found via the adversarial two-agent security audit tracked in #231.
+
 ## [2.8.8] - 2026-09-07
 
 ### 🐛 Bug Fixes

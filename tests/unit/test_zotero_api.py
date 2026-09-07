@@ -561,7 +561,7 @@ def test_build_thesis_payload(client):
     assert payload["extra"] == "Advisor: Prof. Smith\nSome extra info"
 
 
-@patch("zotero_cli.infra.zotero_api.requests.get")
+@patch("zotero_cli.infra.zotero_api.safe_get")
 @patch("pathlib.Path.unlink")
 def test_create_item_thesis_with_pdf(mock_unlink, mock_get, client):
     paper = ResearchPaper(
@@ -578,10 +578,12 @@ def test_create_item_thesis_with_pdf(mock_unlink, mock_get, client):
     mock_post_resp.headers = {}
     client.http.session.post.return_value = mock_post_resp
 
-    # Mock PDF download response
+    # Mock PDF download response - Issue #235: create_item now fetches via
+    # safe_get (SSRF-validated) instead of bare requests.get, and verifies
+    # the %PDF magic bytes on the first streamed chunk before uploading.
     mock_pdf_resp = Mock()
     mock_pdf_resp.status_code = 200
-    mock_pdf_resp.iter_content.return_value = [b"pdf chunk"]
+    mock_pdf_resp.iter_content.return_value = [b"%PDF-1.4 pdf chunk"]
     mock_get.return_value = mock_pdf_resp
 
     # Mock upload_attachment
@@ -594,7 +596,7 @@ def test_create_item_thesis_with_pdf(mock_unlink, mock_get, client):
         mock_unlink.assert_called_once()
 
 
-@patch("zotero_cli.infra.zotero_api.requests.get")
+@patch("zotero_cli.infra.zotero_api.safe_get")
 def test_create_item_thesis_pdf_download_exception(mock_get, client):
     paper = ResearchPaper(
         title="BDTD Thesis Failed",
@@ -620,3 +622,60 @@ def test_create_item_thesis_pdf_download_exception(mock_get, client):
         success = client.create_item(paper, "COL_123")
         assert success is True
         client.upload_attachment.assert_not_called()
+
+
+def test_create_item_thesis_refuses_unsafe_pdf_url(client):
+    """Issue #235: paper.pdf_url originates from a third-party metadata
+    provider - an internal/private-address URL must not be fetched, and
+    must not fail the overall item creation."""
+    paper = ResearchPaper(
+        title="BDTD Thesis",
+        abstract="Thesis abstract",
+        extra="Degree Level: masterThesis",
+        pdf_url="http://169.254.169.254/latest/meta-data/",
+    )
+
+    mock_post_resp = Mock()
+    mock_post_resp.status_code = 200
+    mock_post_resp.json.return_value = {"successful": {"0": {"key": "THESIS_KEY"}}}
+    mock_post_resp.headers = {}
+    client.http.session.post.return_value = mock_post_resp
+
+    client.upload_attachment = Mock()
+
+    success = client.create_item(paper, "COL_123")
+    assert success is True
+    client.upload_attachment.assert_not_called()
+
+
+@patch("zotero_cli.infra.zotero_api.safe_get")
+@patch("pathlib.Path.unlink")
+def test_create_item_thesis_rejects_non_pdf_content(mock_unlink, mock_get, client):
+    """A response that isn't actually a PDF (wrong magic bytes) must not
+    be uploaded (Issue #235)."""
+    paper = ResearchPaper(
+        title="BDTD Thesis",
+        abstract="Thesis abstract",
+        extra="Degree Level: masterThesis",
+        pdf_url="http://bdtd.ibict.br/thesis.pdf",
+    )
+
+    mock_post_resp = Mock()
+    mock_post_resp.status_code = 200
+    mock_post_resp.json.return_value = {"successful": {"0": {"key": "THESIS_KEY"}}}
+    mock_post_resp.headers = {}
+    client.http.session.post.return_value = mock_post_resp
+
+    mock_pdf_resp = Mock()
+    mock_pdf_resp.status_code = 200
+    mock_pdf_resp.iter_content.return_value = [b"<html>not a pdf</html>"]
+    mock_get.return_value = mock_pdf_resp
+
+    client.upload_attachment = Mock()
+
+    with patch("zotero_cli.infra.zotero_api.open", mock_open()):
+        success = client.create_item(paper, "COL_123")
+
+    assert success is True
+    client.upload_attachment.assert_not_called()
+    mock_unlink.assert_called_once()
