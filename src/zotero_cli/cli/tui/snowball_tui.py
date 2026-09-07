@@ -77,7 +77,10 @@ class SnowballReviewTUI:
                 else SnowballGraphService.STATUS_REJECTED
             )
 
-            self.graph_service.update_status(candidate["doi"], status)
+            depth = self._get_decision_depth()
+            reason = self._get_decision_reason(status)
+
+            self.graph_service.update_status(candidate["doi"], status, reason=reason, depth=depth)
             self.console.print(f"[bold green]Marked as {status}![/bold green]")
 
         self.console.print("[bold cyan]Session Complete.[/bold cyan]")
@@ -173,3 +176,29 @@ class SnowballReviewTUI:
             return choice
         except (EOFError, StopIteration):
             return "q"
+
+    def _get_decision_depth(self) -> Optional[str]:
+        """Issue #211: how much of the paper the decision was based on -
+        mirrors SDB screening's evidence-depth distinction, since a
+        title-only decision carries different confidence than one made
+        after reading the abstract or full text."""
+        try:
+            return Prompt.ask(
+                "Decision based on",
+                choices=["title", "abstract", "full_text"],
+                default="abstract",
+                console=self.console,
+            )
+        except (EOFError, StopIteration):
+            return None
+
+    def _get_decision_reason(self, status: str) -> Optional[str]:
+        """Issue #211: free-text justification, optional (empty = none),
+        mirrors ScreeningService.record_decision's reason/evidence fields."""
+        try:
+            reason = Prompt.ask(
+                f"Reason for {status} (optional)", default="", console=self.console
+            )
+            return reason or None
+        except (EOFError, StopIteration):
+            return None

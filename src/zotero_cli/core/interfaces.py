@@ -547,7 +547,13 @@ class SnowballGraphService(ABC):
         pass
 
     @abstractmethod
-    def update_status(self, doi: str, status: str) -> None:
+    def update_status(
+        self,
+        doi: str,
+        status: str,
+        reason: Optional[str] = None,
+        depth: Optional[str] = None,
+    ) -> None:
         pass
 
     @abstractmethod

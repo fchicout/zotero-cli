@@ -84,6 +84,34 @@ def test_update_status(graph_service):
     assert all(c["doi"] != doi for c in ranked)
 
 
+def test_update_status_records_reason_and_depth(graph_service):
+    """Issue #211: accept/reject decisions can optionally record why and
+    how thoroughly the paper was evaluated, mirroring SDB screening's
+    reason/evidence audit trail."""
+    doi = "10.1001/test"
+    graph_service.add_candidate({"doi": doi, "title": "Test Paper"})
+
+    graph_service.update_status(
+        doi, SnowballGraphService.STATUS_ACCEPTED, reason="Directly relevant", depth="full_text"
+    )
+
+    node = graph_service.graph.nodes[doi]
+    assert node["status"] == SnowballGraphService.STATUS_ACCEPTED
+    assert node["decision_reason"] == "Directly relevant"
+    assert node["decision_depth"] == "full_text"
+
+
+def test_update_status_without_reason_or_depth_omits_them(graph_service):
+    doi = "10.1001/test"
+    graph_service.add_candidate({"doi": doi, "title": "Test Paper"})
+
+    graph_service.update_status(doi, SnowballGraphService.STATUS_REJECTED)
+
+    node = graph_service.graph.nodes[doi]
+    assert "decision_reason" not in node
+    assert "decision_depth" not in node
+
+
 def test_get_accepted_dois(graph_service):
     """Issue #206: re-seeding the next generation reads ACCEPTED DOIs
     directly off the graph, optionally scoped to one generation."""
