@@ -28,6 +28,43 @@ def test_system_info(system_cmd, capsys):
         assert "Library Type: user" in out
 
 
+def test_system_info_group_url_derived_from_active_library_id(system_cmd, capsys):
+    """Issue #209: the printed Group URL must be derived from the active
+    library_id/library_type, not the separately-stored target_group_url -
+    which `system switch` never updates and can point at a stale group."""
+    with patch("zotero_cli.core.config.get_config") as mock_get_config:
+        mock_config = MagicMock()
+        mock_config.library_id = "6629576"
+        mock_config.library_type = "group"
+        mock_config.api_key = "key"
+        # Stale/unrelated value - must NOT appear in the output.
+        mock_config.target_group_url = "https://www.zotero.org/groups/6287212/rsl-xm"
+        mock_get_config.return_value = mock_config
+
+        args = argparse.Namespace(verb="info", config=None)
+        system_cmd.execute(args)
+
+        out = capsys.readouterr().out
+        assert "Group URL:   https://www.zotero.org/groups/6629576" in out
+        assert "6287212" not in out
+
+
+def test_system_info_no_group_url_for_user_library(system_cmd, capsys):
+    with patch("zotero_cli.core.config.get_config") as mock_get_config:
+        mock_config = MagicMock()
+        mock_config.library_id = "123"
+        mock_config.library_type = "user"
+        mock_config.api_key = "key"
+        mock_config.target_group_url = "https://www.zotero.org/groups/456/somegroup"
+        mock_get_config.return_value = mock_config
+
+        args = argparse.Namespace(verb="info", config=None)
+        system_cmd.execute(args)
+
+        out = capsys.readouterr().out
+        assert "Group URL" not in out
+
+
 def test_system_verify_success(system_cmd, capsys):
     with patch("zotero_cli.infra.factory.GatewayFactory.get_verify_service") as mock_get_service:
         mock_service = mock_get_service.return_value

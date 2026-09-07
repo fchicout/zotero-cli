@@ -51,8 +51,17 @@ class InfoCommand(BaseCommand):
             print("OpenAI API Key: ********")
         if config.gemini_api_key:
             print("Gemini API Key: ********")
-        if config.target_group_url:
-            print(f"Group URL:   {config.target_group_url}")
+        # Derived from the active library_id/library_type above, not the
+        # separately-stored config.target_group_url - that field is only
+        # ever consulted as a fallback when library_id itself is unset
+        # (see ZoteroConfig.resolve_library_target), so once library_id is
+        # set (e.g. by `system switch`, which never touches
+        # target_group_url) printing target_group_url here could silently
+        # point at a different group than the one actually active (Issue
+        # #209). Deriving it from library_id instead makes drift
+        # impossible: this line always matches "Library ID" above it.
+        if config.library_type == "group" and config.library_id:
+            print(f"Group URL:   https://www.zotero.org/groups/{config.library_id}")
 
 
 @CommandRegistry.register
