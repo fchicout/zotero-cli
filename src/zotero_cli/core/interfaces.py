@@ -551,6 +551,11 @@ class SnowballGraphService(ABC):
         pass
 
     @abstractmethod
+    def get_accepted_dois(self, generation: Optional[int] = None) -> List[str]:
+        """Returns DOIs of ACCEPTED nodes, optionally filtered to a generation (Issue #206)."""
+        pass
+
+    @abstractmethod
     def save_graph(self) -> None:
         pass
 

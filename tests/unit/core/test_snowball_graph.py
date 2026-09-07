@@ -82,3 +82,24 @@ def test_update_status(graph_service):
     # Should not be in ranked candidates
     ranked = graph_service.get_ranked_candidates()
     assert all(c["doi"] != doi for c in ranked)
+
+
+def test_get_accepted_dois(graph_service):
+    """Issue #206: re-seeding the next generation reads ACCEPTED DOIs
+    directly off the graph, optionally scoped to one generation."""
+    gen1_doi = "10.1001/gen1"
+    gen2_doi = "10.1001/gen2"
+    pending_doi = "10.1001/pending"
+
+    graph_service.add_candidate({"doi": gen1_doi, "title": "Gen 1"}, generation=1)
+    graph_service.update_status(gen1_doi, SnowballGraphService.STATUS_ACCEPTED)
+
+    graph_service.add_candidate({"doi": gen2_doi, "title": "Gen 2"}, generation=2)
+    graph_service.update_status(gen2_doi, SnowballGraphService.STATUS_ACCEPTED)
+
+    graph_service.add_candidate({"doi": pending_doi, "title": "Pending"}, generation=1)
+
+    assert set(graph_service.get_accepted_dois()) == {gen1_doi, gen2_doi}
+    assert graph_service.get_accepted_dois(generation=1) == [gen1_doi]
+    assert graph_service.get_accepted_dois(generation=2) == [gen2_doi]
+    assert graph_service.get_accepted_dois(generation=99) == []

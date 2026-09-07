@@ -78,6 +78,20 @@ class SnowballGraphService(ISnowballGraphService):
             else:
                 self.graph.add_edge(doi, parent_doi, direction="backward")
 
+    def get_accepted_dois(self, generation: Optional[int] = None) -> List[str]:
+        """
+        Returns the DOIs of ACCEPTED nodes, optionally filtered to a single
+        prior generation (Issue #206) - lets a caller re-seed the next
+        snowballing generation directly from this generation's accepted
+        candidates, without first importing them into Zotero.
+        """
+        dois = []
+        for node_id, data in self.graph.nodes(data=True):
+            if data.get("status") == self.STATUS_ACCEPTED:
+                if generation is None or data.get("generation") == generation:
+                    dois.append(node_id)
+        return dois
+
     def update_status(self, doi: str, status: str) -> None:
         """Transitions node state."""
         if doi in self.graph:
