@@ -206,6 +206,102 @@ def test_backup_system_attachment_before_parent(service, mock_gateway):
         assert content == "traversal order edge case"
 
 
+def test_backup_attachment_filename_path_traversal_sanitized(service, mock_gateway):
+    """Issue #238: a malicious/crafted attachment filename must not be able
+    to write outside the intended `attachments/<parent>/` zip directory via
+    path traversal segments."""
+    parent_item = ZoteroItem.from_raw_zotero_item(
+        {
+            "key": "PARENT1",
+            "version": 1,
+            "data": {"title": "Main Paper", "itemType": "journalArticle"},
+        }
+    )
+    child_item_raw = {
+        "key": "CHILD1",
+        "version": 1,
+        "data": {
+            "key": "CHILD1",
+            "itemType": "attachment",
+            "linkMode": "imported_file",
+            "filename": "../../../../etc/passwd",
+            "title": "Evil PDF",
+        },
+    }
+    child_item = ZoteroItem.from_raw_zotero_item(child_item_raw)
+
+    mock_gateway.get_collection.return_value = {"key": "col1", "data": {"name": "Test Col"}}
+    mock_gateway.get_items_in_collection.return_value = iter([parent_item])
+    mock_gateway.get_item_children.return_value = [{"key": "CHILD1"}]
+    mock_gateway.get_item.side_effect = lambda k: child_item if k == "CHILD1" else None
+
+    def mock_download(key, path):
+        with open(path, "w") as f:
+            f.write("fake pdf content")
+        return True
+
+    mock_gateway.download_attachment.side_effect = mock_download
+
+    output_buffer = BytesIO()
+    service.backup_collection("col1", output_buffer)
+
+    output_buffer.seek(0)
+    with zipfile.ZipFile(output_buffer, "r") as zf:
+        namelist = zf.namelist()
+        assert "attachments/PARENT1/passwd" in namelist
+        for name in namelist:
+            assert ".." not in name.split("/")
+            assert not name.startswith("/")
+
+        manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
+        assert manifest["file_map"]["CHILD1"]["path"] == "attachments/PARENT1/passwd"
+
+
+def test_backup_attachment_filename_dot_only_falls_back_to_item_key(service, mock_gateway):
+    """A filename that sanitizes down to nothing (e.g. just '..' or '.')
+    must fall back to a safe name instead of producing an empty/invalid
+    zip entry."""
+    parent_item = ZoteroItem.from_raw_zotero_item(
+        {
+            "key": "PARENT2",
+            "version": 1,
+            "data": {"title": "Main Paper", "itemType": "journalArticle"},
+        }
+    )
+    child_item_raw = {
+        "key": "CHILD2",
+        "version": 1,
+        "data": {
+            "key": "CHILD2",
+            "itemType": "attachment",
+            "linkMode": "imported_file",
+            "filename": "../../..",
+            "title": "Weird PDF",
+        },
+    }
+    child_item = ZoteroItem.from_raw_zotero_item(child_item_raw)
+
+    mock_gateway.get_collection.return_value = {"key": "col2", "data": {"name": "Test Col"}}
+    mock_gateway.get_items_in_collection.return_value = iter([parent_item])
+    mock_gateway.get_item_children.return_value = [{"key": "CHILD2"}]
+    mock_gateway.get_item.side_effect = lambda k: child_item if k == "CHILD2" else None
+
+    def mock_download(key, path):
+        with open(path, "w") as f:
+            f.write("fake pdf content")
+        return True
+
+    mock_gateway.download_attachment.side_effect = mock_download
+
+    output_buffer = BytesIO()
+    service.backup_collection("col2", output_buffer)
+
+    output_buffer.seek(0)
+    with zipfile.ZipFile(output_buffer, "r") as zf:
+        namelist = zf.namelist()
+        assert "attachments/PARENT2/CHILD2" in namelist
+
+
 def test_backup_collection_not_found(service, mock_gateway):
     mock_gateway.get_collection.return_value = None
     with pytest.raises(ValueError) as excinfo:
