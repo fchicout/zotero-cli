@@ -161,6 +161,42 @@ class TestReportCommandDuplicates:
         assert "CONFLICTING" in content
         assert "KEY_A" in content and "KEY_B" in content
 
+    def test_duplicates_exports_csv_sanitizes_formula_injection(
+        self, mock_gateway, capsys, tmp_path
+    ):
+        """Issue #237: a duplicate item's title (settable by any
+        collaborator with write access to the library) must not reach
+        the CSV as an evaluable spreadsheet formula."""
+        from zotero_cli.cli.commands.report_cmd import ReportCommand
+
+        item_a = self._make_dupe_item("KEY_A", title='=HYPERLINK("http://attacker/","x")')
+        item_b = self._make_dupe_item("KEY_B")
+        mock_gateway.get_collection_id_by_name.side_effect = ["COL_A", "COL_B"]
+        mock_gateway.get_items_in_collection.side_effect = [iter([item_a]), iter([item_b])]
+
+        mock_sdb_service = MagicMock()
+        mock_sdb_service.classify_decision_agreement.return_value = "CONFLICTING"
+
+        out_file = str(tmp_path / "dupes.csv")
+        args = argparse.Namespace(
+            report_type="duplicates", collections="Source,Target", csv=out_file, user=False
+        )
+        cmd = ReportCommand()
+        with (
+            patch(
+                "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway",
+                return_value=mock_gateway,
+            ),
+            patch(
+                "zotero_cli.infra.factory.GatewayFactory.get_sdb_service",
+                return_value=mock_sdb_service,
+            ),
+        ):
+            cmd.execute(args)
+
+        content = Path(out_file).read_text()
+        assert "'=HYPERLINK" in content
+
     def test_duplicates_none_found(self, mock_gateway, capsys):
         from zotero_cli.cli.commands.report_cmd import ReportCommand
 

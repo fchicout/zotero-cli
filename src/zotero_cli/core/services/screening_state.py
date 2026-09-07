@@ -3,6 +3,8 @@ import os
 from datetime import datetime
 from typing import Any, List, Set
 
+from zotero_cli.core.utils.csv_safety import sanitize_csv_row
+
 
 class ScreeningStateService:
     """
@@ -46,15 +48,21 @@ class ScreeningStateService:
                 if not file_exists:
                     writer.writeheader()
 
+                # Issue #237: these fields are normally system-generated,
+                # but sanitize consistently with every other CSV writer in
+                # the project so a later change (e.g. a free-text reason
+                # field) can't silently reintroduce formula injection here.
                 writer.writerow(
-                    {
-                        "Timestamp": datetime.now().isoformat(),
-                        "Key": item_key,
-                        "Decision": decision,
-                        "Code": code,
-                        "Persona": persona,
-                        "Phase": phase,
-                    }
+                    sanitize_csv_row(
+                        {
+                            "Timestamp": datetime.now().isoformat(),
+                            "Key": item_key,
+                            "Decision": decision,
+                            "Code": code,
+                            "Persona": persona,
+                            "Phase": phase,
+                        }
+                    )
                 )
             self.screened_keys.add(item_key)
         except Exception as e:

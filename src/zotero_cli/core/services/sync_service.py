@@ -4,6 +4,7 @@ import sys
 from typing import Any, Callable, Dict, List, Optional, cast
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
+from zotero_cli.core.utils.csv_safety import sanitize_csv_rows
 from zotero_cli.core.zotero_item import ZoteroItem
 
 # Progress Callback Type: current, total, message
@@ -103,7 +104,11 @@ class SyncService:
                     f, fieldnames=["key", "title", "decision", "reason", "criteria", "timestamp"]
                 )
                 writer.writeheader()
-                writer.writerows(recovered_rows)
+                # Issue #237: reason/criteria come from a reviewer's own
+                # note text, but title comes from the Zotero item itself
+                # (settable by any collaborator) - guard against CSV
+                # formula injection either way.
+                writer.writerows(sanitize_csv_rows(recovered_rows))
             return True
         except Exception as e:
             print(f"Error writing CSV file: {e}", file=sys.stderr)

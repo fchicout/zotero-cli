@@ -39,6 +39,25 @@ def test_csv_round_trip_preserves_decision():
     assert entry.decision.reason == "Same DOI"
 
 
+def test_csv_serialize_sanitizes_formula_injection():
+    """Issue #237: an occurrence's title (settable by any collaborator
+    with write access to the library) must not reach the CSV as an
+    evaluable spreadsheet formula."""
+    group = DuplicateGroup(
+        match_type="doi",
+        identifier="10.1/x",
+        occurrences=[
+            DuplicateOccurrence(
+                key="M1", collection_id="C1", title='=HYPERLINK("http://attacker/","x")'
+            ),
+        ],
+    )
+    plan = MergeService.build_plan([group])
+    csv_text = serialize_plan_to_csv(plan)
+
+    assert "'=HYPERLINK" in csv_text
+
+
 def test_csv_round_trip_undecided_group_stays_undecided():
     group = DuplicateGroup(
         match_type="title",

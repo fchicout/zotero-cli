@@ -12,6 +12,7 @@ from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.duplicate_service import DuplicateFinder, DuplicateGroup
 from zotero_cli.core.services.sdb.sdb_service import SDBService
+from zotero_cli.core.utils.csv_safety import sanitize_csv_rows
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -228,7 +229,10 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
                 fieldnames=["match_type", "identifier", "key", "title", "collection", "sdb_status"],
             )
             writer.writeheader()
-            writer.writerows(rows)
+            # Issue #237: rows come from Zotero item titles, settable by
+            # any collaborator with write access to the library - guard
+            # against CSV/spreadsheet formula injection.
+            writer.writerows(sanitize_csv_rows(rows))
 
     def _export_merge_plan(
         self, dupes: List[DuplicateGroup], path: str, sdb_service: SDBService

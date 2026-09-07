@@ -250,11 +250,16 @@ class ExtractionService(IExtractionService):
         import csv
         import io
 
+        from zotero_cli.core.utils.csv_safety import sanitize_csv_row
+
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=headers)
         writer.writeheader()
         for row in data:
-            writer.writerow(row)
+            # Issue #237: extracted field values can originate from a
+            # paper's own text/metadata - guard against CSV formula
+            # injection before they reach a reviewer's spreadsheet app.
+            writer.writerow(sanitize_csv_row(row))
         return output.getvalue()
 
     def _format_markdown_table(self, headers: List[str], data: List[Dict[str, Any]]) -> str:
