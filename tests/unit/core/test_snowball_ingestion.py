@@ -121,3 +121,32 @@ def test_ingest_candidates_duplicate_skipping(
     assert stats["duplicates"] == 1
     assert graph_service.graph.nodes[doi]["status"] == SnowballIngestionService.STATUS_IMPORTED
     mock_item_repo.create_item.assert_not_called()
+
+
+def test_ingest_candidates_duplicate_url_form_doi(
+    ingestion_service, graph_service, mock_item_repo, mock_collection_repo
+):
+    """Issue #205: a candidate's bare DOI must still match an existing
+    library item whose DOI was hydrated in URL form (or any other case/
+    prefix variant), or the same paper gets re-imported as a duplicate."""
+    doi = "10.1109/tse.2026.3694876"
+    graph_service.add_candidate({"doi": doi, "title": "Seed Paper"})
+    graph_service.update_status(doi, SnowballGraphService.STATUS_ACCEPTED)
+
+    mock_collection_repo.get_collection_id_by_name.return_value = "COL123"
+
+    from zotero_cli.core.zotero_item import ZoteroItem
+
+    existing_item = ZoteroItem(
+        key="EXIST",
+        version=1,
+        item_type="journalArticle",
+        doi="https://doi.org/10.1109/TSE.2026.3694876",
+    )
+    mock_item_repo.get_items_by_doi.return_value = iter([existing_item])
+
+    stats = ingestion_service.ingest_candidates("Target Collection")
+
+    assert stats["imported"] == 0
+    assert stats["duplicates"] == 1
+    mock_item_repo.create_item.assert_not_called()
