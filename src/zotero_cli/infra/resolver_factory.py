@@ -107,10 +107,35 @@ class ResolverFactory:
             return []
 
     @staticmethod
-    def get_snowball_graph_service() -> "SnowballGraphService":
+    def get_snowball_graph_service(
+        config: Optional[ZoteroConfig] = None,
+    ) -> "SnowballGraphService":
+        """
+        Storage is scoped per-library when a config is supplied (Issue
+        #228): without this, two callers targeting different Zotero
+        libraries - a multi-tenant caller running one discovery graph per
+        research project, or even a single CLI user who `system switch`ed
+        between groups - would silently share one discovery_graph.json,
+        corrupting each other's candidate graphs. `config=None` keeps the
+        pre-#228 global-singleton path, for backward compatibility with
+        any caller that genuinely has no library context.
+        """
         db_dir = get_storage_dir()
         db_dir.mkdir(parents=True, exist_ok=True)
-        storage_path = db_dir / "discovery_graph.json"
+        legacy_path = db_dir / "discovery_graph.json"
+
+        if config is None:
+            storage_path = legacy_path
+        else:
+            library_id = config.library_id or config.user_id or "default"
+            storage_path = db_dir / f"discovery_graph_{library_id}.json"
+            # One-time graceful migration: the first library to be scoped
+            # after upgrading inherits any pre-#228 unscoped graph rather
+            # than appearing to have silently lost it - the legacy file is
+            # renamed (not copied), so it's gone afterwards and can't be
+            # "claimed" again by a second, unrelated library.
+            if not storage_path.exists() and legacy_path.exists():
+                legacy_path.rename(storage_path)
 
         from zotero_cli.core.services.snowball_graph import SnowballGraphService
 
@@ -124,7 +149,7 @@ class ResolverFactory:
             config = get_config()
 
         gateway = ResolverFactory.get_network_gateway()
-        graph_service = ResolverFactory.get_snowball_graph_service()
+        graph_service = ResolverFactory.get_snowball_graph_service(config)
 
         # Lazy import: ServiceFactory imports ResolverFactory (for PDF-finder
         # resolvers), so this back-reference must stay function-local to avoid
@@ -150,7 +175,7 @@ class ResolverFactory:
 
             config = get_config()
 
-        graph_service = ResolverFactory.get_snowball_graph_service()
+        graph_service = ResolverFactory.get_snowball_graph_service(config)
         metadata_service = MetadataClientFactory.get_metadata_aggregator(config)
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
         col_repo = RepositoryFactory.get_collection_repository(
