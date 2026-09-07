@@ -40,7 +40,7 @@ class BDTDResolver(PDFResolver):
 
         # If repo_url itself ends with .pdf, download directly
         if repo_url.lower().endswith(".pdf"):
-            return await self._download_pdf(repo_url, item.key)
+            return await self._download_pdf(repo_url)
 
         try:
             logger.info(f"BDTDResolver: Attempting to resolve PDF from landing page: {repo_url}")
@@ -125,14 +125,14 @@ class BDTDResolver(PDFResolver):
                 f"BDTDResolver: Selected best PDF URL {resolved_pdf_url} with ratio {max_ratio[0]}"
             )
 
-            return await self._download_pdf(resolved_pdf_url, item.key)
+            return await self._download_pdf(resolved_pdf_url)
 
         except Exception as e:
             msg = f"BDTDResolver: Failed to resolve PDF for {item.key}: {e}"
             logger.error(msg)
             raise ResolutionError(msg) from e
 
-    async def _download_pdf(self, pdf_url: str, item_key: str) -> Optional[Path]:
+    async def _download_pdf(self, pdf_url: str) -> Optional[Path]:
         try:
             logger.info(f"BDTDResolver: Downloading PDF: {pdf_url}")
             response = await self.gateway.get(pdf_url)
