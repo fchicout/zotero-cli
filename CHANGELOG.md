@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- **Forward snowballing 403s and fails outright whenever `semantic_scholar_api_key` is configured (Issue #223):** Confirmed live against the real Semantic Scholar API: a configured key can be rejected (403) across every S2 endpoint while the identical unauthenticated request succeeds - `NetworkGateway`'s existing 403 handling (rotate identity, retry once) can never fix a bad credential, so it just surfaced a raw `httpx.HTTPStatusError`/traceback for what's really a rejected-key condition. `NetworkGateway._execute_request` now recognizes this case (a 403 that survives identity rotation *with* an API-key/auth header present) and raises a clear, actionable `ValueError` instead. `SnowballDiscoveryWorker._discover_forward` catches that specifically and falls back to a single unauthenticated retry rather than failing the whole job - turning a hard failure (0 candidates, every time a key is configured) into degraded-but-working behavior, with a logged warning. Also added the proactive `time.sleep`-equivalent pacing (`asyncio.sleep(1.1)`, matching `infra/semantic_scholar_api.py`'s own existing 1-req/sec self-throttle) that forward discovery never had - the only backoff that existed before was reactive (per-job, only after a 429 already happened), which isn't enough to avoid tripping Semantic Scholar's low, globally-shared unauthenticated pool once the fallback path is exercised.
+
 ## [2.8.6] - 2026-09-07
 
 ### 🐛 Bug Fixes

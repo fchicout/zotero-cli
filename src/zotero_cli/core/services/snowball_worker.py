@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Optional
 
@@ -120,12 +121,38 @@ class SnowballDiscoveryWorker:
         url = f"https://api.semanticscholar.org/graph/v1/paper/DOI:{doi}/citations"
         params = {"fields": "externalIds,title,authors,year,abstract,isInfluential"}
 
+        # Polite, proactive pacing (Issue #223): the reactive 429 backoff in
+        # NetworkGateway/JobQueueService only kicks in *after* a request is
+        # already rate-limited - it does nothing to stop a burst of forward-
+        # discovery jobs from hammering Semantic Scholar's low, globally-
+        # shared unauthenticated pool in the first place. Matches the 1
+        # req/sec self-throttle infra/semantic_scholar_api.py already
+        # applies to its own (synchronous) requests.
+        await asyncio.sleep(1.1)
+
         headers = {}
         if self.s2_api_key:
             headers["x-api-key"] = self.s2_api_key
 
         logger.info(f"SemanticScholar: Fetching citations for {doi}")
-        response = await self.gateway.get(url, params=params, headers=headers)
+        try:
+            response = await self.gateway.get(url, params=params, headers=headers)
+        except ValueError:
+            if not self.s2_api_key:
+                raise
+            # NetworkGateway raises ValueError (not a generic
+            # HTTPStatusError) specifically when a 403 survives identity
+            # rotation with an auth header present - confirmed live
+            # (Issue #223) that a rejected semantic_scholar_api_key gets
+            # 403 while the identical unauthenticated request succeeds.
+            # Fall back rather than failing the whole job outright.
+            logger.warning(
+                f"SemanticScholar: configured API key was rejected for {doi} "
+                "- retrying unauthenticated."
+            )
+            await asyncio.sleep(1.1)
+            response = await self.gateway.get(url, params=params, headers={})
+
         data = response.json()
 
         citations = data.get("data", [])

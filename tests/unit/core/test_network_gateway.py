@@ -72,3 +72,34 @@ async def test_soft_block_403_rotation(gateway):
     # Verify identity was rotated
     final_ua = gateway.identity_manager.get_current_identity()
     assert initial_ua != final_ua
+
+
+@pytest.mark.anyio
+async def test_persistent_403_with_no_auth_header_raises_generic_http_error(gateway):
+    """A persistent 403 with only a User-Agent header (no API key) is a
+    generic bot-block, not a bad-credential signal - unchanged behavior."""
+    mock_resp_403 = MagicMock(spec=httpx.Response)
+    mock_resp_403.status_code = 403
+    mock_resp_403.raise_for_status.side_effect = httpx.HTTPStatusError(
+        "403", request=MagicMock(), response=mock_resp_403
+    )
+
+    gateway._client.request = AsyncMock(return_value=mock_resp_403)
+
+    with pytest.raises(httpx.HTTPStatusError):
+        await gateway.get("http://example.com")
+
+
+@pytest.mark.anyio
+async def test_persistent_403_with_api_key_header_raises_clear_error(gateway):
+    """Issue #223: a persistent 403 with an API key/auth header present
+    (e.g. x-api-key for Semantic Scholar) means the credential itself is
+    likely invalid - identity rotation can't fix that, so this must fail
+    fast with an actionable message, not a generic HTTPStatusError."""
+    mock_resp_403 = MagicMock(spec=httpx.Response)
+    mock_resp_403.status_code = 403
+
+    gateway._client.request = AsyncMock(return_value=mock_resp_403)
+
+    with pytest.raises(ValueError, match="x-api-key"):
+        await gateway.get("http://example.com", headers={"x-api-key": "bad-key"})
