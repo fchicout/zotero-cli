@@ -108,6 +108,27 @@ def test_snowball_command_graph(mock_deps, capsys):
     assert "graph TD; A-->B" in out
 
 
+def test_snowball_command_export_json(mock_deps, capsys):
+    """Issue #208: `export --format json` must produce real output, not
+    the previous no-op `pass`."""
+    mock_gw, mock_ingest, mock_graph, mock_jq = mock_deps
+    mock_graph.to_json.return_value = '{"nodes": [], "links": []}'
+
+    args = argparse.Namespace(
+        verb="snowball",
+        snow_verb="export",
+        format="json",
+        collection="Col1",
+        output=None,
+        user=False,
+    )
+    SnowballCommand.execute(mock_gw, args)
+
+    mock_graph.to_json.assert_called_once()
+    out = capsys.readouterr().out
+    assert '{"nodes": [], "links": []}' in out
+
+
 def test_snowball_command_status(mock_deps, capsys):
     mock_gw, mock_ingest, mock_graph, mock_jq = mock_deps
     mock_graph.get_stats.return_value = {"total_nodes": 10, "total_edges": 5}

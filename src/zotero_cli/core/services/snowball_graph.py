@@ -166,6 +166,15 @@ class SnowballGraphService(ISnowballGraphService):
         with open(self.storage_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
+    def to_json(self) -> str:
+        """
+        Serializes the discovery graph to a JSON string (Issue #208) -
+        the same node-link shape `save_graph` already persists to disk,
+        exposed as a public export so `slr snowball export --format json`
+        has something to print/write, mirroring `to_mermaid`.
+        """
+        return json.dumps(nx.node_link_data(self.graph), indent=2)
+
     def load_graph(self) -> None:
         """Loads graph from storage."""
         if self.storage_path.exists():

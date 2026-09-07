@@ -573,6 +573,11 @@ class SnowballGraphService(ABC):
     def to_mermaid(self) -> str:
         pass
 
+    @abstractmethod
+    def to_json(self) -> str:
+        """Serializes the discovery graph to a JSON string (Issue #208)."""
+        pass
+
 
 class OpenerService(ABC):
     @abstractmethod
