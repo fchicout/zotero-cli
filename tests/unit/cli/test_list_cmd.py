@@ -172,6 +172,37 @@ def test_handle_qa_approved_csv_json_export(mock_file, mock_slr_status_service, 
     assert "Successfully exported to JSON: out.json" in out
 
 
+def test_handle_qa_approved_csv_export_sanitizes_formula_injection(
+    mock_slr_status_service, capsys, tmp_path
+):
+    """Issue #237: an item's title (settable by any collaborator with
+    write access to the library) must not reach the CSV as an evaluable
+    spreadsheet formula."""
+    item = MagicMock()
+    item.item_key = "K1"
+    item.title = '=HYPERLINK("http://attacker/","x")'
+    item.source_collection = "raw_acm"
+    item.reason = "3.5"
+
+    mock_slr_status_service.get_decided_items.return_value = [item]
+
+    out_file = str(tmp_path / "out.csv")
+    args = argparse.Namespace(
+        list_verb="qa-approved",
+        tree="raw_acm",
+        csv=out_file,
+        json=None,
+        xlsx=None,
+        ods=None,
+        user=False,
+    )
+
+    ListCommand.execute(args)
+
+    content = (tmp_path / "out.csv").read_text()
+    assert "'=HYPERLINK" in content
+
+
 def test_handle_qa_approved_xlsx_export(mock_slr_status_service, capsys):
     item = MagicMock()
     item.item_key = "K1"

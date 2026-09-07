@@ -43,6 +43,36 @@ class TestSyncService(unittest.TestCase):
             # Check row
             handle.write.assert_any_call("K1,Paper A,approve,Relevant,IC1,2024-01-01\r\n")
 
+    def test_recover_state_from_notes_sanitizes_formula_injection(self):
+        """Issue #237: an item's title (settable by any collaborator with
+        write access to the library) must not reach the CSV as an
+        evaluable spreadsheet formula."""
+        self.gateway.get_collection_id_by_name.return_value = "ColID"
+
+        item1 = ZoteroItem(
+            key="K1",
+            title='=HYPERLINK("http://attacker/","x")',
+            version=1,
+            item_type="journalArticle",
+        )
+        self.gateway.get_items_in_collection.return_value = [item1]
+
+        note_content = 'Pre-text <pre>{"decision": "approve", "reason": "Relevant", "criteria": ["IC1"], "timestamp": "2024-01-01", "action": "screening_decision"}</pre>'
+        self.gateway.get_item_children.side_effect = [
+            [{"data": {"itemType": "note", "note": f"screening_decision: {note_content}"}}],
+        ]
+
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_path = str(Path(tmp_dir) / "out.csv")
+            success = self.service.recover_state_from_notes("Test Col", out_path)
+
+            self.assertTrue(success)
+            content = Path(out_path).read_text()
+            self.assertIn("'=HYPERLINK", content)
+
     def test_extract_screening_data_valid(self):
         item = ZoteroItem(key="K1", title="T", version=1, item_type="journalArticle")
         json_str = '{"decision": "reject", "reason": "Old", "criteria": ["EC2"], "action": "screening_decision"}'

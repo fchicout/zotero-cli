@@ -45,6 +45,20 @@ def test_screening_state_record(tmp_path):
         assert rows[0]["Decision"] == "EXCLUDE"
 
 
+def test_screening_state_record_sanitizes_formula_injection(tmp_path):
+    """Issue #237: even though these fields are normally system/CLI-arg
+    driven, sanitize consistently with every other CSV writer in the
+    project so a value like a persona name can't reintroduce formula
+    injection."""
+    state_file = tmp_path / "screening_state.csv"
+    service = ScreeningStateService(str(state_file))
+
+    service.record_decision("K2", "EXCLUDE", "EC1", '=HYPERLINK("http://attacker/")', "F")
+
+    content = state_file.read_text(encoding="utf-8")
+    assert "'=HYPERLINK" in content
+
+
 def test_screening_state_filter(tmp_path):
     state_file = tmp_path / "screening_state.csv"
     service = ScreeningStateService(str(state_file))

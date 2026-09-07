@@ -144,11 +144,20 @@ Cognitive Safeguards:
     def _export_csv(items: List[DecidedItem], filename: str) -> None:
         import csv
 
+        from zotero_cli.core.utils.csv_safety import sanitize_csv_row
+
         with open(filename, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["Key", "Title", "Source", SCORE_REASON])
             for item in items:
-                writer.writerow([item.item_key, item.title, item.source_collection, item.reason])
+                # Issue #237: item.title/reason are Zotero item fields,
+                # settable by any collaborator with write access to the
+                # library - guard against CSV formula injection.
+                writer.writerow(
+                    sanitize_csv_row(
+                        [item.item_key, item.title, item.source_collection, item.reason]
+                    )
+                )
         console.print(f"[green]Successfully exported to CSV: {filename}[/green]")
 
     @staticmethod

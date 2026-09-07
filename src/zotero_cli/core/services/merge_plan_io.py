@@ -10,6 +10,7 @@ from zotero_cli.core.services.merge_service import (
     MergePlan,
     MergePlanEntry,
 )
+from zotero_cli.core.utils.csv_safety import sanitize_csv_row
 
 CSV_FIELDNAMES = [
     "group_id",
@@ -47,17 +48,22 @@ def serialize_plan_to_csv(plan: MergePlan) -> str:
                     role = "MERGE"
                 elif occ.key in decision.keep_keys:
                     role = "KEEP"
+            # Issue #237: title comes from a Zotero item field, settable
+            # by any collaborator with write access to the library -
+            # guard against CSV formula injection.
             writer.writerow(
-                {
-                    "group_id": entry.group_id,
-                    "match_type": entry.match_type,
-                    "identifier": entry.identifier,
-                    "key": occ.key,
-                    "collection_id": occ.collection_id,
-                    "title": occ.title or "",
-                    "role": role,
-                    "reason": reason,
-                }
+                sanitize_csv_row(
+                    {
+                        "group_id": entry.group_id,
+                        "match_type": entry.match_type,
+                        "identifier": entry.identifier,
+                        "key": occ.key,
+                        "collection_id": occ.collection_id,
+                        "title": occ.title or "",
+                        "role": role,
+                        "reason": reason,
+                    }
+                )
             )
     return buffer.getvalue()
 
