@@ -8,6 +8,7 @@ from zotero_cli.core.interfaces import (
     OpenerService,
     ScreeningService,
     SnowballGraphService,
+    ZoteroGateway,
 )
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
@@ -29,5 +30,6 @@ class TUIFactory:
     def get_snowball_tui(
         service: SnowballGraphService,
         metadata_service: Optional[MetadataAggregatorService] = None,
+        gateway: Optional[ZoteroGateway] = None,
     ) -> SnowballReviewTUI:
-        return SnowballReviewTUI(service, metadata_service)
+        return SnowballReviewTUI(service, metadata_service, gateway)

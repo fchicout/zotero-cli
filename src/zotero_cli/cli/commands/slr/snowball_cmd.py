@@ -78,7 +78,7 @@ class SnowballCommand:
         elif args.snow_verb == "review":
             graph_service = GatewayFactory.get_snowball_graph_service()
             metadata_service = GatewayFactory.get_metadata_aggregator()
-            tui = TUIFactory.get_snowball_tui(graph_service, metadata_service)
+            tui = TUIFactory.get_snowball_tui(graph_service, metadata_service, gateway)
             tui.run_review_session()
         elif args.snow_verb == "import":
             SnowballCommand._handle_import(gateway, args, force_user)
