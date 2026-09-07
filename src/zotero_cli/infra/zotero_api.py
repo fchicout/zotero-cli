@@ -167,13 +167,21 @@ class ZoteroAPIClient(ZoteroGateway):
         return self._paginate_items(endpoint)
 
     def get_item(self, item_key: str) -> Optional[ZoteroItem]:
-        return self._safe_execute(
-            f"fetching item {item_key}",
-            None,
-            lambda: ZoteroItem.from_raw_zotero_item(
-                cast(Dict[str, Any], self.http.get(f"items/{item_key}").json())
-            ),
-        )
+        def _fetch() -> ZoteroItem:
+            raw = self.http.get(f"items/{item_key}").json()
+            if not isinstance(raw, dict):
+                # A malformed/non-existent key (e.g. a bare DOI passed where a
+                # short alphanumeric Zotero item key is expected) can route to
+                # an endpoint that returns a list rather than a 404 - fail with
+                # a clear message instead of an opaque AttributeError from
+                # ZoteroItem.from_raw_zotero_item (Issue #207).
+                raise ValueError(
+                    f"'{item_key}' is not a valid Zotero item key "
+                    f"(expected an item object, got {type(raw).__name__})"
+                )
+            return ZoteroItem.from_raw_zotero_item(cast(Dict[str, Any], raw))
+
+        return self._safe_execute(f"fetching item {item_key}", None, _fetch)
 
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
         return self._safe_execute(

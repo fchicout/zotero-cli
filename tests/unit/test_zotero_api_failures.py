@@ -41,6 +41,19 @@ def test_get_item_failure(client):
     assert client.get_item("K1") is None
 
 
+def test_get_item_non_dict_response(client, capsys):
+    """Issue #207: a malformed key (e.g. a bare DOI) can route to an
+    endpoint that returns a list instead of an item object/404 - this must
+    fail with a clear message, not an opaque AttributeError."""
+    client.http.get.return_value.json.return_value = []
+
+    assert client.get_item("10.1109/TIFS.2024.3376968") is None
+    captured = capsys.readouterr()
+    assert "is not a valid Zotero item key" in captured.out
+    assert "AttributeError" not in captured.out
+    assert "'list' object has no attribute" not in captured.out
+
+
 def test_get_items_in_collection_failure(client):
     client.http.get.side_effect = Exception("Boom")
     assert list(client.get_items_in_collection("C1")) == []
