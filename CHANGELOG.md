@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.8.8] - 2026-09-07
+
 ### 🐛 Bug Fixes
 - **`SnowballGraphService` had no per-library storage scoping (Issue #228):** Every other stateful snowballing service already supports it - `JobQueueService` filters by `library_id` (Issue #150), and `get_snowball_worker`/`get_snowball_ingestion_service` both accept an optional `ZoteroConfig` - but `get_snowball_graph_service()` took no config at all and always resolved to one process-global `discovery_graph.json`. Any two callers targeting different Zotero libraries (a multi-tenant caller running one discovery graph per research project, or even a single CLI user who `system switch`ed between groups mid-session) would silently read/write the identical file, corrupting each other's candidate graphs. `get_snowball_graph_service` now accepts an optional `config: Optional[ZoteroConfig]`, resolving to `discovery_graph_{library_id}.json` when one is supplied (falling back to `user_id`, then `"default"`) and the pre-#228 global path when it isn't - `get_snowball_worker`/`get_snowball_ingestion_service` now thread their own resolved config through, and `SnowballCommand` resolves one config per CLI invocation and passes it to every snowball-graph call site (seed/discovery/review/import/status/export), so the whole CLI is consistently scoped too, not just multi-tenant callers. A pre-existing global `discovery_graph.json` is migrated (renamed, not just pointed at) into the first library that touches it after upgrading, so existing local state isn't silently orphaned.
 
