@@ -81,7 +81,29 @@ class NetworkGateway:
                 )
 
                 if response.status_code == 403:
-                    # Fail after retry
+                    # Fail after retry. If an API key/auth header was sent
+                    # (anything beyond User-Agent), a 403 that survives
+                    # identity rotation almost certainly means that
+                    # credential itself is invalid/expired/rejected, not a
+                    # generic bot-block - identity rotation can't fix a bad
+                    # key, so retrying it is pointless (Issue #223, seen
+                    # concretely with a configured semantic_scholar_api_key
+                    # getting 403 while the identical unauthenticated
+                    # request succeeds). Surface that distinction clearly
+                    # instead of a generic HTTPStatusError.
+                    auth_headers = [
+                        h for h in request_headers if h.lower() != "user-agent"
+                    ]
+                    if auth_headers:
+                        msg = (
+                            f"403 Forbidden at {url} even after identity rotation, "
+                            f"with a configured credential present ({', '.join(auth_headers)}). "
+                            "This almost always means that API key is invalid, expired, "
+                            "or lacks access - not a rate limit or bot-block. Verify the "
+                            "key, or remove it to fall back to unauthenticated access."
+                        )
+                        logger.error(msg)
+                        raise ValueError(msg)
                     logger.error(f"403 Forbidden persists after rotation at {url}.")
                     response.raise_for_status()
 
