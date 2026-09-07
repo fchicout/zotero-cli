@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from rich.console import Console
 from rich.layout import Layout
@@ -12,6 +12,7 @@ from zotero_cli.cli.tui.components import (
     create_header_panel,
 )
 from zotero_cli.core.interfaces import SnowballGraphService
+from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
 
 class SnowballReviewTUI:
@@ -20,8 +21,18 @@ class SnowballReviewTUI:
     Prioritizes candidates by graph relevance.
     """
 
-    def __init__(self, graph_service: SnowballGraphService):
+    def __init__(
+        self,
+        graph_service: SnowballGraphService,
+        metadata_service: Optional[MetadataAggregatorService] = None,
+    ):
         self.graph_service = graph_service
+        # Backfills title/abstract/authors for candidates the graph only
+        # holds as a stub (Issue #210), e.g. backward/CrossRef candidates
+        # whose reference list entry lacked "article-title". Optional so a
+        # caller with no metadata service configured still gets the
+        # un-hydrated view rather than a hard dependency.
+        self.metadata_service = metadata_service
         self.console = Console()
 
     def run_review_session(self) -> None:
@@ -47,6 +58,7 @@ class SnowballReviewTUI:
 
         for index, candidate in enumerate(candidates):
             self.console.clear()
+            self._maybe_hydrate(candidate)
             self._display_candidate(candidate, index + 1, total)
 
             action = self._get_user_action()
@@ -70,6 +82,41 @@ class SnowballReviewTUI:
 
         self.console.print("[bold cyan]Session Complete.[/bold cyan]")
 
+    def _needs_hydration(self, candidate: Dict[str, Any]) -> bool:
+        """A backward/CrossRef candidate stub has no abstract and a title
+        that's just "Reference from {parent-doi}" (Issue #210) - real
+        candidates have a genuine title and, usually, an abstract."""
+        title = candidate.get("title") or ""
+        return not candidate.get("abstract") or not title or title.startswith("Reference from ")
+
+    def _maybe_hydrate(self, candidate: Dict[str, Any]) -> None:
+        if not self.metadata_service or not self._needs_hydration(candidate):
+            return
+
+        doi = candidate["doi"]
+        with self.console.status("[dim]Fetching metadata for review...[/dim]"):
+            enriched = self.metadata_service.get_enriched_metadata(doi)
+
+        if not enriched:
+            return
+
+        if enriched.title:
+            candidate["title"] = enriched.title
+        if enriched.abstract:
+            candidate["abstract"] = enriched.abstract
+        candidate["authors"] = enriched.authors
+        if enriched.year:
+            candidate["year"] = enriched.year
+
+        # Persist title/abstract back onto the graph node so re-reviewing
+        # (or a later import) doesn't need to re-fetch the same metadata.
+        node = self.graph_service.graph.nodes.get(doi)
+        if node is not None:
+            if enriched.title:
+                node["title"] = enriched.title
+            if enriched.abstract:
+                node["abstract"] = enriched.abstract
+
     def _display_candidate(self, candidate: Dict[str, Any], current: int, total: int) -> None:
         layout = Layout()
         layout.split_column(
@@ -86,7 +133,7 @@ class SnowballReviewTUI:
         layout["body"].update(
             create_abstract_panel(
                 candidate.get("title"),
-                [],  # Authors not always present in stub
+                candidate.get("authors", []),
                 candidate.get("year"),  # Might be None
                 candidate.get("abstract"),
             )
