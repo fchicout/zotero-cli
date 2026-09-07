@@ -387,8 +387,10 @@ class GatewayFactory:
         return ResolverFactory.get_generic_resolvers()
 
     @staticmethod
-    def get_snowball_graph_service() -> "SnowballGraphService":
-        return ResolverFactory.get_snowball_graph_service()
+    def get_snowball_graph_service(
+        config: Optional[ZoteroConfig] = None,
+    ) -> "SnowballGraphService":
+        return ResolverFactory.get_snowball_graph_service(config)
 
     @staticmethod
     def get_snowball_worker(config: Optional[ZoteroConfig] = None) -> "SnowballDiscoveryWorker":

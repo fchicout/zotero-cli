@@ -1,5 +1,5 @@
 import argparse
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -13,6 +13,12 @@ def mock_deps():
         patch("zotero_cli.infra.factory.GatewayFactory.get_snowball_ingestion_service") as ms,
         patch("zotero_cli.infra.factory.GatewayFactory.get_snowball_graph_service") as mg,
         patch("zotero_cli.infra.factory.GatewayFactory.get_job_queue_service") as mj,
+        # Issue #228: execute() now resolves a config once and threads it
+        # through every call site above, so get_config must be mocked too
+        # or these tests would hit the real singleton/local config file.
+        patch(
+            "zotero_cli.cli.commands.slr.snowball_cmd.get_config", return_value=MagicMock()
+        ),
     ):
         yield mw.return_value, ms.return_value, mg.return_value, mj.return_value
 

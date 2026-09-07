@@ -194,13 +194,18 @@ def test_get_screening_service(mock_config):
 def test_get_snowball_worker(mock_config):
     with (
         patch("zotero_cli.infra.resolver_factory.ResolverFactory.get_network_gateway"),
-        patch("zotero_cli.infra.resolver_factory.ResolverFactory.get_snowball_graph_service"),
+        patch(
+            "zotero_cli.infra.resolver_factory.ResolverFactory.get_snowball_graph_service"
+        ) as mock_graph,
         patch("zotero_cli.infra.service_factory.ServiceFactory.get_job_queue_service"),
     ):
         service = GatewayFactory.get_snowball_worker(mock_config)
         from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
 
         assert isinstance(service, SnowballDiscoveryWorker)
+        # Issue #228: the worker's graph service must be scoped to the
+        # same config it resolved for itself, not the unscoped default.
+        mock_graph.assert_called_once_with(mock_config)
 
 
 def test_get_metadata_aggregator(mock_config):
@@ -317,7 +322,9 @@ def test_get_snowball_graph_service():
 
 def test_get_snowball_ingestion_service(mock_config):
     with (
-        patch("zotero_cli.infra.resolver_factory.ResolverFactory.get_snowball_graph_service"),
+        patch(
+            "zotero_cli.infra.resolver_factory.ResolverFactory.get_snowball_graph_service"
+        ) as mock_graph,
         patch("zotero_cli.infra.metadata_client_factory.MetadataClientFactory.get_metadata_aggregator"),
         patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_item_repository"),
         patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_collection_repository"),
@@ -328,6 +335,9 @@ def test_get_snowball_ingestion_service(mock_config):
         assert isinstance(
             GatewayFactory.get_snowball_ingestion_service(mock_config), SnowballIngestionService
         )
+        # Issue #228: the ingestion service's graph service must be scoped
+        # to the same config, not the unscoped default.
+        mock_graph.assert_called_once_with(mock_config)
 
 
 def test_get_vector_repository(mock_config):
