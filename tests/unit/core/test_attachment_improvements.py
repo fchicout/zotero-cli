@@ -34,7 +34,7 @@ def test_looks_like_pdf(service):
     assert service._looks_like_pdf("") is False
 
 
-@patch("zotero_cli.core.services.attachment_service.requests.get")
+@patch("zotero_cli.core.services.attachment_service.safe_get")
 @patch("zotero_cli.core.services.attachment_service.tempfile.mkstemp")
 @patch("zotero_cli.core.services.attachment_service.os.fdopen")
 @patch("zotero_cli.core.services.attachment_service.os.remove")
@@ -58,7 +58,7 @@ def test_attach_pdf_from_existing_url(
     mock_fdopen.return_value.__enter__.return_value = MagicMock()
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.iter_content.return_value = [b"pdf"]
+    mock_response.iter_content.return_value = [b"%PDF-1.4 pdf"]
     mock_get.return_value = mock_response
 
     mock_gateway.upload_attachment.return_value = True
@@ -70,7 +70,7 @@ def test_attach_pdf_from_existing_url(
     mock_gateway.upload_attachment.assert_called_with("K1", "/tmp/temp.pdf")
 
 
-@patch("zotero_cli.core.services.attachment_service.requests.get")
+@patch("zotero_cli.core.services.attachment_service.safe_get")
 @patch("zotero_cli.core.services.attachment_service.tempfile.mkstemp")
 @patch("zotero_cli.core.services.attachment_service.os.fdopen")
 @patch("zotero_cli.core.services.attachment_service.os.remove")
@@ -101,7 +101,7 @@ def test_attach_pdf_fallback_to_generic_url(
     mock_fdopen.return_value.__enter__.return_value = MagicMock()
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.iter_content.return_value = [b"pdf"]
+    mock_response.iter_content.return_value = [b"%PDF-1.4 pdf"]
     mock_get.return_value = mock_response
 
     mock_gateway.upload_attachment.return_value = True

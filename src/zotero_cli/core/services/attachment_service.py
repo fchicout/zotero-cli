@@ -4,8 +4,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import requests
-
 from zotero_cli.core.interfaces import (
     AttachmentRepository,
     CollectionRepository,
@@ -17,6 +15,7 @@ from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorServi
 from zotero_cli.core.services.pdf_finder_service import PDFFinderService
 from zotero_cli.core.services.purge_service import PurgeService
 from zotero_cli.core.utils.slugify import slugify
+from zotero_cli.core.utils.url_safety import UnsafeURLError, safe_get
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -168,19 +167,44 @@ class AttachmentService(FullTextProvider):
         Downloads a file to a temporary location.
         Note: The caller is responsible for moving or deleting the file
         if it's not within a managed TemporaryDirectory.
+
+        `url` may originate from Zotero item data (attacker-settable by
+        any collaborator with write access to a shared library) - fetched
+        via safe_get, which validates the URL and every redirect hop
+        against a public-address allowlist before fetching (Issue #235),
+        and the result is verified to actually be a PDF before being
+        handed to a caller that uploads it back into the library.
         """
         try:
-            response = requests.get(url, stream=True, timeout=30)
+            response = safe_get(url, stream=True, timeout=30)
             response.raise_for_status()
 
             # Create temp file in a way that allows us to return the path
             # but we should ideally use a managed dir if possible.
             # For this internal helper, mkstemp is okay if callers cleanup.
             fd, path = tempfile.mkstemp(suffix=".pdf")
+            is_pdf = True
+            first_chunk = True
             with os.fdopen(fd, "wb") as tmp:
                 for chunk in response.iter_content(chunk_size=8192):
+                    if first_chunk:
+                        # Verify the %PDF magic bytes before ever handing
+                        # this back to a caller that uploads it into the
+                        # library (Issue #235) - checked on the first
+                        # chunk rather than re-opening the file afterward.
+                        is_pdf = chunk.startswith(b"%PDF")
+                        first_chunk = False
                     tmp.write(chunk)
+
+            if not is_pdf:
+                print(f"Download error: {url!r} did not return a valid PDF signature.")
+                os.remove(path)
+                return None
+
             return path
+        except UnsafeURLError as e:
+            print(f"Download error: refusing unsafe URL - {e}")
+            return None
         except Exception as e:
             print(f"Download error: {e}")
             return None

@@ -33,19 +33,23 @@ class OpenAlexResolver(PDFResolver):
             pdf_url = paper.pdf_url
             logger.info(f"OpenAlex: Found OA PDF for {item.doi}: {pdf_url}")
 
-            # Download PDF - OpenAlexAPIClient._get is synchronous but we are in async resolve.
-            # However, MetadataProvider interface is currently synchronous.
-            # We'll use requests directly for the download to keep it simple, or use client._get
-            # but resolve is async so we might want to keep the async nature if possible.
-            # But the existing code used await self.gateway.get(pdf_url).
-            # Let's keep it consistent with other resolvers if they use gateway.
-
+            # pdf_url originates from a third-party API response (untrusted
+            # input) - fetched via safe_async_get, which validates the URL
+            # and every redirect hop against a public-address allowlist
+            # before fetching (Issue #235), instead of trusting httpx's
+            # built-in follow_redirects.
             import httpx
 
-            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-                response = await client.get(pdf_url)
+            from zotero_cli.core.utils.url_safety import safe_async_get
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await safe_async_get(client, pdf_url)
                 response.raise_for_status()
                 response_content = response.content
+
+            if not response_content.startswith(b"%PDF"):
+                logger.warning(f"OpenAlex: URL {pdf_url} did not return a valid PDF signature.")
+                return None
 
             # Save to temp file
             temp_dir = Path(tempfile.gettempdir())

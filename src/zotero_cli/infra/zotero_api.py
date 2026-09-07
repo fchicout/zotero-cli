@@ -7,6 +7,7 @@ import requests
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import KeyIdentity, ResearchPaper, ZoteroQuery
 from zotero_cli.core.utils.normalization import normalize_doi
+from zotero_cli.core.utils.url_safety import UnsafeURLError, safe_get
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.http_client import ZoteroHttpClient
 
@@ -340,15 +341,39 @@ class ZoteroAPIClient(ZoteroGateway):
                     headers = {
                         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0"
                     }
-                    resp = requests.get(paper.pdf_url, stream=True, timeout=30, headers=headers)
+                    # paper.pdf_url originates from a third-party metadata
+                    # provider (untrusted input) - fetched via safe_get,
+                    # which validates the URL and every redirect hop
+                    # against a public-address allowlist before fetching
+                    # (Issue #235), instead of trusting requests' default
+                    # redirect-following.
+                    resp = safe_get(paper.pdf_url, stream=True, timeout=30, headers=headers)
 
                     if resp.status_code == 200:
+                        is_pdf = True
+                        first_chunk = True
                         with open(dest, "wb") as f:
                             for chunk in resp.iter_content(8192):
+                                if first_chunk:
+                                    # Verify the %PDF magic bytes before
+                                    # ever uploading this into the library
+                                    # (Issue #235).
+                                    is_pdf = chunk.startswith(b"%PDF")
+                                    first_chunk = False
                                 f.write(chunk)
 
-                        self.upload_attachment(item_key, str(dest))
+                        if is_pdf:
+                            self.upload_attachment(item_key, str(dest))
+                        else:
+                            print(
+                                f"Warning: {paper.pdf_url!r} did not return a valid "
+                                "PDF signature; skipping upload."
+                            )
                         dest.unlink(missing_ok=True)
+                except UnsafeURLError as attach_err:
+                    print(
+                        f"Warning: refusing unsafe PDF URL for thesis {item_key}: {attach_err}"
+                    )
                 except Exception as attach_err:
                     print(
                         f"Warning: Failed to download and attach PDF for thesis {item_key}: {attach_err}"
