@@ -7,7 +7,7 @@ set a title/field beginning with "=", "+", "-", or "@" (e.g.
 Sheets can evaluate as a formula when a reviewer opens the exported file.
 """
 
-from typing import Any, Dict, Iterable, List, Sequence, TypeVar, Union, overload
+from typing import Any, Dict, Iterable, List, Sequence, TypeVar, overload
 
 _DANGEROUS_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
@@ -29,7 +29,7 @@ def sanitize_csv_cell(value: Any) -> Any:
 def sanitize_csv_row(row: Dict[str, Any]) -> Dict[str, Any]: ...
 @overload
 def sanitize_csv_row(row: Sequence[Any]) -> List[Any]: ...
-def sanitize_csv_row(row: Union[Dict[str, Any], Sequence[Any]]) -> Union[Dict[str, Any], List[Any]]:
+def sanitize_csv_row(row: Dict[str, Any] | Sequence[Any]) -> Dict[str, Any] | List[Any]:
     """Sanitizes every cell in one row, preserving its shape - a dict for
     csv.DictWriter, a list/tuple for csv.writer."""
     if isinstance(row, dict):
