@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
 from zotero_cli.core.services.resolvers.openalex import OpenAlexResolver
@@ -57,16 +58,28 @@ async def test_openalex_resolver_success(zotero_item):
     )
     mock_client.get_paper_metadata.return_value = paper
 
-    mock_pdf_response = MagicMock()
-    mock_pdf_response.content = b"%PDF-1.4 test alex"
+    # Issue #239: safe_async_get now fetches via
+    # `client.send(request, stream=True)` and reads the body itself (to
+    # enforce a size cap), so the mocked client needs a working
+    # `build_request`/`send` pair instead of a plain `.get`.
+    async def _aiter_bytes():
+        yield b"%PDF-1.4 test alex"
+
+    mock_pdf_response = MagicMock(spec=httpx.Response)
     mock_pdf_response.status_code = 200
     mock_pdf_response.is_redirect = False
-    mock_pdf_response.raise_for_status = MagicMock()
+    mock_pdf_response.headers = {}
+    mock_pdf_response.aiter_bytes = MagicMock(return_value=_aiter_bytes())
+    mock_pdf_response.aclose = AsyncMock()
+    mock_pdf_response.request = httpx.Request("GET", "http://example.com/paper.pdf")
 
     mock_client_instance = MagicMock()
     mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
     mock_client_instance.__aexit__ = AsyncMock()
-    mock_client_instance.get = AsyncMock(return_value=mock_pdf_response)
+    mock_client_instance.build_request = MagicMock(
+        return_value=httpx.Request("GET", "http://example.com/paper.pdf")
+    )
+    mock_client_instance.send = AsyncMock(return_value=mock_pdf_response)
 
     # Issue #235: OpenAlexResolver's SSRF guard is exercised in
     # test_network_gateway_ssrf.py / test_resolvers_ssrf.py - this test is

@@ -11,7 +11,12 @@ from tenacity import (
 
 from zotero_cli.core.exceptions import RetryableError
 from zotero_cli.core.services.identity_manager import IdentityManager
-from zotero_cli.core.utils.url_safety import MAX_REDIRECTS, UnsafeURLError, validate_public_url
+from zotero_cli.core.utils.url_safety import (
+    MAX_REDIRECTS,
+    UnsafeURLError,
+    read_capped_async,
+    validate_public_url,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,14 +49,20 @@ class NetworkGateway:
         current_url = url
         for _ in range(MAX_REDIRECTS + 1):
             validate_public_url(current_url)
-            response = await self._client.request(method, current_url, headers=headers, **kwargs)
+            request = self._client.build_request(method, current_url, headers=headers, **kwargs)
+            response = await self._client.send(request, stream=True)
             if response.is_redirect:
                 location = response.headers.get("location")
                 if not location:
-                    return response
+                    return await read_capped_async(response)
+                await response.aclose()
                 current_url = str(httpx.URL(current_url).join(location))
                 continue
-            return response
+            # Issue #239: enforce a hard response-size cap here, streamed
+            # rather than trusting the client to buffer an unbounded body
+            # into memory - every URL this gateway fetches may originate
+            # from Zotero item data or a third-party API response.
+            return await read_capped_async(response)
         raise UnsafeURLError(f"Too many redirects while fetching {url!r}")
 
     async def get(
