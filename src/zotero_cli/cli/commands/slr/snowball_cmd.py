@@ -160,14 +160,18 @@ class SnowballCommand:
     @staticmethod
     def _handle_export(args: argparse.Namespace) -> None:
         graph_service = GatewayFactory.get_snowball_graph_service()
-        if args.format == "mermaid":
+        if args.format == "json":
+            output = graph_service.to_json()
+        else:
             output = graph_service.to_mermaid()
-            if args.output:
-                with open(args.output, "w") as f:
-                    f.write(output)
-                console.print(f"[green]Graph exported to {args.output}[/green]")
-            else:
-                console.print(output)
-        elif args.format == "json":
-            # Logic for JSON export
-            pass
+
+        if args.output:
+            with open(args.output, "w") as f:
+                f.write(output)
+            console.print(f"[green]Graph exported to {args.output}[/green]")
+        else:
+            # markup=False: JSON/Mermaid node labels routinely contain
+            # literal "[...]" (paper titles, mermaid's own node syntax),
+            # which Rich would otherwise try to parse as markup tags and
+            # silently mangle.
+            console.print(output, markup=False)

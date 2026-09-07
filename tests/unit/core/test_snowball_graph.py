@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -131,3 +132,29 @@ def test_get_accepted_dois(graph_service):
     assert graph_service.get_accepted_dois(generation=1) == [gen1_doi]
     assert graph_service.get_accepted_dois(generation=2) == [gen2_doi]
     assert graph_service.get_accepted_dois(generation=99) == []
+
+
+def test_to_json(graph_service):
+    """Issue #208: `slr snowball export --format json` had no
+    implementation at all - to_json() gives it something real to export,
+    the same node-link shape save_graph() already persists to disk."""
+    graph_service.add_candidate({"doi": "10.1001/a", "title": "Paper A"}, generation=0)
+    graph_service.add_candidate(
+        {"doi": "10.1001/b", "title": "Paper B"},
+        parent_doi="10.1001/a",
+        direction="forward",
+        generation=1,
+    )
+
+    output = graph_service.to_json()
+    data = json.loads(output)
+
+    node_ids = {node["id"] for node in data["nodes"]}
+    assert node_ids == {"10.1001/a", "10.1001/b"}
+    assert len(data["edges"]) == 1
+
+
+def test_to_json_empty_graph(graph_service):
+    data = json.loads(graph_service.to_json())
+    assert data["nodes"] == []
+    assert data["edges"] == []
