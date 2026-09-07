@@ -6,7 +6,7 @@ from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.core.config import ConfigLoader, ZoteroConfig
+from zotero_cli.core.config import ConfigLoader, ZoteroConfig, secure_config_open
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
@@ -138,8 +138,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         # 5. Save
         try:
-            config_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(config_path, "w", encoding="utf-8") as f:
+            # config.toml holds live API keys - written with 0600
+            # permissions from creation, not the process's default umask
+            # (Issue #236).
+            with secure_config_open(config_path) as f:
                 f.write("\n".join(toml_content) + "\n")
 
             console.print(f"\n[green]✔ Configuration saved to:[/] {config_path}")

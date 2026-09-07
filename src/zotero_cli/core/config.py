@@ -13,6 +13,27 @@ else:
     import tomli as tomllib
 
 
+def secure_config_open(path: Path) -> Any:
+    """
+    Opens `path` for writing with 0600 permissions set at creation time,
+    and creates its parent directory with 0700 (Issue #236) - config.toml
+    holds live API keys/tokens (Zotero, OpenAI, Gemini, Hugging Face,
+    Semantic Scholar, CORE, NCBI), and a plain `open(path, "w")` inherits
+    the process's default umask, typically leaving the file world-
+    readable (0644) on any shared multi-user machine. `os.open` with an
+    explicit mode set at creation avoids the race window a chmod-after
+    would leave between file creation and the permission fix.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    # The mode passed to os.open only applies when O_CREAT actually
+    # creates a new file - it's silently ignored for a pre-existing file
+    # (e.g. one written by a version of zotero-cli before this fix), so
+    # chmod explicitly too rather than relying on that alone.
+    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    os.chmod(fd, 0o600)
+    return os.fdopen(fd, "w", encoding="utf-8")
+
+
 @dataclass(frozen=True)
 class ZoteroConfig:
     api_key: Optional[str] = None
@@ -210,9 +231,7 @@ class ConfigManager:
         for key, value in updates.items():
             data["zotero"][key] = value
 
-        # Ensure directory exists
-        self.config_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.config_path, "w", encoding="utf-8") as f:
+        with secure_config_open(self.config_path) as f:
             toml.dump(data, f)
 
         # Invalidate global cache
