@@ -41,10 +41,10 @@ class ERICAPIClient(BaseAPIClient, MetadataProvider):
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 return None
-            print(f"Error fetching ERIC metadata for {identifier}: {e}")
+            logger.exception(f"ERICAPIClient: Error fetching metadata for {identifier}")
             return None
-        except Exception as e:
-            print(f"Error parsing ERIC response for {identifier}: {e}")
+        except Exception:
+            logger.exception(f"ERICAPIClient: Error parsing response for {identifier}")
             return None
 
     def _map_to_research_paper(self, item: Dict[str, Any]) -> ResearchPaper:

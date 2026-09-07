@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from typing import Any, Dict, Iterator, Optional
@@ -11,6 +12,8 @@ from zotero_cli.core.interfaces import (
 )
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
+
+logger = logging.getLogger(__name__)
 
 # Semantic Scholar's max results per page for /paper/search
 _MAX_PER_PAGE = 100
@@ -56,10 +59,10 @@ class SemanticScholarAPIClient(
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 return None
-            print(f"Error fetching metadata from Semantic Scholar for {identifier}: {e}")
+            logger.exception(f"SemanticScholarAPIClient: Error fetching metadata for {identifier}")
             return None
-        except Exception as e:
-            print(f"Error fetching metadata from Semantic Scholar for {identifier}: {e}")
+        except Exception:
+            logger.exception(f"SemanticScholarAPIClient: Error fetching metadata for {identifier}")
             return None
 
     def search(
@@ -97,8 +100,8 @@ class SemanticScholarAPIClient(
                     },
                 )
                 data: Dict[str, Any] = response.json()
-            except Exception as e:
-                print(f"Error searching Semantic Scholar for '{query}': {e}")
+            except Exception:
+                logger.exception(f"SemanticScholarAPIClient: Error searching for {query!r}")
                 return
 
             total = data.get("total", 0)
@@ -128,8 +131,8 @@ class SemanticScholarAPIClient(
                 params={"query": query, "limit": 1, "fields": "title"},
             )
             data: Dict[str, Any] = response.json()
-        except Exception as e:
-            print(f"Error counting Semantic Scholar results for '{query}': {e}")
+        except Exception:
+            logger.exception(f"SemanticScholarAPIClient: Error counting results for {query!r}")
             return 0
         return int(data.get("total", 0))
 
