@@ -1,3 +1,4 @@
+import stat
 import sys
 from unittest.mock import patch
 
@@ -39,6 +40,9 @@ def test_init_command_basic(tmp_path, capsys):
     assert 'target_group = "my-group"' in content
     assert 'semantic_scholar_api_key = "ss_key"' in content
     assert 'unpaywall_email = "up@email.com"' in content
+
+    # Issue #236: config.toml holds live API keys - must not be world-readable.
+    assert stat.S_IMODE(config_file.stat().st_mode) == 0o600
 
 
 def test_init_command_resolves_identity_and_prefills_user_library_id(tmp_path, capsys):

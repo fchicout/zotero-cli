@@ -113,10 +113,17 @@ def test_system_backup(system_cmd, capsys):
 
 
 def test_system_switch(system_cmd, capsys):
+    # `_handle_switch` needs config.user_id to fetch the account's groups.
+    # Explicitly mocked rather than relying on whatever the process-global
+    # config singleton happens to already be cached as - that's ambient,
+    # test-order-dependent state, not something this test should depend on.
+    mock_config = MagicMock()
+    mock_config.user_id = "999"
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_factory,
         patch("rich.prompt.Confirm.ask", return_value=True),
         patch("zotero_cli.core.config.ConfigManager.save_group_context") as mock_save,
+        patch("zotero_cli.core.config.get_config", return_value=mock_config),
     ):
         mock_gw = mock_gw_factory.return_value
         mock_gw.get_user_groups.return_value = [{"id": 123, "data": {"name": "Test Group"}}]
@@ -333,7 +340,12 @@ def test_system_jobs_run(system_cmd, capsys):
 
 
 def test_system_switch_ambiguous(system_cmd, capsys):
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_factory:
+    mock_config = MagicMock()
+    mock_config.user_id = "999"
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_gw_factory,
+        patch("zotero_cli.core.config.get_config", return_value=mock_config),
+    ):
         mock_gw = mock_gw_factory.return_value
         mock_gw.get_user_groups.return_value = [
             {"id": 1, "data": {"name": "Lab A"}},
