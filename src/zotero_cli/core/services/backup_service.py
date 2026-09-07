@@ -139,8 +139,11 @@ class BackupService:
 
             filename = data.get("filename") or data.get("title")
             if filename:
+                safe_filename = os.path.basename(str(filename).replace("\\", "/"))
+                if not safe_filename or safe_filename in (".", ".."):
+                    safe_filename = item.key
                 p_key = parent_key or data.get("parentItem") or "orphan"
-                storage_path = f"attachments/{p_key}/{filename}"
+                storage_path = f"attachments/{p_key}/{safe_filename}"
                 try:
                     with tempfile.NamedTemporaryFile(delete=False) as tf:
                         temp_path = tf.name
