@@ -11,8 +11,9 @@ from zotero_cli.cli.tui.components import (
     create_footer_panel,
     create_header_panel,
 )
-from zotero_cli.core.interfaces import SnowballGraphService
+from zotero_cli.core.interfaces import SnowballGraphService, ZoteroGateway
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+from zotero_cli.core.utils.normalization import normalize_doi
 
 
 class SnowballReviewTUI:
@@ -25,6 +26,7 @@ class SnowballReviewTUI:
         self,
         graph_service: SnowballGraphService,
         metadata_service: Optional[MetadataAggregatorService] = None,
+        gateway: Optional[ZoteroGateway] = None,
     ):
         self.graph_service = graph_service
         # Backfills title/abstract/authors for candidates the graph only
@@ -33,6 +35,10 @@ class SnowballReviewTUI:
         # caller with no metadata service configured still gets the
         # un-hydrated view rather than a hard dependency.
         self.metadata_service = metadata_service
+        # Flags candidates already present in the library (Issue #224) -
+        # optional so a caller with no gateway configured still gets a
+        # working review session, just without that annotation.
+        self.gateway = gateway
         self.console = Console()
 
     def run_review_session(self) -> None:
@@ -49,8 +55,21 @@ class SnowballReviewTUI:
             )
             return
 
+        # Flag candidates already present in the library (Issue #224) -
+        # one batched scan up front, not a per-candidate re-scan.
+        library_doi_index = self._build_library_doi_index()
+        for candidate in candidates:
+            match_key = library_doi_index.get(normalize_doi(candidate.get("doi", "")))
+            candidate["already_in_library"] = match_key is not None
+            candidate["library_key"] = match_key
+
         total = len(candidates)
+        already_count = sum(1 for c in candidates if c["already_in_library"])
         self.console.print(f"[bold green]Found {total} candidates to review.[/bold green]")
+        if already_count:
+            self.console.print(
+                f"[yellow]{already_count} already appear to be in your library.[/yellow]"
+            )
         try:
             self.console.input("[bold]Press Enter to start...[/bold]")
         except (EOFError, StopIteration):
@@ -84,6 +103,26 @@ class SnowballReviewTUI:
             self.console.print(f"[bold green]Marked as {status}![/bold green]")
 
         self.console.print("[bold cyan]Session Complete.[/bold cyan]")
+
+    def _build_library_doi_index(self) -> Dict[str, str]:
+        """
+        Builds a normalized-DOI -> Zotero key index in one pass over the
+        library (Issue #224), so `run_review_session` can flag candidates
+        already present without a per-candidate rescan. Reuses the same
+        normalize_doi() the #205 duplicate-detection fix established, so a
+        candidate's bare DOI still matches a library item stored in
+        URL-form. Returns an empty index (no flags shown) if no gateway is
+        configured, rather than failing the whole review session.
+        """
+        if not self.gateway:
+            return {}
+
+        index: Dict[str, str] = {}
+        with self.console.status("[dim]Checking library for existing items...[/dim]"):
+            for item in self.gateway.get_all_items():
+                if item.doi:
+                    index[normalize_doi(item.doi)] = item.key
+        return index
 
     def _needs_hydration(self, candidate: Dict[str, Any]) -> bool:
         """A backward/CrossRef candidate stub has no abstract and a title
@@ -151,6 +190,15 @@ class SnowballReviewTUI:
 
         if candidate.get("is_influential"):
             metrics.append("\n🔥 Influential Paper\n", style="bold red")
+
+        if candidate.get("already_in_library"):
+            library_key = candidate.get("library_key")
+            metrics.append(
+                f"\n⚠ Already in library ({library_key})\n"
+                if library_key
+                else "\n⚠ Already in library\n",
+                style="bold yellow",
+            )
 
         # Connections (Seed DOIs)
         doi = candidate["doi"]

@@ -129,6 +129,22 @@ def test_snowball_command_export_json(mock_deps, capsys):
     assert '{"nodes": [], "links": []}' in out
 
 
+def test_snowball_command_review_passes_gateway_for_duplicate_flagging(mock_deps):
+    """Issue #224: the review TUI needs the gateway to flag candidates
+    already in the library - confirm execute() wires it through."""
+    mock_gw, mock_ingest, mock_graph, mock_jq = mock_deps
+
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_metadata_aggregator") as mock_meta,
+        patch("zotero_cli.cli.tui.factory.TUIFactory.get_snowball_tui") as mock_get_tui,
+    ):
+        args = argparse.Namespace(verb="snowball", snow_verb="review", user=False)
+        SnowballCommand.execute(mock_gw, args)
+
+        mock_get_tui.assert_called_once_with(mock_graph, mock_meta.return_value, mock_gw)
+        mock_get_tui.return_value.run_review_session.assert_called_once()
+
+
 def test_snowball_command_status(mock_deps, capsys):
     mock_gw, mock_ingest, mock_graph, mock_jq = mock_deps
     mock_graph.get_stats.return_value = {"total_nodes": 10, "total_edges": 5}
