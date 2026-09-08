@@ -156,7 +156,7 @@ class SqliteZoteroGateway(ZoteroGateway):
         try:
             membership = "IN" if trash_only else "NOT IN"
             query_sql_template = """
-                SELECT i.key, i.version, i.libraryID, it.typeName,
+                SELECT i.itemID, i.key, i.version, i.libraryID, it.typeName,
                        (SELECT k.key FROM items k WHERE k.itemID = COALESCE(
                            (SELECT parentItemID FROM itemAttachments WHERE itemID = i.itemID),
                            (SELECT parentItemID FROM itemNotes WHERE itemID = i.itemID)
@@ -182,51 +182,67 @@ class SqliteZoteroGateway(ZoteroGateway):
             query_sql = query_sql_template.format(
                 filter_sql=filter_sql, membership=membership
             )  # nosec B608
-            cursor = conn.execute(query_sql, params)
-            for row in cursor:
-                creator_cursor = conn.execute(
-                    """
-                    SELECT c.firstName, c.lastName, ct.creatorType
-                    FROM itemCreators ic
-                    JOIN creators c ON ic.creatorID = c.creatorID
-                    JOIN creatorTypes ct ON ic.creatorTypeID = ct.creatorTypeID
-                    WHERE ic.itemID = (SELECT itemID FROM items WHERE key = ?)
-                    ORDER BY ic.orderIndex
-                """,
-                    (row["key"],),
-                )
-                creators = [
+            rows = conn.execute(query_sql, params).fetchall()
+            if not rows:
+                return
+
+            item_ids = [row["itemID"] for row in rows]
+            placeholders = ",".join("?" for _ in item_ids)
+
+            creators_by_item: Dict[int, List[Dict[str, Any]]] = {}
+            creator_cursor = conn.execute(
+                f"""
+                SELECT ic.itemID, c.firstName, c.lastName, ct.creatorType
+                FROM itemCreators ic
+                JOIN creators c ON ic.creatorID = c.creatorID
+                JOIN creatorTypes ct ON ic.creatorTypeID = ct.creatorTypeID
+                WHERE ic.itemID IN ({placeholders})
+                ORDER BY ic.itemID, ic.orderIndex
+            """,  # nosec B608
+                item_ids,
+            )
+            for r in creator_cursor:
+                creators_by_item.setdefault(r["itemID"], []).append(
                     {
                         "creatorType": r["creatorType"],
                         "firstName": r["firstName"],
                         "lastName": r["lastName"],
                     }
-                    for r in creator_cursor
-                ]
-
-                col_cursor = conn.execute(
-                    """
-                    SELECT c.key
-                    FROM collectionItems ci
-                    JOIN collections c ON ci.collectionID = c.collectionID
-                    WHERE ci.itemID = (SELECT itemID FROM items WHERE key = ?)
-                """,
-                    (row["key"],),
                 )
-                collections = [r["key"] for r in col_cursor]
 
-                tag_cursor = conn.execute(
-                    """
-                    SELECT t.name
-                    FROM itemTags it
-                    JOIN tags t ON it.tagID = t.tagID
-                    WHERE it.itemID = (SELECT itemID FROM items WHERE key = ?)
-                """,
-                    (row["key"],),
+            collections_by_item: Dict[int, List[str]] = {}
+            col_cursor = conn.execute(
+                f"""
+                SELECT ci.itemID, c.key
+                FROM collectionItems ci
+                JOIN collections c ON ci.collectionID = c.collectionID
+                WHERE ci.itemID IN ({placeholders})
+            """,  # nosec B608
+                item_ids,
+            )
+            for r in col_cursor:
+                collections_by_item.setdefault(r["itemID"], []).append(r["key"])
+
+            tags_by_item: Dict[int, List[str]] = {}
+            tag_cursor = conn.execute(
+                f"""
+                SELECT it.itemID, t.name
+                FROM itemTags it
+                JOIN tags t ON it.tagID = t.tagID
+                WHERE it.itemID IN ({placeholders})
+            """,  # nosec B608
+                item_ids,
+            )
+            for r in tag_cursor:
+                tags_by_item.setdefault(r["itemID"], []).append(r["name"])
+
+            for row in rows:
+                yield self._map_row_to_item(
+                    row,
+                    creators_by_item.get(row["itemID"], []),
+                    collections_by_item.get(row["itemID"], []),
+                    tags_by_item.get(row["itemID"], []),
                 )
-                tags = [r["name"] for r in tag_cursor]
-
-                yield self._map_row_to_item(row, creators, collections, tags)
         finally:
             conn.close()
 
@@ -525,6 +541,10 @@ class SqliteJobRepository(JobRepository):
                 }
                 if "library_id" not in existing_columns:
                     conn.execute("ALTER TABLE jobs ADD COLUMN library_id TEXT")
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_jobs_task_status "
+                    "ON jobs (task_type, status)"
+                )
         finally:
             conn.close()
 
