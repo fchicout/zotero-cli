@@ -1,9 +1,9 @@
+import dataclasses
 from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
 
-from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.services.storage_service import StorageService
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -14,15 +14,15 @@ def mock_gateway():
 
 
 @pytest.fixture
-def storage_service(tmp_path, mock_gateway):
-    config = ZoteroConfig(
-        api_key="key", library_id="123", storage_path=str(tmp_path / "zotero_storage")
+def storage_service(tmp_path, mock_gateway, mock_config):
+    config = dataclasses.replace(
+        mock_config, storage_path=str(tmp_path / "zotero_storage"), database_path=None
     )
     return StorageService(config, mock_gateway)
 
 
-def test_checkout_items_no_path(mock_gateway):
-    config = ZoteroConfig(api_key="key", library_id="123", storage_path=None)
+def test_checkout_items_no_path(mock_gateway, mock_config):
+    config = dataclasses.replace(mock_config, storage_path=None, database_path=None)
     service = StorageService(config, mock_gateway)
     assert service.checkout_items() == 0
 

@@ -1,15 +1,15 @@
+import dataclasses
 from unittest.mock import MagicMock
 
 import pytest
 
-from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.repository_factory import RepositoryFactory
 from zotero_cli.infra.service_factory import ServiceFactory
 
 
 @pytest.mark.unit
-def test_rag_full_flow(tmp_path, monkeypatch):
+def test_rag_full_flow(tmp_path, monkeypatch, mock_config):
     """
     Verifies the complete RAG flow: Ingest -> Query -> Context.
     Uses MockEmbeddingProvider and temp SQLite database.
@@ -19,9 +19,11 @@ def test_rag_full_flow(tmp_path, monkeypatch):
     config_dir.mkdir()
     config_file = config_dir / "config.toml"
 
-    mock_config = ZoteroConfig(
+    mock_config = dataclasses.replace(
+        mock_config,
         api_key="fake_api_key",
         library_id="fake_lib_id",
+        database_path=None,
         openai_api_key=None,  # This ensures MockEmbeddingProvider is used
     )
 
@@ -73,7 +75,7 @@ def test_rag_full_flow(tmp_path, monkeypatch):
 
 
 @pytest.mark.unit
-def test_rag_persistence(tmp_path, monkeypatch):
+def test_rag_persistence(tmp_path, monkeypatch, mock_config):
     """
     Verifies that chunks are persisted in the SQLite database across service instances.
     """
@@ -81,7 +83,9 @@ def test_rag_persistence(tmp_path, monkeypatch):
     config_dir.mkdir()
     config_file = config_dir / "config.toml"
 
-    mock_config = ZoteroConfig(api_key="f", library_id="f")
+    mock_config = dataclasses.replace(
+        mock_config, api_key="f", library_id="f", database_path=None
+    )
     monkeypatch.setattr("zotero_cli.core.config.get_config", lambda: mock_config)
     monkeypatch.setattr("zotero_cli.core.config.get_config_path", lambda: config_file)
 
