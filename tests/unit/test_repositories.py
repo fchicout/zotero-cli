@@ -38,6 +38,16 @@ def test_item_repository_create_item(mock_gateway):
     mock_gateway.create_item.assert_called_once_with(mock_paper, "COL1")
 
 
+def test_item_repository_get_all_items(mock_gateway):
+    """Issue #267: exposed so callers holding only the narrower
+    ItemRepository can build a one-time in-memory index instead of
+    resorting to a per-item get_items_by_doi scan in a loop."""
+    repo = ZoteroItemRepository(mock_gateway)
+    mock_gateway.get_all_items.return_value = iter([])
+    list(repo.get_all_items())
+    mock_gateway.get_all_items.assert_called_once()
+
+
 def test_collection_repository_get_items(mock_gateway):
     repo = ZoteroCollectionRepository(mock_gateway)
     repo.get_items_in_collection("COL1", top_only=True)

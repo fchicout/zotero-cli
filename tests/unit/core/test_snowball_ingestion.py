@@ -114,6 +114,7 @@ def test_ingest_candidates_duplicate_skipping(
 
     existing_item = ZoteroItem(key="EXIST", version=1, item_type="journalArticle", doi=doi)
     mock_item_repo.get_items_by_doi.return_value = iter([existing_item])
+    mock_item_repo.get_all_items.return_value = iter([existing_item])
 
     stats = ingestion_service.ingest_candidates("Target Collection")
 
@@ -121,6 +122,41 @@ def test_ingest_candidates_duplicate_skipping(
     assert stats["duplicates"] == 1
     assert graph_service.graph.nodes[doi]["status"] == SnowballIngestionService.STATUS_IMPORTED
     mock_item_repo.create_item.assert_not_called()
+
+
+def test_ingest_candidates_builds_one_doi_index_not_per_candidate_scans(
+    ingestion_service, graph_service, mock_item_repo, mock_collection_repo, mock_metadata_service
+):
+    """Issue #267: ingest_candidates must build one get_all_items() index
+    up front and reuse it for every candidate's duplicate check, not call
+    get_items_by_doi (a full library scan) once per candidate."""
+    from zotero_cli.core.zotero_item import ZoteroItem
+
+    dois = ["10.1001/c1", "10.1001/c2", "10.1001/c3"]
+    for doi in dois:
+        graph_service.add_candidate({"doi": doi, "title": f"Paper {doi}"})
+        graph_service.update_status(doi, SnowballGraphService.STATUS_ACCEPTED)
+
+    mock_collection_repo.get_collection_id_by_name.return_value = "COL123"
+    mock_item_repo.get_all_items.return_value = iter(
+        [ZoteroItem(key="EXIST", version=1, item_type="journalArticle", doi="10.1001/c2")]
+    )
+    mock_metadata_service.get_enriched_metadata.side_effect = lambda doi: ResearchPaper(
+        title=f"Paper {doi}", abstract="", doi=doi
+    )
+    mock_item_repo.create_item.return_value = True
+
+    stats = ingestion_service.ingest_candidates("Target Collection")
+
+    # get_all_items scanned exactly once for the whole batch of 3
+    # candidates, not once per candidate.
+    mock_item_repo.get_all_items.assert_called_once()
+    # get_items_by_doi (the old per-candidate full-scan path) must not be
+    # used at all once an index is available.
+    mock_item_repo.get_items_by_doi.assert_not_called()
+
+    assert stats["duplicates"] == 1
+    assert stats["imported"] == 2
 
 
 def test_ingest_candidates_duplicate_url_form_doi(
@@ -144,6 +180,7 @@ def test_ingest_candidates_duplicate_url_form_doi(
         doi="https://doi.org/10.1109/TSE.2026.3694876",
     )
     mock_item_repo.get_items_by_doi.return_value = iter([existing_item])
+    mock_item_repo.get_all_items.return_value = iter([existing_item])
 
     stats = ingestion_service.ingest_candidates("Target Collection")
 
