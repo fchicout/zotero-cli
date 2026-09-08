@@ -1,3 +1,4 @@
+import dataclasses
 from unittest.mock import patch
 
 import pytest
@@ -5,16 +6,6 @@ import pytest
 from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.exceptions import ConfigurationError
 from zotero_cli.infra.factory import GatewayFactory
-
-
-@pytest.fixture
-def mock_config():
-    return ZoteroConfig(
-        api_key="test_key",
-        library_id="123",
-        library_type="user",
-        database_path="test.sqlite",
-    )
 
 
 def test_get_zotero_gateway_online(mock_config):
@@ -26,12 +17,7 @@ def test_get_zotero_gateway_online(mock_config):
 def test_get_zotero_gateway_offline(mock_config, tmp_path):
     db_file = tmp_path / "zotero.sqlite"
     db_file.write_text("dummy")
-    mock_config = ZoteroConfig(
-        api_key="test_key",
-        library_id="123",
-        library_type="user",
-        database_path=str(db_file),
-    )
+    mock_config = dataclasses.replace(mock_config, database_path=str(db_file))
 
     gateway = GatewayFactory.get_zotero_gateway(mock_config, offline=True)
     from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
@@ -40,12 +26,7 @@ def test_get_zotero_gateway_offline(mock_config, tmp_path):
 
 
 def test_get_zotero_gateway_offline_no_path(mock_config):
-    mock_config = ZoteroConfig(
-        api_key="test_key",
-        library_id="123",
-        library_type="user",
-        database_path=None,
-    )
+    mock_config = dataclasses.replace(mock_config, database_path=None)
     with pytest.raises(ConfigurationError):
         GatewayFactory.get_zotero_gateway(mock_config, offline=True)
 
@@ -78,12 +59,7 @@ def test_get_rag_service(mock_config):
 
 
 def test_get_embedding_provider_gemini(mock_config):
-    mock_config = ZoteroConfig(
-        api_key="key",
-        library_id="123",
-        library_type="user",
-        gemini_api_key="gemini_key",
-    )
+    mock_config = dataclasses.replace(mock_config, gemini_api_key="gemini_key")
     provider = GatewayFactory.get_embedding_provider(mock_config)
     from zotero_cli.core.services.embedding_provider import GeminiEmbeddingProvider
 
@@ -91,12 +67,7 @@ def test_get_embedding_provider_gemini(mock_config):
 
 
 def test_get_embedding_provider_openai(mock_config):
-    mock_config = ZoteroConfig(
-        api_key="key",
-        library_id="123",
-        library_type="user",
-        openai_api_key="openai_key",
-    )
+    mock_config = dataclasses.replace(mock_config, openai_api_key="openai_key")
     provider = GatewayFactory.get_embedding_provider(mock_config)
     from zotero_cli.core.services.embedding_provider import OpenAIEmbeddingProvider
 
