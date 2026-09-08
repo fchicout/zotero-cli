@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 import logging
 import urllib.parse
 from pathlib import Path
