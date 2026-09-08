@@ -8,7 +8,12 @@ from zotero_cli.cli.commands.report_cmd import ReportCommand
 
 @pytest.fixture
 def mock_deps():
+    # ReportCommand.execute() unconditionally constructs a real gateway up
+    # front regardless of report_type - must be mocked too, or this
+    # reaches real config resolution (and a real network call) instead of
+    # stopping at the mocked service calls below.
     with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
         patch("zotero_cli.infra.factory.GatewayFactory.get_integrity_service") as mi,
         patch("zotero_cli.infra.factory.GatewayFactory.get_audit_service") as ma,
     ):

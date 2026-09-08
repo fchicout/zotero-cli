@@ -81,8 +81,17 @@ def test_decide_not_english(mock_clients, env_vars, capsys):
 
 
 def test_report_status_dashboard(mock_clients, env_vars, capsys):
-    # Mock ReportService usage inside SLRReportCommand
-    with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_cls:
+    # Mock ReportService usage inside SLRReportCommand. _handle_status
+    # tries GatewayFactory.get_slr_status_service() first (Issue #275) -
+    # mock it too and return no statuses so execution falls through to
+    # the legacy ReportService path this test actually exercises.
+    with (
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_slr_status_service"
+        ) as mock_get_status_service,
+        patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_cls,
+    ):
+        mock_get_status_service.return_value.get_slr_status.return_value = []
         mock_service = mock_cls.return_value
         report = PrismaReport(
             collection_name="TestCol",

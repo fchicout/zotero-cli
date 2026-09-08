@@ -194,7 +194,8 @@ def test_slr_register_args(slr_cmd):
 
 @patch("builtins.open", side_effect=Exception("Read error"))
 @patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")
-def test_slr_bulk_decide_exception(mock_gateway, mock_open_file, slr_cmd, capsys):
+@patch("zotero_cli.infra.factory.GatewayFactory.get_screening_service")
+def test_slr_bulk_decide_exception(mock_screening, mock_gateway, mock_open_file, slr_cmd, capsys):
     args = argparse.Namespace(verb="screen", file="decisions.csv", user=False)
     slr_cmd.execute(args)
 
