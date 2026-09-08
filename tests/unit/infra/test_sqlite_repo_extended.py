@@ -151,6 +151,27 @@ def test_gateway_read_items_by_doi(sample_zotero_db):
     assert list(gateway.get_items_by_doi("10.9999/missing")) == []
 
 
+def test_gateway_read_items_by_doi_normalizes_case_and_url_prefix(sample_zotero_db):
+    """Issue #252: an exact SQL string match misses a DOI stored/queried
+    with a different case or a https://doi.org/ URL prefix - the same
+    structural gap #205/#221 fixed for the online client by normalizing
+    both sides via normalize_doi() instead of trusting an exact match."""
+    gateway = SqliteZoteroGateway(sample_zotero_db)
+    conn = sqlite3.connect(sample_zotero_db)
+    conn.execute("INSERT INTO items VALUES (1, 'K1', 1, 1, 1)")
+    conn.execute("INSERT INTO itemTypes VALUES (1, 'journalArticle')")
+    conn.execute("INSERT INTO fields VALUES (101, 'DOI')")
+    conn.execute("INSERT INTO itemDataValues VALUES (201, 'HTTPS://DOI.ORG/10.1234/Example')")
+    conn.execute("INSERT INTO itemData VALUES (1, 101, 201)")
+    conn.commit()
+    conn.close()
+
+    items = list(gateway.get_items_by_doi("10.1234/example"))
+
+    assert len(items) == 1
+    assert items[0].key == "K1"
+
+
 def test_job_repo_list_jobs(tmp_path):
     db_path = str(tmp_path / "jobs.sqlite")
     repo = SqliteJobRepository(db_path)
