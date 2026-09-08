@@ -1,4 +1,6 @@
 import dataclasses
+import subprocess
+import sys
 from unittest.mock import patch
 
 import pytest
@@ -378,3 +380,28 @@ def test_get_zotero_gateway_user_id_fallback():
         args, _ = mock_client.call_args
         assert args[1] == "123"
         assert args[2] == "user"
+
+
+def test_metadata_client_factory_import_does_not_pull_in_heavy_client_deps():
+    """Regression test for Issue #273: MetadataClientFactory's
+    per-client imports must stay function-local (mirroring
+    ai_provider_factory.py/resolver_factory.py) rather than module-level, so
+    importing the factory itself doesn't pay bs4/bibtexparser's import cost
+    for commands that never construct a BDTD/BibTeX client. Run in a
+    subprocess -- other tests in this suite likely already import these
+    transitively, which would make an in-process sys.modules check a false
+    negative."""
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import zotero_cli.infra.metadata_client_factory; import sys; "
+            "heavy = {'bs4', 'bibtexparser'}; "
+            "loaded = heavy & set(sys.modules); "
+            "print(','.join(sorted(loaded)))",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert result.stdout.strip() == ""
