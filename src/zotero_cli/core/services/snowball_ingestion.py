@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.models import ResearchPaper
@@ -57,13 +57,20 @@ class SnowballIngestionService:
         candidates = self.get_accepted_candidates()
         stats["scanned"] = len(candidates)
 
+        # Issue #267: _is_duplicate previously did a full get_items_by_doi
+        # scan per candidate - O(candidates x library_size) instead of
+        # O(library_size + candidates). Build one DOI index up front
+        # (mirroring cli/tui/snowball_tui.py's _build_library_doi_index
+        # from #224) and look candidates up against it in O(1) instead.
+        library_doi_index = self._build_library_doi_index()
+
         for cand in candidates:
             doi = cand["doi"]
             logger.info(f"Ingesting candidate: {doi}")
 
             try:
                 # 2. Duplicate Guard
-                if self._is_duplicate(doi):
+                if self._is_duplicate(doi, library_doi_index):
                     logger.info(f"Duplicate found for {doi}. Skipping.")
                     stats["duplicates"] += 1
                     # Even if it's a duplicate in Zotero, we mark it as IMPORTED in our graph
@@ -97,14 +104,35 @@ class SnowballIngestionService:
         self.graph_service.save_graph()
         return stats
 
-    def _is_duplicate(self, doi: str) -> bool:
-        """Checks if the paper already exists in the library."""
-        # Use get_items_by_doi
-        items = list(self.item_repo.get_items_by_doi(doi))
+    def _build_library_doi_index(self) -> Dict[str, bool]:
+        """
+        One batched get_all_items() pass, indexed by normalized DOI
+        (Issue #267) - built once per ingest_candidates() call and reused
+        for every candidate's duplicate check, instead of each candidate
+        re-scanning the whole library via get_items_by_doi.
+        """
+        index: Dict[str, bool] = {}
+        for item in self.item_repo.get_all_items():
+            if item.doi:
+                index[normalize_doi(item.doi)] = True
+        return index
+
+    def _is_duplicate(self, doi: str, library_doi_index: Optional[Dict[str, bool]] = None) -> bool:
+        """Checks if the paper already exists in the library.
+
+        `library_doi_index` (from `_build_library_doi_index`) is an O(1)
+        lookup covering the whole library; when omitted, falls back to the
+        original per-call get_items_by_doi scan for any caller that only
+        needs a single one-off check.
+        """
+        target = normalize_doi(doi)
+        if library_doi_index is not None:
+            return target in library_doi_index
+
         # Filter strictly for exact DOI match (normalized, since providers
         # disagree on bare vs. URL-form DOIs - Issue #205) since search
         # might be fuzzy.
-        target = normalize_doi(doi)
+        items = list(self.item_repo.get_items_by_doi(doi))
         for item in items:
             if item.doi and normalize_doi(item.doi) == target:
                 return True

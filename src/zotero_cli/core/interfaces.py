@@ -59,6 +59,17 @@ class ItemRepository(ABC):
         pass
 
     @abstractmethod
+    def get_all_items(self) -> Iterator[ZoteroItem]:
+        """
+        Iterates every item in the library. Exposed here (mirroring
+        ZoteroGateway's own get_all_items) so a caller holding only the
+        narrower ItemRepository can build a one-time in-memory index
+        (e.g. by DOI) instead of resorting to a per-item get_items_by_doi
+        scan in a loop - Issue #267.
+        """
+        pass
+
+    @abstractmethod
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
         pass
 
