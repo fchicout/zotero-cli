@@ -48,10 +48,10 @@ class InspireHEPAPIClient(BaseAPIClient, MetadataProvider):
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 return None
-            print(f"Error fetching INSPIRE-HEP metadata for {identifier}: {e}")
+            logger.exception(f"InspireHEPAPIClient: Error fetching metadata for {identifier}")
             return None
-        except Exception as e:
-            print(f"Error parsing INSPIRE-HEP response for {identifier}: {e}")
+        except Exception:
+            logger.exception(f"InspireHEPAPIClient: Error parsing response for {identifier}")
             return None
 
     def _map_to_research_paper(self, metadata: Dict[str, Any]) -> ResearchPaper:

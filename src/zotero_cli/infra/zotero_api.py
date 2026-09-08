@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import os
 from typing import Any, Callable, Dict, Iterator, List, Optional, TypeVar, cast
 
@@ -15,6 +16,8 @@ from zotero_cli.core.utils.url_safety import (
 )
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.http_client import ZoteroHttpClient
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -49,8 +52,8 @@ class ZoteroAPIClient(ZoteroGateway):
     def _safe_execute(self, operation: str, default_val: T, func: Callable[[], T]) -> T:
         try:
             return func()
-        except Exception as e:
-            print(f"Error {operation}: {e}")
+        except Exception:
+            logger.exception(f"ZoteroAPIClient: Error {operation}")
             return default_val
 
     def _parse_write_response(self, response: requests.Response) -> Optional[str]:
@@ -59,7 +62,7 @@ class ZoteroAPIClient(ZoteroGateway):
             first_index = next(iter(data["successful"].keys()))
             return str(data["successful"][first_index]["key"])
         if "failed" in data and data["failed"]:
-            print(f"Write failed details: {data['failed']}")
+            logger.warning(f"ZoteroAPIClient: Write failed details: {data['failed']}")
         return None
 
     def _paginate_items(self, endpoint: str, params: Optional[Dict] = None) -> Iterator[ZoteroItem]:
@@ -81,8 +84,8 @@ class ZoteroAPIClient(ZoteroGateway):
                 start += len(items)
                 if len(items) < limit:
                     break
-            except Exception as e:
-                print(f"Error fetching items from {endpoint}: {e}")
+            except Exception:
+                logger.exception(f"ZoteroAPIClient: Error fetching items from {endpoint}")
                 break
 
     # --- Read Operations ---
@@ -231,8 +234,8 @@ class ZoteroAPIClient(ZoteroGateway):
         try:
             response = self.http.post("collections", json_data=[payload])
             return self._parse_write_response(response)
-        except Exception as e:
-            print(f"Error creating collection: {e}")
+        except Exception:
+            logger.exception("ZoteroAPIClient: Error creating collection")
             return None
 
     def delete_collection(self, collection_key: str, version: int) -> bool:
@@ -241,8 +244,8 @@ class ZoteroAPIClient(ZoteroGateway):
             if response.status_code == 412:
                 self.http.delete(f"collections/{collection_key}", version_check=True)
             return True
-        except Exception as e:
-            print(f"Error deleting collection {collection_key}: {e}")
+        except Exception:
+            logger.exception(f"ZoteroAPIClient: Error deleting collection {collection_key}")
             return False
 
     def rename_collection(self, collection_key: str, version: int, name: str) -> bool:
@@ -251,8 +254,8 @@ class ZoteroAPIClient(ZoteroGateway):
                 f"collections/{collection_key}", json_data={"name": name}, version_check=True
             )
             return True
-        except Exception as e:
-            print(f"Error renaming collection {collection_key}: {e}")
+        except Exception:
+            logger.exception(f"ZoteroAPIClient: Error renaming collection {collection_key}")
             return False
 
     def add_tags(self, item_key: str, tags: List[str]) -> bool:
@@ -279,8 +282,8 @@ class ZoteroAPIClient(ZoteroGateway):
             tags_query = " || ".join(chunk)
             try:
                 self.http.delete("tags", params={"tag": tags_query}, version_check=True)
-            except Exception as e:
-                print(f"Error deleting tags chunk: {e}")
+            except Exception:
+                logger.exception("ZoteroAPIClient: Error deleting tags chunk")
                 success = False
         return success
 
@@ -382,29 +385,31 @@ class ZoteroAPIClient(ZoteroGateway):
                         if is_pdf:
                             self.upload_attachment(item_key, str(dest))
                         else:
-                            print(
-                                f"Warning: {paper.pdf_url!r} did not return a valid "
+                            logger.warning(
+                                f"ZoteroAPIClient: {paper.pdf_url!r} did not return a valid "
                                 "PDF signature; skipping upload."
                             )
                         dest.unlink(missing_ok=True)
                 except UnsafeURLError as attach_err:
-                    print(
-                        f"Warning: refusing unsafe PDF URL for thesis {item_key}: {attach_err}"
+                    logger.warning(
+                        f"ZoteroAPIClient: refusing unsafe PDF URL for thesis {item_key}: {attach_err}"
                     )
                 except ResponseTooLargeError as attach_err:
-                    print(f"Warning: PDF response too large for thesis {item_key}: {attach_err}")
+                    logger.warning(
+                        f"ZoteroAPIClient: PDF response too large for thesis {item_key}: {attach_err}"
+                    )
                     if dest is not None:
                         dest.unlink(missing_ok=True)
-                except Exception as attach_err:
-                    print(
-                        f"Warning: Failed to download and attach PDF for thesis {item_key}: {attach_err}"
+                except Exception:
+                    logger.exception(
+                        f"ZoteroAPIClient: Failed to download and attach PDF for thesis {item_key}"
                     )
                     if dest is not None:
                         dest.unlink(missing_ok=True)
 
             return bool(item_key)
-        except Exception as e:
-            print(f"Error creating item: {e}")
+        except Exception:
+            logger.exception("ZoteroAPIClient: Error creating item")
             return False
 
     def _is_thesis_paper(self, paper: ResearchPaper) -> bool:
@@ -483,16 +488,16 @@ class ZoteroAPIClient(ZoteroGateway):
         try:
             response = self.http.post("items", json_data=[item_data])
             return self._parse_write_response(response)
-        except Exception as e:
-            print(f"Error creating generic item: {e}")
+        except Exception:
+            logger.exception("ZoteroAPIClient: Error creating generic item")
             return None
 
     def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool:
         try:
             self.http.patch(f"items/{item_key}", json_data=item_data, version_check=True)
             return True
-        except Exception as e:
-            print(f"Error updating item {item_key}: {e}")
+        except Exception:
+            logger.exception(f"ZoteroAPIClient: Error updating item {item_key}")
             return False
 
     def update_items(self, items_data: List[Dict[str, Any]]) -> bool:
@@ -510,8 +515,8 @@ class ZoteroAPIClient(ZoteroGateway):
                 if response.status_code not in [200, 204, 207]:
                     all_success = False
             return all_success
-        except Exception as e:
-            print(f"Error updating bulk items: {e}")
+        except Exception:
+            logger.exception("ZoteroAPIClient: Error updating bulk items")
             return False
 
     def create_note(self, parent_item_key: str, note_content: str) -> bool:
@@ -519,8 +524,8 @@ class ZoteroAPIClient(ZoteroGateway):
         try:
             response = self.http.post("items", json_data=payload)
             return bool(self._parse_write_response(response))
-        except Exception as e:
-            print(f"Error creating note for {parent_item_key}: {e}")
+        except Exception:
+            logger.exception(f"ZoteroAPIClient: Error creating note for {parent_item_key}")
             return False
 
     def update_note(
@@ -536,8 +541,8 @@ class ZoteroAPIClient(ZoteroGateway):
                 payload["version"] = new_version
                 self.http.patch(f"items/{note_key}", json_data=payload, version_check=False)
             return True
-        except Exception as e:
-            print(f"Error updating note {note_key}: {e}")
+        except Exception:
+            logger.exception(f"ZoteroAPIClient: Error updating note {note_key}")
             return False
 
     def delete_item(self, item_key: str, version: int) -> bool:
@@ -546,8 +551,8 @@ class ZoteroAPIClient(ZoteroGateway):
             if response.status_code == 412:
                 self.http.delete(f"items/{item_key}", version_check=True)
             return True
-        except Exception as e:
-            print(f"Error deleting item {item_key}: {e}")
+        except Exception:
+            logger.exception(f"ZoteroAPIClient: Error deleting item {item_key}")
             return False
 
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
@@ -622,8 +627,8 @@ class ZoteroAPIClient(ZoteroGateway):
 
             return True
 
-        except Exception as e:
-            print(f"Error uploading attachment: {e}")
+        except Exception:
+            logger.exception("ZoteroAPIClient: Error uploading attachment")
             if attachment_key:
                 # Steps 2-4 failed after step 1 already created the
                 # attachment placeholder item - clean it up rather than
@@ -641,8 +646,8 @@ class ZoteroAPIClient(ZoteroGateway):
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
             return True
-        except Exception as e:
-            print(f"Error downloading attachment {item_key}: {e}")
+        except Exception:
+            logger.exception(f"ZoteroAPIClient: Error downloading attachment {item_key}")
             return False
 
     def update_attachment_link(self, item_key: str, version: int, new_path: str) -> bool:

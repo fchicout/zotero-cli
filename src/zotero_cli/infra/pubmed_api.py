@@ -1,3 +1,4 @@
+import logging
 import time
 from typing import Optional
 
@@ -6,6 +7,8 @@ import requests
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
+
+logger = logging.getLogger(__name__)
 
 
 class PubMedAPIClient(BaseAPIClient, MetadataProvider):
@@ -44,10 +47,10 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 return None
-            print(f"Error fetching PubMed metadata for {pmid}: {e}")
+            logger.exception(f"PubMedAPIClient: Error fetching metadata for {pmid}")
             return None
-        except Exception as e:
-            print(f"Error parsing PubMed XML for {pmid}: {e}")
+        except Exception:
+            logger.exception(f"PubMedAPIClient: Error parsing XML for {pmid}")
             return None
 
     def _resolve_pmcid_to_pmid(self, pmcid: str) -> Optional[str]:
@@ -68,8 +71,8 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
             if records and "pmid" in records[0]:
                 return str(records[0]["pmid"])
             return None
-        except Exception as e:
-            print(f"Error converting PMCID {pmcid} to PMID: {e}")
+        except Exception:
+            logger.exception(f"PubMedAPIClient: Error converting PMCID {pmcid} to PMID")
             return None
 
     def _apply_rate_limit(self) -> None:

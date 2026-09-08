@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 import requests
@@ -5,6 +6,8 @@ import requests
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
+
+logger = logging.getLogger(__name__)
 
 
 class CrossRefAPIClient(BaseAPIClient, MetadataProvider):
@@ -24,10 +27,10 @@ class CrossRefAPIClient(BaseAPIClient, MetadataProvider):
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 return None
-            print(f"Error fetching metadata for DOI {identifier} from CrossRef: {e}")
+            logger.exception(f"CrossRefAPIClient: Error fetching metadata for DOI {identifier}")
             return None
-        except Exception as e:
-            print(f"Error fetching metadata for DOI {identifier} from CrossRef: {e}")
+        except Exception:
+            logger.exception(f"CrossRefAPIClient: Error fetching metadata for DOI {identifier}")
             return None
 
     def _map_to_research_paper(self, data: dict) -> ResearchPaper:

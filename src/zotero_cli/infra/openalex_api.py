@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, Iterator, List, Optional
 
 import requests
@@ -5,6 +6,8 @@ import requests
 from zotero_cli.core.interfaces import MetadataProvider, SearchableMetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
+
+logger = logging.getLogger(__name__)
 
 # OpenAlex's max results per page (https://api.openalex.org/works?per-page=N)
 _MAX_PER_PAGE = 200
@@ -45,10 +48,10 @@ class OpenAlexAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvi
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 return None
-            print(f"Error fetching metadata from OpenAlex for {identifier}: {e}")
+            logger.exception(f"OpenAlexAPIClient: Error fetching metadata for {identifier}")
             return None
-        except Exception as e:
-            print(f"Error fetching metadata from OpenAlex for {identifier}: {e}")
+        except Exception:
+            logger.exception(f"OpenAlexAPIClient: Error fetching metadata for {identifier}")
             return None
 
     def search(
@@ -81,8 +84,8 @@ class OpenAlexAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvi
             try:
                 response = self._get(params=params)
                 data = response.json()
-            except Exception as e:
-                print(f"Error searching OpenAlex for '{query}': {e}")
+            except Exception:
+                logger.exception(f"OpenAlexAPIClient: Error searching for {query!r}")
                 return
 
             results = data.get("results", [])
