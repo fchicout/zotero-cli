@@ -7,6 +7,7 @@ from typing import Any, Dict, Iterator, List, Optional
 
 from zotero_cli.core.interfaces import JobRepository, ZoteroGateway
 from zotero_cli.core.models import Job, ResearchPaper, ZoteroQuery
+from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -354,16 +355,21 @@ class SqliteZoteroGateway(ZoteroGateway):
         return self._fetch_items_with_filter(filter_sql, (tag,))
 
     def get_items_by_doi(self, doi: str) -> Iterator[ZoteroItem]:
-        filter_sql = """
-            AND i.itemID IN (
-                SELECT id.itemID
-                FROM itemData id
-                JOIN fields f ON id.fieldID = f.fieldID
-                JOIN itemDataValues dv ON id.valueID = dv.valueID
-                WHERE f.fieldName = 'DOI' AND dv.value = ?
-            )
         """
-        return self._fetch_items_with_filter(filter_sql, (doi,))
+        An exact SQL match on the stored DOI value would miss bare/URL-
+        form/case differences between the queried DOI and how it's
+        actually stored (Issue #252) - the same structural gap #205/#221
+        fixed for the online ZoteroAPIClient by abandoning an indexed
+        search in favor of a client-side scan with normalize_doi() on
+        both sides. Mirror that here rather than trusting an exact SQL
+        string match.
+        """
+        target = normalize_doi(doi)
+        if not target:
+            return
+        for item in self.get_all_items():
+            if item.doi and normalize_doi(item.doi) == target:
+                yield item
 
     def get_all_items(self) -> Iterator[ZoteroItem]:
         return self._fetch_items_with_filter()
