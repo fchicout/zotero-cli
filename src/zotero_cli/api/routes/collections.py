@@ -1,6 +1,7 @@
 from typing import Annotated, Any, Dict, List
 
 from fastapi import APIRouter, Depends
+from starlette.concurrency import run_in_threadpool
 
 from zotero_cli.api.dependencies import get_gateway
 from zotero_cli.core.interfaces import ZoteroGateway
@@ -15,7 +16,10 @@ async def list_collections(
     """
     Get all collections in flat structure (for now).
     """
-    cols = gateway.get_all_collections()
+    # Issue #269: gateway.get_all_collections is synchronous - offload to
+    # the threadpool so it doesn't block the event loop for other
+    # concurrent clients.
+    cols = await run_in_threadpool(gateway.get_all_collections)
     # Serialize
     serialized = []
     for c in cols:
