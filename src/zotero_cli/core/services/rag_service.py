@@ -1,7 +1,7 @@
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Callable, Dict, List, Optional, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
 from zotero_cli.core.interfaces import (
     EmbeddingProvider,
@@ -115,55 +115,64 @@ class MarkdownRecursiveSplitter(TextSplitter):
         return chunks
 
 
-class RAGServiceBase(RAGService):
+class RAGIngestItemSelector:
     """
-    Base implementation of the RAG Service.
-    Handles ingestion of collections into a vector store and semantic querying.
+    Resolves which ZoteroItems a RAGServiceBase.ingest() call should
+    process (Issue #256): the initial-selection mode (5 mutually
+    exclusive ways to pick a starting item set), the screening-tag
+    filter (`approved_only` / `rsl:include`), and the QA-score filter
+    (`min_qa_score`) are three independent concerns that were previously
+    tangled together with the embed/store pipeline inside one ~130-line
+    method - extracted here so each can be tested/changed in isolation.
     """
 
-    def __init__(
-        self,
-        gateway: ZoteroGateway,
-        vector_repo: VectorRepository,
-        embedding_provider: EmbeddingProvider,
-        fulltext_provider: FullTextProvider,
-        orchestrator: SLROrchestrator,
-        citation_service: CitationService,
-        text_splitter: Optional[TextSplitter] = None,
-        llm_provider: Optional[Any] = None,
-    ):
+    def __init__(self, gateway: ZoteroGateway, orchestrator: SLROrchestrator):
         self.gateway = gateway
-        self.vector_repo = vector_repo
-        self.embedding_provider = embedding_provider
-        self.fulltext_provider = fulltext_provider
-        # Use High-Fidelity Splitter by default
-        self.text_splitter = text_splitter or MarkdownRecursiveSplitter()
-        self.citation_service = citation_service
         self.orchestrator = orchestrator
-        self.llm_provider = llm_provider
 
-    def ingest(
+    def resolve(
         self,
         item_keys: Optional[List[str]] = None,
         collection_key: Optional[str] = None,
         item_key: Optional[str] = None,
         approved_only: bool = False,
-        prune: bool = False,
         min_qa_score: Optional[float] = None,
-        on_item_processed: Optional[Callable[[ZoteroItem, int], None]] = None,
         qa_approved_only: bool = False,
         tree_filter: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """
-        Ingest items with selection logic moved to service for architectural alignment.
-        """
-        if prune:
-            logger.info("Pruning entire vector store before ingestion.")
-            self.vector_repo.purge_all()
+    ) -> Tuple[List[ZoteroItem], int]:
+        """Returns (items_to_process, skipped_low_qa_count)."""
+        items_to_process = self._select_initial_items(
+            item_keys=item_keys,
+            collection_key=collection_key,
+            item_key=item_key,
+            qa_approved_only=qa_approved_only,
+            tree_filter=tree_filter,
+        )
 
-        stats = {"processed": 0, "skipped_no_text": 0, "skipped_low_qa": 0}
+        if approved_only:
+            items_to_process = [i for i in items_to_process if "rsl:include" in i.tags]
 
-        # 1. Resolve initial items
+        skipped_low_qa = 0
+        if min_qa_score is not None:
+            logger.info(f"Pre-filtering items by QA score >= {min_qa_score}...")
+            filtered_items = []
+            for i in items_to_process:
+                if self.get_item_max_qa_score(i) >= min_qa_score:
+                    filtered_items.append(i)
+                else:
+                    skipped_low_qa += 1
+            items_to_process = filtered_items
+
+        return items_to_process, skipped_low_qa
+
+    def _select_initial_items(
+        self,
+        item_keys: Optional[List[str]],
+        collection_key: Optional[str],
+        item_key: Optional[str],
+        qa_approved_only: bool,
+        tree_filter: Optional[str],
+    ) -> List[ZoteroItem]:
         items_to_process: List[ZoteroItem] = []
         if qa_approved_only:
             from zotero_cli.core.services.slr.status_service import SLRStatusService
@@ -194,31 +203,138 @@ class RAGServiceBase(RAGService):
             # Full library ingestion
             items_to_process = list(self.gateway.get_all_items())
 
-        # 2. Pre-filter items if necessary to get exact progress count
-        if approved_only:
-            items_to_process = [i for i in items_to_process if "rsl:include" in i.tags]
-            # Approved-only filtering doesn't usually count as 'skipped' in stats
-            # but we could count them if needed. For now, we follow existing pattern.
+        return items_to_process
 
-        if min_qa_score is not None:
-            logger.info(f"Pre-filtering items by QA score >= {min_qa_score}...")
-            filtered_items = []
-            for i in items_to_process:
-                if self._get_item_max_qa_score(i) >= min_qa_score:
-                    filtered_items.append(i)
-                else:
-                    stats["skipped_low_qa"] += 1
-            items_to_process = filtered_items
+    def get_item_max_qa_score(self, item: ZoteroItem) -> float:
+        """
+        Extracts QA score from the dedicated 'quality_assessment' phase note.
+        """
+        max_score = -1.0
+        children = self.gateway.get_item_children(item.key)
+        for child_raw in children:
+            if child_raw.get("data", {}).get("itemType") == "note":
+                note_content = child_raw.get("data", {}).get("note", "")
+                parsed = parse_sdb_note(note_content)
+                if not parsed:
+                    continue
+
+                is_qa_phase = parsed.get("phase") == "quality_assessment"
+                is_ext_action = parsed.get("action") == "data_extraction"
+
+                if is_qa_phase or is_ext_action:
+                    data_block = parsed.get("data", {})
+                    qa_block = data_block.get("quality_assessment") or parsed.get(
+                        "quality_assessment"
+                    )
+                    score = (
+                        qa_block.get("total")
+                        if isinstance(qa_block, dict)
+                        else (parsed.get("quality_score") or data_block.get("quality_score"))
+                    )
+
+                    if score is not None:
+                        try:
+                            f_score = float(score)
+                            if f_score > max_score:
+                                max_score = f_score
+                        except (ValueError, TypeError):
+                            continue
+        return max_score
+
+
+class RAGServiceBase(RAGService):
+    """
+    Base implementation of the RAG Service.
+    Handles ingestion of collections into a vector store and semantic querying.
+    """
+
+    def __init__(
+        self,
+        gateway: ZoteroGateway,
+        vector_repo: VectorRepository,
+        embedding_provider: EmbeddingProvider,
+        fulltext_provider: FullTextProvider,
+        orchestrator: SLROrchestrator,
+        citation_service: CitationService,
+        text_splitter: Optional[TextSplitter] = None,
+        llm_provider: Optional[Any] = None,
+    ):
+        self.gateway = gateway
+        self.vector_repo = vector_repo
+        self.embedding_provider = embedding_provider
+        self.fulltext_provider = fulltext_provider
+        # Use High-Fidelity Splitter by default
+        self.text_splitter = text_splitter or MarkdownRecursiveSplitter()
+        self.citation_service = citation_service
+        self.orchestrator = orchestrator
+        self.llm_provider = llm_provider
+        self._item_selector = RAGIngestItemSelector(gateway, orchestrator)
+
+    def ingest(
+        self,
+        item_keys: Optional[List[str]] = None,
+        collection_key: Optional[str] = None,
+        item_key: Optional[str] = None,
+        approved_only: bool = False,
+        prune: bool = False,
+        min_qa_score: Optional[float] = None,
+        on_item_processed: Optional[Callable[[ZoteroItem, int], None]] = None,
+        qa_approved_only: bool = False,
+        tree_filter: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Ingest items with selection logic moved to service for architectural alignment.
+        """
+        if prune:
+            logger.info("Pruning entire vector store before ingestion.")
+            self.vector_repo.purge_all()
+
+        stats = {"processed": 0, "skipped_no_text": 0, "skipped_low_qa": 0}
+
+        items_to_process, skipped_low_qa = self._item_selector.resolve(
+            item_keys=item_keys,
+            collection_key=collection_key,
+            item_key=item_key,
+            approved_only=approved_only,
+            min_qa_score=min_qa_score,
+            qa_approved_only=qa_approved_only,
+            tree_filter=tree_filter,
+        )
+        stats["skipped_low_qa"] = skipped_low_qa
 
         total_count = len(items_to_process)
-        all_vector_chunks = []
 
         if on_item_processed:
             on_item_processed(cast("ZoteroItem", None), total_count)
 
+        all_vector_chunks = self._run_ingest_pipeline(
+            items_to_process, total_count, on_item_processed, prune, min_qa_score, stats
+        )
+
+        if all_vector_chunks:
+            self.vector_repo.store_chunks(all_vector_chunks)
+
+        return stats
+
+    def _run_ingest_pipeline(
+        self,
+        items_to_process: List[ZoteroItem],
+        total_count: int,
+        on_item_processed: Optional[Callable[[ZoteroItem, int], None]],
+        prune: bool,
+        min_qa_score: Optional[float],
+        stats: Dict[str, int],
+    ) -> List[VectorChunk]:
+        """
+        Runs the concurrent chunk/embed pipeline over an already-resolved
+        item list (Issue #256) - kept separate from item-selection so the
+        two concerns can change independently.
+        """
+        all_vector_chunks: List[VectorChunk] = []
+
         def process_item(item: ZoteroItem) -> Dict[str, Any]:
             citation_key = self.citation_service.resolve_citation_key(item)
-            qa_score = self._get_item_max_qa_score(item)
+            qa_score = self._item_selector.get_item_max_qa_score(item)
             target_phase = self.orchestrator.resolve_target_phase(
                 item.key, default_qa_threshold=min_qa_score
             )
@@ -270,10 +386,7 @@ class RAGServiceBase(RAGService):
                 if on_item_processed:
                     on_item_processed(item, total_count)
 
-        if all_vector_chunks:
-            self.vector_repo.store_chunks(all_vector_chunks)
-
-        return stats
+        return all_vector_chunks
 
     def _strip_references(self, text: str) -> str:
         """
@@ -307,42 +420,6 @@ class RAGServiceBase(RAGService):
             return "\n".join(lines[:strip_index])
 
         return text
-
-    def _get_item_max_qa_score(self, item: ZoteroItem) -> float:
-        """
-        Extracts QA score from the dedicated 'quality_assessment' phase note.
-        """
-        max_score = -1.0
-        children = self.gateway.get_item_children(item.key)
-        for child_raw in children:
-            if child_raw.get("data", {}).get("itemType") == "note":
-                note_content = child_raw.get("data", {}).get("note", "")
-                parsed = parse_sdb_note(note_content)
-                if not parsed:
-                    continue
-
-                is_qa_phase = parsed.get("phase") == "quality_assessment"
-                is_ext_action = parsed.get("action") == "data_extraction"
-
-                if is_qa_phase or is_ext_action:
-                    data_block = parsed.get("data", {})
-                    qa_block = data_block.get("quality_assessment") or parsed.get(
-                        "quality_assessment"
-                    )
-                    score = (
-                        qa_block.get("total")
-                        if isinstance(qa_block, dict)
-                        else (parsed.get("quality_score") or data_block.get("quality_score"))
-                    )
-
-                    if score is not None:
-                        try:
-                            f_score = float(score)
-                            if f_score > max_score:
-                                max_score = f_score
-                        except (ValueError, TypeError):
-                            continue
-        return max_score
 
     def purge(
         self,
