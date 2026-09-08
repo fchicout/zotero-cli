@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 import logging
 import urllib.parse
 from typing import Any, Dict, Iterator, Optional
@@ -38,7 +37,7 @@ _FIELD_PARAM = "field[]"
 
 
 class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider):
-    def __init__(self):
+    def __init__(self) -> None:
         base_url = "https://bdtd.ibict.br/vufind/api/v1"
         super().__init__(base_url=base_url)
 

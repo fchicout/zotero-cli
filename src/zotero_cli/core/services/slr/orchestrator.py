@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -203,7 +202,7 @@ class SLROrchestrator:
         duplicate_key: str,
         reason: str,
         provenance: Optional[List[Dict[str, Any]]] = None,
-    ):
+    ) -> None:
         """
         Records a permanent audit trail in SDB for duplicate resolution.
 

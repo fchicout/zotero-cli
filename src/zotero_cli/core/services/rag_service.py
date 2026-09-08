@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -217,7 +216,7 @@ class RAGServiceBase(RAGService):
         if on_item_processed:
             on_item_processed(cast("ZoteroItem", None), total_count)
 
-        def process_item(item: ZoteroItem):
+        def process_item(item: ZoteroItem) -> Dict[str, Any]:
             citation_key = self.citation_service.resolve_citation_key(item)
             qa_score = self._get_item_max_qa_score(item)
             target_phase = self.orchestrator.resolve_target_phase(
