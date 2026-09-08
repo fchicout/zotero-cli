@@ -64,6 +64,21 @@ async def test_discover_backward_success(worker, mock_gateway, mock_graph_servic
 
 
 @pytest.mark.anyio
+async def test_discover_backward_paces_requests(worker, mock_gateway, no_sleep):
+    """Issue #268: _discover_backward must self-throttle before hitting
+    CrossRef, mirroring _discover_forward's #223 fix - the reactive
+    NetworkGateway backoff alone isn't enough to avoid tripping a shared
+    rate-limited pool."""
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"message": {"reference": []}}
+    mock_gateway.get = AsyncMock(return_value=mock_response)
+
+    await worker._discover_backward("10.1001/paper1", generation=1)
+
+    no_sleep.assert_awaited_once_with(1.1)
+
+
+@pytest.mark.anyio
 async def test_discover_forward_success(worker, mock_gateway, mock_graph_service):
     doi = "10.1001/paper1"
 
