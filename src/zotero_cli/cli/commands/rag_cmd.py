@@ -2,6 +2,7 @@ import argparse
 from typing import Optional, Sequence
 
 from rich.console import Console
+from rich.markup import escape
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.presenters.rag_presenter import (
@@ -226,7 +227,7 @@ Cognitive Safeguards
             from zotero_cli.core.models import SearchResult
 
             if args.format == "human":
-                console.print(f"Querying vector store for: '{args.prompt}'")
+                console.print(f"Querying vector store for: '{escape(args.prompt)}'")
 
             raw_results = rag_service.query(args.prompt, top_k=args.top_k)
             results: Sequence[SearchResult] = raw_results
@@ -402,8 +403,8 @@ Cognitive Safeguards
         selected_gen = GEN_MODELS[choice_gen]
 
         console.print("\nFinal Selection:")
-        console.print(f"  - Embedding: [bold]{selected_emb['name']}[/bold]")
-        console.print(f"  - Generative: [bold]{selected_gen['name']}[/bold]")
+        console.print(f"  - Embedding: [bold]{escape(selected_emb['name'])}[/bold]")
+        console.print(f"  - Generative: [bold]{escape(selected_gen['name'])}[/bold]")
 
         confirm = Prompt.ask(
             "\nUpdate configuration and download models?", choices=["y", "n"], default="y"

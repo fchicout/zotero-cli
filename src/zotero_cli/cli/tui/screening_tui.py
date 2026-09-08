@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from rich.console import Console
 from rich.layout import Layout
+from rich.markup import escape
 from rich.prompt import Prompt
 
 from zotero_cli.cli.tui.components import (
@@ -63,9 +64,9 @@ class ScreeningTUI:
             self.console.print("[bold red]Input exhausted. Quitting...[/bold red]")
             return
 
-        self.console.print(f"Source: [yellow]{source_collection}[/yellow]")
-        self.console.print(f"Target (Include): [green]{target_included}[/green]")
-        self.console.print(f"Target (Exclude): [red]{target_excluded}[/red]")
+        self.console.print(f"Source: [yellow]{escape(source_collection)}[/yellow]")
+        self.console.print(f"Target (Include): [green]{escape(target_included)}[/green]")
+        self.console.print(f"Target (Exclude): [red]{escape(target_excluded)}[/red]")
 
         # Fetch items
         with self.console.status("[bold green]Fetching pending items...[/bold green]"):

@@ -203,6 +203,22 @@ def test_collection_backup_not_found(mock_gateway, capsys):
     assert "Collection 'COL_KEY' not found." in out
 
 
+def test_collection_backup_not_found_bracketed_name_renders_literally(mock_gateway, capsys):
+    """Issue #253: a collection name containing a bracketed substring
+    must not be silently consumed/reinterpreted as Rich markup - it must
+    render as literal text."""
+    mock_gateway.get_collection_id_by_name.return_value = None
+    mock_gateway.get_collection.return_value = None
+
+    args = argparse.Namespace(
+        verb="backup", name="[Archived] Old Project", output="backup.zaf", user=False
+    )
+    CollectionCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "Collection '[Archived] Old Project' not found." in out
+
+
 def test_collection_export_metadata_success(mock_export_service, capsys):
     mock_export_service.export_collection.return_value = True
 

@@ -4,6 +4,7 @@ import sys
 from typing import Any, Dict, List, Optional
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
@@ -146,13 +147,14 @@ class SLRReportCommand:
 
             if not report:
                 console.print(
-                    f"[bold red]Error:[/bold red] Source collection '{args.collection}' not found."
+                    f"[bold red]Error:[/bold red] Source collection "
+                    f"'{escape(args.collection)}' not found."
                 )
                 sys.exit(1)
 
             from rich.progress import BarColumn, Progress, TextColumn
 
-            console.print(f"\n[bold]SLR Funnel Status: {report.collection_name}[/bold]\n")
+            console.print(f"\n[bold]SLR Funnel Status: {escape(report.collection_name)}[/bold]\n")
 
             percent_screened = (
                 (report.screened_items / report.total_items * 100) if report.total_items else 0
@@ -311,11 +313,11 @@ class SLRReportCommand:
             classified = dedupe_service.find_and_classify(dedupe_ids)
             duplicates_removed = sum(len(g.occurrences) - 1 for g in classified)
 
-        console.print(f"Generating PRISMA report for '{args.collection}'...")
+        console.print(f"Generating PRISMA report for '{escape(args.collection)}'...")
         report = service.generate_prisma_report(args.collection, duplicates_removed=duplicates_removed)
 
         if not report:
-            console.print(f"[bold red]Error:[/bold red] Collection '{args.collection}' not found.")
+            console.print(f"[bold red]Error:[/bold red] Collection '{escape(args.collection)}' not found.")
             sys.exit(1)
 
         summary = (
@@ -391,7 +393,7 @@ class SLRReportCommand:
             sys.stdout.write(f"\r[{percent:5.1f}%] {msg:<60}")
             sys.stdout.flush()
 
-        console.print(f"Snapshotting collection '{args.collection}'...")
+        console.print(f"Snapshotting collection '{escape(args.collection)}'...")
         success = service.freeze_collection(args.collection, args.output, cli_progress)
         print("")
         if success:
@@ -402,11 +404,11 @@ class SLRReportCommand:
     @staticmethod
     def _handle_screening(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         service = ReportService(gateway)
-        console.print(f"Generating Markdown screening report for '{args.collection}'...")
+        console.print(f"Generating Markdown screening report for '{escape(args.collection)}'...")
         report = service.generate_prisma_report(args.collection)
 
         if not report:
-            console.print(f"[bold red]Error:[/bold red] Collection '{args.collection}' not found.")
+            console.print(f"[bold red]Error:[/bold red] Collection '{escape(args.collection)}' not found.")
             sys.exit(1)
 
         md_content = service.generate_screening_markdown(report)
@@ -415,7 +417,7 @@ class SLRReportCommand:
                 f.write(md_content)
             console.print(f"\n[bold green]✓ Screening report saved to {args.output}[/bold green]")
         except Exception as e:
-            console.print(f"\n[bold red]✗ Failed to write report: {e}[/bold red]")
+            console.print(f"\n[bold red]✗ Failed to write report: {escape(str(e))}[/bold red]")
             sys.exit(1)
 
     @staticmethod
@@ -425,10 +427,10 @@ class SLRReportCommand:
             report = service.generate_prisma_report(args.collection)
 
         if not report:
-            console.print(f"[bold red]Error:[/bold red] Collection '{args.collection}' not found.")
+            console.print(f"[bold red]Error:[/bold red] Collection '{escape(args.collection)}' not found.")
             sys.exit(1)
 
-        console.print(f"\n[bold]Exclusion Summary Report: {report.collection_name}[/bold]\n")
+        console.print(f"\n[bold]Exclusion Summary Report: {escape(report.collection_name)}[/bold]\n")
         console.print(
             f"Total Papers Excluded: [red]{report.rejected_items}[/red] (out of {report.screened_items} screened)"
         )
@@ -453,7 +455,7 @@ class SLRReportCommand:
     def _handle_consensus(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         col_id = gateway.get_collection_id_by_name(args.collection) or args.collection
         if not col_id:
-            console.print(f"[bold red]Error: Collection '{args.collection}' not found.[/bold red]")
+            console.print(f"[bold red]Error: Collection '{escape(args.collection)}' not found.[/bold red]")
             sys.exit(1)
 
         items = list(gateway.get_items_in_collection(col_id))

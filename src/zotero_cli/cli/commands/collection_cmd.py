@@ -3,6 +3,7 @@ import sys
 from typing import Any, Dict, List, Optional
 
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 from rich.tree import Tree
 
@@ -403,7 +404,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         col = gateway.get_collection(col_id)
         if not col:
-            console.print(f"[bold red]Error:[/bold red] Collection '{args.name}' not found.")
+            console.print(f"[bold red]Error:[/bold red] Collection '{escape(args.name)}' not found.")
             return
 
         total_items = col.get("meta", {}).get("numItems")
@@ -431,7 +432,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
             console.print(f"[bold green]Backup complete:[/bold green] {args.output}")
         except Exception as e:
-            console.print(f"[bold red]Backup failed:[/bold red] {e}")
+            console.print(f"[bold red]Backup failed:[/bold red] {escape(str(e))}")
 
     def _handle_export(self, args: argparse.Namespace) -> None:
         if args.format == "md":
@@ -475,13 +476,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             col_id = args.name  # Try as raw key
 
         if not gateway.get_collection(col_id):
-            console.print(f"[bold red]Error:[/bold red] Collection '{args.name}' not found.")
+            console.print(f"[bold red]Error:[/bold red] Collection '{escape(args.name)}' not found.")
             return
 
         # 2. Get Items
         items = list(gateway.get_items_in_collection(col_id))
         if not items:
-            console.print(f"[yellow]No items found in collection '{args.name}'.[/yellow]")
+            console.print(f"[yellow]No items found in collection '{escape(args.name)}'.[/yellow]")
             return
 
         output_dir = Path(args.output) if args.output else Path("./export_md")

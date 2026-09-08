@@ -1,6 +1,7 @@
 from typing import Any, List
 
 from rich.console import Console
+from rich.markup import escape
 from rich.prompt import Confirm, IntPrompt, Prompt
 
 from zotero_cli.core.interfaces import ExtractionService, OpenerService
@@ -29,7 +30,7 @@ class ExtractionTUI:
             variables = schema.get("variables", [])
             schema_version = schema.get("version", "1.0")
         except Exception as e:
-            console.print(f"[bold red]Error loading schema:[/bold red] {e}")
+            console.print(f"[bold red]Error loading schema:[/bold red] {escape(str(e))}")
             return
 
         if not variables:
@@ -41,9 +42,9 @@ class ExtractionTUI:
 
         for idx, item in enumerate(items):
             console.rule(f"Item {idx + 1}/{total}: {item.key}")
-            console.print(f"[bold]{item.title}[/bold]")
+            console.print(f"[bold]{escape(item.title or '')}[/bold]")
             if item.authors:
-                console.print(f"[italic]{', '.join(item.authors)}[/italic]")
+                console.print(f"[italic]{escape(', '.join(item.authors))}[/italic]")
             console.print(f"Year: {item.date or 'N/A'}")
 
             # 2. Open PDF

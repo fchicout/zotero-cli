@@ -1,6 +1,7 @@
 import argparse
 
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
@@ -47,14 +48,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         results = []
 
         if args.doi:
-            console.print(f"Searching for DOI: [cyan]{args.doi}[/cyan]...")
+            console.print(f"Searching for DOI: [cyan]{escape(args.doi)}[/cyan]...")
             results = list(gateway.get_items_by_doi(args.doi))
         elif args.title:
-            console.print(f"Searching for title: [cyan]{args.title}[/cyan]...")
+            console.print(f"Searching for title: [cyan]{escape(args.title)}[/cyan]...")
             query = ZoteroQuery(q=args.title, qmode="titleCreatorYear")
             results = list(gateway.search_items(query))
         elif args.query:
-            console.print(f"Searching for: [cyan]{args.query}[/cyan]...")
+            console.print(f"Searching for: [cyan]{escape(args.query)}[/cyan]...")
             query = ZoteroQuery(q=args.query, qmode="titleCreatorYear")
             results = list(gateway.search_items(query))
         else:
