@@ -161,3 +161,59 @@ def test_snowball_command_status(mock_deps, capsys):
     out = capsys.readouterr().out
     assert "Snowballing Discovery Graph Status" in out
     assert "10" in out  # Nodes
+
+
+def test_snowball_command_status_honors_user_flag():
+    """Issue #265: --user must be threaded into the graph-service call
+    for `status`, matching every other verb in this command."""
+    mock_gw = MagicMock()
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_snowball_graph_service") as mock_graph,
+        patch("zotero_cli.cli.commands.slr.snowball_cmd.get_config", return_value=MagicMock()),
+    ):
+        mock_graph.return_value.get_stats.return_value = {"total_nodes": 0, "total_edges": 0}
+
+        args = argparse.Namespace(
+            verb="snowball", snow_verb="status", collection="Col1", user=True
+        )
+        SnowballCommand.execute(mock_gw, args)
+
+        _, kwargs = mock_graph.call_args
+        assert kwargs.get("force_user") is True
+
+
+def test_snowball_command_discovery_honors_user_flag():
+    """Issue #265: --user must be threaded into get_snowball_worker,
+    matching every other verb in this command."""
+    mock_gw = MagicMock()
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_snowball_worker") as mock_worker,
+        patch("zotero_cli.cli.commands.slr.snowball_cmd.get_config", return_value=MagicMock()),
+        patch("asyncio.run"),
+    ):
+        args = argparse.Namespace(
+            verb="snowball", snow_verb="discovery", count=5, user=True
+        )
+        SnowballCommand.execute(mock_gw, args)
+
+        _, kwargs = mock_worker.call_args
+        assert kwargs.get("force_user") is True
+
+
+def test_snowball_command_export_honors_user_flag():
+    """Issue #265: --user must be threaded into the graph-service call
+    for `export`, matching every other verb in this command."""
+    mock_gw = MagicMock()
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_snowball_graph_service") as mock_graph,
+        patch("zotero_cli.cli.commands.slr.snowball_cmd.get_config", return_value=MagicMock()),
+    ):
+        mock_graph.return_value.to_mermaid.return_value = "graph"
+
+        args = argparse.Namespace(
+            verb="snowball", snow_verb="export", format="mermaid", output=None, user=True
+        )
+        SnowballCommand.execute(mock_gw, args)
+
+        _, kwargs = mock_graph.call_args
+        assert kwargs.get("force_user") is True

@@ -319,8 +319,9 @@ def test_get_snowball_ingestion_service(mock_config):
             GatewayFactory.get_snowball_ingestion_service(mock_config), SnowballIngestionService
         )
         # Issue #228: the ingestion service's graph service must be scoped
-        # to the same config, not the unscoped default.
-        mock_graph.assert_called_once_with(mock_config)
+        # to the same config, not the unscoped default. Issue #265: also
+        # threads force_user through (default False here).
+        mock_graph.assert_called_once_with(mock_config, False)
 
 
 def test_get_vector_repository(mock_config):
