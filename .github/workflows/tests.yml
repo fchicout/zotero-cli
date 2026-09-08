@@ -25,18 +25,11 @@ jobs:
       - name: Type Check with Mypy
         run: uv run mypy .
 
-      - name: Install Infisical CLI
-        run: |
-          sudo apt-get update && sudo apt-get install -y bash curl
-          curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | sudo -E bash
-          sudo apt-get update && sudo apt-get install -y infisical
-
-      - name: Run Tests with Infisical Secrets
+      - name: Run Tests
         env:
-          INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
           PYTHONPATH: src
         run: |
-          infisical run --domain https://infisical.fchicout.dev --token "$INFISICAL_TOKEN" --env dev -- uv run pytest tests/unit --cov=src/zotero_cli --cov-report=xml
+          uv run pytest tests/unit --cov=src/zotero_cli --cov-report=xml
 
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v6
