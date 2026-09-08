@@ -101,6 +101,16 @@ class SnowballDiscoveryWorker:
         # still legally contain characters like "?"/"#" that would
         # otherwise inject into the URL path/query.
         url = f"https://api.crossref.org/works/{quote(doi, safe='')}"
+
+        # Polite, proactive pacing (Issue #268, mirroring #223's fix for
+        # _discover_forward below): the reactive 429 backoff in
+        # NetworkGateway only kicks in *after* a request is already
+        # rate-limited - it does nothing to stop a burst of backward-
+        # discovery jobs from hammering CrossRef's shared pool in the
+        # first place. This gap was simply never backfilled from
+        # _discover_forward to this sibling method.
+        await asyncio.sleep(1.1)
+
         logger.info(f"CrossRef: Fetching references for {doi}")
 
         response = await self.gateway.get(url)

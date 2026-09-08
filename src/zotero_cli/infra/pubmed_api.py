@@ -16,7 +16,10 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
         # NCBI E-utils base URL
         base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
         self.api_key = api_key
-        super().__init__(base_url=base_url)
+        # min_request_interval=0: this client already self-throttles more
+        # precisely via _apply_rate_limit() below (API-key-aware: 3 vs 10
+        # req/s), so the base class's generic pacing would be redundant.
+        super().__init__(base_url=base_url, min_request_interval=0)
         self.last_request_time = 0.0
 
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:

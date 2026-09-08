@@ -27,7 +27,12 @@ class SemanticScholarAPIClient(
     BaseAPIClient, MetadataProvider, SearchableMetadataProvider, CountableMetadataProvider
 ):
     def __init__(self, api_key: Optional[str] = None):
-        super().__init__(base_url="https://api.semanticscholar.org/graph/v1/paper")
+        # min_request_interval=0: this client already self-throttles via
+        # its own explicit time.sleep(1.1) calls before every request, so
+        # the base class's generic pacing would be redundant.
+        super().__init__(
+            base_url="https://api.semanticscholar.org/graph/v1/paper", min_request_interval=0
+        )
         self.api_key = api_key or os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
         if self.api_key:
             self.session.headers["x-api-key"] = self.api_key
