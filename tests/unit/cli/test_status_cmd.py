@@ -24,10 +24,22 @@ def test_status_command_execute(mock_deps, capsys):
         rejections_by_code={"EXC01": 3},
     )
 
-    with patch(
-        "zotero_cli.core.services.report_service.ReportService.generate_prisma_report",
-        return_value=mock_report,
+    with (
+        # Issue #275: _handle_status tries GatewayFactory.get_slr_status_service()
+        # first, which - unmocked - builds a real gateway from real config and
+        # hits the live Zotero API (a tests/unit safety-boundary violation).
+        # Mock it directly and return no statuses, so execution falls through
+        # to the legacy ReportService path this test actually exercises.
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_slr_status_service"
+        ) as mock_get_status_service,
+        patch(
+            "zotero_cli.core.services.report_service.ReportService.generate_prisma_report",
+            return_value=mock_report,
+        ),
     ):
+        mock_get_status_service.return_value.get_slr_status.return_value = []
+
         args = argparse.Namespace(verb="report", report_verb="status", collection="raw_test")
         SLRReportCommand.execute(MagicMock(), args)
 

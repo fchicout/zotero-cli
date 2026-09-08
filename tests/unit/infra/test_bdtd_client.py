@@ -7,7 +7,20 @@ from zotero_cli.infra.bdtd_api import BDTDAPIClient
 
 @pytest.fixture
 def client():
-    return BDTDAPIClient()
+    """
+    Issue #275: `_map_to_research_paper` (via `_resolve_pdf_url_sync`) makes
+    a real `requests.get` against whatever URL is embedded in the test
+    record data by default - several tests here don't care about PDF
+    resolution and were unknowingly making live network calls (one, against
+    a real https://tedebc.ufma.br/... URL, took ~10s per test run). Patch
+    `requests.get` at the module level so nothing in this file can reach a
+    real network unless a test explicitly overrides this patch (as
+    `test_search_does_not_resolve_pdf_urls` already does for
+    `_resolve_pdf_url_sync` directly).
+    """
+    with patch("zotero_cli.infra.bdtd_api.requests.get") as mock_get:
+        mock_get.return_value = MagicMock(status_code=404)
+        yield BDTDAPIClient()
 
 
 # -- Mapping Tests -----------------------------------------------------------------
