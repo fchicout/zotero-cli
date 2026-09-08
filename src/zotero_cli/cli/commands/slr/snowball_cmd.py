@@ -78,31 +78,33 @@ class SnowballCommand:
         config = get_config(getattr(args, "config", None))
 
         if args.snow_verb == "seed":
-            SnowballCommand._handle_seed(gateway, args, config)
+            SnowballCommand._handle_seed(gateway, args, force_user, config)
         elif args.snow_verb == "discovery":
-            worker = GatewayFactory.get_snowball_worker(config)
+            worker = GatewayFactory.get_snowball_worker(config, force_user=force_user)
             console.print("[bold]Starting Snowballing Discovery Workers...[/bold]")
             asyncio.run(worker.process_jobs(count=args.count))
             console.print("[bold green]Done.[/bold green]")
         elif args.snow_verb == "review":
-            graph_service = GatewayFactory.get_snowball_graph_service(config)
+            graph_service = GatewayFactory.get_snowball_graph_service(
+                config, force_user=force_user
+            )
             metadata_service = GatewayFactory.get_metadata_aggregator(config)
             tui = TUIFactory.get_snowball_tui(graph_service, metadata_service, gateway)
             tui.run_review_session()
         elif args.snow_verb == "import":
             SnowballCommand._handle_import(gateway, args, force_user, config)
         elif args.snow_verb == "status":
-            SnowballCommand._handle_status(config)
+            SnowballCommand._handle_status(config, force_user)
         elif args.snow_verb == "export":
-            SnowballCommand._handle_export(args, config)
+            SnowballCommand._handle_export(args, config, force_user)
 
     @staticmethod
     def _handle_seed(
-        gateway: ZoteroGateway, args: argparse.Namespace, config: ZoteroConfig
+        gateway: ZoteroGateway, args: argparse.Namespace, force_user: bool, config: ZoteroConfig
     ) -> None:
         from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
 
-        job_queue = GatewayFactory.get_job_queue_service(config)
+        job_queue = GatewayFactory.get_job_queue_service(config, force_user=force_user)
         dois = []
         if args.keys:
             for key in args.keys.split(","):
@@ -119,7 +121,9 @@ class SnowballCommand:
         if getattr(args, "dois", None):
             dois.extend(doi.strip() for doi in args.dois.split(",") if doi.strip())
         if getattr(args, "from_accepted", False):
-            graph_service = GatewayFactory.get_snowball_graph_service(config)
+            graph_service = GatewayFactory.get_snowball_graph_service(
+                config, force_user=force_user
+            )
             dois.extend(
                 graph_service.get_accepted_dois(generation=getattr(args, "from_generation", None))
             )
@@ -165,8 +169,8 @@ class SnowballCommand:
             console.print(f"[green]Ingestion Complete: {stats['imported']} imported.[/green]")
 
     @staticmethod
-    def _handle_status(config: ZoteroConfig) -> None:
-        graph_service = GatewayFactory.get_snowball_graph_service(config)
+    def _handle_status(config: ZoteroConfig, force_user: bool = False) -> None:
+        graph_service = GatewayFactory.get_snowball_graph_service(config, force_user=force_user)
         stats = graph_service.get_stats()
         console.print("\n[bold blue]Snowballing Discovery Graph Status[/bold blue]\n")
         console.print(f"Total Papers (Nodes): {stats['total_nodes']}")
@@ -174,8 +178,10 @@ class SnowballCommand:
         # Additional tables could be added here...
 
     @staticmethod
-    def _handle_export(args: argparse.Namespace, config: ZoteroConfig) -> None:
-        graph_service = GatewayFactory.get_snowball_graph_service(config)
+    def _handle_export(
+        args: argparse.Namespace, config: ZoteroConfig, force_user: bool = False
+    ) -> None:
+        graph_service = GatewayFactory.get_snowball_graph_service(config, force_user=force_user)
         if args.format == "json":
             output = graph_service.to_json()
         else:
