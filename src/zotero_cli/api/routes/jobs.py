@@ -1,6 +1,7 @@
 from typing import Annotated, Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from starlette.concurrency import run_in_threadpool
 
 from zotero_cli.api.dependencies import get_job_queue_service
 from zotero_cli.core.models import Job
@@ -27,7 +28,10 @@ async def list_jobs(
     task_type: Annotated[Optional[str], Query(description="Filter by task type")] = None,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> List[Dict[str, Any]]:
-    jobs = job_queue.list_jobs(task_type=task_type, limit=limit)
+    # Issue #269: job_queue.list_jobs is synchronous - offload to the
+    # threadpool so it doesn't block the event loop for other concurrent
+    # clients.
+    jobs = await run_in_threadpool(job_queue.list_jobs, task_type=task_type, limit=limit)
     return [_serialize_job(j) for j in jobs]
 
 
@@ -36,7 +40,10 @@ async def get_job(
     job_id: int,
     job_queue: Annotated[JobQueueService, Depends(get_job_queue_service)],
 ) -> Dict[str, Any]:
-    job = job_queue.repo.get_job(job_id)
+    # Issue #269: job_queue.repo.get_job is synchronous - offload to the
+    # threadpool so it doesn't block the event loop for other concurrent
+    # clients.
+    job = await run_in_threadpool(job_queue.repo.get_job, job_id)
     # A job tagged with a different (non-None) library_id belongs to another
     # project's queue - treat it as not found rather than leaking status
     # across libraries sharing one jobs.sqlite (Issue #150).
