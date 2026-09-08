@@ -222,6 +222,23 @@ def test_job_repo_legacy_null_library_id_stays_visible(tmp_path):
     assert popped.item_key == "LEGACY"
 
 
+def test_job_repo_creates_task_status_index(tmp_path):
+    """Regression test for Issue #270: get_next_pending's WHERE clause
+    filters on (task_type, status) on every poll -- there must be an index
+    covering those columns, not just the implicit PK."""
+    db_path = str(tmp_path / "jobs.sqlite")
+    SqliteJobRepository(db_path)
+
+    conn = sqlite3.connect(db_path)
+    try:
+        indexes = {
+            row[1] for row in conn.execute("PRAGMA index_list(jobs)").fetchall()
+        }
+        assert "idx_jobs_task_status" in indexes
+    finally:
+        conn.close()
+
+
 def test_job_repo_migrates_pre_existing_db_missing_library_id_column(tmp_path):
     """A jobs.sqlite created before Issue #150 has no library_id column at
     all; opening it must migrate the schema instead of crashing."""

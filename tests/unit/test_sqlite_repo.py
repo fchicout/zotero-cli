@@ -83,6 +83,32 @@ def test_sqlite_read_items(mock_db):
     assert items[0].authors == ["Jane Doe"]
 
 
+def test_sqlite_read_items_issues_constant_query_count(mock_db):
+    """Regression test for Issue #270: _fetch_items_with_filter must batch
+    the creators/collections/tags lookups (IN (...) over all item IDs)
+    instead of issuing 3 extra queries per row -- query count should stay
+    flat as the result set grows, not scale linearly with item count."""
+    gateway = SqliteZoteroGateway(mock_db)
+
+    queries: list[str] = []
+    orig_connect = sqlite3.connect
+
+    def counting_connect(*args, **kwargs):
+        conn = orig_connect(*args, **kwargs)
+        conn.set_trace_callback(queries.append)
+        return conn
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(sqlite3, "connect", counting_connect)
+        items = list(gateway.search_items(ZoteroQuery()))
+
+    assert len(items) == 4
+    # 1 item query + 3 batched lookups (creators/collections/tags) regardless
+    # of the 4-item result set -- previously this was 1 + 3*4 = 13.
+    select_queries = [q for q in queries if q.strip().upper().startswith("SELECT")]
+    assert len(select_queries) == 4
+
+
 def test_sqlite_item_parent_key_resolves_via_attachments_and_notes(mock_db):
     """Regression test for Issue #174: parentKey must be resolved via
     itemAttachments/itemNotes -- the real schema has no items.parentItemID
