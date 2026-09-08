@@ -1,6 +1,19 @@
 name: Run Unit Tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -18,6 +31,14 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --extra dev
+
+      - name: Cache mypy
+        uses: actions/cache@v4
+        with:
+          path: .mypy_cache
+          key: mypy-${{ runner.os }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+          restore-keys: |
+            mypy-${{ runner.os }}-
 
       - name: Lint with Ruff
         run: uv run ruff check .
