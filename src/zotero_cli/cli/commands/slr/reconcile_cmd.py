@@ -1,6 +1,7 @@
 import argparse
 
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.infra.factory import GatewayFactory
@@ -44,7 +45,7 @@ class ReconcileCommand:
         # 1. Resolve Tree Root
         root_key = gateway.get_collection_id_by_name(args.tree) or args.tree
         if not gateway.get_collection(root_key):
-            console.print(f"[bold red]Error:[/bold red] Tree root '{args.tree}' not found.")
+            console.print(f"[bold red]Error:[/bold red] Tree root '{escape(args.tree)}' not found.")
             return
 
         with console.status(f"[bold green]Auditing SLR Tree: {args.tree}..."):

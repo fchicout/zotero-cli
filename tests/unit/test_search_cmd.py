@@ -80,3 +80,18 @@ def test_search_no_results(search_cmd, mock_gateway):
     mock_gateway.search_items.return_value = []
     search_cmd.execute(args)
     mock_gateway.search_items.assert_called_once()
+
+
+def test_search_by_query_with_bracketed_text_renders_literally(search_cmd, mock_gateway, capsys):
+    """Issue #253: a query containing a bracketed substring must not be
+    silently consumed/reinterpreted as Rich markup (e.g. treated as a
+    style toggle) - it must render as literal text."""
+    args = argparse.Namespace(
+        query="[Retracted] Studies", doi=None, title=None, limit=50, user=False
+    )
+    mock_gateway.search_items.return_value = []
+
+    search_cmd.execute(args)
+
+    out = capsys.readouterr().out
+    assert "[Retracted] Studies" in out

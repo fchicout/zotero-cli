@@ -2,6 +2,7 @@ import argparse
 import asyncio
 
 from rich.console import Console
+from rich.markup import escape
 
 from zotero_cli.cli.tui.factory import TUIFactory
 from zotero_cli.core.config import ZoteroConfig, get_config
@@ -147,15 +148,18 @@ class SnowballCommand:
         col_id = gateway.get_collection_id_by_name(args.target)
         if not col_id:
             if args.create:
-                console.print(f"Collection '{args.target}' not found. Creating...")
+                console.print(f"Collection '{escape(args.target)}' not found. Creating...")
                 col_id = gateway.create_collection(args.target)
             else:
                 console.print(
-                    f"[red]Error: Collection '{args.target}' not found. Use --create to create it.[/red]"
+                    f"[red]Error: Collection '{escape(args.target)}' not found. "
+                    "Use --create to create it.[/red]"
                 )
                 return
         if col_id:
-            console.print(f"[bold]Ingesting ACCEPTED candidates into '{args.target}'...[/bold]")
+            console.print(
+                f"[bold]Ingesting ACCEPTED candidates into '{escape(args.target)}'...[/bold]"
+            )
             with console.status("[bold green]Working..."):
                 stats = service.ingest_candidates(args.target)
             console.print(f"[green]Ingestion Complete: {stats['imported']} imported.[/green]")

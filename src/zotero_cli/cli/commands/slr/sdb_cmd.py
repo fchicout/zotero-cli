@@ -1,6 +1,7 @@
 import argparse
 
 from rich.console import Console
+from rich.markup import escape
 
 from zotero_cli.core.interfaces import ZoteroGateway
 
@@ -118,7 +119,7 @@ class SDBCommand:
                 col_id = args.name
             items = list(gateway.get_items_in_collection(col_id))
             if not items:
-                console.print(f"[yellow]No items found in '{args.name}'.[/yellow]")
+                console.print(f"[yellow]No items found in '{escape(args.name)}'.[/yellow]")
                 return
 
             keys = [i.key for i in items]
@@ -140,7 +141,9 @@ class SDBCommand:
             tag_name = f"rsl:phase:{args.phase}"
             tag_stats = purge_service.purge_tags(keys, tag_name=tag_name, dry_run=dry_run)
 
-            console.print(f"\n[bold]Reset results for '{args.name}' (Phase: {args.phase}):[/bold]")
+            console.print(
+                f"\n[bold]Reset results for '{escape(args.name)}' (Phase: {args.phase}):[/bold]"
+            )
             console.print(f" - Notes purged: {note_stats['deleted']}")
             console.print(f" - Tags purged:  {tag_stats['deleted']}")
             if dry_run:

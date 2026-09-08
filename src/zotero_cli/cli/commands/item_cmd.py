@@ -3,6 +3,7 @@ import asyncio
 import sys
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
@@ -165,11 +166,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                             note_snippet = display_content[:150].replace("\n", " ")
                             console.print(
                                 f"  - [cyan]Note[/cyan] ({ckey}) [dim]Added: {date_added} | Mod: {date_modified}[/dim]\n"
-                                f"    {note_snippet}..."
+                                f"    {escape(note_snippet)}..."
                             )
                     else:
-                        filename = cdata.get("filename", "N/A")
-                        console.print(f"  - [green]Attachment[/green] ({ckey}): {filename}")
+                        filename = cdata.get("filename") or "N/A"
+                        console.print(f"  - [green]Attachment[/green] ({ckey}): {escape(filename)}")
 
 
 @CommandRegistry.register
@@ -685,7 +686,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             for conflict in conflicts:
                 console.print(f"  [bold]{conflict.field_name}[/bold]:")
                 for key, value in conflict.values.items():
-                    console.print(f"    {key}: {value!r}")
+                    console.print(f"    {key}: {escape(repr(value))}")
                 choices = [v for v in conflict.values.values() if v]
                 field_resolutions[conflict.field_name] = Prompt.ask(
                     f"  Value to keep for '{conflict.field_name}'",
@@ -702,7 +703,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         if not preview.success:
             for error in preview.errors:
-                console.print(f"[red]Error:[/red] {error}")
+                console.print(f"[red]Error:[/red] {escape(error)}")
             return
 
         table = Table(title="Merge Preview")
@@ -739,7 +740,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             master_key, duplicate_keys, field_resolutions=field_resolutions, dry_run=False
         )
         for error in result.errors:
-            console.print(f"[red]Warning:[/red] {error}")
+            console.print(f"[red]Warning:[/red] {escape(error)}")
         if result.success:
             console.print(
                 f"[green]Merged {len(result.merged_keys)} duplicate(s) into "
@@ -798,7 +799,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 "decision:[/red]"
             )
             for error in preview.errors:
-                console.print(f"  [red]{error}[/red]")
+                console.print(f"  [red]{escape(error)}[/red]")
             return
 
         if not args.execute:
@@ -821,7 +822,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         result = service.execute_plan(plan, dry_run=False)
         for group_result in result.group_results:
             for error in group_result.errors:
-                console.print(f"[red]Warning ({group_result.master_key}):[/red] {error}")
+                console.print(f"[red]Warning ({group_result.master_key}):[/red] {escape(error)}")
         succeeded = sum(1 for g in result.group_results if g.success)
         console.print(
             f"[green]Merged {succeeded}/{len(result.group_results)} group(s) from the plan.[/green]"
@@ -974,7 +975,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                     items = gateway.get_items_in_collection(col_id)
                     keys.extend([i.key for i in items])
                 else:
-                    console.print(f"[red]Error: Collection '{args.collection}' not found.[/red]")
+                    console.print(
+                        f"[red]Error: Collection '{escape(args.collection)}' not found.[/red]"
+                    )
                     return
 
             if args.file:
@@ -1198,7 +1201,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             output_dir = Path(args.output) if args.output else Path("./export_md")
             output_dir.mkdir(parents=True, exist_ok=True)
 
-            console.print(f"Exporting full-text for: [cyan]{item.title}[/cyan]...")
+            console.print(f"Exporting full-text for: [cyan]{escape(item.title or '')}[/cyan]...")
             stats = attach_service.bulk_export_markdown([item], output_dir)
 
             if stats["success"] > 0:
@@ -1264,7 +1267,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             template["creators"] = creators
 
         # 4. Create Item
-        console.print(f"Creating new [cyan]{args.type}[/cyan]: [bold]{args.title}[/bold]...")
+        console.print(f"Creating new [cyan]{args.type}[/cyan]: [bold]{escape(args.title)}[/bold]...")
         new_key = gateway.create_generic_item(template)
 
         if new_key:

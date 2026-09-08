@@ -5,6 +5,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
@@ -394,7 +395,7 @@ Cognitive Safeguards
         else:
             console.print("\n[bold red]❌ ARCHIVE IS INVALID OR CORRUPT[/bold red]")
             for error in report.errors:
-                console.print(f"  - [red]Error:[/red] {error}")
+                console.print(f"  - [red]Error:[/red] {escape(error)}")
 
     def _handle_restore(self, args: argparse.Namespace) -> None:
         from zotero_cli.infra.factory import GatewayFactory
@@ -414,7 +415,7 @@ Cognitive Safeguards
         if report.errors:
             console.print("\n[bold red]Restore encountered errors:[/bold red]")
             for err in report.errors:
-                console.print(f"  - [red]Error:[/red] {err}")
+                console.print(f"  - [red]Error:[/red] {escape(err)}")
 
         title = "Restore Plan Summary" if args.dry_run else "Restore Completion Summary"
         table = Table(title=title)
@@ -495,15 +496,17 @@ Cognitive Safeguards
 
         if args.clean:
             if service.clean_sandbox(args.name):
-                console.print(f"[green]Sandbox collection '{args.name}' removed.[/green]")
+                console.print(f"[green]Sandbox collection '{escape(args.name)}' removed.[/green]")
             else:
-                console.print(f"[yellow]No sandbox collection named '{args.name}' found.[/yellow]")
+                console.print(
+                    f"[yellow]No sandbox collection named '{escape(args.name)}' found.[/yellow]"
+                )
             return
 
         try:
             name, created = service.create_sandbox(args.name)
         except RuntimeError as e:
-            console.print(f"[red]Error: {e}[/red]")
+            console.print(f"[red]Error: {escape(str(e))}[/red]")
             return
 
         console.print(
@@ -771,4 +774,4 @@ Cognitive Safeguards
 
             console.print(f"[bold green]Backup complete:[/bold green] {args.output}")
         except Exception as e:
-            console.print(f"[bold red]Backup failed:[/bold red] {e}")
+            console.print(f"[bold red]Backup failed:[/bold red] {escape(str(e))}")

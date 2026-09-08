@@ -1,6 +1,7 @@
 import argparse
 
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.core.interfaces import ZoteroGateway
@@ -100,7 +101,7 @@ class LoadCommand:
         )
 
         if "error" in results:
-            console.print(f"[bold red]Error:[/bold red] {results['error']}")
+            console.print(f"[bold red]Error:[/bold red] {escape(results['error'])}")
             return
 
         table = Table(title="Import CSV Results")

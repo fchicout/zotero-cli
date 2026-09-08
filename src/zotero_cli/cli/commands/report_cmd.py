@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
@@ -163,7 +164,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
 
         dupes = service.compare_collections(col_ids)
         for warning in service.warnings:
-            console.print(f"[yellow]Warning:[/yellow] {warning}")
+            console.print(f"[yellow]Warning:[/yellow] {escape(warning)}")
 
         if not dupes:
             console.print("[green]No duplicates found.[/green]")
@@ -259,7 +260,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
     def _handle_audit(self, _gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_integrity_service(force_user=force_user)
-        console.print(f"[bold green]Auditing collection: {args.collection}...[/bold green]")
+        console.print(f"[bold green]Auditing collection: {escape(args.collection)}...[/bold green]")
         report = service.audit_collection(args.collection)
 
         if not report:
