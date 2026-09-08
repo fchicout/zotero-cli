@@ -38,6 +38,18 @@ def test_get_job_queue_service(mock_config):
     assert isinstance(service, JobQueueService)
 
 
+def test_get_job_queue_service_force_user_scopes_by_user_id(mock_config):
+    """Issue #257: force_user must apply to the job queue's storage
+    scoping, not just be silently dropped."""
+    mock_config = dataclasses.replace(mock_config, library_id="GROUP_LIB", user_id="PERSONAL_ID")
+
+    online_service = GatewayFactory.get_job_queue_service(mock_config, force_user=False)
+    personal_service = GatewayFactory.get_job_queue_service(mock_config, force_user=True)
+
+    assert online_service.library_id == "GROUP_LIB"
+    assert personal_service.library_id == "PERSONAL_ID"
+
+
 def test_get_pdf_finder_service(mock_config):
     service = GatewayFactory.get_pdf_finder_service(mock_config)
     from zotero_cli.core.services.pdf_finder_service import PDFFinderService
@@ -176,7 +188,7 @@ def test_get_snowball_worker(mock_config):
         assert isinstance(service, SnowballDiscoveryWorker)
         # Issue #228: the worker's graph service must be scoped to the
         # same config it resolved for itself, not the unscoped default.
-        mock_graph.assert_called_once_with(mock_config)
+        mock_graph.assert_called_once_with(mock_config, False)
 
 
 def test_get_metadata_aggregator(mock_config):

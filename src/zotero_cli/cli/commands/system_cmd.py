@@ -526,7 +526,8 @@ Cognitive Safeguards
 
         from zotero_cli.infra.factory import GatewayFactory
 
-        job_service = GatewayFactory.get_job_queue_service()
+        force_user = getattr(args, "user", False)
+        job_service = GatewayFactory.get_job_queue_service(force_user=force_user)
 
         if args.jobs_verb == "list":
             jobs = job_service.list_jobs(task_type=args.type, limit=args.limit)
@@ -582,21 +583,23 @@ Cognitive Safeguards
 
             worker_service: Any = None
             if args.type == "fetch_pdf":
-                worker_service = GatewayFactory.get_pdf_finder_service()
+                worker_service = GatewayFactory.get_pdf_finder_service(force_user=force_user)
             elif args.type.startswith("discover"):
-                worker_service = GatewayFactory.get_snowball_worker()
+                worker_service = GatewayFactory.get_snowball_worker(force_user=force_user)
             else:
                 print(f"Error: Unsupported task type '{args.type}' for direct worker.")
                 return
 
             if args.watch:
-                self._watch_jobs(job_service, args.type)
+                self._watch_jobs(job_service, args.type, force_user)
             else:
                 console.print(f"[bold]Starting worker for task type '{args.type}'...[/bold]")
                 asyncio.run(worker_service.process_jobs(count=args.count))
                 console.print("[bold green]Done.[/bold green]")
 
-    def _watch_jobs(self, job_service: "JobQueueService", task_type: str) -> None:
+    def _watch_jobs(
+        self, job_service: "JobQueueService", task_type: str, force_user: bool = False
+    ) -> None:
         from rich.live import Live
         from rich.table import Table
 
@@ -638,9 +641,9 @@ Cognitive Safeguards
                 # Run worker for 1 job
                 svc: Any = None
                 if task_type == "fetch_pdf":
-                    svc = GatewayFactory.get_pdf_finder_service()
+                    svc = GatewayFactory.get_pdf_finder_service(force_user=force_user)
                 else:
-                    svc = GatewayFactory.get_snowball_worker()
+                    svc = GatewayFactory.get_snowball_worker(force_user=force_user)
 
                 asyncio.run(svc.process_jobs(count=1))
                 time.sleep(0.5)
