@@ -15,7 +15,12 @@ def mock_gateway():
 
 
 @pytest.fixture
-def mock_collection_service():
+def mock_collection_service(mock_gateway):
+    # CollectionCommand.execute() unconditionally constructs a real gateway
+    # up front regardless of verb - depends on mock_gateway (rather than
+    # separately re-patching get_zotero_gateway itself) so a test
+    # requesting both fixtures together still gets exactly one patch on
+    # that target, not two competing ones.
     with patch("zotero_cli.infra.factory.GatewayFactory.get_collection_service") as mock_get:
         service = MagicMock()
         mock_get.return_value = service
@@ -23,7 +28,7 @@ def mock_collection_service():
 
 
 @pytest.fixture
-def mock_purge_service():
+def mock_purge_service(mock_gateway):
     with patch("zotero_cli.infra.factory.GatewayFactory.get_purge_service") as mock_get:
         service = MagicMock()
         mock_get.return_value = service
@@ -31,7 +36,7 @@ def mock_purge_service():
 
 
 @pytest.fixture
-def mock_export_service():
+def mock_export_service(mock_gateway):
     with patch("zotero_cli.infra.factory.GatewayFactory.get_export_service") as mock_get:
         service = MagicMock()
         mock_get.return_value = service

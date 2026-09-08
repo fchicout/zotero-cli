@@ -100,9 +100,12 @@ def test_system_verify_failure(system_cmd, capsys):
 
 
 def test_system_backup(system_cmd, capsys):
-    with patch(
-        "zotero_cli.core.services.backup_service.BackupService.backup_system"
-    ) as mock_backup:
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
+        patch(
+            "zotero_cli.core.services.backup_service.BackupService.backup_system"
+        ) as mock_backup,
+    ):
         args = argparse.Namespace(verb="backup", output="test.zaf", user=False)
         system_cmd.execute(args)
 

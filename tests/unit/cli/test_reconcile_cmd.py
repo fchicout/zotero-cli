@@ -9,8 +9,18 @@ from zotero_cli.core.zotero_item import ZoteroItem
 
 @pytest.fixture
 def mock_deps():
+    # get_slr_orchestrator internally calls RepositoryFactory.
+    # get_zotero_gateway directly (bypassing the GatewayFactory facade
+    # mocked above), constructing its own real gateway if left unmocked -
+    # must be patched too, or a code path not covered by the
+    # SLROrchestrator method-level patches below could reach real network.
+    # Patched at the RepositoryFactory level (not GatewayFactory.
+    # get_slr_orchestrator itself) so SLROrchestrator is still
+    # constructed for real - the tests below patch its methods at the
+    # class level, which only takes effect on a genuine instance.
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mw,
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"),
         patch("zotero_cli.infra.factory.GatewayFactory.get_collection_service") as mc,
     ):
         yield mw.return_value, mc.return_value

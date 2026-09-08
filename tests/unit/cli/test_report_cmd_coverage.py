@@ -408,7 +408,10 @@ class TestReportCommandVerifyLatex:
 
         args = argparse.Namespace(report_type="verify-latex", latex="manuscript.tex", user=False)
         cmd = ReportCommand()
-        with patch("zotero_cli.infra.factory.GatewayFactory.get_audit_service") as mock_svc_get:
+        with (
+            patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
+            patch("zotero_cli.infra.factory.GatewayFactory.get_audit_service") as mock_svc_get,
+        ):
             mock_svc_get.return_value.audit_manuscript.return_value = mock_report
             cmd.execute(args)
 
@@ -427,7 +430,10 @@ class TestReportCommandVerifyLatex:
 
         args = argparse.Namespace(report_type="verify-latex", latex="manuscript.tex", user=False)
         cmd = ReportCommand()
-        with patch("zotero_cli.infra.factory.GatewayFactory.get_audit_service") as mock_svc_get:
+        with (
+            patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
+            patch("zotero_cli.infra.factory.GatewayFactory.get_audit_service") as mock_svc_get,
+        ):
             mock_svc_get.return_value.audit_manuscript.return_value = mock_report
             with pytest.raises(SystemExit):
                 cmd.execute(args)
@@ -442,7 +448,10 @@ class TestReportCommandVerifyLatex:
 
         args = argparse.Namespace(report_type="verify-latex", latex="empty.tex", user=False)
         cmd = ReportCommand()
-        with patch("zotero_cli.infra.factory.GatewayFactory.get_audit_service") as mock_svc_get:
+        with (
+            patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
+            patch("zotero_cli.infra.factory.GatewayFactory.get_audit_service") as mock_svc_get,
+        ):
             mock_svc_get.return_value.audit_manuscript.return_value = mock_report
             cmd.execute(args)
 

@@ -215,7 +215,7 @@ def test_rag_purge_all_and_col(mock_rag_service, env_vars):
 @patch("huggingface_hub.scan_cache_dir")
 @patch("shutil.rmtree")
 @patch("rich.prompt.Confirm.ask", return_value=True)
-def test_rag_model_clean(mock_confirm, mock_rmtree, mock_scan, env_vars, capsys):
+def test_rag_model_clean(mock_confirm, mock_rmtree, mock_scan, mock_rag_service, env_vars, capsys):
     mock_repo = MagicMock()
     mock_repo.repo_path = "/path/to/repo"
     mock_scan.return_value.size_on_disk_str = "1.5GB"
@@ -232,7 +232,7 @@ def test_rag_model_clean(mock_confirm, mock_rmtree, mock_scan, env_vars, capsys)
 
 @patch("rich.prompt.Prompt.ask", side_effect=["1", "3", "y"])
 @patch("huggingface_hub.snapshot_download")
-def test_rag_model_set(mock_download, mock_prompt, env_vars, capsys):
+def test_rag_model_set(mock_download, mock_prompt, mock_rag_service, env_vars, capsys):
     args = argparse.Namespace(verb="model", model_verb="set", user=False)
     RAGCommand().execute(args)
 
