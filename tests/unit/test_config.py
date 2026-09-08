@@ -119,3 +119,21 @@ def test_resolve_library_target_no_library_defined_required():
 def test_resolve_library_target_no_library_defined_not_required():
     config = ZoteroConfig(api_key="k", library_id=None, library_type="", user_id=None)
     assert config.resolve_library_target(require_group=False) == ("0", "user")
+
+
+def test_resolve_scoping_id_defaults_to_library_id():
+    config = ZoteroConfig(api_key="k", library_id="123", user_id="u1")
+    assert config.resolve_scoping_id() == "123"
+
+
+def test_resolve_scoping_id_force_user_prefers_user_id():
+    """Issue #257: --user must apply to purely-local storage scoping
+    (job queue, snowball discovery graph), not just the online gateway."""
+    config = ZoteroConfig(api_key="k", library_id="123", user_id="u1")
+    assert config.resolve_scoping_id(force_user=True) == "u1"
+
+
+def test_resolve_scoping_id_falls_back_to_default():
+    config = ZoteroConfig(api_key="k", library_id=None, user_id=None)
+    assert config.resolve_scoping_id() == "default"
+    assert config.resolve_scoping_id(force_user=True) == "default"

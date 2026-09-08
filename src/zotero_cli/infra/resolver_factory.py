@@ -109,6 +109,7 @@ class ResolverFactory:
     @staticmethod
     def get_snowball_graph_service(
         config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
     ) -> "SnowballGraphService":
         """
         Storage is scoped per-library when a config is supplied (Issue
@@ -118,7 +119,9 @@ class ResolverFactory:
         between groups - would silently share one discovery_graph.json,
         corrupting each other's candidate graphs. `config=None` keeps the
         pre-#228 global-singleton path, for backward compatibility with
-        any caller that genuinely has no library context.
+        any caller that genuinely has no library context. `force_user`
+        (Issue #257) makes the global `--user` flag apply to this
+        scoping too, not just the online gateway.
         """
         db_dir = get_storage_dir()
         db_dir.mkdir(parents=True, exist_ok=True)
@@ -127,7 +130,7 @@ class ResolverFactory:
         if config is None:
             storage_path = legacy_path
         else:
-            library_id = config.library_id or config.user_id or "default"
+            library_id = config.resolve_scoping_id(force_user)
             storage_path = db_dir / f"discovery_graph_{library_id}.json"
             # One-time graceful migration: the first library to be scoped
             # after upgrading inherits any pre-#228 unscoped graph rather
@@ -142,21 +145,23 @@ class ResolverFactory:
         return SnowballGraphService(storage_path)
 
     @staticmethod
-    def get_snowball_worker(config: Optional[ZoteroConfig] = None) -> "SnowballDiscoveryWorker":
+    def get_snowball_worker(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> "SnowballDiscoveryWorker":
         if not config:
             from zotero_cli.core.config import get_config
 
             config = get_config()
 
         gateway = ResolverFactory.get_network_gateway()
-        graph_service = ResolverFactory.get_snowball_graph_service(config)
+        graph_service = ResolverFactory.get_snowball_graph_service(config, force_user)
 
         # Lazy import: ServiceFactory imports ResolverFactory (for PDF-finder
         # resolvers), so this back-reference must stay function-local to avoid
         # a circular module import.
         from zotero_cli.infra.service_factory import ServiceFactory
 
-        job_queue = ServiceFactory.get_job_queue_service(config)
+        job_queue = ServiceFactory.get_job_queue_service(config, force_user)
 
         from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
 

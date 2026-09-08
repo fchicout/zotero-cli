@@ -94,6 +94,24 @@ class ZoteroConfig:
 
         return library_id, library_type
 
+    def resolve_scoping_id(self, force_user: bool = False) -> str:
+        """
+        Resolves the id used to scope purely-local, per-library storage
+        (job queue, snowball discovery graph) to the active library
+        (Issue #150/#228) - honoring `--user`/force_user the same way
+        `resolve_library_target` does for the online gateway (Issue
+        #257: these storage-scoping call sites previously read
+        `library_id`/`user_id` directly with no force_user awareness at
+        all, so `--user` silently had no effect on them). Softer than
+        `resolve_library_target`: never raises, falling back to
+        "default" when nothing resolves, since scoping a local file is
+        never itself a hard requirement the way targeting an online
+        library is.
+        """
+        if force_user:
+            return self.user_id or "default"
+        return self.library_id or self.user_id or "default"
+
 
 class ConfigLoader:
     """

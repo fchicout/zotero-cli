@@ -323,8 +323,10 @@ class GatewayFactory:
         return ServiceFactory.get_tag_service(config, force_user, offline)
 
     @staticmethod
-    def get_job_queue_service(config: Optional[ZoteroConfig] = None) -> "JobQueueService":
-        return ServiceFactory.get_job_queue_service(config)
+    def get_job_queue_service(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> "JobQueueService":
+        return ServiceFactory.get_job_queue_service(config, force_user)
 
     @staticmethod
     def get_pdf_finder_service(
@@ -389,12 +391,15 @@ class GatewayFactory:
     @staticmethod
     def get_snowball_graph_service(
         config: Optional[ZoteroConfig] = None,
+        force_user: bool = False,
     ) -> "SnowballGraphService":
-        return ResolverFactory.get_snowball_graph_service(config)
+        return ResolverFactory.get_snowball_graph_service(config, force_user)
 
     @staticmethod
-    def get_snowball_worker(config: Optional[ZoteroConfig] = None) -> "SnowballDiscoveryWorker":
-        return ResolverFactory.get_snowball_worker(config)
+    def get_snowball_worker(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> "SnowballDiscoveryWorker":
+        return ResolverFactory.get_snowball_worker(config, force_user)
 
     @staticmethod
     def get_snowball_ingestion_service(

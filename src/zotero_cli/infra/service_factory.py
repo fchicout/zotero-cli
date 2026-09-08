@@ -315,7 +315,9 @@ class ServiceFactory:
         return TagService(item_repo, tag_repo, purge_service)
 
     @staticmethod
-    def get_job_queue_service(config: Optional[ZoteroConfig] = None) -> "JobQueueService":
+    def get_job_queue_service(
+        config: Optional[ZoteroConfig] = None, force_user: bool = False
+    ) -> "JobQueueService":
         # Decouple from Zotero's main DB. Store jobs in the config directory.
         db_dir = get_storage_dir()
         db_dir.mkdir(parents=True, exist_ok=True)
@@ -328,8 +330,9 @@ class ServiceFactory:
         # Scope jobs to the active library (Issue #150): a config directory
         # can in principle be shared or omitted across invocations, and
         # without this, two SLR projects would silently share one job pool.
+        # force_user (Issue #257) makes --user apply to this scoping too.
         resolved_config = config or get_config()
-        library_id = resolved_config.library_id or resolved_config.user_id or "default"
+        library_id = resolved_config.resolve_scoping_id(force_user)
 
         from zotero_cli.core.services.job_queue_service import JobQueueService
 
