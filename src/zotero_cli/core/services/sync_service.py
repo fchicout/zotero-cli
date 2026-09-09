@@ -1,11 +1,14 @@
 import csv
 import json
+import logging
 import sys
 from typing import Any, Callable, Dict, List, Optional, cast
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.utils.csv_safety import sanitize_csv_rows
 from zotero_cli.core.zotero_item import ZoteroItem
+
+logger = logging.getLogger(__name__)
 
 # Progress Callback Type: current, total, message
 ProgressCallback = Callable[[int, int, str], None]
@@ -92,6 +95,7 @@ class SyncService:
                     recovered_rows.append(row)
             except Exception as e:
                 print(f"\n[ERROR] Failed on item {item.key}: {e}", file=sys.stderr)
+                logger.exception("Failed to recover screening state for item %s", item.key)
 
         # 4. Write CSV
         if not recovered_rows:
@@ -112,6 +116,7 @@ class SyncService:
             return True
         except Exception as e:
             print(f"Error writing CSV file: {e}", file=sys.stderr)
+            logger.exception("Error writing recovered-state CSV to %s", output_csv_path)
             return False
 
     def _extract_screening_data(self, item: ZoteroItem) -> Optional[Dict[str, Any]]:
@@ -120,6 +125,7 @@ class SyncService:
             children = self.item_repo.get_item_children(item.key)
         except Exception as e:
             print(f"Warning: Failed to fetch children for {item.key}: {e}", file=sys.stderr)
+            logger.warning("Failed to fetch children for item %s: %s", item.key, e)
             return None
 
         for child in children:

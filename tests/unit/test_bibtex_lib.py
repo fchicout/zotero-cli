@@ -42,3 +42,19 @@ def test_parse_file_success(mock_file, mock_load):
     assert isinstance(papers[1], ResearchPaper)
     assert papers[1].authors == ["Single Author"]
     assert papers[1].arxiv_id == "2301.00001"
+
+
+@patch("zotero_cli.infra.bibtex_lib.bibtexparser.load")
+@patch("builtins.open", new_callable=mock_open)
+def test_parse_file_error_is_logged(mock_file, mock_load, caplog):
+    """Regression test for Issue #293: a BibTeX parse failure must be
+    logged (not just printed), so it's diagnosable from logs alone in an
+    unattended context."""
+    mock_load.side_effect = ValueError("malformed entry")
+
+    gateway = BibtexLibGateway()
+    with caplog.at_level("ERROR"):
+        papers = list(gateway.parse_file("bad.bib"))
+
+    assert papers == []
+    assert any("bad.bib" in r.message for r in caplog.records)

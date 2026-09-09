@@ -1,3 +1,4 @@
+import logging
 import sys
 from typing import TYPE_CHECKING, List, Optional
 
@@ -11,6 +12,8 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.snowball_graph import SnowballGraphService
     from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
     from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
+
+logger = logging.getLogger(__name__)
 
 
 class ResolverFactory:
@@ -104,6 +107,7 @@ class ResolverFactory:
             print(
                 f"Warning: Failed to load generic resolvers from {yaml_path}: {e}", file=sys.stderr
             )
+            logger.warning("Failed to load generic resolvers from %s: %s", yaml_path, e)
             return []
 
     @staticmethod

@@ -1,10 +1,13 @@
 import json
+import logging
 import sys
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.zotero_item import ZoteroItem
+
+logger = logging.getLogger(__name__)
 
 # Type alias for the progress callback
 # Args: current_item_index, total_items, status_message
@@ -81,6 +84,7 @@ class SnapshotWriter:
                     f"\nWarning: Failed to fetch children for item '{item.key}'. Error: {e}",
                     file=sys.stderr,
                 )
+                logger.warning("Failed to fetch children for item %s: %s", item.key, e)
                 failed_items.append({"key": item.key, "title": item.title, "error": str(e)})
 
         # 4. Construct Final Artifact
@@ -119,6 +123,7 @@ class SnapshotWriter:
             return True
         except IOError as e:
             print(f"Error writing snapshot file: {e}", file=sys.stderr)
+            logger.exception("Error writing snapshot file to %s", output_path)
             return False
 
     def _serialize_item(self, item: ZoteroItem) -> Dict[str, Any]:

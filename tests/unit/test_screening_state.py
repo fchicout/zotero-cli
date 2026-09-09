@@ -1,8 +1,24 @@
 import csv
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from zotero_cli.core.services.screening_state import ScreeningStateService
 from zotero_cli.core.zotero_item import ZoteroItem
+
+
+def test_screening_state_load_failure_is_logged(tmp_path, caplog):
+    """Regression test for Issue #293: a failure loading the state file
+    must be logged (not just printed), so it's diagnosable from logs
+    alone in an unattended context."""
+    state_file = tmp_path / "screening_state.csv"
+    state_file.write_text("Timestamp,Key\nnow,K1\n")
+
+    with (
+        caplog.at_level("WARNING"),
+        patch("builtins.open", side_effect=OSError("Permission denied")),
+    ):
+        ScreeningStateService(str(state_file))
+
+    assert any("Permission denied" in r.message for r in caplog.records)
 
 
 def test_screening_state_loading(tmp_path):

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 
@@ -12,6 +13,8 @@ from typing import Dict, List, Optional
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import Job
 from zotero_cli.core.zotero_item import ZoteroItem
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -92,10 +95,12 @@ class ReportService:
             result = subprocess.run(cmd, capture_output=True, text=True)  # nosec B603
             if result.returncode != 0:
                 print(f"Error running mmdc: {result.stderr}")
+                logger.warning("mmdc exited with code %d: %s", result.returncode, result.stderr)
                 return False
             return True
         except Exception as e:
             print(f"Error rendering diagram: {e}")
+            logger.exception("Error rendering diagram to %s", output_path)
             return False
         finally:
             if os.path.exists(tmp_path):
