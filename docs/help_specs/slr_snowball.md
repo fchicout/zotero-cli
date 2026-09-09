@@ -11,9 +11,10 @@ graph TD
     B --> C["Discovery: Crawl Citations & References via APIs"]
     C --> D["Review: Interactive TUI for Discovery Candidates"]
     D --> E{"Action?"}
-    E -- "Accept" --> F["Import: Bulk Upload to Zotero Collection"]
+    E -- "Accept" --> F["Mark as ACCEPTED in Discovery Graph"]
     E -- "Reject" --> G["Mark as Excluded in Graph"]
-    F --> H["End: Expanded Library"]
+    F --> I["import (separate, manual command): Bulk Upload to Zotero Collection"]
+    I --> H["End: Expanded Library"]
     G --> H
 ```
 
@@ -26,8 +27,8 @@ The `slr snowball` command is the "Growth Engine" for literature reviews. It aut
 The process follows a structured lifecycle:
 1.  **Seed**: You provide a set of "Golden Papers" via their DOIs.
 2.  **Discovery**: Background workers crawl academic APIs (like Semantic Scholar or CrossRef) to find related papers.
-3.  **Review**: An interactive TUI allows you to quickly screen these discovered candidates.
-4.  **Import**: Successfully screened papers are automatically added to your Zotero library. 
+3.  **Review**: An interactive TUI allows you to quickly screen these discovered candidates. Accepting a candidate here only marks it ACCEPTED in the local discovery graph - it does **not** write anything to Zotero yet.
+4.  **Import**: Run `slr snowball import --target <collection>` as a separate, manually-invoked step to actually add your ACCEPTED candidates to a Zotero collection. Nothing runs this automatically after `review`.
 This command ensures that your review is comprehensive and captures all relevant branches of a research topic.
 
 ## 5. Parameter Matrix
