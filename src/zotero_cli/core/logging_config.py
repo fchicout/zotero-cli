@@ -75,5 +75,8 @@ def reset_logging_for_tests() -> None:
     global _configured
     _configured = False
     root = logging.getLogger()
-    for handler in list(root.handlers):
+    # A slice copy, not list(root.handlers) - removeHandler() mutates
+    # root.handlers in place, so iterating the live list would skip every
+    # other handler.
+    for handler in root.handlers[:]:
         root.removeHandler(handler)
