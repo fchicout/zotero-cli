@@ -1,7 +1,9 @@
 import json
+import logging
 import os
 import shutil
 import sqlite3
+import sys
 import tempfile
 from typing import Any, Dict, Iterator, List, Optional
 
@@ -9,6 +11,8 @@ from zotero_cli.core.interfaces import JobRepository, ZoteroGateway
 from zotero_cli.core.models import Job, ResearchPaper, ZoteroQuery
 from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.zotero_item import ZoteroItem
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigurationError(Exception):
@@ -31,6 +35,23 @@ class SqliteZoteroGateway(ZoteroGateway):
         if not database_path or not os.path.exists(database_path):
             raise ConfigurationError(f"Zotero database not found at: {database_path}")
         self.original_db_path = database_path
+
+        # Issue #291: unlike online mode (which always scopes every request
+        # to the configured library_id/user_id), every query here runs
+        # against the entire local zotero.sqlite with no libraryID filter -
+        # anyone syncing more than one library locally (a standard Zotero
+        # Desktop setup: personal + one or more groups) will silently see
+        # items from every synced library, and a Zotero item key collision
+        # across libraries can return the wrong item. Warn loudly rather
+        # than let this be a silent wrong answer.
+        warning = (
+            "Warning: --offline mode operates across the ENTIRE local "
+            "zotero.sqlite database, not just the configured library_id - "
+            "if more than one library (personal + any groups) is synced "
+            "locally, results will include items from all of them."
+        )
+        print(warning, file=sys.stderr)
+        logger.warning(warning)
 
     def _get_connection(self) -> sqlite3.Connection:
         # Create shadow copy
