@@ -26,11 +26,15 @@ def verify_environment() -> None:
 verify_environment()
 
 import argparse  # noqa: E402
+import logging  # noqa: E402
 
 from zotero_cli.cli import commands  # noqa: F401, E402 (Trigger registration)
 from zotero_cli.cli.base import CommandRegistry  # noqa: E402
 from zotero_cli.core.config import get_config  # noqa: E402
 from zotero_cli.core.exceptions import ConfigurationError  # noqa: E402
+from zotero_cli.core.logging_config import setup_logging  # noqa: E402
+
+logger = logging.getLogger(__name__)
 
 # --- Global State ---
 FORCE_USER = False
@@ -48,11 +52,17 @@ def main() -> None:
         help=(
             "Use local zotero.sqlite database (read-only). Operates across "
             "the entire local database, not just the configured library - "
-            "see docs/ARCHITECTURE.md if more than one library is synced "
+            "see docs/SETUP_GUIDE.md if more than one library is synced "
             "locally."
         ),
     )
     parser.add_argument("--config", help="Path to a custom config.toml")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable debug-level logging to stderr (always logged to file regardless)",
+    )
     subparsers = parser.add_subparsers(dest="command", help="Primary Commands")
 
     # --- Registered Commands ---
@@ -69,6 +79,13 @@ def main() -> None:
     global FORCE_USER, OFFLINE_MODE
     FORCE_USER = args.user
     OFFLINE_MODE = args.offline
+
+    # Issue #292: without this, logger.info/.debug calls vanish entirely
+    # (default root level is WARNING with no handler) and logger.warning/
+    # .exception fall through to logging.lastResort - an unformatted
+    # stderr line with no persistence, leaving no way to debug a failed
+    # background job (slr snowball discovery, system jobs) from logs alone.
+    setup_logging(verbose=args.verbose)
 
     try:
         # Initialize global config with potential path override - inside
@@ -94,6 +111,7 @@ def main() -> None:
         import traceback
 
         traceback.print_exc()
+        logger.exception("Unhandled exception during command dispatch")
         sys.exit(1)
 
 
