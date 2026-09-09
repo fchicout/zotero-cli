@@ -77,9 +77,10 @@ def test_setup_logging_verbose_lowers_stderr_level(tmp_path):
     logging_config.reset_logging_for_tests()
 
 
-def test_setup_logging_degrades_gracefully_on_unwritable_log_dir(tmp_path, monkeypatch):
+def test_setup_logging_degrades_gracefully_on_unwritable_log_dir(tmp_path, monkeypatch, capsys):
     """A read-only/unwritable storage dir must not prevent the CLI from
-    running - only the file handler should be skipped."""
+    running - only the file handler should be skipped, and the failure
+    must be surfaced (not silently swallowed)."""
     logging_config.reset_logging_for_tests()
     log_dir = tmp_path / "logs"
 
@@ -93,5 +94,6 @@ def test_setup_logging_degrades_gracefully_on_unwritable_log_dir(tmp_path, monke
     root = logging.getLogger()
     assert len(root.handlers) == 1
     assert isinstance(root.handlers[0], logging.StreamHandler)
+    assert "Permission denied" in capsys.readouterr().err
 
     logging_config.reset_logging_for_tests()

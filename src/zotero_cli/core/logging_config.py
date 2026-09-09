@@ -1,5 +1,6 @@
 import logging
 import logging.handlers
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -59,10 +60,12 @@ def setup_logging(verbose: bool = False, log_dir: Optional[Path] = None) -> None
             logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
         )
         root.addHandler(file_handler)
-    except OSError:
+    except OSError as e:
         # A read-only/unwritable storage dir shouldn't block the CLI from
-        # running at all - degrade to stderr-only logging.
-        pass
+        # running at all - degrade to stderr-only logging, but still
+        # surface why the file handler wasn't set up rather than swallowing
+        # the failure silently.
+        print(f"Warning: Could not set up log file at {log_dir}: {e}", file=sys.stderr)
 
 
 def reset_logging_for_tests() -> None:
