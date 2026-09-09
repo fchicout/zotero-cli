@@ -201,9 +201,19 @@ class ConfigLoader:
                 data = tomllib.load(f)
                 # Expecting a [zotero] section
                 return cast(Dict[str, Any], data.get("zotero", {}))
-        except Exception as e:
+        except OSError as e:
+            # Can't read the file at all (permissions, etc.) - degrade to
+            # "no config" rather than blocking every command, matching the
+            # pre-existing behavior for a genuinely missing file.
             print(f"Warning: Failed to load config file {self.config_path}: {e}")
             return {}
+        except Exception as e:
+            # A parse failure (bad TOML syntax, wrong encoding) must not be
+            # silently swallowed to "config is empty" (Issue #290) - that
+            # masks the real cause behind a generic, unrelated error several
+            # layers deeper (e.g. "No target library defined"). Raise so the
+            # caller fails fast with the actual reason instead.
+            raise ConfigurationError(f"Failed to parse config file {self.config_path}: {e}") from e
 
 
 class ConfigManager:

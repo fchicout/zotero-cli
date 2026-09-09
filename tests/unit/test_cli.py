@@ -53,7 +53,7 @@ def env_vars(monkeypatch):
 
 
 # --- 1. CONFIG / INIT ---
-def test_init_command(mock_clients, env_vars, capsys):
+def test_init_command(mock_clients, env_vars, capsys, tmp_path):
     with (
         patch("zotero_cli.cli.commands.init_cmd.Prompt.ask") as mock_ask,
         patch("zotero_cli.cli.commands.init_cmd.Confirm.ask") as mock_confirm,
@@ -64,7 +64,13 @@ def test_init_command(mock_clients, env_vars, capsys):
         mock_confirm.return_value = True
         mock_clients["zotero"].verify_credentials.return_value = True
 
-        test_args = ["zotero-cli", "init"]
+        # A nonexistent --config path lets main()'s own get_config() call
+        # short-circuit to an empty file_config (falling back to env_vars)
+        # without ever reaching the globally-mocked `open()` above via a
+        # real config.toml on this machine (Issue #290: a config-parse
+        # failure now raises instead of being silently swallowed, so this
+        # test must not depend on that swallow to pass).
+        test_args = ["zotero-cli", "--config", str(tmp_path / "nonexistent.toml"), "init"]
         with patch.object(sys, "argv", test_args):
             main()
     assert "Configuration saved" in capsys.readouterr().out

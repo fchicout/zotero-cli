@@ -63,23 +63,31 @@ def main() -> None:
     FORCE_USER = args.user
     OFFLINE_MODE = args.offline
 
-    # Initialize global config with potential path override
-    get_config(args.config)
+    try:
+        # Initialize global config with potential path override - inside
+        # the same handling as command dispatch below, since a malformed
+        # config.toml now raises ConfigurationError here (Issue #290)
+        # rather than being silently swallowed to an empty config. Skipped
+        # for `init`, which is the dedicated recovery path for a missing
+        # or broken config file and never reads the global config itself -
+        # eagerly parsing here would block a user from ever reaching `init`
+        # to fix a config.toml that's actually broken.
+        if getattr(args, "command", None) != "init":
+            get_config(args.config)
 
-    if hasattr(args, "func"):
-        try:
+        if hasattr(args, "func"):
             args.func(args)
-        except ConfigurationError as e:
-            print(str(e), file=sys.stderr)
-            sys.exit(1)
-        except Exception as e:
-            print(f"Error: {e}", file=sys.stderr)
-            import traceback
+        else:
+            parser.print_help()
+    except ConfigurationError as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        import traceback
 
-            traceback.print_exc()
-            sys.exit(1)
-    else:
-        parser.print_help()
+        traceback.print_exc()
+        sys.exit(1)
 
 
 if __name__ == "__main__":
