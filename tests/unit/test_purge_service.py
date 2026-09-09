@@ -459,3 +459,86 @@ def test_purge_collection_not_found(purge_service, mock_gateway):
     mock_gateway.get_collection_id_by_name.return_value = None
     stats = purge_service.purge_collection_assets("Unknown", dry_run=False)
     assert stats["errors"] == 1
+
+
+def _attachment_item(key, parent_item, version=1):
+    raw = {"key": key, "data": {"itemType": "attachment", "version": version, "key": key}}
+    return ZoteroItem(
+        key=key, version=version, item_type="attachment", parent_item=parent_item, raw_data=raw
+    )
+
+
+def _note_item(key, parent_item, note="", version=1):
+    raw = {
+        "key": key,
+        "data": {"itemType": "note", "version": version, "key": key, "note": note},
+    }
+    return ZoteroItem(
+        key=key, version=version, item_type="note", parent_item=parent_item, raw_data=raw
+    )
+
+
+def test_purge_attachments_batches_scan_for_many_parents(purge_service, mock_gateway):
+    """Regression test for Issue #276: with more than a couple of parent
+    keys, purge_attachments must do one search_items(item_type=...) scan
+    instead of one get_item_children round-trip per parent."""
+    mock_gateway.search_items.return_value = [
+        _attachment_item("A1", "P1"),
+        _attachment_item("A2", "P2"),
+        _attachment_item("A3", "OTHER"),  # not one of the requested parents
+    ]
+    mock_gateway.delete_item.return_value = True
+
+    stats = purge_service.purge_attachments(["P1", "P2", "P3"], dry_run=False)
+
+    assert stats["deleted"] == 2
+    mock_gateway.get_item_children.assert_not_called()
+    mock_gateway.search_items.assert_called_once()
+    query = mock_gateway.search_items.call_args[0][0]
+    assert query.item_type == "attachment"
+    mock_gateway.delete_item.assert_any_call("A1", 1)
+    mock_gateway.delete_item.assert_any_call("A2", 1)
+
+
+def test_purge_notes_batches_scan_for_many_parents(purge_service, mock_gateway):
+    """Regression test for Issue #276, notes path."""
+    mock_gateway.search_items.return_value = [
+        _note_item("N1", "P1"),
+        _note_item("N2", "P2"),
+    ]
+    mock_gateway.delete_item.return_value = True
+
+    stats = purge_service.purge_notes(["P1", "P2", "P3"], dry_run=False)
+
+    assert stats["deleted"] == 2
+    mock_gateway.get_item_children.assert_not_called()
+    mock_gateway.search_items.assert_called_once()
+    query = mock_gateway.search_items.call_args[0][0]
+    assert query.item_type == "note"
+
+
+def test_purge_attachments_batch_scan_failure_counts_errors_per_parent(
+    purge_service, mock_gateway
+):
+    """A failed batched scan must still report one error per requested
+    parent, matching the pre-batching per-item error-isolation behavior."""
+    mock_gateway.search_items.side_effect = Exception("API Error")
+
+    stats = purge_service.purge_attachments(["P1", "P2", "P3"], dry_run=False)
+
+    assert stats["errors"] == 3
+    mock_gateway.get_item_children.assert_not_called()
+
+
+def test_purge_attachments_stays_per_item_at_or_below_threshold(purge_service, mock_gateway):
+    """At or below the batch threshold, purge_attachments must keep using
+    per-parent get_item_children lookups rather than a full scan."""
+    mock_gateway.get_item_children.return_value = [
+        {"key": "A1", "data": {"itemType": "attachment", "version": 1}}
+    ]
+    mock_gateway.delete_item.return_value = True
+
+    stats = purge_service.purge_attachments(["P1", "P2"], dry_run=False)
+
+    assert stats["deleted"] == 2
+    mock_gateway.search_items.assert_not_called()
