@@ -2,10 +2,11 @@ import json
 import logging
 import zipfile
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
+from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -52,8 +53,16 @@ class RestoreService:
                 # 2. Restore Items (Top-level first, then children)
                 sorted_items = self._sort_items_by_hierarchy(items_data)
 
+                # One library-wide scan, indexed by DOI and title, reused for
+                # every item's idempotency check below instead of two full
+                # scans (get_items_by_doi + get_all_items) per item
+                # (Issue #277, same class as #267).
+                doi_index, title_index = self._build_existing_item_indexes()
+
                 for item_raw in sorted_items:
-                    self._restore_single_item(item_raw, zf, manifest, report)
+                    self._restore_single_item(
+                        item_raw, zf, manifest, report, doi_index, title_index
+                    )
 
         except Exception as e:
             report.errors.append(f"Critical error during restore: {str(e)}")
@@ -72,13 +81,18 @@ class RestoreService:
 
         sorted_colls = sorted(colls, key=lambda c: get_depth(c, colls))
 
+        # Fetched once for the whole loop, not per collection (Issue #277) -
+        # this reflects the destination library's pre-existing collections;
+        # collections created earlier in this same loop are tracked via
+        # self.coll_map instead, so they don't need to appear here too.
+        existing_cols = self.gateway.get_all_collections()
+
         for c_raw in sorted_colls:
             old_key = c_raw["key"]
             name = c_raw["data"]["name"]
             old_parent = c_raw["data"].get("parentCollection")
             new_parent = self.coll_map.get(old_parent) if old_parent else None
 
-            existing_cols = self.gateway.get_all_collections()
             match = next(
                 (
                     ec
@@ -104,7 +118,13 @@ class RestoreService:
                         report.errors.append(f"Failed to create collection: {name}")
 
     def _restore_single_item(
-        self, item_raw: dict, zf: zipfile.ZipFile, manifest: dict, report: RestoreReport
+        self,
+        item_raw: dict,
+        zf: zipfile.ZipFile,
+        manifest: dict,
+        report: RestoreReport,
+        doi_index: Dict[str, ZoteroItem],
+        title_index: Dict[str, ZoteroItem],
     ) -> None:
         data = item_raw.get("data", {})
         item_type = data.get("itemType")
@@ -115,7 +135,7 @@ class RestoreService:
             return
 
         # 1. Idempotency: Check by DOI, ArXiv ID, or Title
-        existing_item = self._find_existing_item(data)
+        existing_item = self._find_existing_item(data, doi_index, title_index)
         if existing_item:
             self.item_map[old_key] = existing_item.key
             report.items_skipped_existing += 1
@@ -226,22 +246,46 @@ class RestoreService:
         except Exception as e:
             report.errors.append(f"Failed to upload attachment {path_in_zip}: {str(e)}")
 
-    def _find_existing_item(self, data: dict) -> Optional[ZoteroItem]:
+    def _build_existing_item_indexes(
+        self,
+    ) -> Tuple[Dict[str, ZoteroItem], Dict[str, ZoteroItem]]:
+        """
+        One get_all_items() pass, indexed by normalized DOI and lowercased
+        title, reused by every _find_existing_item() call instead of each
+        item doing its own get_items_by_doi() scan plus (on a miss) its own
+        get_all_items() scan - two full-library scans per item instead of
+        one for the whole restore (Issue #277, same class as #267).
+        """
+        doi_index: Dict[str, ZoteroItem] = {}
+        title_index: Dict[str, ZoteroItem] = {}
+        for item in self.gateway.get_all_items():
+            if item.doi:
+                normalized = normalize_doi(item.doi)
+                if normalized and normalized not in doi_index:
+                    doi_index[normalized] = item
+            if item.title:
+                key = item.title.lower()
+                if key not in title_index:
+                    title_index[key] = item
+        return doi_index, title_index
+
+    def _find_existing_item(
+        self,
+        data: dict,
+        doi_index: Dict[str, ZoteroItem],
+        title_index: Dict[str, ZoteroItem],
+    ) -> Optional[ZoteroItem]:
         doi = data.get("DOI")
         if doi:
-            items = list(self.gateway.get_items_by_doi(doi))
-            if items:
-                return items[0]
+            normalized = normalize_doi(doi)
+            if normalized and normalized in doi_index:
+                return doi_index[normalized]
 
         # Fallback to Title + Year matching for robustness [SPEC-ZAF-002-UPDATE]
         title = data.get("title")
         if title:
             # Simple exact title match as a baseline
-            items = list(self.gateway.get_all_items())
-            for item in items:
-                if item.title and item.title.lower() == title.lower():
-                    # Optional: Check year if both have it
-                    return item
+            return title_index.get(title.lower())
         return None
 
     def _sort_items_by_hierarchy(self, items: List[dict]) -> List[dict]:
