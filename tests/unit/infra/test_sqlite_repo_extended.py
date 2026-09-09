@@ -222,6 +222,34 @@ def test_job_repo_legacy_null_library_id_stays_visible(tmp_path):
     assert popped.item_key == "LEGACY"
 
 
+def test_job_repo_claims_legacy_job_exclusively_on_pop(tmp_path):
+    """Regression test for Issue #289: once a scoped queue pops a legacy
+    (library_id IS NULL) job, it must be stamped with that library_id in
+    the same claim - otherwise it stays poachable by every other
+    library's queue on every subsequent retry cycle, risking cross-tenant
+    job execution."""
+    db_path = str(tmp_path / "jobs.sqlite")
+    repo = SqliteJobRepository(db_path)
+    repo.enqueue(Job(item_key="LEGACY", task_type="t1", payload={}))  # library_id=None
+
+    popped = repo.get_next_pending("t1", library_id="lib-A")
+    assert popped is not None
+    assert popped.library_id == "lib-A"
+
+    # Simulate the job going back to RETRY (e.g. a transient failure) and
+    # confirm a *different* library's queue can no longer claim it.
+    popped.status = "RETRY"
+    popped.next_retry_at = None
+    repo.update_job(popped)
+
+    stolen = repo.get_next_pending("t1", library_id="lib-B")
+    assert stolen is None
+
+    reclaimed = repo.get_next_pending("t1", library_id="lib-A")
+    assert reclaimed is not None
+    assert reclaimed.item_key == "LEGACY"
+
+
 def test_job_repo_creates_task_status_index(tmp_path):
     """Regression test for Issue #270: get_next_pending's WHERE clause
     filters on (task_type, status) on every poll -- there must be an index
