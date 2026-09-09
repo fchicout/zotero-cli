@@ -165,3 +165,25 @@ def test_resolve_scoping_id_falls_back_to_default():
     config = ZoteroConfig(api_key="k", library_id=None, user_id=None)
     assert config.resolve_scoping_id() == "default"
     assert config.resolve_scoping_id(force_user=True) == "default"
+
+
+def test_resolve_scoping_id_default_fallback_logs_a_warning(caplog):
+    """Regression test for Issue #296: falling back to the shared
+    'default' storage scope must be logged, not silent - it's a real
+    data-mixing footgun (job queue / discovery graph shared across
+    otherwise-unrelated under-configured sessions)."""
+    config = ZoteroConfig(api_key="k", library_id=None, user_id=None)
+
+    with caplog.at_level("WARNING"):
+        config.resolve_scoping_id()
+
+    assert any("default" in r.message for r in caplog.records)
+
+
+def test_resolve_scoping_id_no_warning_when_library_id_resolves(caplog):
+    config = ZoteroConfig(api_key="k", library_id="123", user_id="u1")
+
+    with caplog.at_level("WARNING"):
+        config.resolve_scoping_id()
+
+    assert caplog.records == []

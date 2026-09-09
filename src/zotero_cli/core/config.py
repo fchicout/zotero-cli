@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import sys
@@ -11,6 +12,8 @@ if sys.version_info >= (3, 11):
     import tomllib
 else:
     import tomli as tomllib
+
+logger = logging.getLogger(__name__)
 
 
 def secure_config_open(path: Path) -> Any:
@@ -109,8 +112,25 @@ class ZoteroConfig:
         library is.
         """
         if force_user:
-            return self.user_id or "default"
-        return self.library_id or self.user_id or "default"
+            resolved = self.user_id or "default"
+        else:
+            resolved = self.library_id or self.user_id or "default"
+
+        if resolved == "default":
+            # Issue #296: silently merging every under-configured setup's
+            # job-queue/discovery-graph storage into one shared "default"
+            # bucket, with no signal at all, is an undiagnosable data-mixing
+            # footgun - offline-mode users (who don't need library_id/
+            # user_id at all) are exactly the population most likely to hit
+            # this. Warn so there's at least a log trail explaining why.
+            logger.warning(
+                "resolve_scoping_id: neither library_id nor user_id is set - "
+                "falling back to the shared 'default' storage scope. Local "
+                "job-queue/discovery-graph data will be shared with any other "
+                "similarly under-configured session on this machine."
+            )
+
+        return resolved
 
 
 class ConfigLoader:
