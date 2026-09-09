@@ -29,6 +29,8 @@ The `library_id` tells the tool which library to target by default.
 *   **The --user Flag:** Using `--user` (or `system switch --user`) forces the tool to target your personal collections. If you have specified a `database_path`, this will also enable **Offline Mode** for searching your local Zotero database.
 
 > **⚠️ Offline Mode scope:** `--offline` reads directly from your local `zotero.sqlite` file and does **not** filter by `library_id`/`library_type` - it operates across the *entire* local database. If Zotero Desktop syncs more than one library on this machine (your personal library plus any groups), offline-mode commands will see and count items from all of them, not just the one configured in `config.toml`. This can produce item counts, PRISMA totals, or screening results that don't match what the same commands report in online mode. If you only ever sync one library locally, this doesn't affect you.
+>
+> `--offline` is also **read-only**: most write-oriented commands (`slr decide`, `slr screen`, `item edit`, `slr snowball import`, etc.) aren't offline-compatible and will fail with "Offline mode is read-only" if you forget to drop the flag. `item trash`/`item restore` are the only write paths offline mode explicitly supports.
 
 ## 4. Boost Your Research (Optional Services)
 Adding these parameters to `config.toml` unlocks powerful automation features:
