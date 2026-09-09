@@ -193,13 +193,17 @@ def test_bulk_export_markdown(service, mock_gateway, tmp_path):
         assert (tmp_path / "K2_test_paper.md").exists()
 
 
-def test_download_file_refuses_unsafe_url(service):
+def test_download_file_refuses_unsafe_url(service, caplog):
     """Issue #235: item.url is attacker-settable by any collaborator with
     write access to a shared library - _download_file must refuse a URL
     that resolves to a private/loopback/link-local address rather than
     fetching it."""
-    result = service._download_file("http://127.0.0.1/admin")
+    with caplog.at_level("WARNING"):
+        result = service._download_file("http://127.0.0.1/admin")
     assert result is None
+    # Issue #293: this error must also be logged, not just printed, so it's
+    # visible from logs alone in an unattended context (serve, background jobs).
+    assert any("unsafe URL" in r.message for r in caplog.records)
 
 
 def test_download_file_rejects_non_pdf_content(service):

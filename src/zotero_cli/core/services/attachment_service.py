@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -22,6 +23,8 @@ from zotero_cli.core.utils.url_safety import (
     safe_get,
 )
 from zotero_cli.core.zotero_item import ZoteroItem
+
+logger = logging.getLogger(__name__)
 
 
 class AttachmentService(FullTextProvider):
@@ -213,16 +216,19 @@ class AttachmentService(FullTextProvider):
             return path
         except UnsafeURLError as e:
             print(f"Download error: refusing unsafe URL - {e}")
+            logger.warning("Download error: refusing unsafe URL %r: %s", url, e)
             if path and os.path.exists(path):
                 os.remove(path)
             return None
         except ResponseTooLargeError as e:
             print(f"Download error: response too large - {e}")
+            logger.warning("Download error: response too large for %r: %s", url, e)
             if path and os.path.exists(path):
                 os.remove(path)
             return None
         except Exception as e:
             print(f"Download error: {e}")
+            logger.exception("Download error for %r", url)
             if path and os.path.exists(path):
                 os.remove(path)
             return None
@@ -254,6 +260,7 @@ class AttachmentService(FullTextProvider):
                 return result.text_content
             except Exception as e:
                 print(f"Full-text extraction error for {item_key}: {e}")
+                logger.exception("Full-text extraction error for %s", item_key)
                 return None
             # No finally block needed here as TemporaryDirectory cleans up on __exit__
 
@@ -295,6 +302,7 @@ class AttachmentService(FullTextProvider):
                         stats["failed"] += 1
                 except Exception as e:
                     print(f"Error exporting {item.key}: {e}")
+                    logger.exception("Error exporting %s", item.key)
                     stats["failed"] += 1
 
         return stats
@@ -323,4 +331,5 @@ class AttachmentService(FullTextProvider):
             return "success"
         except Exception as e:
             print(f"File write error for {item.key}: {e}")
+            logger.exception("File write error for %s", item.key)
             return "failed"

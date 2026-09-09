@@ -1,3 +1,4 @@
+import logging
 from typing import Iterator, List
 
 import bibtexparser
@@ -6,6 +7,8 @@ from bibtexparser.bwriter import BibTexWriter
 
 from zotero_cli.core.interfaces import BibtexGateway
 from zotero_cli.core.models import ResearchPaper
+
+logger = logging.getLogger(__name__)
 
 
 class BibtexLibGateway(BibtexGateway):
@@ -22,6 +25,7 @@ class BibtexLibGateway(BibtexGateway):
                 yield self._map_entry_to_paper(entry)
         except Exception as e:
             print(f"Error parsing BibTeX file: {e}")
+            logger.exception("Error parsing BibTeX file %s", file_path)
             return
 
     def serialize(self, papers: List[ResearchPaper]) -> str:
@@ -44,6 +48,7 @@ class BibtexLibGateway(BibtexGateway):
             return True
         except Exception as e:
             print(f"Error writing BibTeX file: {e}")
+            logger.exception("Error writing BibTeX file %s", file_path)
             return False
 
     def _map_entry_to_paper(self, entry: dict) -> ResearchPaper:

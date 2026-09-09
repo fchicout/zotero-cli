@@ -1,9 +1,12 @@
 import csv
+import logging
 import os
 from datetime import datetime
 from typing import Any, List, Set
 
 from zotero_cli.core.utils.csv_safety import sanitize_csv_row
+
+logger = logging.getLogger(__name__)
 
 
 class ScreeningStateService:
@@ -30,6 +33,7 @@ class ScreeningStateService:
                         self.screened_keys.add(key)
         except Exception as e:
             print(f"Warning: Failed to load state file: {e}")
+            logger.warning("Failed to load screening state file %s: %s", self.state_file, e)
 
     def is_screened(self, item_key: str) -> bool:
         return item_key in self.screened_keys
@@ -67,6 +71,7 @@ class ScreeningStateService:
             self.screened_keys.add(item_key)
         except Exception as e:
             print(f"Error writing to state file: {e}")
+            logger.exception("Error writing to screening state file %s", self.state_file)
 
     def filter_pending(self, items: List[Any]) -> List[Any]:
         """Filters out items that have already been screened."""

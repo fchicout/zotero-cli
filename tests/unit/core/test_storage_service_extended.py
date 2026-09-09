@@ -123,7 +123,7 @@ def test_download_failure_cleanup(mock_config, mock_gateway):
     assert not (storage_root / "fail.pdf").exists()
 
 
-def test_download_exception_cleanup(mock_config, mock_gateway):
+def test_download_exception_cleanup(mock_config, mock_gateway, caplog):
     storage_root = Path(mock_config.storage_path)
     storage_root.mkdir()
     service = StorageService(mock_config, mock_gateway)
@@ -133,8 +133,12 @@ def test_download_exception_cleanup(mock_config, mock_gateway):
 
     mock_gateway.download_attachment.side_effect = RuntimeError("Network down")
 
-    assert service.checkout_single_item(item, storage_root) is False
+    with caplog.at_level("ERROR"):
+        assert service.checkout_single_item(item, storage_root) is False
     assert not (storage_root / "exc.pdf").exists()
+    # Issue #293: the exception must also be logged, not just printed, so
+    # it's diagnosable from logs alone in an unattended context.
+    assert any("K1" in r.message for r in caplog.records)
 
 
 def test_update_failure_rollback(mock_config, mock_gateway):

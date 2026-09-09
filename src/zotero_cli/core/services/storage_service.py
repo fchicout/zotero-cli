@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -5,6 +6,8 @@ from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import ZoteroQuery
 from zotero_cli.core.zotero_item import ZoteroItem
+
+logger = logging.getLogger(__name__)
 
 
 class StorageService:
@@ -30,6 +33,7 @@ class StorageService:
                 storage_root.mkdir(parents=True, exist_ok=True)
             except Exception as e:
                 print(f"Error creating storage directory: {e}")
+                logger.exception("Error creating storage directory %s", storage_root)
                 return 0
 
         print(f"Scanning for stored attachments (Limit: {limit})...")
@@ -114,6 +118,7 @@ class StorageService:
                 return False
         except Exception as e:
             print(f"  Exception downloading: {e}")
+            logger.exception("Exception downloading attachment for item %s", item.key)
             if target_path.exists():
                 target_path.unlink()
             return False
@@ -126,6 +131,7 @@ class StorageService:
                 return False
         except Exception as e:
             print(f"  Exception updating: {e}")
+            logger.exception("Exception updating attachment link for item %s", item.key)
             if target_path.exists():
                 target_path.unlink()
             return False

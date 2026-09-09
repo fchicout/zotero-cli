@@ -1,10 +1,13 @@
 import io
+import logging
 from typing import Iterator, List
 
 import rispy
 
 from zotero_cli.core.interfaces import RisGateway
 from zotero_cli.core.models import ResearchPaper
+
+logger = logging.getLogger(__name__)
 
 
 class RisLibGateway(RisGateway):
@@ -17,6 +20,7 @@ class RisLibGateway(RisGateway):
                 yield self._map_entry_to_paper(entry)
         except Exception as e:
             print(f"Error parsing RIS file: {e}")
+            logger.exception("Error parsing RIS file %s", file_path)
             return
 
     def serialize(self, papers: List[ResearchPaper]) -> str:
@@ -35,6 +39,7 @@ class RisLibGateway(RisGateway):
             return True
         except Exception as e:
             print(f"Error writing RIS file: {e}")
+            logger.exception("Error writing RIS file %s", file_path)
             return False
 
     def _map_entry_to_paper(self, entry: dict) -> ResearchPaper:

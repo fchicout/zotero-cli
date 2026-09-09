@@ -1,8 +1,11 @@
+import logging
 import re
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
 
 from zotero_cli.core.interfaces import ItemRepository
+
+logger = logging.getLogger(__name__)
 
 
 class AuditService:
@@ -69,6 +72,7 @@ class AuditService:
                 content = f.read()
         except Exception as e:
             print(f"Warning: Failed to read {latex_file}: {e}")
+            logger.warning("Failed to read LaTeX file %s: %s", latex_file, e)
             return set()
 
         # Filter out commented lines
