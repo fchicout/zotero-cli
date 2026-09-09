@@ -269,6 +269,23 @@ def test_sqlite_write_fails(mock_db):
     assert "read-only" in str(excinfo.value)
 
 
+def test_sqlite_gateway_warns_about_unscoped_library_access(mock_db, capsys, caplog):
+    """Regression test for Issue #291: SqliteZoteroGateway queries every
+    library in the local zotero.sqlite with no library_id filter - must
+    warn loudly at construction time (stderr + logger.warning) rather
+    than silently risking a wrong answer across multiple synced
+    libraries."""
+    import logging
+
+    with caplog.at_level(logging.WARNING):
+        SqliteZoteroGateway(mock_db)
+
+    err = capsys.readouterr().err
+    assert "offline" in err.lower()
+    assert "entire local" in err.lower()
+    assert any("entire local" in r.message.lower() for r in caplog.records)
+
+
 def test_sqlite_shadow_copy(mock_db):
     gateway = SqliteZoteroGateway(mock_db)
     # Trigger shadow copy

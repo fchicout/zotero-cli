@@ -43,7 +43,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Zotero CLI - The Systematic Review Engine")
     parser.add_argument("--user", action="store_true", help="Force Personal Library mode")
     parser.add_argument(
-        "--offline", action="store_true", help="Use local zotero.sqlite database (read-only)"
+        "--offline",
+        action="store_true",
+        help=(
+            "Use local zotero.sqlite database (read-only). Operates across "
+            "the entire local database, not just the configured library - "
+            "see docs/ARCHITECTURE.md if more than one library is synced "
+            "locally."
+        ),
     )
     parser.add_argument("--config", help="Path to a custom config.toml")
     subparsers = parser.add_subparsers(dest="command", help="Primary Commands")
