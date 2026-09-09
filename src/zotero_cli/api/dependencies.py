@@ -7,7 +7,16 @@ from zotero_cli.infra.factory import GatewayFactory
 if TYPE_CHECKING:
     from zotero_cli.core.services.job_queue_service import JobQueueService
 
-# Global state for the gateway to persist across requests
+# Global state for the gateway to persist across requests.
+#
+# Issue #297: JobQueueService/SnowballGraphService are library-scoped
+# (#150/#228), but `serve` is deliberately single-library-per-process -
+# these module-level singletons are set once at startup from whichever
+# library the process's config resolves to, with no per-request library
+# selection anywhere in api/. This is an intentional simplification, not
+# a bug: run one `serve` instance per library (on different ports) for
+# multi-library HTTP access, the same way the CLI itself is invoked
+# per-library via `--config`/`--user`/`system switch`.
 _GATEWAY: Optional[ZoteroGateway] = None
 _JOB_QUEUE: Optional["JobQueueService"] = None
 
