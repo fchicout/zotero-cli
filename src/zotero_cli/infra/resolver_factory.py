@@ -137,8 +137,21 @@ class ResolverFactory:
             # than appearing to have silently lost it - the legacy file is
             # renamed (not copied), so it's gone afterwards and can't be
             # "claimed" again by a second, unrelated library.
+            #
+            # TOCTOU-safe (Issue #288): two processes scoping different
+            # libraries can both pass the `not storage_path.exists() and
+            # legacy_path.exists()` check before either renames. Whichever
+            # loses the race hits FileNotFoundError (legacy_path.rename)
+            # or FileExistsError (on some platforms, if storage_path
+            # appears between the check and the rename) - both simply mean
+            # another process already completed the migration, so the
+            # loser can safely proceed with whatever storage_path now
+            # holds instead of crashing.
             if not storage_path.exists() and legacy_path.exists():
-                legacy_path.rename(storage_path)
+                try:
+                    legacy_path.rename(storage_path)
+                except (FileNotFoundError, FileExistsError):
+                    pass
 
         from zotero_cli.core.services.snowball_graph import SnowballGraphService
 
