@@ -123,7 +123,7 @@ def test_restore_service_dry_run(dummy_zaf, tmp_path, mock_orchestrator):
 
     mock_gw = MagicMock()
     mock_gw.get_all_collections.return_value = []
-    mock_gw.get_items_by_doi.return_value = iter([])
+    mock_gw.get_all_items.return_value = []
 
     service = RestoreService(mock_gw, mock_orchestrator)
     report = service.restore_archive(str(zaf_path), dry_run=True)
@@ -169,7 +169,7 @@ def test_restore_service_idempotency_none(mock_gateway, mock_orchestrator):
     service = RestoreService(mock_gateway, mock_orchestrator)
     # Data with no DOI or Title
     data = {"itemType": "journalArticle"}
-    result = service._find_existing_item(data)
+    result = service._find_existing_item(data, {}, {})
     assert result is None
 
 
@@ -193,11 +193,10 @@ def test_restore_item_creation_failure(mock_gateway, mock_orchestrator):
 
     service = RestoreService(mock_gateway, mock_orchestrator)
     item_raw = {"key": "K1", "data": {"itemType": "journalArticle", "title": "Fail"}}
-    mock_gateway.get_items_by_doi.return_value = iter([])
     mock_gateway.create_generic_item.return_value = None
 
     report = RestoreReport()
-    service._restore_single_item(item_raw, MagicMock(), {}, report)
+    service._restore_single_item(item_raw, MagicMock(), {}, report, {}, {})
 
     assert report.items_created == 0
     assert len(report.errors) == 1
@@ -284,10 +283,9 @@ def test_verify_service_library_scope_missing_collections_file(tmp_path):
 
 def test_restore_service_idempotency_doi_none(mock_gateway, mock_orchestrator):
     service = RestoreService(mock_gateway, mock_orchestrator)
-    mock_gateway.get_items_by_doi.return_value = iter([])
 
     data = {"DOI": "10.1/none", "title": "No Match"}
-    result = service._find_existing_item(data)
+    result = service._find_existing_item(data, {}, {})
     assert result is None
 
 
@@ -323,3 +321,93 @@ def test_restore_collections_failure(mock_gateway, mock_orchestrator):
 
     assert len(report.errors) == 1
     assert "Failed to create collection" in report.errors[0]
+
+
+def test_restore_collections_fetches_existing_once_for_many_collections(
+    mock_gateway, mock_orchestrator
+):
+    """Regression test for Issue #277: _restore_collections must call
+    get_all_collections() once for the whole batch, not once per
+    collection being restored."""
+    service = RestoreService(mock_gateway, mock_orchestrator)
+    colls = [
+        {"key": "C1", "data": {"name": "One", "parentCollection": None}},
+        {"key": "C2", "data": {"name": "Two", "parentCollection": None}},
+        {"key": "C3", "data": {"name": "Three", "parentCollection": None}},
+    ]
+    mock_gateway.get_all_collections.return_value = []
+    mock_gateway.create_collection.side_effect = ["N1", "N2", "N3"]
+
+    from zotero_cli.core.services.restore_service import RestoreReport
+
+    report = RestoreReport(is_dry_run=False)
+    service._restore_collections(colls, report)
+
+    mock_gateway.get_all_collections.assert_called_once()
+    assert report.collections_created == 3
+
+
+def test_build_existing_item_indexes_single_scan(mock_gateway, mock_orchestrator):
+    """Regression test for Issue #277: the DOI/title indexes must come from
+    one get_all_items() pass, and _find_existing_item must consult those
+    indexes rather than re-scanning the library per item."""
+    from zotero_cli.core.zotero_item import ZoteroItem
+
+    item1 = ZoteroItem(
+        key="P1", version=1, item_type="journalArticle", doi="10.1/ABC", title="Paper One"
+    )
+    item2 = ZoteroItem(key="P2", version=1, item_type="journalArticle", title="Paper Two")
+    mock_gateway.get_all_items.return_value = [item1, item2]
+
+    service = RestoreService(mock_gateway, mock_orchestrator)
+    doi_index, title_index = service._build_existing_item_indexes()
+
+    mock_gateway.get_all_items.assert_called_once()
+    assert doi_index["10.1/abc"] is item1
+    assert title_index["paper two"] is item2
+
+    # DOI match (case/prefix-insensitive via normalize_doi)
+    match = service._find_existing_item(
+        {"DOI": "https://doi.org/10.1/ABC"}, doi_index, title_index
+    )
+    assert match is item1
+
+    # Title fallback when DOI doesn't match anything indexed
+    match = service._find_existing_item(
+        {"DOI": "10.9/unrelated", "title": "Paper Two"}, doi_index, title_index
+    )
+    assert match is item2
+
+    mock_gateway.get_all_items.assert_called_once()  # still only the one scan
+    mock_gateway.get_items_by_doi.assert_not_called()
+
+
+def test_restore_archive_builds_indexes_once_for_multiple_items(
+    dummy_zaf, tmp_path, mock_orchestrator
+):
+    """Regression test for Issue #277: restore_archive must build the
+    DOI/title index once up front and reuse it, not per item."""
+    zaf_path = tmp_path / "multi.zaf"
+    with zipfile.ZipFile(zaf_path, "w") as zf:
+        zf.writestr("manifest.json", json.dumps({"file_map": {}}))
+        zf.writestr(
+            "data.json",
+            json.dumps(
+                [
+                    {"key": "P1", "data": {"itemType": "journalArticle", "title": "A"}},
+                    {"key": "P2", "data": {"itemType": "journalArticle", "title": "B"}},
+                    {"key": "P3", "data": {"itemType": "journalArticle", "title": "C"}},
+                ]
+            ),
+        )
+
+    mock_gw = MagicMock()
+    mock_gw.get_all_items.return_value = []
+    mock_gw.create_generic_item.side_effect = ["N1", "N2", "N3"]
+
+    service = RestoreService(mock_gw, mock_orchestrator)
+    report = service.restore_archive(str(zaf_path), dry_run=False)
+
+    mock_gw.get_all_items.assert_called_once()
+    mock_gw.get_items_by_doi.assert_not_called()
+    assert report.items_created == 3
