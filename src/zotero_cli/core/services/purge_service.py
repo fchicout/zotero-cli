@@ -1,9 +1,16 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.models import ZoteroQuery
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 
 OFFLINE_ERROR_MSG = "Offline Veto: PurgeService cannot execute in offline mode."
+
+# Below this many parent keys, a single search_items(item_type=...) library
+# scan costs more than just looking each one up directly - the batched path
+# only pays off once N per-item get_item_children round-trips would exceed
+# the cost of the 1-2 scans (Issue #276, same class as #189).
+_BATCH_SCAN_THRESHOLD = 2
 
 
 class PurgeService:
@@ -21,28 +28,74 @@ class PurgeService:
         # or just check the class name.
         return self.gateway.__class__.__name__ == "SqliteZoteroGateway"
 
+    def _get_children_by_parent(
+        self, item_keys: List[str], item_type: str
+    ) -> Dict[str, Optional[List[Dict[str, Any]]]]:
+        """
+        Groups children of the given parent keys by parent, filtered to
+        `item_type`. For more than a couple of parents, does one
+        `search_items(item_type=...)` library-wide scan instead of one
+        `get_item_children` round-trip per parent (Issue #276, same class as
+        #189 - mirrors `slr/source_cmd.py`'s `_fetch_pdf_and_note_parent_keys`
+        fix). Below that, a per-parent lookup stays cheaper than a full scan.
+
+        A parent key maps to `None` (rather than an empty list) if its
+        lookup/the scan itself failed, so callers can distinguish "genuinely
+        has no children of this type" from "we couldn't tell" and count it
+        as an error like the pre-batching per-item code did.
+        """
+        by_parent: Dict[str, Optional[List[Dict[str, Any]]]] = {}
+
+        if len(item_keys) > _BATCH_SCAN_THRESHOLD:
+            wanted = set(item_keys)
+            for key in wanted:
+                by_parent[key] = []
+            try:
+                for item in self.gateway.search_items(ZoteroQuery(item_type=item_type)):
+                    parent_key = item.parent_item
+                    if parent_key and parent_key in wanted:
+                        by_parent[parent_key].append(item.raw_data)  # type: ignore[union-attr]
+            except Exception:
+                by_parent = dict.fromkeys(wanted, None)
+        else:
+            for parent_key in item_keys:
+                try:
+                    children = self.gateway.get_item_children(parent_key)
+                    by_parent[parent_key] = [
+                        child
+                        for child in children
+                        if child.get("data", child).get("itemType") == item_type
+                    ]
+                except Exception:
+                    by_parent[parent_key] = None
+
+        return by_parent
+
     def purge_attachments(self, item_keys: List[str], dry_run: bool = True) -> Dict[str, int]:
         """Deletes all attachments for the given parent item keys."""
         if self._is_offline():
             raise RuntimeError(OFFLINE_ERROR_MSG)
 
         stats = {"deleted": 0, "skipped": 0, "errors": 0}
+        by_parent = self._get_children_by_parent(item_keys, "attachment")
 
         for parent_key in item_keys:
+            children = by_parent.get(parent_key)
+            if children is None:
+                stats["errors"] += 1
+                continue
             try:
-                children = self.gateway.get_item_children(parent_key)
                 for child in children:
                     data = child.get("data", child)
-                    if data.get("itemType") == "attachment":
-                        key = child.get("key") or data.get("key")
-                        version = int(data.get("version", 0))
-                        if dry_run:
-                            stats["skipped"] += 1
+                    key = child.get("key") or data.get("key")
+                    version = int(data.get("version", 0))
+                    if dry_run:
+                        stats["skipped"] += 1
+                    else:
+                        if self.gateway.delete_item(key, version):
+                            stats["deleted"] += 1
                         else:
-                            if self.gateway.delete_item(key, version):
-                                stats["deleted"] += 1
-                            else:
-                                stats["errors"] += 1
+                            stats["errors"] += 1
             except Exception:
                 stats["errors"] += 1
         return stats
@@ -63,33 +116,36 @@ class PurgeService:
             raise RuntimeError(OFFLINE_ERROR_MSG)
 
         stats = {"deleted": 0, "skipped": 0, "errors": 0}
+        by_parent = self._get_children_by_parent(item_keys, "note")
 
         for parent_key in item_keys:
+            children = by_parent.get(parent_key)
+            if children is None:
+                stats["errors"] += 1
+                continue
             try:
-                children = self.gateway.get_item_children(parent_key)
                 for child in children:
                     data = child.get("data", child)
-                    if data.get("itemType") == "note":
-                        note_content = data.get("note", "")
+                    note_content = data.get("note", "")
 
-                        if sdb_only or phase or persona:
-                            is_sdb, note_phase, note_persona = self._parse_sdb_info(note_content)
-                            if sdb_only and not is_sdb:
-                                continue
-                            if phase and note_phase != phase:
-                                continue
-                            if persona and note_persona != persona:
-                                continue
+                    if sdb_only or phase or persona:
+                        is_sdb, note_phase, note_persona = self._parse_sdb_info(note_content)
+                        if sdb_only and not is_sdb:
+                            continue
+                        if phase and note_phase != phase:
+                            continue
+                        if persona and note_persona != persona:
+                            continue
 
-                        key = child.get("key") or data.get("key")
-                        version = int(data.get("version", 0))
-                        if dry_run:
-                            stats["skipped"] += 1
+                    key = child.get("key") or data.get("key")
+                    version = int(data.get("version", 0))
+                    if dry_run:
+                        stats["skipped"] += 1
+                    else:
+                        if self.gateway.delete_item(key, version):
+                            stats["deleted"] += 1
                         else:
-                            if self.gateway.delete_item(key, version):
-                                stats["deleted"] += 1
-                            else:
-                                stats["errors"] += 1
+                            stats["errors"] += 1
             except Exception:
                 stats["errors"] += 1
         return stats
