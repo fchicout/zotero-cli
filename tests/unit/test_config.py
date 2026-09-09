@@ -47,6 +47,34 @@ def test_load_from_file_only(tmp_path):
         assert config.library_id == "file_lib"
 
 
+def test_load_from_file_malformed_toml_raises_configuration_error(tmp_path):
+    """Regression test for Issue #290: a TOML syntax error must raise
+    ConfigurationError with the real cause, not be silently swallowed to
+    an empty config that fails confusingly several layers deeper."""
+    config_file = tmp_path / "config.toml"
+    config_file.parent.mkdir(parents=True, exist_ok=True)
+    config_file.write_text("[zotero\napi_key = this is not valid toml")
+
+    with patch.dict(os.environ, {}, clear=True):
+        loader = ConfigLoader(config_path=config_file)
+        with pytest.raises(ConfigurationError, match=str(config_file)):
+            loader.load()
+
+
+def test_load_from_file_unreadable_degrades_to_empty_config(tmp_path):
+    """A genuinely unreadable file (permissions, OS-level failure) keeps
+    the pre-existing degrade-to-empty-config behavior - only a parse
+    failure (bad TOML content) should now raise."""
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[zotero]\napi_key = "file_key"\n')
+
+    with patch.dict(os.environ, {}, clear=True):
+        loader = ConfigLoader(config_path=config_file)
+        with patch("builtins.open", side_effect=OSError("Permission denied")):
+            config = loader.load()
+        assert config.api_key is None
+
+
 def test_precedence_env_over_file(tmp_path):
     config_file = tmp_path / "config.toml"
     config_file.parent.mkdir(parents=True, exist_ok=True)
