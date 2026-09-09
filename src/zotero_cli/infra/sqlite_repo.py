@@ -596,9 +596,27 @@ class SqliteJobRepository(JobRepository):
                 row = conn.execute(query, params).fetchone()
 
                 if row:
-                    conn.execute("UPDATE jobs SET status = 'PROCESSING' WHERE id = ?", (row["id"],))
+                    # A legacy (library_id IS NULL) job claimed by a scoped
+                    # queue is stamped with that library_id in the same
+                    # BEGIN IMMEDIATE transaction (Issue #289) - otherwise
+                    # it stays poachable by every other library's queue on
+                    # every subsequent retry cycle, not just this claim,
+                    # risking cross-tenant job execution against the wrong
+                    # library's gateway.
+                    if library_id is not None and row["library_id"] is None:
+                        conn.execute(
+                            "UPDATE jobs SET status = 'PROCESSING', library_id = ? "
+                            "WHERE id = ? AND library_id IS NULL",
+                            (library_id, row["id"]),
+                        )
+                    else:
+                        conn.execute(
+                            "UPDATE jobs SET status = 'PROCESSING' WHERE id = ?", (row["id"],)
+                        )
                     job = self._map_row_to_job(row)
                     job.status = "PROCESSING"
+                    if library_id is not None and row["library_id"] is None:
+                        job.library_id = library_id
                     return job
                 return None
         finally:
