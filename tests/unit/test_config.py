@@ -47,6 +47,40 @@ def test_load_from_file_only(tmp_path):
         assert config.library_id == "file_lib"
 
 
+def test_load_rejects_invalid_library_type_in_file(tmp_path):
+    """Regression test for Issue #300: a typo'd library_type (e.g.
+    'personal') must fail fast at config-load time with a clear message,
+    not silently fall through to infra/http_client.py's "anything but
+    'user' means 'group'" behavior and surface as a confusing 404/403."""
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[zotero]\napi_key = "k"\nlibrary_type = "personal"\n')
+
+    with patch.dict(os.environ, {}, clear=True):
+        loader = ConfigLoader(config_path=config_file)
+        with pytest.raises(ConfigurationError, match="library_type"):
+            loader.load()
+
+
+def test_load_rejects_invalid_library_type_from_env(tmp_path):
+    config_file = tmp_path / "config.toml"
+    # No file needed - env takes precedence anyway.
+
+    with patch.dict(os.environ, {"ZOTERO_LIBRARY_TYPE": "Group"}, clear=True):
+        loader = ConfigLoader(config_path=config_file)
+        with pytest.raises(ConfigurationError, match="library_type"):
+            loader.load()
+
+
+def test_load_accepts_valid_library_type_values(tmp_path):
+    config_file = tmp_path / "config.toml"
+
+    with patch.dict(os.environ, {}, clear=True):
+        for value in ("user", "group"):
+            config_file.write_text(f'[zotero]\napi_key = "k"\nlibrary_type = "{value}"\n')
+            loader = ConfigLoader(config_path=config_file)
+            assert loader.load().library_type == value
+
+
 def test_load_from_file_malformed_toml_raises_configuration_error(tmp_path):
     """Regression test for Issue #290: a TOML syntax error must raise
     ConfigurationError with the real cause, not be silently swallowed to
