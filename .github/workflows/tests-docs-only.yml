@@ -1,0 +1,35 @@
+name: Run Unit Tests
+
+# Companion to tests.yml's `paths-ignore` (Issue #274): that workflow
+# skips entirely for a PR whose diff is only `.md`/`docs/**` files, so the
+# `test` job never posts a status for such a PR. If branch protection marks
+# that job a required status check, a docs-only PR could never satisfy it
+# and would be permanently BLOCKED (confirmed hands-on via PR #309, Issue
+# #310) - GitHub never resolves a required check that no workflow run ever
+# posts a status for.
+#
+# This workflow uses the exact inverse path filter and the same job name
+# ("test") as tests.yml, so between the two, every PR gets a "test" status
+# posted by exactly one of them - or, for a PR touching both code and docs,
+# by both (a documented, harmless outcome of this pattern: multiple check
+# runs sharing a name is fine, branch protection just needs one to
+# succeed). This job does nothing but succeed immediately; it exists only
+# to satisfy the required-check name for docs-only changes that
+# tests.yml's real pipeline has no reason to run against.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    paths:
+      - '**.md'
+      - 'docs/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docs-only change - skipping full test suite
+        run: echo "No source files changed - tests.yml's real pipeline did not need to run."
