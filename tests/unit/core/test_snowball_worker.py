@@ -56,7 +56,37 @@ async def test_discover_backward_success(worker, mock_gateway, mock_graph_servic
     # Verify add_candidate calls
     assert mock_graph_service.add_candidate.call_count == 2
     mock_graph_service.add_candidate.assert_any_call(
-        {"doi": "10.1002/ref1", "title": "Ref 1"},
+        {"doi": "10.1002/ref1", "title": "Ref 1", "authors": []},
+        parent_doi=doi,
+        direction="backward",
+        generation=1,
+    )
+
+
+@pytest.mark.anyio
+async def test_discover_backward_passes_through_single_author(
+    worker, mock_gateway, mock_graph_service
+):
+    """Regression test for Issue #318: CrossRef's per-reference metadata
+    exposes at most a single "author" string (not a full array like the
+    top-level work) - it must be passed through as a one-element authors
+    list rather than discarded."""
+    doi = "10.1001/paper1"
+
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "message": {
+            "reference": [
+                {"DOI": "10.1002/ref1", "article-title": "Ref 1", "author": "Smith"},
+            ]
+        }
+    }
+    mock_gateway.get = AsyncMock(return_value=mock_response)
+
+    await worker._discover_backward(doi, generation=1)
+
+    mock_graph_service.add_candidate.assert_called_once_with(
+        {"doi": "10.1002/ref1", "title": "Ref 1", "authors": ["Smith"]},
         parent_doi=doi,
         direction="backward",
         generation=1,
@@ -90,6 +120,7 @@ async def test_discover_forward_success(worker, mock_gateway, mock_graph_service
                     "externalIds": {"DOI": "10.1003/cite1"},
                     "title": "Citing Paper 1",
                     "abstract": "Abstract 1",
+                    "authors": [{"authorId": "1", "name": "Jane Doe"}, {"name": "John Smith"}],
                 },
                 "isInfluential": True,
             }
@@ -105,6 +136,7 @@ async def test_discover_forward_success(worker, mock_gateway, mock_graph_service
             "title": "Citing Paper 1",
             "abstract": "Abstract 1",
             "is_influential": True,
+            "authors": ["Jane Doe", "John Smith"],
         },
         parent_doi=doi,
         direction="forward",
@@ -114,6 +146,31 @@ async def test_discover_forward_success(worker, mock_gateway, mock_graph_service
     # lookup comes back empty and every candidate is silently dropped.
     _, kwargs = mock_gateway.get.call_args
     assert "externalIds" in kwargs["params"]["fields"]
+
+
+@pytest.mark.anyio
+async def test_discover_forward_handles_missing_authors(worker, mock_gateway, mock_graph_service):
+    """Issue #318: a citingPaper with no "authors" field (or entries
+    missing "name") must degrade to an empty list, not raise."""
+    doi = "10.1001/paper1"
+
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "data": [
+            {
+                "citingPaper": {
+                    "externalIds": {"DOI": "10.1003/cite1"},
+                    "title": "Citing Paper 1",
+                },
+                "isInfluential": False,
+            }
+        ]
+    }
+    mock_gateway.get = AsyncMock(return_value=mock_response)
+
+    await worker._discover_forward(doi, generation=1)
+
+    assert mock_graph_service.add_candidate.call_args[0][0]["authors"] == []
 
 
 @pytest.mark.anyio

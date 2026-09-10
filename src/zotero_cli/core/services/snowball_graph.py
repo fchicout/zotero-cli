@@ -49,6 +49,11 @@ class SnowballGraphService(ISnowballGraphService):
     ) -> None:
         """
         Adds a candidate paper to the graph.
+
+        `paper_metadata` recognizes `doi`, `title`, `abstract`,
+        `is_influential`, and `authors` (Issue #318 - a `List[str]` of
+        author names, stored on the node so candidates can be compared
+        against the seed paper's or each other's authors).
         """
         doi = paper_metadata.get("doi")
         if not doi:
@@ -61,6 +66,12 @@ class SnowballGraphService(ISnowballGraphService):
                 doi,
                 title=paper_metadata.get("title", ""),
                 abstract=paper_metadata.get("abstract", ""),
+                # Issue #318: persisted so candidates can be compared
+                # against the seed paper's (or each other's) authors -
+                # previously discarded entirely, making any author-based
+                # relevance signal structurally impossible to build on
+                # top of this graph.
+                authors=paper_metadata.get("authors") or [],
                 is_influential=paper_metadata.get("is_influential", False),
                 generation=generation,
                 status=self.STATUS_PENDING,
@@ -73,6 +84,8 @@ class SnowballGraphService(ISnowballGraphService):
                 node["title"] = paper_metadata.get("title", "")
             if not node.get("abstract"):
                 node["abstract"] = paper_metadata.get("abstract", "")
+            if not node.get("authors"):
+                node["authors"] = paper_metadata.get("authors") or []
 
         # Add edge if parent exists
         if parent_doi:

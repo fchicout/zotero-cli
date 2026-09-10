@@ -60,6 +60,72 @@ def test_add_candidate_and_ranking(graph_service):
     assert ranked[2]["relevance_score"] == 1
 
 
+def test_add_candidate_persists_authors(graph_service):
+    """Regression test for Issue #318: authors must be persisted on the
+    node so candidates can be compared against the seed paper's (or each
+    other's) authors - previously there was no way to store them at all."""
+    paper = {
+        "doi": "10.1001/a",
+        "title": "Paper A",
+        "authors": ["Jane Doe", "John Smith"],
+    }
+    graph_service.add_candidate(paper, generation=0)
+
+    assert graph_service.graph.nodes["10.1001/a"]["authors"] == ["Jane Doe", "John Smith"]
+
+
+def test_add_candidate_defaults_authors_to_empty_list(graph_service):
+    """paper_metadata with no "authors" key at all (e.g. a CrossRef
+    reference stub) must not KeyError downstream - default to []."""
+    graph_service.add_candidate({"doi": "10.1001/a", "title": "Paper A"}, generation=0)
+
+    assert graph_service.graph.nodes["10.1001/a"]["authors"] == []
+
+
+def test_add_candidate_backfills_authors_on_existing_stub_node(graph_service):
+    """A node first added as an authorless stub (e.g. a parent stub, or a
+    candidate discovered before author data was available) must have
+    authors backfilled the next time add_candidate sees real data for it -
+    mirroring the existing title/abstract backfill behavior."""
+    graph_service.add_candidate({"doi": "10.1001/a", "title": "Stub"}, generation=0)
+    assert graph_service.graph.nodes["10.1001/a"]["authors"] == []
+
+    graph_service.add_candidate(
+        {"doi": "10.1001/a", "title": "Stub", "authors": ["Jane Doe"]}, generation=0
+    )
+
+    assert graph_service.graph.nodes["10.1001/a"]["authors"] == ["Jane Doe"]
+
+
+def test_add_candidate_does_not_overwrite_existing_authors(graph_service):
+    """Once a node has authors, a later add_candidate call for the same
+    DOI (e.g. discovered again via a different path) must not clobber
+    them with an empty/missing authors list."""
+    graph_service.add_candidate(
+        {"doi": "10.1001/a", "title": "A", "authors": ["Jane Doe"]}, generation=0
+    )
+    graph_service.add_candidate({"doi": "10.1001/a", "title": "A"}, generation=0)
+
+    assert graph_service.graph.nodes["10.1001/a"]["authors"] == ["Jane Doe"]
+
+
+def test_authors_survive_json_round_trip(temp_storage):
+    """Regression test for Issue #318: authors must be included in the
+    exported/persisted node-link JSON, not just held in memory."""
+    service = SnowballGraphService(temp_storage)
+    service.add_candidate(
+        {"doi": "10.1001/a", "title": "A", "authors": ["Jane Doe"]}, generation=0
+    )
+
+    data = json.loads(service.to_json())
+    node = next(n for n in data["nodes"] if n["id"] == "10.1001/a")
+    assert node["authors"] == ["Jane Doe"]
+
+    service.save_graph()
+    reloaded = SnowballGraphService(temp_storage)
+    assert reloaded.graph.nodes["10.1001/a"]["authors"] == ["Jane Doe"]
+
+
 def test_persistence(temp_storage):
     service = SnowballGraphService(temp_storage)
     service.add_candidate({"doi": "10.1001/test", "title": "Test Paper"}, generation=0)
