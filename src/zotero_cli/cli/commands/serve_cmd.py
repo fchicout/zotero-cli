@@ -25,6 +25,7 @@ Cognitive Safeguards
 --------------------
 • Common Failure Modes: Attempting to bind to a port already in use.
 • Safety Tips: Default bind is 127.0.0.1 (Localhost). If using 0.0.0.0, ensure your network is secure as it exposes research metadata.
+• Scope: One `serve` process targets exactly one Zotero library (whichever `--config`/`--user`/`system switch` resolves at startup) - it is not multi-tenant. For HTTP access to more than one library, run a separate `serve` instance per library on a different port.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/serve.md
 """

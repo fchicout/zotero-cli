@@ -42,3 +42,4 @@ This command is the "Integration Hub" for AI-powered research assistants. It exp
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Attempting to bind to a port that is already in use by another application. Bind errors will be displayed in the terminal. 
 - **Safety Tips:** By default, the server is only accessible from your local machine. If binding to `0.0.0.0` (public access), ensure your network is secure as the API exposes your personal research metadata.
+- **Scope:** One `serve` process targets exactly one Zotero library - whichever `--config`/`--user`/`system switch` resolves at process startup. It is not multi-tenant: there is no per-request library selection. For HTTP access to more than one library, run a separate `serve` instance per library on a different port.
