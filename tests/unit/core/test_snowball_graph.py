@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -158,3 +159,90 @@ def test_to_json_empty_graph(graph_service):
     data = json.loads(graph_service.to_json())
     assert data["nodes"] == []
     assert data["edges"] == []
+
+
+def test_save_graph_leaves_no_tmp_file_and_writes_valid_json(graph_service, temp_storage):
+    """Regression test for Issue #299: save_graph must write via a temp
+    file + atomic rename, not a plain truncating write - a crash mid-write
+    of the latter could leave a corrupt/partial JSON file behind."""
+    graph_service.add_candidate({"doi": "10.1001/a", "title": "Paper A"}, generation=0)
+    graph_service.save_graph()
+
+    tmp_path = temp_storage.with_suffix(temp_storage.suffix + ".tmp")
+    assert not tmp_path.exists()
+
+    with open(temp_storage, encoding="utf-8") as f:
+        data = json.load(f)
+    assert {node["id"] for node in data["nodes"]} == {"10.1001/a"}
+
+
+def test_save_graph_holds_file_lock_for_mutual_exclusion(graph_service, temp_storage):
+    """Regression test for Issue #299: save_graph must actually hold
+    self._lock across the write, not just import filelock - verified by
+    forcing overlap: a slow writer must block a second writer's lock
+    acquisition until the first releases it."""
+    import threading
+
+    graph_service.add_candidate({"doi": "10.1001/a", "title": "A"}, generation=0)
+
+    original_dump = json.dump
+    entered_write = threading.Event()
+    release_writer = threading.Event()
+
+    def slow_dump(*args, **kwargs):
+        entered_write.set()
+        release_writer.wait(timeout=5)
+        return original_dump(*args, **kwargs)
+
+    second_writer_locked_out = []
+
+    def second_save():
+        from filelock import Timeout
+
+        entered_write.wait(timeout=5)
+        # If the lock is genuinely held by the first writer, this
+        # acquisition attempt must time out rather than succeed.
+        try:
+            graph_service._lock.acquire(timeout=0.2)
+        except Timeout:
+            second_writer_locked_out.append(True)
+        else:
+            second_writer_locked_out.append(False)
+            graph_service._lock.release()
+
+    with patch("zotero_cli.core.services.snowball_graph.json.dump", side_effect=slow_dump):
+        t1 = threading.Thread(target=graph_service.save_graph)
+        t2 = threading.Thread(target=second_save)
+        t1.start()
+        t2.start()
+        t2.join(timeout=6)
+        release_writer.set()
+        t1.join(timeout=6)
+
+    assert second_writer_locked_out == [True]
+
+
+def test_save_graph_survives_concurrent_writes_without_corruption(temp_storage):
+    """Concurrent save_graph() calls (e.g. two discovery/review sessions
+    on the same graph) must never produce a torn/unparseable JSON file."""
+    import threading
+
+    services = [SnowballGraphService(temp_storage) for _ in range(5)]
+    for i, service in enumerate(services):
+        service.add_candidate({"doi": f"10.1001/{i}", "title": f"Paper {i}"}, generation=0)
+
+    barrier = threading.Barrier(len(services))
+
+    def save(service):
+        barrier.wait()
+        service.save_graph()
+
+    threads = [threading.Thread(target=save, args=(s,)) for s in services]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    with open(temp_storage, encoding="utf-8") as f:
+        data = json.load(f)
+    assert len(data["nodes"]) == 1

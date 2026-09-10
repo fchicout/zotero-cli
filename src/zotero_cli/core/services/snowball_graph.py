@@ -1,9 +1,11 @@
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import networkx as nx
+from filelock import FileLock
 
 from zotero_cli.core.interfaces import SnowballGraphService as ISnowballGraphService
 
@@ -22,6 +24,19 @@ class SnowballGraphService(ISnowballGraphService):
 
     def __init__(self, storage_path: Path):
         self.storage_path = storage_path
+        # Issue #299: guards save_graph()'s write against concurrent writers
+        # (e.g. two `slr snowball discovery`/`review` sessions on the same
+        # graph) - a plain unlocked write let the second writer's save
+        # silently clobber the first's, and a crash mid-write could leave a
+        # truncated/corrupt JSON file. Held only around the write itself
+        # (not the whole load-mutate-save cycle of a session), so this
+        # serializes writes and makes each one atomic/crash-safe, but does
+        # not merge two sessions' concurrent in-memory edits - the second
+        # session's save still overwrites the first's with its own full
+        # snapshot. Closing that gap fully would need either a reload-and-
+        # merge strategy or moving this store to sqlite the way #150 did
+        # for the job queue.
+        self._lock = FileLock(str(storage_path) + ".lock")
         self.graph = nx.DiGraph()
         self.load_graph()
 
@@ -160,11 +175,22 @@ class SnowballGraphService(ISnowballGraphService):
         return sorted(candidates, key=lambda x: x["relevance_score"], reverse=True)
 
     def save_graph(self) -> None:
-        """Persistence logic."""
+        """
+        Persistence logic. Writes to a temp file in the same directory
+        then atomically renames it into place (Issue #299) - a plain
+        truncating write left a crash mid-write able to leave a partial/
+        corrupt JSON file behind; `os.replace` is atomic on both POSIX and
+        Windows, so a reader never observes a half-written file. The
+        write itself is also serialized against other processes via
+        `self._lock`, so two concurrent saves can't interleave.
+        """
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         data = nx.node_link_data(self.graph)
-        with open(self.storage_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        tmp_path = self.storage_path.with_suffix(self.storage_path.suffix + ".tmp")
+        with self._lock:
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            os.replace(tmp_path, self.storage_path)
 
     def to_json(self) -> str:
         """
