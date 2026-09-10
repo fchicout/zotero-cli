@@ -166,6 +166,16 @@ class ConfigLoader:
         library_type = os.environ.get("ZOTERO_LIBRARY_TYPE") or file_config.get(
             "library_type", "group"
         )
+        if library_type not in ("user", "group"):
+            # Issue #300: infra/http_client.py treats anything other than
+            # the exact literal "user" as "group" - a typo'd value (e.g.
+            # "personal", "Group") previously fell through silently and
+            # only surfaced as a confusing 404/403 from the Zotero API
+            # several layers away, with no hint the real cause was a
+            # config typo. Fail fast here instead, at config-load time.
+            raise ConfigurationError(
+                f"Error: library_type must be 'user' or 'group', got: {library_type!r}"
+            )
 
         # Extra keys
         ss_key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY") or file_config.get(
