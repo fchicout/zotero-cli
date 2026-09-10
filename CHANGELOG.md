@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.8.9] - 2026-09-10
+
 ### ✨ Features & Improvements
 - **Snowball discovery graph candidates now persist author/creator data (Issue #318):** `SnowballGraphService.add_candidate()` had no way to store authors at all - nodes only ever held `title`/`abstract`/`is_influential`/`generation`/`status`, making it structurally impossible to build any author-based relevance signal (e.g. "this candidate shares an author with your seed paper") on top of the graph, even though the underlying discovery APIs already return author data. `add_candidate()` now recognizes an `authors: List[str]` key in `paper_metadata` and persists it on the node (backfilling it on an existing stub the same way `title`/`abstract` already are, and never overwriting an already-populated list). `_discover_forward` (Semantic Scholar) now passes through the `authors` list its request already receives (`{"authorId": ..., "name": ...}` objects mapped to plain names) instead of discarding it. `_discover_backward` (CrossRef) now passes through the single `author` string CrossRef's per-reference metadata exposes (sparser than the full author array on the top-level work itself - one name is still strictly better than none for an author-overlap signal). Since `to_json()`/`save_graph()` serialize whatever attributes a node carries via `networkx.node_link_data`, `authors` is automatically included in `slr snowball export --format json` and any direct read of `SnowballGraphService.graph` with no further changes needed.
 
