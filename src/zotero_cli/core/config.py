@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import sys
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
@@ -300,24 +301,33 @@ class ConfigManager:
 
 _GLOBAL_CONFIG: Optional[ZoteroConfig] = None
 _GLOBAL_CONFIG_PATH: Optional[Path] = None
+# Issue #301: guards the read-modify-write below against concurrent callers -
+# `serve`'s threadpool-offloaded routes (#269) already give this module
+# in-process concurrency, and with no lock a reader could observe
+# _GLOBAL_CONFIG mid-reassignment, or reset_config() (from a concurrent
+# `system` config-write) could race a reader between its None-check and its
+# use of the module-global.
+_config_lock = threading.Lock()
 
 
 def reset_config() -> None:
     """Reset global config cache (mainly for testing)."""
     global _GLOBAL_CONFIG, _GLOBAL_CONFIG_PATH
-    _GLOBAL_CONFIG = None
-    _GLOBAL_CONFIG_PATH = None
+    with _config_lock:
+        _GLOBAL_CONFIG = None
+        _GLOBAL_CONFIG_PATH = None
 
 
 def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
     """Helper to get singleton configuration."""
     global _GLOBAL_CONFIG, _GLOBAL_CONFIG_PATH
-    if _GLOBAL_CONFIG is None or config_path:
-        path = Path(config_path) if config_path else None
-        loader = ConfigLoader(config_path=path)
-        _GLOBAL_CONFIG = loader.load()
-        _GLOBAL_CONFIG_PATH = loader.config_path
-    return _GLOBAL_CONFIG
+    with _config_lock:
+        if _GLOBAL_CONFIG is None or config_path:
+            path = Path(config_path) if config_path else None
+            loader = ConfigLoader(config_path=path)
+            _GLOBAL_CONFIG = loader.load()
+            _GLOBAL_CONFIG_PATH = loader.config_path
+        return _GLOBAL_CONFIG
 
 
 def get_config_path() -> Optional[Path]:

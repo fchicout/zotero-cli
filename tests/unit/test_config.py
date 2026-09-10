@@ -1,11 +1,21 @@
 import os
+import threading
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from zotero_cli.core.config import ConfigLoader, ZoteroConfig
+from zotero_cli.core.config import ConfigLoader, ZoteroConfig, get_config, reset_config
 from zotero_cli.core.exceptions import ConfigurationError
+
+
+@pytest.fixture(autouse=True)
+def _reset_global_config_cache():
+    """get_config()'s module-global cache must not leak state between
+    tests in this file."""
+    reset_config()
+    yield
+    reset_config()
 
 
 def test_config_loader_default_path():
@@ -221,3 +231,76 @@ def test_resolve_scoping_id_no_warning_when_library_id_resolves(caplog):
         config.resolve_scoping_id()
 
     assert caplog.records == []
+
+
+def test_get_config_caches_across_calls_with_no_path(tmp_path):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[zotero]\napi_key = "k1"\n')
+
+    with patch.dict(os.environ, {}, clear=True):
+        first = get_config(str(config_file))
+        # A second no-path call must return the cached instance, not reload.
+        config_file.write_text('[zotero]\napi_key = "k2"\n')
+        second = get_config()
+
+    assert first is second
+    assert second.api_key == "k1"
+
+
+def test_get_config_reloads_when_path_given(tmp_path):
+    config_a = tmp_path / "a.toml"
+    config_a.write_text('[zotero]\napi_key = "a"\n')
+    config_b = tmp_path / "b.toml"
+    config_b.write_text('[zotero]\napi_key = "b"\n')
+
+    with patch.dict(os.environ, {}, clear=True):
+        first = get_config(str(config_a))
+        second = get_config(str(config_b))
+
+    assert first.api_key == "a"
+    assert second.api_key == "b"
+
+
+def test_get_config_concurrent_calls_do_not_corrupt_the_cache(tmp_path):
+    """Regression test for Issue #301: get_config()'s read-modify-write of
+    the module-global cache had no lock - concurrent callers (e.g.
+    serve's threadpool-offloaded routes) could observe a torn/partial
+    state. Hammer it from many threads with differing config_path
+    arguments and confirm every call returns a fully-formed, internally
+    consistent ZoteroConfig with no exception."""
+    config_files = []
+    for i in range(5):
+        path = tmp_path / f"config_{i}.toml"
+        path.write_text(f'[zotero]\napi_key = "key_{i}"\nlibrary_id = "lib_{i}"\n')
+        config_files.append(path)
+
+    results = []
+    errors = []
+    barrier = threading.Barrier(20)
+
+    def worker(path):
+        try:
+            barrier.wait(timeout=5)
+            config = get_config(str(path))
+            results.append(config)
+        except Exception as e:  # pragma: no cover - failure path only
+            errors.append(e)
+
+    with patch.dict(os.environ, {}, clear=True):
+        threads = [
+            threading.Thread(target=worker, args=(config_files[i % len(config_files)],))
+            for i in range(20)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10)
+
+    assert errors == []
+    assert len(results) == 20
+    # Every returned config must be internally consistent - api_key and
+    # library_id from the *same* file, never a torn mix of two loads.
+    for config in results:
+        assert config.api_key is not None
+        assert config.library_id is not None
+        assert config.api_key.replace("key_", "") == config.library_id.replace("lib_", "")
