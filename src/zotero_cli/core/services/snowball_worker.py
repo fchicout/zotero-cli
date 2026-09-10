@@ -125,12 +125,24 @@ class SnowballDiscoveryWorker:
             if not ref_doi:
                 continue
 
+            # CrossRef's per-reference metadata is sparse compared to the
+            # full "message.author" array available for the work being
+            # fetched itself: a reference entry, when it has author info
+            # at all, exposes only a single "author" string (typically
+            # just the first author's family name), not a full array
+            # (Issue #318). One author name is still strictly better than
+            # none for an author-overlap signal, so pass it through rather
+            # than discarding it as before.
+            ref_author = ref.get("author")
+            authors = [ref_author] if ref_author else []
+
             # Map to metadata stub
             paper_metadata = {
                 "doi": ref_doi,
                 "title": ref.get("article-title")
                 or ref.get("unstructured")
                 or f"Reference from {doi}",
+                "authors": authors,
             }
 
             self.graph_service.add_candidate(
@@ -193,11 +205,20 @@ class SnowballDiscoveryWorker:
             if not cite_doi:
                 continue
 
+            # Semantic Scholar's "authors" field is a list of
+            # {"authorId": ..., "name": ...} objects (Issue #318) - the
+            # request already asks for it (`params` above), it was just
+            # being discarded here before add_candidate ever saw it.
+            authors = [
+                a.get("name", "") for a in citing_paper.get("authors", []) if a.get("name")
+            ]
+
             paper_metadata = {
                 "doi": cite_doi,
                 "title": citing_paper.get("title", ""),
                 "abstract": citing_paper.get("abstract", ""),
                 "is_influential": cite.get("isInfluential", False),
+                "authors": authors,
             }
 
             self.graph_service.add_candidate(
