@@ -349,7 +349,7 @@ class ServiceFactory:
 
             config = main_get_config()
 
-        job_queue = ServiceFactory.get_job_queue_service(config)
+        job_queue = ServiceFactory.get_job_queue_service(config, force_user)
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
         att_repo = RepositoryFactory.get_attachment_repository(
             config, force_user, offline=offline
