@@ -59,6 +59,20 @@ def test_get_pdf_finder_service(mock_config):
     assert isinstance(service, PDFFinderService)
 
 
+def test_get_pdf_finder_service_force_user_scopes_job_queue(mock_config):
+    """Regression test for Issue #298: get_pdf_finder_service must
+    propagate force_user to its job queue, matching every sibling
+    factory method - without it, --user pdf-finder jobs were enqueued/
+    read under the wrong library scope regardless of --user."""
+    mock_config = dataclasses.replace(mock_config, library_id="GROUP_LIB", user_id="PERSONAL_ID")
+
+    online_service = GatewayFactory.get_pdf_finder_service(mock_config, force_user=False)
+    personal_service = GatewayFactory.get_pdf_finder_service(mock_config, force_user=True)
+
+    assert online_service.job_queue.library_id == "GROUP_LIB"
+    assert personal_service.job_queue.library_id == "PERSONAL_ID"
+
+
 def test_get_rag_service(mock_config):
     with (
         patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"),
