@@ -1,13 +1,22 @@
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from zotero_cli.core.interfaces import AttachmentRepository, ItemRepository, PDFResolver
 from zotero_cli.core.models import Job
 from zotero_cli.core.services.job_queue_service import JobQueueService
+from zotero_cli.core.utils.url_safety import looks_like_pdf
 
 logger = logging.getLogger(__name__)
 
+
+
+def _file_looks_like_pdf(path: Any) -> bool:
+    try:
+        with open(path, "rb") as f:
+            return looks_like_pdf(f.read(1024))
+    except OSError:
+        return False
 
 class PDFFinderService:
     """
@@ -85,6 +94,14 @@ class PDFFinderService:
                 error_msg = f"{resolver_name}: Unexpected error: {str(e)}"
                 logger.error(f"Resolver crashed for {item_key}: {error_msg}")
                 errors.append(error_msg)
+
+        if pdf_path and not _file_looks_like_pdf(pdf_path):
+            # Last check before anything reaches the library, whichever
+            # resolver produced the file.
+            logger.warning(f"{method_used} returned a file without a PDF signature for {item_key}")
+            errors.append(f"{method_used}: downloaded file is not a PDF")
+            Path(pdf_path).unlink(missing_ok=True)
+            pdf_path = None
 
         if pdf_path:
             try:

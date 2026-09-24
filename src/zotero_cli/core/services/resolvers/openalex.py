@@ -40,14 +40,18 @@ class OpenAlexResolver(PDFResolver):
             # built-in follow_redirects.
             import httpx
 
-            from zotero_cli.core.utils.url_safety import safe_async_get
+            from zotero_cli.core.utils.url_safety import (
+                looks_like_pdf,
+                pin_public_ips,
+                safe_async_get,
+            )
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with pin_public_ips(httpx.AsyncClient(timeout=30.0)) as client:
                 response = await safe_async_get(client, pdf_url)
                 response.raise_for_status()
                 response_content = response.content
 
-            if not response_content.startswith(b"%PDF"):
+            if not looks_like_pdf(response_content):
                 logger.warning(f"OpenAlex: URL {pdf_url} did not return a valid PDF signature.")
                 return None
 

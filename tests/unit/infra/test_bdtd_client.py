@@ -16,9 +16,10 @@ def client():
     `requests.get` at the module level so nothing in this file can reach a
     real network unless a test explicitly overrides this patch (as
     `test_search_does_not_resolve_pdf_urls` already does for
-    `_resolve_pdf_url_sync` directly).
+    `_resolve_pdf_url_sync` directly). The landing-page fetch now goes
+    through the SSRF guard's `safe_get_text`, so that's what is patched.
     """
-    with patch("zotero_cli.infra.bdtd_api.requests.get") as mock_get:
+    with patch("zotero_cli.infra.bdtd_api.safe_get_text") as mock_get:
         mock_get.return_value = MagicMock(status_code=404)
         yield BDTDAPIClient()
 
@@ -294,3 +295,26 @@ def test_search_error_stops_iteration(client):
         results = list(client.search("topic"))
 
     assert results == []
+
+
+def test_pdf_resolution_uses_the_ssrf_guard_and_exact_host_match():
+    """Landing pages and link probes go through safe_get_text/safe_head, and
+    only links on exactly the landing page's host are probed - a substring
+    test would also accept e.g. repo.example.br.attacker.example."""
+    page = MagicMock(status_code=200, url="https://repo.example.br/handle/1")
+    page.text = """
+        <a href="https://repo.example.br/bitstream/1/thesis.pdf">ok</a>
+        <a href="https://repo.example.br.attacker.example/bitstream/evil.pdf">evil</a>
+        <a href="http://127.0.0.1/bitstream/x.pdf">internal</a>
+    """
+    head = MagicMock(headers={"content-type": "application/pdf"})
+    with (
+        patch("zotero_cli.infra.bdtd_api.safe_get_text", return_value=page) as get_text,
+        patch("zotero_cli.infra.bdtd_api.safe_head", return_value=head) as safe_head,
+    ):
+        result = BDTDAPIClient()._resolve_pdf_url_sync("https://repo.example.br/handle/1")
+
+    get_text.assert_called_once()
+    probed = [c.args[0] for c in safe_head.call_args_list]
+    assert probed == ["https://repo.example.br/bitstream/1/thesis.pdf"]
+    assert result == "https://repo.example.br/bitstream/1/thesis.pdf"

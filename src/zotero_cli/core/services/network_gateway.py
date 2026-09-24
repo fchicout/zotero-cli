@@ -15,6 +15,7 @@ from zotero_cli.core.services.identity_manager import IdentityManager
 from zotero_cli.core.utils.url_safety import (
     MAX_REDIRECTS,
     UnsafeURLError,
+    pin_public_ips,
     read_capped_async,
     validate_public_url,
 )
@@ -48,7 +49,9 @@ class NetworkGateway:
         # validate_public_url (Issue #235) - trusting the client's
         # built-in redirect handling would let a validated public URL
         # redirect straight into a loopback/private/link-local address.
-        self._client = httpx.AsyncClient(timeout=30.0, follow_redirects=False)
+        # pin_public_ips: connect only to the address validate_public_url
+        # approved, not whatever a second DNS lookup returns.
+        self._client = pin_public_ips(httpx.AsyncClient(timeout=30.0, follow_redirects=False))
 
     async def close(self) -> None:
         await self._client.aclose()
