@@ -13,8 +13,10 @@ logger = logging.getLogger(__name__)
 
 class UnpaywallAPIClient(BaseAPIClient, MetadataProvider):
     def __init__(self, email: Optional[str] = None):
-        super().__init__(base_url="https://api.unpaywall.org/v2/")
-        self.email = email or os.environ.get("UNPAYWALL_EMAIL", "unpaywall_client@zotero_cli.com")
+        super().__init__(base_url="https://api.unpaywall.org/v2/", contact_email=email)
+        # Unpaywall requires the caller's own email; without one configured
+        # it's skipped rather than sent a made-up or someone else's address.
+        self.email = email or os.environ.get("UNPAYWALL_EMAIL")
 
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:
         """
@@ -22,7 +24,7 @@ class UnpaywallAPIClient(BaseAPIClient, MetadataProvider):
         Identifier should be a DOI.
         """
         # Unpaywall works best with DOIs. If it's not a DOI, return None or try to extract.
-        if "10." not in identifier:
+        if "10." not in identifier or not self.email:
             return None
 
         try:

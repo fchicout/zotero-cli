@@ -64,3 +64,14 @@ def test_get_applies_rate_limit_before_request():
         client._get(endpoint="works/123")
 
     mock_throttle.assert_called_once()
+
+
+def test_default_user_agent_has_no_builtin_email_and_the_real_version():
+    """Issue #337: every user's traffic carried the maintainer's address."""
+    from zotero_cli import __version__
+    from zotero_cli.infra.base_api_client import user_agent
+
+    anonymous = user_agent()
+    assert "mailto" not in anonymous and "@" not in anonymous
+    assert f"zotero-cli/{__version__}" in anonymous
+    assert user_agent("me@example.org").endswith("; mailto:me@example.org)")

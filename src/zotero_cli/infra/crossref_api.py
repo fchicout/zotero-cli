@@ -11,8 +11,9 @@ logger = logging.getLogger(__name__)
 
 
 class CrossRefAPIClient(BaseAPIClient, MetadataProvider):
-    def __init__(self) -> None:
-        super().__init__(base_url="https://api.crossref.org/works")
+    def __init__(self, contact_email: Optional[str] = None) -> None:
+        # CrossRef's "polite pool" wants a contact address in the User-Agent.
+        super().__init__(base_url="https://api.crossref.org/works", contact_email=contact_email)
 
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:
         """

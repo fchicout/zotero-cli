@@ -21,7 +21,10 @@ def test_unpaywall_client_init():
         if "UNPAYWALL_EMAIL" in os.environ:
             del os.environ["UNPAYWALL_EMAIL"]
         client3 = UnpaywallAPIClient()
-        assert client3.email == "unpaywall_client@zotero_cli.com"
+        # No made-up or built-in address: without one, Unpaywall is skipped
+        # (Issue #337).
+        assert client3.email is None
+        assert client3.get_paper_metadata("10.1000/abc") is None
 
 
 def test_get_paper_metadata_invalid_doi():
@@ -53,7 +56,7 @@ def test_get_paper_metadata_success():
 
 
 def test_get_paper_metadata_journal_name_and_oa_locations_fallback():
-    client = UnpaywallAPIClient()
+    client = UnpaywallAPIClient(email="user@example.org")
     mock_response = MagicMock()
     mock_response.json.return_value = {
         "title": "OA Paper",
@@ -74,7 +77,7 @@ def test_get_paper_metadata_journal_name_and_oa_locations_fallback():
 
 
 def test_get_paper_metadata_http_error_404():
-    client = UnpaywallAPIClient()
+    client = UnpaywallAPIClient(email="user@example.org")
     mock_response = MagicMock()
     mock_response.status_code = 404
     http_err = requests.exceptions.HTTPError(response=mock_response)
@@ -84,7 +87,7 @@ def test_get_paper_metadata_http_error_404():
 
 
 def test_get_paper_metadata_http_error_generic():
-    client = UnpaywallAPIClient()
+    client = UnpaywallAPIClient(email="user@example.org")
     mock_response = MagicMock()
     mock_response.status_code = 500
     http_err = requests.exceptions.HTTPError(response=mock_response)

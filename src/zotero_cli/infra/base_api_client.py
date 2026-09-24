@@ -16,6 +16,17 @@ from tenacity import (
 logger = logging.getLogger(__name__)
 
 
+
+def user_agent(contact_email: Optional[str] = None) -> str:
+    """The User-Agent for outgoing API requests. "Polite pool" providers
+    (CrossRef, OpenAlex) ask for a contact address; it's the user's own
+    configured email (`unpaywall_email`), never a built-in one, so one
+    user's traffic is never attributed to someone else."""
+    from zotero_cli import __version__
+
+    agent = f"zotero-cli/{__version__} (+https://github.com/fchicout/zotero-cli"
+    return f"{agent}; mailto:{contact_email})" if contact_email else f"{agent})"
+
 class BaseAPIClient(ABC):
     """
     Abstract base class for Metadata Providers.
@@ -27,13 +38,13 @@ class BaseAPIClient(ABC):
         base_url: str,
         headers: Optional[Dict[str, str]] = None,
         min_request_interval: float = 0.34,
+        contact_email: Optional[str] = None,
     ):
         self.base_url = base_url.rstrip("/")
         self.session = requests.Session()
         self.session.headers.update(headers or {})
-        # Default user agent if not provided
         if "User-Agent" not in self.session.headers:
-            self.session.headers["User-Agent"] = "zotero-cli/1.2.0 (mailto:fchicout@gmail.com)"
+            self.session.headers["User-Agent"] = user_agent(contact_email)
 
         # Proactive pacing (Issue #268): reactive retry/backoff (below)
         # only kicks in *after* a request is already rejected - it does

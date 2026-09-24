@@ -44,6 +44,7 @@ Provides high-speed metadata hydration and citation analysis.
 A database of over 50 million free, open-access scholarly articles. 
 *   **How to set it:** Simply add your email address to the `unpaywall_email` field.
 *   **Benefit:** High-success PDF discovery. The tool uses this email to search Unpaywall and automatically attach legal PDFs to your Zotero items.
+*   **Also your contact address for other services:** CrossRef, OpenAlex and NCBI/PubMed ask API clients to identify a contact so they can reach you before throttling heavy use (their "polite pool"). zotero-cli sends this email to them when it's set, and no email at all when it isn't. Unpaywall itself requires an email, so without one it's skipped.
 
 ---
 

@@ -21,7 +21,7 @@ def zotero_item():
 
 @pytest.mark.anyio
 async def test_unpaywall_resolver_success(mock_gateway, zotero_item):
-    resolver = UnpaywallResolver(mock_gateway)
+    resolver = UnpaywallResolver(mock_gateway, email="user@example.org")
 
     mock_response = MagicMock()
     mock_response.json.return_value = {
@@ -101,7 +101,7 @@ async def test_openalex_resolver_success(zotero_item):
 
 @pytest.mark.anyio
 async def test_unpaywall_no_oa(mock_gateway, zotero_item):
-    resolver = UnpaywallResolver(mock_gateway)
+    resolver = UnpaywallResolver(mock_gateway, email="user@example.org")
 
     mock_response = MagicMock()
     mock_response.json.return_value = {"best_oa_location": None}
@@ -110,3 +110,13 @@ async def test_unpaywall_no_oa(mock_gateway, zotero_item):
 
     result = await resolver.resolve(zotero_item)
     assert result is None
+
+
+@pytest.mark.anyio
+async def test_unpaywall_resolver_is_skipped_without_a_configured_email(mock_gateway):
+    """Unpaywall needs the user's own email; none configured means no
+    request at all rather than a made-up address (Issue #337)."""
+    resolver = UnpaywallResolver(mock_gateway)
+    item = ZoteroItem(key="K", version=1, item_type="journalArticle", doi="10.1000/abc")
+    assert await resolver.resolve(item) is None
+    mock_gateway.get.assert_not_called()
