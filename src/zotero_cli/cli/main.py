@@ -44,7 +44,7 @@ OFFLINE_MODE = False
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Zotero CLI - The Systematic Review Engine")
+    parser = argparse.ArgumentParser(description="zotero-cli - manage your Zotero library from the command line")
     parser.add_argument("--user", action="store_true", help="Force Personal Library mode")
     parser.add_argument(
         "--offline",

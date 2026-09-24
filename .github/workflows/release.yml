@@ -66,7 +66,7 @@ jobs:
           fpm -s dir -t deb -n zotero-cli -v ${{ steps.get_version.outputs.VERSION }} \
             --prefix / \
             -C dist/deb \
-            --description "The Systematic Review Forge: High-performance CLI for Zotero" \
+            --description "Command-line interface for managing Zotero libraries" \
             --maintainer "Fabio Chicout <fchicout@gmail.com>" \
             --url "https://github.com/fchicout/zotero-cli" \
             usr/bin/zotero-cli
@@ -77,7 +77,7 @@ jobs:
           fpm -s dir -t rpm -n zotero-cli -v ${{ steps.get_version.outputs.VERSION }} \
             --prefix / \
             -C dist/deb \
-            --description "The Systematic Review Forge: High-performance CLI for Zotero" \
+            --description "Command-line interface for managing Zotero libraries" \
             --maintainer "Fabio Chicout <fchicout@gmail.com>" \
             --url "https://github.com/fchicout/zotero-cli" \
             usr/bin/zotero-cli

@@ -6,10 +6,13 @@
 ---
 
 ## 1. What is this tool?
-Think of `zotero-cli` as a "Systematic Review Engine" that lives outside of Zotero. It helps you:
-*   **Screen papers** faster (using a dedicated interface).
+`zotero-cli` lets you work with your Zotero library from the command line, without opening the Zotero app. It helps you:
+*   **List, search and organize** items, collections and tags, one command at a time or in scripts.
+*   **Import** papers by DOI, from arXiv, or from BibTeX/RIS/CSV files, and fetch their PDFs.
 *   **Clean up** your metadata and find duplicates.
-*   **Generate PRISMA reports** automatically.
+*   **Export** data as JSON, CSV or Markdown for other tools, including LLM assistants.
+
+For systematic literature reviews it also has optional screening and PRISMA reporting tools (see [Tutorial 2](02-slr-workflow.md)).
 
 It runs in a window called the **Terminal**, but don't worry—we'll guide you through every step.
 

@@ -47,7 +47,7 @@ def set_gateway_instance(gateway: ZoteroGateway) -> None:
 def get_job_queue_service() -> "JobQueueService":
     """
     Dependency to retrieve the JobQueueService instance (Issue #150: lets a
-    consumer like corbenic-slr poll job status through the API layer instead
+    local consumer poll job status through the API layer instead
     of reading zotero-cli's jobs.sqlite directly).
     Raises RuntimeError if it hasn't been initialized by the startup event.
     """
