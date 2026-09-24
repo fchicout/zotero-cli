@@ -5,6 +5,7 @@ from typing import Optional
 from zotero_cli.core.interfaces import PDFResolver, ResolutionError
 from zotero_cli.core.services.network_gateway import NetworkGateway
 from zotero_cli.core.utils.safe_tempfile import write_secure_temp_file
+from zotero_cli.core.utils.url_safety import looks_like_pdf
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -32,11 +33,10 @@ class ArXivResolver(PDFResolver):
             response = await self.gateway.get(pdf_url)
 
             # ArXiv sometimes returns a 200 HTML page instead of a PDF if it's a redirect or error
-            if "application/pdf" not in response.headers.get("Content-Type", "").lower():
-                # Check if it starts with %PDF
-                if not response.content.startswith(b"%PDF"):
-                    logger.warning(f"ArXiv: URL {pdf_url} did not return a PDF.")
-                    return None
+            # The PDF signature, not the Content-Type header, decides.
+            if not looks_like_pdf(response.content):
+                logger.warning(f"ArXiv: URL {pdf_url} did not return a PDF.")
+                return None
 
             # Save to a non-predictable temp file (Issue #240)
             dest = write_secure_temp_file(response.content, prefix="arxiv_", suffix=".pdf")

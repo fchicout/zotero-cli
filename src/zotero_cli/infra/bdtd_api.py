@@ -2,12 +2,12 @@ import logging
 import urllib.parse
 from typing import Any, Dict, Iterator, Optional
 
-import requests
 from bs4 import BeautifulSoup
 from rapidfuzz.distance import Levenshtein
 
 from zotero_cli.core.interfaces import MetadataProvider, SearchableMetadataProvider
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.utils.url_safety import safe_get_text, safe_head
 from zotero_cli.infra.base_api_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
@@ -255,20 +255,23 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider)
             headers = {
                 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0"
             }
-            # Fetch landing page
-            response = requests.get(repo_url, allow_redirects=True, timeout=10, headers=headers)
+            # repo_url comes from harvested repository metadata (untrusted):
+            # fetch it through the SSRF guard, with a capped body.
+            response = safe_get_text(repo_url, timeout=10, headers=headers)
             if response.status_code != 200:
                 return None
 
             soup = BeautifulSoup(response.text, "html.parser")
-            base_parsed = urllib.parse.urlparse(response.url)
-            base_url = base_parsed.netloc
+            base_host = urllib.parse.urlparse(response.url).hostname
 
             # Extract same-domain links
             links = []
             for a_tag in soup.find_all("a", href=True):
                 current_link = urllib.parse.urljoin(str(response.url), str(str(a_tag["href"])))
-                if base_url in current_link and current_link != response.url:
+                # Exact host match: a substring test would also accept
+                # e.g. repositorio.example.br.attacker.example.
+                same_host = urllib.parse.urlparse(current_link).hostname == base_host
+                if same_host and current_link != response.url:
                     links.append(str(current_link))
 
             # Extract embedded PDF object
@@ -292,9 +295,8 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider)
                 ):
                     # Check if downloadable (HEAD request)
                     try:
-                        h = requests.head(
+                        h = safe_head(
                             u_link,
-                            allow_redirects=True,
                             timeout=5,
                             headers={**headers, "Referer": u_link, "Accept": "*/*;q=0.8"},
                         )

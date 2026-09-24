@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from zotero_cli.core.interfaces import PDFResolver
 from zotero_cli.core.services.network_gateway import NetworkGateway
 from zotero_cli.core.utils.safe_tempfile import write_secure_temp_file
+from zotero_cli.core.utils.url_safety import looks_like_pdf
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -72,10 +73,10 @@ class GenericScraperResolver(PDFResolver):
             pdf_resp = await self.gateway.get(pdf_url)
 
             # Validation
-            if "application/pdf" not in pdf_resp.headers.get("Content-Type", "").lower():
-                if not pdf_resp.content.startswith(b"%PDF"):
-                    logger.warning(f"{self.name}: URL {pdf_url} did not return a PDF.")
-                    return None
+            # The PDF signature, not the Content-Type header, decides.
+            if not looks_like_pdf(pdf_resp.content):
+                logger.warning(f"{self.name}: URL {pdf_url} did not return a PDF.")
+                return None
 
             # Save to a non-predictable temp file (Issue #240)
             return write_secure_temp_file(

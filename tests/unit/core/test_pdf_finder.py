@@ -185,3 +185,26 @@ async def test_process_job_resolver_crashes(
     mock_job_queue.fail_job.assert_called_with(
         1, "Errors: MagicMock: Unexpected error: Crashed", retry=True
     )
+
+
+@pytest.mark.anyio
+async def test_process_job_refuses_to_upload_a_file_without_pdf_signature(
+    finder_service, mock_item_repo, mock_attachment_repo, mock_resolver, mock_job_queue, tmp_path
+):
+    """Whatever a resolver returns, only a file with the %PDF signature is
+    uploaded into the library; anything else is deleted and the job fails."""
+    item_key = "HTML123"
+    job = Job(id=9, item_key=item_key, task_type="fetch_pdf", payload={})
+    mock_item_repo.get_item.return_value = ZoteroItem(
+        key=item_key, version=1, item_type="journalArticle"
+    )
+    not_a_pdf = tmp_path / "download.pdf"
+    not_a_pdf.write_bytes(b"<html>login required</html>")
+    mock_resolver.resolve_val = not_a_pdf
+
+    await finder_service._process_job(job)
+
+    mock_attachment_repo.upload_attachment.assert_not_called()
+    mock_job_queue.complete_job.assert_not_called()
+    mock_job_queue.fail_job.assert_called_once()
+    assert not not_a_pdf.exists()

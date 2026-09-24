@@ -9,6 +9,7 @@ from rapidfuzz.distance import Levenshtein
 from zotero_cli.core.interfaces import PDFResolver, ResolutionError
 from zotero_cli.core.services.network_gateway import NetworkGateway
 from zotero_cli.core.utils.safe_tempfile import write_secure_temp_file
+from zotero_cli.core.utils.url_safety import looks_like_pdf
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -57,14 +58,16 @@ class BDTDResolver(PDFResolver):
 
             soup = BeautifulSoup(response.text, "html.parser")
             base_parsed = urllib.parse.urlparse(str(response.url))
-            base_domain = base_parsed.netloc
+            base_host = base_parsed.hostname
 
             # Extract same-domain links
             links = []
             for a_tag in soup.find_all("a", href=True):
                 current_link = urllib.parse.urljoin(str(response.url), str(str(a_tag["href"])))
                 current_parsed = urllib.parse.urlparse(current_link)
-                if base_domain in current_parsed.netloc and current_link != str(response.url):
+                # Exact host match: a substring test would also accept
+                # e.g. repositorio.example.br.attacker.example.
+                if current_parsed.hostname == base_host and current_link != str(response.url):
                     links.append(str(current_link))
 
             # Extract embedded PDF object
@@ -136,13 +139,10 @@ class BDTDResolver(PDFResolver):
             logger.info(f"BDTDResolver: Downloading PDF: {pdf_url}")
             response = await self.gateway.get(pdf_url)
 
-            # Verify %PDF header or Content-Type
-            if "application/pdf" not in response.headers.get("Content-Type", "").lower():
-                if not response.content.startswith(b"%PDF"):
-                    logger.warning(
-                        f"BDTDResolver: URL {pdf_url} did not return a valid PDF signature."
-                    )
-                    return None
+            # The PDF signature, not the Content-Type header, decides.
+            if not looks_like_pdf(response.content):
+                logger.warning(f"BDTDResolver: URL {pdf_url} did not return a valid PDF signature.")
+                return None
 
             # Save to a non-predictable temp file (Issue #240)
             dest = write_secure_temp_file(response.content, prefix="bdtd_", suffix=".pdf")
