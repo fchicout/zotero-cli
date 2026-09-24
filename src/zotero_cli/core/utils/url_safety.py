@@ -263,6 +263,9 @@ def public_only_session(session: Optional[requests.Session] = None) -> requests.
 
 
 class _PublicOnlyAsyncBackend(httpcore.AsyncNetworkBackend):
+    # connect_unix_socket is deliberately not overridden: the base class
+    # refuses it (NotImplementedError), and these clients never set `uds`.
+
     def __init__(self, inner: httpcore.AsyncNetworkBackend):
         self._inner = inner
 
@@ -282,11 +285,6 @@ class _PublicOnlyAsyncBackend(httpcore.AsyncNetworkBackend):
             local_address=local_address,
             socket_options=socket_options,
         )
-
-    async def connect_unix_socket(
-        self, path: str, timeout: Optional[float] = None, socket_options: Any = None
-    ) -> httpcore.AsyncNetworkStream:
-        raise UnsafeURLError("Unix sockets are not allowed for external fetches")
 
     async def sleep(self, seconds: float) -> None:
         await self._inner.sleep(seconds)
