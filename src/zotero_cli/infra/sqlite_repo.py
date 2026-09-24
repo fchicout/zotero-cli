@@ -129,7 +129,10 @@ class SqliteZoteroGateway(ZoteroGateway):
     _COLLECTION_SELECT = """
         SELECT c.key, c.collectionName AS name,
                (SELECT p.key FROM collections p WHERE p.collectionID = c.parentCollectionID)
-                   AS parentCollection
+                   AS parentCollection,
+               (SELECT COUNT(*) FROM collectionItems ci
+                WHERE ci.collectionID = c.collectionID
+                  AND ci.itemID NOT IN (SELECT itemID FROM deletedItems)) AS numItems
         FROM collections c
     """
 
@@ -141,6 +144,7 @@ class SqliteZoteroGateway(ZoteroGateway):
                 {
                     "key": r["key"],
                     "data": {"name": r["name"], "parentCollection": r["parentCollection"]},
+                    "meta": {"numItems": r["numItems"]},
                 }
                 for r in cursor
             ]
@@ -158,6 +162,7 @@ class SqliteZoteroGateway(ZoteroGateway):
                 return {
                     "key": row["key"],
                     "data": {"name": row["name"], "parentCollection": row["parentCollection"]},
+                    "meta": {"numItems": row["numItems"]},
                 }
             return None
         finally:
