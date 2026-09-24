@@ -3,11 +3,12 @@ import os
 import sys
 from typing import Any
 
-from rich.console import Console
 from rich.table import Table
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import ZoteroQuery
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -224,7 +225,7 @@ class SLRSourceCommand:
 
             total = len(items)
             if total == 0:
-                table.add_row(name, key, "0", "0.00%", "0", "0")
+                table.add_row(safe_markup(name), key, "0", "0.00%", "0", "0")
                 continue
 
             missing_abstract = 0
@@ -264,7 +265,7 @@ class SLRSourceCommand:
             compl_percent = (completeness_points / (total * 5)) * 100
 
             table.add_row(
-                name,
+                safe_markup(name),
                 key,
                 str(total),
                 f"{compl_percent:.2f}%",

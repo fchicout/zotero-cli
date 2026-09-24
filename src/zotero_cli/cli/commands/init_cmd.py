@@ -2,13 +2,13 @@ import argparse
 import sys
 from pathlib import Path
 
-from rich.console import Console
 from rich.markup import escape
 from rich.prompt import Confirm, Prompt
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.config import ConfigLoader, ZoteroConfig, secure_config_open
 from zotero_cli.core.logging_config import redact, register_secrets
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 

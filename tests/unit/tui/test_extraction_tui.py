@@ -61,7 +61,8 @@ def test_run_extraction_single_item(
     tui.run_extraction([item], agent="test-agent", persona="tester")
 
     # Verify Opener
-    mock_opener.open_file.assert_called_once_with("http://example.com")
+    mock_opener.open_url.assert_called_once_with("http://example.com")
+    mock_opener.open_file.assert_not_called()
 
     # Verify Save
     mock_service.save_extraction.assert_called_once()
@@ -107,3 +108,31 @@ def test_run_extraction_skip_save(mock_confirm, mock_prompt, mock_console, tui, 
 
     mock_service.save_extraction.assert_not_called()
     mock_console.print.assert_any_call("[yellow]Skipped saving.[/yellow]")
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        r"\\attacker\share\paper.pdf.exe",  # UNC path (Windows)
+        "file:///etc/passwd",
+        "paper.pdf",  # relative path
+        "javascript:alert(1)",
+        "smb://attacker/share",
+    ],
+)
+@patch("zotero_cli.cli.tui.extraction_tui.console")
+@patch("zotero_cli.cli.tui.extraction_tui.Prompt.ask")
+@patch("zotero_cli.cli.tui.extraction_tui.Confirm.ask")
+def test_non_web_item_url_is_never_offered_or_opened(
+    mock_confirm, mock_prompt, mock_console, url, tui, mock_opener
+):
+    """item.url is editable by any collaborator on a shared library: only
+    http(s) URLs are offered, and only through the browser."""
+    item = ZoteroItem(key="ITEM1", version=1, item_type="journalArticle", title="T", url=url)
+    mock_confirm.side_effect = [True, True]  # Boolean Var, Save
+    mock_prompt.side_effect = ["Answer 1", "", "", "", ""]
+
+    tui.run_extraction([item], agent="test-agent", persona="tester")
+
+    mock_opener.open_url.assert_not_called()
+    mock_opener.open_file.assert_not_called()

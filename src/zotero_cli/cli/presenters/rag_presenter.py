@@ -2,10 +2,10 @@ import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Sequence
 
-from rich.console import Console
 from rich.panel import Panel
 
 from zotero_cli.core.models import SearchResult
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 
 console = Console()
 

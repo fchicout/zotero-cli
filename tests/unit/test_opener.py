@@ -70,3 +70,34 @@ def test_print_link(capsys, opener):
     captured = capsys.readouterr()
     assert "file://" in captured.out
     assert "test.pdf" in captured.out
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        r"\\attacker\share\paper.pdf.exe",
+        "file:///etc/passwd",
+        "paper.pdf",
+        "javascript:alert(1)",
+        "http://",
+        " http://example.com",
+        "http://example.com/\nsecond-line",
+    ],
+)
+def test_open_url_refuses_non_web_urls(opener, url):
+    with patch("webbrowser.open") as browser, patch("subprocess.run") as run:
+        assert opener.open_url(url) is False
+    browser.assert_not_called()
+    run.assert_not_called()
+
+
+def test_open_url_uses_the_browser_not_the_os_launcher(opener):
+    with (
+        patch("webbrowser.open", return_value=True) as browser,
+        patch("subprocess.run") as run,
+        patch("os.startfile", create=True) as startfile,
+    ):
+        assert opener.open_url("https://doi.org/10.1000/1") is True
+    browser.assert_called_once_with("https://doi.org/10.1000/1")
+    run.assert_not_called()
+    startfile.assert_not_called()

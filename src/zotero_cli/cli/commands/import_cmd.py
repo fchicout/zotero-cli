@@ -4,6 +4,7 @@ import os
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
 from zotero_cli.core.services.import_service import ImportService
+from zotero_cli.core.utils.terminal_safety import strip_controls
 from zotero_cli.infra.factory import GatewayFactory
 
 
@@ -281,15 +282,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             return
 
         if args.verbose:
-            print(f"Title: {paper.title}")
-            print(f"Authors: {', '.join(paper.authors)}")
-            print(f"University: {paper.publication or 'N/A'}")
-            print(f"Year: {paper.year or 'N/A'}")
+            # Harvested repository metadata: untrusted text.
+            print(strip_controls(f"Title: {paper.title}"))
+            print(strip_controls(f"Authors: {', '.join(paper.authors)}"))
+            print(strip_controls(f"University: {paper.publication or 'N/A'}"))
+            print(strip_controls(f"Year: {paper.year or 'N/A'}"))
             if paper.extra:
                 for line in paper.extra.split("\n"):
-                    print(f"  {line}")
+                    print(strip_controls(f"  {line}"))
             if paper.pdf_url:
-                print(f"PDF URL: {paper.pdf_url}")
+                print(strip_controls(f"PDF URL: {paper.pdf_url}"))
             print("---")
 
         count = service.import_papers(iter([paper]), args.collection, args.verbose)

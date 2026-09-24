@@ -1,6 +1,5 @@
 from typing import Any, Dict, Optional
 
-from rich.console import Console
 from rich.layout import Layout
 from rich.panel import Panel
 from rich.prompt import Prompt
@@ -14,6 +13,7 @@ from zotero_cli.cli.tui.components import (
 from zotero_cli.core.interfaces import SnowballGraphService, ZoteroGateway
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 from zotero_cli.core.utils.normalization import normalize_doi
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 
 
 class SnowballReviewTUI:

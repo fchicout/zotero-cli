@@ -4,7 +4,6 @@ import os
 import time
 from typing import TYPE_CHECKING, Any
 
-from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
@@ -17,6 +16,8 @@ from zotero_cli.core.strategies import (
     RisImportStrategy,
     SpringerCsvImportStrategy,
 )
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.bibtex_lib import BibtexLibGateway
 from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
@@ -458,7 +459,7 @@ Cognitive Safeguards
             # [ { "id": 123, "data": { "name": "Group Name", ... }, ... }, ... ]
             name = g.get("data", {}).get("name", "N/A")
             url = f"https://www.zotero.org/groups/{gid}"
-            table.add_row(gid, name, url)
+            table.add_row(gid, safe_markup(name), url)
         console.print(table)
 
     def _handle_check(self, args: argparse.Namespace) -> None:
@@ -483,7 +484,9 @@ Cognitive Safeguards
         table.add_column("Details")
         for r in results:
             color = status_color.get(r.status, "white")
-            table.add_row(r.name, f"[{color}]{r.status.replace('_', ' ')}[/{color}]", r.details)
+            table.add_row(
+                r.name, f"[{color}]{r.status.replace('_', ' ')}[/{color}]", safe_markup(r.details)
+            )
         console.print(table)
 
     def _handle_demo_sandbox(self, args: argparse.Namespace) -> None:
@@ -686,11 +689,13 @@ Cognitive Safeguards
         target_name = target.get("data", {}).get("name")
         target_id = str(target.get("id"))
 
-        if Confirm.ask(f"Switch context to group '{target_name}' ({target_id})?"):
+        if Confirm.ask(f"Switch context to group '{safe_markup(target_name)}' ({target_id})?"):
             try:
                 manager = ConfigManager()
                 manager.save_group_context(target_id)
-                print(f"[green]Switched context to group: {target_name} ({target_id})[/green]")
+                console.print(
+                    f"[green]Switched context to group: {safe_markup(target_name)} ({target_id})[/green]"
+                )
             except Exception as e:
                 print(f"[red]Failed to save configuration: {e}[/red]")
 

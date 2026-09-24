@@ -2,7 +2,6 @@ import argparse
 import asyncio
 import sys
 
-from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
@@ -10,6 +9,8 @@ from rich.table import Table
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.presenters import item_list_presenter
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -100,22 +101,22 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             collections_str = ", ".join(col_list) if col_list else "None"
 
             abstract_display = (
-                item.abstract
+                safe_markup(item.abstract)
                 if item.abstract
                 else "[blink bright_red]<no abstract>[/blink bright_red] ❗"
             )
 
             console.print(
                 Panel(
-                    f"[bold]Collections:[/bold] {collections_str}\n"
-                    f"[bold]Title:[/bold] {item.title}\n"
-                    f"[bold]Type:[/bold] {item.item_type}\n"
-                    f"[bold]Date:[/bold] {item.date}\n"
-                    f"[bold]Added:[/bold] {item.date_added}\n"
-                    f"[bold]Modified:[/bold] {item.date_modified}\n"
-                    f"[bold]Authors:[/bold] {', '.join(item.authors)}\n"
-                    f"[bold]DOI:[/bold] {item.doi}\n"
-                    f"[bold]URL:[/bold] {item.url}\n\n"
+                    f"[bold]Collections:[/bold] {safe_markup(collections_str)}\n"
+                    f"[bold]Title:[/bold] {safe_markup(item.title)}\n"
+                    f"[bold]Type:[/bold] {safe_markup(item.item_type)}\n"
+                    f"[bold]Date:[/bold] {safe_markup(item.date)}\n"
+                    f"[bold]Added:[/bold] {safe_markup(item.date_added)}\n"
+                    f"[bold]Modified:[/bold] {safe_markup(item.date_modified)}\n"
+                    f"[bold]Authors:[/bold] {safe_markup(', '.join(item.authors))}\n"
+                    f"[bold]DOI:[/bold] {safe_markup(item.doi)}\n"
+                    f"[bold]URL:[/bold] {safe_markup(item.url)}\n\n"
                     f"[bold]Abstract:[/bold]\n{abstract_display}",
                     title=f"Item: {key}",
                 )
@@ -155,7 +156,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
                                 console.print(Panel(JSON(raw_json), border_style="cyan"))
                             else:
-                                console.print(Panel(note_full, border_style="cyan"))
+                                console.print(Panel(safe_markup(note_full), border_style="cyan"))
                         else:
                             if is_json:
                                 display_content = json.dumps(
@@ -816,7 +817,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                     "[green]resolved[/green]",
                     entry.decision.master_key,
                     ", ".join(entry.decision.merge_keys) or "(none - kept as-is)",
-                    entry.decision.reason,
+                    safe_markup(entry.decision.reason),
                 )
         console.print(table)
 
@@ -979,10 +980,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         for r in results:
             table.add_row(
                 r["key"],
-                r["title"],
-                r["old_doi"],
-                r["new_doi"],
-                r["new_journal"],
+                safe_markup(r["title"]),
+                safe_markup(r["old_doi"]),
+                safe_markup(r["new_doi"]),
+                safe_markup(r["new_journal"]),
             )
 
         console.print(table)
@@ -1120,7 +1121,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 "[yellow]This writes directly to your local zotero.sqlite, the same file "
                 "Zotero Desktop reads. Close Desktop first to avoid a database lock.[/yellow]"
             )
-            if not Confirm.ask(f"Move '{item.title}' ({args.key}) to trash?"):
+            if not Confirm.ask(f"Move '{safe_markup(item.title)}' ({args.key}) to trash?"):
                 console.print(ABORTED_NO_WRITES_MSG)
                 return
 
@@ -1159,7 +1160,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 "[yellow]This writes directly to your local zotero.sqlite, the same file "
                 "Zotero Desktop reads. Close Desktop first to avoid a database lock.[/yellow]"
             )
-            if not Confirm.ask(f"Restore '{item.title}' ({args.key}) from trash?"):
+            if not Confirm.ask(f"Restore '{safe_markup(item.title)}' ({args.key}) from trash?"):
                 console.print(ABORTED_NO_WRITES_MSG)
                 return
 

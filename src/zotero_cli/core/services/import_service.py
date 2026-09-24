@@ -3,6 +3,7 @@ from typing import Iterator
 from zotero_cli.core.interfaces import ItemRepository
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.core.services.collection_service import CollectionService
+from zotero_cli.core.utils.terminal_safety import strip_controls
 
 
 class ImportService:
@@ -31,12 +32,12 @@ class ImportService:
         for paper in papers:
             if verbose:
                 doi_info = f" [DOI: {paper.doi}]" if paper.doi else ""
-                print(f"Adding: {paper.title}{doi_info}...")
+                print(strip_controls(f"Adding: {paper.title}{doi_info}..."))
 
             if self.item_repo.create_item(paper, col_id):
                 success_count += 1
             elif verbose:
-                print(f"Failed to add: {paper.title}")
+                print(strip_controls(f"Failed to add: {paper.title}"))
 
         return success_count
 

@@ -2,7 +2,6 @@ import argparse
 import sys
 from typing import Any, Dict, List, Optional
 
-from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 from rich.tree import Tree
@@ -10,6 +9,8 @@ from rich.tree import Tree
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.backup_service import BackupService
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.factory import GatewayFactory
 
@@ -307,7 +308,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             table.add_column("Items", justify="right")
             for c in cols:
                 table.add_row(
-                    c["data"]["name"], c["key"], str((c.get("meta") or {}).get("numItems", 0))
+                    safe_markup(c["data"]["name"]),
+                    c["key"],
+                    str((c.get("meta") or {}).get("numItems", 0)),
                 )
             console.print(table)
             return
@@ -340,7 +343,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 items = (child.get("meta") or {}).get("numItems", 0)
 
                 # Format node: Name (Key) [Items]
-                node_text = f"[bold green]{name}[/bold green] ([cyan]{key}[/cyan])"
+                node_text = f"[bold green]{safe_markup(name)}[/bold green] ([cyan]{key}[/cyan])"
                 if items > 0:
                     node_text += f" [dim]({items} items)[/dim]"
 

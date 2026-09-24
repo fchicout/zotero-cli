@@ -2,8 +2,18 @@
 import os
 import subprocess  # nosec B404
 import sys
+import webbrowser
+from urllib.parse import urlparse
 
 from zotero_cli.core.interfaces import OpenerService as IOpenerService
+
+
+def is_web_url(url: str) -> bool:
+    """True for an absolute http(s) URL with a host, and nothing else."""
+    if not url or any(ch in url for ch in "\r\n\t\\") or url != url.strip():
+        return False
+    parsed = urlparse(url)
+    return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
 
 class OpenerService(IOpenerService):
@@ -37,6 +47,22 @@ class OpenerService(IOpenerService):
         except Exception:
             # Fallback
             OpenerService.print_link(path)
+            return False
+
+    def open_url(self, url: str) -> bool:
+        """
+        Opens an http(s) URL in the default browser. Anything else is
+        refused: item URLs are editable by anyone with write access to a
+        shared library, and handing them to the OS launcher (os.startfile,
+        xdg-open) would let a UNC path like \\\\host\\share\\x.exe connect
+        out or run a program.
+        """
+        if not is_web_url(url):
+            print("Refusing to open a non-http(s) URL.", file=sys.stderr)
+            return False
+        try:
+            return webbrowser.open(url)
+        except webbrowser.Error:
             return False
 
     @staticmethod

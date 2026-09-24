@@ -3,7 +3,6 @@ import json
 import sys
 from typing import Any, Dict, List, Optional
 
-from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
@@ -12,6 +11,8 @@ from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.graph_service import CitationGraphService
 from zotero_cli.core.services.report_service import ReportService
 from zotero_cli.core.services.slr.status_service import PhaseStats
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -275,7 +276,7 @@ class SLRReportCommand:
             de_val = str(de.accepted) if de else "0"
 
             table.add_row(
-                f"[cyan]{status.source_name} ({status.source_key})[/cyan]",
+                f"[cyan]{safe_markup(status.source_name)} ({status.source_key})[/cyan]",
                 str(status.tree_total),
                 format_stats(ta),
                 format_stats(ft),
@@ -372,7 +373,12 @@ class SLRReportCommand:
         table.add_column("From", style="red")
         table.add_column("To", style="green")
         for s in shifts:
-            table.add_row(s["key"], s["title"][:50], ", ".join(s["from"]), ", ".join(s["to"]))
+            table.add_row(
+                s["key"],
+                safe_markup(s["title"][:50]),
+                safe_markup(", ".join(s["from"])),
+                safe_markup(", ".join(s["to"])),
+            )
         console.print(table)
 
     @staticmethod
@@ -518,8 +524,8 @@ class SLRReportCommand:
                 dec_strings = [f"{rev}: {dec.upper()}" for rev, dec in d["decisions"].items()]
                 table.add_row(
                     d["key"],
-                    ", ".join(dec_strings),
-                    d["title"][:50] + ("..." if len(d["title"]) > 50 else ""),
+                    safe_markup(", ".join(dec_strings)),
+                    safe_markup(d["title"][:50] + ("..." if len(d["title"]) > 50 else "")),
                 )
             console.print(table)
         else:

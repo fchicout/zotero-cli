@@ -1,12 +1,12 @@
 import argparse
 import asyncio
 
-from rich.console import Console
 from rich.markup import escape
 
 from zotero_cli.cli.tui.factory import TUIFactory
 from zotero_cli.core.config import ZoteroConfig, get_config
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()

@@ -8,6 +8,7 @@ from rapidfuzz import fuzz
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.normalization import normalize_doi, normalize_title
+from zotero_cli.core.utils.terminal_safety import strip_controls
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -145,7 +146,7 @@ class CSVInboundService:
             payload = self._build_sdb_payload(row, reviewer, phase, actual_map)
 
             if dry_run or not force:
-                print(f"[DRY RUN] Match: {item.key} | {(item.title or '')[:40]}...")
+                print(strip_controls(f"[DRY RUN] Match: {item.key} | {(item.title or '')[:40]}..."))
                 results["skipped"] += 1
                 continue
 

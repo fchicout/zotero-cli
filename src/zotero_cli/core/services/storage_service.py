@@ -5,6 +5,7 @@ from pathlib import Path
 from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import ZoteroQuery
+from zotero_cli.core.utils.terminal_safety import strip_controls
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -104,10 +105,10 @@ class StorageService:
             target_path = storage_root / filename
 
         if target_path.exists():
-            print(f"Skipping {item.key}: File {filename} already exists.")
+            print(strip_controls(f"Skipping {item.key}: File {filename} already exists."))
             return False
 
-        print(f"Processing {item.key}: {filename}...")
+        print(strip_controls(f"Processing {item.key}: {filename}..."))
 
         # 1. Download
         try:

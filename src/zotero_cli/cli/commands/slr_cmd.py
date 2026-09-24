@@ -1,7 +1,5 @@
 import argparse
 
-from rich.console import Console
-
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.commands.slr import (
     DecideCommand,
@@ -17,6 +15,7 @@ from zotero_cli.cli.commands.slr import (
 )
 from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
 from zotero_cli.cli.commands.slr.source_cmd import SLRSourceCommand
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()

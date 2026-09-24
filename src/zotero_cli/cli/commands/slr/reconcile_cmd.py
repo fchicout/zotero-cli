@@ -1,9 +1,10 @@
 import argparse
 
-from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -106,9 +107,9 @@ class ReconcileCommand:
                 target_name = tc["data"]["name"] if tc else m["target_id"]
 
             table.add_row(
-                f"{p.title[:40]}... ({p.key})",
-                ", ".join(curr_names),
-                f"{m['target_phase']} -> {target_name}",
+                f"{safe_markup(p.title[:40])}... ({p.key})",
+                safe_markup(", ".join(curr_names)),
+                f"{safe_markup(m['target_phase'])} -> {safe_markup(target_name)}",
             )
 
         console.print(table)

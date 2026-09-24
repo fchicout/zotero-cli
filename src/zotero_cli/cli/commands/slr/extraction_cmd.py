@@ -1,8 +1,7 @@
 import argparse
 
-from rich.console import Console
-
 from zotero_cli.cli.tui.factory import TUIFactory
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.opener import OpenerService
 
