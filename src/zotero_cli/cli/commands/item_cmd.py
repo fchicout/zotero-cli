@@ -8,6 +8,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.presenters import item_list_presenter
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.infra.factory import GatewayFactory
 
@@ -230,6 +231,11 @@ Problem: I want only the items that were accepted, not everything in the folder.
 Action:  zotero-cli slr list included --tree "FIN_01"
 Result:  Only items with an 'Accepted' SDB audit note are shown.
 
+Scenario: Exporting bibliographic metadata for a report
+Problem: I need authors, year, venue and DOI for every paper in a collection, in a spreadsheet.
+Action:  zotero-cli item list --collection "FIN_01" --fields key,title,creators,year,venue,doi --format csv > fin_01.csv
+Result:  A CSV with one row per item and the requested columns. Use --wide for a quick on-screen view.
+
 Cognitive Safeguards
 --------------------
 • Common Failure Modes: Confusion between the --collection name and key. For deterministic results, always prefer using the unique Key.
@@ -244,6 +250,27 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--root", action="store_true", help="List top-level items not in any collection"
         )
         list_p.add_argument("--top-only", action="store_true", help="Only show top-level items")
+        fields_group = list_p.add_mutually_exclusive_group()
+        fields_group.add_argument(
+            "--fields",
+            help=(
+                "Comma-separated fields to show, e.g. key,title,creators,year,venue,doi. "
+                "Also accepts raw Zotero field names such as publicationTitle or volume."
+            ),
+        )
+        fields_group.add_argument(
+            "-w",
+            "--wide",
+            action="store_true",
+            help="Preset: key, title, first author, year, venue, DOI",
+        )
+        list_p.add_argument(
+            "-f",
+            "--format",
+            choices=["table", "json", "csv", "markdown"],
+            default="table",
+            help="Output format (Default: table)",
+        )
 
         # Update
         update_p = sub.add_parser(
@@ -852,15 +879,17 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             )
             title = f"Items in {args.collection}"
 
-        table = Table(title=title)
-        table.add_column("Key", style="cyan")
-        table.add_column("Title")
-        table.add_column("Type")
-        for item in items:
-            table.add_row(item.key, item.title or "Untitled", item.item_type)
-
-        console.print(table)
-        console.print(f"\n[dim]Showing {len(items)} items.[/dim]")
+        fields = item_list_presenter.parse_fields(
+            getattr(args, "fields", None), wide=getattr(args, "wide", False)
+        )
+        for name in item_list_presenter.unknown_fields(items, fields):
+            # stderr, so a --format json/csv stream on stdout stays parseable.
+            Console(stderr=True).print(
+                f"[yellow]Warning: no listed item has a field named {escape(repr(name))}.[/yellow]"
+            )
+        item_list_presenter.render(
+            items, fields, getattr(args, "format", "table"), title, console
+        )
 
     def _handle_transfer(self, args: argparse.Namespace) -> None:
         from dataclasses import replace

@@ -384,3 +384,22 @@ def test_gateway_factory_offline_no_db(monkeypatch):
 
     with pytest.raises(ConfigurationError):
         GatewayFactory.get_zotero_gateway(config=config, offline=True)
+
+
+def test_sqlite_items_include_venue_fields_only_when_present(mock_db):
+    """Issue #323: `item list --wide`/`--fields venue` needs the venue
+    fields offline too. Like the Web API, a field appears in the item data
+    only when the item actually has it."""
+    conn = sqlite3.connect(mock_db)
+    conn.execute("INSERT INTO fields VALUES (7, 'publicationTitle')")
+    conn.execute("INSERT INTO itemDataValues VALUES (4, 'Journal of Tests')")
+    conn.execute("INSERT INTO itemData VALUES (1, 7, 4)")  # ITEMKEY1
+    conn.commit()
+    conn.close()
+
+    gateway = SqliteZoteroGateway(mock_db)
+    items = {i.key: i for i in gateway.search_items(ZoteroQuery())}
+
+    assert items["ITEMKEY1"].raw_data["data"]["publicationTitle"] == "Journal of Tests"
+    assert "publicationTitle" not in items["ITEMKEY2"].raw_data["data"]
+    assert "proceedingsTitle" not in items["ITEMKEY1"].raw_data["data"]
