@@ -15,13 +15,8 @@ _MAX_PER_PAGE = 200
 
 class OpenAlexAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider):
     def __init__(self, email: Optional[str] = None):
-        # OpenAlex prefers mailto: parameter for the "Polite Pool"
-        base_url = "https://api.openalex.org/works"
-        headers = {}
-        if email:
-            headers["User-Agent"] = f"zotero-cli/1.2.0 (mailto:{email})"
-
-        super().__init__(base_url=base_url, headers=headers)
+        # OpenAlex's "polite pool" wants a contact address in the User-Agent.
+        super().__init__(base_url="https://api.openalex.org/works", contact_email=email)
 
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:
         """

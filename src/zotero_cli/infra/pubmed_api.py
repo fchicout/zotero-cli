@@ -1,51 +1,84 @@
 import logging
+import re
 import time
-from typing import Optional
+from typing import Dict, Optional
 
 import requests
 
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.utils.normalization import is_valid_doi, normalize_doi
 from zotero_cli.infra.base_api_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
 
+_PMID_RE = re.compile(r"^\d{1,9}$")
+_PMCID_RE = re.compile(r"^pmc\d+$", re.IGNORECASE)
+
 
 class PubMedAPIClient(BaseAPIClient, MetadataProvider):
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, contact_email: Optional[str] = None):
         # NCBI E-utils base URL
         base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
         self.api_key = api_key
+        self.contact_email = contact_email
         # min_request_interval=0: this client already self-throttles more
         # precisely via _apply_rate_limit() below (API-key-aware: 3 vs 10
         # req/s), so the base class's generic pacing would be redundant.
         super().__init__(base_url=base_url, min_request_interval=0)
         self.last_request_time = 0.0
 
+    def _ncbi_params(self) -> Dict[str, str]:
+        """NCBI asks tools to identify themselves; the contact email is the
+        user's own configured one, sent only if set (Issue #337)."""
+        params = {"tool": "zotero-cli"}
+        if self.contact_email:
+            params["email"] = self.contact_email
+        if self.api_key:
+            params["api_key"] = self.api_key
+        return params
+
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:
         """
-        Retrieves paper metadata for the given identifier (PMID or PMCID).
-        """
-        self._apply_rate_limit()
+        Retrieves paper metadata for a PMID, a PMCID, or a DOI.
 
-        # 1. Resolve PMID if identifier is PMCID
-        pmid: Optional[str] = identifier
-        if identifier.lower().startswith("pmc"):
+        efetch only understands PMIDs, and NCBI reads anything else loosely:
+        sent a DOI like "10.1145/...", it returns PMID 10, an unrelated
+        paper (Issue #340). So DOIs are first looked up with esearch's
+        [doi] field, the fetched record's DOI must match, and any other
+        identifier is ignored.
+        """
+        identifier = identifier.strip()
+        queried_doi: Optional[str] = None
+        pmid: Optional[str]
+        if _PMID_RE.match(identifier):
+            pmid = identifier
+        elif _PMCID_RE.match(identifier):
+            self._apply_rate_limit()
             pmid = self._resolve_pmcid_to_pmid(identifier)
-            if not pmid:
-                return None
+        elif is_valid_doi(normalize_doi(identifier)):
+            queried_doi = normalize_doi(identifier)
+            self._apply_rate_limit()
+            pmid = self._resolve_doi_to_pmid(queried_doi)
+        else:
+            return None
 
         if not pmid:
             return None
 
-        # 2. Fetch full record via efetch
+        self._apply_rate_limit()
         try:
-            params = {"db": "pubmed", "id": pmid, "retmode": "xml"}
-            if self.api_key:
-                params["api_key"] = self.api_key
-
+            params = {"db": "pubmed", "id": pmid, "retmode": "xml", **self._ncbi_params()}
             response = self._get(endpoint="efetch.fcgi", params=params)
-            return self._parse_pubmed_xml(response.text)
+            paper = self._parse_pubmed_xml(response.text)
+            if (
+                paper is not None
+                and queried_doi is not None
+                and (not paper.doi or normalize_doi(paper.doi).lower() != queried_doi.lower())
+            ):
+                logger.info(f"PubMedAPIClient: PMID {pmid} is not the record for DOI {queried_doi}")
+                return None
+            return paper
 
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
@@ -56,16 +89,28 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
             logger.exception(f"PubMedAPIClient: Error parsing XML for {pmid}")
             return None
 
+    def _resolve_doi_to_pmid(self, doi: str) -> Optional[str]:
+        """Finds the PMID indexed under `doi`, if exactly one."""
+        try:
+            params = {
+                "db": "pubmed",
+                "term": f'"{doi}"[doi]',
+                "retmode": "json",
+                **self._ncbi_params(),
+            }
+            response = self._get(endpoint="esearch.fcgi", params=params)
+            ids = response.json().get("esearchresult", {}).get("idlist", [])
+            return str(ids[0]) if len(ids) == 1 else None
+        except Exception:
+            logger.exception(f"PubMedAPIClient: Error looking up DOI {doi}")
+            return None
+
     def _resolve_pmcid_to_pmid(self, pmcid: str) -> Optional[str]:
         """Uses idconv to map PMCID to PMID."""
         try:
             url = "https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/"
-            params = {
-                "ids": pmcid,
-                "format": "json",
-                "tool": "zotero-cli",
-                "email": "fchicout@gmail.com",
-            }
+            params = {"ids": pmcid, "format": "json", **self._ncbi_params()}
+            params.pop("api_key", None)  # idconv doesn't take an API key
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()

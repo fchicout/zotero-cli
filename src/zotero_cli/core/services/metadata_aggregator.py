@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.utils.normalization import is_valid_doi, normalize_doi
 
 
 class MetadataAggregatorService:
@@ -42,10 +43,26 @@ class MetadataAggregatorService:
                 except Exception as exc:
                     print(f"Provider generated an exception: {exc}")
 
+        results = self._drop_mismatched_dois(identifier, results)
         if not results:
             return None
 
         return self._merge_metadata(results)
+
+    @staticmethod
+    def _drop_mismatched_dois(
+        identifier: str, candidates: List[ResearchPaper]
+    ) -> List[ResearchPaper]:
+        """When the lookup is by DOI, a candidate carrying a different DOI
+        describes another paper (e.g. a provider that misread the DOI) and
+        must not be merged in, since the merge prefers the longest title and
+        abstract (Issue #340). Candidates without a DOI are kept."""
+        queried = normalize_doi(identifier)
+        if not is_valid_doi(queried):
+            return candidates
+        return [
+            c for c in candidates if not c.doi or normalize_doi(c.doi).lower() == queried.lower()
+        ]
 
     def _merge_metadata(self, candidates: List[ResearchPaper]) -> ResearchPaper:
         """

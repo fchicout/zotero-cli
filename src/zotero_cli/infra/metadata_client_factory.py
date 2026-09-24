@@ -57,7 +57,7 @@ class MetadataClientFactory:
 
         from zotero_cli.infra.pubmed_api import PubMedAPIClient
 
-        return PubMedAPIClient(api_key=config.ncbi_api_key)
+        return PubMedAPIClient(api_key=config.ncbi_api_key, contact_email=config.unpaywall_email)
 
     @staticmethod
     def get_zbmath_client() -> "ZBMathAPIClient":
@@ -142,12 +142,8 @@ class MetadataClientFactory:
         from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
 
         ss_client = MetadataClientFactory.get_semantic_scholar_client(config)
-        cr_client = CrossRefAPIClient()
-        up_client = (
-            UnpaywallAPIClient(config.unpaywall_email)
-            if config.unpaywall_email
-            else UnpaywallAPIClient()
-        )
+        cr_client = CrossRefAPIClient(contact_email=config.unpaywall_email)
+        up_client = UnpaywallAPIClient(config.unpaywall_email)
         oa_client = MetadataClientFactory.get_openalex_client(config)
         pm_client = MetadataClientFactory.get_pubmed_client(config)
         zm_client = MetadataClientFactory.get_zbmath_client()

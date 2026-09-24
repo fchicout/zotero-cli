@@ -18,10 +18,12 @@ class UnpaywallResolver(PDFResolver):
 
     def __init__(self, gateway: NetworkGateway, email: Optional[str] = None):
         self.gateway = gateway
-        self.email = email or "team@zotero-cli.invalid"
+        # Unpaywall requires the caller's own email; without one the
+        # resolver is skipped.
+        self.email = email
 
     async def resolve(self, item: ZoteroItem) -> Optional[Path]:
-        if not item.doi:
+        if not item.doi or not self.email:
             return None
 
         # Unpaywall requires an email parameter for their "polite pool"

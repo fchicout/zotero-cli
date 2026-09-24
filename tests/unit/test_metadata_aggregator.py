@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 
 from zotero_cli.core.models import ResearchPaper
@@ -96,3 +98,32 @@ def test_get_enriched_metadata_no_results():
 
     aggregator = MetadataAggregatorService([mock_provider])
     assert aggregator.get_enriched_metadata("test") is None
+
+
+def test_candidate_with_a_different_doi_is_not_merged():
+    """Issue #340: a provider that misreads a DOI returns another paper;
+    its (longer) title must not win the merge."""
+    from zotero_cli.core.models import ResearchPaper
+    from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+
+    right = ResearchPaper(
+        title="Guidelines for Human-AI Interaction", abstract="", doi="10.1145/3290605.3300233"
+    )
+    wrong = ResearchPaper(
+        title="Digitoxin metabolism by rat liver microsomes, a much longer title",
+        abstract="An unrelated abstract that is much longer than the right one.",
+        doi="10.1016/0006-2952(75)90101-3",
+    )
+    no_doi = ResearchPaper(title="Guidelines for Human-AI Interaction", abstract="Abs", doi=None)
+    providers: list = []
+    for paper in (right, wrong, no_doi):
+        provider = MagicMock()
+        provider.get_paper_metadata.return_value = paper
+        providers.append(provider)
+
+    merged = MetadataAggregatorService(providers).get_enriched_metadata(
+        "https://doi.org/10.1145/3290605.3300233"
+    )
+    assert merged is not None
+    assert merged.title == "Guidelines for Human-AI Interaction"
+    assert "Digitoxin" not in (merged.abstract or "")

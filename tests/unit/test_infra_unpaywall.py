@@ -7,7 +7,7 @@ from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
 
 @pytest.fixture
 def client():
-    return UnpaywallAPIClient()
+    return UnpaywallAPIClient(email="user@example.org")
 
 
 @patch("requests.Session.get")
