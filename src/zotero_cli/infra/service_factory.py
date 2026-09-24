@@ -129,10 +129,13 @@ class ServiceFactory:
             config, force_user, offline=offline
         )
         arxiv_gateway = MetadataClientFactory.get_arxiv_gateway()
+        aggregator = MetadataClientFactory.get_metadata_aggregator(config)
+        # OpenAlex's search backs the opt-in --by-title matching (Issue #344).
+        title_searcher = MetadataClientFactory.get_openalex_client(config)
 
         from zotero_cli.core.services.enrichment_service import EnrichmentService
 
-        return EnrichmentService(item_repo, col_repo, arxiv_gateway)
+        return EnrichmentService(item_repo, col_repo, arxiv_gateway, aggregator, title_searcher)
 
     @staticmethod
     def get_sdb_service(

@@ -21,10 +21,19 @@ class MetadataAggregatorService:
         self.inspire_hep: Optional[MetadataProvider] = None
         self.dblp: Optional[MetadataProvider] = None
 
-    def get_enriched_metadata(self, identifier: str) -> Optional[ResearchPaper]:
+    def get_enriched_metadata(
+        self, identifier: str, require_doi_match: bool = False
+    ) -> Optional[ResearchPaper]:
         """
         Queries all providers for metadata and merges the results into a single
         high-quality ResearchPaper object.
+
+        With `require_doi_match` and a DOI identifier, only candidates that
+        carry that same DOI are merged. Some providers (e.g. DBLP) run a
+        free-text "best match" search on whatever they're given, and a
+        wrong match with no DOI would otherwise contribute its venue or
+        authors. Used where the result is written into existing items
+        (`item hydrate`, Issue #344).
         """
         results: List[ResearchPaper] = []
 
@@ -43,7 +52,7 @@ class MetadataAggregatorService:
                 except Exception as exc:
                     print(f"Provider generated an exception: {exc}")
 
-        results = self._drop_mismatched_dois(identifier, results)
+        results = self._drop_mismatched_dois(identifier, results, require_doi_match)
         if not results:
             return None
 
@@ -51,18 +60,23 @@ class MetadataAggregatorService:
 
     @staticmethod
     def _drop_mismatched_dois(
-        identifier: str, candidates: List[ResearchPaper]
+        identifier: str, candidates: List[ResearchPaper], require_doi_match: bool = False
     ) -> List[ResearchPaper]:
         """When the lookup is by DOI, a candidate carrying a different DOI
         describes another paper (e.g. a provider that misread the DOI) and
         must not be merged in, since the merge prefers the longest title and
-        abstract (Issue #340). Candidates without a DOI are kept."""
+        abstract (Issue #340). Candidates without a DOI are kept unless
+        `require_doi_match`."""
         queried = normalize_doi(identifier)
         if not is_valid_doi(queried):
             return candidates
-        return [
-            c for c in candidates if not c.doi or normalize_doi(c.doi).lower() == queried.lower()
-        ]
+
+        def matches(c: ResearchPaper) -> bool:
+            if not c.doi:
+                return not require_doi_match
+            return bool(normalize_doi(c.doi).lower() == queried.lower())
+
+        return [c for c in candidates if matches(c)]
 
     def _merge_metadata(self, candidates: List[ResearchPaper]) -> ResearchPaper:
         """

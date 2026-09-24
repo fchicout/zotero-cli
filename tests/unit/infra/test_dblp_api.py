@@ -94,3 +94,16 @@ def test_map_to_research_paper_string_author(client):
     }
     paper = client._map_to_research_paper(info)
     assert paper.authors == ["Knuth, Donald E."]
+
+
+def test_get_paper_metadata_html_instead_of_json_is_quietly_no_result(client, caplog):
+    """DBLP sometimes answers with an HTML page (e.g. when throttling); that
+    is "no result", not an error with a traceback on the user's screen."""
+    import logging
+
+    mock_response = MagicMock()
+    mock_response.json.side_effect = ValueError("Expecting value")
+    with patch.object(client, "_get", return_value=mock_response):
+        with caplog.at_level(logging.WARNING):
+            assert client.get_paper_metadata("10.1038/nature14539") is None
+    assert not caplog.records

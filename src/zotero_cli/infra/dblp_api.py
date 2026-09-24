@@ -29,7 +29,14 @@ class DBLPAPIClient(BaseAPIClient, MetadataProvider):
             }
 
             response = self._get(params=params)
-            data = response.json()
+            try:
+                data = response.json()
+            except ValueError:
+                # DBLP sometimes answers with an HTML page (e.g. when
+                # throttling) instead of JSON: treat it as "no result",
+                # not as an error worth a traceback on the user's screen.
+                logger.debug("DBLPAPIClient: non-JSON response for %s", identifier)
+                return None
 
             # DBLP returns 'result' -> 'hits' -> 'hit'
             hits = data.get("result", {}).get("hits", {}).get("hit", [])

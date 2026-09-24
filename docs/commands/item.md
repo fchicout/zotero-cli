@@ -137,26 +137,28 @@ zotero-cli --offline item restore --key "ITEMKEY" --execute
 
 ### `hydrate`
 
-Retroactively fetches latest metadata (DOI and Journal/Publication) for items originating from ArXiv. This is useful for "hydrating" pre-prints that were published in a peer-reviewed journal after they were added to Zotero.
+Fills in missing metadata (abstract, date, venue, URL, creators, DOI) for items that have a DOI, an arXiv ID or a PMID, using the configured metadata providers. arXiv preprints also get the DOI and journal of their published version. It previews by default; `--execute` writes. Only empty fields are filled unless you pass `--overwrite`, and the title changes only when named in `--fields`.
 
 **Usage:**
 
 ```bash
-zotero-cli item hydrate "ITEMKEY" [--dry-run]
-zotero-cli item hydrate --collection "COLLECTION_NAME"
-zotero-cli item hydrate --all
+zotero-cli item hydrate (--key KEY | --collection NAME | --all) [--fields LIST] [--overwrite] [--by-title] [--execute | --dry-run] [-f table|json]
 ```
 
 **Options:**
 
-*   `--dry-run`: Show what would be updated without applying changes.
-*   `--collection`: Hydrate all ArXiv items within a specific collection.
-*   `--all`: Scan the entire library for ArXiv items and attempt hydration.
+*   `--key` / `--collection` / `--all`: What to hydrate: one item, a collection's top-level items, or the whole library.
+*   `--fields`: Comma-separated fields to fill: `doi`, `abstract`, `date`, `venue`, `url`, `creators`, `title` (default: all but `title`).
+*   `--overwrite`: Also replace values that are already set.
+*   `--by-title`: For items with no identifier, accept an exact title match (checked against year and first author).
+*   `--execute`: Write the changes. Without it (or with `--dry-run`), only a preview is shown.
+*   `-f`, `--format`: `table` (default) or `json`, a machine-readable report on stdout.
 
 **Example:**
 
 ```bash
-zotero-cli item hydrate "ABCD1234"
+zotero-cli item hydrate --collection "Imported"            # preview
+zotero-cli item hydrate --collection "Imported" --execute  # write
 ```
 
 ### `export`
