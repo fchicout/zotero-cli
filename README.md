@@ -17,7 +17,7 @@ It talks to the Zotero Web API (personal and group libraries). It can also read 
 
 - **Scriptable:** items, collections, tags, notes and attachments are all reachable from a terminal, with no GUI steps in between.
 - **Machine-readable output:** `item list` prints `json`, `csv` or `markdown`, and `--fields` picks the columns. Data goes to stdout and warnings to stderr, so you can pipe it into `jq`, a spreadsheet or a prompt.
-- **Suited to LLM agents:** an agent can run `--help` on any command to learn how to use it, since each one includes worked examples. `item export --format md` converts an item's PDF into Markdown an LLM can read. `rag query --format context` returns passages from your library ready to paste into a prompt.
+- **Suited to LLM agents:** an agent can run `--help` on any command to learn how to use it, since each one includes worked examples. `item export --format md` converts an item's PDF into Markdown an LLM can read.
 - **Safe by default:** bulk or destructive commands (`tag purge`, `item merge`, `item pdf strip`, `slr dedupe`, ...) only show a preview until you add `--execute`. `item hydrate` and `system restore` have `--dry-run`, and `collection purge` asks for confirmation. `--offline` reads the local database and is read-only apart from trash/restore.
 - **Runs anywhere:** a single binary for Linux and Windows, no Python needed. Also available as a container or a Python package.
 
@@ -37,11 +37,10 @@ It talks to the Zotero Web API (personal and group libraries). It can also read 
 
 ### Operations
 - **Backup and restore** the whole library, or one collection, as a compressed `.zaf` archive, attachments included.
-- **`system check`** tests the connection to every service you've configured (Zotero, metadata providers, LLM/embedding providers) in one go.
+- **`system check`** tests the connection to every service you've configured (Zotero and the metadata providers) in one go.
 - **Local HTTP API** (`serve`): read-only endpoints for items, collections and background jobs, for local scripts and dashboards.
 
-### Optional: AI and review toolkits
-- **Semantic search (RAG):** index your PDFs into a local vector store, then search them in plain language or ask an LLM questions answered from your own library. This needs the optional `[rag]` install.
+### Optional: literature review toolkit
 - **Systematic literature review (`slr`):** screening decisions recorded as auditable Zotero notes, PRISMA statistics, citation snowballing and data extraction. See [docs/commands/slr.md](docs/commands/slr.md).
 
 ## 🍳 Cookbook
@@ -68,9 +67,6 @@ zotero-cli item pdf fetch --collection "Inbox"
 ```bash
 # The item's PDF, converted to Markdown
 zotero-cli item export --key ABCD1234 --format md --output ./context/
-
-# Or: the most relevant passages from across your library (needs the [rag] extra)
-zotero-cli rag query "evaluation methods for human-AI interaction" --format context
 ```
 
 ### Clean up tags, previewing before you change anything
@@ -112,7 +108,6 @@ zotero-cli system demo-sandbox --clean
 | **[`storage`](docs/commands/storage.md)** | Attachments | `checkout` |
 | **[`system`](docs/commands/system.md)** | Operations | `info`, `check`, `groups`, `switch`, `backup`, `restore`, `jobs` |
 | **[`serve`](docs/commands/serve.md)** | Local HTTP API | `(default)` |
-| **[`rag`](docs/commands/rag.md)** | Semantic search | `ingest`, `query`, `context` |
 | **[`slr`](docs/commands/slr.md)** | Literature review | `screen`, `decide`, `load`, `extract`, `snowball`, `sdb`, `report` |
 
 Every command has built-in help with worked examples: `zotero-cli <noun> <verb> --help`.
@@ -140,7 +135,7 @@ irm https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.ps1 | iex
 ```
 
 ### 🐳 Option 2: Containers
-The repo includes a `Dockerfile`. It builds the same standalone binary as the releases, without the ML stack.
+The repo includes a `Dockerfile`. It builds the same standalone binary as the releases.
 
 ```bash
 git clone https://github.com/fchicout/zotero-cli.git
@@ -167,22 +162,18 @@ cd zotero-cli
 uv tool install .
 ```
 
-### 📦 Using `zotero-cli` as a Python library (lite vs. full)
-`zotero-cli` isn't published on PyPI. Install it from a release tag. The semantic-search stack (`torch`, `sentence-transformers`, `openai`, ...) is an optional extra, so the default install stays light:
+### 📦 Using `zotero-cli` as a Python library
+`zotero-cli` isn't published on PyPI. Install it from a release tag:
 
 ```bash
-# Lite: library management, import, export, reports
 pip install "git+https://github.com/fchicout/zotero-cli@vX.Y.Z"
-
-# Full: adds rag ingest / rag query
-pip install "git+https://github.com/fchicout/zotero-cli@vX.Y.Z#egg=zotero-cli[rag]"
 ```
 
 See the "Distribution: Consuming `zotero-cli` as a Library" section of `docs/ARCHITECTURE.md` for the reasoning.
 
 ### ⚙️ Configuration
 ```bash
-zotero-cli init         # interactive wizard: API key, library, optional providers
+zotero-cli init         # interactive wizard: API key, library, optional metadata providers
 zotero-cli system info  # show which config is in use
 ```
 
