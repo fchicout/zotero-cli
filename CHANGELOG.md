@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 🛡️ Quality & Infrastructure
+- **Built and shipped on Python 3.14:** the release binaries, the Docker image (`python:3.14-slim`, pinned by digest), the devcontainer and development (`.python-version`) now use Python 3.14, the newest stable release (bug fixes until October 2027, security fixes until October 2030). Python 3.11 had been in security-only maintenance since April 2024. PyPI installs still support Python 3.11+: CI's new `test-min-python` job runs the runtime smoke test, `mypy --python-version 3.11` and the unit tests on 3.11. The package classifiers now list 3.11–3.14.
+
 ## [2.8.12] - 2026-09-24
 
 This release fixes the findings of the pre-launch security audit (#328). The twelve fixed vulnerabilities are described in GitHub Security Advisories published with this release. **Upgrading is recommended for everyone.**
