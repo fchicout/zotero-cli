@@ -63,3 +63,14 @@ unpaywall_email = "your.email@example.com"
 **File Locations:**
 *   **Linux/macOS:** `~/.config/zotero-cli/config.toml`
 *   **Windows:** `%APPDATA%\zotero-cli\config.toml`
+
+## Where zotero-cli keeps its files
+
+Everything lives in one directory, which zotero-cli makes private to your user account (mode `0700`):
+
+- **Linux/macOS:** `~/.config/zotero-cli/` (or `$XDG_CONFIG_HOME/zotero-cli/`)
+- **Windows:** `%APPDATA%\zotero-cli\`
+
+It holds `config.toml` (your keys, mode `0600`), the background job queue (`jobs.sqlite`), snowball discovery graphs, and the log files in `logs/`. `logs/zotero-cli.log` records INFO and above on every run, rotated at 5 MB with 3 old files kept. Log files are created `0600`.
+
+zotero-cli masks API keys, tokens and credential URL parameters before writing any log line, in the file and on screen. Still, check a log for anything private before attaching it to an issue, and never post your `config.toml`.

@@ -22,7 +22,10 @@ def test_resolve_key_identity_success():
     assert data["username"] == "myusername"
 
     called_url = mock_get.call_args.args[0]
-    assert called_url == f"{ZoteroHttpClient.BASE_URL}/keys/some_api_key"
+    # The key goes in the header only, never the URL, which can end up in
+    # exception messages and logs.
+    assert called_url == f"{ZoteroHttpClient.BASE_URL}/keys/current"
+    assert "some_api_key" not in called_url
     headers = mock_get.call_args.kwargs["headers"]
     assert headers["Zotero-API-Key"] == "some_api_key"
 

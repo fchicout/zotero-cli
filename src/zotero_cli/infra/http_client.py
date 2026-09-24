@@ -198,13 +198,15 @@ class ZoteroHttpClient:
     )
     def resolve_key_identity(api_key: str) -> Dict[str, Any]:
         """
-        Calls GET /keys/<api_key> - library-independent by design, since
+        Calls GET /keys/current - library-independent by design, since
         resolving a personal library's userID from a bare key is exactly
         what a caller with no library_id yet needs it for (Issue #178).
+        The key goes only in the header: `/keys/<api_key>` would put it in
+        the URL, which ends up in exception messages and logs.
         Raises requests.HTTPError (e.g. 403 for an invalid/revoked key) or
         a connection error on failure; callers decide how to present that.
         """
-        url = f"{ZoteroHttpClient.BASE_URL}/keys/{api_key}"
+        url = f"{ZoteroHttpClient.BASE_URL}/keys/current"
         response = requests.get(
             url,
             headers={
