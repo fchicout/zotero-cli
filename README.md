@@ -206,7 +206,7 @@ uv run pytest tests/unit
 `uv sync` creates `.venv/`, using the Python version pinned in `.python-version`, and installs the project in editable mode from `uv.lock`. Commit `uv.lock` alongside any dependency change so everyone, CI included, gets exactly the same versions. `pre-commit install` sets up the checks from `docs/PROCESS.md`: ruff, mypy and bandit run on every `git commit`, and `pytest tests/unit` runs on `git push`. See `.pre-commit-config.yaml`.
 
 ## Security
-To report a vulnerability, see [SECURITY.md](SECURITY.md). Please don't use public issues for security problems.
+To report a vulnerability, see [SECURITY.md](https://github.com/fchicout/zotero-cli/blob/main/SECURITY.md). Please don't use public issues for security problems.
 
 ## License
 MIT License. See [LICENSE](https://github.com/fchicout/zotero-cli/blob/main/LICENSE) for details.
