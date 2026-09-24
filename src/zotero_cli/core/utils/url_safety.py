@@ -299,14 +299,14 @@ def pin_public_ips(client: httpx.AsyncClient) -> httpx.AsyncClient:
     validated public addresses. Patches the default transport's connection
     pool in place, so env-configured proxy mounts stay as they are."""
     transport = getattr(client, "_transport", None)
-    if not isinstance(transport, httpx.AsyncHTTPTransport):
-        return client  # a test double; test_url_safety pins a real client
-    pool = getattr(transport, "_pool", None)
-    if not isinstance(pool, httpcore.AsyncConnectionPool):
-        # Internals not as expected (e.g. a changed httpx release): fail
-        # loudly rather than leave the client unpinned.
-        raise TypeError("pin_public_ips needs a client using httpx's default transport")
-    pool._network_backend = _PublicOnlyAsyncBackend(pool._network_backend)
+    # Anything else is a test double; test_url_safety pins a real client.
+    if isinstance(transport, httpx.AsyncHTTPTransport):
+        pool = getattr(transport, "_pool", None)
+        if not isinstance(pool, httpcore.AsyncConnectionPool):
+            # Internals not as expected (e.g. a changed httpx release): fail
+            # loudly rather than leave the client unpinned.
+            raise TypeError("pin_public_ips needs a client using httpx's default transport")
+        pool._network_backend = _PublicOnlyAsyncBackend(pool._network_backend)
     return client
 
 
