@@ -40,6 +40,23 @@ jobs:
           uv run --no-sync zotero-cli --help
           uv run --no-sync python scripts/smoke_imports.py
 
+      # Issue #335: fail on known vulnerabilities in what users install;
+      # report (without failing) those in optional extras and dev tools.
+      - name: Audit runtime dependencies for known vulnerabilities
+        run: |
+          uv export --locked --no-dev --no-hashes --no-emit-project --no-header --no-annotate \
+            -o "$RUNNER_TEMP/requirements-runtime.txt"
+          uvx --from pip-audit==2.10.1 pip-audit -r "$RUNNER_TEMP/requirements-runtime.txt" \
+            --no-deps --disable-pip --progress-spinner off
+
+      - name: Audit optional and dev dependencies (informational)
+        continue-on-error: true
+        run: |
+          uv export --locked --all-extras --all-groups --no-hashes --no-emit-project --no-header \
+            --no-annotate -o "$RUNNER_TEMP/requirements-all.txt"
+          uvx --from pip-audit==2.10.1 pip-audit -r "$RUNNER_TEMP/requirements-all.txt" \
+            --no-deps --disable-pip --progress-spinner off
+
       - name: Install dependencies
         run: uv sync --extra dev
 

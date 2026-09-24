@@ -1,7 +1,11 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <!-- Scope="perUser" (Issue #341): the package installs into LocalAppData
+       and edits the user's PATH only, so it must not default to a
+       per-machine install that asks for elevation (UAC). -->
   <Package Name="zotero-cli"
            Manufacturer="Fabio Chicout"
            Version="$(var.Version)"
+           Scope="perUser"
            UpgradeCode="524957e1-8559-4f7d-8b6b-4f9e3c9e9e9e">
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />

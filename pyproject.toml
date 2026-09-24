@@ -89,7 +89,6 @@ dev = [
     "types-requests",
     "types-toml",
     "bandit>=1.7.5",
-    "safety>=3.0.0",
     "pre-commit>=3.6.0",
     "pytest>=9.0.3",
 ]
@@ -139,5 +138,10 @@ markers = [
 [tool.coverage.run]
 relative_files = true
 source = ["src"]
+
+[dependency-groups]
+release = [
+    "pyinstaller>=6.22",
+]
 
 

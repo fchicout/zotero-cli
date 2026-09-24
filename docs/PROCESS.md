@@ -39,7 +39,7 @@
         1.  `ruff check . --fix` (Linting & Style) — **enforced automatically** by the `pre-commit` hook (`.pre-commit-config.yaml`)
         2.  `mypy .` (Type Safety) — **enforced automatically**, same hook
         3.  `bandit -r src/` (Security SAST) — **enforced automatically**, same hook
-        4.  `safety check` (Vulnerability Audit) — manual/CI-only (network access required)
+        4.  Dependency vulnerability audit — `pip-audit` on the locked runtime dependencies, run by CI (network access required). Locally: `uv export --locked --no-dev --no-hashes --no-emit-project -o /tmp/req.txt && uvx --from pip-audit==2.10.1 pip-audit -r /tmp/req.txt --no-deps --disable-pip`
         5.  `pytest tests/unit` (Logic) — **enforced automatically** on `git push` (pre-push hook)
         6.  `pytest tests/integration` / `tests/e2e` (Iron Gauntlet - Workflow) — manual/CI-only (live credentials required; never run autonomously by an agent — see `CLAUDE.md`)
 
