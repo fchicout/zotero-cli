@@ -6,11 +6,11 @@ import re
 import sys
 from typing import Any, Callable, Dict, List, Optional, Sequence, TextIO
 
-from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
 from zotero_cli.core.utils.csv_safety import sanitize_csv_row
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.zotero_item import ZoteroItem
 
 DEFAULT_FIELDS = ["key", "title", "type"]

@@ -1,7 +1,6 @@
 import argparse
 from typing import Optional, Sequence
 
-from rich.console import Console
 from rich.markup import escape
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
@@ -10,6 +9,7 @@ from zotero_cli.cli.presenters.rag_presenter import (
     HumanPresenter,
     JsonPresenter,
 )
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.factory import GatewayFactory
 

@@ -16,6 +16,7 @@ from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorServi
 from zotero_cli.core.services.pdf_finder_service import PDFFinderService
 from zotero_cli.core.services.purge_service import PurgeService
 from zotero_cli.core.utils.slugify import slugify
+from zotero_cli.core.utils.terminal_safety import strip_controls
 from zotero_cli.core.utils.url_safety import (
     ResponseTooLargeError,
     UnsafeURLError,
@@ -92,7 +93,7 @@ class AttachmentService(FullTextProvider):
 
         # 2. Try existing URL if it looks like a PDF
         if item.url and self._looks_like_pdf(item.url):
-            print(f"Checking existing URL for PDF: {item.url}")
+            print(strip_controls(f"Checking existing URL for PDF: {item.url}"))
             pdf_path = self._download_file(item.url)
             if pdf_path:
                 print("  Uploading to Zotero...")
@@ -107,7 +108,7 @@ class AttachmentService(FullTextProvider):
         if not identifier:
             return False
 
-        print(f"Checking PDF for: {item.title} ({identifier})")
+        print(strip_controls(f"Checking PDF for: {item.title} ({identifier})"))
 
         # 3. Get Metadata (PDF URL) from aggregator
         enriched = self.metadata_aggregator.get_enriched_metadata(identifier)
@@ -123,7 +124,7 @@ class AttachmentService(FullTextProvider):
             print("  No PDF URL found.")
             return False
 
-        print(f"  Found PDF URL: {pdf_url}")
+        print(strip_controls(f"  Found PDF URL: {pdf_url}"))
 
         # 4. Download
         pdf_path = self._download_file(pdf_url)
@@ -209,7 +210,7 @@ class AttachmentService(FullTextProvider):
                     tmp.write(chunk)
 
             if not is_pdf:
-                print(f"Download error: {url!r} did not return a valid PDF signature.")
+                print(strip_controls(f"Download error: {url!r} did not return a valid PDF signature."))
                 os.remove(path)
                 return None
 

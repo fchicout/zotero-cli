@@ -643,3 +643,41 @@ def test_item_list_wide_and_fields_are_mutually_exclusive():
 def test_item_list_rejects_unknown_format():
     with pytest.raises(SystemExit):
         _parse_list_args("--collection", "C1", "--format", "xml")
+
+
+def test_item_inspect_renders_markup_and_escapes_in_metadata_literally(
+    mock_clients, env_vars, capsys
+):
+    """A title with Rich markup used to crash inspect with MarkupError; an
+    escape sequence must not reach the terminal."""
+    mock_gateway = mock_clients["gateway"]
+    item = MagicMock()
+    item.title = "Broken [/bold] title \x1b]52;c;cHduZWQ=\x07"
+    item.item_type = "journalArticle"
+    item.date = "2023"
+    item.date_added = "2023-01-01"
+    item.date_modified = "2023-01-02"
+    item.authors = ["[link=https://evil.example]Author[/link]"]
+    item.doi = "10.1234/test"
+    item.url = "http://test.com"
+    item.abstract = "[red]abstract[/red]"
+    item.collections = []
+    mock_gateway.get_item.return_value = item
+    mock_gateway.get_item_children.return_value = [
+        {"key": "N1", "data": {"itemType": "note", "note": "<p>[/i] note</p>"}}
+    ]
+
+    args = MagicMock()
+    args.verb = "inspect"
+    args.key = "TESTKEY123"
+    args.raw = False
+    args.format = None
+    args.full_notes = True
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "Broken [/bold] title" in out
+    assert "[red]abstract[/red]" in out
+    assert "\x1b]52" not in out and "\x07" not in out

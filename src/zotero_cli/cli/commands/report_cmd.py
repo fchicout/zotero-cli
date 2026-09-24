@@ -4,7 +4,6 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
@@ -14,6 +13,8 @@ from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.duplicate_service import DuplicateFinder, DuplicateGroup
 from zotero_cli.core.services.sdb.sdb_service import SDBService
 from zotero_cli.core.utils.csv_safety import sanitize_csv_rows
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -194,9 +195,9 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             color = status_color.get(row["sdb_status"], "white")
             table.add_row(
                 row["match_type"],
-                row["title"],
+                safe_markup(row["title"]),
                 row["key"],
-                row["collection"],
+                safe_markup(row["collection"]),
                 f"[{color}]{row['sdb_status']}[/{color}]",
             )
         console.print(table)
@@ -369,8 +370,11 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             table.add_row(
                 key,
                 status,
-                decision or "-",
-                (data.get("title") or "")[:50] + ("..." if len(data.get("title", "")) > 50 else ""),
+                safe_markup(decision or "-"),
+                safe_markup(
+                    (data.get("title") or "")[:50]
+                    + ("..." if len(data.get("title", "")) > 50 else "")
+                ),
             )
 
         console.print(table)
@@ -522,7 +526,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             for item in missing_pdf[:25]:
                 item_title = item.title or ""
                 title_display = (item_title[:77] + "...") if len(item_title) > 80 else item_title
-                table.add_row(item.key, item.item_type, title_display)
+                table.add_row(item.key, item.item_type, safe_markup(title_display))
             console.print(table)
             if len(missing_pdf) > 25:
                 console.print(

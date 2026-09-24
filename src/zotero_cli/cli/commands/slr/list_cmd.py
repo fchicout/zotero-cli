@@ -1,10 +1,11 @@
 import argparse
 from typing import List
 
-from rich.console import Console
 from rich.table import Table
 
 from zotero_cli.core.services.slr.status_service import DecidedItem, SLRStatusService
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -135,7 +136,12 @@ Cognitive Safeguards:
             items.sort(key=lambda x: (x.source_collection, x.item_key))
             for item in items:
                 title_display = (item.title[:77] + "...") if len(item.title) > 80 else item.title
-                table.add_row(item.item_key, item.source_collection, item.reason, title_display)
+                table.add_row(
+                    item.item_key,
+                    safe_markup(item.source_collection),
+                    safe_markup(item.reason),
+                    safe_markup(title_display),
+                )
 
             console.print(table)
             console.print(f"\n[bold yellow]Total QA-Approved Items: {len(items)}[/bold yellow]")
@@ -249,7 +255,11 @@ Cognitive Safeguards:
         for item in pending_items:
             title_display = (item.title[:77] + "...") if len(item.title) > 80 else item.title
             table.add_row(
-                item.item_key, item.phase, item.source_collection, item.reason, title_display
+                item.item_key,
+                item.phase,
+                safe_markup(item.source_collection),
+                safe_markup(item.reason),
+                safe_markup(title_display),
             )
 
         console.print(table)
@@ -292,7 +302,11 @@ Cognitive Safeguards:
         for item in items:
             title_display = (item.title[:77] + "...") if len(item.title) > 80 else item.title
             table.add_row(
-                item.item_key, item.phase, item.source_collection, item.reason, title_display
+                item.item_key,
+                item.phase,
+                safe_markup(item.source_collection),
+                safe_markup(item.reason),
+                safe_markup(title_display),
             )
 
         console.print(table)

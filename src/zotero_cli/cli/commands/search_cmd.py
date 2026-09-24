@@ -1,11 +1,12 @@
 import argparse
 
-from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.models import ZoteroQuery
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -87,8 +88,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
             table.add_row(
                 item.key,
-                display_title,
-                authors,
+                safe_markup(display_title),
+                safe_markup(authors),
                 item.date[:4] if item.date else "N/A",
                 item.doi or "",
             )

@@ -1,6 +1,5 @@
 from typing import List, Optional
 
-from rich.console import Console
 from rich.layout import Layout
 from rich.markup import escape
 from rich.prompt import Prompt
@@ -12,6 +11,7 @@ from zotero_cli.cli.tui.components import (
 )
 from zotero_cli.core.interfaces import ScreeningService
 from zotero_cli.core.services.screening_state import ScreeningStateService
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.zotero_item import ZoteroItem
 
 

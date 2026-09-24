@@ -1,9 +1,9 @@
 import argparse
 
-from rich.console import Console
 from rich.markup import escape
 
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 
 console = Console()
 

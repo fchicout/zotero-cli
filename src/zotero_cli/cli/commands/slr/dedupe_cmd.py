@@ -1,7 +1,6 @@
 import argparse
 from typing import List, Optional
 
-from rich.console import Console
 from rich.prompt import Confirm
 from rich.table import Table
 
@@ -9,6 +8,8 @@ from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.merge_service import MergePlan
 from zotero_cli.core.services.sdb.sdb_service import SDB_STATUS_CONFLICTING
 from zotero_cli.core.services.slr.dedupe_service import ClassifiedDuplicateGroup
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -172,7 +173,7 @@ Result:  A CSV is written with one row per occurrence; MATCHING/UNSCREENED rows 
             resolution = "NEEDS REVIEW" if g.sdb_status == SDB_STATUS_CONFLICTING else "AUTO-MERGE"
             table.add_row(
                 g.match_type,
-                g.identifier,
+                safe_markup(g.identifier),
                 f"[{color}]{g.sdb_status}[/{color}]",
                 str(len(g.occurrences)),
                 resolution,

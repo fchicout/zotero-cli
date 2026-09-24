@@ -595,6 +595,12 @@ class OpenerService(ABC):
     def open_file(self, path: str) -> bool:
         pass
 
+    @abstractmethod
+    def open_url(self, url: str) -> bool:
+        """Opens an http(s) URL in the browser. Never pass item data to
+        open_file: it hands the value to the OS launcher."""
+        pass
+
 
 class AuditService(ABC):
     @abstractmethod

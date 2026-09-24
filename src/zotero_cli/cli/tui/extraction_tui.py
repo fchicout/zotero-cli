@@ -1,11 +1,13 @@
 from typing import Any, List
 
-from rich.console import Console
 from rich.markup import escape
 from rich.prompt import Confirm, IntPrompt, Prompt
 
 from zotero_cli.core.interfaces import ExtractionService, OpenerService
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.core.zotero_item import ZoteroItem
+from zotero_cli.infra.opener import is_web_url
 
 console = Console()
 
@@ -60,9 +62,11 @@ class ExtractionTUI:
             # Without `AttachmentService` resolving the path, we can't open local PDF easily.
             # I will skip complex PDF resolving for this MVP and just offer to open the URL.
             if item.url:
-                console.print(f"URL: {item.url}")
-                if Confirm.ask("Open URL?", default=True):
-                    self.opener.open_file(item.url)
+                console.print(f"URL: {safe_markup(item.url)}")
+                # Only web URLs, and only via the browser (open_url): item.url
+                # is editable by any collaborator on a shared library.
+                if is_web_url(item.url) and Confirm.ask("Open URL in browser?", default=False):
+                    self.opener.open_url(item.url)
 
             # 3. Extraction Loop
             extracted_data = {}

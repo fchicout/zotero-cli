@@ -2,9 +2,8 @@ import csv
 import io
 import json
 
-from rich.console import Console
-
 from zotero_cli.cli.presenters import item_list_presenter as p
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.zotero_item import ZoteroItem
 
 

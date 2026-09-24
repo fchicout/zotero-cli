@@ -1,10 +1,10 @@
 import argparse
 
-from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
