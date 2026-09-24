@@ -343,20 +343,44 @@ def test_sqlite_shadow_copy(mock_db):
     assert gateway._temp_db_path != mock_db
 
 
-def test_sqlite_shadow_copy_filename_is_not_pid_predictable(mock_db):
+def test_sqlite_shadow_copy_path_is_not_pid_predictable(mock_db):
     """Issue #240: the shadow-copy path was previously a fully
     deterministic f"zotero_cli_shadow_{os.getpid()}.sqlite" - guessable
     since PID space is bounded/reused - letting a local attacker on a
-    shared host pre-plant a symlink at that path. It must now come from
-    tempfile.mkstemp instead."""
+    shared host pre-plant a symlink at that path. It now lives in a
+    randomly named tempfile.mkdtemp() directory."""
     gateway = SqliteZoteroGateway(mock_db)
     gateway.get_all_collections()
 
     assert gateway._temp_db_path is not None
-    filename = os.path.basename(gateway._temp_db_path)
-    assert f"zotero_cli_shadow_{os.getpid()}.sqlite" != filename
-    assert filename.startswith("zotero_cli_shadow_")
-    assert filename.endswith(".sqlite")
+    temp_dir = os.path.basename(os.path.dirname(gateway._temp_db_path))
+    assert temp_dir.startswith("zotero_cli_shadow_")
+    assert temp_dir != f"zotero_cli_shadow_{os.getpid()}"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
+def test_sqlite_shadow_copy_is_private_even_if_source_is_world_readable(mock_db):
+    """The shadow copy is the user's whole Zotero database: it must not
+    inherit the source file's (typically 0644) mode, and its directory
+    must be private too."""
+    os.chmod(mock_db, 0o644)
+    gateway = SqliteZoteroGateway(mock_db)
+    gateway.get_all_collections()
+
+    assert gateway._temp_db_path is not None
+    assert os.stat(gateway._temp_db_path).st_mode & 0o777 == 0o600
+    assert os.stat(os.path.dirname(gateway._temp_db_path)).st_mode & 0o777 == 0o700
+
+
+def test_sqlite_shadow_copy_directory_is_removed_with_the_gateway(mock_db):
+    gateway = SqliteZoteroGateway(mock_db)
+    gateway.get_all_collections()
+    assert gateway._temp_dir is not None
+    temp_dir = gateway._temp_dir
+
+    gateway.__del__()
+
+    assert not os.path.exists(temp_dir)
 
 
 def test_gateway_factory_offline(mock_db, monkeypatch):

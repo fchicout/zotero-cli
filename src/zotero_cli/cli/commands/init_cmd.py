@@ -3,10 +3,12 @@ import sys
 from pathlib import Path
 
 from rich.console import Console
+from rich.markup import escape
 from rich.prompt import Confirm, Prompt
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.config import ConfigLoader, ZoteroConfig, secure_config_open
+from zotero_cli.core.logging_config import redact, register_secrets
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
@@ -57,6 +59,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
         api_key = Prompt.ask("Enter your Zotero API Key", password=True)
+        register_secrets(api_key)
 
         # Resolve the key's owning identity up front - no library_id needed
         # for this call (Issue #178) - so we can confirm the key itself is
@@ -69,7 +72,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 f"[green]✔ Key belongs to '{identity.username}' (User ID: {identity.user_id})[/]\n"
             )
         except Exception as e:
-            console.print(f"[yellow]⚠ Could not resolve key identity yet: {e}[/]\n")
+            console.print(
+                f"[yellow]⚠ Could not resolve key identity yet: {escape(redact(str(e)))}[/]\n"
+            )
 
         lib_type = Prompt.ask("Library Type", choices=["user", "group"], default="group")
         if lib_type == "user" and resolved_user_id:

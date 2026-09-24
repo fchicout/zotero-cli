@@ -200,6 +200,12 @@ class ConfigLoader:
         storage_path = os.environ.get("ZOTERO_STORAGE_PATH") or file_config.get("storage_path")
         database_path = os.environ.get("ZOTERO_DATABASE_PATH") or file_config.get("database_path")
 
+        from zotero_cli.core.logging_config import register_secrets
+
+        register_secrets(
+            api_key, ss_key, ncbi_key, core_key, openai_key, gemini_key, hf_token, up_email
+        )
+
         return ZoteroConfig(
             api_key=api_key,
             library_id=library_id,

@@ -1,3 +1,4 @@
+import atexit
 import json
 import logging
 import os
@@ -32,6 +33,7 @@ class SqliteZoteroGateway(ZoteroGateway):
 
     def __init__(self, database_path: str):
         self._temp_db_path: Optional[str] = None
+        self._temp_dir: Optional[str] = None
         if not database_path or not os.path.exists(database_path):
             raise ConfigurationError(f"Zotero database not found at: {database_path}")
         self.original_db_path = database_path
@@ -60,12 +62,17 @@ class SqliteZoteroGateway(ZoteroGateway):
             # tempfile.gettempdir()/f"zotero_cli_shadow_{os.getpid()}.sqlite"
             # path is deterministic (PID space is bounded/reused), letting
             # a local attacker on a shared host pre-plant a symlink there.
-            # tempfile.mkstemp creates the file itself (O_CREAT|O_EXCL,
-            # mode 0600), so there's nothing for an attacker to have
-            # pre-planted.
-            fd, temp_path = tempfile.mkstemp(prefix="zotero_cli_shadow_", suffix=".sqlite")
-            os.close(fd)
-            shutil.copy2(self.original_db_path, temp_path)
+            # The copy is the user's whole Zotero database, so it lives in a
+            # mkdtemp() directory (0700) as a file created 0600 - copying
+            # the source's mode (shutil.copy2) left it world-readable - and
+            # is removed at exit, not only when the gateway is collected.
+            temp_dir = tempfile.mkdtemp(prefix="zotero_cli_shadow_")
+            temp_path = os.path.join(temp_dir, "zotero.sqlite")
+            fd = os.open(temp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "wb") as dst, open(self.original_db_path, "rb") as src:
+                shutil.copyfileobj(src, dst)
+            atexit.register(shutil.rmtree, temp_dir, True)
+            self._temp_dir = temp_dir
             self._temp_db_path = temp_path
 
         conn = sqlite3.connect(self._temp_db_path)
@@ -73,11 +80,9 @@ class SqliteZoteroGateway(ZoteroGateway):
         return conn
 
     def __del__(self) -> None:
-        if self._temp_db_path and os.path.exists(self._temp_db_path):
-            try:
-                os.remove(self._temp_db_path)
-            except OSError:
-                pass
+        temp_dir = getattr(self, "_temp_dir", None)
+        if temp_dir:
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
     def _map_row_to_item(
         self,
