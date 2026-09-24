@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.8.10] - 2026-09-24
+
 ### ✨ Features & Improvements
 - **`item list` gains field selection, a `--wide` preset, and JSON/CSV/Markdown output (Issue #323):** `item list` only ever showed a fixed Key/Title/Type table, so gathering authors, year, venue or DOI for a collection meant running `item inspect` once per item. New `--fields` takes a comma-separated list of friendly field names (`key`, `title`, `type`, `creators`, `first_author`, `date`, `year`, `venue`, `doi`, `url`, `abstract`, `extra`, `tags`, `collections`, `parent`, `date_added`, `date_modified`) or any raw Zotero field name (`publicationTitle`, `volume`, `ISSN`, ...); `-w`/`--wide` is a preset for key, title, first author, year, venue and DOI; `-f`/`--format` switches between `table` (default, output unchanged), `json`, `csv` and `markdown`. `venue` picks whichever of `publicationTitle`/`proceedingsTitle`/`conferenceName`/`bookTitle` the item type uses. Non-table formats write only the data to stdout (no title or item-count footer), and a warning about a field no listed item has goes to stderr, so output can be piped into `jq` or redirected to a file. CSV cells go through the existing formula-injection guard (#237), and table cells render as literal text so titles like `[Retracted] ...` aren't eaten as Rich markup (#253). The offline SQLite gateway now also reads the four venue fields, so `venue` works in `--offline` mode.
 
