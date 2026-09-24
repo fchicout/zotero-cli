@@ -4,6 +4,49 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.8.12] - 2026-09-24
+
+This release fixes the findings of the pre-launch security audit (#328). The twelve fixed vulnerabilities are described in GitHub Security Advisories published with this release. **Upgrading is recommended for everyone.**
+
+### 🛡️ Security
+- **Release pipeline and installers:**
+  - Release builds run with a read-only token; only the job that publishes the release can write.
+  - Every GitHub Action is pinned to a commit, and PyInstaller and fpm are pinned. No build cache is shared with CI.
+  - Releases are made only from tags on `main`, and a tag ruleset limits `v*` tags to maintainers.
+  - Every release now ships `SHA256SUMS` and signed build provenance (`gh attestation verify <file> -R fchicout/zotero-cli`).
+  - `install.sh` and `install.ps1` verify the download against `SHA256SUMS` before installing and accept `ZOTERO_CLI_VERSION` to pin a release. `install.sh` no longer installs the Linux binary on macOS.
+  - The release workflow also runs on pull requests that touch it, building and smoke-testing every artifact without publishing.
+- **API keys kept out of logs and the terminal:** every log line, traceback included, is masked before it's written: configured secrets, credential URL parameters, and Zotero `/keys/<key>` paths. httpx request logging is quieted. `init` checks the key with `GET /keys/current` and sends it only in a header.
+- **Local files private to your account:** the storage and log directories are `0700` and log files `0600`, including rotated ones. The offline copy of `zotero.sqlite` is now a `0600` file in a private temp directory and is removed at exit.
+- **`serve` restricted to local use:**
+  - Requests whose `Host` header isn't `127.0.0.1`, `localhost` or `::1` are rejected, which stops web pages reaching the API through DNS rebinding.
+  - A non-loopback `--host` now requires `--allow-remote`, which prints a random bearer token that every request must send.
+  - `--allowed-host` adds extra host names.
+- **Outbound requests (SSRF):**
+  - Only globally routable addresses are allowed, so CGNAT/Tailscale ranges and IPv4-mapped loopback are now refused.
+  - Connections are pinned to the address that was validated.
+  - BDTD PDF resolution goes through the guard and matches link hosts exactly.
+  - Every PDF resolver, and the upload step, requires the `%PDF` signature.
+  - A unit test fails on new direct HTTP calls outside the guard.
+- **Terminal output:** every console strips control characters and bidi overrides from library data, so a title can no longer write to your clipboard or disguise a link. Library data interpolated into Rich markup is escaped, so a title containing `[/bold]` no longer crashes `item inspect`.
+- **OS launcher:** `slr extraction` opens only `http(s)` item URLs, in the browser, and never passes item data to `os.startfile`/`xdg-open`.
+- **Smaller fixes:**
+  - `slr list --xlsx` stores formula-like text as plain strings.
+  - Attachment downloads follow Zotero's storage redirect without the API key.
+  - `system restore`/`verify` read `.zaf` archives within size and entry limits.
+  - SDB and extraction notes are written as HTML-escaped JSON, so `<`/`>` in a reason can't alter the record.
+  - `storage checkout` refuses group libraries unless `--allow-group-library` is given, because the local path would sync to every member.
+- **Security policy:** new `SECURITY.md` explaining how to report vulnerabilities privately (Issue #336).
+
+### 🐛 Bug Fixes
+- **PubMed returned the wrong paper for a DOI (Issue #340):** NCBI read a DOI like `10.1145/...` as PMID 10, and that record's longer title then won the metadata merge. PubMed now resolves DOIs through its DOI search and rejects a record whose DOI differs. The aggregator also drops any candidate whose DOI contradicts the one looked up.
+- **Requests carried the maintainer's email (Issue #337):** the User-Agent and NCBI parameters included a hardcoded personal address. The User-Agent now names the real version, and a `mailto` is added only when you set `unpaywall_email`. Unpaywall, which requires an email, is skipped without one.
+
+### 🛡️ Quality & Infrastructure
+- **Dependency vulnerability scanning (Issue #335):** CI runs `pip-audit` on the locked runtime dependencies (blocking) and on extras/dev (informational). Dependabot covers uv, GitHub Actions and Docker. `soupsieve` is now 2.10 and `cryptography` 50.0.1, and the deprecated `safety` is gone.
+- **Docker image hardened (Issue #338):** the base image is pinned by digest, the install comes from `uv.lock`, and the container runs as an unprivileged user with its config in `/config/zotero-cli`. The README shows `--env-file` and `--user "$(id -u):$(id -g)"`.
+- **MSI installs per user (Issue #341):** `Scope="perUser"`, so installing no longer asks for elevation.
+
 ### 📦 Distribution
 - **Published on PyPI as `zotero-command-line`:** `uv tool install zotero-command-line` or `pipx install zotero-command-line` now installs the CLI. The command is still `zotero-cli` and the import package is still `zotero_cli`. The PyPI name differs because `zotero-cli` there belongs to an unrelated project inactive since 2016, and PyPI rejects look-alike names such as `zoterocli`. Pushing a `vX.Y.Z` tag now also runs a `publish-pypi` job after the binaries and GitHub release. It checks that the tag matches the package version, builds the sdist and wheel, smoke-tests the wheel in a clean virtualenv, and uploads with `uv publish`. The job has a read-only `GITHUB_TOKEN`, no build cache, and actions pinned by commit SHA; the PyPI token lives only in a `pypi` environment restricted to `v*` tags. The package metadata gains a description, the README as the long description, project URLs, keywords and classifiers. README links are now absolute so they work on the PyPI page.
 - **`pytest` is no longer a runtime dependency (Issue #339):** nothing in `src/` imports it, but every install and release binary shipped it. It's now only in the `dev` extra.
