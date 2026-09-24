@@ -20,7 +20,7 @@ validated, while TLS still verifies the certificate against the hostname.
 
 import ipaddress
 import socket
-from typing import Any, Callable, Iterator, List, Optional, Union
+from typing import Any, Iterator, List, Optional, Union
 from urllib.parse import urlparse
 
 import httpcore
@@ -214,23 +214,22 @@ def looks_like_pdf(content: bytes) -> bool:
 # setting keeps working.
 
 
-def _connect_pinned(conn: HTTPConnection, connect: Callable[[], socket.socket]) -> socket.socket:
+def _pinned_new_conn(conn: HTTPConnection) -> socket.socket:
     hostname = conn._dns_host
     conn._dns_host = resolve_public_ips(hostname)[0]
     try:
-        return connect()
+        # HTTPSConnection inherits _new_conn from HTTPConnection unchanged.
+        return HTTPConnection._new_conn(conn)
     finally:
         conn._dns_host = hostname
 
 
 class _PinnedHTTPConnection(HTTPConnection):
-    def _new_conn(self) -> socket.socket:
-        return _connect_pinned(self, super()._new_conn)
+    _new_conn = _pinned_new_conn
 
 
 class _PinnedHTTPSConnection(HTTPSConnection):
-    def _new_conn(self) -> socket.socket:
-        return _connect_pinned(self, super()._new_conn)
+    _new_conn = _pinned_new_conn
 
 
 class _PinnedHTTPConnectionPool(HTTPConnectionPool):
@@ -245,8 +244,10 @@ class PublicOnlyAdapter(HTTPAdapter):
     """requests adapter whose direct connections only go to validated
     public addresses."""
 
-    def init_poolmanager(self, *args: Any, **kwargs: Any) -> None:
-        super().init_poolmanager(*args, **kwargs)
+    def init_poolmanager(
+        self, connections: int, maxsize: int, block: bool = False, **pool_kwargs: Any
+    ) -> None:
+        super().init_poolmanager(connections, maxsize, block, **pool_kwargs)
         self.poolmanager.pool_classes_by_scheme = {
             "http": _PinnedHTTPConnectionPool,
             "https": _PinnedHTTPSConnectionPool,
