@@ -18,6 +18,10 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # Actions secrets aren't available to Dependabot PRs (nor to forks), so
+      # the SonarQube steps are skipped there instead of failing the job.
+      HAS_SONAR: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -87,13 +91,19 @@ jobs:
         run: |
           uv run pytest tests/unit --cov=src/zotero_cli --cov-report=xml
 
+      - name: SonarQube skipped (no Sonar secrets in this context)
+        if: env.HAS_SONAR != 'true'
+        run: echo "::notice::SonarQube analysis skipped - SONAR_TOKEN/SONAR_HOST_URL aren't available to this run (e.g. a Dependabot PR)."
+
       - name: SonarQube Scan
+        if: env.HAS_SONAR == 'true'
         uses: sonarsource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: SonarQube Quality Gate Check
+        if: env.HAS_SONAR == 'true'
         uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
         with:
           pollingTimeoutSec: 600
@@ -102,7 +112,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: Debug SonarQube Quality Gate Failure
-        if: failure()
+        if: failure() && env.HAS_SONAR == 'true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
