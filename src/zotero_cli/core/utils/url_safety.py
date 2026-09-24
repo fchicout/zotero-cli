@@ -136,10 +136,11 @@ async def read_capped_async(
 
 IPAddress = Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
 
-# Ranges Python's `is_global` still reports as global.
+# Ranges Python's `is_global` still reports as global. (NOSONAR: these
+# literals are a blocklist, not addresses anything connects to.)
 _EXTRA_BLOCKED_NETWORKS = (
-    ipaddress.ip_network("192.88.99.0/24"),  # 6to4 relay anycast (deprecated)
-    ipaddress.ip_network("fec0::/10"),  # IPv6 site-local (deprecated)
+    ipaddress.ip_network("192.88.99.0/24"),  # NOSONAR - 6to4 relay anycast (deprecated)
+    ipaddress.ip_network("fec0::/10"),  # NOSONAR - IPv6 site-local (deprecated)
 )
 
 
@@ -258,7 +259,9 @@ def public_only_session(session: Optional[requests.Session] = None) -> requests.
     """Mounts PublicOnlyAdapter on `session` (a new one by default)."""
     session = session or requests.Session()
     adapter = PublicOnlyAdapter()
-    session.mount("http://", adapter)
+    # NOSONAR: mounting on http:// is what extends the SSRF guard to
+    # plain-HTTP URLs; it doesn't make any request use HTTP.
+    session.mount("http://", adapter)  # NOSONAR
     session.mount("https://", adapter)
     return session
 
