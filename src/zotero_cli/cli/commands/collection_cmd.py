@@ -306,7 +306,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             table.add_column("Key", style="cyan")
             table.add_column("Items", justify="right")
             for c in cols:
-                table.add_row(c["data"]["name"], c["key"], str(c["meta"].get("numItems", 0)))
+                table.add_row(
+                    c["data"]["name"], c["key"], str((c.get("meta") or {}).get("numItems", 0))
+                )
             console.print(table)
             return
 
@@ -335,7 +337,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             for child in children:
                 name = child["data"]["name"]
                 key = child["key"]
-                items = child["meta"].get("numItems", 0)
+                items = (child.get("meta") or {}).get("numItems", 0)
 
                 # Format node: Name (Key) [Items]
                 node_text = f"[bold green]{name}[/bold green] ([cyan]{key}[/cyan])"

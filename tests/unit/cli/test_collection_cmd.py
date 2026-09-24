@@ -90,6 +90,23 @@ def test_collection_list_tree(mock_gateway, capsys):
     assert "Sub Col" in out
 
 
+@pytest.mark.parametrize("table", [False, True])
+def test_collection_list_tolerates_missing_meta(mock_gateway, capsys, table):
+    """Issue #322: a gateway returning collections without the Web API's
+    `meta` envelope must not crash `collection list` - item count falls
+    back to 0 in both tree and --table modes."""
+    mock_gateway.get_all_collections.return_value = [
+        {"key": "C1", "data": {"name": "Col 1", "parentCollection": None}},
+        {"key": "C2", "data": {"name": "Sub Col", "parentCollection": "C1"}, "meta": None},
+    ]
+
+    CollectionCommand().execute(argparse.Namespace(verb="list", table=table, user=False))
+
+    out = capsys.readouterr().out
+    assert "Col 1" in out
+    assert "Sub Col" in out
+
+
 def test_collection_create_success(mock_gateway, capsys):
     mock_gateway.get_collection_id_by_name.return_value = "P123"
     mock_gateway.create_collection.return_value = "NEW_KEY"

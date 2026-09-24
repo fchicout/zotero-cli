@@ -149,6 +149,54 @@ def test_sqlite_read_collections(mock_db):
     assert col["data"]["parentCollection"] == "COLKEY1"
 
 
+def test_sqlite_collections_include_meta_num_items(mock_db):
+    """Regression test for Issue #322: offline collections must carry the
+    same `meta.numItems` envelope the Zotero Web API returns - without it,
+    `collection list --offline` crashed with KeyError: 'meta'."""
+    gateway = SqliteZoteroGateway(mock_db)
+    cols = {c["key"]: c for c in gateway.get_all_collections()}
+
+    assert cols["COLKEY1"]["meta"]["numItems"] == 1  # ITEMKEY1
+    assert cols["COLKEY2"]["meta"]["numItems"] == 0
+
+    col = gateway.get_collection("COLKEY1")
+    assert col is not None
+    assert col["meta"]["numItems"] == 1
+
+
+def test_sqlite_collection_num_items_excludes_trashed_items(mock_db):
+    """Trashed items don't count toward a collection's size, matching the
+    Web API's numItems."""
+    conn = sqlite3.connect(mock_db)
+    conn.execute("INSERT INTO deletedItems (itemID) VALUES (1)")  # ITEMKEY1
+    conn.commit()
+    conn.close()
+
+    gateway = SqliteZoteroGateway(mock_db)
+    cols = {c["key"]: c for c in gateway.get_all_collections()}
+
+    assert cols["COLKEY1"]["meta"]["numItems"] == 0
+
+
+@pytest.mark.parametrize("table", [False, True])
+def test_offline_collection_list_renders_without_error(mock_db, capsys, table):
+    """Regression test for Issue #322, end to end: `collection list` (tree
+    and --table) driven by a real SqliteZoteroGateway must render the
+    offline hierarchy with item counts instead of crashing."""
+    import argparse
+    from unittest.mock import patch
+
+    from zotero_cli.cli.commands.collection_cmd import CollectionCommand
+
+    gateway = SqliteZoteroGateway(mock_db)
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway):
+        CollectionCommand().execute(argparse.Namespace(verb="list", table=table, user=False))
+
+    out = capsys.readouterr().out
+    assert "Test Collection" in out
+    assert "Child Collection" in out
+
+
 def test_sqlite_orphan_items(mock_db):
     gateway = SqliteZoteroGateway(mock_db)
 

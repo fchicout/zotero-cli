@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- **`collection list --offline` crashed with `KeyError: 'meta'` (Issue #322):** `SqliteZoteroGateway.get_all_collections()`/`get_collection()` returned collections without the `meta` envelope the Zotero Web API includes, while `collection list` read `meta.numItems` unguarded - so the offline tree view crashed, and so did `--table` mode (the same unguarded access at a second call site, not mentioned in the report). The offline gateway now computes a real `meta.numItems` per collection (items in `collectionItems`, excluding trashed items, matching the Web API's count) instead of defaulting to 0, so offline and online output agree; both `collection list` render paths also fall back to 0 if any gateway omits `meta`.
+
 ## [2.8.9] - 2026-09-10
 
 ### ✨ Features & Improvements
