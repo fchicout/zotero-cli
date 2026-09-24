@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from rich.table import Table
 
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.utils.sdb_parser import parse_sdb_note
+from zotero_cli.core.utils.sdb_parser import encode_json_note, parse_sdb_note
 
 SDB_STATUS_MATCHING = "MATCHING"
 SDB_STATUS_CONFLICTING = "CONFLICTING"
@@ -106,7 +106,6 @@ class SDBService:
             return False, f"No SDB entry found for persona='{persona}' and phase='{phase}'."
 
         # Apply updates to a copy
-        import json
 
         new_data = target.copy()
         # Remove internal keys before saving
@@ -129,7 +128,7 @@ class SDBService:
         # We need to wrap it in div as per standard, or rely on existing format?
         # Ideally we standardized on <div>{json}</div> in record_decision.
         # Let's match that format.
-        note_content = f"<div>{json.dumps(new_data, indent=2)}</div>"
+        note_content = encode_json_note(new_data)
 
         if self.gateway.update_note(note_key, version, note_content):
             return True, f"Successfully updated SDB entry in note {note_key}."
@@ -149,7 +148,6 @@ class SDBService:
 
         items = self.gateway.get_items_in_collection(col_id)
 
-        import json
 
         for item in items:
             entries = self.inspect_item_sdb(item.key)
@@ -171,7 +169,7 @@ class SDBService:
                     else:
                         note_key = entry.pop("_note_key")
                         version = entry.pop("_note_version")
-                        note_content = f"<div>{json.dumps(entry, indent=2)}</div>"
+                        note_content = encode_json_note(entry)
                         if self.gateway.update_note(note_key, version, note_content):
                             stats["upgraded"] += 1
                         else:

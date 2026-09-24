@@ -27,6 +27,7 @@ This allows you to maintain a massive library of PDFs on your own hard drive (or
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--limit` | Integer | Max items to process | Optional. Default: 50. |
+| `--allow-group-library` | Boolean | Check out from a group library anyway | Optional. Group libraries are refused by default: the linked file's local path (with your username) syncs to every member, and the files are missing on their machines. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Migrating a library to local storage to save cloud space

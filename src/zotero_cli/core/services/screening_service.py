@@ -1,4 +1,3 @@
-import json
 import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -13,7 +12,7 @@ from zotero_cli.core.interfaces import (
     ScreeningService as IScreeningService,
 )
 from zotero_cli.core.services.collection_service import CollectionService
-from zotero_cli.core.utils.sdb_parser import parse_sdb_note
+from zotero_cli.core.utils.sdb_parser import encode_json_note, parse_sdb_note
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -154,7 +153,7 @@ class ScreeningService(IScreeningService):
             "action": "screening_decision",
         }
 
-        note_content = f"<div>{json.dumps(decision_data, indent=2)}</div>"
+        note_content = encode_json_note(decision_data)
 
         if existing_note_key:
             success = self.note_repo.update_note(existing_note_key, existing_version, note_content)

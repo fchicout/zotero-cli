@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import zipfile
 from unittest.mock import MagicMock
 
@@ -411,3 +412,58 @@ def test_restore_archive_builds_indexes_once_for_multiple_items(
     mock_gw.get_all_items.assert_called_once()
     mock_gw.get_items_by_doi.assert_not_called()
     assert report.items_created == 3
+
+
+def _zaf_with_attachment(tmp_path, payload: bytes):
+    path = tmp_path / "a.zaf"
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_LZMA) as zf:
+        zf.writestr("files/ATT1/paper.pdf", payload)
+    return zipfile.ZipFile(path)
+
+
+def test_restore_attachment_over_the_size_limit_is_refused_and_leaves_no_temp_file(
+    tmp_path, mock_orchestrator, monkeypatch
+):
+    """A crafted .zaf whose attachment expands past the limit must not be
+    written out in full, and its temp file must not be left behind."""
+    import tempfile as tempfile_mod
+
+    from zotero_cli.core.services import restore_service as rs
+
+    monkeypatch.setattr(rs, "MAX_ATTACHMENT_BYTES", 1024)
+    created = []
+    real_ntf = tempfile_mod.NamedTemporaryFile
+
+    def tracking_ntf(*args, **kwargs):
+        handle = real_ntf(*args, **kwargs)
+        created.append(handle.name)
+        return handle
+
+    monkeypatch.setattr(tempfile_mod, "NamedTemporaryFile", tracking_ntf)
+
+    gateway = MagicMock()
+    service = RestoreService(gateway, mock_orchestrator)
+    report = rs.RestoreReport()
+    zf = _zaf_with_attachment(tmp_path, b"%PDF-1.7" + b"\0" * 100_000)
+    manifest = {"file_map": {"ATT1": {"path": "files/ATT1/paper.pdf"}}}
+
+    service._restore_attachment(
+        {"key": "ATT1", "data": {"linkMode": "imported_file"}}, zf, manifest, "NEWPARENT", report
+    )
+
+    gateway.upload_attachment.assert_not_called()
+    assert report.errors and "limit" in report.errors[0]
+    assert created and not any(os.path.exists(p) for p in created)
+
+
+def test_restore_refuses_oversized_data_json(tmp_path, mock_orchestrator, monkeypatch):
+    from zotero_cli.core.utils import archive_safety
+
+    monkeypatch.setattr(archive_safety.read_json_member, "__defaults__", (1024,))
+    path = tmp_path / "big.zaf"
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_LZMA) as zf:
+        zf.writestr("manifest.json", "{}")
+        zf.writestr("data.json", "[" + " " * 100_000 + "]")
+
+    report = RestoreService(MagicMock(), mock_orchestrator).restore_archive(str(path))
+    assert report.errors and "limit" in report.errors[0]

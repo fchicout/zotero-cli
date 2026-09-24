@@ -1,4 +1,3 @@
-import json
 import logging
 import zipfile
 from dataclasses import dataclass, field
@@ -6,6 +5,12 @@ from typing import Dict, List, Optional, Tuple
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
+from zotero_cli.core.utils.archive_safety import (
+    MAX_ATTACHMENT_BYTES,
+    check_entry_count,
+    copy_member,
+    read_json_member,
+)
 from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -39,12 +44,15 @@ class RestoreService:
 
         try:
             with zipfile.ZipFile(file_path, "r") as zf:
-                manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
-                items_data = json.loads(zf.read("data.json").decode("utf-8"))
+                # The archive may come from someone else: size-limited reads
+                # (archive_safety) instead of zf.read() of whole entries.
+                check_entry_count(zf)
+                manifest = read_json_member(zf, "manifest.json")
+                items_data = read_json_member(zf, "data.json")
 
                 collections_data = []
                 if "collections.json" in zf.namelist():
-                    collections_data = json.loads(zf.read("collections.json").decode("utf-8"))
+                    collections_data = read_json_member(zf, "collections.json")
 
                 # 1. Reconstruct Collections
                 if collections_data:
@@ -229,22 +237,23 @@ class RestoreService:
         import os
         import tempfile
 
+        temp_path = None
         try:
             with tempfile.NamedTemporaryFile(
                 delete=False, suffix=os.path.splitext(path_in_zip)[1]
             ) as tf:
                 temp_path = tf.name
-                tf.write(zf.read(path_in_zip))
+                copy_member(zf, path_in_zip, tf, MAX_ATTACHMENT_BYTES)
 
             if self.gateway.upload_attachment(new_parent, temp_path):
                 report.attachments_uploaded += 1
             else:
                 report.errors.append(f"Failed to upload attachment: {path_in_zip}")
-
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
         except Exception as e:
             report.errors.append(f"Failed to upload attachment {path_in_zip}: {str(e)}")
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.remove(temp_path)
 
     def _build_existing_item_indexes(
         self,
