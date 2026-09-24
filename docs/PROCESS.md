@@ -75,11 +75,10 @@
     *   Update `src/zotero_cli/__init__.py`.
 13. **Changelog:**
     *   Update `CHANGELOG.md`.
-14. **Tag & Build:**
-    *   `git tag vX.Y.Z`
-    *   `python -m build`
-15. **GitHub Release:**
-    *   `gh release create vX.Y.Z dist/* --generate-notes`
+14. **Tag & Publish:**
+    *   Merge the version-bump PR, then `git tag -a vX.Y.Z -m "Release vX.Y.Z"` on `main` and push the tag.
+    *   The tag triggers `.github/workflows/release.yml`: it builds the Linux/Windows binaries, creates the GitHub Release, then publishes the sdist/wheel to PyPI as `zotero-command-line`. The PyPI step refuses a tag that doesn't match `pyproject.toml`'s version.
+    *   Check that the release has its binaries and that the new version is on https://pypi.org/project/zotero-command-line/.
 
 ---
 *Ratified by The Council of Six (Jan 2026)*

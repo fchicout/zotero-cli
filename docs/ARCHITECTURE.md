@@ -160,23 +160,30 @@ needless overhead. The two are not meant to converge.
 
 **4. WAL mode is deliberate.** `SqliteJobRepository` now explicitly sets `PRAGMA journal_mode=WAL` on connect, so a status-polling reader (the API route, or a human running `system jobs list`) doesn't block behind an in-flight writer (a worker popping/completing a job) the way the default rollback-journal mode would once this queue is driven by a web backend instead of a single local CLI invocation.
 
-## Distribution: Consuming `zotero-cli` as a Library
+## Distribution: Installing `zotero-cli` as a Package
 
-`zotero-cli` is not published to PyPI - `.github/workflows/release.yml` only builds PyInstaller `--onefile` binaries for GitHub Releases, there is no `twine`/PyPI publish step. `pyproject.toml` uses a standard `setuptools.build_meta` backend, so the package is structurally installable; it just isn't published anywhere a `pip install zotero-cli` could reach.
-
-For a Python consumer that needs `zotero-cli`'s `core/` domain services directly (e.g. an app calling `MergeService`/`SLRDedupeService` in-process, per Issue #153's API-hygiene work), the chosen path is a **git dependency pinned to a release tag**, not a PyPI publish:
+`zotero-cli` is published on PyPI as **`zotero-command-line`**. The `zotero-cli` name on PyPI belongs to an unrelated project whose last release was in 2016, and PyPI rejects new names that differ from an existing one only by separators or look-alike characters (`zoterocli` normalizes to the same name as `zotero-cli`). Only the distribution name differs: the command is still `zotero-cli` and the import package is still `zotero_cli`.
 
 ```bash
-pip install "git+https://github.com/fchicout/zotero-cli@v2.8.1"
-# with the RAG extra, if the consumer needs `rag ingest`/`rag query` too:
-pip install "git+https://github.com/fchicout/zotero-cli@v2.8.1#egg=zotero-cli[rag]"
-# or, in a uv-managed project's pyproject.toml:
-[tool.uv.sources]
-zotero-cli = { git = "https://github.com/fchicout/zotero-cli", tag = "v2.8.1" }
-[project]
-dependencies = ["zotero-cli"]  # or "zotero-cli[rag]"
+pip install zotero-command-line            # or: uv tool install zotero-command-line
+pip install "zotero-command-line[rag]"     # adds the RAG/semantic-search stack
 ```
 
-This needs zero new release infrastructure - every release already gets a `vX.Y.Z` git tag (see `docs/PROCESS.md`) that a consumer can pin to directly, and `pyproject.toml`'s existing `setuptools.build_meta` backend builds correctly from a git checkout with no changes. The tradeoff is that dependency resolution is tied to git refs/tags rather than a PyPI index with semver ranges - acceptable for consumers that pin a specific release tag.
+A consumer that needs `zotero-cli`'s `core/` domain services directly (e.g. an app calling `MergeService`/`SLRDedupeService` in-process, per Issue #153's API-hygiene work) depends on it like any other package, `zotero-command-line>=X.Y`. Pinning a git tag still works for unreleased commits:
 
-**Resolved (Issue #180, was a known caveat here):** the RAG/embedding stack (`torch`, `sentence-transformers`, `huggingface-hub`, `numpy`, `einops`, `accelerate`, `openai`, `google-generativeai`) now lives in an optional `rag` extra rather than the base `dependencies` - `pip install "git+https://github.com/fchicout/zotero-cli@vX.Y.Z"` (or `zotero-cli` from a future PyPI publish) no longer pulls the full ML dependency tree; add `[rag]` (e.g. `zotero-cli[rag]`) only if RAG (`rag ingest`/`rag query`) is actually needed. This was a smaller change than the original "would need dependency-injection changes to make imports lazy" concern suggested: every import of these packages in `src/` was already function-local/lazy (verified by reading the code), so the fix is purely the `pyproject.toml` split - a lite-install consumer who does hit a RAG code path gets a clear `ImportError`, not a crash elsewhere. `markitdown` (and its `onnxruntime` dependency, for magika file-type detection) stayed in the base dependencies despite being large, since `item`/`collection export --format md` - a non-RAG feature - depends on it too.
+```bash
+pip install "git+https://github.com/fchicout/zotero-cli@vX.Y.Z"
+# or, in a uv-managed project's pyproject.toml:
+[tool.uv.sources]
+zotero-command-line = { git = "https://github.com/fchicout/zotero-cli", tag = "vX.Y.Z" }
+```
+
+**Publishing:** pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`. After the binaries are built and the GitHub release is created, the `publish-pypi` job:
+- checks that the tag matches `pyproject.toml`'s version;
+- builds the sdist and wheel with `uv build`;
+- smoke-tests the wheel in a clean virtualenv (`zotero-cli --help` and `scripts/smoke_imports.py`);
+- uploads with `uv publish`.
+
+That job runs with a read-only `GITHUB_TOKEN`, no build cache, and actions pinned by commit SHA. The PyPI API token lives only in the `pypi` GitHub environment, which accepts only `v*` tags.
+
+**Optional dependencies (Issue #180):** the RAG/embedding stack (`torch`, `sentence-transformers`, `huggingface-hub`, `numpy`, `einops`, `accelerate`, `openai`, `google-generativeai`) is an optional `rag` extra rather than a base dependency, so the default install doesn't pull in the ML dependency tree. Every import of these packages in `src/` is function-local, so a consumer who hits a RAG code path without the extra gets a clear `ImportError`, not a crash elsewhere. `markitdown` (and its `onnxruntime` dependency, for magika file-type detection) stays in the base dependencies despite its size, because `item`/`collection export --format md`, a non-RAG feature, depends on it.

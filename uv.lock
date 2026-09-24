@@ -3237,7 +3237,7 @@ wheels = [
 ]
 
 [[package]]
-name = "zotero-cli"
+name = "zotero-command-line"
 version = "2.8.11"
 source = { editable = "." }
 dependencies = [
@@ -3251,7 +3251,6 @@ dependencies = [
     { name = "networkx" },
     { name = "onnxruntime" },
     { name = "pygments" },
-    { name = "pytest" },
     { name = "pyyaml" },
     { name = "rapidfuzz" },
     { name = "requests" },
@@ -3274,6 +3273,7 @@ dev = [
     { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "openai" },
     { name = "pre-commit" },
+    { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "safety" },
@@ -3315,7 +3315,7 @@ requires-dist = [
     { name = "openai", marker = "extra == 'rag'", specifier = ">=1.0.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.6.0" },
     { name = "pygments", specifier = ">=2.20.0" },
-    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.3" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
     { name = "pyyaml", specifier = ">=6.0.1" },
     { name = "rapidfuzz", specifier = ">=3.6.1" },
@@ -3331,6 +3331,6 @@ requires-dist = [
     { name = "types-requests", marker = "extra == 'dev'" },
     { name = "types-toml", marker = "extra == 'dev'" },
     { name = "uvicorn", specifier = ">=0.27.0" },
-    { name = "zotero-cli", extras = ["rag"], marker = "extra == 'dev'" },
+    { name = "zotero-command-line", extras = ["rag"], marker = "extra == 'dev'" },
 ]
 provides-extras = ["rag", "dev"]
