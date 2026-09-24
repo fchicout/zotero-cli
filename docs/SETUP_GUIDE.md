@@ -50,9 +50,9 @@ A database of over 50 million free, open-access scholarly articles.
 ## Example `config.toml` Summary
 ```toml
 [zotero]
-api_key = "P9NiFoyLeZu2bZNvvuQPDWsd"
-user_id = "1909172"
-library_id = "6287212"
+api_key = "YOUR_ZOTERO_API_KEY"
+user_id = "YOUR_USER_ID"
+library_id = "YOUR_GROUP_ID"
 library_type = "group"
 
 # Optional Extensions
