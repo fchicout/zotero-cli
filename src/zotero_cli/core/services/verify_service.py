@@ -1,9 +1,10 @@
 import hashlib
-import json
 import logging
 import zipfile
 from dataclasses import dataclass, field
 from typing import List, Optional
+
+from zotero_cli.core.utils.archive_safety import check_entry_count, read_json_member
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ class VerifyService:
                 return report
 
             with zipfile.ZipFile(file_path, "r") as zf:
+                check_entry_count(zf)
                 file_list = zf.namelist()
 
                 # 1. Verify Manifest
@@ -42,8 +44,7 @@ class VerifyService:
                     report.errors.append("Missing manifest.json")
                 else:
                     try:
-                        manifest_content = zf.read("manifest.json").decode("utf-8")
-                        report.manifest = json.loads(manifest_content)
+                        report.manifest = read_json_member(zf, "manifest.json")
                     except Exception as e:
                         report.is_valid = False
                         report.errors.append(f"Invalid manifest.json: {str(e)}")
@@ -54,8 +55,7 @@ class VerifyService:
                     report.errors.append("Missing data.json")
                 else:
                     try:
-                        data_content = zf.read("data.json").decode("utf-8")
-                        items = json.loads(data_content)
+                        items = read_json_member(zf, "data.json")
                         report.item_count = len(items)
                     except Exception as e:
                         report.is_valid = False
@@ -68,8 +68,7 @@ class VerifyService:
                         report.errors.append("Missing collections.json for library-scoped backup")
                     else:
                         try:
-                            coll_content = zf.read("collections.json").decode("utf-8")
-                            colls = json.loads(coll_content)
+                            colls = read_json_member(zf, "collections.json")
                             report.collection_count = len(colls)
                         except Exception as e:
                             report.is_valid = False

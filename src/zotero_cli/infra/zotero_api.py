@@ -638,8 +638,17 @@ class ZoteroAPIClient(ZoteroGateway):
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:
         try:
-            # Note: Zotero API redirects to Amazon S3 for file content
-            response = self.http.get(f"items/{item_key}/file", stream=True)
+            # Zotero answers with a redirect to its file storage (S3).
+            # Follow it ourselves, without the session's Zotero-API-Key
+            # header: requests would otherwise send the library key to
+            # the storage host too.
+            response = self.http.get(f"items/{item_key}/file", stream=True, allow_redirects=False)
+            if response.is_redirect or response.is_permanent_redirect:
+                location = response.headers.get("Location")
+                response.close()
+                if not location:
+                    return False
+                response = safe_get(location, stream=True, timeout=60)
             response.raise_for_status()
 
             with open(save_path, "wb") as f:

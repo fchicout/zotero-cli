@@ -103,3 +103,25 @@ def test_checkout_items_integration_flow(storage_service, mock_gateway):
     assert count == 2
     assert mock_gateway.download_attachment.call_count == 2
     assert mock_gateway.update_attachment_link.call_count == 2
+
+
+def test_checkout_refuses_group_library_by_default(tmp_path, mock_gateway, mock_config):
+    """The linked file's absolute local path would sync to every group
+    member (exposing the username) and be broken on their machines."""
+    config = dataclasses.replace(
+        mock_config, library_type="group", storage_path=str(tmp_path / "s"), database_path=None
+    )
+    service = StorageService(config, mock_gateway)
+    assert service.checkout_items() == 0
+    mock_gateway.search_items.assert_not_called()
+    mock_gateway.update_attachment_link.assert_not_called()
+
+
+def test_checkout_group_library_with_explicit_opt_in(tmp_path, mock_gateway, mock_config):
+    config = dataclasses.replace(
+        mock_config, library_type="group", storage_path=str(tmp_path / "s"), database_path=None
+    )
+    mock_gateway.search_items.return_value = iter([])
+    service = StorageService(config, mock_gateway)
+    assert service.checkout_items(allow_group_library=True) == 0
+    mock_gateway.search_items.assert_called_once()

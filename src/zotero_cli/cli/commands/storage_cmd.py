@@ -31,12 +31,17 @@ Result:  The 100 oldest stored PDFs are downloaded to your local path and their 
 Cognitive Safeguards
 --------------------
 • Common Failure Modes: Attempting a checkout without having a local storage path defined in your config.toml.
-• Safety Tips: Ensure that your local storage directory is backed up.
+• Safety Tips: Ensure that your local storage directory is backed up. Group libraries are refused by default: the linked file's local path (with your username) syncs to every member, and the files are missing for them; --allow-group-library overrides this.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/storage_checkout.md
 """,
         )
         checkout_parser.add_argument("--limit", type=int, default=50, help="Max items to process")
+        checkout_parser.add_argument(
+            "--allow-group-library",
+            action="store_true",
+            help="Check out from a group library anyway (your local path syncs to all members)",
+        )
         # checkout_parser.add_argument("--sort", choices=["size", "date"], default="size", help="Sort order")
 
     def execute(self, args: argparse.Namespace) -> None:
@@ -57,5 +62,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         service = StorageService(config, gateway)
 
         print(f"Starting storage checkout (Limit: {args.limit})...")
-        count = service.checkout_items(limit=args.limit)
+        count = service.checkout_items(
+            limit=args.limit, allow_group_library=getattr(args, "allow_group_library", False)
+        )
         print(f"Checkout complete. Processed {count} items.")

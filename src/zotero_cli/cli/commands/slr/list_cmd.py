@@ -194,6 +194,12 @@ Cognitive Safeguards:
             ws.append(["Key", "Title", "Source", SCORE_REASON])
             for item in items:
                 ws.append([item.item_key, item.title, item.source_collection, item.reason])
+                # openpyxl stores any string starting with "=" as a formula;
+                # titles and reasons are collaborator-controlled, so force
+                # every text cell to a literal string.
+                for cell in ws[ws.max_row]:
+                    if isinstance(cell.value, str):
+                        cell.data_type = "s"
             wb.save(filename)
             console.print(f"[green]Successfully exported to XLSX: {filename}[/green]")
         except ImportError:

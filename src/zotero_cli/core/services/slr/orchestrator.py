@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.utils.sdb_parser import parse_sdb_note
+from zotero_cli.core.utils.sdb_parser import encode_json_note, parse_sdb_note
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -259,5 +259,5 @@ class SLROrchestrator:
         existing_note["agent"] = "zotero-cli"
         existing_note["action"] = "reconcile_evaluation"
 
-        note_content = f"<div>{json.dumps(existing_note, indent=2)}</div>"
+        note_content = encode_json_note(existing_note)
         return self.gateway.update_note(str(existing_key), existing_version, note_content)

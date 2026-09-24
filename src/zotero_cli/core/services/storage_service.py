@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 from zotero_cli.core.config import ZoteroConfig
+from zotero_cli.core.exceptions import ConfigurationError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import ZoteroQuery
 from zotero_cli.core.utils.terminal_safety import strip_controls
@@ -20,12 +21,32 @@ class StorageService:
         self.config = config
         self.gateway = gateway
 
-    def checkout_items(self, limit: int = 50) -> int:
+    def _is_group_library(self) -> bool:
+        try:
+            return self.config.resolve_library_target()[1] == "group"
+        except ConfigurationError:
+            return False
+
+    def checkout_items(self, limit: int = 50, allow_group_library: bool = False) -> int:
         """
         Moves 'imported_file' attachments to local storage and converts them to 'linked_file'.
+
+        Refused for group libraries unless `allow_group_library`: the linked
+        file's path is this machine's absolute path, which syncs to every
+        member of the group (exposing the local username and folder layout)
+        and points nowhere on their machines, so the attachment breaks for
+        everyone else.
         """
         if not self.config.storage_path:
             print("Error: 'storage_path' is not configured in config.toml.")
+            return 0
+
+        if self._is_group_library() and not allow_group_library:
+            print(
+                "Refusing to check out attachments from a group library: the local path "
+                "(including your username) would be synced to every member, and the "
+                "files would be missing for them. Pass --allow-group-library to do it anyway."
+            )
             return 0
 
         storage_root = Path(self.config.storage_path)

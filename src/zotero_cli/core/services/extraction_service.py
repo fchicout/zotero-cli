@@ -9,6 +9,7 @@ import yaml
 
 from zotero_cli.core.interfaces import ExtractionService as IExtractionService
 from zotero_cli.core.interfaces import NoteRepository
+from zotero_cli.core.utils.sdb_parser import decode_json_note, encode_json_note
 
 # Valid types as per SDB-Extraction v1.0
 VALID_TYPES = {"text", "number", "boolean", "select", "multi-select", "date"}
@@ -136,7 +137,7 @@ class ExtractionService(IExtractionService):
             "schema_version": schema_version,
             "data": data,
         }
-        note_content = f"<div>{json.dumps(payload, indent=2)}</div>"
+        note_content = encode_json_note(payload)
 
         # 2. Check for existing note
         children = self.note_repo.get_item_children(item_key)
@@ -199,14 +200,9 @@ class ExtractionService(IExtractionService):
                         and f'"persona": "{persona}"' in content
                     ):
                         try:
-                            # Extract JSON from <div>...</div>
-                            json_str = content.strip()
-                            if json_str.startswith("<div>"):
-                                json_str = json_str[5:]
-                            if json_str.endswith("</div>"):
-                                json_str = json_str[:-6]
-
-                            note_payload = json.loads(json_str)
+                            note_payload = decode_json_note(content)
+                            if not isinstance(note_payload, dict):
+                                continue
                             extracted_values = note_payload.get("data", {})
                             break
                         # best-effort note parsing; next note may still be valid

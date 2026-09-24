@@ -10,11 +10,12 @@ Moves stored files (PDFs/Attachments) from Zotero cloud/webdav storage to a mana
 
 **Usage:**
 ```bash
-zotero-cli storage checkout [--limit LIMIT]
+zotero-cli storage checkout [--limit LIMIT] [--allow-group-library]
 ```
 
 **Options:**
 * `--limit`: Maximum number of items to process in one run (Default: 50).
+* `--allow-group-library`: Allow checkout from a group library. Refused by default, because the linked file's absolute local path (including your username) syncs to every group member and points nowhere on their machines.
 
 **Example:**
 ```bash

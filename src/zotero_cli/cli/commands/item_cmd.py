@@ -9,6 +9,7 @@ from rich.table import Table
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.presenters import item_list_presenter
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.utils.sdb_parser import decode_json_note
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
@@ -135,17 +136,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                         date_added = cdata.get("dateAdded", "N/A")
                         date_modified = cdata.get("dateModified", "N/A")
 
-                        # Try to parse as JSON (handling common <div> wrapper)
-                        is_json = False
-                        raw_json = note_full
-                        if note_full.startswith("<div>") and note_full.endswith("</div>"):
-                            raw_json = note_full[5:-6].strip()
-
-                        try:
-                            parsed_data = json.loads(raw_json)
-                            is_json = True
-                        except (json.JSONDecodeError, TypeError):
-                            parsed_data = None
+                        # JSON notes (SDB, extraction) are HTML-escaped JSON in a <div>.
+                        parsed_data = decode_json_note(note_full)
+                        is_json = parsed_data is not None
+                        raw_json = json.dumps(parsed_data) if is_json else note_full
 
                         if args.full_notes:
                             console.print(

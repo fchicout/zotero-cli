@@ -494,6 +494,8 @@ def test_download_attachment_success(mock_file, client):
     mock_resp = Mock()
     mock_resp.status_code = 200
     mock_resp.headers = {}
+    mock_resp.is_redirect = False
+    mock_resp.is_permanent_redirect = False
     mock_resp.iter_content.return_value = [b"chunk1", b"chunk2"]
     client.http.session.get.return_value = mock_resp
 
@@ -502,6 +504,27 @@ def test_download_attachment_success(mock_file, client):
     mock_file.assert_called_once_with("save.pdf", "wb")
     mock_file().write.assert_any_call(b"chunk1")
     mock_file().write.assert_any_call(b"chunk2")
+
+
+@patch("builtins.open", new_callable=mock_open)
+def test_download_attachment_follows_storage_redirect_without_the_api_key(mock_file, client):
+    """Zotero redirects file downloads to S3; the Zotero-API-Key header
+    must not travel with that request."""
+    redirect = Mock(status_code=302, is_redirect=True, is_permanent_redirect=False)
+    redirect.headers = {"Location": "https://zoterofilestorage.s3.amazonaws.com/x?sig=1"}
+    client.http.session.get.return_value = redirect
+
+    s3_resp = Mock(status_code=200)
+    s3_resp.iter_content.return_value = [b"%PDF-1.7"]
+    with patch("zotero_cli.infra.zotero_api.safe_get", return_value=s3_resp) as safe_get:
+        assert client.download_attachment("K1", "save.pdf") is True
+
+    assert client.http.session.get.call_args.kwargs["allow_redirects"] is False
+    safe_get.assert_called_once()
+    assert safe_get.call_args.args[0] == "https://zoterofilestorage.s3.amazonaws.com/x?sig=1"
+    sent_headers = safe_get.call_args.kwargs.get("headers") or {}
+    assert not any(h.lower() == "zotero-api-key" for h in sent_headers)
+    mock_file().write.assert_any_call(b"%PDF-1.7")
 
 
 def test_download_attachment_failure(client):

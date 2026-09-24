@@ -1,4 +1,3 @@
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -6,6 +5,7 @@ from typing import Any, Dict, List, Tuple
 import yaml
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository, NoteRepository
+from zotero_cli.core.utils.sdb_parser import encode_json_note
 
 DEFAULT_SANDBOX_NAME = "Zotero-CLI Sandbox"
 
@@ -101,5 +101,5 @@ class SandboxService:
             "phase": "title_abstract",
             "action": "screening_decision",
         }
-        note_content = f"<div>{json.dumps(payload, indent=2)}</div>"
+        note_content = encode_json_note(payload)
         self.note_repo.create_note(item_key, note_content)
