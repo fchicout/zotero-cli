@@ -22,7 +22,7 @@ def override_get_gateway():
 
 app = create_app()
 app.dependency_overrides[get_gateway] = override_get_gateway
-client = TestClient(app)
+client = TestClient(app, base_url="http://localhost")
 
 
 @pytest.fixture(autouse=True)
