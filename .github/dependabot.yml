@@ -1,6 +1,10 @@
-# Issue #335: keep Python dependencies (uv.lock) and GitHub Actions pins
-# current, grouped into one weekly PR per ecosystem. (Dependabot alerts are
-# enabled separately in the repository settings.)
+# Issue #335: keep Python dependencies (uv.lock), GitHub Actions pins and the
+# Docker base image current. (Dependabot alerts are enabled separately in the
+# repository settings.)
+#
+# Minor and patch updates arrive grouped in one weekly PR per ecosystem.
+# Python major-version updates come as separate PRs, since each can need
+# code changes and should be reviewed on its own.
 version: 2
 updates:
   - package-ecosystem: "uv"
@@ -11,6 +15,13 @@ updates:
     groups:
       python-dependencies:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # bibtexparser 2.x is a rewrite with a different API (no
+      # `bibtexparser.bibdatabase`); the code targets 1.x and pyproject caps
+      # it at <2. Moving to 2.x is a code migration (Issue #360), not a version bump.
+      - dependency-name: "bibtexparser"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
