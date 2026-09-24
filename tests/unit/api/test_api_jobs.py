@@ -17,7 +17,7 @@ def override_get_job_queue_service():
 
 app = create_app()
 app.dependency_overrides[get_job_queue_service] = override_get_job_queue_service
-client = TestClient(app)
+client = TestClient(app, base_url="http://localhost")
 
 
 @pytest.fixture(autouse=True)
