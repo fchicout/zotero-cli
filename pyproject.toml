@@ -14,7 +14,7 @@ dependencies = [
     "tenacity>=8.2.3",
     "pytest>=9.0.3",
     "arxiv>=2.1.0",
-    "bibtexparser>=1.4.0",
+    "bibtexparser>=1.4.0,<2",
     "rispy>=0.4.0",
     "fastapi>=0.109.0",
     "uvicorn>=0.27.0",
@@ -30,6 +30,7 @@ dependencies = [
     "onnxruntime>=1.24.2",
     "pygments>=2.20.0",
     "filelock>=3.30.3",
+    "httpx>=0.27.0",
 ]
 
 [project.scripts]
@@ -63,7 +64,6 @@ dev = [
     "mypy>=1.5.0",
     "types-requests",
     "types-toml",
-    "httpx>=0.27.0",
     "bandit>=1.7.5",
     "safety>=3.0.0",
     "pre-commit>=3.6.0",

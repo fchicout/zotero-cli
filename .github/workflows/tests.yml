@@ -29,6 +29,17 @@ jobs:
           python-version: '3.11'
           enable-cache: true
 
+      # Runtime-only install from the lock first, before any dev extras: a
+      # module-level import of a dev-only or optional dependency passes the
+      # rest of this job but crashes for users (Issue #333).
+      - name: Install runtime dependencies only
+        run: uv sync --locked
+
+      - name: Smoke test runtime-only install
+        run: |
+          uv run --no-sync zotero-cli --help
+          uv run --no-sync python scripts/smoke_imports.py
+
       - name: Install dependencies
         run: uv sync --extra dev
 

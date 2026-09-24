@@ -22,8 +22,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv venv
-          uv pip install .
+          # Install exactly what uv.lock pins (Issue #333): an unlocked
+          # `uv pip install .` resolved bibtexparser 2.x, a breaking rewrite.
+          uv sync --locked --no-editable
           uv pip install pyinstaller
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
@@ -39,6 +40,10 @@ jobs:
             --exclude-module pandas \
             --exclude-module matplotlib \
             --clean src/zotero_cli/cli/main.py
+
+      # Never publish a binary that can't start (Issue #333).
+      - name: Smoke test binary
+        run: ./dist/zotero-cli --help
 
       - name: Install FPM
         run: |
@@ -101,8 +106,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv venv
-          uv pip install .
+          # Install exactly what uv.lock pins (Issue #333): an unlocked
+          # `uv pip install .` resolved bibtexparser 2.x, a breaking rewrite.
+          uv sync --locked --no-editable
           uv pip install pyinstaller
           Add-Content -Path $env:GITHUB_PATH -Value "$PWD\.venv\Scripts"
 
@@ -118,6 +124,9 @@ jobs:
             --exclude-module pandas `
             --exclude-module matplotlib `
             --clean src/zotero_cli/cli/main.py
+
+      - name: Smoke test binary
+        run: ./dist/zotero-cli.exe --help
 
       - name: Get Version
         id: get_version
