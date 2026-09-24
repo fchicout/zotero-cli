@@ -46,8 +46,14 @@ jobs:
         run: |
           uv export --locked --no-dev --no-hashes --no-emit-project --no-header --no-annotate \
             -o "$RUNNER_TEMP/requirements-runtime.txt"
-          uvx --from pip-audit==2.10.1 pip-audit -r "$RUNNER_TEMP/requirements-runtime.txt" \
-            --no-deps --disable-pip --progress-spinner off
+          # Up to 3 attempts: a PyPI/OSV timeout shouldn't fail the build,
+          # but a real finding fails every attempt.
+          for attempt in 1 2 3; do
+            uvx --from pip-audit==2.10.1 pip-audit -r "$RUNNER_TEMP/requirements-runtime.txt" \
+              --no-deps --disable-pip --progress-spinner off --timeout 60 && exit 0
+            echo "pip-audit attempt $attempt failed"; sleep 10
+          done
+          exit 1
 
       - name: Audit optional and dev dependencies (informational)
         continue-on-error: true
@@ -55,7 +61,7 @@ jobs:
           uv export --locked --all-extras --all-groups --no-hashes --no-emit-project --no-header \
             --no-annotate -o "$RUNNER_TEMP/requirements-all.txt"
           uvx --from pip-audit==2.10.1 pip-audit -r "$RUNNER_TEMP/requirements-all.txt" \
-            --no-deps --disable-pip --progress-spinner off
+            --no-deps --disable-pip --progress-spinner off --timeout 60
 
       - name: Install dependencies
         run: uv sync --extra dev
