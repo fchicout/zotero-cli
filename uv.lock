@@ -3238,7 +3238,7 @@ wheels = [
 
 [[package]]
 name = "zotero-cli"
-version = "2.8.10"
+version = "2.8.11"
 source = { editable = "." }
 dependencies = [
     { name = "arxiv" },

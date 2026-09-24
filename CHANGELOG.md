@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.8.11] - 2026-09-24
+
 ### 🐛 Bug Fixes
 - **Released binaries crashed on start with `ModuleNotFoundError: No module named 'httpx'` (Issue #333):** `httpx` is imported at module level by `core/utils/url_safety.py` and `core/services/network_gateway.py` but was only listed in the `dev` extra, so every install without dev dependencies (release binaries, `install.sh`/`install.ps1`, the Dockerfile, `pip install git+...`) lacked it. v2.8.9 and v2.8.10 crashed on every command, including `--help`; v2.8.4-v2.8.8 crashed on PDF fetching, snowball discovery and job workers (until v2.8.4, `openai` was a runtime dependency and pulled `httpx` in). `httpx` is now a runtime dependency. Fixing it exposed a second crash waiting behind it: the release workflow installed with an unlocked `uv pip install .`, which resolved `bibtexparser` 2.x, a breaking rewrite missing the `bibdatabase` module. Release builds now install exactly what `uv.lock` pins (`uv sync --locked --no-editable`), and `bibtexparser` is capped at `<2` for installs that don't use the lock.
 
