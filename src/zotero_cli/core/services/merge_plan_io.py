@@ -129,7 +129,7 @@ def serialize_plan_to_json(
     """
     `sdb_history` (key -> full parsed SDB entries, e.g. from
     `SDBService.inspect_item_sdb`) is informational only - it gives a
-    consumer like Corbenic-SLR's screening UI the full decision/provenance
+    library consumer's review UI the full decision/provenance
     history per occurrence to show a researcher, not a rollup label. It is
     not read back by `parse_plan_from_json`.
     """

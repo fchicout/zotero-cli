@@ -41,7 +41,7 @@ class DuplicateFinder:
     reaches (and, for preprint/published pairs, exceeds) Zotero Desktop's own
     duplicate-detection algorithm (https://www.zotero.org/support/duplicate_detection).
 
-    Directly importable/callable by external consumers (e.g. Corbenic-SLR): no
+    Directly importable/callable by external consumers: no
     stdout side effects and no bare-dict return shapes. Non-fatal issues found
     while scanning (e.g. a named collection that doesn't exist) are collected
     in `self.warnings` after each call instead of being printed, so callers can

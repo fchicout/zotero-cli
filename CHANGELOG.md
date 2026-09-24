@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 📚 Documentation
+- **README repositioned around what zotero-cli is for:** managing a Zotero library from the command line, for scripting, automation and LLM-assisted workflows. It used to open as "The Systematic Review Forge". The SLR and RAG features are now presented as optional toolkits, and a new cookbook shows JSON/CSV output, batch imports, feeding papers to an LLM, preview-then-`--execute`, offline mode and backups. Along the way it corrects claims that no longer matched the code: the local API is read-only, `item hydrate` only updates arXiv items, and `zotero-cli` isn't coming to PyPI. The version badge now tracks the latest release instead of a hardcoded 2.8.1. `zotero-cli --help`, the .deb/.rpm package descriptions and the getting-started tutorial use the same description. References to a specific downstream app were removed from the docs and docstrings; zotero-cli doesn't depend on it.
+
 ## [2.8.11] - 2026-09-24
 
 ### 🐛 Bug Fixes

@@ -1,97 +1,133 @@
 <!-- BADGES_START -->
-![Version](https://img.shields.io/badge/version-2.8.1-blue)
+![Version](https://img.shields.io/github/v/release/fchicout/zotero-cli)
 ![Build Status](https://github.com/fchicout/zotero-cli/actions/workflows/release.yml/badge.svg)
 ![Tests](https://github.com/fchicout/zotero-cli/actions/workflows/tests.yml/badge.svg)
-![Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen) ![Lint](https://img.shields.io/badge/ruff-passing-brightgreen) ![Types](https://img.shields.io/badge/mypy-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-lightgrey) ![Python](https://img.shields.io/badge/python-3.11+-blue)
+![License](https://img.shields.io/badge/license-MIT-lightgrey) ![Python](https://img.shields.io/badge/python-3.11+-blue)
 <!-- BADGES_END -->
 
-# Zotero CLI: The Systematic Review Forge
+# zotero-cli
 
-> **The Researcher's Command Line Interface.**
+> **Your Zotero library, from the command line.**
 
-> Rigorous Systematic Literature Reviews (SLR), made scriptable.
+`zotero-cli` lets you read, organize and change a Zotero library without opening the Zotero app. Every operation is a plain command, so you can put it in shell scripts, cron jobs and CI, or hand it to an LLM agent as a tool.
 
-`zotero-cli` is a high-performance platform built on two symbiotic pillars:
+It talks to the Zotero Web API (personal and group libraries). It can also read your local `zotero.sqlite` offline.
 
-### 1. Direct Zotero Management (The Engine)
-For power users who need atomic control over their library without the GUI.
-*   **Item & Collection Ops:** Full lifecycle management (create, rename, recursive delete), plus Docker/dev-container packaging and one-line installer scripts for easy deployment.
-*   **Multi-Source Ingestion:** arXiv, DOI, BibTeX/RIS/CSV files, and the Brazilian BDTD thesis/dissertation repository.
-*   **Tagging:** Batch taxonomy processing and cleanup.
-*   **Storage Offloading:** Move heavy PDF attachments to local storage (NAS/External) while keeping metadata linked.
-*   **System Diagnostics:** `system check` probes every configured external service (Zotero, Semantic Scholar, Unpaywall, PubMed, LLM/embedding providers) for connectivity in one shot; `system demo-sandbox` provisions a disposable collection of mock papers for trying the tool risk-free.
-*   **Local API:** A FastAPI server to bridge your library with local scripts and dashboards, including read-only `GET /jobs`/`GET /jobs/{id}` status endpoints for the background job queue (`fetch_pdf`, snowball discovery).
+## Why a CLI for Zotero?
 
-### 2. Systematic Review Support (The Protocol)
-Advanced features mapped to the **Kitchenham/Wohlin** research methodology.
-*   **Interactive Screening:** High-velocity Title/Abstract screening via a custom TUI, with double-screening consensus/conflict reports.
-*   **SDB v1.2 (Standardized Decision Block):** Immutable, machine-readable audit trails for every screening decision stored in Zotero notes.
-*   **Hybrid Workflow:** Inject screening decisions from external researchers via CSV import.
-*   **Citation Snowballing:** Recursive forward/backward citation discovery from seed articles, with an interactive review TUI before import.
-*   **Data Extraction:** Structured extraction of research variables and results from full text, optionally AI-agent-assisted.
-*   **Knowledge Retrieval (RAG):** Local vector-store ingestion of full-text PDFs for semantic search and LLM-backed synthesis over your own library.
-*   **Reporting:** Automated PRISMA 2020 statistics, citation graphs, and Mermaid visualization.
+- **Scriptable:** items, collections, tags, notes and attachments are all reachable from a terminal, with no GUI steps in between.
+- **Machine-readable output:** `item list` prints `json`, `csv` or `markdown`, and `--fields` picks the columns. Data goes to stdout and warnings to stderr, so you can pipe it into `jq`, a spreadsheet or a prompt.
+- **Suited to LLM agents:** an agent can run `--help` on any command to learn how to use it, since each one includes worked examples. `item export --format md` converts an item's PDF into Markdown an LLM can read. `rag query --format context` returns passages from your library ready to paste into a prompt.
+- **Safe by default:** bulk or destructive commands (`tag purge`, `item merge`, `item pdf strip`, `slr dedupe`, ...) only show a preview until you add `--execute`. `item hydrate` and `system restore` have `--dry-run`, and `collection purge` asks for confirmation. `--offline` reads the local database and is read-only apart from trash/restore.
+- **Runs anywhere:** a single binary for Linux and Windows, no Python needed. Also available as a container or a Python package.
 
-## 🌟 The SLR Workflow
+## What it can do
 
-We support the rigorous **Kitchenham/Wohlin** review protocol.
+### Library management
+- **Items:** list, inspect, add, update, move, merge duplicates, trash/restore, delete, and copy between libraries.
+- **Collections:** create, rename, nest, empty, delete, and export whole collections (BibTeX, RIS, Markdown).
+- **Tags:** list, add, and bulk-remove tags across a collection.
+- **Search:** by DOI or title substring.
+- **Attachments:** fetch missing PDFs from open-access sources, attach local files, strip attachments, and move stored files out to local or network storage while keeping them linked (`storage checkout`).
 
-```mermaid
-graph LR
-    A[Raw Source] -->|import / slr source| B(Collection: Raw)
-    B -->|slr screen| C{Screening}
-    C -->|slr decide| D(Collection: Screened)
-    C -->|slr decide| E(Collection: Excluded)
-    D -->|slr extract| X[Data Extraction Matrix]
-    D -->|slr report snapshot| F[Audit Snapshot]
-    D -->|slr report prisma| G[PRISMA Flow]
-    D -->|rag ingest + rag query| H[Semantic Synthesis]
+### Import and metadata
+- **Import** from arXiv, DOI, BibTeX/RIS/CSV files, the Brazilian BDTD thesis repository, or manual entry.
+- **Metadata lookup** from Semantic Scholar, CrossRef, OpenAlex, PubMed, Unpaywall and more when importing by DOI, and `item hydrate` to add the DOI and journal to arXiv preprints once they're published.
+- **Library health reports:** duplicates, missing PDFs, DOIs or abstracts, disk usage, and checking the citations in a LaTeX manuscript against the library.
+
+### Operations
+- **Backup and restore** the whole library, or one collection, as a compressed `.zaf` archive, attachments included.
+- **`system check`** tests the connection to every service you've configured (Zotero, metadata providers, LLM/embedding providers) in one go.
+- **Local HTTP API** (`serve`): read-only endpoints for items, collections and background jobs, for local scripts and dashboards.
+
+### Optional: AI and review toolkits
+- **Semantic search (RAG):** index your PDFs into a local vector store, then search them in plain language or ask an LLM questions answered from your own library. This needs the optional `[rag]` install.
+- **Systematic literature review (`slr`):** screening decisions recorded as auditable Zotero notes, PRISMA statistics, citation snowballing and data extraction. See [docs/commands/slr.md](docs/commands/slr.md).
+
+## 🍳 Cookbook
+
+### Get a collection as JSON
+```bash
+zotero-cli item list --collection "Reading List" --wide --format json | jq '.[] | {title, year, doi}'
+```
+
+### Choose exactly the columns you want
+```bash
+zotero-cli item list --collection "Reading List" --fields key,first_author,year,venue,DOI --format csv > reading.csv
+```
+
+### Add papers from a script
+```bash
+for doi in 10.1145/3290605.3300233 10.1038/nature14539; do
+  zotero-cli import doi "$doi" --collection "Inbox"
+done
+zotero-cli item pdf fetch --collection "Inbox"
+```
+
+### Hand a paper to an LLM
+```bash
+# The item's PDF, converted to Markdown
+zotero-cli item export --key ABCD1234 --format md --output ./context/
+
+# Or: the most relevant passages from across your library (needs the [rag] extra)
+zotero-cli rag query "evaluation methods for human-AI interaction" --format context
+```
+
+### Clean up tags, previewing before you change anything
+```bash
+zotero-cli tag purge --collection "Old Project"            # preview only
+zotero-cli tag purge --collection "Old Project" --execute  # apply
+```
+
+### Query your library without internet access
+```bash
+# Reads the local zotero.sqlite (set database_path in config.toml)
+zotero-cli --offline item list --collection "Reading List" --format markdown
+```
+
+### Back up everything
+```bash
+zotero-cli system backup --output library_2026-09.zaf
+zotero-cli system restore --file library_2026-09.zaf --dry-run
+```
+
+### Try it without touching your real library
+```bash
+zotero-cli system check          # is every configured service reachable?
+zotero-cli system demo-sandbox   # disposable collection of sample papers
+zotero-cli system demo-sandbox --clean
 ```
 
 ## 📚 Command Reference
 
-Detailed documentation is available for each command noun:
-
 | Noun | Description | Key Verbs |
 | :--- | :--- | :--- |
-| **[`init`](docs/commands/init.md)** | Config | `(default)` |
-| **[`item`](docs/commands/item.md)** | Items | `list`, `inspect`, `export`, `pdf`, `hydrate`, `purge` |
-| **[`collection`](docs/commands/collection.md)** | Folders | `list`, `create`, `delete`, `rename`, `export`, `clean`, `backup` |
-| **[`rag`](docs/commands/rag.md)** | Knowledge | `ingest`, `query`, `context` |
-| **[`import`](docs/commands/import.md)** | Ingest | `arxiv`, `doi`, `file (IEEE/Springer/Canonical)` |
-| **[`search`](docs/commands/search.md)** | Finder | `(default)`, `--doi`, `--title` |
-| **[`report`](docs/commands/report.md)** | Output | `duplicates`, `audit`, `stats`, `attachments` |
-| **[`slr`](docs/commands/slr.md)** | SLR | `screen`, `decide`, `load`, `extract`, `snowball`, `sdb`, `report` |
-| **[`system`](docs/commands/system.md)** | Operations | `info`, `check`, `groups`, `backup`, `restore` |
-| **[`tag`](docs/commands/tag.md)** | Taxonomy | `list`, `add`, `purge` |
-| **[`storage`](docs/commands/storage.md)** | Maintenance | `checkout` |
-| **[`serve`](docs/commands/serve.md)** | Integration | `(default)` |
+| **[`init`](docs/commands/init.md)** | Config wizard | `(default)` |
+| **[`item`](docs/commands/item.md)** | Items | `list`, `inspect`, `add`, `update`, `move`, `merge`, `export`, `pdf`, `hydrate`, `purge`, `delete` |
+| **[`collection`](docs/commands/collection.md)** | Folders | `list`, `create`, `rename`, `delete`, `clean`, `export`, `backup`, `purge` |
+| **[`tag`](docs/commands/tag.md)** | Tags | `list`, `add`, `purge` |
+| **[`search`](docs/commands/search.md)** | Finder | `--doi`, `--title` |
+| **[`import`](docs/commands/import.md)** | Ingest | `arxiv`, `doi`, `file`, `bdtd`, `manual` |
+| **[`report`](docs/commands/report.md)** | Library health | `duplicates`, `audit`, `stats`, `attachments`, `verify-latex` |
+| **[`storage`](docs/commands/storage.md)** | Attachments | `checkout` |
+| **[`system`](docs/commands/system.md)** | Operations | `info`, `check`, `groups`, `switch`, `backup`, `restore`, `jobs` |
+| **[`serve`](docs/commands/serve.md)** | Local HTTP API | `(default)` |
+| **[`rag`](docs/commands/rag.md)** | Semantic search | `ingest`, `query`, `context` |
+| **[`slr`](docs/commands/slr.md)** | Literature review | `screen`, `decide`, `load`, `extract`, `snowball`, `sdb`, `report` |
 
-## 🚀 Key Features
-
-*   **Workflow Resilience:** Safe protocol clearing via `slr sdb reset` with explicit protection for manual notes.
-*   **Automated Relocation:** Automatic item movement to target collections during CSV import with `slr load`.
-*   **SDB v1.2 Intelligence:** Machine-readable audit trails with persona and phase-aware metadata.
-*   **System Portability:** Full library or scoped collection backup to `.zaf` (LZMA compressed).
-*   **Drift Detection:** `slr report shift` detects if items have moved between snapshots.
-*   **Set Integrity:** `slr prune` ensures your Included and Excluded sets are disjoint.
-*   **Audit Dashboard:** `slr report status` provides a Rich TUI dashboard of your screening progress across one or all raw search sources.
-*   **Pre-Flight Diagnostics:** `system check` verifies every configured integration (Zotero, metadata providers, LLM/embedding) is reachable before a long-running job.
-*   **Zero-Risk Onboarding:** `system demo-sandbox` spins up a disposable collection with mock papers so new users can try screening/reporting/RAG without touching a real library.
-*   **Deeper Duplicate Analysis:** `report duplicates` cross-references SDB screening decisions across collections, flagging `MATCHING`/`CONFLICTING`/`UNSCREENED` overlaps.
-*   **Containerized Deployment:** A lightweight `Dockerfile`, `.devcontainer/` config, and one-line `install.sh`/`install.ps1` scripts for zero-Python-environment setup.
+Every command has built-in help with worked examples: `zotero-cli <noun> <verb> --help`.
 
 ---
 
 ## 📦 Installation
 
-### Option 1: Standalone Binaries (Recommended)
-Download the pre-compiled binary for your operating system. **No Python installation is required.**
+### Option 1: Standalone binaries (recommended)
+Download a pre-built binary for your system. **You don't need Python.**
 
-*   **Windows:** Download the `.msi` installer or `.zip` from [Latest Releases](https://github.com/fchicout/zotero-cli/releases/latest).
-*   **Linux (Ubuntu/Debian):** Download the `.deb` package.
-*   **Linux (Fedora/RHEL):** Download the `.rpm` package.
-*   **Generic Linux:** Download the `zotero-cli-linux-amd64.tar.gz`.
+*   **Windows:** `.msi` installer or `.zip` from [Latest Releases](https://github.com/fchicout/zotero-cli/releases/latest).
+*   **Linux (Ubuntu/Debian):** `.deb` package.
+*   **Linux (Fedora/RHEL):** `.rpm` package.
+*   **Any Linux:** `zotero-cli-linux-amd64.tar.gz`.
 
 Or use the one-line installer scripts, which fetch the latest release for you:
 ```bash
@@ -104,7 +140,7 @@ irm https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.ps1 | iex
 ```
 
 ### 🐳 Option 2: Containers
-A pre-built, lightweight `Dockerfile` is included at the repo root (multi-stage build producing the same PyInstaller binary as the standalone releases — no `torch`/ML stack baked in).
+The repo includes a `Dockerfile`. It builds the same standalone binary as the releases, without the ML stack.
 
 ```bash
 git clone https://github.com/fchicout/zotero-cli.git
@@ -120,10 +156,10 @@ docker run --rm -v ~/.config/zotero-cli:/root/.config/zotero-cli zotero-cli syst
 
 > *Note: `--offline` mode (reading a local `zotero.sqlite`) needs that file mounted into the container too, e.g. `-v /path/to/zotero.sqlite:/data/zotero.sqlite`.*
 
-A `.devcontainer/` configuration is also included for GitHub Codespaces / VS Code Dev Containers — it installs the full development environment (`uv sync --extra dev` + pre-commit hooks) rather than the lightweight runtime image above, for contributing to `zotero-cli` itself.
+A `.devcontainer/` configuration is also included for GitHub Codespaces and VS Code Dev Containers. It sets up the full development environment for contributing, not the lightweight image above.
 
-### Option 3: Installation from Source (Python 3.11+)
-If you prefer to run the tool within a Python environment, using [uv](https://docs.astral.sh/uv/):
+### Option 3: From source (Python 3.11+)
+Using [uv](https://docs.astral.sh/uv/):
 
 ```bash
 git clone https://github.com/fchicout/zotero-cli.git
@@ -131,117 +167,38 @@ cd zotero-cli
 uv tool install .
 ```
 
-> *Note: Official PyPI distribution is coming soon. Use source installation for the latest SLR features.*
-
-### 📦 Using `zotero-cli` as a Library (lite vs. full)
-The RAG/semantic-search stack (`torch`, `sentence-transformers`, `openai`, `google-generativeai`, etc.) is an optional extra, not a base dependency — a consumer that only needs Zotero I/O, SLR (`slr source`/`import`), screening, or extraction gets a much lighter install by default:
+### 📦 Using `zotero-cli` as a Python library (lite vs. full)
+`zotero-cli` isn't published on PyPI. Install it from a release tag. The semantic-search stack (`torch`, `sentence-transformers`, `openai`, ...) is an optional extra, so the default install stays light:
 
 ```bash
-# Lite: core library only, no RAG/ML stack
+# Lite: library management, import, export, reports
 pip install "git+https://github.com/fchicout/zotero-cli@vX.Y.Z"
 
-# Full: adds rag ingest/rag query support
+# Full: adds rag ingest / rag query
 pip install "git+https://github.com/fchicout/zotero-cli@vX.Y.Z#egg=zotero-cli[rag]"
 ```
 
-See `docs/ARCHITECTURE.md`'s "Distribution: Consuming `zotero-cli` as a Library" section for the full rationale.
+See the "Distribution: Consuming `zotero-cli` as a Library" section of `docs/ARCHITECTURE.md` for the reasoning.
 
 ### ⚙️ Configuration
 ```bash
-zotero-cli system info  # Check if config is found
+zotero-cli init         # interactive wizard: API key, library, optional providers
+zotero-cli system info  # show which config is in use
 ```
 
-## 👨‍🍳 Researcher's Cookbook
-
-Translate your research intentions directly into execution.
-
-### 1. The "First Try" (Zero-Risk Onboarding)
-**Intent:** *"I just installed this and want to try screening/reporting/RAG without touching my real library."*
-```bash
-# Verify every configured integration is reachable before doing anything else
-zotero-cli system check
-
-# Spin up a disposable collection with mock papers (one pre-seeded with an SDB note)
-zotero-cli system demo-sandbox
-zotero-cli slr screen --source "Zotero-CLI Sandbox"
-
-# Tear it down when done
-zotero-cli system demo-sandbox --clean
-```
-
-### 2. The "Clean Start" (Ingestion & Validation)
-**Intent:** *"Get everything about Deep Learning from ArXiv, put it in 'Raw', and tell me what's missing metadata or PDFs."*
-```bash
-# Ingest papers directly from ArXiv into a specific collection
-zotero-cli import arxiv --query "deep learning" --collection "Raw"
-
-# Audit the collection for missing PDFs, DOIs, or Abstracts
-zotero-cli report audit --collection "Raw" --verbose
-```
-
-### 3. The "High-Velocity Screen" (Protocol Execution)
-**Intent:** *"I want to screen these 500 papers using my keyboard and record machine-readable audit trails."*
-```bash
-# Launch the interactive TUI to screen papers. 
-# Decisions are stored as immutable JSON notes (SDB v1.2) automatically.
-zotero-cli slr screen --source "Raw" --include "Phase1" --exclude "Excluded"
-```
-
-### 4. The "Smart Discovery" (Deep Search)
-**Intent:** *"Tell me which exclusion reasons dominate my review, and let me drill into who made a specific call."*
-```bash
-# Aggregate rejection reason codes and their percentages across the collection
-zotero-cli slr report exclusion-summary --collection "Phase1"
-
-# Drill into one paper's full audit history (persona, reason, timestamp)
-zotero-cli slr sdb inspect "ABCD1234"
-```
-
-### 5. The "Retroactive Sync" (Automation)
-**Intent:** *"Import screening decisions from my colleague's CSV, update Zotero, and move the accepted items to the 'Final' folder."*
-```bash
-# Enrich metadata from CSV and automate the physical organization of items
-zotero-cli slr load --file results.csv --reviewer "Elena" --move-to-included "Final" --force
-```
-
-### 6. The "Scientific Evidence" (Reporting)
-**Intent:** *"Give me the exact numbers for my PRISMA flowchart and generate a citation graph."*
-```bash
-# Calculate PRISMA 2020 statistics for a collection
-zotero-cli slr report prisma --collection "Final Selection"
-
-# Export a DOT file of the citation relationships between collections
-zotero-cli slr report graph --collections "Phase1,Phase2" > graph.dot
-```
-
-### 7. The "Brazilian Thesis" (BDTD Import)
-**Intent:** *"I found a relevant doctoral thesis in Brazil's BDTD digital library and want it in my review with full metadata."*
-```bash
-# Import by institutional repository handle URL, BDTD record ID, or DOI
-zotero-cli import bdtd "https://repositorio.ufpe.br/handle/123456789/51746" --collection "BR_THESES"
-```
-
-### 8. The "Portable Vault" (System Backup)
-**Intent:** *"Back up my entire research project, including all those heavy PDFs, into a single compressed file I can send to my supervisor."*
-```bash
-# Create a full system backup (.zaf) containing items, collections, tags, and attachments.
-# Optimized with LZMA compression for storage portability.
-zotero-cli system backup --output my_research_2026.zaf
-```
+The config file lives at `~/.config/zotero-cli/config.toml` (Linux/macOS) or `%APPDATA%\zotero-cli\config.toml` (Windows). See [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md) and `config.toml.example`.
 
 ## Development & Contribution
-
-We follow strict **SOLID** principles, 100% Mypy compliance, and mandatory E2E verification.
 
 ```bash
 git clone https://github.com/fchicout/zotero-cli.git
 cd zotero-cli
 uv sync --extra dev
 uv run pre-commit install --hook-type pre-commit --hook-type pre-push
-uv run pytest --cov=src
+uv run pytest tests/unit
 ```
 
-`uv sync` creates `.venv/` (pinned to the Python version in `.python-version`) and installs the project in editable mode from `uv.lock` — commit `uv.lock` alongside any dependency change so everyone (and CI) resolves the exact same versions. `pre-commit install` wires up the quality gate from `docs/PROCESS.md` (ruff, mypy, and bandit run automatically on `git commit`; `pytest tests/unit` runs on `git push`) so it's enforced mechanically instead of relying on a manual checklist. See `.pre-commit-config.yaml`.
+`uv sync` creates `.venv/`, using the Python version pinned in `.python-version`, and installs the project in editable mode from `uv.lock`. Commit `uv.lock` alongside any dependency change so everyone, CI included, gets exactly the same versions. `pre-commit install` sets up the checks from `docs/PROCESS.md`: ruff, mypy and bandit run on every `git commit`, and `pytest tests/unit` runs on `git push`. See `.pre-commit-config.yaml`.
 
 ## License
 MIT License. See [LICENSE](LICENSE) for details.

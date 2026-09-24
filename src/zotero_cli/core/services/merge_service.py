@@ -75,8 +75,8 @@ class MergePlan:
     A batch of duplicate groups awaiting (or carrying) merge decisions.
 
     Built from `DuplicateFinder`'s detection output via `MergeService.build_plan`.
-    Consumed either directly as Python objects (Corbenic-SLR: build it, let the
-    caller fill in `entries[i].decision` in-memory, then call `execute_plan` -
+    Consumed either directly as Python objects (a library caller builds it,
+    fills in `entries[i].decision` in-memory, then calls `execute_plan` -
     no serialization involved) or round-tripped through CSV/JSON for the plain
     CLI/shell workflow (see `merge_plan_io.py`).
     """

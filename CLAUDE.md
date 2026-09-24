@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`zotero-cli` is a Python CLI (`zotero-cli` entry point, Python 3.11+) that combines two things:
-1. **Direct Zotero library management** (items, collections, tags, storage, a local FastAPI bridge server).
-2. **Systematic Literature Review (SLR) tooling** implementing the Kitchenham/Wohlin protocol: screening, decisions recorded as immutable SDB (Standardized Decision Block) notes, PRISMA reporting, snowball citation discovery, and RAG-based knowledge retrieval over the library.
+`zotero-cli` is a Python CLI (`zotero-cli` entry point, Python 3.11+). Its product purpose is **managing a Zotero library from the command line** for scripting, automation and LLM-assisted workflows: that framing leads the README and all user-facing positioning. It has two layers:
+1. **Direct Zotero library management** (the core product): items, collections, tags, storage, import/export, machine-readable output, a local FastAPI bridge server.
+2. **Optional Systematic Literature Review (SLR) tooling**, a secondary toolkit implementing the Kitchenham/Wohlin protocol: screening, decisions recorded as immutable SDB (Standardized Decision Block) notes, PRISMA reporting, snowball citation discovery, and RAG-based knowledge retrieval over the library.
 
 ## Commands
 

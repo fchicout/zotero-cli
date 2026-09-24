@@ -55,13 +55,13 @@ class SLRDedupeService:
     classifies each duplicate group by SDB-decision agreement (MATCHING /
     CONFLICTING / UNSCREENED), auto-fills a MergePlan decision for the safe
     cases, and leaves CONFLICTING groups undecided - the plan itself becomes
-    the reconciliation surface for a human or Corbenic-SLR to resolve.
+    the reconciliation surface for a human (or a calling app) to resolve.
     Physical consolidation is delegated entirely to MergeService; this
     service only adds a richer SDB audit note on top once a merge lands.
 
     Directly importable/callable: typed dataclasses, no stdout side effects,
-    narrow constructor deps - this is the code path Corbenic-SLR's screening
-    UI calls directly (per Issue #153's API-hygiene requirement).
+    narrow constructor deps, so library consumers can call it directly
+    (per Issue #153's API-hygiene requirement).
     """
 
     def __init__(
@@ -147,7 +147,7 @@ class SLRDedupeService:
         key becomes master, purely for determinism - MergeService resolves
         any scalar field conflict to whichever value the chosen master
         already has, so the specific pick doesn't matter methodologically).
-        CONFLICTING groups are left undecided - a human or Corbenic-SLR must
+        CONFLICTING groups are left undecided - a human or calling app must
         resolve those, e.g. via an exported plan file and `item merge
         --from-plan`.
         """
