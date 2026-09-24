@@ -15,7 +15,7 @@
 # project's installed type stubs). `uv sync` still populates `.venv/bin/` in
 # the same layout, so these paths are stable across the pip -> uv migration.
 #
-# `safety check` and `pytest tests/e2e` are intentionally NOT wired in here —
+# The pip-audit dependency audit and `pytest tests/e2e` are intentionally NOT wired in here —
 # they need network access / live credentials and stay CI-only or manual.
 repos:
   - repo: local

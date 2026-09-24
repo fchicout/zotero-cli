@@ -32,7 +32,8 @@ uv run mypy .
 
 # Security/dependency checks
 uv run bandit -r src/
-uv run safety check
+# Dependency vulnerability audit (CI runs this on every PR; needs network)
+uv export --locked --no-dev --no-hashes --no-emit-project -o /tmp/req.txt && uvx --from pip-audit==2.10.1 pip-audit -r /tmp/req.txt --no-deps --disable-pip
 
 # Tests — categorized via scripts/test_runner.sh [unit|e2e|docs|all] [true|false coverage]
 uv run pytest tests/unit                                   # fast, isolated logic tests
@@ -80,7 +81,7 @@ Screening decisions are written back into Zotero as immutable JSON notes (SDB v1
 Documented in full in `docs/PROCESS.md` ("The Golden Path"). Key points relevant to code changes:
 
 - Branch naming: `feat/<issue-id>-<slug>`, `fix/...`, `chore/...`.
-- Before committing, code must pass the full gate: `ruff check .`, `mypy .`, `bandit -r src/`, `safety check`, `pytest tests/unit`, and any relevant integration/e2e tests.
+- Before committing, code must pass the full gate: `ruff check .`, `mypy .`, `bandit -r src/`, the `pip-audit` dependency audit, `pytest tests/unit`, and any relevant integration/e2e tests.
 - Commit style: `type(scope): description (Issue #ID)`.
 - If a change touches CLI args or workflow, update `README.md`'s command table, `docs/commands/*.md`, and `docs/help_specs/*.md` (and Mermaid diagrams if flow changed) — these command docs are also asserted against by `tests/docs`. `pytest tests/docs` only exercises real checks if `zotero_cli.cli.main` has been imported in-process (it registers every CLI command as a side effect); the test file handles this itself, so just running `pytest tests/docs` is enough. For a deliberate whole-tree documentation sweep rather than a single PR's own slice, follow `docs/DOC_CONSISTENCY_PROTOCOL.md`.
 - Version bumps touch both `pyproject.toml` and `src/zotero_cli/__init__.py`; changelog entries go in `CHANGELOG.md`. Pushing the `vX.Y.Z` tag publishes to PyPI as **`zotero-command-line`** (the `zotero-cli` name there belongs to an unrelated 2016 project), so the tag must match `pyproject.toml`'s version exactly or the `publish-pypi` job fails.

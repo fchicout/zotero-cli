@@ -4,28 +4,66 @@ on:
   push:
     tags:
       - 'v*'
+  # Build and smoke-test every artifact (binaries, .deb/.rpm, MSI) on PRs
+  # that change the release pipeline, so a mistake surfaces before a tag.
+  # Nothing is published from a pull request.
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'scripts/windows/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
 
-permissions: 
-  contents: write
+# Least privilege (release-pipeline advisory, audit #328): every job can
+# only read, except `release`, which needs to write the GitHub release.
+permissions:
+  contents: read
+
+# Supply-chain notes for this file:
+# - Actions are pinned to full commit SHAs (the tag is in the comment);
+#   Dependabot proposes updates.
+# - Checkouts don't persist the token, and no job restores a cache that
+#   other workflows (which run every dev dependency) could have written.
+# - Dependencies, including PyInstaller, come from uv.lock.
+# - Values from the event (tag names) reach scripts through `env:`, never
+#   by interpolating ${{ }} into the script text.
 
 jobs:
+  verify-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the tag points at a commit on main
+        if: github.event_name == 'push'
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag $GITHUB_REF_NAME ($GITHUB_SHA) is not on main; refusing to release it."
+            exit 1
+          fi
+
   build-linux:
+    needs: verify-tag
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v8.3.2
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           python-version: '3.11'
-          enable-cache: true
+          enable-cache: false
 
       - name: Install dependencies
         run: |
-          # Install exactly what uv.lock pins (Issue #333): an unlocked
-          # `uv pip install .` resolved bibtexparser 2.x, a breaking rewrite.
-          uv sync --locked --no-editable
-          uv pip install pyinstaller
+          # Exactly what uv.lock pins (Issue #333), plus the locked `release`
+          # group (PyInstaller).
+          uv sync --locked --no-editable --group release
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Build Binary with PyInstaller
@@ -49,21 +87,29 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ruby ruby-dev rubygems build-essential
-          sudo gem install --no-document fpm
+          sudo gem install --no-document fpm -v 1.18.0
 
       - name: Get Version
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          fi
+          echo "VERSION=$version" >> "$GITHUB_OUTPUT"
 
       - name: Create Tarball
         run: |
           tar -czvf zotero-cli-linux-amd64.tar.gz -C dist zotero-cli
 
       - name: Create DEB Package
+        env:
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
           mkdir -p dist/deb/usr/bin
           cp dist/zotero-cli dist/deb/usr/bin/
-          fpm -s dir -t deb -n zotero-cli -v ${{ steps.get_version.outputs.VERSION }} \
+          fpm -s dir -t deb -n zotero-cli -v "$VERSION" \
             --prefix / \
             -C dist/deb \
             --description "Command-line interface for managing Zotero libraries" \
@@ -73,8 +119,10 @@ jobs:
           mv zotero-cli_*.deb zotero-cli-linux-amd64.deb
 
       - name: Create RPM Package
+        env:
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
-          fpm -s dir -t rpm -n zotero-cli -v ${{ steps.get_version.outputs.VERSION }} \
+          fpm -s dir -t rpm -n zotero-cli -v "$VERSION" \
             --prefix / \
             -C dist/deb \
             --description "Command-line interface for managing Zotero libraries" \
@@ -84,7 +132,7 @@ jobs:
           mv zotero-cli-*.rpm zotero-cli-linux-amd64.rpm
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: linux-artifacts
           path: |
@@ -94,22 +142,24 @@ jobs:
             zotero-cli-linux-amd64.rpm
 
   build-windows:
+    needs: verify-tag
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v8.3.2
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           python-version: '3.11'
-          enable-cache: true
+          enable-cache: false
 
       - name: Install dependencies
         run: |
-          # Install exactly what uv.lock pins (Issue #333): an unlocked
-          # `uv pip install .` resolved bibtexparser 2.x, a breaking rewrite.
-          uv sync --locked --no-editable
-          uv pip install pyinstaller
+          # Exactly what uv.lock pins (Issue #333), plus the locked `release`
+          # group (PyInstaller).
+          uv sync --locked --no-editable --group release
           Add-Content -Path $env:GITHUB_PATH -Value "$PWD\.venv\Scripts"
 
       - name: Build Binary with PyInstaller
@@ -132,8 +182,11 @@ jobs:
         id: get_version
         shell: pwsh
         run: |
-          $tag = "${{ github.ref_name }}"
-          $version = $tag -replace '^v', ''
+          if ($env:GITHUB_EVENT_NAME -eq "push") {
+            $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          } else {
+            $version = (Select-String -Path pyproject.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          }
           $numericVersion = $version -replace '-.*$', ''
           if ($numericVersion -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {
             $numericVersion = "0.0.0"
@@ -144,9 +197,10 @@ jobs:
         run: dotnet tool install --global wix --version 4.0.1
 
       - name: Build MSI Installer
+        env:
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
-          $ver = "${{ steps.get_version.outputs.VERSION }}".Split("-")[0]
-          wix build -d Version=$ver scripts/windows/installer.wxs -o zotero-cli-windows-amd64.msi
+          wix build -d Version=$env:VERSION scripts/windows/installer.wxs -o zotero-cli-windows-amd64.msi
 
       - name: Create Windows ZIP
         shell: pwsh
@@ -154,7 +208,7 @@ jobs:
           Compress-Archive -Path dist/zotero-cli.exe -DestinationPath zotero-cli-windows-amd64.zip
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: windows-artifacts
           path: |
@@ -163,43 +217,61 @@ jobs:
             zotero-cli-windows-amd64.msi
 
   release:
+    if: github.event_name == 'push'
     needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # create the release and upload its files
+      id-token: write  # sign the build provenance attestation
+      attestations: write
     steps:
       - name: Download Linux Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: linux-artifacts
           path: assets
 
       - name: Download Windows Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: windows-artifacts
           path: assets
 
-      - name: List assets
-        run: ls -R assets
+      - name: Collect release files and checksums
+        run: |
+          mkdir release
+          cp assets/dist/zotero-cli assets/dist/zotero-cli.exe \
+            assets/*.tar.gz assets/*.deb assets/*.rpm assets/*.zip assets/*.msi release/
+          cd release
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
 
-      - name: Create/Update Release
-        uses: softprops/action-gh-release@v1
+      # Signed SLSA build provenance: `gh attestation verify <file> -R
+      # fchicout/zotero-cli` proves a file was built by this workflow from
+      # this repository.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
-          files: |
-            assets/dist/zotero-cli
-            assets/*.tar.gz
-            assets/*.deb
-            assets/*.rpm
-            assets/dist/zotero-cli.exe
-            assets/*.zip
-            assets/*.msi
+          subject-path: 'release/*'
+
+      - name: Create or update the GitHub release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" release/* --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" release/* --repo "$GITHUB_REPOSITORY" \
+              --title "$TAG" --verify-tag --generate-notes
+          fi
 
   publish-pypi:
     # Runs only after the binaries built and the GitHub release was created,
     # so a broken build never reaches PyPI. Kept apart from the jobs above:
     # it gets a read-only GITHUB_TOKEN, no cached state, and the PyPI token
     # only through the `pypi` environment (restricted to v* tags).
+    if: github.event_name == 'push'
     needs: release
     runs-on: ubuntu-latest
     environment:
@@ -208,7 +280,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 

@@ -124,15 +124,17 @@ Download a pre-built binary for your system. **You don't need Python.**
 *   **Linux (Fedora/RHEL):** `.rpm` package.
 *   **Any Linux:** `zotero-cli-linux-amd64.tar.gz`.
 
-Or use the one-line installer scripts, which fetch the latest release for you:
+Or use the one-line installer scripts. They fetch the latest release (or the one named in `ZOTERO_CLI_VERSION`, e.g. `v2.8.12`) and check it against the release's `SHA256SUMS` before installing:
 ```bash
-# Linux / macOS
+# Linux (amd64)
 curl -fsSL https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.sh | bash
 ```
 ```powershell
 # Windows (PowerShell)
 irm https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.ps1 | iex
 ```
+
+**Verifying a download yourself:** every release from v2.8.12 on includes a `SHA256SUMS` file and signed build provenance. With the [GitHub CLI](https://cli.github.com/), `gh attestation verify zotero-cli-linux-amd64.tar.gz -R fchicout/zotero-cli` confirms the file was built by this repository's release workflow.
 
 ### 🐍 Option 2: From PyPI (Python 3.11+)
 The package is called **`zotero-command-line`** on PyPI, because the `zotero-cli` name there belongs to an older, unrelated project. The command it installs is still `zotero-cli`.
@@ -150,14 +152,21 @@ git clone https://github.com/fchicout/zotero-cli.git
 cd zotero-cli
 docker build -t zotero-cli .
 
-# Configure via env vars...
-docker run --rm -e ZOTERO_API_KEY=... -e ZOTERO_LIBRARY_ID=... zotero-cli system info
+# Configure with an env file (ZOTERO_API_KEY=..., ZOTERO_LIBRARY_ID=..., one per line),
+# which keeps keys out of your shell history...
+docker run --rm --env-file zotero.env zotero-cli system info
 
-# ...or mount your existing config.toml
-docker run --rm -v ~/.config/zotero-cli:/root/.config/zotero-cli zotero-cli system info
+# ...or mount your existing config directory, running as yourself so any
+# files zotero-cli writes there (logs, job state) belong to you
+docker run --rm --user "$(id -u):$(id -g)" \
+  -v ~/.config/zotero-cli:/config/zotero-cli zotero-cli system info
 ```
 
+The container runs as an unprivileged user and keeps its config in `/config/zotero-cli`. On SELinux hosts (Fedora, RHEL), add `:z` to the mount: `-v ~/.config/zotero-cli:/config/zotero-cli:z`.
+
 > *Note: `--offline` mode (reading a local `zotero.sqlite`) needs that file mounted into the container too, e.g. `-v /path/to/zotero.sqlite:/data/zotero.sqlite`.*
+
+> *Note: inside a container, `serve` has to bind `0.0.0.0` to be reachable, which needs `--allow-remote` (it prints an access token). Publish the port on the host's loopback only: `docker run -p 127.0.0.1:1969:1969 ... zotero-cli serve --host 0.0.0.0 --allow-remote`.*
 
 A `.devcontainer/` configuration is also included for GitHub Codespaces and VS Code Dev Containers. It sets up the full development environment for contributing, not the lightweight image above.
 

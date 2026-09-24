@@ -1,0 +1,26 @@
+# Issue #335: keep Python dependencies (uv.lock) and GitHub Actions pins
+# current, grouped into one weekly PR per ecosystem. (Dependabot alerts are
+# enabled separately in the repository settings.)
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      python-dependencies:
+        patterns: ["*"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
