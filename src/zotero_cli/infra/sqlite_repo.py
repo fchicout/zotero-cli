@@ -107,6 +107,11 @@ class SqliteZoteroGateway(ZoteroGateway):
                 "tags": [{"tag": t} for t in tags],
             },
         }
+        # Venue fields only exist for some item types - like the Web API,
+        # include each one only when the item actually has it (Issue #323).
+        for venue_field in ("publicationTitle", "proceedingsTitle", "conferenceName", "bookTitle"):
+            if row_dict.get(venue_field):
+                raw_item["data"][venue_field] = row_dict[venue_field]
         return ZoteroItem.from_raw_zotero_item(raw_item)
 
     # --- Read Operations ---
@@ -192,7 +197,14 @@ class SqliteZoteroGateway(ZoteroGateway):
                        MAX(CASE WHEN f.fieldName = 'date' THEN dv.value END) as date,
                        MAX(CASE WHEN f.fieldName = 'DOI' THEN dv.value END) as DOI,
                        MAX(CASE WHEN f.fieldName = 'url' THEN dv.value END) as url,
-                       MAX(CASE WHEN f.fieldName = 'extra' THEN dv.value END) as extra
+                       MAX(CASE WHEN f.fieldName = 'extra' THEN dv.value END) as extra,
+                       MAX(CASE WHEN f.fieldName = 'publicationTitle' THEN dv.value END)
+                           as publicationTitle,
+                       MAX(CASE WHEN f.fieldName = 'proceedingsTitle' THEN dv.value END)
+                           as proceedingsTitle,
+                       MAX(CASE WHEN f.fieldName = 'conferenceName' THEN dv.value END)
+                           as conferenceName,
+                       MAX(CASE WHEN f.fieldName = 'bookTitle' THEN dv.value END) as bookTitle
                 FROM items i
                 JOIN itemTypes it ON i.itemTypeID = it.itemTypeID
                 LEFT JOIN itemData id ON i.itemID = id.itemID

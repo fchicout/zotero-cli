@@ -273,6 +273,9 @@ def test_item_list_root(mock_clients, env_vars, capsys):
     args.trash = False
     args.collection = None
     args.user = False
+    args.fields = None
+    args.wide = False
+    args.format = "table"
 
     ItemCommand().execute(args)
 
@@ -298,6 +301,9 @@ def test_item_list_root_top_only(mock_clients, env_vars, capsys):
     args.trash = False
     args.collection = None
     args.user = False
+    args.fields = None
+    args.wide = False
+    args.format = "table"
 
     ItemCommand().execute(args)
 
@@ -315,6 +321,9 @@ def test_item_list_no_collection_or_root(mock_clients, env_vars, capsys):
     args.trash = False
     args.collection = None
     args.user = False
+    args.fields = None
+    args.wide = False
+    args.format = "table"
 
     ItemCommand().execute(args)
 
@@ -546,3 +555,91 @@ def test_item_trash_execute_without_force_prompts_and_aborts(env_vars, capsys):
     mock_confirm.assert_called_once()
     gateway.trash_item.assert_not_called()
     assert "Aborted" in capsys.readouterr().out
+
+
+# --- item list --fields / --wide / --format (Issue #323) ---
+
+
+def _parse_list_args(*argv):
+    parser = argparse.ArgumentParser()
+    ItemCommand().register_args(parser)
+    args = parser.parse_args(["list", *argv])
+    args.user = False
+    return args
+
+
+def _real_items():
+    from zotero_cli.core.zotero_item import ZoteroItem
+
+    return [
+        ZoteroItem.from_raw_zotero_item(
+            {
+                "key": "K1",
+                "data": {
+                    "itemType": "journalArticle",
+                    "title": "A Study",
+                    "date": "2023",
+                    "DOI": "10.1/abc",
+                    "publicationTitle": "Journal of Tests",
+                    "creators": [{"creatorType": "author", "firstName": "G", "lastName": "Silva"}],
+                },
+            }
+        )
+    ]
+
+
+def test_item_list_json_output_is_pure_json_on_stdout(mock_clients, env_vars, capsys):
+    import json
+
+    mock_clients["gateway"].get_items_in_collection.return_value = _real_items()
+
+    ItemCommand().execute(
+        _parse_list_args("--collection", "C1", "--format", "json", "--fields", "key,doi,year")
+    )
+
+    out = capsys.readouterr().out
+    # No table title or "Showing N items" footer mixed into the JSON stream.
+    assert json.loads(out) == [{"key": "K1", "doi": "10.1/abc", "year": "2023"}]
+
+
+def test_item_list_wide_markdown(mock_clients, env_vars, capsys):
+    mock_clients["gateway"].get_items_in_collection.return_value = _real_items()
+
+    ItemCommand().execute(_parse_list_args("--collection", "C1", "-w", "-f", "markdown"))
+
+    out = capsys.readouterr().out
+    assert out.splitlines()[0] == "| Key | Title | First Author | Year | Venue | DOI |"
+    assert "| K1 | A Study | Silva | 2023 | Journal of Tests | 10.1/abc |" in out
+
+
+def test_item_list_default_output_unchanged(mock_clients, env_vars, capsys):
+    mock_clients["gateway"].get_items_in_collection.return_value = _real_items()
+
+    ItemCommand().execute(_parse_list_args("--collection", "C1"))
+
+    out = capsys.readouterr().out
+    assert "Key" in out and "Title" in out and "Type" in out
+    assert "journalArticle" in out
+    assert "Showing 1 items." in out
+
+
+def test_item_list_unknown_field_warns_on_stderr_not_stdout(mock_clients, env_vars, capsys):
+    mock_clients["gateway"].get_items_in_collection.return_value = _real_items()
+
+    ItemCommand().execute(
+        _parse_list_args("--collection", "C1", "-f", "csv", "--fields", "key,volumne")
+    )
+
+    captured = capsys.readouterr()
+    assert "volumne" in captured.err
+    assert captured.out.splitlines() == ["key,volumne", "K1,"]
+
+
+def test_item_list_wide_and_fields_are_mutually_exclusive():
+    with pytest.raises(SystemExit):
+        _parse_list_args("--collection", "C1", "--wide", "--fields", "key")
+
+
+def test_item_list_rejects_unknown_format():
+    with pytest.raises(SystemExit):
+        _parse_list_args("--collection", "C1", "--format", "xml")
