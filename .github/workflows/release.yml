@@ -56,7 +56,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
-          python-version: '3.11'
+          python-version: '3.14'
           enable-cache: false
 
       - name: Install dependencies
@@ -152,7 +152,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
-          python-version: '3.11'
+          python-version: '3.14'
           enable-cache: false
 
       - name: Install dependencies
@@ -287,7 +287,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
-          python-version: '3.11'
+          python-version: '3.14'
           enable-cache: false
 
       - name: Check the tag matches the package version
@@ -305,7 +305,7 @@ jobs:
 
       - name: Smoke test the wheel
         run: |
-          uv venv --python 3.11 /tmp/wheel-venv
+          uv venv --python 3.14 /tmp/wheel-venv
           VIRTUAL_ENV=/tmp/wheel-venv uv pip install dist/*.whl
           /tmp/wheel-venv/bin/zotero-cli --help
           /tmp/wheel-venv/bin/python scripts/smoke_imports.py

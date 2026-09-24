@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-This project uses [uv](https://docs.astral.sh/uv/), not pip/bare venv, for dependency management — `uv.lock` is the source of truth for exact resolved versions and must be committed alongside any `pyproject.toml` dependency change. `.python-version` pins the project to Python 3.11 (matches CI); `uv sync` will download that interpreter if it isn't already available.
+This project uses [uv](https://docs.astral.sh/uv/), not pip/bare venv, for dependency management — `uv.lock` is the source of truth for exact resolved versions and must be committed alongside any `pyproject.toml` dependency change. `.python-version` pins development, CI's main job, the release binaries and the Docker image to Python 3.14; `uv sync` will download that interpreter if it isn't already available. `requires-python` stays `>=3.11` for PyPI users, so CI also runs mypy (`--python-version 3.11`) and the unit tests on 3.11 (`test-min-python`).
 
 ```bash
 # Install for development (creates .venv/, installs from uv.lock, installs the project in editable mode)

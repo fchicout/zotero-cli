@@ -23,6 +23,9 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering",
     "Topic :: Utilities",
 ]
@@ -108,7 +111,10 @@ ignore = [
 known-first-party = ["zotero_cli"]
 
 [tool.mypy]
-python_version = "3.11"
+# The development/release version. CI's test-min-python job also runs
+# `mypy --python-version 3.11` against a 3.11 environment, for the oldest
+# version requires-python accepts.
+python_version = "3.14"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
