@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### 🛡️ Quality & Infrastructure
+- **Dependency updates (from Dependabot #357, minus bibtexparser 2.x):** requests 2.34, fastapi 0.141, uvicorn 0.53, onnxruntime 1.30, markitdown 0.1.7, filelock 4, ruff 0.16 and others. In the `rag` extra: openai 3, sentence-transformers 6, torch 2.14, accelerate 1.15. Checked beyond the test suite: openai 3 keeps the `embeddings`/`chat.completions` APIs we call, and the default embedding model loads and embeds with sentence-transformers 6. `bibtexparser` stays below 2, whose API rewrite needs a migration (#360).
+- **Dependabot PRs can pass CI:** GitHub doesn't give Dependabot PRs the repository's Actions secrets, so SonarQube steps are now skipped (with a notice) when the Sonar secrets aren't available instead of failing the `test` job. Grouped Dependabot PRs now carry only minor and patch updates; major versions arrive as separate PRs, and `bibtexparser` majors are ignored until #360.
 - **Built and shipped on Python 3.14:** the release binaries, the Docker image (`python:3.14-slim`, pinned by digest), the devcontainer and development (`.python-version`) now use Python 3.14, the newest stable release (bug fixes until October 2027, security fixes until October 2030). Python 3.11 had been in security-only maintenance since April 2024. PyPI installs still support Python 3.11+: CI's new `test-min-python` job runs the runtime smoke test, `mypy --python-version 3.11` and the unit tests on 3.11. The package classifiers now list 3.11–3.14.
 
 ## [2.8.12] - 2026-09-24
