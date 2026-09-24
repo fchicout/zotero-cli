@@ -129,7 +129,11 @@ def test_readme_index_coverage():
         if noun in ("maint", "rag"):
             continue
         # Flexible check for the link, allowing for styling like **[`noun`](...)**
-        pattern = re.compile(rf"\[`?{noun}`?\]\(docs/commands/{noun}.md\)")
+        # Links may be absolute so they also resolve on the PyPI project page.
+        pattern = re.compile(
+            rf"\[`?{noun}`?\]\((?:https://github\.com/fchicout/zotero-cli/blob/main/)?"
+            rf"docs/commands/{noun}\.md\)"
+        )
         assert pattern.search(readme_content), (
             f"Noun '{noun}' is missing from the README.md command index"
         )

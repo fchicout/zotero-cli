@@ -41,7 +41,7 @@ It talks to the Zotero Web API (personal and group libraries). It can also read 
 - **Local HTTP API** (`serve`): read-only endpoints for items, collections and background jobs, for local scripts and dashboards.
 
 ### Optional: literature review toolkit
-- **Systematic literature review (`slr`):** screening decisions recorded as auditable Zotero notes, PRISMA statistics, citation snowballing and data extraction. See [docs/commands/slr.md](docs/commands/slr.md).
+- **Systematic literature review (`slr`):** screening decisions recorded as auditable Zotero notes, PRISMA statistics, citation snowballing and data extraction. See [docs/commands/slr.md](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/slr.md).
 
 ## 🍳 Cookbook
 
@@ -98,17 +98,17 @@ zotero-cli system demo-sandbox --clean
 
 | Noun | Description | Key Verbs |
 | :--- | :--- | :--- |
-| **[`init`](docs/commands/init.md)** | Config wizard | `(default)` |
-| **[`item`](docs/commands/item.md)** | Items | `list`, `inspect`, `add`, `update`, `move`, `merge`, `export`, `pdf`, `hydrate`, `purge`, `delete` |
-| **[`collection`](docs/commands/collection.md)** | Folders | `list`, `create`, `rename`, `delete`, `clean`, `export`, `backup`, `purge` |
-| **[`tag`](docs/commands/tag.md)** | Tags | `list`, `add`, `purge` |
-| **[`search`](docs/commands/search.md)** | Finder | `--doi`, `--title` |
-| **[`import`](docs/commands/import.md)** | Ingest | `arxiv`, `doi`, `file`, `bdtd`, `manual` |
-| **[`report`](docs/commands/report.md)** | Library health | `duplicates`, `audit`, `stats`, `attachments`, `verify-latex` |
-| **[`storage`](docs/commands/storage.md)** | Attachments | `checkout` |
-| **[`system`](docs/commands/system.md)** | Operations | `info`, `check`, `groups`, `switch`, `backup`, `restore`, `jobs` |
-| **[`serve`](docs/commands/serve.md)** | Local HTTP API | `(default)` |
-| **[`slr`](docs/commands/slr.md)** | Literature review | `screen`, `decide`, `load`, `extract`, `snowball`, `sdb`, `report` |
+| **[`init`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/init.md)** | Config wizard | `(default)` |
+| **[`item`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/item.md)** | Items | `list`, `inspect`, `add`, `update`, `move`, `merge`, `export`, `pdf`, `hydrate`, `purge`, `delete` |
+| **[`collection`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/collection.md)** | Folders | `list`, `create`, `rename`, `delete`, `clean`, `export`, `backup`, `purge` |
+| **[`tag`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/tag.md)** | Tags | `list`, `add`, `purge` |
+| **[`search`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/search.md)** | Finder | `--doi`, `--title` |
+| **[`import`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/import.md)** | Ingest | `arxiv`, `doi`, `file`, `bdtd`, `manual` |
+| **[`report`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/report.md)** | Library health | `duplicates`, `audit`, `stats`, `attachments`, `verify-latex` |
+| **[`storage`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/storage.md)** | Attachments | `checkout` |
+| **[`system`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/system.md)** | Operations | `info`, `check`, `groups`, `switch`, `backup`, `restore`, `jobs` |
+| **[`serve`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/serve.md)** | Local HTTP API | `(default)` |
+| **[`slr`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/slr.md)** | Literature review | `screen`, `decide`, `load`, `extract`, `snowball`, `sdb`, `report` |
 
 Every command has built-in help with worked examples: `zotero-cli <noun> <verb> --help`.
 
@@ -134,7 +134,15 @@ curl -fsSL https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.sh
 irm https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.ps1 | iex
 ```
 
-### 🐳 Option 2: Containers
+### 🐍 Option 2: From PyPI (Python 3.11+)
+The package is called **`zotero-command-line`** on PyPI, because the `zotero-cli` name there belongs to an older, unrelated project. The command it installs is still `zotero-cli`.
+
+```bash
+uv tool install zotero-command-line   # or: pipx install zotero-command-line
+zotero-cli --help
+```
+
+### 🐳 Option 3: Containers
 The repo includes a `Dockerfile`. It builds the same standalone binary as the releases.
 
 ```bash
@@ -153,7 +161,7 @@ docker run --rm -v ~/.config/zotero-cli:/root/.config/zotero-cli zotero-cli syst
 
 A `.devcontainer/` configuration is also included for GitHub Codespaces and VS Code Dev Containers. It sets up the full development environment for contributing, not the lightweight image above.
 
-### Option 3: From source (Python 3.11+)
+### Option 4: From source (Python 3.11+)
 Using [uv](https://docs.astral.sh/uv/):
 
 ```bash
@@ -163,13 +171,10 @@ uv tool install .
 ```
 
 ### 📦 Using `zotero-cli` as a Python library
-`zotero-cli` isn't published on PyPI. Install it from a release tag:
-
 ```bash
-pip install "git+https://github.com/fchicout/zotero-cli@vX.Y.Z"
+pip install zotero-command-line
 ```
-
-See the "Distribution: Consuming `zotero-cli` as a Library" section of `docs/ARCHITECTURE.md` for the reasoning.
+See the "Distribution" section of [docs/ARCHITECTURE.md](https://github.com/fchicout/zotero-cli/blob/main/docs/ARCHITECTURE.md) for details, including installing an unreleased commit from git.
 
 ### ⚙️ Configuration
 ```bash
@@ -177,7 +182,7 @@ zotero-cli init         # interactive wizard: API key, library, optional metadat
 zotero-cli system info  # show which config is in use
 ```
 
-The config file lives at `~/.config/zotero-cli/config.toml` (Linux/macOS) or `%APPDATA%\zotero-cli\config.toml` (Windows). See [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md) and `config.toml.example`.
+The config file lives at `~/.config/zotero-cli/config.toml` (Linux/macOS) or `%APPDATA%\zotero-cli\config.toml` (Windows). See [docs/SETUP_GUIDE.md](https://github.com/fchicout/zotero-cli/blob/main/docs/SETUP_GUIDE.md) and `config.toml.example`.
 
 ## Development & Contribution
 
@@ -192,4 +197,4 @@ uv run pytest tests/unit
 `uv sync` creates `.venv/`, using the Python version pinned in `.python-version`, and installs the project in editable mode from `uv.lock`. Commit `uv.lock` alongside any dependency change so everyone, CI included, gets exactly the same versions. `pre-commit install` sets up the checks from `docs/PROCESS.md`: ruff, mypy and bandit run on every `git commit`, and `pytest tests/unit` runs on `git push`. See `.pre-commit-config.yaml`.
 
 ## License
-MIT License. See [LICENSE](LICENSE) for details.
+MIT License. See [LICENSE](https://github.com/fchicout/zotero-cli/blob/main/LICENSE) for details.

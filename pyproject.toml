@@ -3,16 +3,34 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "zotero-cli"
+# Published on PyPI as `zotero-command-line`: the `zotero-cli` name there
+# belongs to an unrelated, inactive 2016 project, and PyPI rejects names
+# that differ from it only by separators (e.g. `zoterocli`). The command
+# stays `zotero-cli` and the import package stays `zotero_cli`.
+name = "zotero-command-line"
 version = "2.8.11"
+description = "Manage your Zotero library from the command line: scripting, automation and LLM-assisted workflows."
+readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
+authors = [{name = "Fábio Chicout"}]
+keywords = ["zotero", "cli", "bibliography", "reference-management", "research", "automation", "llm"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Utilities",
+]
 dependencies = [
     "requests>=2.33.0",
     "rich>=13.7.0",
     "toml>=0.10.2",
     "tenacity>=8.2.3",
-    "pytest>=9.0.3",
     "arxiv>=2.1.0",
     "bibtexparser>=1.4.0,<2",
     "rispy>=0.4.0",
@@ -32,6 +50,12 @@ dependencies = [
     "filelock>=3.30.3",
     "httpx>=0.27.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/fchicout/zotero-cli"
+Documentation = "https://github.com/fchicout/zotero-cli/tree/main/docs"
+Issues = "https://github.com/fchicout/zotero-cli/issues"
+Changelog = "https://github.com/fchicout/zotero-cli/blob/main/CHANGELOG.md"
 
 [project.scripts]
 zotero-cli = "zotero_cli.cli.main:main"
@@ -58,7 +82,7 @@ rag = [
     "accelerate>=0.26.0",
 ]
 dev = [
-    "zotero-cli[rag]",
+    "zotero-command-line[rag]",
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
     "mypy>=1.5.0",
@@ -67,6 +91,7 @@ dev = [
     "bandit>=1.7.5",
     "safety>=3.0.0",
     "pre-commit>=3.6.0",
+    "pytest>=9.0.3",
 ]
 
 [tool.ruff]
