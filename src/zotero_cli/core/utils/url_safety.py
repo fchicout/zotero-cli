@@ -107,9 +107,18 @@ async def read_capped_async(
             chunks.append(chunk)
     finally:
         await response.aclose()
+    # aiter_bytes() already undid any Content-Encoding, so the joined body is
+    # plain bytes. Keeping the original Content-Encoding header would make
+    # httpx decode it a second time and fail with "incorrect header check"
+    # on any gzip response (Issue #321); the original Content-Length is the
+    # compressed size, so drop it too and let httpx recompute it.
+    headers = httpx.Headers(response.headers)
+    for stale in ("content-encoding", "content-length"):
+        if stale in headers:
+            del headers[stale]
     return httpx.Response(
         status_code=response.status_code,
-        headers=response.headers,
+        headers=headers,
         content=b"".join(chunks),
         request=response.request,
     )

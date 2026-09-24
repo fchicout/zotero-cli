@@ -4,7 +4,9 @@ here is a literal IP or `localhost`, resolving without any real network
 access, so these tests stay fast and offline like the rest of tests/unit.
 """
 
+import gzip
 import socket
+import zlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -213,3 +215,44 @@ async def test_read_capped_async_aborts_mid_stream_when_content_length_lies():
         await read_capped_async(response, max_bytes=80)
 
     response.aclose.assert_awaited()
+
+
+async def _read_through_real_client(encoding, body):
+    """Streams `body` through a real httpx.AsyncClient (not a mock), so
+    httpx's actual Content-Encoding decoding runs the way it does in
+    production."""
+
+    def handler(request):
+        return httpx.Response(
+            200,
+            headers={"Content-Encoding": encoding, "Content-Type": "application/json"},
+            content=body,
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        request = client.build_request("GET", "http://93.184.216.34/works/x")
+        response = await client.send(request, stream=True)
+        return await read_capped_async(response)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "encoding, compress",
+    [
+        ("gzip", gzip.compress),
+        ("deflate", zlib.compress),
+    ],
+)
+async def test_read_capped_async_does_not_decompress_twice(encoding, compress):
+    """Regression test for Issue #321: aiter_bytes() already decodes a
+    compressed body, so the rebuilt response must not keep advertising
+    Content-Encoding - otherwise httpx decodes the plain bytes again and
+    raises "Error -3 while decompressing data: incorrect header check"."""
+    payload = b'{"message": {"reference": [{"DOI": "10.1/x"}]}}'
+
+    result = await _read_through_real_client(encoding, compress(payload))
+
+    assert result.json() == {"message": {"reference": [{"DOI": "10.1/x"}]}}
+    assert "content-encoding" not in result.headers
+    assert result.headers["content-length"] == str(len(payload))
+    assert result.headers["content-type"] == "application/json"
