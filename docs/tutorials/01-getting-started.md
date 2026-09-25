@@ -40,7 +40,7 @@ Verify the tool is installed by typing this command and pressing **Enter**:
 ```bash
 zotero-cli --version
 ```
-You should see: `zotero-cli v2.0.0`. If yes, you are ready!
+You should see `zotero-cli` followed by a version number (for example `zotero-cli 2.8.12`). If yes, you are ready!
 
 ---
 

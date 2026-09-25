@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### ✨ Features
+- **`zotero-cli --version` (`-V`) (Issue #375):** the getting-started tutorial's first step failed because the flag didn't exist. `system info` now also shows the version, Python version and platform, so a binary's build can be identified in bug reports.
+
 ### 🐛 Bug Fixes (data loss)
 - **A bare `pytest` no longer runs the e2e suite against your real library (Issue #400):** `pytest` collected `tests/e2e`, which creates and deletes collections and items and, at session start, purged every `E2E_*` collection in whichever library was configured. `testpaths` now covers only `tests/unit` and `tests/docs`. The e2e suite skips itself unless `ZOTERO_CLI_E2E=1` is set and `ZOTERO_CLI_E2E_LIBRARY_ID` matches the library the CLI would use; the purge obeys the same check. Stale e2e run artifacts were removed from the repository.
 - **`collection clean` no longer deletes items (Issue #364):** its help said it only removes items from the collection, but it permanently deleted every item in it, including items also filed elsewhere. It now takes the collection off each item; the items stay in the library, and those filed nowhere else appear under Unfiled Items. **It previews by default: pass `--execute` to apply.**

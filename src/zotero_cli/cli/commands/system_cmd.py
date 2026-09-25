@@ -40,11 +40,17 @@ class InfoCommand(BaseCommand):
         pass  # No extra args for info
 
     def execute(self, args: argparse.Namespace) -> None:
+        import platform
+
+        from zotero_cli import __version__
         from zotero_cli.core.config import get_config, get_config_path
 
         config = get_config(args.config)
 
         print("--- Zotero CLI Info ---")
+        print(f"Version:     {__version__}")
+        print(f"Python:      {platform.python_version()}")
+        print(f"Platform:    {platform.platform()}")
         print(f"Config Path: {get_config_path() or 'None (using defaults/env)'}")
         print(f"Library ID:  {config.library_id}")
         print(f"Library Type: {config.library_type}")
@@ -86,7 +92,8 @@ Scenario-Based Examples (Cognitive Anchors)
 Scenario: Verifying which Zotero group is active
 Problem: I'm not sure if my commands are currently targeting my personal library or my research group's library.
 Action:  zotero-cli system info
-Result:  The CLI displays the "Active Library ID" and the "Library Type" (User/Group).
+Result:  The CLI displays its version, Python and platform, the "Active Library ID"
+         and the "Library Type" (User/Group).
 
 Cognitive Safeguards
 --------------------

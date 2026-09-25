@@ -5,7 +5,7 @@ The `system` command handles administrative tasks, information, and global libra
 ## Verbs
 
 ### `info`
-Display library statistics, item counts, and sync status.
+Display the zotero-cli version, Python version and platform, and the active configuration (config path, library ID and type, whether API keys are set). Include this output in bug reports. `zotero-cli --version` prints just the version.
 
 **Usage:**
 ```bash
