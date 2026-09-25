@@ -31,7 +31,7 @@ This command is essential for troubleshooting. It verifies that your API key is 
 ### Scenario: Verifying which Zotero group is active
 **Problem:** I'm not sure if my commands are currently targeting my personal library or my research group's library.
 **Action:** `zotero-cli system info`
-**Result:** The CLI displays the "Active Library ID" and the "Library Type" (User/Group), confirming the current context.
+**Result:** The CLI displays its version, the Python version and platform, the "Active Library ID" and the "Library Type" (User/Group), confirming the current context. Include this output in bug reports.
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Running the command before initializing the CLI with `init`. The command will fail with a "Configuration not found" error. 

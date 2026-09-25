@@ -28,6 +28,7 @@ verify_environment()
 import argparse  # noqa: E402
 import logging  # noqa: E402
 
+from zotero_cli import __version__  # noqa: E402
 from zotero_cli.cli import commands  # noqa: F401, E402 (Trigger registration)
 from zotero_cli.cli.base import CommandRegistry  # noqa: E402
 from zotero_cli.core.config import get_config  # noqa: E402
@@ -45,6 +46,9 @@ logger = logging.getLogger(__name__)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="zotero-cli - manage your Zotero library from the command line")
+    parser.add_argument(
+        "-V", "--version", action="version", version=f"zotero-cli {__version__}"
+    )
     parser.add_argument("--user", action="store_true", help="Force Personal Library mode")
     parser.add_argument(
         "--offline",
