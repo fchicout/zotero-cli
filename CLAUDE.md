@@ -37,7 +37,7 @@ uv export --locked --no-dev --no-hashes --no-emit-project -o /tmp/req.txt && uvx
 
 # Tests — categorized via scripts/test_runner.sh [unit|e2e|docs|all] [true|false coverage]
 uv run pytest tests/unit                                   # fast, isolated logic tests
-uv run pytest tests/e2e                                     # hits real external APIs/state
+ZOTERO_CLI_E2E=1 ZOTERO_CLI_E2E_LIBRARY_ID=<sandbox id> uv run pytest tests/e2e  # writes to that library; skipped otherwise
 uv run pytest tests/docs                                    # doc/repo-structure consistency checks
 uv run pytest tests/unit --cov=src/zotero_cli --cov-report=xml   # matches CI coverage run
 

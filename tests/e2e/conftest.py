@@ -7,6 +7,52 @@ from pathlib import Path
 
 import pytest
 
+# --- Opt-in guard (Issue #400) ---
+#
+# These tests create and delete collections and items in whichever Zotero
+# library is configured, and the session start purges every `E2E_*`
+# collection there. They only run when a human asks for them, against a
+# library named explicitly:
+#
+#   ZOTERO_CLI_E2E=1 ZOTERO_CLI_E2E_LIBRARY_ID=<sandbox library id> \
+#       uv run pytest tests/e2e
+#
+# The id must match the library the CLI resolves from the current config,
+# so a stale shell variable can't aim the suite at a real library.
+
+E2E_DIR = Path(__file__).parent
+
+
+def e2e_skip_reason() -> str | None:
+    """None if the e2e suite may run, else why it may not."""
+    if os.environ.get("ZOTERO_CLI_E2E") != "1":
+        return "e2e tests write to a real Zotero library; set ZOTERO_CLI_E2E=1 to opt in"
+    wanted = os.environ.get("ZOTERO_CLI_E2E_LIBRARY_ID", "").strip()
+    if not wanted:
+        return "set ZOTERO_CLI_E2E_LIBRARY_ID to the sandbox library the suite may modify"
+    try:
+        from zotero_cli.core.config import get_config
+
+        configured, _ = get_config().resolve_library_target(False, False)
+    except Exception as exc:
+        return f"could not resolve the configured library: {exc}"
+    if str(configured) != wanted:
+        return (
+            f"the configured library ({configured}) is not ZOTERO_CLI_E2E_LIBRARY_ID "
+            f"({wanted}); refusing to modify it"
+        )
+    return None
+
+
+def pytest_collection_modifyitems(config, items):
+    reason = e2e_skip_reason()
+    if reason is None:
+        return
+    skip = pytest.mark.skip(reason=reason)
+    for item in items:
+        if E2E_DIR in Path(str(item.fspath)).parents:
+            item.add_marker(skip)
+
 
 class ResourceTracker:
     """
@@ -65,6 +111,8 @@ def pytest_sessionstart(session):
     The Great Purge: Identifies and removes orphaned 'E2E_' collections.
     Ensures a defect-free starting state.
     """
+    if e2e_skip_reason() is not None:
+        return
     print("\n[QA_FORCE] Initiating orphan purge...")
     res = _run_cli_raw(["collection", "list", "--table"])
     if res.returncode == 0:
