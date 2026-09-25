@@ -81,7 +81,10 @@ jobs:
 
       # Never publish a binary that can't start (Issue #333).
       - name: Smoke test binary
-        run: ./dist/zotero-cli --help
+        run: |
+          ./dist/zotero-cli --help
+          # Exercise bundled libraries, not just startup (Issue #403).
+          ./dist/zotero-cli system selftest
 
       - name: Install FPM
         run: |
@@ -176,7 +179,10 @@ jobs:
             --clean src/zotero_cli/cli/main.py
 
       - name: Smoke test binary
-        run: ./dist/zotero-cli.exe --help
+        run: |
+          ./dist/zotero-cli.exe --help
+          ./dist/zotero-cli.exe system selftest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Get Version
         id: get_version
@@ -308,6 +314,7 @@ jobs:
           uv venv --python 3.14 /tmp/wheel-venv
           VIRTUAL_ENV=/tmp/wheel-venv uv pip install dist/*.whl
           /tmp/wheel-venv/bin/zotero-cli --help
+          /tmp/wheel-venv/bin/zotero-cli system selftest
           /tmp/wheel-venv/bin/python scripts/smoke_imports.py
 
       - name: Publish to PyPI

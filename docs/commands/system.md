@@ -34,6 +34,16 @@ zotero-cli system check
 
 ---
 
+### `selftest`
+Checks offline that this installation works: converts a small embedded PDF to text (the code path of `item export --format md` and `rag ingest`) and opens a SQLite database (used by `--offline`). Needs no configuration or network; exits 1 if any check fails.
+
+**Usage:**
+```bash
+zotero-cli system selftest
+```
+
+---
+
 ### `demo-sandbox`
 Creates a temporary collection populated with mock papers so you can try screening, reporting, and RAG commands without touching your real library. Requires a live (non-`--offline`) Zotero connection.
 

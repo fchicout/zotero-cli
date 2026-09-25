@@ -5,10 +5,10 @@ This guide explains how to transform your Zotero library into a semantically sea
 ## 1. Prerequisites & Configuration
 Before the **Engine** can process your research, ensure your environment matches the **ARCH_MGMT Council's** standards.
 
-### Install PDF Support
-The RAG system requires specialized libraries to extract text from academic papers.
+### Check PDF Support
+PDF text extraction is built in (pdfminer.six). To confirm it works on your install:
 ```bash
-pip install "markitdown[pdf]"
+zotero-cli system selftest
 ```
 
 ### Configure an AI Provider

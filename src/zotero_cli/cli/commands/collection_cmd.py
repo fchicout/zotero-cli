@@ -616,3 +616,5 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         console.print(f"  - [yellow]Skipped (No PDF):[/yellow] {stats['skipped']}")
         console.print(f"  - [red]Failed:[/red] {stats['failed']}")
         console.print(f"\nFiles saved to: [bold]{output_dir.absolute()}[/bold]")
+        if stats["failed"]:
+            sys.exit(1)

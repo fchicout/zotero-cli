@@ -28,6 +28,17 @@ from zotero_cli.core.zotero_item import ZoteroItem
 logger = logging.getLogger(__name__)
 
 
+
+def extract_pdf_text(path: str) -> str:
+    """
+    The text of a PDF file. pdfminer.six directly (Issue #403): it's what
+    markitdown used for PDFs, but markitdown was installed without its PDF
+    extra and pulled in onnxruntime/magika/numpy, which the binaries exclude.
+    """
+    from pdfminer.high_level import extract_text
+
+    return str(extract_text(path))
+
 class AttachmentService(FullTextProvider):
     def __init__(
         self,
@@ -236,8 +247,9 @@ class AttachmentService(FullTextProvider):
 
     def get_fulltext(self, item_key: str) -> Optional[str]:
         """
-        Retrieves the full text of an item's PDF attachment as Markdown.
-        Ensures zero-persistence of temporary files [SPEC-RAG-005].
+        Retrieves the text of an item's PDF attachment (plain text, saved as
+        .md by the exports). Ensures zero-persistence of temporary files
+        [SPEC-RAG-005].
         """
         # 1. Find PDF attachment
         attachment_key = self._get_pdf_attachment_key(item_key)
@@ -253,12 +265,8 @@ class AttachmentService(FullTextProvider):
                 if not success:
                     return None
 
-                # 3. Extract text using markitdown
-                from markitdown import MarkItDown
-
-                md = MarkItDown()
-                result = md.convert(temp_path)
-                return result.text_content
+                # 3. Extract the text
+                return extract_pdf_text(temp_path)
             except Exception as e:
                 print(f"Full-text extraction error for {item_key}: {e}")
                 logger.exception("Full-text extraction error for %s", item_key)

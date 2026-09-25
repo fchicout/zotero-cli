@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import os
+import sys
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -147,6 +148,29 @@ Cognitive Safeguards
 • Safety Tips: Run this after editing config.toml to confirm the new credentials actually work before a long-running import.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_check.md
+""",
+        )
+
+        # Selftest
+        sub.add_parser(
+            "selftest",
+            help="Check offline that this installation's features work",
+            description="Runs offline checks of the features that depend on bundled libraries (PDF text extraction, SQLite). Needs no configuration or network. Exits 1 if any check fails.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Scenario-Based Examples (Cognitive Anchors)
+-------------------------------------------
+Scenario: Checking a fresh install
+Problem: You installed a binary or a new Python environment and want to know it works before configuring it.
+Action:  zotero-cli system selftest
+Result:  Each check prints OK or FAILED; the exit status is 1 if any failed.
+
+Cognitive Safeguards
+--------------------
+• Common Failure Modes: A FAILED "PDF text extraction" means `item export --format md` and `rag ingest` can't read PDFs on this install; reinstall, or report the details line.
+• Safety Tips: Read-only and offline - safe to run anywhere, including CI.
+
+Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_selftest.md
 """,
         )
 
@@ -366,6 +390,8 @@ Cognitive Safeguards
             self._handle_groups(args)
         elif args.verb == "check":
             self._handle_check(args)
+        elif args.verb == "selftest":
+            self._handle_selftest()
         elif args.verb == "demo-sandbox":
             self._handle_demo_sandbox(args)
         elif args.verb == "backup":
@@ -495,6 +521,16 @@ Cognitive Safeguards
                 r.name, f"[{color}]{r.status.replace('_', ' ')}[/{color}]", safe_markup(r.details)
             )
         console.print(table)
+
+    def _handle_selftest(self) -> None:
+        from zotero_cli.core.services.selftest import run_selftest
+
+        results = run_selftest()
+        for r in results:
+            status = "[green]OK[/green]" if r.ok else "[red]FAILED[/red]"
+            console.print(f"{status}  {r.name}: {escape(r.detail)}")
+        if not all(r.ok for r in results):
+            sys.exit(1)
 
     def _handle_demo_sandbox(self, args: argparse.Namespace) -> None:
         from rich.panel import Panel

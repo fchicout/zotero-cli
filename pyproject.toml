@@ -43,12 +43,15 @@ dependencies = [
     "PyYAML>=6.0.1",
     "beautifulsoup4>=4.12.0",
     "networkx>=3.0",
-    # markitdown (and its onnxruntime dependency, for magika file-type
-    # detection) is not RAG-only: item/collection export --format md
-    # (attachment_service.py::get_fulltext) uses it too, so it stays here
-    # rather than in the [rag] extra below (Issue #180).
-    "markitdown>=0.1.5",
-    "onnxruntime>=1.24.2",
+    # PDF text extraction for item/collection export --format md and rag
+    # ingest (attachment_service.py::get_fulltext). pdfminer.six directly,
+    # not markitdown: markitdown was installed without its PDF extra, so it
+    # couldn't read PDFs, and it pulled in onnxruntime/magika/numpy (~250 MB,
+    # no wheels for several platforms, broken in the binaries) (Issue #403).
+    "pdfminer.six>=20250506",
+    # Safe XML parsing of PubMed responses; used to arrive only through
+    # markitdown (Issue #403).
+    "defusedxml>=0.7.1",
     "pygments>=2.20.0",
     "filelock>=3.30.3",
     "httpx>=0.27.0",
