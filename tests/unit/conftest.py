@@ -1,8 +1,14 @@
 from unittest.mock import MagicMock
 
-import pytest
+from tests.home_isolation import isolate_home
 
-from zotero_cli.core.config import ZoteroConfig
+# Before any zotero_cli import: nothing in the unit suite may resolve the
+# developer's real ~/.config/zotero-cli (Issue #365).
+isolate_home()
+
+import pytest  # noqa: E402
+
+from zotero_cli.core.config import ZoteroConfig  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
