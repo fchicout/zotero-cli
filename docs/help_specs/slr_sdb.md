@@ -46,7 +46,7 @@ The `slr sdb` command is the "Database Administrator" for your review's audit tr
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Verifying the audit history of a controversial paper
 **Problem:** I want to see how many different reviewers screened paper `ABCD1234` and what their final consensus was.
-**Action:** `zotero-cli slr sdb inspect --key "ABCD1234"`
+**Action:** `zotero-cli slr sdb inspect "ABCD1234"`
 **Result:** The CLI displays a table showing every decision entry for that paper, timestamped and attributed to individual personas.
 
 ## 7. Cognitive Safeguards

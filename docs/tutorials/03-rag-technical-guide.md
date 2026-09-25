@@ -33,8 +33,9 @@ zotero-cli rag ingest --collection "Deep Learning Papers"
 ```
 
 ### Ingest your entire library
+Without `--collection` or `--key`, every item is ingested:
 ```bash
-zotero-cli rag ingest --all
+zotero-cli rag ingest
 ```
 
 ---

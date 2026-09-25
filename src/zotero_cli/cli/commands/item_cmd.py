@@ -352,7 +352,7 @@ Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
 Scenario: Manually attaching a downloaded paper
 Problem: I've manually downloaded a paper ("Manual_Ref.pdf") and want to attach it to its corresponding item (Key: REF_123) in Zotero.
-Action:  zotero-cli item pdf attach "REF_123" --file "Manual_Ref.pdf"
+Action:  zotero-cli item pdf attach --key "REF_123" --file "Manual_Ref.pdf"
 Result:  The PDF is uploaded and linked to the item in the Zotero cloud storage.
 
 Cognitive Safeguards
@@ -579,15 +579,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         export_p = sub.add_parser(
             "export",
             help="Export item metadata or content",
-            description="Exports the metadata of a single Zotero item into standard formats (bibtex, ris, or md), either to a local file or directly to the terminal output.",
+            description="Exports a single Zotero item: its metadata as BibTeX or RIS to a file (--output is required), or the text of its PDF as a .md file (md). To print BibTeX/RIS to the terminal instead, use `item inspect --key KEY --format bibtex`.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
 Scenario: Getting a BibTeX entry for a specific citation
 Problem: I'm writing a paper and I just need the BibTeX code for the item with key VA12345.
-Action:  zotero-cli item export --key "VA12345" --format bibtex
-Result:  The CLI prints the formatted BibTeX entry directly to the terminal.
+Action:  zotero-cli item export --key "VA12345" --format bibtex --output va12345.bib
+Result:  The BibTeX entry is written to va12345.bib. (`zotero-cli item inspect --key "VA12345" --format bibtex`
+         prints it to the terminal instead.)
 
 Cognitive Safeguards
 --------------------

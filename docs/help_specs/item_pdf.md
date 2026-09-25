@@ -41,7 +41,7 @@ The `item pdf` command is a versatile tool for handling individual file attachme
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Manually attaching a downloaded paper
 **Problem:** I've manually downloaded a paper ("Manual_Ref.pdf") and want to attach it to its corresponding item (Key: `REF_123`) in Zotero.
-**Action:** `zotero-cli item pdf attach "REF_123" --file "Manual_Ref.pdf"`
+**Action:** `zotero-cli item pdf attach --key "REF_123" --file "Manual_Ref.pdf"`
 **Result:** The PDF is uploaded and linked to the item in the Zotero cloud storage.
 
 ## 7. Cognitive Safeguards

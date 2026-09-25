@@ -240,15 +240,14 @@ zotero-cli slr sdb <subcommand> [options]
 ---
 
 ### `extract`
-Manages data extraction schemas and operations. Supports initializing a new schema template or validating an existing schema.
+Runs data extraction for the included items of a collection (or one item), interactively or agent-led, and exports the extraction matrix.
 
 **Usage:**
 ```bash
-# Initialize a new schema template
-zotero-cli slr extract --init [--output schema.yaml]
-
-# Validate an existing schema
-zotero-cli slr extract --validate [--schema schema.yaml]
+zotero-cli slr extract --collection "Included"
+zotero-cli slr extract --key "ITEMKEY"
+zotero-cli slr extract --collection "Included" --agent --persona "Paula"
+zotero-cli slr extract --collection "Included" --export matrix.json
 ```
 
 ---

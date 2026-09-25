@@ -49,8 +49,9 @@ zotero-cli init --force
 ```
 
 ### Save to Custom Location
+`--config` is a global option, so it goes before the command:
 ```bash
-zotero-cli init --config ./my_project_config.toml
+zotero-cli --config ./my_project_config.toml init
 ```
 
 ## Next Steps

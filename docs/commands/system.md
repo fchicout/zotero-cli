@@ -138,15 +138,13 @@ zotero-cli system jobs list [--limit 50] [--type fetch_pdf|discover_citations]
 ```
 
 #### `jobs retry`
-Reset failed jobs back to `PENDING` state.
+Reset a failed job back to `PENDING` state, by its ID (`system jobs list` shows it).
 ```bash
-zotero-cli system jobs retry --all
-# OR
-zotero-cli system jobs retry --job-id 123
+zotero-cli system jobs retry 123
 ```
 
 #### `jobs run`
 Starts the background worker to process pending jobs in the queue.
 ```bash
-zotero-cli system jobs run [--limit 10]
+zotero-cli system jobs run [--count 10] [--type fetch_pdf] [--watch]
 ```

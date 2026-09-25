@@ -32,8 +32,8 @@ The `slr reconcile` command is a structural cleanup tool. Over the course of a s
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Recovering folder alignment after manual changes
 **Problem:** Reviewers manually dragged items in Zotero, causing discrepancies with recorded SDB notes.
-**Action:** `zotero-cli slr reconcile`
-**Result:** The CLI moves all mismatched papers to their correct phase collection.
+**Action:** `zotero-cli slr reconcile --tree "raw_acm"`, then the same with `--execute`
+**Result:** The first run lists the papers whose folder doesn't match their SDB notes; the second moves them to their correct phase collection.
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Attempting to reconcile a library where SDB notes are corrupt or missing.

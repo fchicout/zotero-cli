@@ -5,11 +5,11 @@ Welcome to your first research cycle with **zotero-cli**. In this tour, we will 
 ## The Scenario
 You are investigating **"LLM Security"**. You want to find recent papers on ArXiv and store them in a clean collection.
 
-## Step 1: Discovery
-First, we use `find arxiv` to see what's out there without adding anything to our library yet.
+## Step 1: Start small
+There is no preview-only arXiv search, so start with a handful of results in a trial collection to check the query returns what you expect.
 
 ```bash
-zotero-cli find arxiv --query "ti:LLM AND Security"
+zotero-cli import arxiv --query "ti:LLM AND Security" --collection "LLM Search (trial)" --limit 5
 ```
 *Tip: We use the ArXiv advanced syntax `ti:` to search specifically in titles.*
 

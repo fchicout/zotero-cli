@@ -88,9 +88,9 @@ Documented in full in `docs/PROCESS.md` ("The Golden Path"). Key points relevant
 
 ## Agent safety boundaries
 
-`tests/e2e` (hits real external APIs/live Zotero state) and `zotero-cli serve` (binds an unauthenticated HTTP server — see `src/zotero_cli/api/`) must **always** require explicit, in-the-moment human invocation. Never run either from an autonomous loop, a scheduled/cron-triggered agent, a git hook, or any other unattended trigger — only when a human directly asks for it in the current turn. `tests/unit` and `tests/docs` have no such restriction. If a hook or automation surface is ever added to this repo, it must not expand to cover `tests/e2e` or `serve` without the user explicitly widening this rule.
+`tests/e2e` (hits real external APIs/live Zotero state) and `zotero-cli serve` (binds a read-only HTTP server over the live library — see `src/zotero_cli/api/`) must **always** require explicit, in-the-moment human invocation. Never run either from an autonomous loop, a scheduled/cron-triggered agent, a git hook, or any other unattended trigger — only when a human directly asks for it in the current turn. `tests/unit` and `tests/docs` have no such restriction. If a hook or automation surface is ever added to this repo, it must not expand to cover `tests/e2e` or `serve` without the user explicitly widening this rule.
 
-`serve`'s lack of authentication (tracked separately, not a harness concern) is exactly why the boundary matters: an autonomous process that started it unattended could expose read/write access to the live Zotero library to anything reaching the bound host.
+`serve` is read-only and binds to loopback by default; a non-loopback bind needs `--allow-remote` and then requires a bearer token (v2.8.12). The boundary still matters: an autonomous process that started it unattended could expose the live Zotero library's contents to anything reaching the bound host.
 
 PR review is manual and on-demand (`gh pr diff`/`gh pr checkout` fed into an interactive session) — there is no CI-triggered AI review bot in this repo, and none should be added without the user explicitly deciding to take on the separate Anthropic API billing that a non-interactive CI job would require (distinct from a Claude Code subscription seat, which only covers interactive sessions).
 

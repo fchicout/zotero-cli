@@ -88,7 +88,8 @@ Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
 Scenario: Cleaning up an old project
 Problem: I have a folder "Obsolete_SLR_2023" (Key: OLD_123) that I no longer need, contents included.
-Action:  zotero-cli collection delete --key "OLD_123" --recursive, then add --execute
+Action:  zotero-cli collection delete --key "OLD_123" --recursive
+         zotero-cli collection delete --key "OLD_123" --recursive --execute
 Result:  The first run lists the sub-collections and items that would be deleted; the second deletes them after you confirm.
 
 Cognitive Safeguards
@@ -160,7 +161,8 @@ Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
 Scenario: Resetting a screening results folder
 Problem: My "Screened Results" folder (Key: SCR_456) has outdated data from a previous attempt and I want to start fresh.
-Action:  zotero-cli collection clean --collection "SCR_456", then add --execute
+Action:  zotero-cli collection clean --collection "SCR_456"
+         zotero-cli collection clean --collection "SCR_456" --execute
 Result:  The first run shows how many items would leave the folder; the second empties it. The items remain in your library.
 
 Cognitive Safeguards

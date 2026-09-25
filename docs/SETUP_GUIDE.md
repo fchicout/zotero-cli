@@ -25,12 +25,12 @@ This unique number is required for the tool to identify your account and discove
 ## 3. Manage Your Library ID (`library_id`)
 The `library_id` tells the tool which library to target by default.
 
-*   **Switching via CLI:** Use `zotero-cli system switch --group 1234567` to change contexts without editing the file manually.
-*   **The --user Flag:** Using `--user` (or `system switch --user`) forces the tool to target your personal collections. If you have specified a `database_path`, this will also enable **Offline Mode** for searching your local Zotero database.
+*   **Switching groups via CLI:** Use `zotero-cli system switch 1234567` (a group ID, or part of the group's name) to change the active group without editing the file manually. `zotero-cli system groups` lists the groups your key can access.
+*   **The --user Flag:** Adding the global `--user` flag to a command (for example `zotero-cli --user item list`) targets your personal library for that command only. It doesn't change the configured library or enable offline mode; offline mode is the separate `--offline` flag.
 
 > **⚠️ Offline Mode scope:** `--offline` reads directly from your local `zotero.sqlite` file and does **not** filter by `library_id`/`library_type` - it operates across the *entire* local database. If Zotero Desktop syncs more than one library on this machine (your personal library plus any groups), offline-mode commands will see and count items from all of them, not just the one configured in `config.toml`. This can produce item counts, PRISMA totals, or screening results that don't match what the same commands report in online mode. If you only ever sync one library locally, this doesn't affect you.
 >
-> `--offline` is also **read-only**: most write-oriented commands (`slr decide`, `slr screen`, `item edit`, `slr snowball import`, etc.) aren't offline-compatible and will fail with "Offline mode is read-only" if you forget to drop the flag. `item trash`/`item restore` are the only write paths offline mode explicitly supports.
+> `--offline` is also **read-only**: most write-oriented commands (`slr decide`, `slr screen`, `item update`, `slr snowball import`, etc.) aren't offline-compatible and will fail with "Offline mode is read-only" if you forget to drop the flag. `item trash`/`item restore` are the only write paths offline mode explicitly supports.
 
 ## 4. Boost Your Research (Optional Services)
 Adding these parameters to `config.toml` unlocks powerful automation features:

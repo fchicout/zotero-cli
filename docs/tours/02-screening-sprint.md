@@ -9,8 +9,8 @@ You have 500 papers in "LLM Search". You need to move the relevant ones to "Incl
 Ensure you have your target folders ready.
 
 ```bash
-zotero-cli collection create "Included"
-zotero-cli collection create "Excluded"
+zotero-cli collection create --name "Included"
+zotero-cli collection create --name "Excluded"
 ```
 
 ## Step 2: The TUI Sprint

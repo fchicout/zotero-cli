@@ -9,7 +9,7 @@ Your screening is done. You are ready to write your methodology section.
 Generate the numbers for your PRISMA flow diagram.
 
 ```bash
-zotero-cli report prisma --collection "Included" --output-chart "prisma_flow.png"
+zotero-cli slr report prisma --collection "Included" --output-chart "prisma_flow.png"
 ```
 This will show you exactly how many items were screened and the breakdown of exclusion reasons.
 
@@ -17,14 +17,14 @@ This will show you exactly how many items were screened and the breakdown of exc
 Create a JSON snapshot of your "Included" collection. This file can be attached to your paper's supplemental material as a permanent record.
 
 ```bash
-zotero-cli report snapshot --collection "Included" --output "audit_v1.json"
+zotero-cli slr report snapshot --collection "Included" --output "audit_v1.json"
 ```
 
 ## Step 3: Synthesis Graph
 Visualize how the included papers cite each other (if metadata is available).
 
 ```bash
-zotero-cli slr graph --collections "Included" > network.dot
+zotero-cli slr report graph --collections "Included" > network.dot
 # Use Graphviz or Mermaid to render the .dot file
 ```
 

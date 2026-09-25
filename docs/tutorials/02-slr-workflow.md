@@ -17,15 +17,14 @@ Let's do it the `zotero-cli` way.
 First, let's see your collections to find the right code (Key).
 
 ```bash
-zotero-cli collections
+zotero-cli collection list --table
 ```
 
-**Output:**
+**Output (abridged):**
 ```text
-Key      Name              Items
--------  ----------------  -----
-ABC1234  MyThesis_Search   500
-XYZ9876  Old_Project       23
+Name              Key       Items
+MyThesis_Search   ABC1234   500
+Old_Project       XYZ9876   23
 ```
 *Okay, our target key is `ABC1234`.*
 
@@ -35,7 +34,7 @@ XYZ9876  Old_Project       23
 We will launch the interactive screen using the **TUI (Text User Interface)**.
 
 ```bash
-zotero-cli screen ABC1234
+zotero-cli slr screen --collection ABC1234
 ```
 
 The screen will change. You will see:
@@ -78,7 +77,7 @@ You finished screening 50 papers. Your advisor asks: "What's the status?"
 
 Run this:
 ```bash
-zotero-cli report --collection ABC1234
+zotero-cli slr report prisma --collection ABC1234
 ```
 
 **Output:**

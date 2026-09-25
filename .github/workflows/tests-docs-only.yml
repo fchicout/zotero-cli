@@ -13,9 +13,9 @@ name: Run Unit Tests
 # posted by exactly one of them - or, for a PR touching both code and docs,
 # by both (a documented, harmless outcome of this pattern: multiple check
 # runs sharing a name is fine, branch protection just needs one to
-# succeed). This job does nothing but succeed immediately; it exists only
-# to satisfy the required-check name for docs-only changes that
-# tests.yml's real pipeline has no reason to run against.
+# succeed). For a docs-only change it runs the docs tests, which check that
+# every documented example parses with the real CLI and that the docs match
+# the command tree (Issue #386) - they need no network, config or dev extras.
 on:
   push:
     branches: [main]
@@ -27,9 +27,25 @@ on:
       - '**.md'
       - 'docs/**'
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Docs-only change - skipping full test suite
-        run: echo "No source files changed - tests.yml's real pipeline did not need to run."
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: '3.14'
+          enable-cache: true
+
+      - name: Install runtime dependencies
+        run: uv sync --locked
+
+      - name: Run docs tests
+        run: uv run --no-sync --with pytest pytest tests/docs -q

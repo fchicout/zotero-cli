@@ -1,6 +1,6 @@
 # Specification: SDB-Extraction v1.0
 
-**Status:** DRAFT
+**Status:** DRAFT - partly implemented. `slr extract --init`/`--validate` and `report synthesis` described below were never built; see `zotero-cli slr extract --help` for the command as it exists (Issue #391).
 **Related Issues:** #41, #42, #43, #44
 **Author:** Pythias (The Council)
 
