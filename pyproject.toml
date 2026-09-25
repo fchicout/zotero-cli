@@ -131,7 +131,9 @@ module = "tests.*"
 disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# A bare `pytest` never collects tests/e2e, which writes to a real Zotero
+# library; run it explicitly, opted in (see tests/e2e/conftest.py, Issue #400).
+testpaths = ["tests/unit", "tests/docs"]
 filterwarnings = [
     "ignore::FutureWarning",
 ]
