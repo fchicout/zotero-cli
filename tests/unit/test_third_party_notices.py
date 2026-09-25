@@ -92,6 +92,17 @@ def test_distro_shared_library_is_noticed_without_the_static_set(tmp_path):
     assert "libedit" not in text
 
 
+def test_windows_runtime_dlls_go_to_the_microsoft_runtime_notice(tmp_path):
+    dlls = ["vcruntime140.dll", "ucrtbase.dll", "api-ms-win-core-file-l1-1-0.dll"]
+    build = _write_build(
+        tmp_path, binaries=[(d, rf"C:\tools\bin\{d}") for d in dlls], modules=[]
+    )
+    out = tmp_path / "N.txt"
+
+    assert gen.main(["--build-dir", str(build), "--output", str(out)]) == 0
+    assert "Universal C Runtime (3 files" in out.read_text()
+
+
 def test_every_static_licence_file_exists_and_is_not_empty():
     files = {entry[2] for entry in gen.PYTHON_RUNTIME_LIBRARIES}
     files |= {"gcc-runtime-library-exception-3.1.txt", "msvc-runtime.txt"}

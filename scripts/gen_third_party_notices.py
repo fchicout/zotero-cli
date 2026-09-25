@@ -115,7 +115,9 @@ def attribute(entries: Iterable[Tuple[str, str]], build_dir: Path) -> Attributio
             result.distributions.add(owners[path])
         elif base.startswith(("libgcc_s", "libstdc++")):
             result.gcc_runtime.add(base)
-        elif base.startswith(("vcruntime", "msvcp", "concrt")):
+        elif base.startswith(("vcruntime", "msvcp", "concrt", "ucrtbase", "api-ms-win-")):
+            # The Visual C++ runtime and the Universal CRT (whose api-ms-win-*
+            # forwarders PyInstaller may pick up from any directory on PATH)
             result.msvc_runtime.add(base)
         elif path.startswith(runtime_root):
             result.uses_python_runtime = True
@@ -250,7 +252,9 @@ def render(attribution: Attribution) -> Tuple[str, List[str]]:
     if attribution.msvc_runtime:
         _section(
             out,
-            f"Microsoft Visual C++ runtime ({', '.join(sorted(attribution.msvc_runtime))})",
+            "Microsoft Visual C++ runtime and Universal C Runtime "
+            f"({len(attribution.msvc_runtime)} files: "
+            f"{', '.join(sorted(attribution.msvc_runtime))})",
             (STATIC_LICENSES / "msvc-runtime.txt").read_text(encoding="utf-8"),
         )
 
