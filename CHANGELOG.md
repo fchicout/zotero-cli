@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 🛡️ Quality & Infrastructure
+- **The test suite no longer writes into your real config directory (Issue #365):** the unit and docs suites now run with `HOME`, `XDG_CONFIG_HOME`, `APPDATA` and related variables pointed at a temporary directory, set before any zotero-cli module is imported. Before, `test_rag_model_set` rewrote the developer's real `~/.config/zotero-cli/config.toml`, dropping its comments, and other tests created `jobs.sqlite` and vector stores there. The pre-push hook runs the unit suite on every `git push`, so this happened silently. New tests fail if the isolation is removed. The e2e suite still uses the real environment on purpose.
+
 ### ✨ Features & Improvements
 - **`item hydrate` works for any item with an identifier (Issue #344):**
   - **What it covers:** before, it only touched arXiv items and filled two fields (DOI, journal). Now it looks up items by DOI, arXiv ID or a `PMID:` line in `extra` across all metadata providers. It fills the empty fields: abstract, date, venue (whichever of `publicationTitle`/`proceedingsTitle`/`bookTitle` the item type has), URL (a `doi.org` link when the DOI is known), creators and DOI.
