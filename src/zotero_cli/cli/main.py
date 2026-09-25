@@ -36,12 +36,9 @@ from zotero_cli.core.exceptions import (  # noqa: E402
     ConfigurationError,
 )
 from zotero_cli.core.logging_config import setup_logging  # noqa: E402
+from zotero_cli.core.runtime import set_offline_mode  # noqa: E402
 
 logger = logging.getLogger(__name__)
-
-# --- Global State ---
-FORCE_USER = False
-OFFLINE_MODE = False
 
 # --- Main Router ---
 
@@ -79,9 +76,7 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    global FORCE_USER, OFFLINE_MODE
-    FORCE_USER = args.user
-    OFFLINE_MODE = args.offline
+    set_offline_mode(args.offline)
 
     # Issue #292: without this, logger.info/.debug calls vanish entirely
     # (default root level is WARNING with no handler) and logger.warning/

@@ -393,8 +393,8 @@ def test_gateway_factory_offline(mock_db, monkeypatch):
     gateway = GatewayFactory.get_zotero_gateway(config=config, offline=True)
     assert isinstance(gateway, SqliteZoteroGateway)
 
-    # Test global OFFLINE_MODE
-    monkeypatch.setattr("zotero_cli.cli.main.OFFLINE_MODE", True, raising=False)
+    # Test the process-wide --offline flag (Issue #363)
+    monkeypatch.setattr("zotero_cli.core.runtime._offline", True)
     gateway = GatewayFactory.get_zotero_gateway(config=config)
     assert isinstance(gateway, SqliteZoteroGateway)
 
