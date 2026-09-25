@@ -12,7 +12,6 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 
-from zotero_cli.core.services.identity_manager import IdentityManager
 from zotero_cli.core.services.network_gateway import NetworkGateway
 from zotero_cli.core.utils.url_safety import UnsafeURLError
 
@@ -38,7 +37,7 @@ def make_stream_response(status_code, is_redirect=False, headers=None, body=b"")
 
 @pytest.fixture
 async def gateway():
-    gw = NetworkGateway(IdentityManager())
+    gw = NetworkGateway()
     yield gw
     await gw.close()
 

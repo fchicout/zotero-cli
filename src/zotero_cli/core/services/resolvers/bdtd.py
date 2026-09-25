@@ -44,12 +44,8 @@ class BDTDResolver(PDFResolver):
 
         try:
             logger.info(f"BDTDResolver: Attempting to resolve PDF from landing page: {repo_url}")
-            headers = {
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0"
-            }
-
             # Fetch the landing page
-            response = await self.gateway.get(repo_url, headers=headers)
+            response = await self.gateway.get(repo_url)
             if response.status_code != 200:
                 logger.warning(
                     f"BDTDResolver: Failed to fetch {repo_url}, status: {response.status_code}"
@@ -94,7 +90,7 @@ class BDTDResolver(PDFResolver):
                         h = await self.gateway._execute_request(
                             "HEAD",
                             u_link,
-                            headers={**headers, "Referer": u_link, "Accept": "*/*;q=0.8"},
+                            headers={"Referer": u_link, "Accept": "*/*;q=0.8"},
                             timeout=5,
                         )
                         ct = h.headers.get("content-type", "").lower()
