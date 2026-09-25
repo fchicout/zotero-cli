@@ -34,12 +34,9 @@ class RepositoryFactory:
             config = main_get_config()
 
         if offline is None:
-            try:
-                from zotero_cli.cli.main import OFFLINE_MODE
+            from zotero_cli.core.runtime import is_offline_mode
 
-                offline = OFFLINE_MODE
-            except ImportError:
-                offline = False
+            offline = is_offline_mode()
 
         if offline:
             if not config.database_path:
