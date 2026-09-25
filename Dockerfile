@@ -3,6 +3,10 @@
 # the image doesn't ship torch/numpy/etc.), then copies just the binary
 # into a slim base with no Python interpreter needed at runtime.
 #
+# --exclude-module readline (Issue #405): Debian's Python links the readline
+# module against GNU readline (GPL-3.0), which must not be bundled into
+# this MIT binary; the CLI doesn't need interactive line editing.
+#
 # Issue #338: the base image is pinned by digest in both stages (Dependabot
 # keeps it current), dependencies come from uv.lock, and the container runs as an
 # unprivileged user.
@@ -33,8 +37,11 @@ RUN .venv/bin/pyinstaller --onefile --name zotero-cli \
     --exclude-module numpy \
     --exclude-module pandas \
     --exclude-module matplotlib \
+    --exclude-module readline \
     --clean src/zotero_cli/cli/main.py \
-    && ./dist/zotero-cli system selftest
+    && ./dist/zotero-cli system selftest \
+    && .venv/bin/python scripts/gen_third_party_notices.py --build-dir build/zotero-cli \
+        --output dist/THIRD_PARTY_LICENSES.txt
 
 FROM python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2 AS runtime
 
@@ -51,6 +58,10 @@ RUN apt-get update \
     && install -d -o zotero -g zotero -m 0700 /config/zotero-cli
 
 COPY --from=builder /build/dist/zotero-cli /usr/local/bin/zotero-cli
+# Issue #405: the licence and the notices for everything the binary bundles.
+COPY --from=builder /build/LICENSE /build/dist/THIRD_PARTY_LICENSES.txt /usr/share/licenses/zotero-cli/
+LABEL org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.source="https://github.com/fchicout/zotero-cli"
 
 # Config, logs and job state live in /config/zotero-cli, outside any home
 # directory, so a bind mount there works for whichever user runs the

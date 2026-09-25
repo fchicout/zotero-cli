@@ -1,0 +1,5 @@
+The Microsoft Visual C++ runtime libraries are Microsoft's "Distributable
+Code", redistributed with this program as permitted by the Microsoft Visual
+Studio licence terms. They remain Microsoft's property and are provided
+without any warranty from the zotero-cli authors.
+See https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files
