@@ -18,7 +18,7 @@ It talks to the Zotero Web API (personal and group libraries). It can also read 
 - **Scriptable:** items, collections, tags, notes and attachments are all reachable from a terminal, with no GUI steps in between.
 - **Machine-readable output:** `item list` prints `json`, `csv` or `markdown`, and `--fields` picks the columns. Data goes to stdout and warnings to stderr, so you can pipe it into `jq`, a spreadsheet or a prompt.
 - **Suited to LLM agents:** an agent can run `--help` on any command to learn how to use it, since each one includes worked examples. `item export --format md` converts an item's PDF into Markdown an LLM can read.
-- **Safe by default:** bulk or destructive commands (`tag purge`, `item merge`, `item pdf strip`, `slr dedupe`, ...) only show a preview until you add `--execute`. `item hydrate` and `system restore` have `--dry-run`, and `collection purge` asks for confirmation. `--offline` reads the local database and is read-only apart from trash/restore.
+- **Safe by default:** bulk or destructive commands (`tag purge`, `item merge`, `item pdf strip`, `slr dedupe`, ...) only show a preview until you add `--execute`. `item hydrate` previews until you add `--execute`, `system restore` has `--dry-run`, and `collection purge` asks for confirmation. `--offline` reads the local database and is read-only apart from trash/restore.
 - **Runs anywhere:** a single binary for Linux and Windows, no Python needed. Also available as a container or a Python package.
 
 ## What it can do
@@ -32,7 +32,7 @@ It talks to the Zotero Web API (personal and group libraries). It can also read 
 
 ### Import and metadata
 - **Import** from arXiv, DOI, BibTeX/RIS/CSV files, the Brazilian BDTD thesis repository, or manual entry.
-- **Metadata lookup** from Semantic Scholar, CrossRef, OpenAlex, PubMed, Unpaywall and more when importing by DOI, and `item hydrate` to add the DOI and journal to arXiv preprints once they're published.
+- **Metadata lookup** from Semantic Scholar, CrossRef, OpenAlex, PubMed, Unpaywall and more when importing by DOI, and `item hydrate` to fill in empty fields (abstract, venue, date, authors, DOI) for items you already have, including published versions of arXiv preprints.
 - **Library health reports:** duplicates, missing PDFs, DOIs or abstracts, disk usage, and checking the citations in a LaTeX manuscript against the library.
 
 ### Operations

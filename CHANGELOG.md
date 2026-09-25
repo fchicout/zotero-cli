@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### ✨ Features & Improvements
+- **`item hydrate` works for any item with an identifier (Issue #344):**
+  - **What it covers:** before, it only touched arXiv items and filled two fields (DOI, journal). Now it looks up items by DOI, arXiv ID or a `PMID:` line in `extra` across all metadata providers. It fills the empty fields: abstract, date, venue (whichever of `publicationTitle`/`proceedingsTitle`/`bookTitle` the item type has), URL (a `doi.org` link when the DOI is known), creators and DOI.
+  - **Preprints:** arXiv preprints still get the DOI and journal of their published version.
+  - **`--by-title`:** handles items with no identifier. It accepts only an exact normalized-title match that also agrees on year and first author.
+  - **`--fields` and `--overwrite`:** `--fields` restricts what's written. `--overwrite` replaces existing values, but never the title unless you name it in `--fields`, and never a full date with just its year.
+  - **Scripting:** `-f json` prints the per-item, per-field report for scripts and agents.
+  - **`--all`:** now scans the library client-side instead of a `q="arxiv.org"` search, and drops the flat one-second pause per item.
+  - **Data integrity:** only provider records carrying the exact DOI are merged into items, a strict mode added to the metadata aggregator, so a provider's free-text best guess can't contribute.
+  - **Behaviour change:** `item hydrate` now **previews by default**; pass `--execute` to write. `--dry-run` is still accepted and means the same as the default. `--execute` is refused with `--offline`.
+- **DBLP:** an HTML page in place of JSON (DBLP sometimes answers that way when throttling) is now a quiet "no result" instead of a traceback on screen.
+
 ### 🛡️ Quality & Infrastructure
 - **Dependency updates (from Dependabot #357, minus bibtexparser 2.x):** requests 2.34, fastapi 0.141, uvicorn 0.53, onnxruntime 1.30, markitdown 0.1.7, filelock 4, ruff 0.16 and others. In the `rag` extra: openai 3, sentence-transformers 6, torch 2.14, accelerate 1.15. Checked beyond the test suite: openai 3 keeps the `embeddings`/`chat.completions` APIs we call, and the default embedding model loads and embeds with sentence-transformers 6. `bibtexparser` stays below 2, whose API rewrite needs a migration (#360).
 - **Dependabot PRs can pass CI:** GitHub doesn't give Dependabot PRs the repository's Actions secrets, so SonarQube steps are now skipped (with a notice) when the Sonar secrets aren't available instead of failing the `test` job. Grouped Dependabot PRs now carry only minor and patch updates; major versions arrive as separate PRs, and `bibtexparser` majors are ignored until #360.

@@ -366,32 +366,68 @@ Cognitive Safeguards
         # Hydrate
         hydrate_p = sub.add_parser(
             "hydrate",
-            help="Enrich metadata from external sources (e.g. ArXiv -> DOI)",
-            description="Automatically enriches the metadata of items by retrieving missing fields (like DOIs, abstracts, and publication dates) from online sources.",
+            help="Fill in missing metadata from external sources (DOI, arXiv, PubMed, ...)",
+            description="Fills in missing metadata (abstract, date, venue, URL, creators, DOI) for items that have a DOI, an arXiv ID or a PMID, looking them up across the configured metadata providers (Semantic Scholar, CrossRef, OpenAlex, PubMed, ...). Previews by default; pass --execute to write.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
-Scenario: Enriching a collection after an ArXiv import
-Problem: I've imported 50 items from ArXiv, but many of them are missing their formal DOI identifiers and abstracts.
-Action:  zotero-cli item hydrate --collection "ARXIV_FOLDER" --dry-run
-Result:  The CLI shows a summary of which items can be updated with verified DOIs and dates from CrossRef.
+Scenario: Completing records imported from a BibTeX/CSV export
+Problem: A collection imported from a reference export has DOIs but no abstracts or venues.
+Action:  zotero-cli item hydrate --collection "Imported" && zotero-cli item hydrate --collection "Imported" --execute
+Result:  The first run previews, per item and field, what would be filled in; the second writes it. Fields that already have a value are left alone.
+
+Scenario: Catching up arXiv preprints that have since been published
+Problem: Items imported from arXiv have no DOI or journal yet.
+Action:  zotero-cli item hydrate --collection "ARXIV_FOLDER" --execute
+Result:  Preprints whose published version arXiv knows get its DOI and journal, then any other empty fields from the providers.
+
+Scenario: Letting a script or agent review changes first
+Problem: I want machine-readable proposed changes before anything is written.
+Action:  zotero-cli item hydrate --all --format json > proposals.json
+Result:  One JSON object per item: status, identifier used, and every proposed change with its old and new value.
 
 Cognitive Safeguards
 --------------------
-• Common Failure Modes: Attempting hydration for items that have no existing metadata (like unfiled PDF attachments). Hydration requires a baseline Title or Identifier to pivot.
-• Safety Tips: Always use --dry-run when running on an entire collection to ensure updates are accurate.
+• Nothing is written without --execute. Only empty fields are filled unless you pass --overwrite, and the title is never changed unless you name it in --fields.
+• Items with no DOI, arXiv ID or PMID are skipped; --by-title tries an exact title match (also checking year and first author) and skips anything less certain.
+• --offline is read-only: previews work, --execute doesn't.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_hydrate.md
 """,
         )
-        hydrate_p.add_argument("--key", help=ITEM_KEY_HELP)
-        hydrate_p.add_argument("--collection", help="Hydrate all items in a collection")
+        hydrate_scope = hydrate_p.add_mutually_exclusive_group()
+        hydrate_scope.add_argument("--key", help=ITEM_KEY_HELP)
+        hydrate_scope.add_argument("--collection", help="Hydrate all items in a collection")
+        hydrate_scope.add_argument("--all", action="store_true", help="Hydrate the whole library")
         hydrate_p.add_argument(
-            "--all", action="store_true", help="Scan entire library for hydration"
+            "--fields",
+            help="Comma-separated fields to fill: doi, abstract, date, venue, url, creators, title "
+            "(default: all but title)",
         )
         hydrate_p.add_argument(
-            "--dry-run", action="store_true", help="Show changes without applying"
+            "--overwrite",
+            action="store_true",
+            help="Also replace fields that already have a value (title only if named in --fields)",
+        )
+        hydrate_p.add_argument(
+            "--by-title",
+            action="store_true",
+            help="For items without an identifier, try an exact title match",
+        )
+        hydrate_write = hydrate_p.add_mutually_exclusive_group()
+        hydrate_write.add_argument(
+            "--execute", action="store_true", help="Write the changes (default: preview only)"
+        )
+        hydrate_write.add_argument(
+            "--dry-run", action="store_true", help="Preview only (the default; kept for scripts)"
+        )
+        hydrate_p.add_argument(
+            "-f",
+            "--format",
+            choices=["table", "json"],
+            default="table",
+            help="Output format (default: table)",
         )
 
         # Purge
@@ -940,48 +976,89 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
     def _handle_hydrate(self, args: argparse.Namespace) -> None:
-        from rich.table import Table
+        import json
+
+        from zotero_cli.core.services.enrichment_service import parse_fields
+
+        if not (args.key or args.collection or args.all):
+            print("Error: Specify --key, --collection, or --all.", file=sys.stderr)
+            sys.exit(2)
+        try:
+            fields = parse_fields(getattr(args, "fields", None))
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(2)
+        execute = bool(getattr(args, "execute", False))
+        if execute and getattr(args, "offline", False):
+            print("Error: --offline is read-only; drop --execute to preview.", file=sys.stderr)
+            sys.exit(2)
 
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_enrichment_service(force_user=force_user)
+        options = {
+            "fields": fields,
+            "overwrite": bool(getattr(args, "overwrite", False)),
+            "by_title": bool(getattr(args, "by_title", False)),
+            "execute": execute,
+        }
+        as_json = getattr(args, "format", "table") == "json"
+        progress = Console(stderr=True)
 
-        results = []
         if args.key:
-            res = service.hydrate_item(args.key, dry_run=args.dry_run)
-            if res:
-                results.append(res)
+            single = service.hydrate_item(args.key, **options)
+            if single is None:
+                print(f"Error: Item '{args.key}' not found.", file=sys.stderr)
+                sys.exit(1)
+            results = [single]
         elif args.collection:
-            print(f"Hydrating collection '{args.collection}'...")
-            results = service.hydrate_collection(args.collection, dry_run=args.dry_run)
-        elif args.all:
-            print("Hydrating entire library (ArXiv items)...")
-            results = service.hydrate_all(dry_run=args.dry_run)
+            if not as_json:
+                progress.print(f"Hydrating collection '{safe_markup(args.collection)}'...")
+            results = service.hydrate_collection(args.collection, **options)
         else:
-            print("Error: Specify an item Key, --collection, or --all.")
+            if not as_json:
+                progress.print("Hydrating the whole library...")
+            results = service.hydrate_all(**options)
+
+        if as_json:
+            print(json.dumps([r.to_dict() for r in results], indent=2, ensure_ascii=False))
             return
 
-        if not results:
-            print("No items needed hydration.")
-            return
+        with_changes = [r for r in results if r.changes]
+        if with_changes:
+            title = "Hydration Report" + ("" if execute else " (PREVIEW)")
+            table = Table(title=title)
+            table.add_column("Key", style="cyan")
+            table.add_column("Title", overflow="fold")
+            table.add_column("Status")
+            table.add_column("Changes", overflow="fold")
+            for r in with_changes:
+                lines = []
+                for name, change in r.changes.items():
+                    new = change["new"]
+                    shown = f"{len(new)} author(s)" if name == "creators" else str(new)
+                    if len(shown) > 80:
+                        shown = shown[:77] + "..."
+                    old = change["old"]
+                    prefix = "" if old in (None, "", []) else "replace "
+                    lines.append(f"{prefix}{name}: {shown}")
+                table.add_row(
+                    r.key,
+                    safe_markup(r.title),
+                    r.status,
+                    safe_markup("\n".join(lines)),
+                )
+            console.print(table)
 
-        table = Table(title="Hydration Report" + (" (DRY RUN)" if args.dry_run else ""))
-        table.add_column("Key")
-        table.add_column("Title", overflow="fold")
-        table.add_column("Old DOI")
-        table.add_column("New DOI")
-        table.add_column("New Journal")
-
+        counts: dict = {}
         for r in results:
-            table.add_row(
-                r["key"],
-                safe_markup(r["title"]),
-                safe_markup(r["old_doi"]),
-                safe_markup(r["new_doi"]),
-                safe_markup(r["new_journal"]),
-            )
-
-        console.print(table)
-        print(f"\nTotal items hydrated: {len(results)}")
+            counts[r.status] = counts.get(r.status, 0) + 1
+        summary = ", ".join(f"{n} {status}" for status, n in sorted(counts.items()))
+        console.print(f"\n{len(results)} item(s): {summary or 'nothing to do'}")
+        failed = [r for r in results if r.status == "failed"]
+        for r in failed:
+            console.print(f"[red]{r.key}[/red]: {safe_markup(r.message or 'failed')}")
+        if not execute and with_changes:
+            console.print("[yellow]Preview only - re-run with --execute to write these changes.[/yellow]")
 
     def _handle_pdf_ops(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)

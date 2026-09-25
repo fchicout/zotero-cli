@@ -127,3 +127,31 @@ def test_candidate_with_a_different_doi_is_not_merged():
     assert merged is not None
     assert merged.title == "Guidelines for Human-AI Interaction"
     assert "Digitoxin" not in (merged.abstract or "")
+
+
+def test_require_doi_match_drops_candidates_without_the_queried_doi():
+    """Issue #344: providers that answer a DOI query with a free-text best
+    match (and no DOI) must not contribute to data written into items."""
+    from zotero_cli.core.models import ResearchPaper
+    from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+
+    right = ResearchPaper(title="Deep learning", abstract="", doi="10.1038/nature14539")
+    guess = ResearchPaper(
+        title="Deep learning in something else entirely, a longer title",
+        abstract="Unrelated and longer abstract.",
+        doi=None,
+        publication="Some Workshop",
+    )
+    providers: list = []
+    for paper in (right, guess):
+        provider = MagicMock()
+        provider.get_paper_metadata.return_value = paper
+        providers.append(provider)
+    aggregator = MetadataAggregatorService(providers)
+
+    strict = aggregator.get_enriched_metadata("10.1038/nature14539", require_doi_match=True)
+    assert strict is not None
+    assert strict.title == "Deep learning" and strict.publication != "Some Workshop"
+
+    lenient = aggregator.get_enriched_metadata("10.1038/nature14539")
+    assert lenient is not None and lenient.publication == "Some Workshop"
