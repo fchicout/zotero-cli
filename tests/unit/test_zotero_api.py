@@ -104,7 +104,7 @@ def test_get_user_groups(client):
     assert groups[0]["data"]["name"] == "G1"
     # HttpClient handles prefix, but here we override
     client.http.session.get.assert_called_with(
-        "https://api.zotero.org/users/123/groups", params=None
+        "https://api.zotero.org/users/123/groups", params={"limit": 100, "start": 0}
     )
 
 
