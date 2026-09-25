@@ -6,7 +6,7 @@ import shutil
 import sqlite3
 import sys
 import tempfile
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from zotero_cli.core.interfaces import JobRepository, ZoteroGateway
 from zotero_cli.core.models import Job, ResearchPaper, ZoteroQuery
@@ -289,8 +289,92 @@ class SqliteZoteroGateway(ZoteroGateway):
         finally:
             conn.close()
 
+    # Quick-search subqueries; each takes one LIKE pattern per placeholder.
+    _MATCH_FIELDS_SQL = """i.itemID IN (
+            SELECT sd.itemID FROM itemData sd
+            JOIN fields sf ON sd.fieldID = sf.fieldID
+            JOIN itemDataValues sv ON sd.valueID = sv.valueID
+            WHERE {field_filter} sv.value LIKE ? ESCAPE '\\')"""
+    _MATCH_CREATORS_SQL = """i.itemID IN (
+            SELECT sic.itemID FROM itemCreators sic
+            JOIN creators sc ON sic.creatorID = sc.creatorID
+            WHERE sc.lastName LIKE ? ESCAPE '\\' OR sc.firstName LIKE ? ESCAPE '\\')"""
+    _MATCH_NOTE_TITLE_SQL = (
+        "i.itemID IN (SELECT itemID FROM itemNotes WHERE title LIKE ? ESCAPE '\\')"
+    )
+    _MATCH_NOTE_TEXT_SQL = (
+        "i.itemID IN (SELECT itemID FROM itemNotes WHERE note LIKE ? ESCAPE '\\')"
+    )
+
+    @staticmethod
+    def _like_pattern(word: str) -> str:
+        escaped = word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        return f"%{escaped}%"
+
+    @staticmethod
+    def _split_alternatives(value: str) -> Tuple[bool, List[str]]:
+        """Web API filter syntax: `a || b` matches either, `-a` excludes."""
+        negate = value.startswith("-")
+        if negate:
+            value = value[1:]
+        return negate, [v.strip() for v in value.split("||") if v.strip()]
+
+    def _search_filter(self, query: ZoteroQuery) -> Tuple[str, List[Any]]:
+        """
+        Translates a ZoteroQuery into SQL with the Web API's semantics
+        (Issue #366: the query used to be ignored, so every offline search
+        returned the whole library, notes and attachments included):
+
+        - `q`: every whitespace-separated word must match (case-insensitive
+          substring). `titleCreatorYear` looks at the title, date, creator
+          names and note titles; `everything` at any field and note text.
+        - `item_type` and `tag`: exact values, `a || b` and `-a`.
+        - `since`: items whose version is newer than the given one.
+        """
+        clauses: List[str] = []
+        params: List[Any] = []
+
+        if query.q:
+            everything = query.qmode == "everything"
+            field_filter = "" if everything else "sf.fieldName IN ('title', 'date') AND"
+            fields_sql = self._MATCH_FIELDS_SQL.format(field_filter=field_filter)
+            note_sql = self._MATCH_NOTE_TEXT_SQL if everything else self._MATCH_NOTE_TITLE_SQL
+            for word in query.q.split():
+                pattern = self._like_pattern(word)
+                clauses.append(
+                    f"({fields_sql} OR {self._MATCH_CREATORS_SQL} OR {note_sql})"
+                )
+                params.extend([pattern, pattern, pattern, pattern])
+
+        if query.item_type:
+            negate, types = self._split_alternatives(query.item_type)
+            if types:
+                placeholders = ",".join("?" for _ in types)
+                clauses.append(f"it.typeName {'NOT IN' if negate else 'IN'} ({placeholders})")
+                params.extend(types)
+
+        if query.tag:
+            negate, tags = self._split_alternatives(query.tag)
+            if tags:
+                placeholders = ",".join("?" for _ in tags)
+                # Only fixed keywords and "?" placeholders are interpolated;
+                # the tag names are bound as parameters.
+                clauses.append(
+                    f"i.itemID {'NOT IN' if negate else 'IN'} ("
+                    "SELECT stg.itemID FROM itemTags stg JOIN tags st ON stg.tagID = st.tagID "
+                    f"WHERE st.name IN ({placeholders}))"  # nosec B608
+                )
+                params.extend(tags)
+
+        if query.since:
+            clauses.append("i.version > ?")
+            params.append(query.since)
+
+        return "".join(f" AND {c}" for c in clauses), params
+
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
-        return self._fetch_items_with_filter()
+        filter_sql, params = self._search_filter(query)
+        return self._fetch_items_with_filter(filter_sql, tuple(params))
 
     def get_items_in_collection(
         self, collection_id: str, top_only: bool = False
