@@ -252,12 +252,9 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider)
             return repo_url
 
         try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0"
-            }
             # repo_url comes from harvested repository metadata (untrusted):
             # fetch it through the SSRF guard, with a capped body.
-            response = safe_get_text(repo_url, timeout=10, headers=headers)
+            response = safe_get_text(repo_url, timeout=10)
             if response.status_code != 200:
                 return None
 
@@ -298,7 +295,7 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider)
                         h = safe_head(
                             u_link,
                             timeout=5,
-                            headers={**headers, "Referer": u_link, "Accept": "*/*;q=0.8"},
+                            headers={"Referer": u_link, "Accept": "*/*;q=0.8"},
                         )
                         ct = h.headers.get("content-type", "").lower()
                         if ct and "text" not in ct and "html" not in ct:

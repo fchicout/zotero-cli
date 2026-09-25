@@ -205,6 +205,9 @@ uv run pytest tests/unit
 
 `uv sync` creates `.venv/`, using the Python version pinned in `.python-version`, and installs the project in editable mode from `uv.lock`. Commit `uv.lock` alongside any dependency change so everyone, CI included, gets exactly the same versions. `pre-commit install` sets up the checks from `docs/PROCESS.md`: ruff, mypy and bandit run on every `git commit`, and `pytest tests/unit` runs on `git push`. See `.pre-commit-config.yaml`.
 
+## Data Sources
+Besides your Zotero library, zotero-cli queries public scholarly services (Crossref, Semantic Scholar, OpenAlex, Unpaywall, arXiv, PubMed and others) and identifies itself honestly when it does. [docs/DATA_SOURCES.md](https://github.com/fchicout/zotero-cli/blob/main/docs/DATA_SOURCES.md) lists them, links their terms, and explains attribution: if you publish results from `slr snowball`, credit Semantic Scholar. zotero-cli is an independent project, not affiliated with or endorsed by Zotero, the Corporation for Digital Scholarship, arXiv or any of these providers.
+
 ## Security
 To report a vulnerability, see [SECURITY.md](https://github.com/fchicout/zotero-cli/blob/main/SECURITY.md). Please don't use public issues for security problems.
 

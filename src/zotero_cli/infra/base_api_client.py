@@ -12,20 +12,13 @@ from tenacity import (
     wait_exponential,
 )
 
+from zotero_cli.core.utils.user_agent import user_agent
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
+__all__ = ["BaseAPIClient", "user_agent"]
 
-
-def user_agent(contact_email: Optional[str] = None) -> str:
-    """The User-Agent for outgoing API requests. "Polite pool" providers
-    (CrossRef, OpenAlex) ask for a contact address; it's the user's own
-    configured email (`unpaywall_email`), never a built-in one, so one
-    user's traffic is never attributed to someone else."""
-    from zotero_cli import __version__
-
-    agent = f"zotero-cli/{__version__} (+https://github.com/fchicout/zotero-cli"
-    return f"{agent}; mailto:{contact_email})" if contact_email else f"{agent})"
 
 class BaseAPIClient(ABC):
     """

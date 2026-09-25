@@ -11,7 +11,6 @@ from tenacity import (
 )
 
 from zotero_cli.core.exceptions import RetryableError
-from zotero_cli.core.services.identity_manager import IdentityManager
 from zotero_cli.core.utils.url_safety import (
     MAX_REDIRECTS,
     UnsafeURLError,
@@ -19,6 +18,7 @@ from zotero_cli.core.utils.url_safety import (
     read_capped_async,
     validate_public_url,
 )
+from zotero_cli.core.utils.user_agent import user_agent
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +38,15 @@ def _origin(url: str) -> tuple:
 
 class NetworkGateway:
     """
-    Gateway for external HTTP requests with resilience, identity rotation,
-    and rate limit handling.
+    Gateway for external HTTP requests with resilience and rate limit
+    handling. Every request identifies itself as zotero-cli (Issue #407):
+    it used to send rotating browser User-Agents and, on a 403, resend the
+    same request (API key included) under another identity - the kind of
+    circumvention provider terms (e.g. Semantic Scholar's) forbid.
     """
 
-    def __init__(self, identity_manager: IdentityManager):
-        self.identity_manager = identity_manager
+    def __init__(self, agent: Optional[str] = None):
+        self.user_agent = agent or user_agent()
         # follow_redirects=False deliberately: redirects are followed
         # manually in _fetch_validated, re-validating each hop against
         # validate_public_url (Issue #235) - trusting the client's
@@ -96,7 +99,7 @@ class NetworkGateway:
         self, url: str, headers: Optional[Dict[str, str]] = None, **kwargs: Any
     ) -> httpx.Response:
         """
-        Performs a GET request with automatic retries and identity management.
+        Performs a GET request with automatic retries on connection errors.
         """
         return await self._execute_request("GET", url, headers, **kwargs)
 
@@ -109,10 +112,9 @@ class NetworkGateway:
     async def _execute_request(
         self, method: str, url: str, headers: Optional[Dict[str, str]] = None, **kwargs: Any
     ) -> httpx.Response:
-        # Merge headers with current identity
-        request_headers = headers or {}
-        if "User-Agent" not in request_headers:
-            request_headers["User-Agent"] = self.identity_manager.get_current_identity()
+        request_headers = dict(headers or {})
+        if not any(k.lower() == "user-agent" for k in request_headers):
+            request_headers["User-Agent"] = self.user_agent
 
         try:
             response = await self._fetch_validated(method, url, request_headers, **kwargs)
@@ -133,44 +135,26 @@ class NetworkGateway:
                     f"Rate limited ({response.status_code})", retry_after=retry_after
                 )
 
-            # Policy: 403 -> Rotate Identity -> Retry Once
+            # Policy: 403 -> fail, never retry under another identity.
             if response.status_code == 403:
-                logger.warning(f"403 Forbidden at {url}. Rotating identity and retrying.")
-                new_ua = self.identity_manager.rotate_identity()
-                request_headers["User-Agent"] = new_ua
-
-                # Retry once
-                response = await self._fetch_validated(method, url, request_headers, **kwargs)
-
-                if response.status_code == 403:
-                    # Fail after retry. If an API key/auth header was sent
-                    # (anything beyond User-Agent), a 403 that survives
-                    # identity rotation almost certainly means that
-                    # credential itself is invalid/expired/rejected, not a
-                    # generic bot-block - identity rotation can't fix a bad
-                    # key, so retrying it is pointless (Issue #223, seen
-                    # concretely with a configured semantic_scholar_api_key
-                    # getting 403 while the identical unauthenticated
-                    # request succeeds). Surface that distinction clearly
-                    # instead of a generic HTTPStatusError.
-                    auth_headers = [
-                        h for h in request_headers if h.lower() != "user-agent"
-                    ]
-                    if auth_headers:
-                        msg = (
-                            f"403 Forbidden at {url} even after identity rotation, "
-                            f"with a configured credential present ({', '.join(auth_headers)}). "
-                            "This almost always means that API key is invalid, expired, "
-                            "or lacks access - not a rate limit or bot-block. Verify the "
-                            "key, or remove it to fall back to unauthenticated access."
-                        )
-                        logger.error(msg)
-                        raise ValueError(msg)
-                    logger.error(f"403 Forbidden persists after rotation at {url}.")
-                    response.raise_for_status()
-
-                if response.status_code in (429, 503):
-                    raise RetryableError(f"Rate limited after rotation ({response.status_code})")
+                # With an API key/auth header (anything beyond User-Agent),
+                # a 403 almost always means that credential is invalid,
+                # expired or lacks access (Issue #223, seen with a
+                # configured semantic_scholar_api_key getting 403 while the
+                # unauthenticated request succeeds). Say so clearly instead
+                # of a generic HTTPStatusError.
+                auth_headers = [h for h in request_headers if h.lower() != "user-agent"]
+                if auth_headers:
+                    msg = (
+                        f"403 Forbidden at {url} with a configured credential present "
+                        f"({', '.join(auth_headers)}). This almost always means that API "
+                        "key is invalid, expired, or lacks access - not a rate limit. "
+                        "Verify the key, or remove it to fall back to unauthenticated access."
+                    )
+                    logger.error(msg)
+                    raise ValueError(msg)
+                logger.error(f"403 Forbidden at {url}.")
+                response.raise_for_status()
 
             # Raise for other error codes (4xx, 5xx) that are not handled above
             response.raise_for_status()

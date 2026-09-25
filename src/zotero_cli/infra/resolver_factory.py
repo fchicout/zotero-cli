@@ -24,15 +24,16 @@ class ResolverFactory:
     """
 
     @staticmethod
-    def get_network_gateway() -> "NetworkGateway":
-        from zotero_cli.core.services.identity_manager import IdentityManager
+    def get_network_gateway(config: Optional[ZoteroConfig] = None) -> "NetworkGateway":
         from zotero_cli.core.services.network_gateway import NetworkGateway
+        from zotero_cli.core.utils.user_agent import user_agent
 
-        # IdentityManager is lightweight but holds state (index).
-        # ideally we singleton it, but for now we create fresh.
-        # Future optimization: cache it at class level if needed.
-        im = IdentityManager()
-        return NetworkGateway(im)
+        if not config:
+            from zotero_cli.core.config import get_config
+
+            config = get_config()
+        # The user's own contact address, for the polite pools (Issue #407).
+        return NetworkGateway(user_agent(config.unpaywall_email))
 
     @staticmethod
     def get_unpaywall_resolver(config: Optional[ZoteroConfig] = None) -> "PDFResolver":
@@ -43,7 +44,7 @@ class ResolverFactory:
 
         from zotero_cli.core.services.resolvers.unpaywall import UnpaywallResolver
 
-        gateway = ResolverFactory.get_network_gateway()
+        gateway = ResolverFactory.get_network_gateway(config)
         return UnpaywallResolver(gateway, email=config.unpaywall_email)
 
     @staticmethod
@@ -69,7 +70,7 @@ class ResolverFactory:
 
         from zotero_cli.core.services.resolvers.semantic_scholar import SemanticScholarResolver
 
-        gateway = ResolverFactory.get_network_gateway()
+        gateway = ResolverFactory.get_network_gateway(config)
         return SemanticScholarResolver(gateway, api_key=config.semantic_scholar_api_key)
 
     @staticmethod
@@ -170,7 +171,7 @@ class ResolverFactory:
 
             config = get_config()
 
-        gateway = ResolverFactory.get_network_gateway()
+        gateway = ResolverFactory.get_network_gateway(config)
         graph_service = ResolverFactory.get_snowball_graph_service(config, force_user)
 
         # Lazy import: ServiceFactory imports ResolverFactory (for PDF-finder

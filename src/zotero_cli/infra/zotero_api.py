@@ -355,16 +355,13 @@ class ZoteroAPIClient(ZoteroGateway):
                     import tempfile
                     from pathlib import Path
 
-                    headers = {
-                        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0"
-                    }
                     # paper.pdf_url originates from a third-party metadata
                     # provider (untrusted input) - fetched via safe_get,
                     # which validates the URL and every redirect hop
                     # against a public-address allowlist before fetching
                     # (Issue #235), instead of trusting requests' default
                     # redirect-following.
-                    resp = safe_get(paper.pdf_url, stream=True, timeout=30, headers=headers)
+                    resp = safe_get(paper.pdf_url, stream=True, timeout=30)
 
                     if resp.status_code == 200:
                         # Non-predictable temp path (Issue #240) - a

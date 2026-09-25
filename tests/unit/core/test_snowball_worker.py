@@ -199,7 +199,7 @@ async def test_discover_forward_falls_back_to_unauthenticated_on_rejected_key(
     mock_gateway, mock_graph_service, mock_job_queue
 ):
     """Issue #223: a configured API key that gets rejected (NetworkGateway
-    raises ValueError for a 403 that survives identity rotation with an
+    raises ValueError for a 403 with an
     auth header present) must not fail the whole job - retry once
     unauthenticated instead, since that's confirmed to work."""
     worker = SnowballDiscoveryWorker(

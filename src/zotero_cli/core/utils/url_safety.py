@@ -310,8 +310,20 @@ def pin_public_ips(client: httpx.AsyncClient) -> httpx.AsyncClient:
     return client
 
 
+def _with_user_agent(headers: Optional[dict]) -> dict:
+    """`headers` plus the honest zotero-cli User-Agent unless one is set
+    (Issue #407: otherwise requests/httpx announce themselves generically)."""
+    from zotero_cli.core.utils.user_agent import user_agent
+
+    merged = dict(headers or {})
+    if not any(k.lower() == "user-agent" for k in merged):
+        merged["User-Agent"] = user_agent()
+    return merged
+
+
 def _safe_request(method: str, url: str, **kwargs: Any) -> requests.Response:
     session = public_only_session(kwargs.pop("session", None))
+    kwargs["headers"] = _with_user_agent(kwargs.get("headers"))
     current_url = url
     for _ in range(MAX_REDIRECTS + 1):
         validate_public_url(current_url)
@@ -371,6 +383,7 @@ async def safe_async_get(
     with `pin_public_ips` so connections go only to validated addresses.
     """
     current_url = url
+    headers = _with_user_agent(headers)
     for _ in range(MAX_REDIRECTS + 1):
         validate_public_url(current_url)
         request = client.build_request("GET", current_url, headers=headers, **kwargs)

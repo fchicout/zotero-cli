@@ -4,7 +4,6 @@ import httpx
 import pytest
 
 from zotero_cli.core.exceptions import RetryableError
-from zotero_cli.core.services.identity_manager import IdentityManager
 from zotero_cli.core.services.network_gateway import NetworkGateway
 
 
@@ -29,20 +28,15 @@ def make_stream_response(status_code, is_redirect=False, headers=None, body=b"")
 
 
 @pytest.fixture
-def identity_manager():
-    return IdentityManager()
-
-
-@pytest.fixture
-async def gateway(identity_manager):
-    gw = NetworkGateway(identity_manager)
+async def gateway():
+    gw = NetworkGateway()
     yield gw
     await gw.close()
 
 
 @pytest.fixture(autouse=True)
 def no_ssrf_check():
-    """These tests exercise 403/429/redirect-rotation behavior, not the
+    """These tests exercise 403/429/redirect behavior, not the
     SSRF guard itself (Issue #235, covered by test_network_gateway_ssrf.py)
     - suppress it here so this file's mocked `example.com` URLs don't
     trigger a real DNS lookup."""
@@ -60,9 +54,22 @@ async def test_successful_request(gateway):
     response = await gateway.get("http://example.com")
     assert response.status_code == 200
 
-    # Verify User-Agent was injected
+    # Issue #407: the honest zotero-cli User-Agent, never a browser's
     call_args = gateway._client.build_request.call_args
-    assert "User-Agent" in call_args.kwargs["headers"]
+    assert call_args.kwargs["headers"]["User-Agent"].startswith("zotero-cli/")
+
+
+@pytest.mark.anyio
+async def test_user_agent_carries_the_configured_contact_address():
+    gw = NetworkGateway("zotero-cli/1.0 (+https://example.org; mailto:me@example.org)")
+    try:
+        mock_resp = make_stream_response(200)
+        gw._client.send = AsyncMock(return_value=mock_resp)  # type: ignore[method-assign]
+        await gw.get("http://example.com")
+        request = gw._client.send.call_args.args[0]
+        assert request.headers["User-Agent"].endswith("mailto:me@example.org)")
+    finally:
+        await gw.close()
 
 
 @pytest.mark.anyio
@@ -77,31 +84,23 @@ async def test_rate_limit_429(gateway):
 
 
 @pytest.mark.anyio
-async def test_soft_block_403_rotation(gateway):
-    # First call 403, Second call 200
-    mock_resp_403 = make_stream_response(403)
-    mock_resp_200 = make_stream_response(200)
+async def test_403_is_not_retried_under_another_identity(gateway):
+    """Issue #407: a 403 used to be resent (API key included) with a
+    different browser User-Agent - circumvention provider terms forbid."""
+    gateway._client.send = AsyncMock(
+        side_effect=[make_stream_response(403), make_stream_response(200)]
+    )
 
-    gateway._client.send = AsyncMock(side_effect=[mock_resp_403, mock_resp_200])
+    with pytest.raises(httpx.HTTPStatusError):
+        await gateway.get("http://example.com")
 
-    # Capture initial identity
-    initial_ua = gateway.identity_manager.get_current_identity()
-
-    response = await gateway.get("http://example.com")
-    assert response.status_code == 200
-
-    # Verify two calls were made
-    assert gateway._client.send.call_count == 2
-
-    # Verify identity was rotated
-    final_ua = gateway.identity_manager.get_current_identity()
-    assert initial_ua != final_ua
+    assert gateway._client.send.call_count == 1
 
 
 @pytest.mark.anyio
 async def test_persistent_403_with_no_auth_header_raises_generic_http_error(gateway):
     """A persistent 403 with only a User-Agent header (no API key) is a
-    generic bot-block, not a bad-credential signal - unchanged behavior."""
+    not a bad-credential signal, so it's a plain HTTP error."""
     mock_resp_403 = make_stream_response(403)
     gateway._client.send = AsyncMock(return_value=mock_resp_403)
 
@@ -113,13 +112,14 @@ async def test_persistent_403_with_no_auth_header_raises_generic_http_error(gate
 async def test_persistent_403_with_api_key_header_raises_clear_error(gateway):
     """Issue #223: a persistent 403 with an API key/auth header present
     (e.g. x-api-key for Semantic Scholar) means the credential itself is
-    likely invalid - identity rotation can't fix that, so this must fail
-    fast with an actionable message, not a generic HTTPStatusError."""
+    likely invalid, so this must fail fast with an actionable message, not
+    a generic HTTPStatusError, and without resending the key."""
     mock_resp_403 = make_stream_response(403)
     gateway._client.send = AsyncMock(return_value=mock_resp_403)
 
     with pytest.raises(ValueError, match="x-api-key"):
         await gateway.get("http://example.com", headers={"x-api-key": "bad-key"})
+    assert gateway._client.send.call_count == 1
 
 
 @pytest.mark.anyio
