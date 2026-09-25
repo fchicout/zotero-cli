@@ -439,12 +439,22 @@ def test_collection_clean(mock_clients, env_vars, capsys):
     with patch(
         "zotero_cli.infra.factory.GatewayFactory.get_collection_service"
     ) as mock_factory_get:
+        from zotero_cli.core.services.collection_service import CollectionRemovalPlan
+        from zotero_cli.core.zotero_item import ZoteroItem
+
         mock_service = mock_factory_get.return_value
-        mock_service.empty_collection.return_value = 5
-        test_args = ["zotero-cli", "collection", "clean", "--collection", "Trash"]
+        items = [
+            ZoteroItem(key=f"K{i}", version=1, item_type="journalArticle", collections=["TRASH"])
+            for i in range(5)
+        ]
+        mock_service.plan_clean.return_value = CollectionRemovalPlan("TRASH", items)
+        mock_service.remove_from_collection.return_value = (5, [])
+        test_args = ["zotero-cli", "collection", "clean", "--collection", "Trash", "--execute"]
         with patch.object(sys, "argv", test_args):
             main()
-        assert "Deleted 5 items" in capsys.readouterr().out
+        out = capsys.readouterr().out
+        assert "Removed 5 item(s)" in out
+        mock_service.delete_collection.assert_not_called()
 
 
 # --- 8. ITEM ---

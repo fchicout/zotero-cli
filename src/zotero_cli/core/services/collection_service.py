@@ -1,8 +1,39 @@
 import sys
-from typing import Any, Dict, List, Optional, Set, cast
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.zotero_item import ZoteroItem
+
+
+@dataclass
+class CollectionRemovalPlan:
+    """Items to take out of one collection (they stay in the library)."""
+
+    collection_key: str
+    items: List[ZoteroItem]
+
+    @property
+    def becomes_unfiled(self) -> List[ZoteroItem]:
+        """Items filed only in this collection: afterwards they are in no
+        collection (still in the library, under "Unfiled Items")."""
+        return [i for i in self.items if set(i.collections) <= {self.collection_key}]
+
+
+@dataclass
+class RecursiveDeletePlan:
+    root_key: str
+    collections: List[Tuple[str, int, str]]  # (key, version, name), deepest first
+    items_to_delete: List[ZoteroItem] = field(default_factory=list)
+    shared_items: List[ZoteroItem] = field(default_factory=list)
+
+
+@dataclass
+class RecursiveDeleteResult:
+    deleted_items: int = 0
+    deleted_collections: int = 0
+    failed_items: List[str] = field(default_factory=list)
+    failed_collections: List[str] = field(default_factory=list)
 
 
 class CollectionService:
@@ -184,151 +215,151 @@ class CollectionService:
             raise ValueError(f"Collection '{name}' not found and could not be created.")
         return col_id
 
-    def empty_collection(
-        self,
-        collection_name: str,
-        _verbose: bool = False,
-        parent_collection_name: Optional[str] = None,
-    ) -> int:
-        """
-        Deletes all items within a specific collection.
-        Returns the number of deleted items.
-        """
-        target_id: Optional[str] = None
+    # --- Resolution -------------------------------------------------------
 
-        if parent_collection_name:
-            # Resolve parent ID
-            parent_id = (
-                self.collection_repo.get_collection_id_by_name(parent_collection_name)
-                or parent_collection_name
+    def resolve_collection(self, name_or_key: str) -> Optional[str]:
+        """The key of the collection `name_or_key` names, or None. Raises
+        AmbiguousCollectionError when a name matches several collections
+        (Issue #381)."""
+        key = self.collection_repo.get_collection_id_by_name(name_or_key)
+        if not key and self.collection_repo.get_collection(name_or_key):
+            key = name_or_key
+        return key
+
+    # --- Removing items from a collection (never deleting them) -----------
+
+    def plan_clean(self, collection: str) -> Optional[CollectionRemovalPlan]:
+        """What `collection clean` would do: take every item out of the
+        collection. The items stay in the library (Issue #364)."""
+        key = self.resolve_collection(collection)
+        if not key:
+            return None
+        items = [
+            i for i in self.collection_repo.get_items_in_collection(key) if key in i.collections
+        ]
+        return CollectionRemovalPlan(key, items)
+
+    def plan_prune(self, included: str, excluded: str) -> Optional[CollectionRemovalPlan]:
+        """What `slr prune` would do: take out of `excluded` every item that is
+        also in `included`, the same item or a duplicate import matched by
+        DOI/arXiv ID. Nothing is deleted (Issue #395); merging duplicate
+        imports is `item merge` / `slr dedupe`'s job."""
+        included_key = self.resolve_collection(included)
+        excluded_key = self.resolve_collection(excluded)
+        if not included_key or not excluded_key:
+            return None
+
+        included_keys: Set[str] = set()
+        included_ids: Set[str] = set()
+        for item in self.collection_repo.get_items_in_collection(included_key):
+            included_keys.add(item.key)
+            for identifier in (item.doi, item.arxiv_id):
+                if identifier:
+                    included_ids.add(self._normalize_id(identifier))
+
+        def in_included(item: ZoteroItem) -> bool:
+            return item.key in included_keys or any(
+                identifier and self._normalize_id(identifier) in included_ids
+                for identifier in (item.doi, item.arxiv_id)
             )
 
-            # Search all collections for the one with this parent
-            all_cols = self.collection_repo.get_all_collections()
-            for col in all_cols:
-                data = col.get("data", col)
-                if (
-                    data.get("name") == collection_name
-                    and data.get("parentCollection") == parent_id
-                ):
-                    target_id = col["key"]
-                    break
-        else:
-            target_id = (
-                self.collection_repo.get_collection_id_by_name(collection_name) or collection_name
-            )
+        matches = [
+            i
+            for i in self.collection_repo.get_items_in_collection(excluded_key)
+            if excluded_key in i.collections and in_included(i)
+        ]
+        return CollectionRemovalPlan(excluded_key, matches)
 
-        if not target_id:
-            return 0
-
-        deleted_count = 0
-        items = list(self.collection_repo.get_items_in_collection(target_id))
-
-        for item in items:
-            if self.item_repo.delete_item(item.key, item.version):
-                deleted_count += 1
+    def remove_from_collection(self, plan: CollectionRemovalPlan) -> Tuple[int, List[str]]:
+        """Removes the plan's items from its collection, one item at a time
+        so each result is exact. Returns (removed count, keys that failed)."""
+        removed, failed = 0, []
+        for item in plan.items:
+            remaining = [c for c in item.collections if c != plan.collection_key]
+            if self.item_repo.update_item(item.key, item.version, {"collections": remaining}):
+                removed += 1
             else:
-                print(f"Failed to delete item {item.key}")
+                failed.append(item.key)
+        return removed, failed
 
-        return deleted_count
+    # --- Deleting a collection tree ----------------------------------------
 
-    def prune_intersection(self, primary_col: str, secondary_col: str) -> int:
-        """
-        Removes items from 'secondary_col' if they are also present in 'primary_col'.
-        Uses DOI/ArXiv ID for robust matching across duplicate imports.
-        """
-        primary_id = self.collection_repo.get_collection_id_by_name(primary_col) or primary_col
-        secondary_id = (
-            self.collection_repo.get_collection_id_by_name(secondary_col) or secondary_col
-        )
+    def plan_recursive_delete(
+        self, root_key: str, root_version: Optional[int] = None
+    ) -> RecursiveDeletePlan:
+        """What `collection delete --recursive` would delete: the collection,
+        its sub-collections, and the items filed in them. Items that are
+        also filed in a collection OUTSIDE the tree are listed separately:
+        they are kept unless the caller includes them explicitly (#378)."""
+        all_cols = self.collection_repo.get_all_collections()
+        children: Dict[str, List[Dict[str, Any]]] = {}
+        by_key = {str(c["key"]): c for c in all_cols}
+        for c in all_cols:
+            parent = c.get("data", {}).get("parentCollection")
+            if parent:
+                children.setdefault(str(parent), []).append(c)
 
-        # 1. Map Identifiers in Primary
-        primary_identifiers: Set[str] = set()
-        primary_keys: Set[str] = set()
+        tree: List[Tuple[str, int, str]] = []
 
-        for item in self.collection_repo.get_items_in_collection(primary_id):
-            primary_keys.add(item.key)
-            if item.doi:
-                primary_identifiers.add(self._normalize_id(item.doi))
-            if item.arxiv_id:
-                primary_identifiers.add(self._normalize_id(item.arxiv_id))
+        def walk(key: str) -> None:
+            for child in children.get(key, []):
+                walk(str(child["key"]))
+            collection = by_key.get(key) or {}
+            if key == root_key and root_version is not None:
+                collection = {**collection, "version": root_version}
+            if collection.get("version") is None:
+                collection = self.collection_repo.get_collection(key) or collection
+            version = collection.get("version") or 0
+            name = collection.get("data", {}).get("name", key)
+            tree.append((key, cast(int, version), name))
 
-        # 2. Iterate Secondary and Check for matches
-        secondary_items = list(self.collection_repo.get_items_in_collection(secondary_id))
+        walk(root_key)  # deepest first, the root last
+        tree_keys = {key for key, _, _ in tree}
 
-        pruned_count = 0
-        for item in secondary_items:
-            is_duplicate = False
+        items: Dict[str, ZoteroItem] = {}
+        for key, _, _ in tree:
+            for item in self.collection_repo.get_items_in_collection(key):
+                if not item.parent_item:
+                    items.setdefault(item.key, item)
 
-            is_duplicate = (
-                item.key in primary_keys
-                or bool(item.doi and self._normalize_id(item.doi) in primary_identifiers)
-                or bool(item.arxiv_id and self._normalize_id(item.arxiv_id) in primary_identifiers)
-            )
+        plan = RecursiveDeletePlan(root_key=root_key, collections=tree)
+        for item in items.values():
+            if set(item.collections) - tree_keys:
+                plan.shared_items.append(item)
+            else:
+                plan.items_to_delete.append(item)
+        return plan
 
-            if is_duplicate:
-                # ACTION: Remove from secondary
-                if item.key in primary_keys:
-                    # Same object -> Remove collection reference
-                    current_cols = set(item.collections)
-                    if secondary_id in current_cols:
-                        current_cols.remove(secondary_id)
-                        if self.item_repo.update_item(
-                            item.key, item.version, {"collections": list(current_cols)}
-                        ):
-                            pruned_count += 1
-                else:
-                    # Different object (Duplicate import) -> Delete secondary item entirely
-                    if self.item_repo.delete_item(item.key, item.version):
-                        pruned_count += 1
-
-        return pruned_count
+    def execute_recursive_delete(
+        self, plan: RecursiveDeletePlan, include_shared: bool = False
+    ) -> RecursiveDeleteResult:
+        """Deletes the plan's items (plus the shared ones if
+        `include_shared`), then its collections deepest first. Collections
+        are only deleted if every item deletion succeeded, so a failure
+        never leaves items orphaned out of a half-deleted tree."""
+        result = RecursiveDeleteResult()
+        targets = plan.items_to_delete + (plan.shared_items if include_shared else [])
+        for item in targets:
+            if self.item_repo.delete_item(item.key, item.version):
+                result.deleted_items += 1
+            else:
+                result.failed_items.append(item.key)
+        if result.failed_items:
+            return result
+        for key, version, _ in plan.collections:
+            if self.collection_repo.delete_collection(key, version):
+                result.deleted_collections += 1
+            else:
+                result.failed_collections.append(key)
+        return result
 
     def delete_collection(
-        self,
-        collection_id: str,
-        version: int,
-        recursive: bool = False,
-        all_cols: Optional[List[Dict[str, Any]]] = None,
+        self, collection_id: str, version: int, recursive: bool = False
     ) -> bool:
-        """
-        Deletes a collection. If recursive=True, also deletes all items contained within it
-        and all sub-collections (and their items).
-        """
-        if recursive:
-            print(f"Recursively processing collection {collection_id}...")
-
-            # 1. Fetch all collections once if not provided (to avoid redundant API calls in recursion)
-            if all_cols is None:
-                all_cols = self.collection_repo.get_all_collections()
-
-            # 2. Handle sub-collections (Depth-first)
-            sub_cols = [
-                c for c in all_cols if c.get("data", {}).get("parentCollection") == collection_id
-            ]
-
-            for sc in sub_cols:
-                sc_key = sc["key"]
-                sc_version = sc.get("version")
-                if sc_version is None:
-                    # Fetch detailed sc if version is missing
-                    full_sc = self.collection_repo.get_collection(sc_key)
-                    sc_version = full_sc.get("version") if full_sc else 0
-
-                version_int = cast(int, sc_version)
-                self.delete_collection(sc_key, version_int, recursive=True, all_cols=all_cols)
-
-            # 3. Delete items in this specific collection
-            items = list(self.collection_repo.get_items_in_collection(collection_id))
-            deleted_count = 0
-            for item in items:
-                if self.item_repo.delete_item(item.key, item.version):
-                    deleted_count += 1
-                else:
-                    print(f"Warning: Failed to delete item {item.key}")
-
-            if deleted_count > 0:
-                print(f"Deleted {deleted_count} items from collection {collection_id}.")
-
-        # Finally, delete the collection itself
-        return self.collection_repo.delete_collection(collection_id, version)
+        """Deletes one collection; its items stay in the library. With
+        `recursive`, deletes the whole tree and the items filed only inside
+        it (see plan_recursive_delete)."""
+        if not recursive:
+            return self.collection_repo.delete_collection(collection_id, version)
+        result = self.execute_recursive_delete(self.plan_recursive_delete(collection_id, version))
+        return not result.failed_items and not result.failed_collections

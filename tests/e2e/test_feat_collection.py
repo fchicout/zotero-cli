@@ -1,3 +1,4 @@
+import json
 import time
 
 import pytest
@@ -41,8 +42,9 @@ def test_collection_lifecycle(run_cli, sentinel, timestamp):
 @pytest.mark.e2e
 def test_collection_clean(run_cli, temp_collection):
     """
-    Verifies that 'collection clean' removes items but keeps the folder.
-    'temp_collection' fixture now uses 'sentinel' internally.
+    Verifies that 'collection clean' previews by default, then takes the
+    items out of the collection without deleting them (Issue #364), and
+    keeps the folder. 'temp_collection' fixture now uses 'sentinel' internally.
     """
     # 1. Import one item
     run_cli(
@@ -59,17 +61,37 @@ def test_collection_clean(run_cli, temp_collection):
     )
 
     time.sleep(10)
-    before_clean = run_cli(["item", "list", "--collection", temp_collection])
-    assert "Attention" in before_clean.stdout
+    before_clean = run_cli(
+        ["item", "list", "--collection", temp_collection, "--fields", "key,title", "--format", "json"]
+    )
+    rows = json.loads(before_clean.stdout)
+    assert any("Attention" in r["title"] for r in rows)
+    keys = [r["key"] for r in rows]
 
-    # Action: Clean
-    clean_res = run_cli(["collection", "clean", "--collection", temp_collection])
-    assert clean_res.returncode == 0
+    try:
+        # Preview: nothing changes
+        preview = run_cli(["collection", "clean", "--collection", temp_collection])
+        assert preview.returncode == 0 and "Preview only" in preview.stdout
+        still = run_cli(["item", "list", "--collection", temp_collection])
+        assert "Attention" in still.stdout
 
-    time.sleep(3)
-    after_clean = run_cli(["item", "list", "--collection", temp_collection])
-    assert "Showing 0 items" in after_clean.stdout
+        # Action: Clean
+        clean_res = run_cli(["collection", "clean", "--collection", temp_collection, "--execute"])
+        assert clean_res.returncode == 0
 
-    # Folder should still exist
-    list_res = run_cli(["collection", "list"])
-    assert temp_collection in list_res.stdout
+        time.sleep(3)
+        after_clean = run_cli(["item", "list", "--collection", temp_collection])
+        assert "Showing 0 items" in after_clean.stdout
+
+        # The items still exist in the library
+        for key in keys:
+            assert "Attention" in run_cli(["item", "inspect", "--key", key]).stdout
+
+        # Folder should still exist
+        list_res = run_cli(["collection", "list"])
+        assert temp_collection in list_res.stdout
+    finally:
+        # The cleaned items are now unfiled; delete them so the test leaves
+        # nothing behind in the library.
+        for key in keys:
+            run_cli(["item", "delete", "--key", key])

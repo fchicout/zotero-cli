@@ -15,6 +15,23 @@ class ConfigurationError(ZoteroCliError):
     pass
 
 
+class AmbiguousCollectionError(ZoteroCliError):
+    """
+    Raised when a collection name matches more than one collection
+    (Issue #381). Commands must not guess which one was meant, least of all
+    destructive ones, so the user is asked to pass one of the listed keys.
+    """
+
+    def __init__(self, name: str, candidates: "list[tuple[str, str]]"):
+        self.name = name
+        self.candidates = candidates
+        listing = "\n".join(f"  {key}  {path}" for key, path in candidates)
+        super().__init__(
+            f"Collection name '{name}' matches {len(candidates)} collections; "
+            f"pass the key of the one you mean:\n{listing}"
+        )
+
+
 class RetryableError(ZoteroCliError):
     """
     Raised when an operation failed but should be retried later.

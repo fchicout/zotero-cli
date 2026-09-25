@@ -31,7 +31,10 @@ import logging  # noqa: E402
 from zotero_cli.cli import commands  # noqa: F401, E402 (Trigger registration)
 from zotero_cli.cli.base import CommandRegistry  # noqa: E402
 from zotero_cli.core.config import get_config  # noqa: E402
-from zotero_cli.core.exceptions import ConfigurationError  # noqa: E402
+from zotero_cli.core.exceptions import (  # noqa: E402
+    AmbiguousCollectionError,
+    ConfigurationError,
+)
 from zotero_cli.core.logging_config import setup_logging  # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -106,6 +109,10 @@ def main() -> None:
     except ConfigurationError as e:
         print(str(e), file=sys.stderr)
         sys.exit(1)
+    except AmbiguousCollectionError as e:
+        # A usage problem, not a crash: no traceback (Issue #381).
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(2)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         import traceback

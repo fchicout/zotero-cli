@@ -18,7 +18,7 @@ It talks to the Zotero Web API (personal and group libraries). It can also read 
 - **Scriptable:** items, collections, tags, notes and attachments are all reachable from a terminal, with no GUI steps in between.
 - **Machine-readable output:** `item list` prints `json`, `csv` or `markdown`, and `--fields` picks the columns. Data goes to stdout and warnings to stderr, so you can pipe it into `jq`, a spreadsheet or a prompt.
 - **Suited to LLM agents:** an agent can run `--help` on any command to learn how to use it, since each one includes worked examples. `item export --format md` converts an item's PDF into Markdown an LLM can read.
-- **Safe by default:** bulk or destructive commands (`tag purge`, `item merge`, `item pdf strip`, `slr dedupe`, ...) only show a preview until you add `--execute`. `item hydrate` previews until you add `--execute`, `system restore` has `--dry-run`, and `collection purge` asks for confirmation. `--offline` reads the local database and is read-only apart from trash/restore.
+- **Preview first:** `collection clean`, `collection delete --recursive`, `slr prune`, `slr load`, `tag purge`, `item merge`, `item hydrate`, `item pdf strip` and `slr dedupe` only show what they would do until you add `--execute`. A recursive delete also asks for confirmation (`--yes` in scripts), and a collection name that matches several collections is refused rather than guessed. `item purge` and `collection purge` ask for confirmation; `item delete` deletes the one item you name. `system restore` has `--dry-run`, and `--offline` reads the local database and is read-only apart from trash/restore.
 - **Runs anywhere:** a single binary for Linux and Windows, no Python needed. Also available as a container or a Python package.
 
 ## What it can do

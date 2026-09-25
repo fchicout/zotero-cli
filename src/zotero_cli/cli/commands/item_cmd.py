@@ -937,15 +937,30 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         service = GatewayFactory.get_transfer_service()
 
         print(f"Transferring item {args.key} to group {args.target_group}...")
-        new_key = service.transfer_item(
+        result = service.transfer_item(
             args.key, source_gateway, dest_gateway, delete_source=args.delete_source
         )
 
-        if new_key:
-            print(f"Transfer complete. New key in destination: {new_key}")
-        else:
-            print("Transfer failed.", file=sys.stderr)
+        if result.new_key is None:
+            print(f"Transfer failed: {'; '.join(result.failures)}", file=sys.stderr)
             sys.exit(1)
+        print(
+            f"Copied to the destination as {result.new_key} "
+            f"({result.copied_children} note(s)/attachment(s))."
+        )
+        if result.failures:
+            print("Not copied:", file=sys.stderr)
+            for failure in result.failures:
+                print(f"  - {failure}", file=sys.stderr)
+            if args.delete_source:
+                print(
+                    f"The source item {args.key} was NOT deleted, so nothing is lost. "
+                    "Copy the missing parts by hand, then delete it.",
+                    file=sys.stderr,
+                )
+            sys.exit(1)
+        if result.source_deleted:
+            print(f"Deleted the source item {args.key}.")
 
     def _handle_purge(self, args: argparse.Namespace) -> None:
         from rich.prompt import Confirm

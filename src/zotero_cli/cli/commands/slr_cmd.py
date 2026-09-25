@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.commands.slr import (
@@ -150,8 +151,8 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
         # --- Utilities ---
         prune_p = sub.add_parser(
             "prune",
-            help="Enforce mutual exclusivity between two collections",
-            description="Removes items from the '--excluded' collection if they already exist in the '--included' collection. Ensures datasets are disjoint for PRISMA reporting.",
+            help="Take items that are also in --included out of --excluded",
+            description="Makes two collections disjoint for PRISMA reporting: every item in '--excluded' that is also in '--included' (the same item, or a duplicate import with the same DOI/arXiv ID) is removed from '--excluded'. Nothing is deleted from your library; use item merge or slr dedupe to merge duplicate imports. Previews by default; pass --execute to apply.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
         prune_p.add_argument(
@@ -161,6 +162,9 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
             "--excluded",
             required=True,
             help="Secondary collection (Loser/Excluded - items removed from here)",
+        )
+        prune_p.add_argument(
+            "--execute", action="store_true", help="Apply the change (default: preview only)"
         )
 
     def execute(self, args: argparse.Namespace) -> None:
@@ -233,10 +237,32 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
             print(f"Error processing CSV: {e}")
 
     def _handle_prune(self, args: argparse.Namespace) -> None:
+        from zotero_cli.cli.safety import preview_notice
+        from zotero_cli.core.utils.terminal_safety import safe_markup
+
         service = GatewayFactory.get_collection_service(force_user=getattr(args, "user", False))
-        print(f"Pruning intersection: '{args.included}' vs '{args.excluded}'...")
-        count = service.prune_intersection(args.included, args.excluded)
-        if count > 0:
-            print(f"[bold green]Pruned {count} items from '{args.excluded}'.")
-        else:
-            print("No intersection found. Sets are disjoint.")
+        plan = service.plan_prune(args.included, args.excluded)
+        if plan is None:
+            print(
+                f"Error: Collection '{args.included}' or '{args.excluded}' not found.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if not plan.items:
+            console.print("No overlap: the two collections are already disjoint.")
+            return
+        console.print(
+            f"{len(plan.items)} item(s) in '{safe_markup(args.excluded)}' are also in "
+            f"'{safe_markup(args.included)}' and will be removed from "
+            f"'{safe_markup(args.excluded)}'. Nothing is deleted from your library."
+        )
+        for item in plan.items:
+            console.print(f"  {item.key}  {safe_markup(item.title or 'Untitled')}")
+        if not getattr(args, "execute", False):
+            console.print(preview_notice("remove them"))
+            return
+        removed, failed = service.remove_from_collection(plan)
+        console.print(f"Removed {removed} item(s) from '{safe_markup(args.excluded)}'.")
+        if failed:
+            print(f"Failed for {len(failed)} item(s): {', '.join(failed)}", file=sys.stderr)
+            sys.exit(1)

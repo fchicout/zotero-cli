@@ -7,6 +7,7 @@ from rich.table import Table
 from rich.tree import Tree
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.safety import confirm_destructive, preview_notice
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.backup_service import BackupService
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
@@ -79,21 +80,22 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         # Delete
         delete_p = sub.add_parser(
             "delete",
-            help="Delete a collection",
-            description="Removes a specified collection from your library. This operation is irreversible and can include recursive deletion of sub-folders and items.",
+            help="Delete a collection (with --recursive, also its sub-collections and items)",
+            description="Deletes a collection. Without --recursive only the collection itself goes; its items stay in your library. With --recursive, its sub-collections and the items filed only inside the tree are permanently deleted too: this previews by default and needs --execute and a confirmation (or --yes).",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
 Scenario: Cleaning up an old project
-Problem: I have a folder "Obsolete_SLR_2023" (Key: OLD_123) that I no longer need.
-Action:  zotero-cli collection delete --key "OLD_123" --recursive
-Result:  The folder and all its contents are permanently removed from the library.
+Problem: I have a folder "Obsolete_SLR_2023" (Key: OLD_123) that I no longer need, contents included.
+Action:  zotero-cli collection delete --key "OLD_123" --recursive, then add --execute
+Result:  The first run lists the sub-collections and items that would be deleted; the second deletes them after you confirm.
 
 Cognitive Safeguards
 --------------------
-• Common Failure Modes: Attempting to delete a folder without the --recursive flag when it still contains items. This will result in an API error.
-• Safety Tips: ALWAYS run collection list before deletion to verify the key and ensure you are not deleting a critical parent folder. Deletion is irreversible.
+• Items that are also filed in a collection outside the tree are kept (they only leave the deleted collections) unless you pass --include-shared.
+• Deletion through the Web API is permanent: it doesn't go through Zotero's trash. Back up first (collection backup).
+• A name shared by several collections is refused: pass the key shown in the error.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_delete.md
 """,
@@ -103,7 +105,22 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--version", type=int, help="Collection version (optional if recursive)"
         )
         delete_p.add_argument(
-            "--recursive", action="store_true", help="Delete all items and sub-collections"
+            "--recursive",
+            action="store_true",
+            help="Also delete the sub-collections and the items filed only inside the tree",
+        )
+        delete_p.add_argument(
+            "--execute",
+            action="store_true",
+            help="With --recursive: actually delete (default: preview only)",
+        )
+        delete_p.add_argument(
+            "--yes", action="store_true", help="Don't ask for confirmation (for scripts)"
+        )
+        delete_p.add_argument(
+            "--include-shared",
+            action="store_true",
+            help="With --recursive: also delete items that are filed in other collections",
         )
 
         # Rename
@@ -135,27 +152,31 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         # Clean
         clean_p = sub.add_parser(
             "clean",
-            help="Empty all items from a collection (Does not delete collection)",
-            description="Empties a collection by removing all associated items from it. Note that this command does not delete the items from the library, only their association with this specific collection.",
+            help="Take every item out of a collection (items stay in the library)",
+            description="Empties a collection by removing its items from it. The items are NOT deleted: they stay in your library, and those filed nowhere else appear under Unfiled Items. Previews by default; pass --execute to apply.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
 Scenario: Resetting a screening results folder
 Problem: My "Screened Results" folder (Key: SCR_456) has outdated data from a previous attempt and I want to start fresh.
-Action:  zotero-cli collection clean --collection "SCR_456"
-Result:  The folder is now empty and ready for a new set of items.
+Action:  zotero-cli collection clean --collection "SCR_456", then add --execute
+Result:  The first run shows how many items would leave the folder; the second empties it. The items remain in your library.
 
 Cognitive Safeguards
 --------------------
-• Common Failure Modes: Confusion between clean and delete. clean keeps the folder structure intact, while delete removes the folder itself.
-• Safety Tips: Use collection list to verify the collection key before cleaning. If your items are not linked to any other collection, they will become unfiled in your main library.
+• clean never deletes items; to delete a folder and its items, use collection delete --recursive.
+• Items filed only in this collection end up under Unfiled Items in your library.
+• A name shared by several collections is refused: pass the key shown in the error.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_clean.md
 """,
         )
         clean_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
-        clean_p.add_argument("--verbose", action="store_true")
+        clean_p.add_argument(
+            "--execute", action="store_true", help="Apply the change (default: preview only)"
+        )
+        clean_p.add_argument("--verbose", action="store_true", help="List every item affected")
 
         # Backup
         backup_p = sub.add_parser(
@@ -273,16 +294,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
             if args.verb == "delete":
                 if args.recursive:
-                    print(
-                        f"[bold red]WARNING: Performing recursive deletion of collection '{args.key}' ({col_id})...[/bold red]"
-                    )
-
-                # Use CollectionService for delete to handle recursive logic
+                    self._handle_recursive_delete(args, col_id, version)
+                    return
                 service = GatewayFactory.get_collection_service(force_user=force_user)
-                if service.delete_collection(col_id, version, recursive=args.recursive):
-                    print(f"Deleted collection '{args.key}' ({col_id})")
+                if service.delete_collection(col_id, version):
+                    print(f"Deleted collection '{args.key}' ({col_id}). Its items stay in your library.")
                 else:
-                    print(f"Failed to delete collection '{args.key}'.")
+                    print(f"Failed to delete collection '{args.key}'.", file=sys.stderr)
+                    sys.exit(1)
             else:
                 if gateway.rename_collection(col_id, version, args.name):
                     print(f"Renamed collection to '{args.name}'")
@@ -390,8 +409,79 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
     def _handle_clean(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_collection_service(force_user=force_user)
-        count = service.empty_collection(args.collection, args.verbose)
-        print(f"Deleted {count} items from '{args.collection}'.")
+        plan = service.plan_clean(args.collection)
+        if plan is None:
+            print(f"Error: Collection '{args.collection}' not found.", file=sys.stderr)
+            sys.exit(1)
+        label = f"'{safe_markup(args.collection)}' ({plan.collection_key})"
+        if not plan.items:
+            console.print(f"{label} is already empty.")
+            return
+        unfiled = len(plan.becomes_unfiled)
+        console.print(
+            f"{len(plan.items)} item(s) will be removed from {label}. They stay in your "
+            f"library; {unfiled} of them are in no other collection and will appear under "
+            "Unfiled Items."
+        )
+        if getattr(args, "verbose", False):
+            for item in plan.items:
+                console.print(f"  {item.key}  {safe_markup(item.title or 'Untitled')}")
+        if not getattr(args, "execute", False):
+            console.print(preview_notice("remove them"))
+            return
+        removed, failed = service.remove_from_collection(plan)
+        console.print(f"Removed {removed} item(s) from {label}.")
+        if failed:
+            print(f"Failed for {len(failed)} item(s): {', '.join(failed)}", file=sys.stderr)
+            sys.exit(1)
+
+    def _handle_recursive_delete(
+        self, args: argparse.Namespace, col_id: str, version: Optional[int]
+    ) -> None:
+        force_user = getattr(args, "user", False)
+        service = GatewayFactory.get_collection_service(force_user=force_user)
+        plan = service.plan_recursive_delete(col_id, version)
+        include_shared = getattr(args, "include_shared", False)
+        to_delete = plan.items_to_delete + (plan.shared_items if include_shared else [])
+
+        console.print(
+            f"Deleting '{safe_markup(args.key)}' ({col_id}) recursively would permanently delete:"
+        )
+        console.print(f"  {len(plan.collections)} collection(s):")
+        for key, _, name in reversed(plan.collections):
+            console.print(f"    {key}  {safe_markup(name)}")
+        console.print(f"  {len(to_delete)} item(s) filed only inside this tree")
+        if plan.shared_items:
+            verb = "WILL ALSO BE DELETED" if include_shared else "will be kept"
+            console.print(
+                f"  {len(plan.shared_items)} item(s) also filed in other collections {verb}"
+                + ("" if include_shared else " (pass --include-shared to delete them too)")
+            )
+        console.print("Deletion through the Web API is permanent: it bypasses Zotero's trash.")
+
+        if not getattr(args, "execute", False):
+            console.print(preview_notice("delete them"))
+            return
+        if not confirm_destructive("Permanently delete all of the above?", args.yes):
+            console.print("Cancelled; nothing was deleted.")
+            return
+        result = service.execute_recursive_delete(plan, include_shared=include_shared)
+        console.print(
+            f"Deleted {result.deleted_items} item(s) and {result.deleted_collections} collection(s)."
+        )
+        if result.failed_items:
+            print(
+                f"Could not delete {len(result.failed_items)} item(s): "
+                f"{', '.join(result.failed_items)}. The collections were left in place.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if result.failed_collections:
+            print(
+                f"Could not delete collection(s): {', '.join(result.failed_collections)}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     def _handle_backup(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         from rich.progress import (

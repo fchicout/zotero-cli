@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zotero_cli.cli.commands.collection_cmd import CollectionCommand
+from zotero_cli.core.zotero_item import ZoteroItem
 
 
 @pytest.fixture
@@ -132,19 +133,99 @@ def test_collection_create_fail(mock_gateway, capsys):
     assert "Failed to create collection." in out
 
 
-def test_collection_delete_success(mock_gateway, mock_collection_service, capsys):
+def _delete_args(**kw):
+    base = dict(
+        verb="delete",
+        key="COL_KEY",
+        version=None,
+        recursive=False,
+        execute=False,
+        yes=False,
+        include_shared=False,
+        user=False,
+    )
+    base.update(kw)
+    return argparse.Namespace(**base)
+
+
+def _recursive_plan():
+    from zotero_cli.core.services.collection_service import RecursiveDeletePlan
+
+    only_here = ZoteroItem(key="I1", version=1, item_type="journalArticle", title="Only here")
+    shared = ZoteroItem(key="I2", version=1, item_type="journalArticle", title="Also elsewhere")
+    return RecursiveDeletePlan(
+        root_key="COL_KEY",
+        collections=[("SUB", 1, "Sub"), ("COL_KEY", 42, "Root")],
+        items_to_delete=[only_here],
+        shared_items=[shared],
+    )
+
+
+def test_collection_delete_non_recursive_keeps_items(
+    mock_gateway, mock_collection_service, capsys
+):
     mock_gateway.get_collection_id_by_name.return_value = "COL_KEY"
     mock_gateway.get_collection.return_value = {"version": 42}
     mock_collection_service.delete_collection.return_value = True
 
-    args = argparse.Namespace(
-        verb="delete", key="COL_KEY", version=None, recursive=True, user=False
-    )
-    CollectionCommand().execute(args)
+    CollectionCommand().execute(_delete_args())
 
-    mock_collection_service.delete_collection.assert_called_with("COL_KEY", 42, recursive=True)
+    mock_collection_service.delete_collection.assert_called_with("COL_KEY", 42)
+    assert "Its items stay in your library" in capsys.readouterr().out
+
+
+def test_collection_delete_recursive_previews_by_default(
+    mock_gateway, mock_collection_service, capsys
+):
+    """Issue #378: a recursive delete used to run with no preview or prompt."""
+    mock_gateway.get_collection_id_by_name.return_value = "COL_KEY"
+    mock_gateway.get_collection.return_value = {"version": 42}
+    mock_collection_service.plan_recursive_delete.return_value = _recursive_plan()
+
+    CollectionCommand().execute(_delete_args(recursive=True))
+
+    mock_collection_service.plan_recursive_delete.assert_called_with("COL_KEY", 42)
+    mock_collection_service.execute_recursive_delete.assert_not_called()
     out = capsys.readouterr().out
-    assert "Deleted collection 'COL_KEY'" in out
+    assert "2 collection(s)" in out and "1 item(s) filed only inside" in out
+    assert "will be kept" in out and "--execute" in out
+
+
+def test_collection_delete_recursive_refuses_without_a_terminal_or_yes(
+    mock_gateway, mock_collection_service, capsys, monkeypatch
+):
+    mock_gateway.get_collection_id_by_name.return_value = "COL_KEY"
+    mock_gateway.get_collection.return_value = {"version": 42}
+    mock_collection_service.plan_recursive_delete.return_value = _recursive_plan()
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    with pytest.raises(SystemExit) as exc:
+        CollectionCommand().execute(_delete_args(recursive=True, execute=True))
+
+    assert exc.value.code == 2
+    mock_collection_service.execute_recursive_delete.assert_not_called()
+    assert "--yes" in capsys.readouterr().err
+
+
+def test_collection_delete_recursive_executes_with_yes(
+    mock_gateway, mock_collection_service, capsys
+):
+    from zotero_cli.core.services.collection_service import RecursiveDeleteResult
+
+    mock_gateway.get_collection_id_by_name.return_value = "COL_KEY"
+    mock_gateway.get_collection.return_value = {"version": 42}
+    plan = _recursive_plan()
+    mock_collection_service.plan_recursive_delete.return_value = plan
+    mock_collection_service.execute_recursive_delete.return_value = RecursiveDeleteResult(
+        deleted_items=1, deleted_collections=2
+    )
+
+    CollectionCommand().execute(_delete_args(recursive=True, execute=True, yes=True))
+
+    mock_collection_service.execute_recursive_delete.assert_called_once_with(
+        plan, include_shared=False
+    )
+    assert "Deleted 1 item(s) and 2 collection(s)" in capsys.readouterr().out
 
 
 def test_collection_delete_not_found(mock_gateway, mock_collection_service, capsys):
@@ -187,15 +268,58 @@ def test_collection_rename_fail(mock_gateway, capsys):
     assert "Failed to rename collection." in out
 
 
-def test_collection_clean(mock_collection_service, capsys):
-    mock_collection_service.empty_collection.return_value = 15
+def _clean_plan():
+    from zotero_cli.core.services.collection_service import CollectionRemovalPlan
 
-    args = argparse.Namespace(verb="clean", collection="COL_KEY", verbose=True, user=False)
+    return CollectionRemovalPlan(
+        "COL_KEY",
+        [
+            ZoteroItem(key="I1", version=1, item_type="journalArticle", collections=["COL_KEY"]),
+            ZoteroItem(
+                key="I2", version=1, item_type="journalArticle", collections=["COL_KEY", "OTHER"]
+            ),
+        ],
+    )
+
+
+def test_collection_clean_previews_and_never_deletes(mock_collection_service, capsys):
+    """Issue #364: clean used to hard-delete every item in the collection."""
+    mock_collection_service.plan_clean.return_value = _clean_plan()
+
+    args = argparse.Namespace(
+        verb="clean", collection="COL_KEY", verbose=False, execute=False, user=False
+    )
     CollectionCommand().execute(args)
 
-    mock_collection_service.empty_collection.assert_called_with("COL_KEY", True)
-    out = capsys.readouterr().out
-    assert "Deleted 15 items from 'COL_KEY'" in out
+    mock_collection_service.remove_from_collection.assert_not_called()
+    mock_collection_service.delete_collection.assert_not_called()
+    out = " ".join(capsys.readouterr().out.split())
+    assert "2 item(s) will be removed" in out
+    assert "1 of them are in no other collection" in out
+    assert "--execute" in out
+
+
+def test_collection_clean_execute_removes_from_collection(mock_collection_service, capsys):
+    plan = _clean_plan()
+    mock_collection_service.plan_clean.return_value = plan
+    mock_collection_service.remove_from_collection.return_value = (2, [])
+
+    args = argparse.Namespace(
+        verb="clean", collection="COL_KEY", verbose=False, execute=True, user=False
+    )
+    CollectionCommand().execute(args)
+
+    mock_collection_service.remove_from_collection.assert_called_once_with(plan)
+    assert "Removed 2 item(s)" in capsys.readouterr().out
+
+
+def test_collection_clean_unknown_collection_exits_non_zero(mock_collection_service, capsys):
+    mock_collection_service.plan_clean.return_value = None
+    args = argparse.Namespace(verb="clean", collection="Nope", verbose=False, execute=True, user=False)
+    with pytest.raises(SystemExit) as exc:
+        CollectionCommand().execute(args)
+    assert exc.value.code == 1
+    assert "not found" in capsys.readouterr().err
 
 
 def test_collection_backup_success(mock_gateway, capsys):

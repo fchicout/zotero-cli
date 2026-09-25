@@ -35,10 +35,12 @@ class ResourceTracker:
         """Recursive cleanup of all tracked collections."""
         for col in reversed(self.created_collections):
             print(f"[QA_FORCE] Sentinel purging: {col}")
-            # 1. Clean items first to prevent 'Unfiled' orphans
-            self.run_cli(["collection", "clean", "--collection", col])
-            # 2. Delete the collection itself
-            res = self.run_cli(["collection", "delete", "--key", col, "--recursive"])
+            # Deletes the collection tree and the items filed only in it.
+            # (`collection clean` no longer deletes items, only unfiles
+            # them: running it first would leave orphans behind.)
+            res = self.run_cli(
+                ["collection", "delete", "--key", col, "--recursive", "--execute", "--yes"]
+            )
             if res.returncode != 0:
                 print(f"[QA_FORCE] Cleanup failed for {col}: {res.stderr}")
         self.created_collections = []
@@ -71,8 +73,9 @@ def pytest_sessionstart(session):
         orphans = re.findall(r"│\s+(E2E_\S+)\s+│\s+([A-Z0-9]{8})\s+│", res.stdout)
         for name, key in orphans:
             print(f"[QA_FORCE] Purging orphan: {name} ({key})")
-            _run_cli_raw(["collection", "clean", "--collection", key])
-            _run_cli_raw(["collection", "delete", "--key", key, "--recursive"])
+            _run_cli_raw(
+                ["collection", "delete", "--key", key, "--recursive", "--execute", "--yes"]
+            )
 
 
 @pytest.fixture
