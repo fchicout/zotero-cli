@@ -1,0 +1,5 @@
+SQLite is in the public domain.
+
+The SQLite source code, including the parts linked into the Python runtime
+bundled with zotero-cli, has been dedicated to the public domain by its
+authors. See https://sqlite.org/copyright.html.

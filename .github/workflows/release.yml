@@ -77,6 +77,7 @@ jobs:
             --exclude-module numpy \
             --exclude-module pandas \
             --exclude-module matplotlib \
+            --exclude-module readline \
             --clean src/zotero_cli/cli/main.py
 
       # Never publish a binary that can't start (Issue #333).
@@ -85,6 +86,15 @@ jobs:
           ./dist/zotero-cli --help
           # Exercise bundled libraries, not just startup (Issue #403).
           ./dist/zotero-cli system selftest
+
+      # Notices for exactly what PyInstaller bundled (Issue #405); fails if a
+      # bundled file can't be attributed to a licence.
+      - name: Generate licence notices
+        run: |
+          python scripts/gen_third_party_notices.py --build-dir build/zotero-cli \
+            --output dist/THIRD_PARTY_LICENSES.txt
+          cp LICENSE dist/LICENSE
+          cp dist/THIRD_PARTY_LICENSES.txt THIRD_PARTY_LICENSES-linux.txt
 
       - name: Install FPM
         run: |
@@ -104,21 +114,26 @@ jobs:
 
       - name: Create Tarball
         run: |
-          tar -czvf zotero-cli-linux-amd64.tar.gz -C dist zotero-cli
+          tar -czvf zotero-cli-linux-amd64.tar.gz -C dist zotero-cli LICENSE THIRD_PARTY_LICENSES.txt
 
       - name: Create DEB Package
         env:
           VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
-          mkdir -p dist/deb/usr/bin
+          mkdir -p dist/deb/usr/bin dist/deb/usr/share/doc/zotero-cli
           cp dist/zotero-cli dist/deb/usr/bin/
+          # /usr/share/doc/<package>/copyright is where Debian policy expects it.
+          cp LICENSE dist/deb/usr/share/doc/zotero-cli/copyright
+          cp dist/THIRD_PARTY_LICENSES.txt dist/deb/usr/share/doc/zotero-cli/
           fpm -s dir -t deb -n zotero-cli -v "$VERSION" \
             --prefix / \
             -C dist/deb \
             --description "Command-line interface for managing Zotero libraries" \
             --maintainer "Fabio Chicout <fchicout@gmail.com>" \
+            --vendor "Fábio Chicout" \
+            --license MIT \
             --url "https://github.com/fchicout/zotero-cli" \
-            usr/bin/zotero-cli
+            usr/bin/zotero-cli usr/share/doc/zotero-cli
           mv zotero-cli_*.deb zotero-cli-linux-amd64.deb
 
       - name: Create RPM Package
@@ -130,8 +145,10 @@ jobs:
             -C dist/deb \
             --description "Command-line interface for managing Zotero libraries" \
             --maintainer "Fabio Chicout <fchicout@gmail.com>" \
+            --vendor "Fábio Chicout" \
+            --license MIT \
             --url "https://github.com/fchicout/zotero-cli" \
-            usr/bin/zotero-cli
+            usr/bin/zotero-cli usr/share/doc/zotero-cli
           mv zotero-cli-*.rpm zotero-cli-linux-amd64.rpm
 
       - name: Upload Artifacts
@@ -140,6 +157,7 @@ jobs:
           name: linux-artifacts
           path: |
             dist/zotero-cli
+            THIRD_PARTY_LICENSES-linux.txt
             zotero-cli-linux-amd64.tar.gz
             zotero-cli-linux-amd64.deb
             zotero-cli-linux-amd64.rpm
@@ -176,6 +194,7 @@ jobs:
             --exclude-module numpy `
             --exclude-module pandas `
             --exclude-module matplotlib `
+            --exclude-module readline `
             --clean src/zotero_cli/cli/main.py
 
       - name: Smoke test binary
@@ -183,6 +202,15 @@ jobs:
           ./dist/zotero-cli.exe --help
           ./dist/zotero-cli.exe system selftest
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Generate licence notices
+        shell: pwsh
+        run: |
+          python scripts/gen_third_party_notices.py --build-dir build/zotero-cli `
+            --output dist/THIRD_PARTY_LICENSES.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item LICENSE dist/LICENSE.txt
+          Copy-Item dist/THIRD_PARTY_LICENSES.txt THIRD_PARTY_LICENSES-windows.txt
 
       - name: Get Version
         id: get_version
@@ -211,7 +239,8 @@ jobs:
       - name: Create Windows ZIP
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/zotero-cli.exe -DestinationPath zotero-cli-windows-amd64.zip
+          Compress-Archive -Path dist/zotero-cli.exe, dist/LICENSE.txt, dist/THIRD_PARTY_LICENSES.txt `
+            -DestinationPath zotero-cli-windows-amd64.zip
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -219,6 +248,7 @@ jobs:
           name: windows-artifacts
           path: |
             dist/zotero-cli.exe
+            THIRD_PARTY_LICENSES-windows.txt
             zotero-cli-windows-amd64.zip
             zotero-cli-windows-amd64.msi
 
@@ -247,7 +277,8 @@ jobs:
         run: |
           mkdir release
           cp assets/dist/zotero-cli assets/dist/zotero-cli.exe \
-            assets/*.tar.gz assets/*.deb assets/*.rpm assets/*.zip assets/*.msi release/
+            assets/*.tar.gz assets/*.deb assets/*.rpm assets/*.zip assets/*.msi \
+            assets/THIRD_PARTY_LICENSES-*.txt release/
           cd release
           sha256sum -- * > SHA256SUMS
           cat SHA256SUMS

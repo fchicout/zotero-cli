@@ -17,11 +17,17 @@
           <File Source="dist\zotero-cli.exe" KeyPath="yes" />
           <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]" Permanent="no" Part="last" Action="set" System="no" />
         </Component>
+        <!-- Issue #405: the licence and third-party notices ship with the exe. -->
+        <Component Id="ZoteroCliLicenses" Guid="43eda7b1-feff-4fae-a3cb-8a2e5627720a">
+          <File Id="LicenseFile" Source="dist\LICENSE.txt" KeyPath="yes" />
+          <File Id="ThirdPartyNotices" Source="dist\THIRD_PARTY_LICENSES.txt" />
+        </Component>
       </Directory>
     </StandardDirectory>
 
     <Feature Id="Main">
       <ComponentRef Id="ZoteroCliExecutable" />
+      <ComponentRef Id="ZoteroCliLicenses" />
     </Feature>
   </Package>
 </Wix>
