@@ -39,25 +39,33 @@ zotero-cli collection rename "Old Name" "New Name"
 ---
 
 ### `delete`
-Delete a collection.
+Delete a collection. Without `--recursive`, only the collection goes and its items stay in your library. With `--recursive`, its sub-collections and the items filed only inside the tree are permanently deleted too; this previews first and needs `--execute` plus a confirmation (or `--yes`).
 
 **Usage:**
 ```bash
-zotero-cli collection delete "Target Name" --recursive
+zotero-cli collection delete --key "Target Name"                                  # collection only
+zotero-cli collection delete --key "OLD_123" --recursive                          # preview
+zotero-cli collection delete --key "OLD_123" --recursive --execute                # delete, after confirming
 ```
 
 **Parameters:**
-*   `key`: (Positional, Required) Collection Name or Key.
-*   `--recursive`: Delete all items and sub-collections within this collection.
+*   `--key`: (Required) Collection key, or a name that matches exactly one collection.
+*   `--recursive`: Also delete sub-collections and the items filed only inside the tree.
+*   `--execute`: With `--recursive`, actually delete (default: preview only).
+*   `--yes`: Skip the confirmation (required when there's no terminal, e.g. in scripts).
+*   `--include-shared`: Also delete items that are filed in collections outside the tree (kept by default).
+
+Deletion through the Web API is permanent: it doesn't go through Zotero's trash.
 
 ---
 
 ### `clean`
-Remove all items from a collection without deleting the collection itself.
+Remove all items from a collection without deleting the collection or any item. The items stay in your library; those filed nowhere else appear under Unfiled Items. Previews by default.
 
 **Usage:**
 ```bash
-zotero-cli collection clean --collection "Temp"
+zotero-cli collection clean --collection "Temp"             # preview
+zotero-cli collection clean --collection "Temp" --execute   # apply
 ```
 
 ---

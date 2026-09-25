@@ -7,6 +7,7 @@ import requests
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import KeyIdentity, ResearchPaper, ZoteroQuery
+from zotero_cli.core.utils.collection_resolver import resolve_collection_key
 from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.utils.url_safety import (
     ResponseTooLargeError,
@@ -218,11 +219,10 @@ class ZoteroAPIClient(ZoteroGateway):
         )
 
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
-        cols = self.get_all_collections()
-        for c in cols:
-            if c.get("data", {}).get("name") == name:
-                return str(c["key"])
-        return None
+        """Resolves a collection key or name to one key (None if no match).
+        Raises AmbiguousCollectionError when a name matches several
+        collections, instead of silently taking the first (Issue #381)."""
+        return resolve_collection_key(self.get_all_collections(), name)
 
     # --- Write Operations ---
 

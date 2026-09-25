@@ -8,7 +8,7 @@ def test_orphan_prevention_audit(run_cli, timestamp):
     behind if they were imported specifically for that collection.
     """
     col_name = f"E2E_ORPHAN_TEST_{timestamp}"
-    run_cli(["collection", "create", col_name])
+    run_cli(["collection", "create", "--name", col_name])
 
     # Import an item
     run_cli(
@@ -16,7 +16,7 @@ def test_orphan_prevention_audit(run_cli, timestamp):
     )
 
     # Action: Delete collection recursively
-    run_cli(["collection", "delete", col_name, "--recursive"])
+    run_cli(["collection", "delete", "--key", col_name, "--recursive", "--execute", "--yes"])
 
     # Check if item exists in 'Unfiled' or root
     # Note: This requires a way to check if an item with a specific DOI still exists

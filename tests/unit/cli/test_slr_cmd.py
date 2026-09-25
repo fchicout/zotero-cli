@@ -14,13 +14,25 @@ def slr_cmd():
 @patch("zotero_cli.infra.factory.GatewayFactory.get_collection_service")
 @patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")
 def test_slr_prune_dispatch(mock_gateway, mock_coll_service_get, slr_cmd):
+    from zotero_cli.core.services.collection_service import CollectionRemovalPlan
+    from zotero_cli.core.zotero_item import ZoteroItem
+
     mock_service = mock_coll_service_get.return_value
-    mock_service.prune_intersection.return_value = 0
+    plan = CollectionRemovalPlan(
+        "EXC_KEY", [ZoteroItem(key="A", version=1, item_type="journalArticle", title="Paper A")]
+    )
+    mock_service.plan_prune.return_value = plan
+    mock_service.remove_from_collection.return_value = (1, [])
 
-    args = argparse.Namespace(verb="prune", included="INC", excluded="EXC", user=False)
+    # Preview by default: nothing is removed (Issue #395).
+    slr_cmd.execute(argparse.Namespace(verb="prune", included="INC", excluded="EXC", user=False))
+    mock_service.plan_prune.assert_called_with("INC", "EXC")
+    mock_service.remove_from_collection.assert_not_called()
 
-    slr_cmd.execute(args)
-    mock_service.prune_intersection.assert_called_once_with("INC", "EXC")
+    slr_cmd.execute(
+        argparse.Namespace(verb="prune", included="INC", excluded="EXC", execute=True, user=False)
+    )
+    mock_service.remove_from_collection.assert_called_once_with(plan)
 
 
 @patch("zotero_cli.infra.factory.GatewayFactory.get_screening_service")
@@ -175,14 +187,16 @@ def test_slr_bulk_decide_success(mock_gateway, mock_screening_get, mock_open_fil
 @patch("zotero_cli.infra.factory.GatewayFactory.get_collection_service")
 @patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway")
 def test_slr_prune_no_intersection(mock_gateway, mock_coll_service_get, slr_cmd, capsys):
+    from zotero_cli.core.services.collection_service import CollectionRemovalPlan
+
     mock_service = mock_coll_service_get.return_value
-    mock_service.prune_intersection.return_value = 0
+    mock_service.plan_prune.return_value = CollectionRemovalPlan("EXC_KEY", [])
 
     args = argparse.Namespace(verb="prune", included="INC", excluded="EXC", user=False)
     slr_cmd.execute(args)
 
     out = capsys.readouterr().out
-    assert "No intersection found" in out
+    assert "already disjoint" in out
 
 
 def test_slr_register_args(slr_cmd):

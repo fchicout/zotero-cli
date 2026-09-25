@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 from rich.markup import escape
 from rich.table import Table
@@ -29,9 +30,14 @@ class LoadCommand:
             help="Review phase identifier (e.g., 'title_abstract', 'full_text').",
         )
         parser.add_argument(
+            "--execute",
+            action="store_true",
+            help="Apply the changes to the Zotero library (default: preview only).",
+        )
+        parser.add_argument(
             "--force",
             action="store_true",
-            help="Apply changes to the Zotero library. Omit for a non-destructive dry-run.",
+            help="Deprecated alias of --execute; will be removed in a future release.",
         )
         # Column mapping
         parser.add_argument("--col-key", help="CSV column mapping for Zotero Key (Default: 'Key').")
@@ -70,7 +76,16 @@ class LoadCommand:
     @staticmethod
     def execute(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         service = GatewayFactory.get_csv_inbound_service(force_user=getattr(args, "user", False))
-        dry_run = not args.force
+        # Elsewhere --force means "skip the confirmation"; here it used to mean
+        # "apply". It still applies, so existing scripts don't silently become
+        # dry runs, but it's deprecated in favour of --execute (Issue #378).
+        apply = bool(getattr(args, "execute", False) or args.force)
+        if args.force and not getattr(args, "execute", False):
+            print(
+                "Warning: `slr load --force` is deprecated; use --execute to apply changes.",
+                file=sys.stderr,
+            )
+        dry_run = not apply
 
         # Construct column map
         column_map = {}
@@ -92,7 +107,7 @@ class LoadCommand:
             csv_path=args.file,
             reviewer=args.reviewer,
             dry_run=dry_run,
-            force=args.force,
+            force=apply,
             phase=args.phase,
             column_map=column_map,
             move_to_included=args.move_to_included,
@@ -114,3 +129,8 @@ class LoadCommand:
         table.add_row("Notes Created", str(results.get("created", 0)))
         table.add_row("Skipped (Dry Run)", str(results.get("skipped", 0)))
         console.print(table)
+        if dry_run:
+            console.print(
+                "[yellow]Preview only - nothing was changed. "
+                "Re-run with --execute to apply.[/yellow]"
+            )

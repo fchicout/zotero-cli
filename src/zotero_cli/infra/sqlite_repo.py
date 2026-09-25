@@ -10,6 +10,7 @@ from typing import Any, Dict, Iterator, List, Optional
 
 from zotero_cli.core.interfaces import JobRepository, ZoteroGateway
 from zotero_cli.core.models import Job, ResearchPaper, ZoteroQuery
+from zotero_cli.core.utils.collection_resolver import resolve_collection_key
 from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -179,11 +180,10 @@ class SqliteZoteroGateway(ZoteroGateway):
             conn.close()
 
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
-        cols = self.get_all_collections()
-        for c in cols:
-            if c.get("data", {}).get("name") == name:
-                return str(c["key"])
-        return None
+        """Resolves a collection key or name to one key (None if no match).
+        Raises AmbiguousCollectionError when a name matches several
+        collections, instead of silently taking the first (Issue #381)."""
+        return resolve_collection_key(self.get_all_collections(), name)
 
     def _fetch_items_with_filter(
         self, filter_sql: str = "", params: tuple = (), trash_only: bool = False

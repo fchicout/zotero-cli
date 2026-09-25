@@ -124,12 +124,13 @@ graph TD
 
 **Usage:**
 ```bash
-zotero-cli slr load "decisions.csv" --reviewer "Persona" --phase "title_abstract" --force
+zotero-cli slr load --file "decisions.csv" --reviewer "Persona" --phase "title_abstract"            # preview
+zotero-cli slr load --file "decisions.csv" --reviewer "Persona" --phase "title_abstract" --execute  # apply
 ```
 
 **Scenario-Based Example:**
 - **Problem:** Screened 500 papers in Rayyan and exported a CSV. Need decisions reflected in Zotero.
-- **Action:** `zotero-cli slr load --file "rayyan_export.csv" --reviewer "Chicout" --phase "full_text" --move-to-included "Accepted" --force`
+- **Action:** `zotero-cli slr load --file "rayyan_export.csv" --reviewer "Chicout" --phase "full_text" --move-to-included "Accepted" --execute`
 
 ---
 
@@ -253,7 +254,7 @@ zotero-cli slr extract --validate [--schema schema.yaml]
 ---
 
 ### `prune`
-Enforces mutual exclusivity between an 'Included' and 'Excluded' collection by removing intersections from the excluded set.
+Makes an 'Included' and an 'Excluded' collection disjoint: items in both (the same item, or a duplicate import with the same DOI/arXiv ID) are removed from the excluded collection. Nothing is deleted from the library. Previews by default; `--execute` applies.
 
 **Logic Flow:**
 ```mermaid
@@ -271,7 +272,8 @@ graph TD
 
 **Usage:**
 ```bash
-zotero-cli slr prune --included "Accepted" --excluded "Rejected"
+zotero-cli slr prune --included "Accepted" --excluded "Rejected"            # preview
+zotero-cli slr prune --included "Accepted" --excluded "Rejected" --execute  # apply
 ```
 
 **Scenario-Based Example:**
