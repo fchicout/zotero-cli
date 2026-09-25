@@ -427,3 +427,84 @@ def test_sqlite_items_include_venue_fields_only_when_present(mock_db):
     assert items["ITEMKEY1"].raw_data["data"]["publicationTitle"] == "Journal of Tests"
     assert "publicationTitle" not in items["ITEMKEY2"].raw_data["data"]
     assert "proceedingsTitle" not in items["ITEMKEY1"].raw_data["data"]
+
+
+# --- Issue #366: offline search_items ignored the query ---
+
+
+@pytest.fixture
+def search_db(mock_db):
+    """mock_db plus a date, a tagged item, a note with text and versions."""
+    conn = sqlite3.connect(mock_db)
+    conn.executescript("""
+        INSERT INTO itemDataValues VALUES (4, '2021-05-01'), (5, 'An abstract about Graphs');
+        INSERT INTO itemData VALUES (1, 3, 4), (2, 2, 5);
+        UPDATE itemNotes SET title = 'Screening notes', note = '<p>decision: include 50%</p>'
+            WHERE itemID = 4;
+        INSERT INTO tags VALUES (1, 'reviewed'), (2, 'todo');
+        INSERT INTO itemTags VALUES (1, 1), (2, 2);
+        UPDATE items SET version = 7 WHERE itemID = 2;
+    """)
+    conn.commit()
+    conn.close()
+    return mock_db
+
+
+def _keys(gateway, **kwargs):
+    return sorted(item.key for item in gateway.search_items(ZoteroQuery(**kwargs)))
+
+
+@pytest.mark.parametrize(
+    "q, expected",
+    [
+        ("NOTHINGMATCHES", []),
+        ("test title", ["ITEMKEY1"]),  # every word, any order, case-insensitive
+        ("title test", ["ITEMKEY1"]),
+        ("TITLE", ["ITEMKEY1", "ITEMKEY2"]),
+        ("doe", ["ITEMKEY1"]),  # creator last name
+        ("jane", ["ITEMKEY1"]),  # creator first name
+        ("2021", ["ITEMKEY1"]),  # year from the date field
+        ("attachment", ["ITEMKEY3"]),  # a child only when it matches
+        ("screening", ["ITEMKEY4"]),  # note title
+        ("graphs", []),  # abstract: only with qmode=everything
+        ("50%", []),  # LIKE wildcards are matched literally
+        ("Test_Title", []),
+    ],
+)
+def test_search_title_creator_year(search_db, q, expected):
+    assert _keys(SqliteZoteroGateway(search_db), q=q) == expected
+
+
+def test_search_everything_matches_any_field_and_note_text(search_db):
+    gateway = SqliteZoteroGateway(search_db)
+    assert _keys(gateway, q="graphs", qmode="everything") == ["ITEMKEY2"]
+    assert _keys(gateway, q="decision include", qmode="everything") == ["ITEMKEY4"]
+    assert _keys(gateway, q="50%", qmode="everything") == ["ITEMKEY4"]
+
+
+def test_search_by_item_type(search_db):
+    gateway = SqliteZoteroGateway(search_db)
+    assert _keys(gateway, item_type="note") == ["ITEMKEY4"]
+    assert _keys(gateway, item_type="attachment || note") == ["ITEMKEY3", "ITEMKEY4"]
+    assert _keys(gateway, item_type="-attachment") == ["ITEMKEY1", "ITEMKEY2", "ITEMKEY4"]
+
+
+def test_search_by_tag(search_db):
+    gateway = SqliteZoteroGateway(search_db)
+    assert _keys(gateway, tag="reviewed") == ["ITEMKEY1"]
+    assert _keys(gateway, tag="reviewed || todo") == ["ITEMKEY1", "ITEMKEY2"]
+    assert _keys(gateway, tag="-reviewed") == ["ITEMKEY2", "ITEMKEY3", "ITEMKEY4"]
+
+
+def test_search_since_version(search_db):
+    assert _keys(SqliteZoteroGateway(search_db), since=5) == ["ITEMKEY2"]
+
+
+def test_search_filters_combine(search_db):
+    gateway = SqliteZoteroGateway(search_db)
+    assert _keys(gateway, q="title", tag="todo") == ["ITEMKEY2"]
+    assert _keys(gateway, q="title", item_type="note") == []
+
+
+def test_empty_query_still_returns_everything(search_db):
+    assert len(_keys(SqliteZoteroGateway(search_db))) == 4
