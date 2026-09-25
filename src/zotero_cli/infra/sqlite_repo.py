@@ -191,6 +191,25 @@ class SqliteZoteroGateway(ZoteroGateway):
         conn = self._get_connection()
         try:
             membership = "IN" if trash_only else "NOT IN"
+            # Zotero 7 stores every PDF highlight/note as an `items` row whose
+            # parent is in itemAnnotations; they aren't library items and
+            # usually outnumber the references (Issue #423).
+            where_template = """
+                WHERE i.itemID {membership} (SELECT itemID FROM deletedItems)
+                  AND it.typeName <> 'annotation'
+                  {filter_sql}
+            """
+            # filter_sql/membership are always fixed literal fragments supplied by call
+            # sites in this file (never user input); actual values are passed via the
+            # parameterized `params` tuple, not interpolated into the SQL text.
+            where_sql = where_template.format(filter_sql=filter_sql, membership=membership)
+            # The creators/collections/tags lookups below select by this same
+            # filter instead of binding one "?" per matched item: SQLite caps
+            # bound variables at 32,766 in most builds (Issue #422).
+            matched_ids_sql = (
+                "SELECT i.itemID FROM items i "
+                "JOIN itemTypes it ON i.itemTypeID = it.itemTypeID" + where_sql  # nosec B608
+            )
             query_sql_template = """
                 SELECT i.itemID, i.key, i.version, i.libraryID, it.typeName,
                        (SELECT k.key FROM items k WHERE k.itemID = COALESCE(
@@ -215,22 +234,13 @@ class SqliteZoteroGateway(ZoteroGateway):
                 LEFT JOIN itemData id ON i.itemID = id.itemID
                 LEFT JOIN fields f ON id.fieldID = f.fieldID
                 LEFT JOIN itemDataValues dv ON id.valueID = dv.valueID
-                WHERE i.itemID {membership} (SELECT itemID FROM deletedItems)
-                  {filter_sql}
+                {where_sql}
                 GROUP BY i.itemID
             """
-            # filter_sql/membership are always fixed literal fragments supplied by call
-            # sites in this file (never user input); actual values are passed via the
-            # parameterized `params` tuple below, not interpolated into the SQL text.
-            query_sql = query_sql_template.format(
-                filter_sql=filter_sql, membership=membership
-            )  # nosec B608
+            query_sql = query_sql_template.format(where_sql=where_sql)  # nosec B608
             rows = conn.execute(query_sql, params).fetchall()
             if not rows:
                 return
-
-            item_ids = [row["itemID"] for row in rows]
-            placeholders = ",".join("?" for _ in item_ids)
 
             creators_by_item: Dict[int, List[Dict[str, Any]]] = {}
             creator_cursor = conn.execute(
@@ -239,10 +249,10 @@ class SqliteZoteroGateway(ZoteroGateway):
                 FROM itemCreators ic
                 JOIN creators c ON ic.creatorID = c.creatorID
                 JOIN creatorTypes ct ON ic.creatorTypeID = ct.creatorTypeID
-                WHERE ic.itemID IN ({placeholders})
+                WHERE ic.itemID IN ({matched_ids_sql})
                 ORDER BY ic.itemID, ic.orderIndex
             """,  # nosec B608
-                item_ids,
+                params,
             )
             for r in creator_cursor:
                 creators_by_item.setdefault(r["itemID"], []).append(
@@ -259,9 +269,9 @@ class SqliteZoteroGateway(ZoteroGateway):
                 SELECT ci.itemID, c.key
                 FROM collectionItems ci
                 JOIN collections c ON ci.collectionID = c.collectionID
-                WHERE ci.itemID IN ({placeholders})
+                WHERE ci.itemID IN ({matched_ids_sql})
             """,  # nosec B608
-                item_ids,
+                params,
             )
             for r in col_cursor:
                 collections_by_item.setdefault(r["itemID"], []).append(r["key"])
@@ -269,12 +279,12 @@ class SqliteZoteroGateway(ZoteroGateway):
             tags_by_item: Dict[int, List[str]] = {}
             tag_cursor = conn.execute(
                 f"""
-                SELECT it.itemID, t.name
-                FROM itemTags it
-                JOIN tags t ON it.tagID = t.tagID
-                WHERE it.itemID IN ({placeholders})
+                SELECT itg.itemID, t.name
+                FROM itemTags itg
+                JOIN tags t ON itg.tagID = t.tagID
+                WHERE itg.itemID IN ({matched_ids_sql})
             """,  # nosec B608
-                item_ids,
+                params,
             )
             for r in tag_cursor:
                 tags_by_item.setdefault(r["itemID"], []).append(r["name"])
