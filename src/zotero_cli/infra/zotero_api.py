@@ -22,6 +22,17 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
+# The Web API's maximum page size.
+PAGE_SIZE = 100
+
+
+def _total_results(response: requests.Response) -> Optional[int]:
+    """The `Total-Results` header as an int, or None if absent/unparseable."""
+    try:
+        return int(response.headers["Total-Results"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
 
 class ZoteroAPIClient(ZoteroGateway):
     """
@@ -66,28 +77,39 @@ class ZoteroAPIClient(ZoteroGateway):
             logger.warning(f"ZoteroAPIClient: Write failed details: {data['failed']}")
         return None
 
-    def _paginate_items(self, endpoint: str, params: Optional[Dict] = None) -> Iterator[ZoteroItem]:
-        limit = 100
+    def _paginate(
+        self, endpoint: str, params: Optional[Dict] = None, use_prefix: bool = True
+    ) -> Iterator[Dict[str, Any]]:
+        """
+        Yields every object of a listing endpoint, following `start` until
+        `Total-Results` is reached (or, without that header, until a short
+        page). Errors propagate: callers decide between failing and a
+        default, never a silently truncated list (Issue #394).
+        """
+        page_params = dict(params or {})
+        page_params["limit"] = PAGE_SIZE
         start = 0
-        if params is None:
-            params = {}
-        params["limit"] = limit
-
         while True:
-            try:
-                params["start"] = start
-                response = self.http.get(endpoint, params=params)
-                items = cast(List[Dict[str, Any]], response.json())
-                if not items:
-                    break
-                for item in items:
-                    yield ZoteroItem.from_raw_zotero_item(item)
-                start += len(items)
-                if len(items) < limit:
-                    break
-            except Exception:
-                logger.exception(f"ZoteroAPIClient: Error fetching items from {endpoint}")
+            page_params["start"] = start
+            response = self.http.get(endpoint, params=page_params, use_prefix=use_prefix)
+            batch = response.json()
+            if not isinstance(batch, list):
+                raise ValueError(f"expected a list from {endpoint}, got {type(batch).__name__}")
+            yield from cast(List[Dict[str, Any]], batch)
+            start += len(batch)
+            total = _total_results(response)
+            if not batch or (total is not None and start >= total):
                 break
+            if total is None and len(batch) < PAGE_SIZE:
+                break
+
+    def _paginate_items(self, endpoint: str, params: Optional[Dict] = None) -> Iterator[ZoteroItem]:
+        try:
+            for raw in self._paginate(endpoint, params):
+                yield ZoteroItem.from_raw_zotero_item(raw)
+        except Exception:
+            # Still truncates on a mid-listing error; tracked in #369.
+            logger.exception(f"ZoteroAPIClient: Error fetching items from {endpoint}")
 
     # --- Read Operations ---
 
@@ -95,19 +117,14 @@ class ZoteroAPIClient(ZoteroGateway):
         return self._safe_execute(
             "fetching user groups",
             [],
-            lambda: cast(
-                List[Dict[str, Any]],
-                self.http.get(f"users/{user_id}/groups", use_prefix=False).json(),
-            ),
+            lambda: list(self._paginate(f"users/{user_id}/groups", use_prefix=False)),
         )
 
     def get_all_collections(self) -> List[Dict[str, Any]]:
         return self._safe_execute(
             "fetching collections",
             [],
-            lambda: cast(
-                List[Dict[str, Any]], self.http.get("collections", params={"limit": 100}).json()
-            ),
+            lambda: list(self._paginate("collections")),
         )
 
     def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
@@ -120,21 +137,15 @@ class ZoteroAPIClient(ZoteroGateway):
         )
 
     def get_tags(self) -> List[str]:
-        def _fetch_tags() -> List[str]:
-            response = self.http.get("tags", params={"limit": 100})
-            tags_data = cast(List[Dict[str, Any]], response.json())
-            return [t["tag"] for t in tags_data]
-
-        return self._safe_execute("fetching tags", [], _fetch_tags)
+        return self._safe_execute(
+            "fetching tags", [], lambda: [t["tag"] for t in self._paginate("tags")]
+        )
 
     def get_tags_for_item(self, item_key: str) -> List[str]:
         return self._safe_execute(
             f"fetching tags for item {item_key}",
             [],
-            lambda: [
-                t["tag"]
-                for t in cast(List[Dict[str, Any]], self.http.get(f"items/{item_key}/tags").json())
-            ],
+            lambda: [t["tag"] for t in self._paginate(f"items/{item_key}/tags")],
         )
 
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
@@ -215,7 +226,7 @@ class ZoteroAPIClient(ZoteroGateway):
         return self._safe_execute(
             f"fetching children for {item_key}",
             [],
-            lambda: cast(List[Dict[str, Any]], self.http.get(f"items/{item_key}/children").json()),
+            lambda: list(self._paginate(f"items/{item_key}/children")),
         )
 
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
