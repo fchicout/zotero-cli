@@ -9,7 +9,14 @@ from zotero_cli.core.services.attachment_service import AttachmentService
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 from zotero_cli.core.services.pdf_finder_service import PDFFinderService
 from zotero_cli.core.services.purge_service import PurgeService
+from zotero_cli.core.services.selftest import SAMPLE_PDF, SAMPLE_PDF_TEXT
 from zotero_cli.core.zotero_item import ZoteroItem
+
+
+def _write_sample_pdf(_attachment_key, path):
+    with open(path, "wb") as f:
+        f.write(SAMPLE_PDF)
+    return True
 
 
 @pytest.fixture
@@ -139,22 +146,15 @@ def test_get_fulltext_success(service, mock_gateway):
         }
     ]
 
-    # Mocking successful download
-    mock_gateway.download_attachment.return_value = True
+    # A real PDF "downloaded" into the temp path: no mocked converter, so a
+    # missing PDF backend fails here (Issue #403).
+    mock_gateway.download_attachment.side_effect = _write_sample_pdf
 
-    # Mocking MarkItDown lib
-    with patch("markitdown.MarkItDown") as mock_mid_class:
-        mock_mid = mock_mid_class.return_value
-        # Mocking the conversion result
-        mock_convert_result = MagicMock()
-        mock_convert_result.text_content = "# Test Content"
-        mock_mid.convert.return_value = mock_convert_result
+    result = service.get_fulltext(item_key)
 
-        result = service.get_fulltext(item_key)
-
-        assert result == "# Test Content"
-        # Since get_fulltext uses tempfile, we check if download_attachment was called
-        mock_gateway.download_attachment.assert_called_once()
+    assert result is not None
+    assert SAMPLE_PDF_TEXT in result
+    mock_gateway.download_attachment.assert_called_once()
 
 
 def test_get_fulltext_no_pdf(service, mock_gateway):
@@ -175,22 +175,31 @@ def test_bulk_export_markdown(service, mock_gateway, tmp_path):
         {"key": "ATT", "data": {"itemType": "attachment", "contentType": "application/pdf"}}
     ]
 
-    mock_gateway.download_attachment.return_value = True
+    mock_gateway.download_attachment.side_effect = _write_sample_pdf
 
-    with patch("markitdown.MarkItDown") as mock_mid_class:
-        mock_mid = mock_mid_class.return_value
-        mock_convert_result = MagicMock()
-        mock_convert_result.text_content = "Content"
-        mock_mid.convert.return_value = mock_convert_result
+    stats = service.bulk_export_markdown(items, tmp_path)
 
-        stats = service.bulk_export_markdown(items, tmp_path)
+    assert stats["total"] == 2
+    assert stats["success"] == 2
 
-        assert stats["total"] == 2
-        assert stats["success"] == 2
+    # Check files created (slugify produces lowercase)
+    assert SAMPLE_PDF_TEXT in (tmp_path / "K1_test_paper.md").read_text()
+    assert (tmp_path / "K2_test_paper.md").exists()
 
-        # Check files created (slugify produces lowercase)
-        assert (tmp_path / "K1_test_paper.md").exists()
-        assert (tmp_path / "K2_test_paper.md").exists()
+
+def test_get_fulltext_returns_none_for_a_corrupt_pdf(service, mock_gateway):
+    mock_gateway.get_item_children.return_value = [
+        {"key": "ATT", "data": {"itemType": "attachment", "contentType": "application/pdf"}}
+    ]
+
+    def write_garbage(_key, path):
+        with open(path, "wb") as f:
+            f.write(b"not a pdf")
+        return True
+
+    mock_gateway.download_attachment.side_effect = write_garbage
+
+    assert service.get_fulltext("K1") is None
 
 
 def test_download_file_refuses_unsafe_url(service, caplog):

@@ -17,7 +17,7 @@ It talks to the Zotero Web API (personal and group libraries). It can also read 
 
 - **Scriptable:** items, collections, tags, notes and attachments are all reachable from a terminal, with no GUI steps in between.
 - **Machine-readable output:** `item list` prints `json`, `csv` or `markdown`, and `--fields` picks the columns. Data goes to stdout and warnings to stderr, so you can pipe it into `jq`, a spreadsheet or a prompt.
-- **Suited to LLM agents:** an agent can run `--help` on any command to learn how to use it, since each one includes worked examples. `item export --format md` converts an item's PDF into Markdown an LLM can read.
+- **Suited to LLM agents:** an agent can run `--help` on any command to learn how to use it, since each one includes worked examples. `item export --format md` extracts the text of an item's PDF into a `.md` file an LLM can read.
 - **Preview first:** `collection clean`, `collection delete --recursive`, `slr prune`, `slr load`, `tag purge`, `item merge`, `item hydrate`, `item pdf strip` and `slr dedupe` only show what they would do until you add `--execute`. A recursive delete also asks for confirmation (`--yes` in scripts), and a collection name that matches several collections is refused rather than guessed. `item purge` and `collection purge` ask for confirmation; `item delete` deletes the one item you name. `system restore` has `--dry-run`, and `--offline` reads the local database and is read-only apart from trash/restore.
 - **Runs anywhere:** a single binary for Linux and Windows, no Python needed. Also available as a container or a Python package.
 
@@ -65,7 +65,7 @@ zotero-cli item pdf fetch --collection "Inbox"
 
 ### Hand a paper to an LLM
 ```bash
-# The item's PDF, converted to Markdown
+# The text of the item's PDF, saved as .md
 zotero-cli item export --key ABCD1234 --format md --output ./context/
 ```
 

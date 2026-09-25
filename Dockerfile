@@ -33,7 +33,8 @@ RUN .venv/bin/pyinstaller --onefile --name zotero-cli \
     --exclude-module numpy \
     --exclude-module pandas \
     --exclude-module matplotlib \
-    --clean src/zotero_cli/cli/main.py
+    --clean src/zotero_cli/cli/main.py \
+    && ./dist/zotero-cli system selftest
 
 FROM python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2 AS runtime
 

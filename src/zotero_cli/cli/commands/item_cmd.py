@@ -1326,6 +1326,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 console.print("[yellow]Skipped:[/yellow] Item has no PDF attachment.")
             else:
                 console.print("[bold red]Failed:[/bold red] Could not extract text from PDF.")
+                sys.exit(1)
         else:
             # BibTeX / RIS
             if not args.output:
