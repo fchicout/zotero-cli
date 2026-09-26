@@ -104,10 +104,14 @@ def test_local_transformers_llm_provider():
         res = provider.generate("hello prompt", system_instruction="system rule")
         assert res == "local transformers response"
 
+        # GHSA-wv6f-cg7x-pg85: a pinned commit, never `main`, and no repository code.
+        pinned_sha = "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
         mock_transformers.AutoTokenizer.from_pretrained.assert_called_once_with(
-            "Qwen/Qwen2.5-1.5B-Instruct", revision="main"
+            "Qwen/Qwen2.5-1.5B-Instruct", revision=pinned_sha, trust_remote_code=False
         )
-        mock_transformers.AutoModelForCausalLM.from_pretrained.assert_called_once()
+        model_kwargs = mock_transformers.AutoModelForCausalLM.from_pretrained.call_args.kwargs
+        assert model_kwargs["revision"] == pinned_sha
+        assert model_kwargs["trust_remote_code"] is False
         mock_tokenizer_obj.apply_chat_template.assert_called_once_with(
             [
                 {"role": "system", "content": "system rule"},

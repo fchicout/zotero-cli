@@ -56,3 +56,5 @@ Manages RAG models (embeddings and generative).
 zotero-cli rag model set
 zotero-cli rag model clean
 ```
+
+**Model safety:** the models `rag model set` offers are downloaded and loaded at a pinned commit, not the repository's moving `main` branch. Models that run Python code from their repository (Jina v3, gte-Qwen2) need your explicit consent: `rag model set` asks, or set `trust_remote_code = true` in the `[zotero]` section of `config.toml` (or `ZOTERO_TRUST_REMOTE_CODE=1`). Any other model you name in `config.toml` loads at its current `main` revision, with a warning.
