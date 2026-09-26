@@ -27,9 +27,7 @@ class StorageService:
         except ConfigurationError:
             return False
 
-    def checkout_items(
-        self, limit: int = 50, allow_group_library: bool = False, dry_run: bool = False
-    ) -> int:
+    def checkout_items(self, limit: int = 50, allow_group_library: bool = False) -> int:
         """
         Moves 'imported_file' attachments to local storage and converts them to 'linked_file'.
 
@@ -52,7 +50,7 @@ class StorageService:
             return 0
 
         storage_root = Path(self.config.storage_path)
-        if not storage_root.exists() and not dry_run:
+        if not storage_root.exists():
             try:
                 storage_root.mkdir(parents=True, exist_ok=True)
             except Exception as e:
@@ -96,14 +94,12 @@ class StorageService:
             if processed >= limit:
                 break
 
-            if self.checkout_single_item(item, storage_root, dry_run=dry_run):
+            if self.checkout_single_item(item, storage_root):
                 processed += 1
 
         return processed
 
-    def checkout_single_item(
-        self, item: ZoteroItem, storage_root: Path, dry_run: bool = False
-    ) -> bool:
+    def checkout_single_item(self, item: ZoteroItem, storage_root: Path) -> bool:
         # Check if it's eligible
         if item.item_type != "attachment":
             return False
@@ -132,10 +128,6 @@ class StorageService:
         if target_path.exists():
             print(strip_controls(f"Skipping {item.key}: File {filename} already exists."))
             return False
-
-        if dry_run:
-            print(strip_controls(f"Would move {item.key}: {filename} -> {target_path}"))
-            return True
 
         print(strip_controls(f"Processing {item.key}: {filename}..."))
 
@@ -166,5 +158,5 @@ class StorageService:
                 target_path.unlink()
             return False
 
-        print(strip_controls(f"  Moved to {target_path}"))
+        print(f"  [green]Moved[/] to {target_path}")
         return True

@@ -27,8 +27,6 @@ This allows you to maintain a massive library of PDFs on your own hard drive (or
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--limit` | Integer | Max items to process | Optional. Default: 50. |
-| `--dry-run` | Boolean | List the attachments that would move | Optional. Nothing is changed. |
-| `--execute` | Boolean | Move the files | Optional in 3.x (moving is still the default, with a deprecation warning); required from 4.0, which previews by default. |
 | `--allow-group-library` | Boolean | Check out from a group library anyway | Optional. Group libraries are refused by default: the linked file's local path (with your username) syncs to every member, and the files are missing on their machines. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
