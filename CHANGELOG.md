@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🛡️ Security
+- **Terminal control characters are removed from CSV, Markdown, BibTeX and RIS output (GHSA-3r38-p632-f79q):** `item list --format csv|markdown` and `item inspect --format bibtex|ris` wrote library fields to the terminal unchanged. Anyone who can edit a shared library could make a title carry escape sequences (a disguised hyperlink, a clipboard write, a screen clear) that the terminal would act on. 2.8.12 fixed this for tables and other rich output. JSON escapes these characters itself.
+
 ### ✨ Features
 - **`item delete --dry-run`** shows the item and the attachments and notes that would be deleted with it (Issue #378).
 - **`storage checkout --dry-run`** lists the attachments that would move to local storage, without changing anything (Issue #378).
