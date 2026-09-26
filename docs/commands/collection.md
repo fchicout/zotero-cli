@@ -19,12 +19,12 @@ Create a new collection.
 
 **Usage:**
 ```bash
-zotero-cli collection create "New Folder" --parent "Root Folder"
+zotero-cli collection create --name "New Folder" --parent "Root Folder"
 ```
 
 **Parameters:**
-*   `name`: (Positional, Required) The name of the new collection.
-*   `--parent`: Optional parent collection Name or Key.
+*   `--name`: (Required) The name of the new collection.
+*   `--parent`: Optional parent collection name or key.
 
 ---
 
@@ -33,8 +33,13 @@ Rename an existing collection.
 
 **Usage:**
 ```bash
-zotero-cli collection rename "Old Name" "New Name"
+zotero-cli collection rename --key "ABCD1234" --name "New Name"
 ```
+
+**Parameters:**
+*   `--key`: (Required) The collection's key (`collection list` shows it).
+*   `--name`: (Required) The new name.
+*   `--version`: Optional library version for optimistic locking.
 
 ---
 
@@ -70,34 +75,18 @@ zotero-cli collection clean --collection "Temp" --execute   # apply
 
 ---
 
-### `duplicates`
-Identify duplicate items within specific collections based on DOI or Title.
+### Duplicates and PDFs in a collection
+These are not `collection` verbs:
 
-**Usage:**
-```bash
-zotero-cli collection duplicates --collections "Folder A, Folder B"
-```
-
----
-
-### `pdf`
-Bulk PDF attachment operations for an entire collection.
-
-#### `pdf fetch`
-Attempt to fetch and attach missing PDFs for all items in a collection.
-
-**Usage:**
-```bash
-zotero-cli collection pdf fetch --collection "Inbox"
-```
-
-### `pdf strip`
-Remove all PDF attachments from items in a collection.
-
-**Usage:**
-```bash
-zotero-cli collection pdf strip --collection "My Review"
-```
+*   Find duplicates within collections with `report duplicates`:
+    ```bash
+    zotero-cli report duplicates --collections "Folder A,Folder B"
+    ```
+*   Fetch missing PDFs for every item in a collection with `item pdf fetch`:
+    ```bash
+    zotero-cli item pdf fetch --collection "Inbox"
+    ```
+*   PDF attachments are removed one item at a time with `item pdf strip --key ITEMKEY` (see [item](item.md)).
 
 ---
 

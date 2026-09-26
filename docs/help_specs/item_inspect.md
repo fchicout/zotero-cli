@@ -36,7 +36,7 @@ It retrieves information about the item's authors, identifiers (DOI, ISBN), publ
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Verifying metadata after an import
 **Problem:** I've imported a paper and want to ensure the DOI was correctly captured and check for any existing notes.
-**Action:** `zotero-cli item inspect "ABCD1234"`
+**Action:** `zotero-cli item inspect --key "ABCD1234"`
 **Result:** The CLI displays a detailed view of the item, including its DOI, abstract, and list of child PDF attachments.
 
 ## 7. Cognitive Safeguards

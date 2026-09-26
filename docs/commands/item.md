@@ -9,11 +9,11 @@ Display detailed metadata and child objects (notes, attachments) for an item.
 
 **Usage:**
 ```bash
-zotero-cli item inspect "ITEMKEY"
+zotero-cli item inspect --key "ITEMKEY"
 ```
 
 **Parameters:**
-*   `key`: (Positional, Required) The Zotero Item Key.
+*   `--key`: (Required) The Zotero Item Key.
 *   `--raw`: Show the raw JSON data from the Zotero API.
 *   `--full-notes`: Display the full content of all child notes.
 
@@ -78,11 +78,11 @@ Update specific metadata fields of an item.
 
 **Usage:**
 ```bash
-zotero-cli item update "ITEMKEY" --doi "10.1101/new-doi" --title "Corrected Title"
+zotero-cli item update --key "ITEMKEY" --doi "10.1101/new-doi" --title "Corrected Title"
 ```
 
 **Parameters:**
-*   `key`: (Positional, Required) The Zotero Item Key.
+*   `--key`: (Required) The Zotero Item Key.
 *   `--doi`: Update the DOI field.
 *   `--title`: Update the Title.
 *   `--abstract`: Update the Abstract Note.
@@ -181,11 +181,11 @@ Purge specific assets (files, notes, tags) from an item without deleting the ite
 
 **Usage:**
 ```bash
-zotero-cli item purge "ITEMKEY" --files --notes --tags
+zotero-cli item purge --key "ITEMKEY" --files --notes --tags
 ```
 
 **Parameters:**
-*   `key`: (Positional, Required) The Zotero Item Key.
+*   `--key`: (Required) The Zotero Item Key.
 *   `--files`: Purge all child attachments/files.
 *   `--notes`: Purge all child notes.
 *   `--tags`: Purge all tags associated with the item.
@@ -198,11 +198,11 @@ Transfer an item (metadata, notes, and attachments) between different Zotero lib
 
 **Usage:**
 ```bash
-zotero-cli item transfer "ITEMKEY" --target-group "123456" [--delete-source]
+zotero-cli item transfer --key "ITEMKEY" --target-group "123456" [--delete-source]
 ```
 
 **Parameters:**
-*   `key`: (Positional, Required) The Zotero Item Key to transfer.
+*   `--key`: (Required) The Zotero Item Key to transfer.
 *   `--target-group`: (Required) The ID of the destination Zotero Group.
 *   `--delete-source`: If specified, delete the item from the source library after a successful transfer.
 
@@ -240,7 +240,7 @@ Attempt to fetch and attach a missing PDF for a single item.
 
 **Usage:**
 ```bash
-zotero-cli item pdf fetch "ITEMKEY"
+zotero-cli item pdf fetch --key "ITEMKEY"
 ```
 
 #### `pdf strip`
@@ -253,7 +253,7 @@ Remove all PDF attachments from a single item.
 
 ```bash
 
-zotero-cli item pdf strip "ITEMKEY"
+zotero-cli item pdf strip --key "ITEMKEY"
 
 ```
 
@@ -269,6 +269,6 @@ Attach a local file (PDF, PostScript, DVI, etc.) to a specific item.
 
 ```bash
 
-zotero-cli item pdf attach "ITEMKEY" "/path/to/local/paper.pdf"
+zotero-cli item pdf attach --key "ITEMKEY" --file "/path/to/local/paper.pdf"
 
 ```

@@ -33,10 +33,10 @@ The `slr promote` command automates phase transitions. When an item successfully
 | `--vote` | String | Screening decision | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
-### Scenario: Promoting abstract-screened papers to full-text review
-**Problem:** I want to advance all papers that passed Title/Abstract review into the Full Text phase.
-**Action:** `zotero-cli slr promote`
-**Result:** Eligible papers are moved from `01_title_abstract` into `02_full_text`.
+### Scenario: Accepting a paper at title/abstract screening
+**Problem:** Paper `ABCD1234` in the `raw_acm` source passed title/abstract review, and I want to record that and move it to the next phase in one step.
+**Action:** `zotero-cli slr promote --key "ABCD1234" --vote INCLUDE --phase title_abstract --tree "raw_acm"`
+**Result:** The decision is recorded as an SDB note, and the paper is moved into the next phase folder of the `raw_acm` tree. (`slr promote` works one paper at a time; `slr reconcile` realigns a whole tree.)
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Attempting to promote items when the next phase directories are missing.

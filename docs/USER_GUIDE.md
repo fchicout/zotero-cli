@@ -1,4 +1,6 @@
-# User Guide (v2.6.0)
+# User Guide
+
+This guide describes the current release; run `zotero-cli --version` to see which one you have.
 
 ## Table of Contents
 1.  [Getting Started](#getting-started)
@@ -54,13 +56,13 @@ zotero-cli slr screen --source "raw_arXiv" --include "screened" --exclude "exclu
 **Single Decision (CLI):**
 Record a decision directly from the terminal.
 ```bash
-zotero-cli slr decide --key "ITEM_KEY" --vote "include"
+zotero-cli slr decide --key "ITEM_KEY" --vote INCLUDE
 ```
 
 ### 2. Reporting (PRISMA)
 Generate a PRISMA 2020 statistics report.
 ```bash
-zotero-cli report prisma --collection "screened"
+zotero-cli slr report prisma --collection "screened"
 ```
 
 ---
@@ -98,13 +100,14 @@ zotero-cli collection clean --collection "Trash"
 ### Tags
 ```bash
 zotero-cli tag list
-zotero-cli tag purge --tag "junk"
+zotero-cli tag purge --collection "Junk"            # preview: removes every tag from the collection's items
+zotero-cli tag purge --collection "Junk" --execute
 ```
 
 ### Items
 ```bash
 zotero-cli item list --collection "MyCol"
-zotero-cli item inspect BQPLL87F
+zotero-cli item inspect --key BQPLL87F
 zotero-cli item move --item-id "KEY" --target "Read"
 ```
 
@@ -121,5 +124,5 @@ zotero-cli system info
 ### Audit
 Check for missing metadata (Abstracts, DOIs, PDFs).
 ```bash
-zotero-cli slr audit check --collection "Critical Review"
+zotero-cli report audit --collection "Critical Review"
 ```

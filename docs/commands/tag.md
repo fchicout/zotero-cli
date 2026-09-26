@@ -24,30 +24,13 @@ zotero-cli tag add --item "ITEMKEY" --tags "tag1, tag2"
 
 ---
 
-### `remove`
-Remove one or more tags from a specific item.
-
-**Usage:**
-```bash
-zotero-cli tag remove --item "ITEMKEY" --tags "tag1"
-```
-
----
-
-### `rename`
-Rename an existing tag across the entire library.
-
-**Usage:**
-```bash
-zotero-cli tag rename --old "old-tag" --new "new-tag"
-```
-
----
-
 ### `purge`
-Permanently delete specific tags from the entire library.
+Remove every tag from every item in a collection. The items themselves are not changed otherwise. Previews by default.
 
 **Usage:**
 ```bash
-zotero-cli tag purge "old-tag, draft"
+zotero-cli tag purge --collection "Imported"             # preview
+zotero-cli tag purge --collection "Imported" --execute   # apply
 ```
+
+There is no command to remove or rename a single tag; use Zotero for that.

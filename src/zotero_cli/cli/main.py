@@ -44,7 +44,9 @@ logger = logging.getLogger(__name__)
 # --- Main Router ---
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
+    """The full command-line parser (also used by the docs tests to check
+    that every documented example parses, Issue #386)."""
     parser = argparse.ArgumentParser(description="zotero-cli - manage your Zotero library from the command line")
     parser.add_argument(
         "-V", "--version", action="version", version=f"zotero-cli {__version__}"
@@ -54,10 +56,12 @@ def main() -> None:
         "--offline",
         action="store_true",
         help=(
-            "Use local zotero.sqlite database (read-only). Operates across "
-            "the entire local database, not just the configured library - "
-            "see docs/SETUP_GUIDE.md if more than one library is synced "
-            "locally."
+            "Use the local zotero.sqlite database instead of the Web API. "
+            "Read-only, except `item trash`/`item restore`, which write to "
+            "zotero.sqlite directly (close Zotero and keep a backup first). "
+            "Operates across the entire local database, not just the "
+            "configured library - see docs/SETUP_GUIDE.md if more than one "
+            "library is synced locally."
         ),
     )
     parser.add_argument("--config", help="Path to a custom config.toml")
@@ -77,7 +81,11 @@ def main() -> None:
         cmd_parser = subparsers.add_parser(cmd.name, help=cmd.help, aliases=aliases)
         cmd.register_args(cmd_parser)
         cmd_parser.set_defaults(func=cmd.execute)
+    return parser
 
+
+def main() -> None:
+    parser = build_parser()
     args = parser.parse_args()
 
     set_offline_mode(args.offline)

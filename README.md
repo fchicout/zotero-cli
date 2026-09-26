@@ -16,8 +16,8 @@ It talks to the Zotero Web API (personal and group libraries). It can also read 
 ## Why a CLI for Zotero?
 
 - **Scriptable:** items, collections, tags, notes and attachments are all reachable from a terminal, with no GUI steps in between.
-- **Machine-readable output:** `item list` prints `json`, `csv` or `markdown`, and `--fields` picks the columns. Data goes to stdout and warnings to stderr, so you can pipe it into `jq`, a spreadsheet or a prompt.
-- **Suited to LLM agents:** an agent can run `--help` on any command to learn how to use it, since each one includes worked examples. `item export --format md` extracts the text of an item's PDF into a `.md` file an LLM can read.
+- **Machine-readable output:** `item list` prints `json`, `csv` or `markdown`, and `--fields` picks the columns. Pipe it into `jq`, a spreadsheet or a prompt.
+- **Suited to LLM agents:** an agent can run `--help` on any command to learn its options, and most commands' help includes worked examples. `item export --format md` extracts the text of an item's PDF into a `.md` file an LLM can read.
 - **Preview first:** `collection clean`, `collection delete --recursive`, `slr prune`, `slr load`, `tag purge`, `item merge`, `item hydrate`, `item pdf strip` and `slr dedupe` only show what they would do until you add `--execute`. A recursive delete also asks for confirmation (`--yes` in scripts), and a collection name that matches several collections is refused rather than guessed. `item purge` and `collection purge` ask for confirmation; `item delete` deletes the one item you name. `system restore` has `--dry-run`, and `--offline` reads the local database and is read-only apart from trash/restore.
 - **Runs anywhere:** a single binary for Linux and Windows, no Python needed. Also available as a container or a Python package.
 
@@ -99,18 +99,19 @@ zotero-cli system demo-sandbox --clean
 | Noun | Description | Key Verbs |
 | :--- | :--- | :--- |
 | **[`init`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/init.md)** | Config wizard | `(default)` |
-| **[`item`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/item.md)** | Items | `list`, `inspect`, `add`, `update`, `move`, `merge`, `export`, `pdf`, `hydrate`, `purge`, `delete` |
+| **[`item`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/item.md)** | Items | `list`, `inspect`, `add`, `update`, `move`, `merge`, `export`, `pdf`, `hydrate`, `purge`, `delete`, `trash`, `restore`, `transfer` |
 | **[`collection`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/collection.md)** | Folders | `list`, `create`, `rename`, `delete`, `clean`, `export`, `backup`, `purge` |
 | **[`tag`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/tag.md)** | Tags | `list`, `add`, `purge` |
 | **[`search`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/search.md)** | Finder | `--doi`, `--title` |
 | **[`import`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/import.md)** | Ingest | `arxiv`, `doi`, `file`, `bdtd`, `manual` |
 | **[`report`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/report.md)** | Library health | `duplicates`, `audit`, `stats`, `attachments`, `verify-latex` |
 | **[`storage`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/storage.md)** | Attachments | `checkout` |
-| **[`system`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/system.md)** | Operations | `info`, `check`, `groups`, `switch`, `backup`, `restore`, `jobs` |
+| **[`system`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/system.md)** | Operations | `info`, `check`, `selftest`, `groups`, `switch`, `backup`, `verify`, `restore`, `normalize`, `demo-sandbox`, `jobs` |
 | **[`serve`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/serve.md)** | Local HTTP API | `(default)` |
-| **[`slr`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/slr.md)** | Literature review | `screen`, `decide`, `load`, `extract`, `snowball`, `sdb`, `report` |
+| **[`slr`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/slr.md)** | Literature review | `source`, `screen`, `decide`, `load`, `list`, `reconcile`, `promote`, `dedupe`, `prune`, `extract`, `snowball`, `sdb`, `report` |
+| **[`rag`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/rag.md)** | Semantic search (optional `rag` extra) | `ingest`, `query`, `context`, `purge`, `model` |
 
-Every command has built-in help with worked examples: `zotero-cli <noun> <verb> --help`.
+Every command has built-in help: `zotero-cli <noun> <verb> --help`. Every example in these docs is checked against the real command-line parser in CI.
 
 ---
 
