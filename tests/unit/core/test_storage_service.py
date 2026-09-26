@@ -125,3 +125,22 @@ def test_checkout_group_library_with_explicit_opt_in(tmp_path, mock_gateway, moc
     service = StorageService(config, mock_gateway)
     assert service.checkout_items(allow_group_library=True) == 0
     mock_gateway.search_items.assert_called_once()
+
+
+def test_checkout_dry_run_lists_without_downloading_or_relinking(storage_service, mock_gateway, capsys):
+    """Issue #378: `storage checkout --dry-run` changes nothing."""
+    item = ZoteroItem(
+        key="ITEM123",
+        version=1,
+        item_type="attachment",
+        raw_data={"data": {"linkMode": "imported_file", "filename": "paper.pdf"}},
+    )
+    mock_gateway.search_items.return_value = iter([item])
+    storage_service._is_group_library = lambda: False  # type: ignore[method-assign]
+
+    assert storage_service.checkout_items(limit=10, dry_run=True) == 1
+
+    mock_gateway.download_attachment.assert_not_called()
+    mock_gateway.update_attachment_link.assert_not_called()
+    assert not Path(storage_service.config.storage_path).exists()  # not even created
+    assert "Would move ITEM123: paper.pdf" in capsys.readouterr().out

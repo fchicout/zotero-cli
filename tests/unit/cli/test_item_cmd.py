@@ -355,6 +355,7 @@ def test_item_delete_success(mock_clients, env_vars, capsys):
     args.verb = "delete"
     args.key = "ABCD1234"
     args.version = None
+    args.dry_run = False
     args.user = False
 
     ItemCommand().execute(args)
@@ -371,12 +372,74 @@ def test_item_delete_missing_item(mock_clients, env_vars, capsys):
     args.verb = "delete"
     args.key = "MISSING"
     args.version = None
+    args.dry_run = False
     args.user = False
 
-    ItemCommand().execute(args)
+    with pytest.raises(SystemExit) as exc:
+        ItemCommand().execute(args)
+
+    assert exc.value.code == 1
+    gateway.delete_item.assert_not_called()
+    assert "Error: Item MISSING not found." in capsys.readouterr().err
+
+
+def _delete_args(**overrides):
+    args = MagicMock()
+    args.verb = "delete"
+    args.key = "ABCD1234"
+    args.version = None
+    args.dry_run = False
+    args.user = False
+    for name, value in overrides.items():
+        setattr(args, name, value)
+    return args
+
+
+def test_item_delete_dry_run_shows_the_item_and_children_and_deletes_nothing(
+    mock_clients, env_vars, capsys
+):
+    """Issue #378: preview a permanent delete."""
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5, item_type="journalArticle", title="A Paper")
+    gateway.get_item_children.return_value = [
+        {"data": {"itemType": "attachment", "title": "Full Text PDF"}},
+        {"data": {"itemType": "note", "key": "NOTE1"}},
+    ]
+
+    ItemCommand().execute(_delete_args(dry_run=True))
 
     gateway.delete_item.assert_not_called()
-    assert "Error: Item MISSING not found." in capsys.readouterr().out
+    out = " ".join(capsys.readouterr().out.split())
+    assert "Would permanently delete ABCD1234" in out
+    assert "A Paper" in out and "Full Text PDF" in out and "NOTE1" in out
+    assert "nothing was deleted" in out
+
+
+def test_item_delete_sends_the_given_version(mock_clients, env_vars):
+    """Issue #384: --version is honoured, not the item's current version."""
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=9)
+    gateway.delete_item.return_value = True
+
+    ItemCommand().execute(_delete_args(version=5))
+
+    gateway.delete_item.assert_called_once_with("ABCD1234", 5)
+
+
+def test_item_delete_failure_exits_1(mock_clients, env_vars, capsys):
+    """Issue #384: a refused delete (e.g. a version conflict) used to print
+    success; now it says so and exits 1."""
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5)
+    gateway.delete_item.return_value = False
+
+    with pytest.raises(SystemExit) as exc:
+        ItemCommand().execute(_delete_args())
+
+    assert exc.value.code == 1
+    captured = capsys.readouterr()
+    assert "successfully" not in captured.out
+    assert "Failed to delete item ABCD1234" in captured.err
 
 
 def test_item_trash_subparser_is_reachable():
