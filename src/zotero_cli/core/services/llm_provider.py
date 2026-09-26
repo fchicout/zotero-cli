@@ -72,8 +72,11 @@ class LocalTransformersLLMProvider(LLMProvider):
     Best for small, instruct-tuned models (e.g., Qwen2.5-1.5B, Gemma-2b).
     """
 
-    def __init__(self, model_name: str = "Qwen/Qwen2.5-1.5B-Instruct"):
+    def __init__(
+        self, model_name: str = "Qwen/Qwen2.5-1.5B-Instruct", trust_remote_code: bool = False
+    ):
         self.model_name = model_name
+        self.trust_remote_code = trust_remote_code
         self._model: Any = None
         self._tokenizer: Any = None
 
@@ -81,14 +84,21 @@ class LocalTransformersLLMProvider(LLMProvider):
         if self._model is None:
             from transformers import AutoModelForCausalLM, AutoTokenizer
 
-            self._tokenizer = AutoTokenizer.from_pretrained(self.model_name, revision="main")  # nosec B615
+            from zotero_cli.core.services.model_registry import resolve_model
+
+            # A pinned revision, and repository code only when allowed
+            # (GHSA-wv6f-cg7x-pg85).
+            load = resolve_model(self.model_name, self.trust_remote_code)
+            self._tokenizer = AutoTokenizer.from_pretrained(
+                load.repo_id, revision=load.revision, trust_remote_code=load.trust_remote_code
+            )
             self._model = AutoModelForCausalLM.from_pretrained(
-                self.model_name,
+                load.repo_id,
                 torch_dtype="auto",
                 device_map="auto",
-                trust_remote_code=True,
-                revision="main",
-            )  # nosec B615
+                trust_remote_code=load.trust_remote_code,
+                revision=load.revision,
+            )
 
     def generate(self, prompt: str, system_instruction: Optional[str] = None) -> str:
         self._init_model()
