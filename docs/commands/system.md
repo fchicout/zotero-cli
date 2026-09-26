@@ -103,12 +103,13 @@ Reconstructs an entire Zotero library or specific collections from a `.zaf` arch
 
 **Usage:**
 ```bash
-zotero-cli system restore --file "backup.zaf" [--dry-run]
+zotero-cli system restore --file "backup.zaf" [--dry-run | --execute]
 ```
 
 **Parameters:**
 *   `--file`: (Required) Path to the .zaf archive.
 *   `--dry-run`: (Optional) Simulates the restore without making any changes.
+*   `--execute`: (Optional) Restore. In 3.x restoring is still the default (with a deprecation warning); from 4.0 the command only previews unless `--execute` is given.
 
 ---
 
