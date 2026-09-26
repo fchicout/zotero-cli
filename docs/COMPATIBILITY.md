@@ -44,6 +44,20 @@ Before something public is removed or changed incompatibly:
 2. The CHANGELOG lists it under **Deprecated** in the release that starts the warning.
 3. It is removed or changed only in the **next major release**, listed under **Removed** or **Changed** with a one-line migration.
 
+## Release order
+
+Work ships in trains, one version class at a time:
+
+1. **Patch releases first.** While patch-class fixes remain for the current `x.y` (bugs, performance, anything that changes no public surface), they ship as `x.y.1`, `x.y.2`, …, grouped by theme.
+2. **Then the next minor.** `x.(y+1).0` opens only when no patch work is left for `x.y`. It carries additions and deprecation warnings, then returns to patch releases.
+3. **Majors last.** `(x+1).0.0` is cut only when no minor work is left for `x`. It removes what earlier minors deprecated and flips the defaults they announced.
+
+`main` is always the next release, so a change merges only when its class matches the open train. Issues carry a `semver: patch|minor|major` (or `no-release`) label and a milestone for their release.
+
+## Security fixes
+
+A security fix may restrict behaviour, or add the opt-in setting it needs, in a **patch** release, when waiting for the next minor would leave users exposed. The CHANGELOG marks such entries as a security exception and says what to change. Everything else about the fix follows the rules above.
+
 ## Python and platforms
 
 - **Minimum Python version:** raised only in a **minor** release, and announced one minor release ahead. zotero-cli currently supports Python 3.11 to 3.14.
