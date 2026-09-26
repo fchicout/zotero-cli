@@ -100,6 +100,7 @@ One line per change a script written for 2.x may need:
 This release fixes the findings of the pre-launch security audit (#328). The twelve fixed vulnerabilities are described in GitHub Security Advisories published with this release. **Upgrading is recommended for everyone.**
 
 ### 🛡️ Security
+- **With `--config`, state is kept private (GHSA-4ffp-8wvr-hmvg):** the job queue, `rag` vector stores and snowball discovery graphs were written next to the `--config` file, often a shared project folder or a git repository, and were world-readable. They now go into a private profile in the per-user zotero-cli directory (`profiles/<id>/`, mode 0700). State left next to a `--config` file moves there on first run, with a notice. Logs always go to the default `logs/` directory, and `system info` now shows the state directory and log file.
 - **Release pipeline and installers:**
   - Release builds run with a read-only token; only the job that publishes the release can write.
   - Every GitHub Action is pinned to a commit, and PyInstaller and fpm are pinned. No build cache is shared with CI.

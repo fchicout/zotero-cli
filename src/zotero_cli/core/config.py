@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import re
@@ -340,15 +341,86 @@ def get_config_path() -> Optional[Path]:
     return _GLOBAL_CONFIG_PATH
 
 
-def get_storage_dir() -> Path:
-    """Returns the directory where data (config, db) is stored."""
-    path = get_config_path()
-    if path:
-        return path.parent
-
-    # Fallback to default
+def default_storage_dir() -> Path:
+    """The per-user zotero-cli directory (config, logs, state)."""
     if os.name == "nt":
         base = Path(os.environ.get("APPDATA", "~")).expanduser()
     else:
         base = Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
     return base / "zotero-cli"
+
+
+def make_private_dir(path: Path) -> None:
+    """Creates `path` as 0700, and tightens it if it already existed
+    (mkdir's mode is ignored for an existing directory)."""
+    path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if os.name != "nt":
+        os.chmod(path, 0o700)
+
+
+# State zotero-cli writes (job queue, vector stores, discovery graphs), used
+# to find files a pre-3.1 version left next to a --config file.
+_STATE_FILE_GLOBS = ("jobs.sqlite*", "vector_store_*.sqlite*", "discovery_graph*.json")
+
+
+def _profile_config_dir() -> Optional[Path]:
+    """The directory of a --config file outside the default directory, or
+    None when the default config is in use."""
+    path = get_config_path()
+    if path is None:
+        return None
+    config_dir = path.expanduser().resolve().parent
+    if config_dir == default_storage_dir().expanduser().resolve():
+        return None
+    return config_dir
+
+
+def get_storage_dir() -> Path:
+    """
+    Where zotero-cli keeps its state: the job queue, vector stores and
+    discovery graphs.
+
+    With the default config that is the private per-user directory. With a
+    --config file elsewhere, it is a profile inside that same directory,
+    `profiles/<hash of the config path>/`, never the config file's own
+    directory: that is often a shared project folder or a git repository,
+    and the files there were created world-readable (GHSA-4ffp-8wvr-hmvg).
+    """
+    default = default_storage_dir()
+    path = get_config_path()
+    if path is None or _profile_config_dir() is None:
+        return default
+    digest = hashlib.sha1(str(path.expanduser().resolve()).encode(), usedforsecurity=False)
+    return default / "profiles" / digest.hexdigest()[:8]
+
+
+def get_state_dir() -> Path:
+    """`get_storage_dir()`, created private (0700). The first time a profile
+    is used, state an older version wrote next to the --config file moves
+    into it."""
+    state_dir = get_storage_dir()
+    config_dir = _profile_config_dir()
+    if config_dir is not None:
+        make_private_dir(state_dir.parent)
+    make_private_dir(state_dir)
+    if config_dir is not None:
+        _migrate_legacy_state(config_dir, state_dir)
+    return state_dir
+
+
+def _migrate_legacy_state(config_dir: Path, state_dir: Path) -> None:
+    import shutil
+
+    for pattern in _STATE_FILE_GLOBS:
+        for old in sorted(config_dir.glob(pattern)):
+            new = state_dir / old.name
+            if not old.is_file() or new.exists():
+                continue
+            shutil.move(str(old), str(new))
+            if os.name != "nt":
+                os.chmod(new, 0o600)
+            print(
+                f"zotero-cli: moved {old} to {new} (state is now kept in your private "
+                "zotero-cli directory).",
+                file=sys.stderr,
+            )

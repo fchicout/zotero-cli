@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
-from zotero_cli.core.config import ZoteroConfig, get_config, get_storage_dir
+from zotero_cli.core.config import ZoteroConfig, get_config, get_state_dir
 from zotero_cli.infra.metadata_client_factory import MetadataClientFactory
 from zotero_cli.infra.repository_factory import RepositoryFactory
 from zotero_cli.infra.resolver_factory import ResolverFactory
@@ -322,8 +322,7 @@ class ServiceFactory:
         config: Optional[ZoteroConfig] = None, force_user: bool = False
     ) -> "JobQueueService":
         # Decouple from Zotero's main DB. Store jobs in the config directory.
-        db_dir = get_storage_dir()
-        db_dir.mkdir(parents=True, exist_ok=True)
+        db_dir = get_state_dir()
         db_path = str(db_dir / "jobs.sqlite")
 
         from zotero_cli.infra.sqlite_repo import SqliteJobRepository
