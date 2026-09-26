@@ -124,6 +124,51 @@ jobs:
         run: |
           uv run python scratch/debug_sonar_gate.py
 
+  # Issue #404: the Python package must install from pre-built wheels on
+  # every platform the README lists as supported, so a new dependency that
+  # only ships wheels for some platforms (or needs a compiler) fails here
+  # instead of on users' machines. bibtexparser 1.x is pure Python but ships
+  # only an sdist, so it is exempt. Resolution only - nothing is installed.
+  platforms:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: '3.14'
+          enable-cache: true
+
+      - name: Resolve wheels for each supported platform
+        run: |
+          set -u
+          failed=0
+          check() {  # platform python-version
+            if uv pip compile pyproject.toml --python-platform "$1" --python-version "$2" \
+                 --only-binary :all: --no-binary bibtexparser --quiet \
+                 -o "$RUNNER_TEMP/req-$1-$2.txt"; then
+              echo "ok      $1 / Python $2"
+            else
+              echo "FAILED  $1 / Python $2"; failed=1
+            fi
+          }
+          for py in 3.11 3.14; do
+            for platform in x86_64-apple-darwin aarch64-apple-darwin \
+                x86_64-unknown-linux-musl x86_64-pc-windows-msvc \
+                x86_64-manylinux_2_28 aarch64-manylinux_2_28; do
+              check "$platform" "$py"
+            done
+          done
+          # Older glibc (e.g. RHEL/CentOS 7-8): Python 3.11-3.13.
+          for py in 3.11 3.13; do
+            check x86_64-manylinux_2_17 "$py"
+            check aarch64-manylinux_2_17 "$py"
+          done
+          exit "$failed"
+
   # The oldest version requires-python still accepts: PyPI users may be on it.
   # A separate job (not a matrix) so the required `test` check keeps its name.
   test-min-python:

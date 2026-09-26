@@ -24,19 +24,43 @@ main() {
     os="$(uname -s)"
     arch="$(uname -m)"
 
+    # Where there is no binary, the Python package is the supported route
+    # (Issue #404): uv/pipx install it as an isolated command.
+    local python_route="uv tool install zotero-command-line   (or: pipx install zotero-command-line)"
+
+    if [ "$os" = "Darwin" ]; then
+        echo "No macOS binary is published. On macOS, install the Python package:" >&2
+        echo "  $python_route" >&2
+        echo "(uv: https://docs.astral.sh/uv/ - needs Python 3.11+, which uv can install for you)" >&2
+        exit 1
+    fi
     if [ "$os" != "Linux" ]; then
         echo "Error: unsupported OS '$os'. Release binaries exist for Linux and Windows only." >&2
-        echo "Windows users: see install.ps1. Elsewhere: pip install zotero-command-line" >&2
+        echo "Windows users: see install.ps1. Elsewhere: $python_route" >&2
         exit 1
     fi
     case "$arch" in
         x86_64|amd64) ;;
         *)
             echo "Error: unsupported architecture '$arch'. Only amd64/x86_64 binaries are published." >&2
-            echo "Alternative: pip install zotero-command-line" >&2
+            echo "Install the Python package instead: $python_route" >&2
             exit 1
             ;;
     esac
+    # The binary needs glibc 2.35+ (Ubuntu 22.04, Debian 12, Fedora 36 or
+    # newer). musl (Alpine) and older glibc: use the Python package.
+    local glibc
+    glibc="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}')"
+    if [ -z "$glibc" ]; then
+        echo "Error: this system doesn't use glibc (e.g. Alpine), which the binary needs." >&2
+        echo "Install the Python package instead: $python_route" >&2
+        exit 1
+    fi
+    if [ "$(printf '%s\n' 2.35 "$glibc" | sort -V | head -n1)" != "2.35" ]; then
+        echo "Error: glibc $glibc is too old for the binary (needs 2.35 or newer)." >&2
+        echo "Install the Python package instead: $python_route" >&2
+        exit 1
+    fi
     if ! command -v sha256sum > /dev/null 2>&1; then
         echo "Error: sha256sum is required to verify the download." >&2
         exit 1

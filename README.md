@@ -117,6 +117,18 @@ Every command has built-in help: `zotero-cli <noun> <verb> --help`. Every exampl
 
 ## 📦 Installation
 
+### Supported platforms
+
+| Platform | Standalone binary | Python package (`zotero-command-line`) |
+| :--- | :--- | :--- |
+| Linux x86_64, glibc 2.35+ (Ubuntu 22.04, Debian 12, Fedora 36, RHEL 10 or newer) | ✅ `.tar.gz`, `.deb`, `.rpm`, Docker | ✅ Python 3.11–3.14 |
+| Linux x86_64 or ARM64, older glibc (2.17+) | ❌ | ✅ Python 3.11–3.13; 3.14 needs glibc 2.28+ |
+| Linux with musl (Alpine) | ❌ | ✅ Python 3.11–3.14 |
+| Windows x64 | ✅ `.msi`, `.zip` | ✅ Python 3.11–3.14 |
+| macOS (Apple Silicon and Intel) | ❌ | ✅ Python 3.11–3.14, via `uv tool install` or `pipx` |
+
+CI checks that the Python package installs from pre-built wheels on each of these platforms. Other platforms may work but aren't tested.
+
 ### Option 1: Standalone binaries (recommended)
 Download a pre-built binary for your system. **You don't need Python.**
 
@@ -127,7 +139,7 @@ Download a pre-built binary for your system. **You don't need Python.**
 
 Or use the one-line installer scripts. They fetch the latest release (or the one named in `ZOTERO_CLI_VERSION`, e.g. `v2.8.12`) and check it against the release's `SHA256SUMS` before installing:
 ```bash
-# Linux (amd64)
+# Linux (x86_64, glibc 2.35+; on other systems it prints the PyPI command instead)
 curl -fsSL https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.sh | bash
 ```
 ```powershell
@@ -137,8 +149,8 @@ irm https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.ps1 | iex
 
 **Verifying a download yourself:** every release from v2.8.12 on includes a `SHA256SUMS` file and signed build provenance. With the [GitHub CLI](https://cli.github.com/), `gh attestation verify zotero-cli-linux-amd64.tar.gz -R fchicout/zotero-cli` confirms the file was built by this repository's release workflow.
 
-### 🐍 Option 2: From PyPI (Python 3.11+)
-The package is called **`zotero-command-line`** on PyPI, because the `zotero-cli` name there belongs to an older, unrelated project. The command it installs is still `zotero-cli`.
+### 🐍 Option 2: From PyPI (Python 3.11+) - recommended on macOS
+The package is called **`zotero-command-line`** on PyPI, because the `zotero-cli` name there belongs to an older, unrelated project. The command it installs is still `zotero-cli`. This is the way to install on macOS, Alpine, ARM Linux and older Linux systems, where there is no binary. [uv](https://docs.astral.sh/uv/) can install a suitable Python for you.
 
 ```bash
 uv tool install zotero-command-line   # or: pipx install zotero-command-line
