@@ -1,8 +1,28 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project will be documented in this file. From 3.0.0 on, releases follow [Semantic Versioning](https://semver.org/) as described in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ## [Unreleased]
+
+This will be released as **3.0.0**: several changes below alter what existing scripts do.
+
+### ⚠️ Upgrading to 3.0
+One line per change a script written for 2.x may need:
+
+- **`item hydrate`** only previews now: add `--execute` to write (#344).
+- **`collection clean`** no longer deletes items; it takes them out of the collection, and only with `--execute` (#364). To delete a collection's items, use `collection delete --key KEY --recursive --execute --yes`.
+- **`slr prune`** only removes items from `--excluded`, and only with `--execute`. It no longer deletes duplicates (#395); merge them with `item merge` / `slr dedupe`.
+- **`collection delete --recursive`** previews by default. Scripts need `--execute --yes`; it now fails without `--yes` when there's no terminal. Items also filed outside the tree are kept unless you add `--include-shared` (#378).
+- **`slr load`**: use `--execute`. `--force` still applies, with a deprecation warning; it will be removed in 4.0.
+- **`item transfer --delete-source`** keeps the source and exits 1 if any note or file couldn't be copied (#396).
+- **Collection names** that match more than one collection are refused (exit status 2). Pass the collection key instead (#381).
+- **`item export --format md` / `collection export --format md`** exit 1 when text extraction fails (#403).
+- **The Linux binary needs glibc 2.35+**; on older systems, install from PyPI (#404).
+- **Requests identify as `zotero-cli/<version>`**, and a `403` is no longer retried under another identity (#407).
+- **The `rag` commands are experimental** and outside the compatibility guarantees (#414).
+
+### 📜 Policy
+- **Versioning and compatibility policy (Issue #406):** new [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md), linked from the README. It defines the public surface covered by SemVer: commands and flags, safety defaults, JSON/CSV output fields, config keys and environment variables, SDB notes, `.zaf` archives, snapshot JSON and `jobs.sqlite`. It also lists what isn't covered (human-readable output, messages, logs, Python imports, exit codes until #368, and the experimental `rag` commands), the deprecation process (a warning for at least one minor release, removal only in a major), and the minimum-Python and platform rules.
 
 ### ✨ Features
 - **`zotero-cli --version` (`-V`) (Issue #375):** the getting-started tutorial's first step failed because the flag didn't exist. `system info` now also shows the version, Python version and platform, so a binary's build can be identified in bug reports.

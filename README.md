@@ -221,6 +221,9 @@ uv run pytest tests/unit
 ## Data Sources
 Besides your Zotero library, zotero-cli queries public scholarly services (Crossref, Semantic Scholar, OpenAlex, Unpaywall, arXiv, PubMed and others) and identifies itself honestly when it does. [docs/DATA_SOURCES.md](https://github.com/fchicout/zotero-cli/blob/main/docs/DATA_SOURCES.md) lists them, links their terms, and explains attribution: if you publish results from `slr snowball`, credit Semantic Scholar. zotero-cli is an independent project, not affiliated with or endorsed by Zotero, the Corporation for Digital Scholarship, arXiv or any of these providers.
 
+## Versioning
+zotero-cli follows Semantic Versioning from 3.0.0 on. [docs/COMPATIBILITY.md](https://github.com/fchicout/zotero-cli/blob/main/docs/COMPATIBILITY.md) lists what counts as the public interface (commands, flags, safety defaults, JSON/CSV output, config keys, stored formats) and how deprecations work. Upgrading from 2.x: see "Upgrading to 3.0" in the [CHANGELOG](https://github.com/fchicout/zotero-cli/blob/main/CHANGELOG.md).
+
 ## Security
 To report a vulnerability, see [SECURITY.md](https://github.com/fchicout/zotero-cli/blob/main/SECURITY.md). Please don't use public issues for security problems.
 
