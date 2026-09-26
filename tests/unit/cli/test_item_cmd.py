@@ -753,7 +753,7 @@ def test_item_inspect_export_formats_strip_terminal_controls(
     """GHSA-3r38-p632-f79q: `item inspect --format bibtex|ris` prints library
     fields straight to the terminal."""
     mock_clients["gateway"].get_item.return_value = MagicMock()
-    hostile = "TI  - \x1b]52;c;ZXZpbA==\x07Hi\x1b[2J\x9b1m‮end"
+    hostile = "TI  - \x1b]52;c;ZXZpbA==\x07Hi\x1b[2J\x9b1m\u202eend"
     with patch("zotero_cli.infra.factory.GatewayFactory.get_export_service") as export:
         getattr(export.return_value, method).return_value = hostile
         args = MagicMock()
@@ -767,6 +767,6 @@ def test_item_inspect_export_formats_strip_terminal_controls(
         ItemCommand().execute(args)
 
     out = capsys.readouterr().out
-    for control in ("\x1b", "\x07", "\x9b", "‮"):
+    for control in ("\x1b", "\x07", "\x9b", "\u202e"):
         assert control not in out
     assert "TI  - ]52;c;ZXZpbA==Hi[2J1mend" in out
