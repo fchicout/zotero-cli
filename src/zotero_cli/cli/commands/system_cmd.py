@@ -463,9 +463,10 @@ Cognitive Safeguards
 
         console.print(table)
 
-        if not report.errors:
-            status = "SIMULATED" if args.dry_run else "COMPLETE"
-            console.print(f"\n[bold green]RESTORE {status}[/bold green]")
+        if report.errors:
+            sys.exit(1)
+        status = "SIMULATED" if args.dry_run else "COMPLETE"
+        console.print(f"\n[bold green]RESTORE {status}[/bold green]")
 
     def _handle_groups(self, args: argparse.Namespace) -> None:
         from zotero_cli.core.config import get_config

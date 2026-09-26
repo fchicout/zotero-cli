@@ -1,4 +1,4 @@
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import MagicMock, Mock, mock_open, patch
 
 import pytest
 
@@ -119,12 +119,15 @@ def test_upload_attachment_failure_auth(mock_file, mock_getsize, mock_mtime, moc
     # Step 2 fail
     client.http.post.return_value = res1
     client.http.post_form.side_effect = Exception("Auth Boom")
+    client.get_item = MagicMock(return_value=MagicMock(version=3))
+    client.http.delete.return_value = MagicMock(status_code=204)
 
     assert client.upload_attachment("P1", "f.pdf") is False
 
     # Issue #191: a failure after step 1 already created the placeholder
-    # attachment item must clean it up, not leave an orphaned empty item.
-    client.http.delete.assert_called_once_with("items/K", version_check=True)
+    # attachment item must clean it up, not leave an orphaned empty item -
+    # deleted at its current version (Issue #384).
+    client.http.delete.assert_called_once_with("items/K", version=3)
 
 
 @patch("os.path.basename")
@@ -214,5 +217,8 @@ def test_upload_attachment_failure_register_cleans_up_orphan(
     client.http.post.return_value = res1
     client.http.post_form.side_effect = [res_auth, Exception("Register Boom")]
 
+    client.get_item = MagicMock(return_value=MagicMock(version=3))
+    client.http.delete.return_value = MagicMock(status_code=204)
     assert client.upload_attachment("P1", "f.pdf") is False
-    client.http.delete.assert_called_once_with("items/K", version_check=True)
+    # The orphaned placeholder is deleted at its current version (Issue #384).
+    client.http.delete.assert_called_once_with("items/K", version=3)
