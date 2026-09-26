@@ -87,7 +87,7 @@
 
 Every command that deletes, or changes many items at once, follows one policy (Issue #378):
 
-1. **Preview by default.** It shows what it would do and changes nothing until `--execute`. Commands that predate 3.0 and still apply by default (`storage checkout`, `system restore`) get `--dry-run`/`--execute` and a deprecation warning in 3.1, and switch to preview-by-default in 4.0 ([COMPATIBILITY.md](COMPATIBILITY.md), #462). `item delete` names one item, like `rm FILE`: it deletes without `--execute`.
+1. **Preview by default.** It shows what it would do and changes nothing until `--execute`. Commands that predate 3.0 and still apply by default (`storage checkout`, `system restore`) accept `--dry-run` and `--execute` now, warn when given neither, and switch to preview-by-default in 4.0 ([COMPATIBILITY.md](COMPATIBILITY.md)). `item delete` names one item, like `rm FILE`: it deletes without `--execute`, and offers `--dry-run`.
 2. **Confirm bulk permanent deletes.** With `--execute`, a bulk delete asks for confirmation. `--yes` skips the question. Without a terminal and without `--yes`, it refuses with exit status 2 instead of guessing (`cli/safety.py`).
 3. **`--force` only ever skips a prompt.** It never means "apply".
 4. **Resolve targets unambiguously first.** A collection name that matches several collections is refused (#381).

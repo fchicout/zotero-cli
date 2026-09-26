@@ -469,8 +469,10 @@ Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
 Scenario: Removing a genuine duplicate/junk record
 Problem: I manually added a test item (Key: JUNK_01) by mistake and want it gone entirely.
-Action:  zotero-cli item delete --key "JUNK_01"
-Result:  The item is permanently removed from the library. This cannot be undone.
+Action:  zotero-cli item delete --key "JUNK_01" --dry-run
+         zotero-cli item delete --key "JUNK_01"
+Result:  The first shows what would go (the item and its attachments/notes); the second
+         permanently removes it. This cannot be undone.
 
 Cognitive Safeguards
 --------------------
@@ -485,6 +487,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--version",
             type=int,
             help="Delete only if the item is still at this version (default: its current version)",
+        )
+        delete_p.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Show the item and its attachments/notes that would be deleted, without deleting",
         )
 
         # Trash
@@ -1170,6 +1177,21 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if not item:
             print(f"Error: Item {args.key} not found.", file=sys.stderr)
             sys.exit(1)
+
+        if getattr(args, "dry_run", False):
+            children = gateway.get_item_children(args.key)
+            console.print(
+                f"Would permanently delete [cyan]{args.key}[/cyan] "
+                f"({escape(item.item_type or 'item')}): {escape(item.title or '(untitled)')}"
+            )
+            for child in children:
+                data = child.get("data", child)
+                label = data.get("title") or data.get("filename") or data.get("key") or ""
+                console.print(f"  - {data.get('itemType', 'child')}: {escape(str(label))}")
+            console.print(
+                "[yellow]Preview only - nothing was deleted. Run without --dry-run to delete.[/yellow]"
+            )
+            return
 
         # Issue #384: delete only the version the user saw (--version) or the
         # current one - never whatever the item became in between.
