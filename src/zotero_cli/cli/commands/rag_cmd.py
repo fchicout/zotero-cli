@@ -345,12 +345,12 @@ Cognitive Safeguards
         EMB_MODELS = {
             "1": {"name": "BGE-M3 (Most Stable / Hybrid)", "id": "BAAI/bge-m3", "size": "~1.1GB"},
             "2": {
-                "name": "Jina v3 (High Efficiency)",
+                "name": "Jina v3 (High Efficiency; runs repository code)",
                 "id": "jinaai/jina-embeddings-v3",
                 "size": "~1.2GB",
             },
             "3": {
-                "name": "Qwen2-7B (Maximum Accuracy)",
+                "name": "Qwen2-7B (Maximum Accuracy; runs repository code)",
                 "id": "Alibaba-NLP/gte-Qwen2-7B-instruct",
                 "size": "~15GB",
             },
@@ -413,10 +413,39 @@ Cognitive Safeguards
             console.print("[yellow]Operation cancelled.[/yellow]")
             return
 
+        from zotero_cli.core.services.model_registry import pinned
+
+        # GHSA-wv6f-cg7x-pg85: running a model repository's own Python code
+        # needs the user's explicit consent, recorded in config.toml.
+        selected_ids = [selected_emb["id"]] + (
+            [selected_gen["id"]] if selected_gen["id"] != "auto" else []
+        )
+        needs_code = [
+            m for m in selected_ids if (p := pinned(m)) is not None and p.needs_remote_code
+        ]
+        allow_code = False
+        if needs_code:
+            console.print(
+                f"\n[bold yellow]{escape(', '.join(needs_code))}[/bold yellow] runs Python code "
+                "from its Hugging Face repository on this machine (pinned to a reviewed "
+                "revision, but some of it is fetched from other repositories)."
+            )
+            allow = Prompt.ask(
+                "Allow repository code for rag models (sets trust_remote_code = true)?",
+                choices=["y", "n"],
+                default="n",
+            )
+            if allow != "y":
+                console.print("[yellow]Operation cancelled. Choose a model without repository code.[/yellow]")
+                return
+            allow_code = True
+
         # 1. Update Config
         config = get_config()
         manager = ConfigManager()
-        updates = {"embedding_model": selected_emb["id"], "embedding_provider": "local"}
+        updates: dict = {"embedding_model": selected_emb["id"], "embedding_provider": "local"}
+        if allow_code:
+            updates["trust_remote_code"] = True
 
         if selected_gen["id"] != "auto":
             updates["generative_model"] = selected_gen["id"]
@@ -431,22 +460,14 @@ Cognitive Safeguards
         try:
             from huggingface_hub import snapshot_download
 
-            # Download Embedding
-            console.print(f"Downloading Embedding Model: {selected_emb['id']}...")
-            snapshot_download(
-                repo_id=selected_emb["id"],
-                token=config.huggingface_token,
-                revision="main",
-            )  # nosec B615
-
-            # Download Generative (if not API)
-            if selected_gen["id"] != "auto":
-                console.print(f"Downloading Generative Model: {selected_gen['id']}...")
+            # Pinned revisions only (GHSA-wv6f-cg7x-pg85): the menu offers
+            # nothing but registry models.
+            for model_id in selected_ids:
+                revision = pinned(model_id).revision  # type: ignore[union-attr]
+                console.print(f"Downloading {model_id} @ {revision[:12]}...")
                 snapshot_download(
-                    repo_id=selected_gen["id"],
-                    token=config.huggingface_token,
-                    revision="main",
-                )  # nosec B615
+                    repo_id=model_id, token=config.huggingface_token, revision=revision
+                )
             console.print("[green]All models downloaded and cached.[/green]")
 
         except Exception as e:

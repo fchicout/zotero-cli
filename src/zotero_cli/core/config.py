@@ -58,6 +58,9 @@ class ZoteroConfig:
     generative_provider: str = "auto"
     generative_model: Optional[str] = None
     huggingface_token: Optional[str] = None
+    # Allow Hugging Face models to run code from their repository (rag only;
+    # GHSA-wv6f-cg7x-pg85). Off unless explicitly enabled.
+    trust_remote_code: bool = False
 
     def is_valid(self) -> bool:
         return bool(self.api_key and self.library_id)
@@ -196,6 +199,12 @@ class ConfigLoader:
         )
         gen_model = os.environ.get("GENERATIVE_MODEL") or file_config.get("generative_model")
         hf_token = os.environ.get("HUGGINGFACE_TOKEN") or file_config.get("huggingface_token")
+        trust_env = os.environ.get("ZOTERO_TRUST_REMOTE_CODE")
+        trust_remote_code = (
+            trust_env.strip().lower() in ("1", "true", "yes")
+            if trust_env is not None
+            else file_config.get("trust_remote_code") is True
+        )
 
         storage_path = os.environ.get("ZOTERO_STORAGE_PATH") or file_config.get("storage_path")
         database_path = os.environ.get("ZOTERO_DATABASE_PATH") or file_config.get("database_path")
@@ -225,6 +234,7 @@ class ConfigLoader:
             generative_provider=gen_provider,
             generative_model=gen_model,
             huggingface_token=hf_token,
+            trust_remote_code=trust_remote_code,
         )
 
     def _load_from_file(self) -> Dict[str, Any]:

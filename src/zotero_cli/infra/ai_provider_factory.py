@@ -58,7 +58,9 @@ class AIProviderFactory:
 
         if provider_type == "local":
             return SentenceTransformerEmbeddingProvider(
-                model_name or "all-MiniLM-L6-v2", token=config.huggingface_token
+                model_name or "all-MiniLM-L6-v2",
+                token=config.huggingface_token,
+                trust_remote_code=config.trust_remote_code,
             )
 
         if config.gemini_api_key and provider_type in ["auto", "gemini"]:
@@ -72,7 +74,9 @@ class AIProviderFactory:
 
         # Default to local if no API keys but and we haven't explicitly asked for mock
         return SentenceTransformerEmbeddingProvider(
-            model_name or "all-MiniLM-L6-v2", token=config.huggingface_token
+            model_name or "all-MiniLM-L6-v2",
+            token=config.huggingface_token,
+            trust_remote_code=config.trust_remote_code,
         )
 
     @staticmethod
@@ -93,7 +97,10 @@ class AIProviderFactory:
         model_name = config.generative_model
 
         if provider_type == "local":
-            return LocalTransformersLLMProvider(model_name or "Qwen/Qwen2.5-1.5B-Instruct")
+            return LocalTransformersLLMProvider(
+                model_name or "Qwen/Qwen2.5-1.5B-Instruct",
+                trust_remote_code=config.trust_remote_code,
+            )
 
         if config.gemini_api_key and provider_type in ["auto", "gemini"]:
             return GeminiLLMProvider(config.gemini_api_key)
