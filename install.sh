@@ -7,7 +7,7 @@
 # installation required.
 #
 # Environment variables:
-#   ZOTERO_CLI_VERSION      release to install, e.g. v2.8.12 (default: latest)
+#   ZOTERO_CLI_VERSION      release to install, e.g. v3.0.0 (default: latest)
 #   ZOTERO_CLI_INSTALL_DIR  install directory (default: ~/.local/bin)
 #
 # Everything runs inside main(), called on the last line, so a download cut
