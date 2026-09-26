@@ -17,7 +17,7 @@ DELETE_CALL = re.compile(r"\.(delete_item|delete_collection|delete_tags|trash_it
 # file -> the gate that makes its deletes deliberate
 REVIEWED = {
     "cli/commands/collection_cmd.py": "collection delete: --recursive previews, needs --execute and --yes/confirmation",
-    "cli/commands/item_cmd.py": "item delete: one named key, version-checked (#384)",
+    "cli/commands/item_cmd.py": "item delete: one named key, --dry-run preview, version-checked (#384)",
     "cli/commands/rag_cmd.py": "rag purge: local vector store only, explicit --all/--key/--collection",
     "core/services/collection_service.py": "plan_recursive_delete/execute_recursive_delete (#378)",
     "core/services/merge_service.py": "item merge / slr dedupe: preview until --execute",

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### ✨ Features
+- **`item delete --dry-run`** shows the item and the attachments and notes that would be deleted with it (Issue #378).
+- **`storage checkout --dry-run`** lists the attachments that would move to local storage, without changing anything (Issue #378).
+- **`--execute` on `storage checkout` and `system restore`**, so scripts can opt in explicitly now (Issue #378).
+
+### ⚠️ Deprecated
+- **`storage checkout` and `system restore` without `--execute` or `--dry-run`** still apply, but print a warning. From 4.0 they only preview unless you pass `--execute` (Issue #378, #462, [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)).
+
 ### 🐛 Bug Fixes
 - **Deletes honor the object's version (Issue #384):** `item delete` sent the library's last-seen version instead of the item's (`--version` was ignored). On a 412 it retried blindly and printed "Deleted ... successfully" even when the item survived. `delete_collection` had the same pattern. Now the object's own version is sent (`--version`, or the current one), and a conflict deletes nothing and exits 1. `item merge` re-reads each duplicate's version before deleting it.
 - **`item delete` exits 1** when the item doesn't exist or can't be deleted; **`system restore` exits 1** when the restore reported errors.

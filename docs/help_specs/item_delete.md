@@ -23,7 +23,7 @@ graph TD
 Permanently deletes a single item from the Zotero library by key.
 
 ## 4. Description (Instructional Architecture)
-`item delete` calls the Zotero Web API's item `DELETE` endpoint directly. This is a hard, permanent removal, not Zotero's recoverable trash. (Whether the Web API can also move items to the trash, as Zotero Desktop's sync does, is being verified in [#402](https://github.com/fchicout/zotero-cli/issues/402); `item trash` works in `--offline` mode.) Once deleted, the item's key is gone; any external document (e.g. a citation manager) referencing that key will break.
+`item delete` calls the Zotero Web API's item `DELETE` endpoint directly. This is a hard, permanent removal, not Zotero's recoverable trash. (Whether the Web API can also move items to the trash, as Zotero Desktop's sync does, is being verified in [#402](https://github.com/fchicout/zotero-cli/issues/402); `item trash` works in `--offline` mode.) Run it with `--dry-run` first to see the item and the attachments and notes that would go with it. Once deleted, the item's key is gone; any external document (e.g. a citation manager) referencing that key will break.
 
 If `--version` is omitted, the command first fetches the item to resolve its current version (needed for Zotero's optimistic-locking write), then deletes it. If the item can't be found, nothing is deleted.
 
@@ -34,6 +34,7 @@ This command discards the item outright. If the goal is instead to consolidate a
 | :--- | :--- | :--- | :--- |
 | `--key` | String | The Zotero Item Key to delete | Required. |
 | `--version` | Integer | Delete only if the item is still at this version | Optional - defaults to the item's current version. If the item changed since, nothing is deleted and the command exits 1. |
+| `--dry-run` | Boolean | Show the item and its attachments/notes that would be deleted | Optional. Nothing is deleted. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Removing a mistakenly-added test/junk record

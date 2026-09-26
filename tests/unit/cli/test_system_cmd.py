@@ -168,7 +168,9 @@ def test_system_restore_dry_run(system_cmd, capsys):
         mock_report.attachments_uploaded = 4
         mock_service.restore_archive.return_value = mock_report
 
-        args = argparse.Namespace(verb="restore", file="test.zaf", dry_run=True, user=False)
+        args = argparse.Namespace(
+            verb="restore", file="test.zaf", dry_run=True, execute=False, user=False
+        )
         system_cmd.execute(args)
 
         out = capsys.readouterr().out
@@ -412,7 +414,9 @@ def test_system_restore_failure(system_cmd, capsys):
         mock_report.attachments_uploaded = 0
         mock_service.restore_archive.return_value = mock_report
 
-        args = argparse.Namespace(verb="restore", file="bad.zaf", dry_run=False, user=False)
+        args = argparse.Namespace(
+            verb="restore", file="bad.zaf", dry_run=False, execute=True, user=False
+        )
         with pytest.raises(SystemExit) as exc:
             system_cmd.execute(args)
 
@@ -421,6 +425,34 @@ def test_system_restore_failure(system_cmd, capsys):
         assert "Restore encountered errors" in out
         assert "Some error" in out
         assert "RESTORE COMPLETE" not in out
+
+
+def _clean_restore_report():
+    report = MagicMock()
+    report.errors = []
+    report.collections_created = report.items_created = 0
+    report.items_skipped_existing = report.attachments_uploaded = 0
+    return report
+
+
+@pytest.mark.parametrize(
+    "dry_run, execute, warns",
+    [(False, False, True), (False, True, False), (True, False, False)],
+)
+def test_system_restore_warns_only_without_an_explicit_mode(
+    system_cmd, capsys, dry_run, execute, warns
+):
+    """Issue #378: restoring stays the 3.x default (docs/COMPATIBILITY.md), but
+    a run without --execute/--dry-run warns that 4.0 previews by default."""
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_restore_service") as get_service:
+        get_service.return_value.restore_archive.return_value = _clean_restore_report()
+        args = argparse.Namespace(
+            verb="restore", file="b.zaf", dry_run=dry_run, execute=execute, user=False
+        )
+        system_cmd.execute(args)
+
+        get_service.return_value.restore_archive.assert_called_once_with("b.zaf", dry_run=dry_run)
+    assert ("from 4.0" in capsys.readouterr().err) is warns
 
 
 def test_system_jobs_watch(system_cmd, capsys):

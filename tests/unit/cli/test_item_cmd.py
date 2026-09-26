@@ -395,6 +395,26 @@ def _delete_args(**overrides):
     return args
 
 
+def test_item_delete_dry_run_shows_the_item_and_children_and_deletes_nothing(
+    mock_clients, env_vars, capsys
+):
+    """Issue #378: preview a permanent delete."""
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5, item_type="journalArticle", title="A Paper")
+    gateway.get_item_children.return_value = [
+        {"data": {"itemType": "attachment", "title": "Full Text PDF"}},
+        {"data": {"itemType": "note", "key": "NOTE1"}},
+    ]
+
+    ItemCommand().execute(_delete_args(dry_run=True))
+
+    gateway.delete_item.assert_not_called()
+    out = " ".join(capsys.readouterr().out.split())
+    assert "Would permanently delete ABCD1234" in out
+    assert "A Paper" in out and "Full Text PDF" in out and "NOTE1" in out
+    assert "nothing was deleted" in out
+
+
 def test_item_delete_sends_the_given_version(mock_clients, env_vars):
     """Issue #384: --version is honoured, not the item's current version."""
     gateway = mock_clients["gateway"]
