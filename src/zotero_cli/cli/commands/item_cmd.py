@@ -482,7 +482,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         delete_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         delete_p.add_argument(
-            "--version", type=int, help="Current version (auto-resolved if omitted)"
+            "--version",
+            type=int,
+            help="Delete only if the item is still at this version (default: its current version)",
         )
 
         # Trash
@@ -1164,18 +1166,22 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             print("Failed to attach file.")
 
     def _handle_delete(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
-        version = args.version
-        if version is None:
-            item = gateway.get_item(args.key)
-            if not item:
-                print(f"Error: Item {args.key} not found.")
-                return
-            version = item.version
+        item = gateway.get_item(args.key)
+        if not item:
+            print(f"Error: Item {args.key} not found.", file=sys.stderr)
+            sys.exit(1)
 
+        # Issue #384: delete only the version the user saw (--version) or the
+        # current one - never whatever the item became in between.
+        version = args.version if args.version is not None else item.version
         if gateway.delete_item(args.key, version):
             print(f"Deleted item {args.key} successfully.")
         else:
-            print(f"Failed to delete item {args.key}.")
+            print(
+                f"Failed to delete item {args.key} (it may have changed since version {version}).",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     def _handle_trash(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway

@@ -413,11 +413,14 @@ def test_system_restore_failure(system_cmd, capsys):
         mock_service.restore_archive.return_value = mock_report
 
         args = argparse.Namespace(verb="restore", file="bad.zaf", dry_run=False, user=False)
-        system_cmd.execute(args)
+        with pytest.raises(SystemExit) as exc:
+            system_cmd.execute(args)
 
+        assert exc.value.code == 1
         out = capsys.readouterr().out
         assert "Restore encountered errors" in out
         assert "Some error" in out
+        assert "RESTORE COMPLETE" not in out
 
 
 def test_system_jobs_watch(system_cmd, capsys):

@@ -158,5 +158,5 @@ class StorageService:
                 target_path.unlink()
             return False
 
-        print(f"  [green]Moved[/] to {target_path}")
+        print(strip_controls(f"  Moved to {target_path}"))
         return True
