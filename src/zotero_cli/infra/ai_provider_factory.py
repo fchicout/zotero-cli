@@ -26,10 +26,9 @@ class AIProviderFactory:
 
             config = get_config()
 
-        from zotero_cli.core.config import get_storage_dir
+        from zotero_cli.core.config import get_state_dir
 
-        db_dir = get_storage_dir()
-        db_dir.mkdir(parents=True, exist_ok=True)
+        db_dir = get_state_dir()
 
         # Use library_id or default name to isolate projects
         library_suffix = config.library_id if config and config.library_id else "default"

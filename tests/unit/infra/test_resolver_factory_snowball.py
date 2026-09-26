@@ -9,7 +9,7 @@ from zotero_cli.infra.resolver_factory import ResolverFactory
 
 @pytest.fixture
 def storage_dir(tmp_path):
-    with patch("zotero_cli.infra.resolver_factory.get_storage_dir", return_value=tmp_path):
+    with patch("zotero_cli.infra.resolver_factory.get_state_dir", return_value=tmp_path):
         yield tmp_path
 
 

@@ -44,7 +44,12 @@ class InfoCommand(BaseCommand):
         import platform
 
         from zotero_cli import __version__
-        from zotero_cli.core.config import get_config, get_config_path
+        from zotero_cli.core.config import (
+            default_storage_dir,
+            get_config,
+            get_config_path,
+            get_storage_dir,
+        )
 
         config = get_config(args.config)
 
@@ -53,6 +58,8 @@ class InfoCommand(BaseCommand):
         print(f"Python:      {platform.python_version()}")
         print(f"Platform:    {platform.platform()}")
         print(f"Config Path: {get_config_path() or 'None (using defaults/env)'}")
+        print(f"State Dir:   {get_storage_dir()}")
+        print(f"Log File:    {default_storage_dir() / 'logs' / 'zotero-cli.log'}")
         print(f"Library ID:  {config.library_id}")
         print(f"Library Type: {config.library_type}")
         print(f"Zotero API Key: {'********' if config.api_key else 'NOT SET'}")

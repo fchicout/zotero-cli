@@ -78,11 +78,9 @@ class PrivateRotatingFileHandler(logging.handlers.RotatingFileHandler):
 
 
 def _make_private_dir(path: Path) -> None:
-    """Creates `path` as 0700, and tightens it if it already existed
-    (mkdir's mode is ignored for an existing directory)."""
-    path.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if os.name != "nt":
-        os.chmod(path, 0o700)
+    from zotero_cli.core.config import make_private_dir
+
+    make_private_dir(path)
 
 
 def setup_logging(verbose: bool = False, log_dir: Optional[Path] = None) -> None:
@@ -126,12 +124,13 @@ def setup_logging(verbose: bool = False, log_dir: Optional[Path] = None) -> None
 
     try:
         if log_dir is None:
-            from zotero_cli.core.config import get_storage_dir
+            from zotero_cli.core.config import default_storage_dir
 
             # This runs before anything else touches the storage directory,
             # which also holds config.toml, jobs.sqlite and vector stores,
-            # so it's where the directory gets its 0700 mode.
-            storage_dir = get_storage_dir()
+            # so it's where the directory gets its 0700 mode. Logs always go
+            # here, whichever --config is used.
+            storage_dir = default_storage_dir()
             _make_private_dir(storage_dir)
             log_dir = storage_dir / "logs"
         _make_private_dir(log_dir)

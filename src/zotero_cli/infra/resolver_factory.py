@@ -2,7 +2,7 @@ import logging
 import sys
 from typing import TYPE_CHECKING, List, Optional
 
-from zotero_cli.core.config import ZoteroConfig, get_storage_dir
+from zotero_cli.core.config import ZoteroConfig, get_state_dir
 from zotero_cli.infra.metadata_client_factory import MetadataClientFactory
 from zotero_cli.infra.repository_factory import RepositoryFactory
 
@@ -128,8 +128,7 @@ class ResolverFactory:
         (Issue #257) makes the global `--user` flag apply to this
         scoping too, not just the online gateway.
         """
-        db_dir = get_storage_dir()
-        db_dir.mkdir(parents=True, exist_ok=True)
+        db_dir = get_state_dir()
         legacy_path = db_dir / "discovery_graph.json"
 
         if config is None:
