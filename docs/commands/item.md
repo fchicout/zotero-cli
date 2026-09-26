@@ -92,18 +92,16 @@ zotero-cli item update --key "ITEMKEY" --doi "10.1101/new-doi" --title "Correcte
 ---
 
 ### `delete`
-Permanently deletes an item and its attachments and notes. This is not Zotero's trash and **cannot be undone** (trash via the Web API is being verified in #402; `item trash` works offline). Preview with `--dry-run` first. To consolidate a genuine duplicate into another item instead of discarding it outright, use `item merge`.
+Permanently deletes an item from the Zotero library. The Zotero Web API only exposes a hard, permanent `DELETE` - there is no soft-delete/trash-write path, so this **cannot be undone**. To consolidate a genuine duplicate into another item instead of discarding it outright, use `item merge`.
 
 **Usage:**
 ```bash
-zotero-cli item delete --key "ITEMKEY" --dry-run   # show what would be deleted
 zotero-cli item delete --key "ITEMKEY"
 ```
 
 **Parameters:**
 *   `--key`: (Required) The Zotero Item Key.
-*   `--version`: Delete only if the item is still at this version (default: its current version). If it changed since, nothing is deleted and the command exits 1.
-*   `--dry-run`: Show the item and its attachments/notes without deleting.
+*   `--version`: Optional item version (auto-resolved if omitted).
 
 ---
 

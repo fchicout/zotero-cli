@@ -30,8 +30,7 @@ The command carefully parses the `.zaf` archive, identifies all bibliographic re
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--dry-run` | Boolean | Simulate restore | Optional. Nothing is written. |
-| `--execute` | Boolean | Restore | Optional in 3.x (restoring is still the default, with a deprecation warning); required from 4.0, which previews by default. |
+| `--dry-run` | Boolean | Simulate restore | Optional. Default: False. |
 | `--file` | String | Input .zaf file | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)

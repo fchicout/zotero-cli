@@ -264,8 +264,7 @@ Scenario-Based Examples (Cognitive Anchors)
 Scenario: Recovering from an accidental library deletion
 Problem: I've accidentally deleted a large set of folders in Zotero and I need to restore them from last week's backup.
 Action:  zotero-cli system restore --file "backup_2024_01_01.zaf" --dry-run
-         zotero-cli system restore --file "backup_2024_01_01.zaf" --execute
-Result:  The first shows exactly which items and folders will be recreated; the second recreates them.
+Result:  The CLI shows exactly which items and folders will be recreated.
 
 Cognitive Safeguards
 --------------------
@@ -276,13 +275,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 """,
         )
         restore_p.add_argument("--file", required=True, help="Input .zaf file")
-        restore_mode = restore_p.add_mutually_exclusive_group()
-        restore_mode.add_argument("--dry-run", action="store_true", help="Simulate restore")
-        restore_mode.add_argument(
-            "--execute",
-            action="store_true",
-            help="Restore (today's default; required from 4.0, which previews by default)",
-        )
+        restore_p.add_argument("--dry-run", action="store_true", help="Simulate restore")
 
         # Normalize CSV
         norm_p = sub.add_parser(
@@ -444,13 +437,6 @@ Cognitive Safeguards
         restore_service = GatewayFactory.get_restore_service(
             force_user=getattr(args, "user", False)
         )
-        if not args.dry_run and not getattr(args, "execute", False):
-            # Issue #378: preview-by-default waits for 4.0 (docs/COMPATIBILITY.md).
-            print(
-                "Deprecation warning: from 4.0, `system restore` only previews unless you "
-                "pass --execute. Add --execute to keep this behaviour, or --dry-run to preview.",
-                file=sys.stderr,
-            )
 
         msg = f"Restoring from archive: [green]{args.file}[/green]"
         if args.dry_run:
@@ -477,10 +463,9 @@ Cognitive Safeguards
 
         console.print(table)
 
-        if report.errors:
-            sys.exit(1)
-        status = "SIMULATED" if args.dry_run else "COMPLETE"
-        console.print(f"\n[bold green]RESTORE {status}[/bold green]")
+        if not report.errors:
+            status = "SIMULATED" if args.dry_run else "COMPLETE"
+            console.print(f"\n[bold green]RESTORE {status}[/bold green]")
 
     def _handle_groups(self, args: argparse.Namespace) -> None:
         from zotero_cli.core.config import get_config
