@@ -137,11 +137,20 @@ class ZoteroHttpClient:
         reraise=True,
     )
     def delete(
-        self, endpoint: str, params: Optional[Dict] = None, version_check: bool = True
+        self,
+        endpoint: str,
+        params: Optional[Dict] = None,
+        version_check: bool = True,
+        version: Optional[int] = None,
     ) -> requests.Response:
+        """DELETE with optimistic concurrency. `version` is the object's own
+        version (single-object deletes, per the Zotero API); without it the
+        last-seen library version is sent. A 412 is returned, not raised."""
         url = f"{self.api_prefix}/{endpoint}"
         headers = dict(self.session.headers).copy()
-        if version_check:
+        if version is not None:
+            headers["If-Unmodified-Since-Version"] = str(version)
+        elif version_check:
             headers["If-Unmodified-Since-Version"] = str(self.last_library_version)
 
         response = self.session.delete(url, params=params, headers=headers)

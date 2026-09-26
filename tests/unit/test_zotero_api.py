@@ -268,20 +268,56 @@ def test_create_note_success(client):
 # --- Delete Item (Retry Logic handled by Http Client but tested via API Client) ---
 
 
-def test_delete_item_retry_on_412(client):
+def test_delete_item_sends_the_item_version_and_fails_on_412(client):
+    """Issue #384: the item's own version goes in If-Unmodified-Since-Version;
+    a 412 (the item changed since) is a failure, not retried under a newer
+    version and not reported as success."""
     res412 = Mock()
     res412.status_code = 412
     res412.headers = {"Last-Modified-Version": "50"}
+    client.http.session.delete.return_value = res412
 
+    assert client.delete_item("K1", 40) is False
+    assert client.http.session.delete.call_count == 1
+    headers = client.http.session.delete.call_args.kwargs["headers"]
+    assert headers["If-Unmodified-Since-Version"] == "40"
+
+
+def test_delete_item_succeeds_on_204_with_the_item_version(client):
     res204 = Mock()
     res204.status_code = 204
     res204.headers = {"Last-Modified-Version": "51"}
+    client.http.session.delete.return_value = res204
 
-    client.http.session.delete.side_effect = [res412, res204]
+    assert client.delete_item("K1", 40) is True
+    headers = client.http.session.delete.call_args.kwargs["headers"]
+    assert headers["If-Unmodified-Since-Version"] == "40"
 
-    success = client.delete_item("K1", 40)
-    assert success is True
-    assert client.http.session.delete.call_count == 2
+
+def test_delete_item_without_a_version_uses_the_current_one(client):
+    current = Mock()
+    current.version = 77
+    res204 = Mock()
+    res204.status_code = 204
+    res204.headers = {}
+    client.http.session.delete.return_value = res204
+
+    with patch.object(client, "get_item", return_value=current):
+        assert client.delete_item("K1", 0) is True
+    headers = client.http.session.delete.call_args.kwargs["headers"]
+    assert headers["If-Unmodified-Since-Version"] == "77"
+
+
+def test_delete_collection_fails_on_412(client):
+    res412 = Mock()
+    res412.status_code = 412
+    res412.headers = {}
+    client.http.session.delete.return_value = res412
+
+    assert client.delete_collection("C1", 9) is False
+    assert client.http.session.delete.call_count == 1
+    headers = client.http.session.delete.call_args.kwargs["headers"]
+    assert headers["If-Unmodified-Since-Version"] == "9"
 
 
 # --- Upload Attachment (Complex) ---

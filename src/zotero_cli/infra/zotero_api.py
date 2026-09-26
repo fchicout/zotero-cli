@@ -250,10 +250,21 @@ class ZoteroAPIClient(ZoteroGateway):
             return None
 
     def delete_collection(self, collection_key: str, version: int) -> bool:
+        """Deletes the collection only if it's still at `version` (Issue
+        #384: it used to send the library version and, on a 412, retry
+        blindly and report success whatever happened)."""
         try:
-            response = self.http.delete(f"collections/{collection_key}", version_check=True)
+            if not version:
+                current = self.get_collection(collection_key)
+                if not current:
+                    return False
+                version = int(current.get("version") or current.get("data", {}).get("version") or 0)
+            response = self.http.delete(f"collections/{collection_key}", version=version)
             if response.status_code == 412:
-                self.http.delete(f"collections/{collection_key}", version_check=True)
+                logger.warning(
+                    f"Collection {collection_key} changed since version {version}; not deleted."
+                )
+                return False
             return True
         except Exception:
             logger.exception(f"ZoteroAPIClient: Error deleting collection {collection_key}")
@@ -554,10 +565,20 @@ class ZoteroAPIClient(ZoteroGateway):
             return False
 
     def delete_item(self, item_key: str, version: int) -> bool:
+        """Deletes the item only if it's still at `version` (Issue #384: it
+        used to send the library version and, on a 412, retry blindly and
+        report success even when the item survived). A falsy version means
+        "whatever the current one is" and is looked up first."""
         try:
-            response = self.http.delete(f"items/{item_key}", version_check=True)
+            if not version:
+                current = self.get_item(item_key)
+                if not current:
+                    return False
+                version = current.version
+            response = self.http.delete(f"items/{item_key}", version=version)
             if response.status_code == 412:
-                self.http.delete(f"items/{item_key}", version_check=True)
+                logger.warning(f"Item {item_key} changed since version {version}; not deleted.")
+                return False
             return True
         except Exception:
             logger.exception(f"ZoteroAPIClient: Error deleting item {item_key}")
