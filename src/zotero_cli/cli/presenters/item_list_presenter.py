@@ -11,6 +11,7 @@ from rich.text import Text
 
 from zotero_cli.core.utils.csv_safety import sanitize_csv_row
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import strip_controls
 from zotero_cli.core.zotero_item import ZoteroItem
 
 DEFAULT_FIELDS = ["key", "title", "type"]
@@ -118,9 +119,12 @@ def unknown_fields(items: Sequence[ZoteroItem], fields: Sequence[str]) -> List[s
 
 
 def _flat(value: FieldValue) -> str:
+    """One cell as text, with terminal control characters removed: CSV and
+    Markdown go straight to the terminal, and item fields are settable by
+    any library collaborator (GHSA-3r38-p632-f79q)."""
     if isinstance(value, list):
-        return "; ".join(str(v) for v in value)
-    return str(value)
+        return strip_controls("; ".join(str(v) for v in value))
+    return strip_controls(str(value))
 
 
 def _records(items: Sequence[ZoteroItem], fields: Sequence[str]) -> List[Dict[str, FieldValue]]:

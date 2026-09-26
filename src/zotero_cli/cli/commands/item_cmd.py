@@ -11,7 +11,7 @@ from zotero_cli.cli.presenters import item_list_presenter
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.sdb_parser import decode_json_note
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
-from zotero_cli.core.utils.terminal_safety import safe_markup
+from zotero_cli.core.utils.terminal_safety import safe_markup, strip_controls
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -87,10 +87,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 export_service = GatewayFactory.get_export_service(
                     force_user=getattr(args, "user", False)
                 )
+                # Library fields go to the terminal as-is in these formats:
+                # remove control characters (GHSA-3r38-p632-f79q).
                 if args.format == "bibtex":
-                    print(export_service.serialize_bibtex([item]))
+                    print(strip_controls(export_service.serialize_bibtex([item])))
                 elif args.format == "ris":
-                    print(export_service.serialize_ris([item]))
+                    print(strip_controls(export_service.serialize_ris([item])))
                 continue
 
             # Resolve collections
