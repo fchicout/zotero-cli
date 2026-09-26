@@ -137,7 +137,7 @@ Download a pre-built binary for your system. **You don't need Python.**
 *   **Linux (Fedora/RHEL):** `.rpm` package.
 *   **Any Linux:** `zotero-cli-linux-amd64.tar.gz`.
 
-Or use the one-line installer scripts. They fetch the latest release (or the one named in `ZOTERO_CLI_VERSION`, e.g. `v2.8.12`) and check it against the release's `SHA256SUMS` before installing:
+Or use the one-line installer scripts. They fetch the latest release (or the one named in `ZOTERO_CLI_VERSION`, e.g. `v3.0.0`) and check it against the release's `SHA256SUMS` before installing:
 ```bash
 # Linux (x86_64, glibc 2.35+; on other systems it prints the PyPI command instead)
 curl -fsSL https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.sh | bash
