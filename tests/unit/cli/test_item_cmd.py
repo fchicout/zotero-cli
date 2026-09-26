@@ -744,3 +744,29 @@ def test_item_inspect_renders_markup_and_escapes_in_metadata_literally(
     assert "Broken [/bold] title" in out
     assert "[red]abstract[/red]" in out
     assert "\x1b]52" not in out and "\x07" not in out
+
+
+@pytest.mark.parametrize("fmt, method", [("bibtex", "serialize_bibtex"), ("ris", "serialize_ris")])
+def test_item_inspect_export_formats_strip_terminal_controls(
+    mock_clients, env_vars, capsys, fmt, method
+):
+    """GHSA-3r38-p632-f79q: `item inspect --format bibtex|ris` prints library
+    fields straight to the terminal."""
+    mock_clients["gateway"].get_item.return_value = MagicMock()
+    hostile = "TI  - \x1b]52;c;ZXZpbA==\x07Hi\x1b[2J\x9b1m\u202eend"
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_export_service") as export:
+        getattr(export.return_value, method).return_value = hostile
+        args = MagicMock()
+        args.verb = "inspect"
+        args.key = "K1"
+        args.raw = False
+        args.format = fmt
+        args.full_notes = False
+        args.user = False
+
+        ItemCommand().execute(args)
+
+    out = capsys.readouterr().out
+    for control in ("\x1b", "\x07", "\x9b", "\u202e"):
+        assert control not in out
+    assert "TI  - ]52;c;ZXZpbA==Hi[2J1mend" in out
