@@ -1,13 +1,19 @@
 import json
 import logging
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import networkx as nx
 from filelock import FileLock
 
+from zotero_cli.core.exceptions import DataFileError
 from zotero_cli.core.interfaces import SnowballGraphService as ISnowballGraphService
+
+# On-disk format of the discovery graph (docs/COMPATIBILITY.md). Bump the
+# major for an incompatible change; readers refuse a newer major.
+GRAPH_FORMAT_VERSION = 1
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +204,7 @@ class SnowballGraphService(ISnowballGraphService):
         `self._lock`, so two concurrent saves can't interleave.
         """
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        data = nx.node_link_data(self.graph)
+        data = self._to_data()
         tmp_path = self.storage_path.with_suffix(self.storage_path.suffix + ".tmp")
         with self._lock:
             with open(tmp_path, "w", encoding="utf-8") as f:
@@ -212,18 +218,48 @@ class SnowballGraphService(ISnowballGraphService):
         exposed as a public export so `slr snowball export --format json`
         has something to print/write, mirroring `to_mermaid`.
         """
-        return json.dumps(nx.node_link_data(self.graph), indent=2)
+        return json.dumps(self._to_data(), indent=2)
+
+    def _to_data(self) -> Dict[str, Any]:
+        # An explicit edge key: networkx changed its default from "links" to
+        # "edges" in 3.6, and files must stay readable across versions.
+        self.graph.graph["format_version"] = GRAPH_FORMAT_VERSION
+        return dict(nx.node_link_data(self.graph, edges="edges"))
 
     def load_graph(self) -> None:
-        """Loads graph from storage."""
-        if self.storage_path.exists():
-            try:
-                with open(self.storage_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                self.graph = nx.node_link_graph(data)
-            except Exception:
-                logger.exception("Failed to load discovery graph")
-                self.graph = nx.DiGraph()
+        """
+        Loads the graph from storage. A file that can't be read is moved
+        aside and the command stops (Issue #410): it used to be replaced by
+        an empty graph on the next save, losing the seeds and every triage
+        decision.
+        """
+        # An empty file holds nothing to lose: start a new graph from it.
+        if not self.storage_path.exists() or self.storage_path.stat().st_size == 0:
+            return
+        try:
+            with open(self.storage_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            version = int((data.get("graph") or {}).get("format_version", 1))
+            if version > GRAPH_FORMAT_VERSION:
+                raise DataFileError(
+                    f"{self.storage_path} was written by a newer zotero-cli (graph format "
+                    f"{version}); upgrade zotero-cli to use it. The file was not changed."
+                )
+            # Files written by networkx < 3.6 keep edges under "links".
+            edge_key = "links" if "links" in data and "edges" not in data else "edges"
+            self.graph = nx.node_link_graph(data, edges=edge_key)
+        except DataFileError:
+            raise
+        except Exception as e:
+            stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+            aside = self.storage_path.with_name(f"{self.storage_path.name}.corrupt-{stamp}")
+            os.replace(self.storage_path, aside)
+            logger.exception("Failed to load discovery graph %s", self.storage_path)
+            raise DataFileError(
+                f"The snowball discovery graph {self.storage_path} could not be read "
+                f"({type(e).__name__}: {e}). It was moved to {aside} and nothing was "
+                "overwritten. Fix or restore that file, or delete it to start a new graph."
+            ) from e
 
     def get_stats(self) -> Dict[str, Any]:
         """Returns graph statistics."""

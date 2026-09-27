@@ -3203,7 +3203,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "huggingface-hub", marker = "extra == 'rag'", specifier = ">=0.20.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.5.0" },
-    { name = "networkx", specifier = ">=3.0" },
+    { name = "networkx", specifier = ">=3.4" },
     { name = "numpy", marker = "extra == 'rag'", specifier = ">=1.24.0" },
     { name = "openai", marker = "extra == 'rag'", specifier = ">=1.0.0" },
     { name = "pdfminer-six", specifier = ">=20250506" },

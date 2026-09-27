@@ -44,7 +44,7 @@ dependencies = [
     "rapidfuzz>=3.6.1",
     "PyYAML>=6.0.1",
     "beautifulsoup4>=4.12.0",
-    "networkx>=3.0",
+    "networkx>=3.4",
     # PDF text extraction for item/collection export --format md and rag
     # ingest (attachment_service.py::get_fulltext). pdfminer.six directly,
     # not markitdown: markitdown was installed without its PDF extra, so it
