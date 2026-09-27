@@ -15,13 +15,13 @@ A change to any of these is a breaking change and waits for the next major relea
 | Machine-readable output | Field names and value types in `--format json` and `--format csv` output, and in JSON reports. New fields may appear in a minor release; consumers should ignore fields they don't know. |
 | Configuration | `config.toml` keys, and the `ZOTERO_*` and provider environment variables. |
 | Data written to your library | SDB decision notes (`sdb_version`, currently 1.2). |
-| Files written to disk | `.zaf` backup archives (manifest `format: zaf`, `version` 1.1), `slr report snapshot` JSON (`schema_version` 1.0), and the background job database (`jobs.sqlite`). |
+| Files written to disk | `.zaf` backup archives (manifest `format: zaf`, `version` 1.1), `slr report snapshot` JSON (`schema_version` 1.0), `slr snowball` discovery graphs (`format_version` 1), and the background job database (`jobs.sqlite`). |
 
 ### Formats that carry a version
 
 - **Readers keep accepting every older version.** A 3.x release reads SDB notes, `.zaf` archives and snapshots written by any earlier version, forever.
 - **A new minor format version only adds fields.** Readers ignore fields they don't know.
-- **An unknown major format version is refused** with a clear error, never silently misread. *Not enforced yet: the readers don't check versions today ([#455](https://github.com/fchicout/zotero-cli/issues/455)).*
+- **An unknown major format version is refused** with a clear error, never silently misread. The command stops with a message asking you to upgrade, and the file is left unchanged (#455).
 - `jobs.sqlite` only migrates forward, with additive changes.
 
 ## Not covered
@@ -34,7 +34,6 @@ These can change in any release:
 - Importing `zotero_cli` modules from Python. Only the command line is a public interface.
 - **Exit codes**, until [#368](https://github.com/fchicout/zotero-cli/issues/368) makes them consistent. Today some failures still exit with status 0. Once #368 is fixed, exit codes join the public surface in a minor release.
 - **The `rag` commands** (the optional `rag` extra), which are experimental. Their future is being decided in [#414](https://github.com/fchicout/zotero-cli/issues/414).
-- `slr snowball`'s discovery-graph file, until it carries a format version ([#410](https://github.com/fchicout/zotero-cli/issues/410)).
 
 ## Deprecation
 

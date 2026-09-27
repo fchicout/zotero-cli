@@ -45,6 +45,9 @@ class VerifyService:
                 else:
                     try:
                         report.manifest = read_json_member(zf, "manifest.json")
+                        from zotero_cli.core.services.restore_service import _check_manifest
+
+                        _check_manifest(report.manifest, file_path)
                     except Exception as e:
                         report.is_valid = False
                         report.errors.append(f"Invalid manifest.json: {str(e)}")

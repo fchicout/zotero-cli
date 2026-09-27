@@ -356,13 +356,22 @@ class SLRReportCommand:
 
     @staticmethod
     def _handle_shift(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
+        from zotero_cli.core.utils.format_version import check_format_version
+
         service = GatewayFactory.get_snapshot_diff_service()
-        with open(args.old, "r") as f:
-            old_data = json.load(f)
-            snap_old = old_data.get("items", old_data) if isinstance(old_data, dict) else old_data
-        with open(args.new, "r") as f:
-            new_data = json.load(f)
-            snap_new = new_data.get("items", new_data) if isinstance(new_data, dict) else new_data
+        snapshots = []
+        for path in (args.old, args.new):
+            with open(path, "r") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                # Refuse a snapshot from a newer format (Issue #455).
+                meta = data["metadata"] if isinstance(data.get("metadata"), dict) else {}
+                check_format_version(
+                    "snapshot", data.get("schema_version", meta.get("schema_version")), path
+                )
+                data = data.get("items", data)
+            snapshots.append(data)
+        snap_old, snap_new = snapshots
         shifts = service.detect_shifts(snap_old, snap_new)
         if not shifts:
             console.print("[bold green]No shifts detected. State is stable.[/bold green]")

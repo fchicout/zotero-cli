@@ -52,6 +52,13 @@ def parse_sdb_note(content: str) -> Optional[Dict[str, Any]]:
     )
 
     if is_sdb and isinstance(data, dict):
+        from zotero_cli.core.utils.format_version import check_format_version
+
+        # A decision recorded by a newer zotero-cli must not be misread
+        # (Issue #455, docs/COMPATIBILITY.md).
+        check_format_version(
+            "SDB note", data.get("sdb_version", data.get("audit_version")), "An SDB decision note"
+        )
         return data
 
     return None
