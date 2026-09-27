@@ -10,6 +10,9 @@ from zotero_cli.infra.factory import GatewayFactory
 console = Console()
 
 
+# Placeholder target for a phase folder that doesn't exist yet (preview only).
+_MISSING = "missing-folder:"
+
 class ReconcileCommand:
     """
     CLI command to reconcile the physical location of items with their SDB audit state.
@@ -53,6 +56,9 @@ class ReconcileCommand:
             # 2. Aggregation: Get all papers in tree
             papers: List[ZoteroItem] = orchestrator.get_all_papers_in_tree(root_key)
             tree_keys = set(orchestrator.get_tree_keys(root_key))
+            # Read-only until --execute (Issue #367): a missing phase folder
+            # is planned by name and created only when the plan is applied.
+            phase_map = orchestrator.find_slr_hierarchy(root_key)
 
             planned_moves: List[Dict[str, Any]] = []
 
@@ -61,7 +67,11 @@ class ReconcileCommand:
                 target_phase_id = orchestrator.resolve_target_phase(
                     paper.key, default_qa_threshold=args.qa_threshold
                 )
-                target_folder_key = orchestrator.get_folder_key_for_phase(root_key, target_phase_id)
+                folder_name = orchestrator.phase_folder_name(target_phase_id)
+                if folder_name is None:
+                    target_folder_key = root_key
+                else:
+                    target_folder_key = phase_map.get(folder_name) or _MISSING + folder_name
 
                 current_cols = set(paper.collections)
 
@@ -102,7 +112,9 @@ class ReconcileCommand:
                 curr_names.append(c["data"]["name"] if c else ckey)
 
             target_name = "Root"
-            if m["target_id"] != root_key:
+            if m["target_id"].startswith(_MISSING):
+                target_name = f"{m['target_id'][len(_MISSING) :]} (created with --execute)"
+            elif m["target_id"] != root_key:
                 tc = gateway.get_collection(m["target_id"])
                 target_name = tc["data"]["name"] if tc else m["target_id"]
 
@@ -118,7 +130,16 @@ class ReconcileCommand:
             console.print("\n[yellow]DRY RUN: Omit --execute to apply these changes.[/yellow]")
             return
 
-        # 5. Execution: Exclusive Sticky Move
+        # 5. Execution: create any missing phase folder, then resolve the
+        # planned targets to real keys.
+        if any(m["target_id"].startswith(_MISSING) for m in planned_moves):
+            created = orchestrator.ensure_slr_hierarchy(root_key)
+            for m in planned_moves:
+                if m["target_id"].startswith(_MISSING):
+                    m["target_id"] = created.get(m["target_id"][len(_MISSING) :], root_key)
+            tree_keys |= set(created.values())
+
+        # Exclusive Sticky Move
         success_count = 0
         with console.status("[bold blue]Executing displacements...") as status:
             for i, m in enumerate(planned_moves):

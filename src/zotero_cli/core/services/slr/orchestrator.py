@@ -24,12 +24,13 @@ class SLROrchestrator:
     def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
 
-    def ensure_slr_hierarchy(
+    def find_slr_hierarchy(
         self, parent_key: str, all_cols: Optional[List[dict]] = None
     ) -> Dict[str, str]:
         """
-        Verifies and silently creates the 4-phase subfolders under a source collection.
-        Returns a mapping of folder_name -> folder_key.
+        The phase subfolders that exist under a source collection, as
+        folder_name -> folder_key; missing ones are left out. Read-only:
+        reports and previews use this (Issue #367).
         """
         if all_cols is None:
             all_cols = self.gateway.get_all_collections()
@@ -39,25 +40,39 @@ class SLROrchestrator:
             for c in all_cols
             if c["data"].get("parentCollection") == parent_key
         }
+        return {
+            phase_cfg["folder"]: existing_subfolders[phase_cfg["folder"]]
+            for phase_cfg in self.PHASE_FLOW
+            if phase_cfg["folder"] in existing_subfolders
+        }
 
-        phase_map = {}
+    def ensure_slr_hierarchy(
+        self, parent_key: str, all_cols: Optional[List[dict]] = None
+    ) -> Dict[str, str]:
+        """
+        `find_slr_hierarchy`, creating any missing phase subfolder. Only for
+        commands that write anyway (`slr promote`, `slr reconcile --execute`).
+        Returns a mapping of folder_name -> folder_key.
+        """
+        phase_map = self.find_slr_hierarchy(parent_key, all_cols)
         for phase_cfg in self.PHASE_FLOW:
             name = phase_cfg["folder"]
-            if name in existing_subfolders:
-                phase_map[name] = existing_subfolders[name]
-            else:
-                # Create missing folder
+            if name not in phase_map:
                 new_key = self.gateway.create_collection(name, parent_key=parent_key)
                 if new_key:
                     phase_map[name] = new_key
         return phase_map
 
+    def phase_folder_name(self, phase_id: Optional[str]) -> Optional[str]:
+        return next((p["folder"] for p in self.PHASE_FLOW if p["id"] == phase_id), None)
+
     def get_tree_keys(self, root_key: str, all_cols: Optional[List[dict]] = None) -> List[str]:
         """
-        Returns a list of all keys belonging to a specific SLR tree (root + phase folders).
-        Used for exclusive membership enforcement.
+        Returns a list of all keys belonging to a specific SLR tree (root +
+        the phase folders that exist). Used for exclusive membership
+        enforcement. Read-only (Issue #367).
         """
-        phase_map = self.ensure_slr_hierarchy(root_key, all_cols)
+        phase_map = self.find_slr_hierarchy(root_key, all_cols)
         keys = [root_key]
         keys.extend(phase_map.values())
         return keys
