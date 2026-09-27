@@ -20,6 +20,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 - **Files from a newer zotero-cli are refused, not misread (Issue #455):** SDB decision notes, `.zaf` backup archives (`system restore`, `system verify`) and `slr report shift` snapshots now check their format version. Every older version is still read. A newer major version stops the command with a message asking you to upgrade and changes nothing. A `.zaf` whose manifest isn't a zotero-cli archive is refused. This applies the rule in docs/COMPATIBILITY.md.
 - **An unreadable snowball discovery graph is no longer silently wiped (Issue #410):** when the graph file couldn't be read (truncated, hand-edited, a sync-conflict copy, or written by an older networkx in the `"links"` format), zotero-cli started an empty graph and the next save overwrote the file, losing the seeds and every triage decision. Now `links`-format files load. Any other unreadable file is moved to `<name>.corrupt-<timestamp>` and the command stops with an error naming it. A graph written by a newer zotero-cli is refused and left untouched. Graph files now record `format_version` 1, and networkx 3.4 or newer is required.
 - **Read-only SLR commands no longer create collections (Issue #367):** `slr report status`, `slr list` and a preview `slr reconcile` created the four phase folders (`1-title_abstract`, …) under any collection they looked at, and failed in `--offline` mode, which can't write. They now only read. A reconcile preview shows a missing phase folder as "created with --execute", and `--execute` creates it before moving papers. `slr promote` still creates missing folders, since it always writes.
+- **Offline `item trash`/`item restore` are safer (Issue #417):** they write to the live `zotero.sqlite`. They now:
+  - copy it to `zotero.sqlite.zotero-cli-bak` (mode 0600) before the first write of a run;
+  - look the key up only in your configured library (a group via `groups.groupID`, or the user library);
+  - refuse a key found in several synced libraries when the configured one can't be matched, instead of changing the first match.
 
 ## [3.0.0] - 2026-09-26
 

@@ -36,6 +36,8 @@ Because this touches a file Zotero Desktop may have open, the command is preview
 
 Online/API mode is **not supported**: the Zotero Web API has no documented, reversible trash write, only a permanent `DELETE` (see `item delete`). Running this command against an online gateway prints a clear rejection rather than silently doing a hard delete.
 
+**Safety (Issue #417):** writing to `zotero.sqlite` directly is not supported by Zotero, so prefer online mode where you can. Before the first write of a run, zotero-cli copies the database to `zotero.sqlite.zotero-cli-bak` (mode 0600) and says so. The item key is looked up only in your configured library. If that library can't be matched in `zotero.sqlite` and the key exists in more than one synced library, the command refuses instead of guessing. Close Zotero Desktop first; if it's busy writing, the command fails with a clear message.
+
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |

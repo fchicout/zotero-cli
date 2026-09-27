@@ -65,8 +65,9 @@ def mock_db():
     conn.close()
     yield path
     os.close(fd)
-    if os.path.exists(path):
-        os.remove(path)
+    for leftover in (path, path + ".zotero-cli-bak"):
+        if os.path.exists(leftover):
+            os.remove(leftover)
 
 
 def test_sqlite_read_items(mock_db):
