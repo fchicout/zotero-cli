@@ -1,5 +1,4 @@
 import argparse
-import sys
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.config import get_config
@@ -26,10 +25,8 @@ Scenario-Based Examples (Cognitive Anchors)
 -------------------------------------------
 Scenario: Migrating a library to local storage to save cloud space
 Problem: My Zotero cloud storage is full and I want to move all my PDFs to my computer's "Documents/Zotero_PDFs" folder.
-Action:  zotero-cli storage checkout --limit 100 --dry-run
-         zotero-cli storage checkout --limit 100 --execute
-Result:  The first lists the stored PDFs that would move; the second downloads them to your
-         local path and turns them into linked files in Zotero.
+Action:  zotero-cli storage checkout --limit 100
+Result:  The 100 oldest stored PDFs are downloaded to your local path and their links are updated in Zotero.
 
 Cognitive Safeguards
 --------------------
@@ -45,17 +42,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             action="store_true",
             help="Check out from a group library anyway (your local path syncs to all members)",
         )
-        mode = checkout_parser.add_mutually_exclusive_group()
-        mode.add_argument(
-            "--dry-run",
-            action="store_true",
-            help="List the attachments that would move, without changing anything",
-        )
-        mode.add_argument(
-            "--execute",
-            action="store_true",
-            help="Move the files (today's default; required from 4.0, which previews by default)",
-        )
+        # checkout_parser.add_argument("--sort", choices=["size", "date"], default="size", help="Sort order")
 
     def execute(self, args: argparse.Namespace) -> None:
         if not args.subcommand:
@@ -74,23 +61,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         gateway = GatewayFactory.get_zotero_gateway(config)
         service = StorageService(config, gateway)
 
-        dry_run = getattr(args, "dry_run", False)
-        if not dry_run and not getattr(args, "execute", False):
-            # Issue #378: preview-by-default would break 3.x scripts, so it
-            # waits for 4.0 (docs/COMPATIBILITY.md); warn until then.
-            print(
-                "Deprecation warning: from 4.0, `storage checkout` only previews unless you "
-                "pass --execute. Add --execute to keep this behaviour, or --dry-run to preview.",
-                file=sys.stderr,
-            )
-
         print(f"Starting storage checkout (Limit: {args.limit})...")
         count = service.checkout_items(
-            limit=args.limit,
-            allow_group_library=getattr(args, "allow_group_library", False),
-            dry_run=dry_run,
+            limit=args.limit, allow_group_library=getattr(args, "allow_group_library", False)
         )
-        if dry_run:
-            print(f"Preview only - nothing was changed. {count} items would move.")
-        else:
-            print(f"Checkout complete. Processed {count} items.")
+        print(f"Checkout complete. Processed {count} items.")

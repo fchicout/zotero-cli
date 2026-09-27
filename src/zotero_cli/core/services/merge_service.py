@@ -396,11 +396,7 @@ class MergeService:
 
         deleted_keys = []
         for d in duplicates:
-            # Moving children above may have changed the duplicate's version;
-            # delete the version that exists now (the merge made that change).
-            current = self.item_repo.get_item(d.key)
-            version = current.version if current else d.version
-            if self.item_repo.delete_item(d.key, version):
+            if self.item_repo.delete_item(d.key, d.version):
                 deleted_keys.append(d.key)
             else:
                 result.errors.append(f"Failed to delete duplicate item '{d.key}' after merge.")
