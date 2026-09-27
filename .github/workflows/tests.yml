@@ -110,8 +110,12 @@ jobs:
       - name: SonarQube Quality Gate Check
         if: env.HAS_SONAR == 'true'
         uses: sonarsource/sonarqube-quality-gate-action@v1.2.1
+        timeout-minutes: 35
         with:
-          pollingTimeoutSec: 600
+          # sonar.fchicout.dev takes ~18 min to process an analysis (its
+          # Compute Engine, measured on 2026-09-27); 10 min timed out before
+          # the gate resolved. Still blocking: the job waits for the result.
+          pollingTimeoutSec: 1800
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
