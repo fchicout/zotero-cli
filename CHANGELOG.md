@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### ⚡ Performance
+- **Smaller, faster Linux binaries (Issue #434, first step):** the Linux release binaries and the Docker image are now stripped. The binary goes from 49 MB to 45 MB, and each command starts about 30 ms sooner, since the whole payload is unpacked on every run. Switching the installed packages to an unpacked layout is planned separately.
 - **Every command starts faster (Issue #433):** starting zotero-cli imported the HTTP stack, the BibTeX parser and the web server whether or not the command used them. They now load only when needed: `zotero-cli --help` takes about 220 ms instead of 550 ms, and commands that don't use the network, such as `--offline` ones, save the same.
 - **`report stats` and `report attachments` use less memory (Issue #439):** both kept every item of the library in memory, about 3.6 KB each (roughly 180 MB at 50k items). `report stats` now counts as the items arrive, and `report attachments` keeps only the papers and each attachment's size and type.
 - **`system restore` asks for a paper's notes once (Issue #440):** it made one request per restored note to check for an existing copy, about 20,000 extra requests for a 50k library. It now asks once per paper and remembers what it has added, and papers it has just created are known to have no notes yet.
