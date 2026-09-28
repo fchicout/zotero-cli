@@ -417,3 +417,46 @@ def test_looks_like_pdf(content, expected):
     from zotero_cli.core.utils.url_safety import looks_like_pdf
 
     assert looks_like_pdf(content) is expected
+
+
+def test_requests_without_a_session_reuse_one_pinned_session(monkeypatch):
+    """Issue #428: a new session (and TLS handshake) per download."""
+    import threading
+
+    from zotero_cli.core.utils import url_safety
+
+    monkeypatch.setattr(url_safety._session_state, "session", None, raising=False)
+    first = url_safety._shared_session()
+    assert url_safety._shared_session() is first
+    assert isinstance(first.get_adapter("https://"), url_safety.PublicOnlyAdapter)
+    assert isinstance(first.get_adapter("http://"), url_safety.PublicOnlyAdapter)
+
+    other = []
+    worker = threading.Thread(target=lambda: other.append(url_safety._shared_session()))
+    worker.start()
+    worker.join()
+    assert other[0] is not first  # sessions don't cross threads
+
+
+def test_a_given_session_is_pinned_once():
+    import requests
+
+    from zotero_cli.core.utils import url_safety
+
+    session = requests.Session()
+    pinned = url_safety._pinned(session)
+    adapter = pinned.get_adapter("https://")
+    assert isinstance(adapter, url_safety.PublicOnlyAdapter)
+    assert url_safety._pinned(pinned).get_adapter("https://") is adapter
+
+
+def test_close_shared_sessions_closes_every_thread_session(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from zotero_cli.core.utils import url_safety
+
+    fake = MagicMock()
+    monkeypatch.setattr(url_safety, "_sessions", [fake])
+    url_safety._close_shared_sessions()
+    fake.close.assert_called_once()
+    assert url_safety._sessions == []
