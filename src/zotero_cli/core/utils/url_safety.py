@@ -18,8 +18,10 @@ and `pin_public_ips` close it by connecting to the exact address that was
 validated, while TLS still verifies the certificate against the hostname.
 """
 
+import atexit
 import ipaddress
 import socket
+import threading
 from typing import Any, Iterator, List, Optional, Union
 from urllib.parse import urlparse
 
@@ -321,8 +323,51 @@ def _with_user_agent(headers: Optional[dict]) -> dict:
     return merged
 
 
+# One pinned session per thread, reused for every request that doesn't
+# bring its own (Issue #428: a new session per download meant a new TCP and
+# TLS handshake per file, 34.5k for a 50k-library backup). Pinning is checked
+# whenever a connection is opened, so pooled connections stay safe.
+# Per thread because downloads run in thread pools.
+_session_state = threading.local()
+_sessions: List[requests.Session] = []
+_sessions_lock = threading.Lock()
+
+
+def _shared_session() -> requests.Session:
+    session: Optional[requests.Session] = getattr(_session_state, "session", None)
+    if session is None:
+        session = public_only_session()
+        _session_state.session = session
+        with _sessions_lock:
+            _sessions.append(session)
+    return session
+
+
+def _close_shared_sessions() -> None:
+    with _sessions_lock:
+        for session in _sessions:
+            session.close()
+        _sessions.clear()
+
+
+atexit.register(_close_shared_sessions)
+
+
+def _pinned(session: requests.Session) -> requests.Session:
+    """`session` with PublicOnlyAdapter mounted, once (mounting a new
+    adapter on every call also threw its connection pool away)."""
+    # Looks up the adapter plain-HTTP URLs would use; it makes no request.
+    http_adapter = session.get_adapter("http://")  # NOSONAR
+    if isinstance(session.get_adapter("https://"), PublicOnlyAdapter) and isinstance(
+        http_adapter, PublicOnlyAdapter
+    ):
+        return session
+    return public_only_session(session)
+
+
 def _safe_request(method: str, url: str, **kwargs: Any) -> requests.Response:
-    session = public_only_session(kwargs.pop("session", None))
+    given = kwargs.pop("session", None)
+    session = _pinned(given) if given is not None else _shared_session()
     kwargs["headers"] = _with_user_agent(kwargs.get("headers"))
     current_url = url
     for _ in range(MAX_REDIRECTS + 1):

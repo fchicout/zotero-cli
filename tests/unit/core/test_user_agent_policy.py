@@ -31,7 +31,7 @@ def _capture_safe_get_headers(**kwargs) -> dict:
     response = MagicMock(is_redirect=False, is_permanent_redirect=False)
     session.request.return_value = response
     with (
-        patch.object(url_safety, "public_only_session", return_value=session),
+        patch.object(url_safety, "_shared_session", return_value=session),
         patch.object(url_safety, "validate_public_url"),
     ):
         url_safety.safe_get("https://example.org/paper.pdf", **kwargs)

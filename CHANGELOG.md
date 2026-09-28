@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### ⚡ Performance
+- **Downloads reuse connections (Issue #428):** every attachment and PDF download opened a new HTTP session, so a new TCP and TLS handshake per file: 34,500 for a 50k-library backup, roughly 1–4 extra hours. Downloads now share one connection pool per thread. Each connection is still checked against the public-address rules when it opens.
 - **`system backup` and `collection backup` are much faster on large libraries (Issues #426, #427):**
   - A whole-library backup asked for each item's children and then fetched each child again: about 2.8 requests per item, 9–17 hours of metadata requests at 50k items. It now uses the listing it already has; a collection backup fetches its items' children together.
   - PDFs, images and other already-compressed attachments are stored as they are instead of LZMA-compressed at about 2 MB/s (roughly 6 hours of CPU for 50 GB of PDFs), for an archive about 8% larger. Metadata uses DEFLATE, and `data.json` is written compactly as it goes instead of as one large string in memory.
