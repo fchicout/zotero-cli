@@ -28,7 +28,8 @@ RUN apt-get update \
 RUN pip install --no-cache-dir "uv==0.12.18" && \
     uv sync --locked --no-editable --group release
 
-RUN .venv/bin/pyinstaller --onefile --name zotero-cli \
+# --strip (Issue #434): smaller payload, extracted on every run.
+RUN .venv/bin/pyinstaller --onefile --strip --name zotero-cli \
     --add-data "src/zotero_cli/templates/extraction_schema.yaml:zotero_cli/templates" \
     --add-data "src/zotero_cli/templates/demo_sandbox.yaml:zotero_cli/templates" \
     --exclude-module torch \

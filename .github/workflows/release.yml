@@ -67,8 +67,10 @@ jobs:
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Build Binary with PyInstaller
+        # --strip (Issue #434): an unstripped libpython3.14 is 34 MB instead
+        # of 22.7 MB, all of it extracted on every run.
         run: |
-          pyinstaller --onefile --name zotero-cli \
+          pyinstaller --onefile --strip --name zotero-cli \
             --add-data "src/zotero_cli/templates/extraction_schema.yaml:zotero_cli/templates" \
             --add-data "src/zotero_cli/templates/demo_sandbox.yaml:zotero_cli/templates" \
             --exclude-module torch \
