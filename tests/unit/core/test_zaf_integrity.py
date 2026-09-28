@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from zotero_cli.core.services.restore_service import RestoreService
+from zotero_cli.core.services.restore_service import RestoreReport, RestoreService
 from zotero_cli.core.services.verify_service import VerifyService
 
 
@@ -467,3 +467,36 @@ def test_restore_refuses_oversized_data_json(tmp_path, mock_orchestrator, monkey
 
     report = RestoreService(MagicMock(), mock_orchestrator).restore_archive(str(path))
     assert report.errors and "limit" in report.errors[0]
+
+
+def test_restore_notes_ask_for_each_parent_s_children_once(mock_gateway, mock_orchestrator):
+    """Issue #440: one children request per restored note."""
+    service = RestoreService(mock_gateway, mock_orchestrator)
+    report = RestoreReport()
+    mock_gateway.get_item_children.return_value = [
+        {"key": "N0", "data": {"itemType": "note", "note": "already there"}}
+    ]
+    mock_gateway.create_note.return_value = True
+
+    for text in ("already there", "first", "second", "first"):
+        service._restore_note({"note": text}, "PARENT", report)
+
+    mock_gateway.get_item_children.assert_called_once_with("PARENT")
+    created = [c.args[1] for c in mock_gateway.create_note.call_args_list]
+    assert created == ["first", "second"]  # no duplicates, nothing twice
+
+
+def test_restore_notes_on_a_new_parent_make_no_children_request(mock_gateway, mock_orchestrator):
+    service = RestoreService(mock_gateway, mock_orchestrator)
+    report = RestoreReport()
+    mock_gateway.create_generic_item.return_value = "NEWKEY"
+    mock_gateway.create_note.return_value = True
+    service._restore_single_item(
+        {"key": "OLD", "data": {"itemType": "journalArticle", "title": "A new paper"}},
+        MagicMock(), {}, report, {}, {},
+    )
+
+    service._restore_note({"note": "hello"}, "NEWKEY", report)
+
+    mock_gateway.get_item_children.assert_not_called()
+    mock_gateway.create_note.assert_called_once_with("NEWKEY", "hello")
