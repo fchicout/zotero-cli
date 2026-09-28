@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
+- **`search --limit` and `search --doi` read less (Issue #438):** `--limit` was applied only after every page of hits had been fetched. The command now stops once it has enough, so `search aa --limit 5` is one request. Online, `--doi` scans only top-level items, skipping attachments and notes, which never have a DOI: about half the requests (1,040 pages in a 50k library, 5–10 minutes).
 - **`--offline` sees screening decisions (Issue #437):** offline, a paper's notes and attachments came back as bare keys, so every SLR decision stored in a note was invisible. `slr report status` showed 0 accepted and 0 rejected, and `slr list`, consensus, snapshots and BibTeX/RIS export lost their SDB data. Offline children now have the same fields as online ones: note text, item type, parent, dates, tags, and the attachment's link mode, file name, content type and title. Trashed children are left out.
 - **`--offline` copies `zotero.sqlite` once per run (Issue #436):**
   - Each internal service copied the whole database: two copies (1.7 GB for an 842 MB database) for `slr report status` and `report duplicates`. It also opened a new SQLite connection per lookup: 12,218 for one BibTeX export.

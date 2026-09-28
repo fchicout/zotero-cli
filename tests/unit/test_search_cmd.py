@@ -97,3 +97,20 @@ def test_search_by_query_with_bracketed_text_renders_literally(search_cmd, mock_
 
     out = capsys.readouterr().out
     assert "[Retracted] Studies" in out
+
+
+def test_search_stops_reading_at_the_limit(search_cmd, mock_gateway):
+    """Issue #438: every page of hits was fetched before --limit applied."""
+    pulled = []
+
+    def hits():
+        for n in range(1000):
+            pulled.append(n)
+            yield ZoteroItem.from_raw_zotero_item(
+                {"key": f"K{n:07d}", "data": {"title": "t", "creators": [], "date": "2020"}}
+            )
+
+    mock_gateway.search_items.return_value = hits()
+    search_cmd.execute(argparse.Namespace(query="aa", doi=None, title=None, limit=5, user=False))
+
+    assert len(pulled) == 5
