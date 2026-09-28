@@ -576,6 +576,11 @@ class SnowballGraphService(ABC):
     def save_graph(self) -> None:
         pass
 
+    def flush(self) -> None:
+        """Writes changes not saved yet (Issue #435: decisions are saved in
+        batches). By default, a full save."""
+        self.save_graph()
+
     @abstractmethod
     def get_stats(self) -> Dict[str, Any]:
         pass

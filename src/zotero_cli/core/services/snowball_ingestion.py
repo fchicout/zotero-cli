@@ -64,44 +64,47 @@ class SnowballIngestionService:
         # from #224) and look candidates up against it in O(1) instead.
         library_doi_index = self._build_library_doi_index()
 
-        for cand in candidates:
-            doi = cand["doi"]
-            logger.info(f"Ingesting candidate: {doi}")
+        try:
+            for cand in candidates:
+                doi = cand["doi"]
+                logger.info(f"Ingesting candidate: {doi}")
 
-            try:
-                # 2. Duplicate Guard
-                if self._is_duplicate(doi, library_doi_index):
-                    logger.info(f"Duplicate found for {doi}. Skipping.")
-                    stats["duplicates"] += 1
-                    # Even if it's a duplicate in Zotero, we mark it as IMPORTED in our graph
-                    self.graph_service.update_status(doi, self.STATUS_IMPORTED)
-                    continue
+                try:
+                    # 2. Duplicate Guard
+                    if self._is_duplicate(doi, library_doi_index):
+                        logger.info(f"Duplicate found for {doi}. Skipping.")
+                        stats["duplicates"] += 1
+                        # Even if it's a duplicate in Zotero, we mark it as IMPORTED in our graph
+                        self.graph_service.update_status(doi, self.STATUS_IMPORTED)
+                        continue
 
-                # 3. Hydration
-                paper = self._hydrate_paper(cand)
-                if not paper:
-                    logger.error(f"Failed to hydrate paper for {doi}")
+                    # 3. Hydration
+                    paper = self._hydrate_paper(cand)
+                    if not paper:
+                        logger.error(f"Failed to hydrate paper for {doi}")
+                        stats["errors"] += 1
+                        continue
+
+                    # 4. Lineage Injection
+                    self._inject_lineage(paper, cand)
+
+                    # 5. Upload
+                    if self.item_repo.create_item(paper, col_id):
+                        logger.info(f"Successfully imported {doi} to Zotero.")
+                        stats["imported"] += 1
+                        # 6. State Transition
+                        self.graph_service.update_status(doi, self.STATUS_IMPORTED)
+                    else:
+                        logger.error(f"Failed to create Zotero item for {doi}")
+                        stats["errors"] += 1
+
+                except Exception:
+                    logger.exception(f"Error during ingestion of {doi}")
                     stats["errors"] += 1
-                    continue
 
-                # 4. Lineage Injection
-                self._inject_lineage(paper, cand)
-
-                # 5. Upload
-                if self.item_repo.create_item(paper, col_id):
-                    logger.info(f"Successfully imported {doi} to Zotero.")
-                    stats["imported"] += 1
-                    # 6. State Transition
-                    self.graph_service.update_status(doi, self.STATUS_IMPORTED)
-                else:
-                    logger.error(f"Failed to create Zotero item for {doi}")
-                    stats["errors"] += 1
-
-            except Exception:
-                logger.exception(f"Error during ingestion of {doi}")
-                stats["errors"] += 1
-
-        self.graph_service.save_graph()
+        finally:
+            # One write for the whole run (Issue #435)
+            self.graph_service.save_graph()
         return stats
 
     def _build_library_doi_index(self) -> Dict[str, bool]:

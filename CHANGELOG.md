@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### ⚡ Performance
+- **Snowball review no longer rewrites the whole graph on every decision (Issue #435):** each accept or reject rewrote the discovery graph file: 1.1–2.4 s per decision at 50k–100k nodes. Decisions are now saved every 25 decisions or 30 seconds, and when the session ends (including with `q` or Ctrl-C) or the import finishes. The graph file is written compactly; `slr snowball export --format json` output is unchanged.
 - **`report duplicates` on a whole library (Issue #430):**
   - Bug fix: it looked at attachments and notes too, so thousands of PDFs titled "Full Text PDF" were reported as one duplicate group (3,502 rows at 5k items). Only regular items are compared now.
   - The fuzzy tier compared every pair of items, which grew quadratically. It now compares only items that share an author and are at most a year apart, which are the only ones that could match: 0.09 s instead of 2.2 s for 8,000 items, with the same results.

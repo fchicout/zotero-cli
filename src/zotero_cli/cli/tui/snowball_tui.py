@@ -76,32 +76,40 @@ class SnowballReviewTUI:
         except (EOFError, StopIteration):
             pass
 
-        for index, candidate in enumerate(candidates):
-            self.console.clear()
-            self._maybe_hydrate(candidate)
-            self._display_candidate(candidate, index + 1, total)
+        try:
+            for index, candidate in enumerate(candidates):
+                self.console.clear()
+                self._maybe_hydrate(candidate)
+                self._display_candidate(candidate, index + 1, total)
 
-            action = self._get_user_action()
+                action = self._get_user_action()
 
-            if action == "q":
-                self.console.print("[bold yellow]Quitting session... Saving graph...[/bold yellow]")
-                self.graph_service.save_graph()
-                break
-            elif action == "s":
-                self.console.print("[yellow]Skipping candidate...[/yellow]")
-                continue
+                if action == "q":
+                    self.console.print(
+                        "[bold yellow]Quitting session... Saving graph...[/bold yellow]"
+                    )
+                    break
+                elif action == "s":
+                    self.console.print("[yellow]Skipping candidate...[/yellow]")
+                    continue
 
-            status = (
-                SnowballGraphService.STATUS_ACCEPTED
-                if action == "a"
-                else SnowballGraphService.STATUS_REJECTED
-            )
+                status = (
+                    SnowballGraphService.STATUS_ACCEPTED
+                    if action == "a"
+                    else SnowballGraphService.STATUS_REJECTED
+                )
 
-            depth = self._get_decision_depth()
-            reason = self._get_decision_reason(status)
+                depth = self._get_decision_depth()
+                reason = self._get_decision_reason(status)
 
-            self.graph_service.update_status(candidate["doi"], status, reason=reason, depth=depth)
-            self.console.print(f"[bold green]Marked as {safe_markup(status)}![/bold green]")
+                self.graph_service.update_status(
+                    candidate["doi"], status, reason=reason, depth=depth
+                )
+                self.console.print(f"[bold green]Marked as {safe_markup(status)}![/bold green]")
+        finally:
+            # Decisions are saved in batches (Issue #435): write the rest
+            # however the session ends, including Ctrl-C.
+            self.graph_service.flush()
 
         self.console.print("[bold cyan]Session Complete.[/bold cyan]")
 
