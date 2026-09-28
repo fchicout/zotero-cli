@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
+from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,14 @@ class SnapshotWriter:
         snapshot_data: List[Dict[str, Any]] = []
         failed_items: List[Dict[str, Any]] = []
 
-        # 3. Iterate and Enrich (The "Deep Fetch")
+        # 3. Iterate and Enrich (The "Deep Fetch"). Children are fetched for
+        # all items together (Issue #425); if that fails, each item is
+        # fetched on its own below so one failure doesn't lose the rest.
+        try:
+            prefetched = children_by_parent(self.item_repo, [i.key for i in parent_items])
+        except Exception as e:
+            logger.warning("Batched children lookup failed, fetching per item: %s", e)
+            prefetched = {}
         for index, item in enumerate(parent_items):
             if callback:
                 callback(
@@ -72,7 +80,10 @@ class SnapshotWriter:
                 item_data = self._serialize_item(item)
 
                 # Fetch Children (Notes/Attachments)
-                children_raw = self.item_repo.get_item_children(item.key)
+                if item.key in prefetched:
+                    children_raw = prefetched[item.key]
+                else:
+                    children_raw = self.item_repo.get_item_children(item.key)
 
                 # Nest children
                 item_data["children"] = children_raw

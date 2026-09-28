@@ -39,6 +39,13 @@ def _of_type(children: Children, item_type: Optional[str]) -> Children:
     return [c for c in children if _item_type(c) == item_type]
 
 
+def _unwrap(source: Any) -> Any:
+    """The gateway behind a repository (ZoteroItemRepository & co. keep it
+    as `self.gateway`), so a repository batches like its gateway."""
+    inner = vars(source).get("gateway") if hasattr(source, "__dict__") else None
+    return inner if inner is not None else source
+
+
 def _count(gateway: ZoteroGateway, item_type: Optional[str]) -> Optional[int]:
     # Looked up on the class, so a test double without the method (or a
     # MagicMock, which would invent one) takes the per-parent path.
@@ -57,7 +64,7 @@ def should_scan(gateway: ZoteroGateway, parents: int, item_type: Optional[str]) 
 
 
 def children_by_parent(
-    gateway: ZoteroGateway,
+    gateway: Any,
     parent_keys: Iterable[str],
     item_type: Optional[str] = None,
 ) -> Dict[str, Children]:
@@ -69,6 +76,7 @@ def children_by_parent(
     keys = list(dict.fromkeys(parent_keys))
     if not keys:
         return {}
+    gateway = _unwrap(gateway)
 
     batch = getattr(type(gateway), "get_children_by_parent", None)
     if batch is not None:

@@ -17,6 +17,7 @@ from zotero_cli.core.models import (
     VectorChunk,
     VerifiedSearchResult,
 )
+from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.slr.citation_service import CitationService
 from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
@@ -156,8 +157,11 @@ class RAGIngestItemSelector:
         if min_qa_score is not None:
             logger.info(f"Pre-filtering items by QA score >= {min_qa_score}...")
             filtered_items = []
+            notes_by_item = children_by_parent(
+                self.gateway, [i.key for i in items_to_process], "note"
+            )
             for i in items_to_process:
-                if self.get_item_max_qa_score(i) >= min_qa_score:
+                if self.get_item_max_qa_score(i, notes_by_item.get(i.key, [])) >= min_qa_score:
                     filtered_items.append(i)
                 else:
                     skipped_low_qa += 1
@@ -205,12 +209,15 @@ class RAGIngestItemSelector:
 
         return items_to_process
 
-    def get_item_max_qa_score(self, item: ZoteroItem) -> float:
+    def get_item_max_qa_score(
+        self, item: ZoteroItem, children: Optional[List[Dict[str, Any]]] = None
+    ) -> float:
         """
         Extracts QA score from the dedicated 'quality_assessment' phase note.
         """
         max_score = -1.0
-        children = self.gateway.get_item_children(item.key)
+        if children is None:
+            children = self.gateway.get_item_children(item.key)
         for child_raw in children:
             if child_raw.get("data", {}).get("itemType") == "note":
                 note_content = child_raw.get("data", {}).get("note", "")

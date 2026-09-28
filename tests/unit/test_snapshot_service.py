@@ -94,10 +94,12 @@ def test_freeze_collection_partial_failure(snapshot_service, mock_gateway, tmp_p
     mock_gateway.get_items_in_collection.return_value = iter([item1, item2])
 
     # Simulate first item succeeds, second item raises Exception
-    mock_gateway.get_item_children.side_effect = [
-        [],  # ITEM1 children
-        Exception("API Rate Limit"),  # ITEM2 fails
-    ]
+    def children(key):
+        if key == "ITEM2":
+            raise Exception("API Rate Limit")
+        return []
+
+    mock_gateway.get_item_children.side_effect = children
 
     # Execute
     success = snapshot_service.freeze_collection(collection_name, str(output_file))

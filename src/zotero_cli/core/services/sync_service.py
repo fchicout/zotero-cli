@@ -5,6 +5,7 @@ import sys
 from typing import Any, Callable, Dict, List, Optional, cast
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
+from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.utils.csv_safety import sanitize_csv_rows
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -56,7 +57,13 @@ class SyncService:
 
         recovered_rows: List[Dict[str, str]] = []
 
-        # 3. Process Items
+        # 3. Process Items. Notes for all items together (Issue #425); if that
+        # fails, each item is fetched on its own and failures stay per item.
+        try:
+            notes_by_item = children_by_parent(self.item_repo, [i.key for i in items], "note")
+        except Exception as e:
+            logger.warning("Batched notes lookup failed, fetching per item: %s", e)
+            notes_by_item = {}
         for idx, item in enumerate(items):
             title = item.title if item.title else "Untitled"
             if callback:
@@ -64,7 +71,7 @@ class SyncService:
 
             try:
                 # Find the screening note
-                screening_data = self._extract_screening_data(item)
+                screening_data = self._extract_screening_data(item, notes_by_item.get(item.key))
 
                 if screening_data:
                     # Map to CSV schema
@@ -119,10 +126,13 @@ class SyncService:
             logger.exception("Error writing recovered-state CSV to %s", output_csv_path)
             return False
 
-    def _extract_screening_data(self, item: ZoteroItem) -> Optional[Dict[str, Any]]:
+    def _extract_screening_data(
+        self, item: ZoteroItem, children: Optional[List[Dict[str, Any]]] = None
+    ) -> Optional[Dict[str, Any]]:
         """Helper to find and parse the screening decision note for an item."""
         try:
-            children = self.item_repo.get_item_children(item.key)
+            if children is None:
+                children = self.item_repo.get_item_children(item.key)
         except Exception as e:
             print(f"Warning: Failed to fetch children for {item.key}: {e}", file=sys.stderr)
             logger.warning("Failed to fetch children for item %s: %s", item.key, e)

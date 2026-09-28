@@ -8,6 +8,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.graph_service import CitationGraphService
 from zotero_cli.core.services.report_service import ReportService
 from zotero_cli.core.services.slr.status_service import PhaseStats
@@ -484,8 +485,10 @@ class SLRReportCommand:
         with console.status(
             "[bold green]Scanning and analyzing SDB notes for reviewer consensus...[/bold green]"
         ):
+            # All items' notes together, not one request per item (Issue #425)
+            notes_by_item = children_by_parent(gateway, [item.key for item in items], "note")
             for item in items:
-                children = gateway.get_item_children(item.key)
+                children = notes_by_item.get(item.key, [])
                 reviewer_decisions = {}
                 for child in children:
                     data_raw = child.get("data", child)

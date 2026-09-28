@@ -11,6 +11,7 @@ from zotero_cli.core.interfaces import (
 from zotero_cli.core.interfaces import (
     ScreeningService as IScreeningService,
 )
+from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.collection_service import CollectionService
 from zotero_cli.core.utils.sdb_parser import encode_json_note, parse_sdb_note
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -248,26 +249,23 @@ class ScreeningService(IScreeningService):
         if not col_id:
             return []
 
-        all_items = self.collection_repo.get_items_in_collection(col_id)
+        # FAST PATH: items whose tags already record a decision
+        undecided = [
+            item
+            for item in self.collection_repo.get_items_in_collection(col_id)
+            if not any(
+                tag.startswith("rsl:phase:") or tag.startswith("rsl:exclude:") or tag == "rsl:include"
+                for tag in item.tags
+            )
+        ]
+        # SLOW PATH: the rest's notes, fetched together (Issue #425)
+        notes_by_item = children_by_parent(
+            self.note_repo, [item.key for item in undecided], "note"
+        )
         pending = []
 
-        for item in all_items:
-            # FAST PATH: Check tags first
-            has_tag_decision = False
-            for tag in item.tags:
-                if (
-                    tag.startswith("rsl:phase:")
-                    or tag.startswith("rsl:exclude:")
-                    or tag == "rsl:include"
-                ):
-                    has_tag_decision = True
-                    break
-
-            if has_tag_decision:
-                continue
-
-            # SLOW PATH: Check note content (Fallback)
-            children = self.note_repo.get_item_children(item.key)
+        for item in undecided:
+            children = notes_by_item.get(item.key, [])
             has_decision = False
             for child in children:
                 # Handle both direct and nested data structures

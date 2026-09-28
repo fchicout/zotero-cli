@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 
@@ -84,10 +85,14 @@ class SLRStatusService:
                 total_unique=len(all_papers),
             )
 
-            # 2. Cache All Parsed SDB Notes for these items
+            # 2. Cache All Parsed SDB Notes for these items, fetched together
+            # (Issue #425: one request per paper, 5,021 at 5k papers)
+            notes_by_paper = children_by_parent(
+                self.gateway, [paper.key for paper in all_papers], "note"
+            )
             item_notes = {}
             for paper in all_papers:
-                children = self.gateway.get_item_children(paper.key)
+                children = notes_by_paper.get(paper.key, [])
                 parsed_notes = []
                 for child in children:
                     if child.get("data", {}).get("itemType") == "note":
@@ -163,15 +168,19 @@ class SLRStatusService:
 
             for phase_cfg in self.orchestrator.PHASE_FLOW:
                 phase_id = phase_id = phase_cfg["id"]
-                queue_items = list(
-                    self.gateway.get_items_in_collection(current_queue_key, top_only=True)
+                queue_items = [
+                    paper
+                    for paper in self.gateway.get_items_in_collection(
+                        current_queue_key, top_only=True
+                    )
+                    if paper.item_type not in ["attachment", "note"]
+                ]
+                notes_by_paper = children_by_parent(
+                    self.gateway, [paper.key for paper in queue_items], "note"
                 )
 
                 for paper in queue_items:
-                    if paper.item_type in ["attachment", "note"]:
-                        continue
-
-                    children = self.gateway.get_item_children(paper.key)
+                    children = notes_by_paper.get(paper.key, [])
                     decision = self._get_phase_decision(children, phase_id)
 
                     if decision is None:
@@ -218,9 +227,12 @@ class SLRStatusService:
 
             # Collect All Papers in Tree
             all_papers = self.orchestrator.get_all_papers_in_tree(source_key)
+            notes_by_paper = children_by_parent(
+                self.gateway, [paper.key for paper in all_papers], "note"
+            )
 
             for paper in all_papers:
-                children = self.gateway.get_item_children(paper.key)
+                children = notes_by_paper.get(paper.key, [])
                 parsed_notes = []
                 for child in children:
                     if child.get("data", {}).get("itemType") == "note":
