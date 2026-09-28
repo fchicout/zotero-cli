@@ -11,8 +11,18 @@ from zotero_cli.core.utils.archive_safety import (
     copy_member,
     read_json_member,
 )
+from zotero_cli.core.utils.format_version import check_format_version
 from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.zotero_item import ZoteroItem
+
+
+def _check_manifest(manifest: object, source: str) -> None:
+    """Refuse an archive that isn't a .zaf or is from a newer format (#455)."""
+    from zotero_cli.core.exceptions import DataFileError
+
+    if not isinstance(manifest, dict) or manifest.get("format", "zaf") != "zaf":
+        raise DataFileError(f"{source} is not a zotero-cli backup archive (.zaf).")
+    check_format_version("backup archive", manifest.get("version"), source)
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +58,7 @@ class RestoreService:
                 # (archive_safety) instead of zf.read() of whole entries.
                 check_entry_count(zf)
                 manifest = read_json_member(zf, "manifest.json")
+                _check_manifest(manifest, file_path)
                 items_data = read_json_member(zf, "data.json")
 
                 collections_data = []
