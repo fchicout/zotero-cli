@@ -13,6 +13,15 @@ def item_cmd():
     return ItemCommand()
 
 
+@pytest.fixture(autouse=True)
+def _gateway():
+    """ItemCommand.execute builds a gateway before dispatching. Mock it: these
+    tests used to pass only when an earlier test had left a config with an
+    API key in the process-wide cache."""
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as gateway:
+        yield gateway
+
+
 def _args(**kw):
     base = dict(
         verb="hydrate",

@@ -27,16 +27,13 @@ verify_environment()
 
 import argparse  # noqa: E402
 import logging  # noqa: E402
+import os  # noqa: E402
 
 from zotero_cli import __version__  # noqa: E402
 from zotero_cli.cli import commands  # noqa: F401, E402 (Trigger registration)
 from zotero_cli.cli.base import CommandRegistry  # noqa: E402
 from zotero_cli.core.config import get_config  # noqa: E402
-from zotero_cli.core.exceptions import (  # noqa: E402
-    AmbiguousCollectionError,
-    ConfigurationError,
-    DataFileError,
-)
+from zotero_cli.core.exceptions import ZoteroCliError  # noqa: E402
 from zotero_cli.core.logging_config import setup_logging  # noqa: E402
 from zotero_cli.core.runtime import set_offline_mode  # noqa: E402
 
@@ -48,7 +45,14 @@ logger = logging.getLogger(__name__)
 def build_parser() -> argparse.ArgumentParser:
     """The full command-line parser (also used by the docs tests to check
     that every documented example parses, Issue #386)."""
-    parser = argparse.ArgumentParser(description="zotero-cli - manage your Zotero library from the command line")
+    parser = argparse.ArgumentParser(
+        description="zotero-cli - manage your Zotero library from the command line",
+        epilog=(
+            "Exit status: 0 success, 1 error, 2 usage error, 3 not found, 4 authentication, "
+            "5 unavailable, 6 conflict, 7 partial failure, 130 interrupted. Errors go to "
+            "stderr; -v adds the traceback. See docs/EXIT_CODES.md."
+        ),
+    )
     parser.add_argument(
         "-V", "--version", action="version", version=f"zotero-cli {__version__}"
     )
@@ -114,23 +118,47 @@ def main() -> None:
             args.func(args)
         else:
             parser.print_help()
-    except ConfigurationError as e:
-        print(str(e), file=sys.stderr)
-        sys.exit(1)
-    except AmbiguousCollectionError as e:
-        # A usage problem, not a crash: no traceback (Issue #381).
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(2)
-    except DataFileError as e:
-        print(f"Error: {e}", file=sys.stderr)
+    except ZoteroCliError as e:
+        # Expected failures: one line, and the exit code that says which
+        # kind (Issues #368, #370, docs/EXIT_CODES.md).
+        _fail(str(e), e.exit_code, args)
+    except (FileNotFoundError, PermissionError, IsADirectoryError, NotADirectoryError) as e:
+        _fail(f"{e.strerror}: {e.filename}" if e.filename else str(e), 1, args)
+    except EOFError:
+        # A prompt with no terminal to answer it (scripts, CI, agents).
+        _fail(
+            "this command asks for confirmation and there is no terminal to answer it; "
+            "pass --force (or --yes) to run it non-interactively",
+            2,
+            args,
+        )
+    except KeyboardInterrupt:
+        print("Interrupted.", file=sys.stderr)
+        sys.exit(130)
+    except BrokenPipeError:
+        # Output piped into something that stopped reading (e.g. `| head`).
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
         sys.exit(1)
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        logger.exception("Unhandled exception during command dispatch")
+        _fail(f"{type(e).__name__}: {e}", 1, args, unexpected=True)
+
+
+def _fail(message: str, code: int, args: argparse.Namespace, unexpected: bool = False) -> None:
+    """Prints one error line on stderr and exits with `code`. The traceback
+    goes to stderr only with -v (it is always in the log file)."""
+    message = message.strip()
+    if message.lower().startswith("error:"):
+        message = message[len("error:") :].strip()
+    print(f"Error: {message}", file=sys.stderr)
+    if getattr(args, "verbose", False):
         import traceback
 
         traceback.print_exc()
-        logger.exception("Unhandled exception during command dispatch")
-        sys.exit(1)
+    elif unexpected:
+        print("Run with -v for details, or see the log file.", file=sys.stderr)
+    sys.exit(code)
 
 
 if __name__ == "__main__":
