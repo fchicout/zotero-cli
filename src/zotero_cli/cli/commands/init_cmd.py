@@ -1,12 +1,16 @@
 import argparse
+import re
 import sys
 from pathlib import Path
+from typing import Any, Dict
 
+import toml
 from rich.markup import escape
 from rich.prompt import Confirm, Prompt
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.core.config import ConfigLoader, ZoteroConfig, secure_config_open
+from zotero_cli.core.config import ConfigLoader, ZoteroConfig, secure_config_open, tomllib
+from zotero_cli.core.exceptions import UsageError
 from zotero_cli.core.logging_config import redact, register_secrets
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
@@ -37,7 +41,9 @@ Cognitive Safeguards
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/init.md
 """
-        parser.add_argument("--force", action="store_true", help="Overwrite existing config")
+        parser.add_argument(
+            "--force", action="store_true", help="Update an existing config without asking"
+        )
 
     def execute(self, args: argparse.Namespace) -> None:
         console = Console()
@@ -48,18 +54,35 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         loader = ConfigLoader(config_path=custom_path)
         config_path = loader.config_path
 
-        if config_path.exists() and not args.force:
-            console.print(f"[yellow]Config file already exists at: {safe_markup(config_path)}[/]")
-            if not Confirm.ask("Do you want to overwrite it?"):
-                console.print("[red]Aborted.[/]")
-                return
+        # An existing config is updated, not replaced: keys the wizard
+        # doesn't ask about (AI keys, ncbi_api_key, storage_path, other
+        # tables) are kept, and its values are the defaults (Issue #388).
+        document: Dict[str, Any] = {}
+        if config_path.exists():
+            document = _read_existing(config_path, console)
+            if not args.force:
+                console.print(
+                    f"[yellow]Config file already exists at: {safe_markup(config_path)}[/]"
+                )
+                if not Confirm.ask("Update it? Settings you don't change are kept"):
+                    console.print("[red]Aborted.[/]")
+                    return
+        current: Dict[str, Any] = document.setdefault("zotero", {})
 
         # 2. Interactive Prompts
         console.print(
             "[italic]Please find your API Key and Library ID at https://www.zotero.org/settings/keys[/]\n"
         )
 
-        api_key = Prompt.ask("Enter your Zotero API Key", password=True)
+        existing_key = str(current.get("api_key") or "")
+        api_key = Prompt.ask(
+            "Enter your Zotero API Key" + (" (Enter keeps the current one)" if existing_key else ""),
+            password=True,
+            default=existing_key or None,
+            show_default=False,
+        )
+        if not api_key:
+            raise UsageError("An API key is required: create one at https://www.zotero.org/settings/keys")
         register_secrets(api_key)
 
         # Resolve the key's owning identity up front - no library_id needed
@@ -77,28 +100,36 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 f"[yellow]⚠ Could not resolve key identity yet: {escape(redact(str(e)))}[/]\n"
             )
 
-        lib_type = Prompt.ask("Library Type", choices=["user", "group"], default="group")
-        if lib_type == "user" and resolved_user_id:
-            lib_id = Prompt.ask("Library ID (User ID or Group ID)", default=resolved_user_id)
+        # Most first-time users have a personal library (Issue #397).
+        lib_type = Prompt.ask(
+            "Library Type",
+            choices=["user", "group"],
+            default=str(current.get("library_type") or "user"),
+        )
+        if lib_type == "user":
+            lib_id = Prompt.ask(
+                "Library ID (your User ID)",
+                default=resolved_user_id or str(current.get("library_id") or "") or None,
+            )
         else:
-            lib_id = Prompt.ask("Library ID (User ID or Group ID)")
+            lib_id = _ask_group_id(console, str(current.get("library_id") or ""))
 
         user_id = ""
         if lib_type == "group":
             user_id = Prompt.ask(
                 "Your personal User ID (optional, used for '--user' mode)",
-                default=resolved_user_id,
-            )
-
-        target_group = ""
-        if lib_type == "group":
-            target_group = Prompt.ask(
-                "Target Group Name (slug from URL, e.g. 'my-research-group')", default=""
+                default=resolved_user_id or str(current.get("user_id") or ""),
             )
 
         console.print("\n[bold]Advanced Services (Optional)[/]")
-        ss_key = Prompt.ask("Semantic Scholar API Key", default="")
-        up_email = Prompt.ask("Unpaywall Email", default="")
+        ss_key = Prompt.ask(
+            "Semantic Scholar API Key", default=str(current.get("semantic_scholar_api_key") or "")
+        )
+        up_email = Prompt.ask("Unpaywall Email", default=str(current.get("unpaywall_email") or ""))
+        database_path = Prompt.ask(
+            "Path to zotero.sqlite, for --offline (optional)",
+            default=str(current.get("database_path") or _default_database_path()),
+        )
 
         # 3. Verification
         console.print("\n[yellow]Verifying credentials...[/]")
@@ -107,7 +138,6 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             library_id=lib_id,
             library_type=lib_type,
             user_id=user_id if user_id else None,
-            target_group_url=target_group if target_group else None,
             semantic_scholar_api_key=ss_key if ss_key else None,
             unpaywall_email=up_email if up_email else None,
         )
@@ -125,30 +155,31 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 console.print("[red]Aborted.[/]")
                 return
 
-        # 4. Construct TOML content
-        toml_content = [
-            "# Zotero CLI Configuration",
-            "[zotero]",
-            f'api_key = "{api_key}"',
-            f'library_id = "{lib_id}"',
-            f'library_type = "{lib_type}"',
-        ]
-        if user_id:
-            toml_content.append(f'user_id = "{user_id}"')
-        if target_group:
-            toml_content.append(f'target_group = "{target_group}"')
-        if ss_key:
-            toml_content.append(f'semantic_scholar_api_key = "{ss_key}"')
-        if up_email:
-            toml_content.append(f'unpaywall_email = "{up_email}"')
+        # 4. Merge the answers. An empty optional answer leaves the key out.
+        current.update({"api_key": api_key, "library_id": lib_id, "library_type": lib_type})
+        # target_group was a slug the loader couldn't use; library_id wins.
+        current.pop("target_group", None)
+        optional = {
+            "user_id": user_id,
+            "semantic_scholar_api_key": ss_key,
+            "unpaywall_email": up_email,
+            "database_path": database_path,
+        }
+        for key, value in optional.items():
+            if value:
+                current[key] = value
+            else:
+                current.pop(key, None)
 
-        # 5. Save
+        # 5. Save. A TOML writer, not string formatting: a value with a quote
+        # or backslash (a Windows path) broke the file, and a newline could
+        # add keys (Issue #388).
         try:
             # config.toml holds live API keys - written with 0600
             # permissions from creation, not the process's default umask
             # (Issue #236).
             with secure_config_open(config_path) as f:
-                f.write("\n".join(toml_content) + "\n")
+                f.write("# Zotero CLI Configuration\n" + toml.dumps(document))
 
             console.print(f"\n[green]✔ Configuration saved to:[/] {safe_markup(config_path)}")
             console.print("\n[bold]Next Steps:[/]")
@@ -159,3 +190,39 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         except Exception as e:
             console.print(f"[bold red]Failed to save config: {safe_markup(e)}[/]")
             sys.exit(1)
+
+
+def _read_existing(config_path: Path, console: Console) -> Dict[str, Any]:
+    try:
+        with open(config_path, "rb") as f:
+            return dict(tomllib.load(f))
+    except (OSError, tomllib.TOMLDecodeError) as e:
+        console.print(
+            f"[yellow]The existing config can't be read ({safe_markup(e)}); "
+            "it will be replaced.[/]"
+        )
+        return {}
+
+
+def _ask_group_id(console: Console, default: str) -> str:
+    """A group ID, or a group URL it is taken from."""
+    while True:
+        answer = (
+            Prompt.ask(
+                "Group ID or URL (https://www.zotero.org/groups/<id>/...)", default=default or None
+            )
+            or ""
+        ).strip()
+        match = re.search(r"/groups/(\d+)", answer)
+        if match:
+            return match.group(1)
+        if answer.isdigit():
+            return answer
+        console.print("[red]Enter the group's number, or its URL from zotero.org.[/]")
+
+
+def _default_database_path() -> str:
+    """~/Zotero/zotero.sqlite when it exists (Zotero's default location on
+    every OS), else empty."""
+    candidate = Path.home() / "Zotero" / "zotero.sqlite"
+    return str(candidate) if candidate.exists() else ""

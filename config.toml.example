@@ -1,26 +1,39 @@
 # zotero-cli configuration example
-# Copy this to ~/.config/zotero-cli/config.toml (Linux/macOS) 
-# or %APPDATA%\zotero-cli\config.toml (Windows)
+# `zotero-cli init` writes this file for you. To write it by hand, copy it to
+# ~/.config/zotero-cli/config.toml (Linux/macOS)
+# or %APPDATA%\zotero-cli\config.toml (Windows), and replace the values.
+# Settings left commented out are unused.
 
 [zotero]
 # Your Zotero API Key (Create one at zotero.org -> settings -> keys)
 api_key = "YOUR_API_KEY"
 
-# Target Library ID (User ID or Group ID)
-library_id = "6287212"
+# Target Library ID: your User ID (shown at zotero.org/settings/keys) or a Group ID
+library_id = "1234567"
 
-# Library Type: "user" or "group" (default is "group")
-library_type = "group"
+# Library Type: "user" (your own library) or "group"
+library_type = "user"
 
-# (Optional) Target Group URL - used to derive library_id if set
-# target_group = "https://www.zotero.org/groups/6287212/rsl-xm"
+# (Optional) Target Group URL - used to derive library_id if library_id is unset
+# target_group = "https://www.zotero.org/groups/1234567/my-group"
 
-# (Optional) Personal User ID (Required for 'list groups')
-user_id = "1909172"
+# (Optional) Personal User ID, for --user and `system groups` when library_type is "group"
+# user_id = "1234567"
 
-# (Optional) External API Keys
-semantic_scholar_api_key = "YOUR_SEMANTIC_SCHOLAR_KEY"
+# (Optional) Offline mode (--offline): Zotero's local database, in the Zotero data
+# directory (Zotero -> Settings -> Advanced -> Files and Folders). Usually:
+# database_path = "/home/me/Zotero/zotero.sqlite"      # Linux, macOS: ~/Zotero
+# database_path = 'C:\Users\me\Zotero\zotero.sqlite'    # Windows
+
+# (Optional) Where `storage checkout` puts attachment files
+# storage_path = "/home/me/Papers"
+
+# (Optional) External API Keys. Leave them commented out until you have real
+# values: a placeholder is sent to the service as if it were a key.
+# semantic_scholar_api_key = "..."
+# core_api_key = "..."  # Free registration at core.ac.uk/services/api
+# ncbi_api_key = "..."
+
 # Your own email: required by Unpaywall, and sent as the contact address to
 # CrossRef, OpenAlex and NCBI (their "polite pool"). Leave unset to send none.
-unpaywall_email = "your-email@example.com"
-core_api_key = "YOUR_CORE_API_KEY"  # Free registration at core.ac.uk/services/api
+# unpaywall_email = "you@your-university.edu"

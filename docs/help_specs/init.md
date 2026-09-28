@@ -8,14 +8,14 @@
 ```mermaid
 graph TD
     A["Start Init"] --> B{"Existing Config?"}
-    B -- "Yes" --> C{"--force Flag?"}
+    B -- "Yes" --> C{"--force, or confirmed?"}
     B -- "No" --> D["Start Wizard"]
-    C -- "No" --> E[""End: Abort (Safety")"]
+    C -- "No" --> E["End: Abort"]
     C -- "Yes" --> D
-    D --> F["Collect: API Key, User/Group ID"]
-    F --> G[""Collect: Paths (Storage, Cache")"]
+    D --> F["Collect: API Key, Library Type, User ID or Group ID/URL"]
+    F --> G["Collect: optional keys, database_path"]
     G --> H["Validate Credentials via API"]
-    H --> I["Generate config.toml"]
+    H --> I["Write config.toml, keeping settings not asked about"]
     I --> J["End: Initialization Success"]
 ```
 
@@ -25,12 +25,14 @@ Launches an interactive setup wizard to configure the Zotero CLI, establishing c
 ## 4. Description (Instructional Architecture)
 The `init` command is the gateway to using `zotero-cli`. It simplifies the configuration process by guiding the user through a series of prompts. 
 
-The command identifies your Zotero profile (Personal or Group) and establishes an authenticated connection to the Zotero API. It also defines where your PDF attachments should be stored and where the local database cache will be maintained. The result of this process is a `config.toml` file, which is used by all other commands in the library. 
+The command identifies your Zotero profile (Personal or Group) and establishes an authenticated connection to the Zotero API. It also asks for `database_path`, the local `zotero.sqlite` that `--offline` reads. The result of this process is a `config.toml` file, which is used by all other commands in the library.
+
+Run it again to change the settings: the existing file is updated, not replaced. Its current values are the defaults, and settings the wizard doesn't ask about (AI keys, `storage_path`, other tables) are kept.
 
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--force` | Boolean | Overwrite existing config | Optional. Default: False. |
+| `--force` | Boolean | Update an existing config without asking | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: First-time setup of the CLI
