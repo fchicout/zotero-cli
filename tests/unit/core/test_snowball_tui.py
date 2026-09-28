@@ -48,8 +48,8 @@ def test_snowball_tui_quit(mock_console, mock_prompt, mock_graph_service):
 
     tui.run_review_session()
 
-    # Verify save_graph was called on quit
-    mock_graph_service.save_graph.assert_called_once()
+    # Verify pending decisions are written on quit (Issue #435)
+    mock_graph_service.flush.assert_called_once()
 
 
 @patch("zotero_cli.cli.tui.snowball_tui.Prompt.ask")
@@ -173,3 +173,29 @@ def test_snowball_tui_no_gateway_skips_duplicate_check(mock_console, mock_prompt
 
     candidate = mock_graph_service.get_ranked_candidates.return_value[0]
     assert candidate["already_in_library"] is False
+
+
+@patch("zotero_cli.cli.tui.snowball_tui.Prompt.ask")
+@patch("zotero_cli.cli.tui.snowball_tui.Console")
+def test_snowball_tui_flushes_when_the_list_runs_out(mock_console, mock_prompt, mock_graph_service):
+    """Decisions are saved in batches (Issue #435): the last ones are
+    written when the session ends without `q`."""
+    mock_console.return_value.input.return_value = ""
+    mock_prompt.side_effect = ["a", "abstract", "ok"]
+
+    SnowballReviewTUI(mock_graph_service).run_review_session()
+
+    mock_graph_service.flush.assert_called_once()
+
+
+@patch("zotero_cli.cli.tui.snowball_tui.Prompt.ask")
+@patch("zotero_cli.cli.tui.snowball_tui.Console")
+def test_snowball_tui_flushes_on_ctrl_c(mock_console, mock_prompt, mock_graph_service):
+    mock_console.return_value.input.return_value = ""
+    mock_prompt.side_effect = KeyboardInterrupt
+
+    tui = SnowballReviewTUI(mock_graph_service)
+    with pytest.raises(KeyboardInterrupt):
+        tui.run_review_session()
+
+    mock_graph_service.flush.assert_called_once()

@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -44,7 +45,16 @@ class SnowballGraphService(ISnowballGraphService):
         # for the job queue.
         self._lock = FileLock(str(storage_path) + ".lock")
         self.graph = nx.DiGraph()
+        # Decisions not yet written (Issue #435: every decision rewrote the
+        # whole file, 1.1-2.4 s at 50k-100k nodes). Callers flush() when a
+        # session or run ends; meanwhile the file is written every
+        # SAVE_EVERY decisions or SAVE_INTERVAL seconds.
+        self._unsaved = 0
+        self._last_save = time.monotonic()
         self.load_graph()
+
+    SAVE_EVERY = 25
+    SAVE_INTERVAL = 30.0
 
     def add_candidate(
         self,
@@ -150,6 +160,14 @@ class SnowballGraphService(ISnowballGraphService):
                 self.graph.nodes[doi]["decision_reason"] = reason
             if depth is not None:
                 self.graph.nodes[doi]["decision_depth"] = depth
+            self._unsaved += 1
+            overdue = time.monotonic() - self._last_save >= self.SAVE_INTERVAL
+            if self._unsaved >= self.SAVE_EVERY or overdue:
+                self.save_graph()
+
+    def flush(self) -> None:
+        """Writes decisions made since the last save, if any."""
+        if self._unsaved:
             self.save_graph()
 
     def get_ranked_candidates(self) -> List[Dict[str, Any]]:
@@ -208,8 +226,11 @@ class SnowballGraphService(ISnowballGraphService):
         tmp_path = self.storage_path.with_suffix(self.storage_path.suffix + ".tmp")
         with self._lock:
             with open(tmp_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
+                # Compact: this is state, not something people read.
+                json.dump(data, f, separators=(",", ":"))
             os.replace(tmp_path, self.storage_path)
+        self._unsaved = 0
+        self._last_save = time.monotonic()
 
     def to_json(self) -> str:
         """
