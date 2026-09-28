@@ -366,9 +366,9 @@ def test_backup_attachment_already_in_manifest(service, mock_gateway):
     # We will subclass/intercept backup_system to inject a pre-populated file_map
     original_write_zip = service._write_zip
 
-    def mock_write_zip(output, manifest, items, on_item_processed):
+    def mock_write_zip(output, manifest, items, children, on_item_processed):
         manifest["file_map"]["A1"] = {"path": "already/there.pdf", "checksum": "123"}
-        return original_write_zip(output, manifest, items, on_item_processed)
+        return original_write_zip(output, manifest, items, children, on_item_processed)
 
     service._write_zip = mock_write_zip
     output_buffer = BytesIO()
@@ -409,17 +409,19 @@ def test_backup_downloader_exception_handling(service, mock_gateway):
 
 
 def test_backup_child_fetching_failure_logging(service, mock_gateway):
-    # Parent has child but get_item returns None (child not found / deleted)
+    # Parent has child but get_item returns None (child not found / deleted).
+    # A collection backup asks for children; a library backup takes them
+    # from its own listing (Issue #426).
     item = ZoteroItem.from_raw_zotero_item(
         {"key": "P1", "data": {"title": "Parent", "itemType": "journalArticle"}}
     )
-    mock_gateway.get_all_items.return_value = iter([item])
-    mock_gateway.get_all_collections.return_value = []
+    mock_gateway.get_collection.return_value = {"key": "col1", "data": {"name": "C"}}
+    mock_gateway.get_items_in_collection.return_value = iter([item])
     mock_gateway.get_item_children.return_value = [{"key": "CHILD_MISSING"}]
     mock_gateway.get_item.return_value = None  # Missing child!
 
     output_buffer = BytesIO()
-    service.backup_system(output_buffer)
+    service.backup_collection("col1", output_buffer)
 
     output_buffer.seek(0)
     with zipfile.ZipFile(output_buffer, "r") as zf:

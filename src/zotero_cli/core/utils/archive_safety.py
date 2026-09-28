@@ -1,7 +1,7 @@
 """
 Size limits for reading .zaf backup archives.
 
-A .zaf is a ZIP (usually LZMA-compressed) that a collaborator may hand
+A .zaf is a ZIP (DEFLATE or LZMA, PDFs stored) that a collaborator may hand
 you, so its contents are untrusted: a small archive can declare or expand
 into enormous entries. Every read goes through these helpers, which check
 the declared size first and then count the bytes actually decompressed,
