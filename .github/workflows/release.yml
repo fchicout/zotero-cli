@@ -45,6 +45,26 @@ jobs:
             exit 1
           fi
 
+      # Before anything is built or published (Issue #416): a mistyped tag
+      # used to create a public GitHub release, and only the PyPI job
+      # noticed. The package version is in two files; they must agree too.
+      - name: Check the tag matches the package version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          pyproject="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          package="$(python3 -c 'import re; print(re.search(r"^VERSION = \"(.+)\"", open("src/zotero_cli/__init__.py").read(), re.M).group(1))')"
+          if [ "$pyproject" != "$package" ]; then
+            echo "::error::pyproject.toml says $pyproject but zotero_cli.VERSION says $package."
+            exit 1
+          fi
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "v$pyproject" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match the package version $pyproject."
+            exit 1
+          fi
+          # The release notes are the CHANGELOG section of this version.
+          python3 scripts/release_notes.py "$pyproject" > /dev/null
+
   build-linux:
     needs: verify-tag
     runs-on: ubuntu-22.04
@@ -225,7 +245,9 @@ jobs:
           }
           $numericVersion = $version -replace '-.*$', ''
           if ($numericVersion -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {
-            $numericVersion = "0.0.0"
+            # 0.0.0 used to be used silently, which breaks MSI upgrades (Issue #416).
+            Write-Output "::error::Version '$version' can't be mapped to an MSI version (x.y.z)."
+            exit 1
           }
           echo "VERSION=$numericVersion" >> $env:GITHUB_OUTPUT
 
@@ -255,8 +277,10 @@ jobs:
             zotero-cli-windows-amd64.msi
 
   release:
+    # After PyPI (Issue #416): `install.sh` "latest" follows this release, so
+    # it must not appear before the package it matches.
     if: github.event_name == 'push'
-    needs: [build-linux, build-windows]
+    needs: [build-linux, build-windows, publish-pypi]
     runs-on: ubuntu-latest
     permissions:
       contents: write  # create the release and upload its files
@@ -293,31 +317,33 @@ jobs:
         with:
           subject-path: 'release/*'
 
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: src-checkout
+
       - name: Create or update the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
+          # The notes are the version's CHANGELOG section plus how to verify
+          # the files (Issue #416), not only the PR titles.
+          python3 src-checkout/scripts/release_notes.py "$TAG" \
+            --changelog src-checkout/CHANGELOG.md > notes.md
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release upload "$TAG" release/* --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$TAG" --notes-file notes.md --repo "$GITHUB_REPOSITORY"
           else
             gh release create "$TAG" release/* --repo "$GITHUB_REPOSITORY" \
-              --title "$TAG" --verify-tag --generate-notes
+              --title "$TAG" --verify-tag --notes-file notes.md
           fi
 
-  publish-pypi:
-    # Runs only after the binaries built and the GitHub release was created,
-    # so a broken build never reaches PyPI. Kept apart from the jobs above:
-    # it gets a read-only GITHUB_TOKEN, no cached state, and the PyPI token
-    # only through the `pypi` environment (restricted to v* tags).
-    if: github.event_name == 'push'
-    needs: release
+  # The sdist and wheel are built and smoke-tested with the binaries, on PRs
+  # too, so a broken package fails before anything is published (Issue #416).
+  build-python:
+    needs: verify-tag
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/project/zotero-command-line/
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -328,16 +354,6 @@ jobs:
         with:
           python-version: '3.14'
           enable-cache: false
-
-      - name: Check the tag matches the package version
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          version="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
-          if [ "v$version" != "$TAG" ]; then
-            echo "Tag $TAG does not match pyproject.toml version $version" >&2
-            exit 1
-          fi
 
       - name: Build sdist and wheel
         run: uv build
@@ -350,7 +366,41 @@ jobs:
           /tmp/wheel-venv/bin/zotero-cli system selftest
           /tmp/wheel-venv/bin/python scripts/smoke_imports.py
 
+      - name: Upload the package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: python-dist
+          path: dist/
+          if-no-files-found: error
+
+  publish-pypi:
+    # First to publish (Issue #416): the GitHub release waits for it. Kept
+    # apart from the build jobs: it gets a read-only GITHUB_TOKEN, no cached
+    # state, and the PyPI token only through the `pypi` environment
+    # (restricted to v* tags).
+    if: github.event_name == 'push'
+    needs: [build-linux, build-windows, build-python]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/zotero-command-line/
+    permissions:
+      contents: read
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: false
+
+      - name: Download the package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-dist
+          path: dist
+
+      # --check-url skips files PyPI already has, so a rerun after a partial
+      # upload finishes instead of failing on "file exists".
       - name: Publish to PyPI
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        run: uv publish
+        run: uv publish --check-url https://pypi.org/simple/ dist/*

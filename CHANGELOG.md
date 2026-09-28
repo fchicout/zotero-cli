@@ -8,6 +8,11 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 - **Upgrading and uninstalling, for every install channel (Issue #418):** the README has a table for the installers, `.msi`, `.deb`, `.rpm`, archives, uv, pipx and Docker, and tells people who installed from git before 2.8.12 to remove the old `zotero-cli` package first. `install.sh` and `install.ps1` accept `ZOTERO_CLI_VERSION=3.0.5` as well as `v3.0.5`, and a version that doesn't exist now gets a message with the releases page instead of a bare "404".
 
 ### 📦 Distribution
+- **Releases publish in a safe order (Issue #416):**
+  - A tag that doesn't match the package version now stops the release before anything is built, where before a GitHub release was already public.
+  - PyPI is published before the GitHub release, so the installers' "latest" never points at a version PyPI doesn't have, and a rerun after a partial upload finishes instead of failing.
+  - The MSI build fails on a version it can't use instead of shipping as 0.0.0.
+  - Release notes now carry the CHANGELOG section and how to verify the downloads.
 - **Packaging metadata uses the current licence format (Issue #415):** the package declares `License-Expression: MIT` (SPDX) and ships `LICENSE` as a licence file, replacing the licence table and classifier that setuptools stops accepting on 2027-02-18. A test keeps the version in `pyproject.toml` and the package in sync.
 
 ## [3.0.5] - 2026-09-28
