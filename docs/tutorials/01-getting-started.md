@@ -40,7 +40,7 @@ Verify the tool is installed by typing this command and pressing **Enter**:
 ```bash
 zotero-cli --version
 ```
-You should see `zotero-cli` followed by a version number, for example "zotero-cli 3.0.1". If yes, you are ready!
+You should see `zotero-cli` followed by a version number, for example "zotero-cli 3.0.2". If yes, you are ready!
 
 ---
 
@@ -78,7 +78,7 @@ zotero-cli system info
 **Success looks like this:**
 ```text
 --- Zotero CLI Info ---
-Version:     3.0.1
+Version:     3.0.2
 Python:      3.14.0
 Platform:    Linux-6.8.0-x86_64-with-glibc2.39
 Config Path: /home/user/.config/zotero-cli/config.toml

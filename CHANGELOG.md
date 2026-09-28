@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.0.2] - 2026-09-28
+
+The second patch train: errors that scripts can trust. No new commands or flags. **If a script checks zotero-cli's output or exit status, read this first:**
+- Failures that used to exit 0 now exit non-zero, with a single `Error: …` line on stderr. See [docs/EXIT_CODES.md](docs/EXIT_CODES.md) for the codes.
+- Warnings and progress messages moved from stdout to stderr, so stdout carries only data.
+- `system check` exits 1 when a check fails.
+- The `--verbose` of a single command (for example `import file … --verbose`) no longer turns on debug logging; put `-v` before the command for that.
+
 ### 🐛 Bug Fixes
 - **Output fixes (Issues #373, #371, #374):**
   - `slr snowball export` to stdout is no longer wrapped at 80 columns, which broke JSON strings with long titles and Mermaid labels.
