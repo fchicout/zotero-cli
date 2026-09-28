@@ -15,7 +15,6 @@ from zotero_cli.core.logging_config import redact, register_secrets
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
-from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
 
 @CommandRegistry.register
@@ -90,6 +89,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         # valid and prefill the personal userID before asking for it.
         resolved_user_id = ""
         try:
+            from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
             identity = ZoteroAPIClient.resolve_key_identity(api_key)
             resolved_user_id = str(identity.user_id)
             console.print(

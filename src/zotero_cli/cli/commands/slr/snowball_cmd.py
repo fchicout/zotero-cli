@@ -1,5 +1,4 @@
 import argparse
-import asyncio
 import sys
 
 from rich.markup import escape
@@ -85,6 +84,8 @@ class SnowballCommand:
         elif args.snow_verb == "discovery":
             worker = GatewayFactory.get_snowball_worker(config, force_user=force_user)
             console.print("[bold]Starting Snowballing Discovery Workers...[/bold]")
+            import asyncio
+
             asyncio.run(worker.process_jobs(count=args.count))
             console.print("[bold green]Done.[/bold green]")
         elif args.snow_verb == "review":

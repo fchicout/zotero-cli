@@ -1,5 +1,4 @@
 import argparse
-import asyncio
 import os
 import sys
 import time
@@ -21,12 +20,7 @@ from zotero_cli.core.strategies import (
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.core.zotero_item import ZoteroItem
-from zotero_cli.infra.bibtex_lib import BibtexLibGateway
-from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
 from zotero_cli.infra.factory import GatewayFactory
-from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
-from zotero_cli.infra.ris_lib import RisLibGateway
-from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
 
 if TYPE_CHECKING:
     from zotero_cli.core.config import ZoteroConfig
@@ -741,6 +735,9 @@ Cognitive Safeguards
                 else:
                     svc = GatewayFactory.get_snowball_worker(force_user=force_user)
 
+                import asyncio
+
+
                 asyncio.run(svc.process_jobs(count=1))
                 time.sleep(0.5)
 
@@ -792,6 +789,14 @@ Cognitive Safeguards
                 raise ZoteroCliError(f"Failed to save configuration: {e}") from e
 
     def _handle_normalize(self, args: argparse.Namespace) -> None:
+        # The file-format libraries load only here (Issue #433: bibtexparser
+        # alone was ~18 ms on every command).
+        from zotero_cli.infra.bibtex_lib import BibtexLibGateway
+        from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
+        from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
+        from zotero_cli.infra.ris_lib import RisLibGateway
+        from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
+
         ext = os.path.splitext(args.file)[1].lower()
         strategy: Any = None
         gateway: Any = None

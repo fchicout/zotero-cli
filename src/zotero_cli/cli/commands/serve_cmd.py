@@ -3,8 +3,6 @@ import os
 import secrets
 import sys
 
-import uvicorn
-
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 
 
@@ -85,6 +83,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         os.environ[ENV_ALLOWED_HOSTS] = ",".join(allowed_hosts)
 
         print(f"Starting Zotero CLI API on http://{args.host}:{args.port}")
+        import uvicorn  # only `serve` needs the server stack (Issue #433)
+
         uvicorn.run(
             "zotero_cli.api.main:create_app",
             host=args.host,

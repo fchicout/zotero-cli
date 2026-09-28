@@ -1,5 +1,4 @@
 import argparse
-import asyncio
 import sys
 
 from rich.markup import escape
@@ -1125,6 +1124,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             console.print(
                 f"[bold]Starting resilient PDF discovery for {len(unique_keys)} items...[/bold]"
             )
+            import asyncio
+
             asyncio.run(pdf_finder.process_jobs())
             console.print("[bold green]Discovery workers finished.[/bold green]")
 

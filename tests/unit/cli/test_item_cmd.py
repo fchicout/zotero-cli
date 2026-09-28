@@ -44,7 +44,7 @@ def test_item_pdf_fetch_success(mock_clients, env_vars, capsys):
     # We patch asyncio.run to do nothing, but we must avoid recursion.
     # The real fix for unawaited coroutines in CLI tests is to NOT call main()
     # or ensure everything is synchronous.
-    with patch("zotero_cli.cli.commands.item_cmd.asyncio.run"):
+    with patch("asyncio.run"):
         ItemCommand().execute(args)
 
     out = capsys.readouterr().out
@@ -87,7 +87,7 @@ def test_item_pdf_fetch_failure(mock_clients, env_vars, capsys):
     args.key = "ITEM2"
     args.user = False
 
-    with patch("zotero_cli.cli.commands.item_cmd.asyncio.run"):
+    with patch("asyncio.run"):
         ItemCommand().execute(args)
 
     out = capsys.readouterr().out

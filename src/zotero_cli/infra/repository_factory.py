@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, cast
 
 from zotero_cli.core.config import ZoteroConfig, not_configured
 from zotero_cli.core.interfaces import (
@@ -10,10 +10,29 @@ from zotero_cli.core.interfaces import (
     TagRepository,
     ZoteroGateway,
 )
-from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
-from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
 logger = logging.getLogger(__name__)
+
+
+# The gateways are imported when first used: the Web API client pulls in
+# requests, httpx and tenacity, about 60 ms that `--help` and offline runs
+# don't need (Issue #433). Module attributes of the same names stay
+# available (and patchable) through __getattr__.
+def __getattr__(name: str) -> Any:
+    if name == "ZoteroAPIClient":
+        from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
+        return ZoteroAPIClient
+    if name == "SqliteZoteroGateway":
+        from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
+
+        return SqliteZoteroGateway
+    raise AttributeError(name)
+
+
+def _gateway_class(name: str) -> Any:
+    # A test may have patched the module attribute; prefer it.
+    return globals().get(name) or __getattr__(name)
 
 # Where zotero.sqlite usually is, for the offline-mode error (Issue #376).
 _DATABASE_HINT = (
@@ -33,7 +52,7 @@ def _implicit_library_type(api_key: str, library_id: str) -> str:
     cache_key = (api_key, library_id)
     if cache_key not in _IMPLICIT_TYPE:
         try:
-            identity = ZoteroAPIClient.resolve_key_identity(api_key)
+            identity = _gateway_class("ZoteroAPIClient").resolve_key_identity(api_key)
         except Exception as e:
             # The real request will report the problem; keep the default.
             logger.debug("Could not resolve the key's user ID: %s", e)
@@ -76,11 +95,12 @@ class RepositoryFactory:
         if offline:
             if not config.database_path:
                 raise not_configured(f"--offline needs database_path. {_DATABASE_HINT}")
-            return SqliteZoteroGateway(
+            gateway = _gateway_class("SqliteZoteroGateway")(
                 config.database_path,
                 library_id=config.library_id,
                 library_type=config.library_type,
             )
+            return cast(ZoteroGateway, gateway)
 
         api_key = config.api_key
         if not api_key:
@@ -89,7 +109,9 @@ class RepositoryFactory:
         library_id, library_type = RepositoryFactory.resolve_target(
             config, force_user, require_group
         )
-        return ZoteroAPIClient(api_key, library_id, library_type)
+        return cast(
+            ZoteroGateway, _gateway_class("ZoteroAPIClient")(api_key, library_id, library_type)
+        )
 
     @staticmethod
     def resolve_target(
