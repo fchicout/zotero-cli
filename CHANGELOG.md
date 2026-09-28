@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ### 📚 Documentation
 - **Destructive-command policy** in `docs/PROCESS.md`. A new test (`tests/unit/test_destructive_paths.py`) fails when a new file calls a delete method, until its gate has been reviewed.
 
+### 🛡️ Security
+- **Terminal control characters are removed from CSV, Markdown, BibTeX and RIS output (GHSA-3r38-p632-f79q):** `item list --format csv|markdown` and `item inspect --format bibtex|ris` wrote library fields to the terminal unchanged. Anyone who can edit a shared library could make a title carry escape sequences (a disguised hyperlink, a clipboard write, a screen clear) that the terminal would act on. 2.8.12 fixed this for tables and other rich output. JSON escapes these characters itself.
+
 ## [3.0.0] - 2026-09-26
 
 The launch release. It fixes the launch blockers found by the pre-launch audits (#328-#331): commands that could lose data, offline mode, PDF export, platform support, licence notices and the documentation. It is a major release because several commands now preview until `--execute`: see **Upgrading to 3.0** below. From this release on, zotero-cli follows Semantic Versioning ([docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)).

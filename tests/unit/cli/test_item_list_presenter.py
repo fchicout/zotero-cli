@@ -114,3 +114,41 @@ def test_table_renders_bracketed_titles_literally():
     output = console.file.getvalue()  # type: ignore[attr-defined]
     assert "[Retracted] A Study" in output
     assert "Showing 1 items." in output
+
+
+# GHSA-3r38-p632-f79q: CSV and Markdown go straight to the terminal, so a
+# collaborator-controlled title must not carry escape sequences through.
+HOSTILE_TITLE = "Evil \x1b]8;;https://attacker.example\x07click\x1b]8;;\x07 \x1b[31mred\x9b2J \u202etxt.exe"
+
+
+def _hostile_output(render) -> str:
+    out = io.StringIO()
+    render([_item(title=HOSTILE_TITLE)], ["key", "title"], out)
+    return out.getvalue()
+
+
+def _assert_no_controls(text: str) -> None:
+    for control in ("\x1b", "\x07", "\x9b", "\u202e"):
+        assert control not in text
+
+
+def test_csv_strips_terminal_controls():
+    text = _hostile_output(p.render_csv)
+    _assert_no_controls(text)
+    assert "click" in text
+    assert "red" in text
+
+
+def test_markdown_strips_terminal_controls():
+    text = _hostile_output(p.render_markdown)
+    _assert_no_controls(text)
+    assert "click" in text
+
+
+def test_json_escapes_c0_controls():
+    """JSON keeps data values as they are, but its encoding escapes C0
+    controls (ESC, BEL), so they don't reach the terminal raw."""
+    text = _hostile_output(p.render_json)
+    assert "\x1b" not in text
+    assert "\x07" not in text
+    assert "\\u001b" in text
