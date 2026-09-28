@@ -159,9 +159,15 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
     Uses lazy loading to avoid heavy memory usage on startup.
     """
 
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2", token: Optional[str] = None):
+    def __init__(
+        self,
+        model_name: str = "all-MiniLM-L6-v2",
+        token: Optional[str] = None,
+        trust_remote_code: bool = False,
+    ):
         self.model_name = model_name
         self.token = token
+        self.trust_remote_code = trust_remote_code
         self._model: Any = None
 
     @property
@@ -175,9 +181,16 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
                     "Run 'pip install sentence-transformers'"
                 )
 
-            # Many 2026 models (Jina v3, Qwen) require trust_remote_code=True
+            from zotero_cli.core.services.model_registry import resolve_model
+
+            # A pinned revision, and repository code only when allowed
+            # (GHSA-wv6f-cg7x-pg85).
+            load = resolve_model(self.model_name, self.trust_remote_code)
             self._model = SentenceTransformer(
-                self.model_name, token=self.token, trust_remote_code=True
+                load.repo_id,
+                token=self.token,
+                revision=load.revision,
+                trust_remote_code=load.trust_remote_code,
             )
         return self._model
 
