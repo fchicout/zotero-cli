@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 📦 Distribution
+- **Packaging metadata uses the current licence format (Issue #415):** the package declares `License-Expression: MIT` (SPDX) and ships `LICENSE` as a licence file, replacing the licence table and classifier that setuptools stops accepting on 2027-02-18. A test keeps the version in `pyproject.toml` and the package in sync.
+
 ## [3.0.5] - 2026-09-28
 
 The fifth patch train: large libraries. No new commands, flags or config keys. Commands that used to make one request per item now read what they need in a few requests, so SLR reports, exports, backups and duplicate reports on libraries with thousands of items finish in minutes instead of hours, and every command starts faster. Worth knowing:
