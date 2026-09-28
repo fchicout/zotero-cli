@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-09-27
+
+The first patch release under the release-train policy ([docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)): security and data-integrity fixes only, with no new commands or flags. **Upgrading is recommended for everyone.** One entry ships under the security exception (the `rag` model pinning); it says what to change.
+
 ### 🛡️ Security
 - **Terminal control characters are removed from CSV, Markdown, BibTeX and RIS output (GHSA-3r38-p632-f79q):** `item list --format csv|markdown` and `item inspect --format bibtex|ris` wrote library fields to the terminal unchanged. Anyone who can edit a shared library could make a title carry escape sequences (a disguised hyperlink, a clipboard write, a screen clear) that the terminal would act on. 2.8.12 fixed this for tables and other rich output. JSON escapes these characters itself.
 - **`rag` models are pinned, and repository code needs consent (GHSA-wv6f-cg7x-pg85):** `rag model set`, `rag ingest` and the local generative model downloaded and loaded models at `revision="main"`, a branch the repository owner can move, and always with `trust_remote_code=True`. A changed or taken-over model repository could run Python on your machine. The models `rag model set` offers are now pinned to a commit, and repository code runs only with explicit consent: `rag model set` asks, or you set `trust_remote_code = true` / `ZOTERO_TRUST_REMOTE_CODE=1`. Only Jina v3 and gte-Qwen2 need it; the defaults don't. Other models named in the config load at `main`, with a warning. Affects only users of the optional `rag` extra. **Security exception** ([docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)): this patch release adds the `trust_remote_code` setting. If you use Jina v3 or gte-Qwen2, set it (or re-run `rag model set`) to keep using them.
