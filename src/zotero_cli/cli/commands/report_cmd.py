@@ -2,7 +2,7 @@ import argparse
 import csv
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from rich.markup import escape
 from rich.panel import Panel
@@ -16,6 +16,7 @@ from zotero_cli.core.services.sdb.sdb_service import SDBService
 from zotero_cli.core.utils.csv_safety import sanitize_csv_rows
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
+from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -397,43 +398,46 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             )
 
     def _handle_stats(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
-        with console.status("[bold green]Compiling library statistics...[/bold green]"):
-            if args.collection:
-                col_id = gateway.get_collection_id_by_name(args.collection) or args.collection
-                items = list(gateway.get_items_in_collection(col_id))
-                source_name = f"Collection: {args.collection}"
-            else:
-                items = list(gateway.get_all_items())
-                source_name = "Full Library"
-
-        if not items:
-            console.print("[yellow]No items found to generate statistics.[/yellow]")
-            return
-
-        # Group by itemType
+        # Group by itemType. Counted while the items stream in, without
+        # keeping them (Issue #439: ~3.6 KB per item held for the whole run).
         type_counts: Dict[str, int] = {}
         year_counts: Dict[str, int] = {}
         creators_count = 0
+        total = 0
 
-        for item in items:
-            itype = item.item_type
-            type_counts[itype] = type_counts.get(itype, 0) + 1
+        with console.status("[bold green]Compiling library statistics...[/bold green]"):
+            if args.collection:
+                col_id = gateway.get_collection_id_by_name(args.collection) or args.collection
+                items = gateway.get_items_in_collection(col_id)
+                source_name = f"Collection: {args.collection}"
+            else:
+                items = gateway.get_all_items()
+                source_name = "Full Library"
 
-            # Extract year
-            date_str = item.raw_data.get("data", {}).get("date", "")
-            if date_str:
-                # Common date formats: YYYY, YYYY-MM-DD
-                year_match = Path(date_str).name[:4]
-                if year_match.isdigit():
-                    year_counts[year_match] = year_counts.get(year_match, 0) + 1
+            for item in items:
+                total += 1
+                itype = item.item_type
+                type_counts[itype] = type_counts.get(itype, 0) + 1
 
-            creators = item.raw_data.get("data", {}).get("creators", [])
-            creators_count += len(creators)
+                # Extract year
+                date_str = item.raw_data.get("data", {}).get("date", "")
+                if date_str:
+                    # Common date formats: YYYY, YYYY-MM-DD
+                    year_match = Path(date_str).name[:4]
+                    if year_match.isdigit():
+                        year_counts[year_match] = year_counts.get(year_match, 0) + 1
+
+                creators = item.raw_data.get("data", {}).get("creators", [])
+                creators_count += len(creators)
+
+        if not total:
+            console.print("[yellow]No items found to generate statistics.[/yellow]")
+            return
 
         # Output global summary
         summary = (
             f"[bold blue]Scope:[/bold blue] {source_name}\n"
-            f"[bold blue]Total Items:[/bold blue] {len(items)}\n"
+            f"[bold blue]Total Items:[/bold blue] {total}\n"
             f"[bold blue]Total Authors/Creators:[/bold blue] {creators_count}"
         )
         console.print(Panel(summary, title="Library Global Metrics", expand=False))
@@ -445,7 +449,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
         type_table.add_column("Percentage", justify="right", style="green")
 
         for itype, count in sorted(type_counts.items(), key=lambda x: x[1], reverse=True):
-            percent = (count / len(items)) * 100
+            percent = (count / total) * 100
             type_table.add_row(itype, str(count), f"{percent:.2f}%")
         console.print(type_table)
 
@@ -459,28 +463,30 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             console.print(year_table)
 
     def _handle_attachments(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
-        with console.status(
-            "[bold green]Analyzing library attachments and PDF space...[/bold green]"
-        ):
-            if args.collection:
-                col_id = gateway.get_collection_id_by_name(args.collection) or args.collection
-                items = list(gateway.get_items_in_collection(col_id))
-                source_name = f"Collection: {args.collection}"
-            else:
-                items = list(gateway.get_all_items())
-                source_name = "Full Library"
-
-        parents = [item for item in items if item.item_type in _PAPER_TYPES]
         # Every attachment once, by key. The full library already lists the
         # child attachments, so they are grouped locally; a collection lists
         # only its members, so its papers' attachments are fetched together.
         # It used to ask for each paper's children (50,517 requests at 50k)
         # and counted the full library's attachments twice (Issue #429).
-        attachments = {
-            item.key: item.raw_data.get("data", {})
-            for item in items
-            if item.item_type == "attachment"
-        }
+        # Only the papers and the attachments' data are kept, not every
+        # item (Issue #439).
+        parents: List[ZoteroItem] = []
+        attachments: Dict[str, Dict[str, Any]] = {}
+        with console.status(
+            "[bold green]Analyzing library attachments and PDF space...[/bold green]"
+        ):
+            if args.collection:
+                col_id = gateway.get_collection_id_by_name(args.collection) or args.collection
+                items = gateway.get_items_in_collection(col_id)
+                source_name = f"Collection: {args.collection}"
+            else:
+                items = gateway.get_all_items()
+                source_name = "Full Library"
+            for item in items:
+                if item.item_type in _PAPER_TYPES:
+                    parents.append(item)
+                elif item.item_type == "attachment":
+                    attachments[item.key] = item.raw_data.get("data", {})
         if args.collection:
             fetched = children_by_parent(gateway, [p.key for p in parents], "attachment")
             for children in fetched.values():
