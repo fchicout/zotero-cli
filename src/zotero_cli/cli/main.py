@@ -35,6 +35,7 @@ from zotero_cli.core.config import get_config  # noqa: E402
 from zotero_cli.core.exceptions import (  # noqa: E402
     AmbiguousCollectionError,
     ConfigurationError,
+    DataFileError,
 )
 from zotero_cli.core.logging_config import setup_logging  # noqa: E402
 from zotero_cli.core.runtime import set_offline_mode  # noqa: E402
@@ -120,6 +121,9 @@ def main() -> None:
         # A usage problem, not a crash: no traceback (Issue #381).
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(2)
+    except DataFileError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         import traceback

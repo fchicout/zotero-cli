@@ -32,6 +32,16 @@ class AmbiguousCollectionError(ZoteroCliError):
         )
 
 
+class DataFileError(ZoteroCliError):
+    """
+    Raised when a file zotero-cli keeps its own state in can't be read.
+    The file is set aside rather than replaced by an empty one, and the
+    command stops (Issue #410); `main()` prints the message and exits 1.
+    """
+
+    pass
+
+
 class RetryableError(ZoteroCliError):
     """
     Raised when an operation failed but should be retried later.
