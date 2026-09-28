@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import stat
 import tempfile
 
 import pytest
@@ -375,15 +376,86 @@ def test_sqlite_shadow_copy_is_private_even_if_source_is_world_readable(mock_db)
     assert os.stat(os.path.dirname(gateway._temp_db_path)).st_mode & 0o777 == 0o700
 
 
-def test_sqlite_shadow_copy_directory_is_removed_with_the_gateway(mock_db):
+def test_sqlite_shadow_copy_directory_is_removed_at_exit(mock_db):
+    from zotero_cli.infra import sqlite_repo
+
     gateway = SqliteZoteroGateway(mock_db)
     gateway.get_all_collections()
-    assert gateway._temp_dir is not None
-    temp_dir = gateway._temp_dir
+    assert gateway._temp_db_path is not None
+    temp_dir = os.path.dirname(gateway._temp_db_path)
+    assert os.path.exists(temp_dir)
 
-    gateway.__del__()
+    sqlite_repo._cleanup_shadows()
 
     assert not os.path.exists(temp_dir)
+
+
+def test_gateways_share_one_copy_and_one_connection(mock_db):
+    """Issue #436: every service built its own gateway, each copying the
+    whole database and opening a connection per call."""
+    from zotero_cli.infra import sqlite_repo
+
+    sqlite_repo._cleanup_shadows()
+    before = len(sqlite_repo._all_connections)
+    first, second = SqliteZoteroGateway(mock_db), SqliteZoteroGateway(mock_db)
+    for _ in range(5):
+        first.get_all_collections()
+        second.get_tags()
+        list(second.get_all_items())
+
+    assert first._temp_db_path == second._temp_db_path
+    assert len(sqlite_repo._shadows) == 1
+    assert len(sqlite_repo._all_connections) - before == 1
+
+
+def test_shadow_copy_lives_in_the_cache_directory_not_tmp(mock_db, tmp_path, monkeypatch):
+    """/tmp is tmpfs (RAM) on Fedora and Arch."""
+    from zotero_cli.infra import sqlite_repo
+
+    sqlite_repo._cleanup_shadows()
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    gateway = SqliteZoteroGateway(mock_db)
+    gateway.get_tags()
+
+    assert gateway._temp_db_path is not None
+    parent = os.path.dirname(os.path.dirname(gateway._temp_db_path))
+    assert parent == str(tmp_path / "cache" / "zotero-cli")
+    assert stat.S_IMODE(os.stat(parent).st_mode) == 0o700
+    sqlite_repo._cleanup_shadows()
+
+
+def test_a_changed_database_is_copied_again(mock_db):
+    from zotero_cli.infra import sqlite_repo
+
+    gateway = SqliteZoteroGateway(mock_db)
+    gateway.get_tags()
+    old_copy = gateway._temp_db_path
+    assert old_copy is not None
+
+    conn = sqlite3.connect(mock_db)
+    conn.execute("INSERT INTO tags (tagID, name) VALUES (9999, 'fresh-tag')")
+    conn.commit()
+    conn.close()
+    os.utime(mock_db, ns=(os.stat(mock_db).st_atime_ns, os.stat(mock_db).st_mtime_ns + 10**9))
+
+    assert "fresh-tag" in gateway.get_tags()
+    assert gateway._temp_db_path != old_copy
+    assert not os.path.exists(old_copy)
+    sqlite_repo._cleanup_shadows()
+
+
+def test_each_thread_gets_its_own_connection(mock_db):
+    """sqlite3 connections can't cross threads; `serve` uses a threadpool."""
+    import threading
+
+    gateway = SqliteZoteroGateway(mock_db)
+    gateway.get_tags()
+    results = []
+    worker = threading.Thread(target=lambda: results.append(gateway.get_tags()))
+    worker.start()
+    worker.join()
+    assert len(results) == 1
+    assert results[0] == gateway.get_tags()
 
 
 def test_gateway_factory_offline(mock_db, monkeypatch):
