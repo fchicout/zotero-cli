@@ -460,12 +460,30 @@ def get_state_dir() -> Path:
     into it."""
     state_dir = get_storage_dir()
     config_dir = _profile_config_dir()
-    if config_dir is not None:
-        make_private_dir(state_dir.parent)
-    make_private_dir(state_dir)
+    try:
+        if config_dir is not None:
+            make_private_dir(state_dir.parent)
+        make_private_dir(state_dir)
+    except OSError as e:
+        raise _unwritable(state_dir, e.strerror or str(e)) from e
+    if not os.access(state_dir, os.W_OK | os.X_OK):
+        raise _unwritable(state_dir, "permission denied")
     if config_dir is not None:
         _migrate_legacy_state(config_dir, state_dir)
     return state_dir
+
+
+def _unwritable(path: Path, reason: str) -> ConfigurationError:
+    """One line instead of a later "unable to open database file"
+    traceback (Issue #419)."""
+    if os.environ.get("ZOTERO_CLI_CONTAINER"):
+        hint = (
+            "With `docker run --user`, mount a directory you own at /config/zotero-cli, "
+            "e.g. -v ~/.config/zotero-cli:/config/zotero-cli (see the README)."
+        )
+    else:
+        hint = "Check its owner and permissions, or set XDG_CONFIG_HOME to a writable directory."
+    return ConfigurationError(f"Can't write zotero-cli's directory {path} ({reason}). {hint}")
 
 
 def _migrate_legacy_state(config_dir: Path, state_dir: Path) -> None:

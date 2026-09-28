@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
+- **An unwritable storage directory is one clear error (Issue #419):** in the Docker image, `docker run --user …` without the config mount printed "Could not set up log file at None", then a `sqlite3` traceback. zotero-cli now stops with one line naming the directory and, in the container, saying to mount a directory you own at `/config/zotero-cli`. The log warning names the real directory, and the README Docker section explains the mount.
 - **`init` writes a valid config and keeps what it doesn't ask about (Issue #388):**
   - The file is written with a TOML library. A key, email or Windows path containing `"` or `\` used to produce a file that every later command failed to parse, and a pasted newline could add settings.
   - Re-running `init` updates the existing file: settings it doesn't ask about (AI keys, `ncbi_api_key`, `storage_path`, other tables) are kept, and the current values are offered as defaults. Pressing Enter at the API-key prompt keeps the current key.
