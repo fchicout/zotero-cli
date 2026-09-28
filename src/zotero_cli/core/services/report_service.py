@@ -5,6 +5,7 @@ import re
 
 # subprocess: only used with fixed argv lists below, never shell=True
 import subprocess  # nosec B404
+import sys
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -94,12 +95,12 @@ class ReportService:
             # fixed argv list, no shell
             result = subprocess.run(cmd, capture_output=True, text=True)  # nosec B603
             if result.returncode != 0:
-                print(f"Error running mmdc: {result.stderr}")
+                print(f"Error running mmdc: {result.stderr}", file=sys.stderr)
                 logger.warning("mmdc exited with code %d: %s", result.returncode, result.stderr)
                 return False
             return True
         except Exception as e:
-            print(f"Error rendering diagram: {e}")
+            print(f"Error rendering diagram: {e}", file=sys.stderr)
             logger.exception("Error rendering diagram to %s", output_path)
             return False
         finally:

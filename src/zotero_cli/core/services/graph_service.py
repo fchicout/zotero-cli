@@ -1,3 +1,4 @@
+import sys
 from typing import Dict, List, Set, Tuple
 
 from zotero_cli.core.interfaces import CollectionRepository
@@ -19,7 +20,7 @@ class CitationGraphService:
         for col_name in collection_names:
             col_id = self.zotero_gateway.get_collection_id_by_name(col_name)
             if not col_id:
-                print(f"Warning: Collection '{col_name}' not found. Skipping.")
+                print(f"Warning: Collection '{col_name}' not found. Skipping.", file=sys.stderr)
                 continue
 
             for item in self.zotero_gateway.get_items_in_collection(col_id):

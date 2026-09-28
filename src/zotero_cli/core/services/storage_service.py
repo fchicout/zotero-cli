@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from pathlib import Path
 
 from zotero_cli.core.config import ZoteroConfig
@@ -55,11 +56,11 @@ class StorageService:
             try:
                 storage_root.mkdir(parents=True, exist_ok=True)
             except Exception as e:
-                print(f"Error creating storage directory: {e}")
+                print(f"Error creating storage directory: {e}", file=sys.stderr)
                 logger.exception("Error creating storage directory %s", storage_root)
                 return 0
 
-        print(f"Scanning for stored attachments (Limit: {limit})...")
+        print(f"Scanning for stored attachments (Limit: {limit})...", file=sys.stderr)
 
         # Search for attachments
         # itemType: attachment
@@ -127,20 +128,20 @@ class StorageService:
             target_path = storage_root / filename
 
         if target_path.exists():
-            print(strip_controls(f"Skipping {item.key}: File {filename} already exists."))
+            print(strip_controls(f"Skipping {item.key}: File {filename} already exists."), file=sys.stderr)
             return False
 
-        print(strip_controls(f"Processing {item.key}: {filename}..."))
+        print(strip_controls(f"Processing {item.key}: {filename}..."), file=sys.stderr)
 
         # 1. Download
         try:
             if not self.gateway.download_attachment(item.key, str(target_path)):
-                print("  Failed to download.")
+                print("  Failed to download.", file=sys.stderr)
                 if target_path.exists():
                     target_path.unlink()
                 return False
         except Exception as e:
-            print(f"  Exception downloading: {e}")
+            print(f"  Exception downloading: {e}", file=sys.stderr)
             logger.exception("Exception downloading attachment for item %s", item.key)
             if target_path.exists():
                 target_path.unlink()
@@ -149,15 +150,15 @@ class StorageService:
         # 2. Update Zotero
         try:
             if not self.gateway.update_attachment_link(item.key, item.version, str(target_path)):
-                print("  Failed to update Zotero item. Rolling back...")
+                print("  Failed to update Zotero item. Rolling back...", file=sys.stderr)
                 target_path.unlink()
                 return False
         except Exception as e:
-            print(f"  Exception updating: {e}")
+            print(f"  Exception updating: {e}", file=sys.stderr)
             logger.exception("Exception updating attachment link for item %s", item.key)
             if target_path.exists():
                 target_path.unlink()
             return False
 
-        print(strip_controls(f"  Moved to {target_path}"))
+        print(strip_controls(f"  Moved to {target_path}"), file=sys.stderr)
         return True

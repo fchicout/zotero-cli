@@ -1,4 +1,5 @@
 import concurrent.futures
+import sys
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -67,7 +68,7 @@ class IntegrityService:
                     if not has_note:
                         report.items_missing_note.append(item)
                 except Exception as exc:
-                    print(f"Error checking children for item {item.key}: {exc}")
+                    print(f"Error checking children for item {item.key}: {exc}", file=sys.stderr)
 
         return report
 

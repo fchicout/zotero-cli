@@ -75,4 +75,4 @@ class OpenerService(IOpenerService):
         if os.name == "nt":
             abs_path = abs_path.replace("\\", "/")
 
-        print(f"\n[Unable to open natively. Click to open]: file://{abs_path}\n")
+        print(f"\n[Unable to open natively. Click to open]: file://{abs_path}\n", file=sys.stderr)

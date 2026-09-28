@@ -45,5 +45,6 @@ class ArXivResolver(PDFResolver):
             return dest
         except Exception as e:
             msg = f"ArXiv: Failed to resolve PDF for {arxiv_id}: {e}"
-            logger.error(msg)
+            # A miss is expected: the next resolver is tried (Issue #385).
+            logger.info(msg)
             raise ResolutionError(msg) from e

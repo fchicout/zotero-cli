@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
+- **stdout carries only data (Issues #372, #385, #401):** 53 messages from inside zotero-cli went to stdout, so `--format json` or `csv` could be corrupted, for example by "Warning: Failed to load config file". Examples are the progress lines of `import`, `storage checkout` and `item pdf fetch`, export warnings and parse errors. They now go to stderr, and a test keeps it that way.
+  - The `--offline` whole-database warning appears once per run, not once per internal service (it showed up to 7 times).
+  - Hugging Face progress bars and loader messages are hidden unless `-v`.
+  - Expected PDF-resolver misses are logged at INFO instead of ERROR.
+  - Five messages that printed literal Rich markup (`[yellow]DRY RUN:[/yellow]`) now render it. Two of them were failures that exited 0 and now exit 1.
 - **Failed commands no longer exit 0 (Issues #368, #377):**
   - 42 places printed an error and returned success: a missing key, collection or file, a missing required option, `--output` missing on `item export`/`collection export`, an unknown job, an unsupported file. They now fail with exit 3 (not found), 2 (usage) or 1 (error), and a one-line message on stderr.
   - `item list` with no scope, or with a collection that doesn't exist, now fails instead of printing `[]`.

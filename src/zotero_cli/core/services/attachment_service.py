@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -77,7 +78,7 @@ class AttachmentService(FullTextProvider):
     def attach_pdfs_to_collection(self, collection_name: str) -> List[int]:
         col_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not col_id:
-            print(f"Collection '{collection_name}' not found.")
+            print(f"Collection '{collection_name}' not found.", file=sys.stderr)
             return []
 
         job_ids = []
@@ -96,7 +97,7 @@ class AttachmentService(FullTextProvider):
         # 1. Check if item exists and already has PDF
         item = self.item_repo.get_item(item_key)
         if not item:
-            print(f"Item '{item_key}' not found.")
+            print(f"Item '{item_key}' not found.", file=sys.stderr)
             return False
 
         if self._has_pdf_attachment(item_key):
@@ -104,27 +105,27 @@ class AttachmentService(FullTextProvider):
 
         # 2. Try existing URL if it looks like a PDF
         if item.url and self._looks_like_pdf(item.url):
-            print(strip_controls(f"Checking existing URL for PDF: {item.url}"))
+            print(strip_controls(f"Checking existing URL for PDF: {item.url}"), file=sys.stderr)
             pdf_path = self._download_file(item.url)
             if pdf_path:
-                print("  Uploading to Zotero...")
+                print("  Uploading to Zotero...", file=sys.stderr)
                 success = self.attachment_repo.upload_attachment(item_key, pdf_path)
                 if os.path.exists(pdf_path):
                     os.remove(pdf_path)
                 if success:
-                    print("  Success from existing URL!")
+                    print("  Success from existing URL!", file=sys.stderr)
                     return True
 
         identifier = item.doi or item.arxiv_id
         if not identifier:
             return False
 
-        print(strip_controls(f"Checking PDF for: {item.title} ({identifier})"))
+        print(strip_controls(f"Checking PDF for: {item.title} ({identifier})"), file=sys.stderr)
 
         # 3. Get Metadata (PDF URL) from aggregator
         enriched = self.metadata_aggregator.get_enriched_metadata(identifier)
         if not enriched:
-            print("  No enriched metadata found.")
+            print("  No enriched metadata found.", file=sys.stderr)
             return False
 
         pdf_url = enriched.pdf_url
@@ -132,19 +133,19 @@ class AttachmentService(FullTextProvider):
             pdf_url = enriched.url
 
         if not pdf_url:
-            print("  No PDF URL found.")
+            print("  No PDF URL found.", file=sys.stderr)
             return False
 
-        print(strip_controls(f"  Found PDF URL: {pdf_url}"))
+        print(strip_controls(f"  Found PDF URL: {pdf_url}"), file=sys.stderr)
 
         # 4. Download
         pdf_path = self._download_file(pdf_url)
         if not pdf_path:
-            print("  Failed to download PDF.")
+            print("  Failed to download PDF.", file=sys.stderr)
             return False
 
         # 5. Upload
-        print("  Uploading to Zotero...")
+        print("  Uploading to Zotero...", file=sys.stderr)
         success = self.attachment_repo.upload_attachment(item_key, pdf_path)
 
         # Cleanup
@@ -152,9 +153,9 @@ class AttachmentService(FullTextProvider):
             os.remove(pdf_path)
 
         if success:
-            print("  Success!")
+            print("  Success!", file=sys.stderr)
         else:
-            print("  Upload failed.")
+            print("  Upload failed.", file=sys.stderr)
 
         return success
 
@@ -221,25 +222,25 @@ class AttachmentService(FullTextProvider):
                     tmp.write(chunk)
 
             if not is_pdf:
-                print(strip_controls(f"Download error: {url!r} did not return a valid PDF signature."))
+                print(strip_controls(f"Download error: {url!r} did not return a valid PDF signature."), file=sys.stderr)
                 os.remove(path)
                 return None
 
             return path
         except UnsafeURLError as e:
-            print(f"Download error: refusing unsafe URL - {e}")
+            print(f"Download error: refusing unsafe URL - {e}", file=sys.stderr)
             logger.warning("Download error: refusing unsafe URL %r: %s", url, e)
             if path and os.path.exists(path):
                 os.remove(path)
             return None
         except ResponseTooLargeError as e:
-            print(f"Download error: response too large - {e}")
+            print(f"Download error: response too large - {e}", file=sys.stderr)
             logger.warning("Download error: response too large for %r: %s", url, e)
             if path and os.path.exists(path):
                 os.remove(path)
             return None
         except Exception as e:
-            print(f"Download error: {e}")
+            print(f"Download error: {e}", file=sys.stderr)
             logger.exception("Download error for %r", url)
             if path and os.path.exists(path):
                 os.remove(path)
@@ -268,7 +269,7 @@ class AttachmentService(FullTextProvider):
                 # 3. Extract the text
                 return extract_pdf_text(temp_path)
             except Exception as e:
-                print(f"Full-text extraction error for {item_key}: {e}")
+                print(f"Full-text extraction error for {item_key}: {e}", file=sys.stderr)
                 logger.exception("Full-text extraction error for %s", item_key)
                 return None
             # No finally block needed here as TemporaryDirectory cleans up on __exit__
@@ -310,7 +311,7 @@ class AttachmentService(FullTextProvider):
                     else:
                         stats["failed"] += 1
                 except Exception as e:
-                    print(f"Error exporting {item.key}: {e}")
+                    print(f"Error exporting {item.key}: {e}", file=sys.stderr)
                     logger.exception("Error exporting %s", item.key)
                     stats["failed"] += 1
 
@@ -339,6 +340,6 @@ class AttachmentService(FullTextProvider):
                 f.write(text)
             return "success"
         except Exception as e:
-            print(f"File write error for {item.key}: {e}")
+            print(f"File write error for {item.key}: {e}", file=sys.stderr)
             logger.exception("File write error for %s", item.key)
             return "failed"

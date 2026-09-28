@@ -1,4 +1,5 @@
 import concurrent.futures
+import sys
 from typing import List, Optional
 
 from zotero_cli.core.interfaces import MetadataProvider
@@ -50,7 +51,7 @@ class MetadataAggregatorService:
                     if data:
                         results.append(data)
                 except Exception as exc:
-                    print(f"Provider generated an exception: {exc}")
+                    print(f"Provider generated an exception: {exc}", file=sys.stderr)
 
         results = self._drop_mismatched_dois(identifier, results, require_doi_match)
         if not results:

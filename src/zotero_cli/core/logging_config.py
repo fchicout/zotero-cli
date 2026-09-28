@@ -114,6 +114,13 @@ def setup_logging(verbose: bool = False, log_dir: Optional[Path] = None) -> None
     # the file handler would otherwise keep.
     for noisy in ("httpx", "httpcore"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
+    if not verbose:
+        # Model loading (rag) prints progress bars and INFO chatter on
+        # stderr before any output (Issue #385); -v brings it back.
+        os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+        os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+        for noisy in ("huggingface_hub", "transformers", "sentence_transformers"):
+            logging.getLogger(noisy).setLevel(logging.WARNING)
     redacting_filter = RedactingFilter()
 
     stream_handler = logging.StreamHandler()

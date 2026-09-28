@@ -253,7 +253,7 @@ class ConfigLoader:
             # Can't read the file at all (permissions, etc.) - degrade to
             # "no config" rather than blocking every command, matching the
             # pre-existing behavior for a genuinely missing file.
-            print(f"Warning: Failed to load config file {self.config_path}: {e}")
+            print(f"Warning: Failed to load config file {self.config_path}: {e}", file=sys.stderr)
             return {}
         except Exception as e:
             # A parse failure (bad TOML syntax, wrong encoding) must not be

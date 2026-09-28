@@ -1,5 +1,6 @@
 import io
 import logging
+import sys
 from typing import Iterator, List
 
 import rispy
@@ -40,7 +41,7 @@ class RisLibGateway(RisGateway):
                 rispy.dump(entries, ris_file)
             return True
         except Exception as e:
-            print(f"Error writing RIS file: {e}")
+            print(f"Error writing RIS file: {e}", file=sys.stderr)
             logger.exception("Error writing RIS file %s", file_path)
             return False
 

@@ -22,6 +22,22 @@ logger = logging.getLogger(__name__)
 # to define its own ConfigurationError, which main() never caught.
 OFFLINE_READ_ONLY = "Offline mode is read-only"
 
+_unscoped_warning_shown = False
+
+
+def _warn_unscoped_once() -> None:
+    """Once per process (Issue #385): each service builds its own gateway,
+    so the warning used to repeat up to 7 times before any output."""
+    global _unscoped_warning_shown
+    if _unscoped_warning_shown:
+        return
+    _unscoped_warning_shown = True
+    logger.warning(
+        "--offline mode operates across the ENTIRE local zotero.sqlite database, not just "
+        "the configured library_id - if more than one library (personal + any groups) is "
+        "synced locally, results will include items from all of them."
+    )
+
 
 class SqliteZoteroGateway(ZoteroGateway):
     """
@@ -54,14 +70,7 @@ class SqliteZoteroGateway(ZoteroGateway):
         # items from every synced library, and a Zotero item key collision
         # across libraries can return the wrong item. Warn loudly rather
         # than let this be a silent wrong answer.
-        warning = (
-            "Warning: --offline mode operates across the ENTIRE local "
-            "zotero.sqlite database, not just the configured library_id - "
-            "if more than one library (personal + any groups) is synced "
-            "locally, results will include items from all of them."
-        )
-        print(warning, file=sys.stderr)
-        logger.warning(warning)
+        _warn_unscoped_once()
 
     def _get_connection(self) -> sqlite3.Connection:
         # Create shadow copy
