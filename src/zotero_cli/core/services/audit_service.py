@@ -1,5 +1,6 @@
 import logging
 import re
+import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
 
@@ -71,7 +72,7 @@ class AuditService:
             with open(latex_file, "r", encoding="utf-8") as f:
                 content = f.read()
         except Exception as e:
-            print(f"Warning: Failed to read {latex_file}: {e}")
+            print(f"Warning: Failed to read {latex_file}: {e}", file=sys.stderr)
             logger.warning("Failed to read LaTeX file %s: %s", latex_file, e)
             return set()
 

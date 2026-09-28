@@ -1,6 +1,9 @@
 import argparse
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+
+console = Console()
 
 
 @CommandRegistry.register
@@ -111,7 +114,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
             if count >= 0:
                 if dry_run:
-                    print(f"[yellow]DRY RUN:[/yellow] Would purge {count} tags.")
+                    console.print(f"[yellow]DRY RUN:[/yellow] Would purge {count} tags.")
                 else:
                     print(f"Purged {count} tags.")
             else:

@@ -1,5 +1,6 @@
 import csv
 import json
+import sys
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -146,7 +147,7 @@ class CSVInboundService:
             payload = self._build_sdb_payload(row, reviewer, phase, actual_map)
 
             if dry_run or not force:
-                print(strip_controls(f"[DRY RUN] Match: {item.key} | {(item.title or '')[:40]}..."))
+                print(strip_controls(f"[DRY RUN] Match: {item.key} | {(item.title or '')[:40]}..."), file=sys.stderr)
                 results["skipped"] += 1
                 continue
 

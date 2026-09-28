@@ -1,6 +1,7 @@
 import hmac
 import ipaddress
 import os
+import sys
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Awaitable, Callable, Dict, Optional, Sequence
 
@@ -17,7 +18,7 @@ from zotero_cli.infra.factory import GatewayFactory
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Startup: Load Config and Init Gateway
-    print("Initializing Zotero Gateway...")
+    print("Initializing Zotero Gateway...", file=sys.stderr)
     config = get_config()
     gateway = GatewayFactory.get_zotero_gateway(config)
     set_gateway_instance(gateway)

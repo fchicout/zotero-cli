@@ -127,7 +127,8 @@ class BDTDResolver(PDFResolver):
 
         except Exception as e:
             msg = f"BDTDResolver: Failed to resolve PDF for {item.key}: {e}"
-            logger.error(msg)
+            # A miss is expected: the next resolver is tried (Issue #385).
+            logger.info(msg)
             raise ResolutionError(msg) from e
 
     async def _download_pdf(self, pdf_url: str) -> Optional[Path]:

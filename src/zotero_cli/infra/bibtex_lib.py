@@ -1,4 +1,5 @@
 import logging
+import sys
 from typing import Iterator, List
 
 import bibtexparser
@@ -49,7 +50,7 @@ class BibtexLibGateway(BibtexGateway):
                 bibtex_file.write(writer.write(db))
             return True
         except Exception as e:
-            print(f"Error writing BibTeX file: {e}")
+            print(f"Error writing BibTeX file: {e}", file=sys.stderr)
             logger.exception("Error writing BibTeX file %s", file_path)
             return False
 

@@ -1,3 +1,4 @@
+import sys
 from typing import Iterator
 
 from zotero_cli.core.interfaces import ItemRepository
@@ -32,12 +33,12 @@ class ImportService:
         for paper in papers:
             if verbose:
                 doi_info = f" [DOI: {paper.doi}]" if paper.doi else ""
-                print(strip_controls(f"Adding: {paper.title}{doi_info}..."))
+                print(strip_controls(f"Adding: {paper.title}{doi_info}..."), file=sys.stderr)
 
             if self.item_repo.create_item(paper, col_id):
                 success_count += 1
             elif verbose:
-                print(strip_controls(f"Failed to add: {paper.title}"))
+                print(strip_controls(f"Failed to add: {paper.title}"), file=sys.stderr)
 
         return success_count
 

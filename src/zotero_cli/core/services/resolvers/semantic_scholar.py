@@ -59,5 +59,6 @@ class SemanticScholarResolver(PDFResolver):
             )
         except Exception as e:
             msg = f"SemanticScholar: Failed to resolve PDF for {item.doi}: {e}"
-            logger.error(msg)
+            # A miss is expected: the next resolver is tried (Issue #385).
+            logger.info(msg)
             raise ResolutionError(msg) from e

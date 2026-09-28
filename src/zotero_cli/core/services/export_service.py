@@ -1,3 +1,4 @@
+import sys
 from typing import List
 
 from zotero_cli.core.interfaces import BibtexGateway, CollectionRepository, RisGateway
@@ -29,12 +30,12 @@ class ExportService:
         """
         col_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not col_id:
-            print(f"Error: Collection '{collection_name}' not found.")
+            print(f"Error: Collection '{collection_name}' not found.", file=sys.stderr)
             return False
 
         items = list(self.collection_repo.get_items_in_collection(col_id))
         if not items:
-            print(f"Warning: Collection '{collection_name}' is empty.")
+            print(f"Warning: Collection '{collection_name}' is empty.", file=sys.stderr)
             return False
 
         return self.export_items(items, output_path, format)
@@ -52,7 +53,7 @@ class ExportService:
         ]
 
         if not papers:
-            print("Warning: No valid papers to export.")
+            print("Warning: No valid papers to export.", file=sys.stderr)
             return False
 
         if format.lower() == "bibtex":
@@ -60,7 +61,7 @@ class ExportService:
         elif format.lower() == "ris":
             return self.ris_gateway.write_file(output_path, papers)
         else:
-            print(f"Error: Unsupported export format '{format}'.")
+            print(f"Error: Unsupported export format '{format}'.", file=sys.stderr)
             return False
 
     def serialize_bibtex(self, items: List[ZoteroItem]) -> str:

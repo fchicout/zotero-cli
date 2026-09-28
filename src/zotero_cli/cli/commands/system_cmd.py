@@ -627,9 +627,9 @@ Cognitive Safeguards
             job.attempts = 0
             job.next_retry_at = None
             if job_service.repo.update_job(job):
-                print(f"[green]Job {args.id} reset to PENDING.[/green]")
+                console.print(f"[green]Job {args.id} reset to PENDING.[/green]")
             else:
-                print(f"[red]Failed to update job {args.id}.[/red]")
+                raise ZoteroCliError(f"Failed to update job {args.id}.")
 
         elif args.jobs_verb == "run":
             import asyncio
@@ -745,7 +745,7 @@ Cognitive Safeguards
                     f"[green]Switched context to group: {safe_markup(target_name)} ({target_id})[/green]"
                 )
             except Exception as e:
-                print(f"[red]Failed to save configuration: {e}[/red]")
+                raise ZoteroCliError(f"Failed to save configuration: {e}") from e
 
     def _handle_normalize(self, args: argparse.Namespace) -> None:
         ext = os.path.splitext(args.file)[1].lower()

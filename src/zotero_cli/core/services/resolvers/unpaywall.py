@@ -51,5 +51,6 @@ class UnpaywallResolver(PDFResolver):
             return write_secure_temp_file(pdf_resp.content, prefix="unpaywall_", suffix=".pdf")
         except Exception as e:
             msg = f"Unpaywall resolution failed for {item.doi}: {e}"
-            logger.error(msg)
+            # A miss is expected: the next resolver is tried (Issue #385).
+            logger.info(msg)
             raise ResolutionError(msg) from e

@@ -1134,7 +1134,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             stats = purge_service.purge_item_assets(args.key, dry_run=dry_run)
             count = stats["deleted"] if not dry_run else stats["skipped"]
             if dry_run:
-                print(
+                console.print(
                     f"[yellow]DRY RUN:[/yellow] Would remove {count} attachments from {args.key}."
                 )
             else:

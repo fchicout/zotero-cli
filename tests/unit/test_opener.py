@@ -68,8 +68,10 @@ def test_open_file_failure_fallback(mock_subprocess, opener, mock_os_exists):
 def test_print_link(capsys, opener):
     opener.print_link("test.pdf")
     captured = capsys.readouterr()
-    assert "file://" in captured.out
-    assert "test.pdf" in captured.out
+    # A hint for the person at the terminal: stderr, not stdout (#372).
+    assert "file://" in captured.err
+    assert "test.pdf" in captured.err
+    assert captured.out == ""
 
 
 @pytest.mark.parametrize(
