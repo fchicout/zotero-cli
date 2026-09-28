@@ -505,9 +505,12 @@ Cognitive Safeguards
         console.print(table)
 
     def _handle_check(self, args: argparse.Namespace) -> None:
+        from zotero_cli.core.config import default_storage_dir
         from zotero_cli.core.services.diagnostics_service import (
+            STATUS_CONFIGURED,
             STATUS_CONNECTED,
             STATUS_FAILED,
+            STATUS_FOUND,
             STATUS_NOT_CONFIGURED,
         )
 
@@ -517,6 +520,8 @@ Cognitive Safeguards
 
         status_color = {
             STATUS_CONNECTED: "green",
+            STATUS_FOUND: "green",
+            STATUS_CONFIGURED: "cyan",
             STATUS_FAILED: "red",
             STATUS_NOT_CONFIGURED: "yellow",
         }
@@ -530,6 +535,15 @@ Cognitive Safeguards
                 r.name, f"[{color}]{r.status.replace('_', ' ')}[/{color}]", safe_markup(r.details)
             )
         console.print(table)
+
+        failed = [r.name for r in results if r.status == STATUS_FAILED]
+        if failed:
+            # Usable as a health gate: `system check && ...` (Issue #408).
+            log_file = default_storage_dir() / "logs" / "zotero-cli.log"
+            raise ZoteroCliError(
+                f"{len(failed)} check(s) failed: {', '.join(failed)}. Details are in {log_file} "
+                "(keys are masked); run with -v for more."
+            )
 
     def _handle_selftest(self) -> None:
         from zotero_cli.core.services.selftest import run_selftest

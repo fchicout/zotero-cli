@@ -704,6 +704,17 @@ class SqliteZoteroGateway(ZoteroGateway):
     def verify_credentials(self) -> bool:
         return os.path.exists(self.original_db_path)
 
+    def count_items(self) -> int:
+        """Items in the local database, for `system check` (Issue #382)."""
+        conn = self._get_connection()
+        try:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM items WHERE itemID NOT IN (SELECT itemID FROM deletedItems)"
+            ).fetchone()
+            return int(row[0])
+        finally:
+            conn.close()
+
     def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:
         return []
 

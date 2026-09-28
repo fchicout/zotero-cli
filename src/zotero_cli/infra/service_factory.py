@@ -392,14 +392,11 @@ class ServiceFactory:
         gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
         aggregator = MetadataClientFactory.get_metadata_aggregator(config)
 
-        from zotero_cli.infra.ai_provider_factory import AIProviderFactory
-
-        llm_provider = AIProviderFactory.get_llm_provider(config)
-        embedding_provider = AIProviderFactory.get_embedding_provider(config)
-
         from zotero_cli.core.services.diagnostics_service import DiagnosticsService
 
-        return DiagnosticsService(gateway, aggregator, llm_provider, embedding_provider, config)
+        # No LLM/embedding providers are built: `system check` reports their
+        # configuration without loading anything (Issues #382, #408).
+        return DiagnosticsService(gateway, aggregator, None, None, config)
 
     @staticmethod
     def get_sandbox_service(

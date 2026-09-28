@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
+- **`system check` can gate scripts, and doesn't claim a check it didn't run (Issues #408, #382):**
+  - It exits 1 when a check fails, naming the failed checks and the log file.
+  - A rejected Zotero key says where to create a new one and to run `zotero-cli init`. A network failure is no longer reported as a bad key.
+  - With `--offline`, it reports the local database (path and item count) instead of "Zotero API: CONNECTED".
+  - RAG providers are listed only when configured, and are checked without loading a model, downloading weights or calling an API. A plain install no longer shows a FAILED "LLM Provider" row.
 - **stdout carries only data (Issues #372, #385, #401):** 53 messages from inside zotero-cli went to stdout, so `--format json` or `csv` could be corrupted, for example by "Warning: Failed to load config file". Examples are the progress lines of `import`, `storage checkout` and `item pdf fetch`, export warnings and parse errors. They now go to stderr, and a test keeps it that way.
   - The `--offline` whole-database warning appears once per run, not once per internal service (it showed up to 7 times).
   - Hugging Face progress bars and loader messages are hidden unless `-v`.

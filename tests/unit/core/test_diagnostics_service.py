@@ -1,14 +1,17 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from zotero_cli.core.config import ZoteroConfig
+from zotero_cli.core.exceptions import Unavailable
 from zotero_cli.core.services.diagnostics_service import DiagnosticsService
 
 
 @pytest.fixture
 def mock_gateway():
-    return MagicMock()
+    gateway = MagicMock()
+    gateway.original_db_path = None  # online, unless a test says otherwise
+    return gateway
 
 
 @pytest.fixture
@@ -94,53 +97,81 @@ def test_pubmed_not_configured(mock_gateway, mock_aggregator, base_config):
     assert result.status == "NOT_CONFIGURED"
 
 
-def test_llm_provider_not_configured(mock_gateway, mock_aggregator, base_config):
-    service = make_service(mock_gateway, mock_aggregator, base_config, llm_provider=None)
-    result = result_for(service.run_checks(), "LLM Provider")
-    assert result.status == "NOT_CONFIGURED"
+def test_zotero_rejected_key_says_what_to_do(mock_gateway, mock_aggregator, base_config):
+    mock_gateway.verify_credentials.return_value = False
+    result = result_for(make_service(mock_gateway, mock_aggregator, base_config).run_checks(), "Zotero API")
+    assert "zotero.org/settings/keys" in result.details
+    assert "zotero-cli init" in result.details
 
 
-def test_llm_provider_connected(mock_gateway, mock_aggregator, base_config):
-    llm = MagicMock()
-    llm.generate.return_value = "pong"
-    service = make_service(mock_gateway, mock_aggregator, base_config, llm_provider=llm)
-    result = result_for(service.run_checks(), "LLM Provider")
-    assert result.status == "CONNECTED"
-
-
-def test_llm_provider_raises_is_failed(mock_gateway, mock_aggregator, base_config):
-    llm = MagicMock()
-    llm.generate.side_effect = RuntimeError("bad key")
-    service = make_service(mock_gateway, mock_aggregator, base_config, llm_provider=llm)
-    result = result_for(service.run_checks(), "LLM Provider")
+def test_zotero_unavailable_is_not_reported_as_a_bad_key(mock_gateway, mock_aggregator, base_config):
+    mock_gateway.verify_credentials.side_effect = Unavailable("Zotero API unreachable (timed out)")
+    result = result_for(make_service(mock_gateway, mock_aggregator, base_config).run_checks(), "Zotero API")
     assert result.status == "FAILED"
+    assert "unreachable" in result.details
+    assert "key" not in result.details
 
 
-def test_embedding_provider_connected(mock_gateway, mock_aggregator, base_config):
-    embedder = MagicMock()
-    embedder.embed_text.return_value = [0.1, 0.2]
-    service = make_service(mock_gateway, mock_aggregator, base_config, embedding_provider=embedder)
-    result = result_for(service.run_checks(), "Embedding Provider")
-    assert result.status == "CONNECTED"
+def test_offline_reports_the_local_database(mock_gateway, mock_aggregator, base_config):
+    """--offline doesn't touch the Web API, so don't claim it was verified (Issue #382)."""
+    mock_gateway.original_db_path = "/home/u/Zotero/zotero.sqlite"
+    mock_gateway.count_items.return_value = 42
+    results = make_service(mock_gateway, mock_aggregator, base_config).run_checks()
+    names = {r.name for r in results}
+    assert "Zotero API" not in names
+    row = result_for(results, "Local database")
+    assert row.status == "FOUND"
+    assert "zotero.sqlite" in row.details and "42 items" in row.details
+    mock_gateway.verify_credentials.assert_not_called()
 
 
-def test_embedding_provider_raises_is_failed(mock_gateway, mock_aggregator, base_config):
-    embedder = MagicMock()
-    embedder.embed_text.side_effect = RuntimeError("no local model")
-    service = make_service(mock_gateway, mock_aggregator, base_config, embedding_provider=embedder)
-    result = result_for(service.run_checks(), "Embedding Provider")
-    assert result.status == "FAILED"
+def test_offline_unreadable_database_is_failed(mock_gateway, mock_aggregator, base_config):
+    mock_gateway.original_db_path = "/nope/zotero.sqlite"
+    mock_gateway.count_items.side_effect = RuntimeError("unable to open database file")
+    row = result_for(make_service(mock_gateway, mock_aggregator, base_config).run_checks(), "Local database")
+    assert row.status == "FAILED"
+    assert "unable to open" in row.details
 
 
-def test_run_checks_returns_all_six(mock_gateway, mock_aggregator, base_config):
+def test_rag_rows_absent_when_not_configured(mock_gateway, mock_aggregator, base_config):
+    """Default config (provider 'auto', no model): no FAILED RAG rows on a plain install (#408)."""
+    names = {r.name for r in make_service(mock_gateway, mock_aggregator, base_config).run_checks()}
+    assert "LLM Provider" not in names
+    assert "Embedding Provider" not in names
+
+
+def test_rag_configured_is_reported_without_calling_providers(mock_gateway, mock_aggregator):
+    """No model load, download or API call (Issue #382)."""
+    config = ZoteroConfig(
+        api_key="k", library_id="1", embedding_provider="openai", generative_provider="gemini",
+        generative_model="gemini-pro",
+    )
+    llm, embedder = MagicMock(), MagicMock()
+    with patch(
+        "zotero_cli.core.services.diagnostics_service._importable", return_value=True
+    ):
+        service = DiagnosticsService(mock_gateway, mock_aggregator, llm, embedder, config)
+        results = service.run_checks()
+    emb = result_for(results, "Embedding Provider")
+    gen = result_for(results, "LLM Provider")
+    assert emb.status == gen.status == "CONFIGURED"
+    assert "gemini-pro" in gen.details
+    llm.generate.assert_not_called()
+    embedder.embed_text.assert_not_called()
+
+
+def test_rag_configured_without_the_extra_says_how_to_install(mock_gateway, mock_aggregator):
+    config = ZoteroConfig(api_key="k", library_id="1", embedding_provider="local")
+    with patch(
+        "zotero_cli.core.services.diagnostics_service._importable", return_value=False
+    ):
+        row = result_for(make_service(mock_gateway, mock_aggregator, config).run_checks(), "Embedding Provider")
+    assert row.status == "FAILED"
+    assert "zotero-command-line[rag]" in row.details
+
+
+def test_run_checks_default_rows(mock_gateway, mock_aggregator, base_config):
     service = make_service(mock_gateway, mock_aggregator, base_config)
     results = service.run_checks()
     names = {r.name for r in results}
-    assert names == {
-        "Zotero API",
-        "Semantic Scholar",
-        "Unpaywall",
-        "PubMed/NCBI",
-        "LLM Provider",
-        "Embedding Provider",
-    }
+    assert names == {"Zotero API", "Semantic Scholar", "Unpaywall", "PubMed/NCBI"}
