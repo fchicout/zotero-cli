@@ -1,3 +1,4 @@
+import importlib.util
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -17,8 +18,13 @@ _PROBE_DOI = "10.1038/nphys1170"
 STATUS_CONNECTED = "CONNECTED"
 STATUS_FAILED = "FAILED"
 STATUS_NOT_CONFIGURED = "NOT_CONFIGURED"
+STATUS_FOUND = "FOUND"  # the local database, in --offline mode
+STATUS_CONFIGURED = "CONFIGURED"  # set up, deliberately not exercised
 
 _CHECK_ZOTERO = "Zotero API"
+_CHECK_LOCAL_DB = "Local database"
+_KEYS_URL = "https://www.zotero.org/settings/keys"
+_RAG_INSTALL = "the rag extra isn't installed: pip install 'zotero-command-line[rag]'"
 _CHECK_SEMANTIC_SCHOLAR = "Semantic Scholar"
 _CHECK_UNPAYWALL = "Unpaywall"
 _CHECK_PUBMED = "PubMed/NCBI"
@@ -44,7 +50,7 @@ class DiagnosticsService:
         gateway: ZoteroGateway,
         metadata_aggregator: MetadataAggregatorService,
         llm_provider: Optional[LLMProvider],
-        embedding_provider: EmbeddingProvider,
+        embedding_provider: Optional[EmbeddingProvider],
         config: ZoteroConfig,
     ):
         self.gateway = gateway
@@ -54,21 +60,37 @@ class DiagnosticsService:
         self.config = config
 
     def run_checks(self) -> List[CheckResult]:
-        return [
+        results = [
             self._check_zotero(),
             self._check_semantic_scholar(),
             self._check_unpaywall(),
             self._check_pubmed(),
-            self._check_llm_provider(),
-            self._check_embedding_provider(),
         ]
+        # RAG is an optional extra: its rows appear only when it's configured,
+        # and nothing is loaded or called (Issues #408, #382).
+        results += self._check_rag_configuration()
+        return results
 
     def _check_zotero(self) -> CheckResult:
+        local_db = getattr(self.gateway, "original_db_path", None)
+        if local_db:
+            # --offline: the Web API isn't used, so don't claim it was
+            # verified (Issue #382); report the database instead.
+            try:
+                count = self.gateway.count_items()  # type: ignore[attr-defined]
+            except Exception as e:
+                return CheckResult(_CHECK_LOCAL_DB, STATUS_FAILED, f"{local_db}: {e}")
+            return CheckResult(_CHECK_LOCAL_DB, STATUS_FOUND, f"{local_db}, {count} items")
         try:
             if self.gateway.verify_credentials():
                 return CheckResult(_CHECK_ZOTERO, STATUS_CONNECTED, "Credentials verified")
-            return CheckResult(_CHECK_ZOTERO, STATUS_FAILED, "Credentials rejected")
+            return CheckResult(
+                _CHECK_ZOTERO,
+                STATUS_FAILED,
+                f"API key rejected: create one at {_KEYS_URL}, then run `zotero-cli init`",
+            )
         except Exception as e:
+            # A network failure or rate limit, not a rejected key (Issue #408).
             return CheckResult(_CHECK_ZOTERO, STATUS_FAILED, str(e))
 
     def _check_semantic_scholar(self) -> CheckResult:
@@ -114,22 +136,47 @@ class DiagnosticsService:
             )
         return CheckResult(name, STATUS_CONNECTED, "Reachable")
 
-    def _check_llm_provider(self) -> CheckResult:
-        if self.llm_provider is None:
-            return CheckResult(_CHECK_LLM_PROVIDER, STATUS_NOT_CONFIGURED, "No provider configured")
-        try:
-            self.llm_provider.generate("Reply with the single word: pong")
-            return CheckResult(
-                _CHECK_LLM_PROVIDER, STATUS_CONNECTED, type(self.llm_provider).__name__
+    def _check_rag_configuration(self) -> List[CheckResult]:
+        """The configured RAG providers, reported without loading a model,
+        downloading weights or calling an API: `system check` used to do
+        all three (Issue #382) and showed a FAILED row on every install
+        without the optional extra (Issue #408)."""
+        c = self.config
+        rows: List[CheckResult] = []
+        embedding = (c.embedding_provider or "auto").lower()
+        if embedding != "auto" or c.embedding_model:
+            rows.append(
+                self._rag_row(
+                    _CHECK_EMBEDDING_PROVIDER,
+                    embedding,
+                    c.embedding_model,
+                    {"local": "sentence_transformers", "openai": "openai",
+                     "gemini": "google.generativeai"},
+                )
             )
-        except Exception as e:
-            return CheckResult(_CHECK_LLM_PROVIDER, STATUS_FAILED, str(e))
+        generative = (c.generative_provider or "auto").lower()
+        if generative != "auto" or c.generative_model:
+            rows.append(
+                self._rag_row(
+                    _CHECK_LLM_PROVIDER,
+                    generative,
+                    c.generative_model,
+                    {"local": "transformers", "openai": "openai", "gemini": "google.generativeai"},
+                )
+            )
+        return rows
 
-    def _check_embedding_provider(self) -> CheckResult:
-        try:
-            self.embedding_provider.embed_text("ping")
-            return CheckResult(
-                _CHECK_EMBEDDING_PROVIDER, STATUS_CONNECTED, type(self.embedding_provider).__name__
-            )
-        except Exception as e:
-            return CheckResult(_CHECK_EMBEDDING_PROVIDER, STATUS_FAILED, str(e))
+    @staticmethod
+    def _rag_row(name: str, provider: str, model: Optional[str], modules: dict) -> CheckResult:
+        module = modules.get(provider)
+        if module and not _importable(module):
+            return CheckResult(name, STATUS_FAILED, _RAG_INSTALL)
+        label = f"{provider}" + (f": {model}" if model else "")
+        return CheckResult(name, STATUS_CONFIGURED, f"{label} (not loaded; `rag query` uses it)")
+
+
+def _importable(module: str) -> bool:
+    try:
+        return importlib.util.find_spec(module) is not None
+    except (ImportError, ValueError):
+        return False

@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, TypeVar, cast
 
 import requests
 
-from zotero_cli.core.exceptions import NotFound
+from zotero_cli.core.exceptions import AuthError, NotFound
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import KeyIdentity, ResearchPaper, ZoteroQuery
 from zotero_cli.core.utils.collection_resolver import resolve_collection_key
@@ -171,7 +171,9 @@ class ZoteroAPIClient(ZoteroGateway):
             # We use items with limit 1 as a lightweight check
             self.http.get("items", params={"limit": 1})
             return True
-        except Exception:
+        except AuthError:
+            # Only a rejected key is "invalid credentials". An outage or a
+            # rate limit propagates with its own message (Issue #408).
             return False
 
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:

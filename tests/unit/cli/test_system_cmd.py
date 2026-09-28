@@ -195,13 +195,35 @@ def test_system_check(system_cmd, capsys):
         ]
 
         args = argparse.Namespace(verb="check", user=False)
-        system_cmd.execute(args)
+        with pytest.raises(ZoteroCliError) as raised:
+            system_cmd.execute(args)
 
         out = capsys.readouterr().out
         assert "Zotero CLI Diagnostics" in out
         assert "Zotero API" in out
         assert "NOT CONFIGURED" in out
         assert "FAILED" in out
+        # a failed check fails the command, so it can gate scripts (Issue #408)
+        assert raised.value.exit_code == 1
+        assert "LLM Provider" in str(raised.value)
+        assert "zotero-cli.log" in str(raised.value)
+
+
+def test_system_check_all_ok_exits_zero(system_cmd, capsys):
+    from zotero_cli.core.services.diagnostics_service import CheckResult
+
+    with patch(
+        "zotero_cli.infra.factory.GatewayFactory.get_diagnostics_service"
+    ) as mock_get_service:
+        mock_get_service.return_value.run_checks.return_value = [
+            CheckResult("Local database", "FOUND", "/x/zotero.sqlite, 3 items"),
+            CheckResult("Semantic Scholar", "NOT_CONFIGURED", "No API key set"),
+            CheckResult("LLM Provider", "CONFIGURED", "openai (not loaded)"),
+        ]
+        system_cmd.execute(argparse.Namespace(verb="check", user=False))
+
+    out = capsys.readouterr().out
+    assert "FOUND" in out and "CONFIGURED" in out
 
 
 def test_system_demo_sandbox_create(system_cmd, capsys):
