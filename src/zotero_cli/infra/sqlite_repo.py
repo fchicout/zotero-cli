@@ -8,6 +8,7 @@ import sys
 import tempfile
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
+from zotero_cli.core.exceptions import ConfigurationError, OfflineReadOnly
 from zotero_cli.core.interfaces import JobRepository, ZoteroGateway
 from zotero_cli.core.models import Job, ResearchPaper, ZoteroQuery
 from zotero_cli.core.utils.collection_resolver import resolve_collection_key
@@ -17,12 +18,8 @@ from zotero_cli.core.zotero_item import ZoteroItem
 logger = logging.getLogger(__name__)
 
 
-class ConfigurationError(Exception):
-    """Raised when an operation is not permitted in the current configuration."""
-
-    pass
-
-
+# One exception hierarchy for the whole CLI (Issue #370): this module used
+# to define its own ConfigurationError, which main() never caught.
 OFFLINE_READ_ONLY = "Offline mode is read-only"
 
 
@@ -452,59 +449,59 @@ class SqliteZoteroGateway(ZoteroGateway):
     # --- Write Operations (FORBIDDEN in Offline mode) ---
 
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def get_item_template(self, item_type: str) -> Dict[str, Any]:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def create_generic_item(self, item_data: Dict[str, Any]) -> Optional[str]:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def update_items(self, items_data: List[Dict[str, Any]]) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def delete_item(self, item_key: str, version: int) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def create_collection(self, name: str, parent_key: Optional[str] = None) -> Optional[str]:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def delete_collection(self, collection_key: str, version: int) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def rename_collection(self, collection_key: str, version: int, name: str) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def add_tags(self, item_key: str, tags: List[str]) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def delete_tags(self, tags: List[str], version: int) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def create_note(self, parent_item_key: str, note_content: str) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def update_note(
         self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None
     ) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def upload_attachment(
         self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
     ) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def update_attachment_link(self, item_key: str, version: int, new_path: str) -> bool:
-        raise ConfigurationError(OFFLINE_READ_ONLY)
+        raise OfflineReadOnly()
 
     def get_items_by_tag(self, tag: str) -> Iterator[ZoteroItem]:
         filter_sql = """
