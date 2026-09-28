@@ -104,9 +104,13 @@ def test_get_user_groups_reads_every_page():
 def test_an_error_on_a_later_page_never_yields_a_partial_collection_list():
     """A truncated list would make names past the cut look missing, so
     commands would create duplicates or report 'not found'."""
+    from zotero_cli.core.exceptions import AuthError
+
     client = _client(FakeSession(_collections(250), fail_at_start=100))
 
-    assert client.get_all_collections() == []
+    # An error, never a partial list (and since #369, never an empty one).
+    with pytest.raises(AuthError):
+        client.get_all_collections()
 
 
 def test_paginate_raises_on_a_non_list_page():

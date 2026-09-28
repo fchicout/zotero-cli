@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
+- **Network problems no longer hang, and failures are no longer reported as "not found" (Issues #398, #369):**
+  - Every Web API request now has a timeout: 5 s to connect, 30 s to read (60 s for writes). Retries stop after 4 attempts or 60 s, honour Zotero's `Retry-After` and `Backoff` headers, and print one "retrying..." notice. A network outage used to hang for about 5 minutes and then exit 0 with no output.
+  - A request that still fails becomes a clear error with its own exit code: a rejected API key (4, with a hint to run `zotero-cli init`), not found (3), a conflict (6) or the service unavailable (5).
+  - Lookups return "nothing" only when Zotero answers 404. Item listings stop with an error instead of returning a silently truncated list, which could leave a backup, an export or a report incomplete.
 - **Errors are one line on stderr, with an exit code that says what failed (Issues #370, #368):** every unexpected error used to print a full traceback, and offline-mode errors bypassed the error handler because `--offline` code raised its own copy of `ConfigurationError`. Now:
   - `main()` prints a single `Error: …` line on stderr, and the traceback only with `-v` (it is always in the log file);
   - exit codes follow a table: 1 error, 2 usage, 3 not found, 4 authentication, 5 unavailable, 6 conflict, 7 partial failure, 130 Ctrl-C. They're documented in [docs/EXIT_CODES.md](docs/EXIT_CODES.md) and at the end of `zotero-cli --help`;
