@@ -284,7 +284,10 @@ class ConfigManager:
     """
 
     def __init__(self, config_path: Optional[Path] = None):
-        self.config_path = config_path or ConfigLoader().config_path
+        # The file this run loaded (--config included), not always the
+        # default one: `system switch` and `rag model set` used to edit
+        # ~/.config/zotero-cli/config.toml under --config (Issue #383).
+        self.config_path = config_path or get_config_path() or ConfigLoader().config_path
 
     def save_group_context(self, group_id: str) -> None:
         """

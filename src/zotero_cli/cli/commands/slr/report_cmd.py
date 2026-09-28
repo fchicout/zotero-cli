@@ -133,7 +133,10 @@ class SLRReportCommand:
 
     @staticmethod
     def _handle_status(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
-        status_service = GatewayFactory.get_slr_status_service()
+        # Same library as `gateway` under --user (Issue #383).
+        status_service = GatewayFactory.get_slr_status_service(
+            force_user=getattr(args, "user", False)
+        )
 
         # Calculate status using SLRStatusService
         source_filter = None if getattr(args, "all_sources", False) else args.collection
