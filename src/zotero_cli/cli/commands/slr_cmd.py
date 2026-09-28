@@ -257,7 +257,7 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
             f"'{safe_markup(args.excluded)}'. Nothing is deleted from your library."
         )
         for item in plan.items:
-            console.print(f"  {item.key}  {safe_markup(item.title or 'Untitled')}")
+            console.print(f"  {safe_markup(item.key)}  {safe_markup(item.title or 'Untitled')}")
         if not getattr(args, "execute", False):
             console.print(preview_notice("remove them"))
             return

@@ -89,7 +89,7 @@ Result:  A completeness report table is printed, and missing items are detailed.
         audit_p.add_argument(
             "--collection", required=True, help="Collection Name or Key to validate"
         )
-        audit_p.add_argument("--verbose", action="store_true", help="Show detailed failure logs")
+        audit_p.add_argument("--verbose", dest="details", action="store_true", help="Show detailed failure logs")
         audit_p.add_argument(
             "--export-missing", help="Path to export keys of missing items to a file"
         )
@@ -176,12 +176,12 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
 
         if args.csv:
             self._export_duplicates_csv(rows, args.csv)
-            console.print(f"[green]Exported {len(rows)} duplicate occurrences to {args.csv}[/green]")
+            console.print(f"[green]Exported {len(rows)} duplicate occurrences to {safe_markup(args.csv)}[/green]")
 
         if getattr(args, "export_plan", None):
             self._export_merge_plan(dupes, args.export_plan, sdb_service)
             console.print(
-                f"[green]Exported a merge plan for {len(dupes)} group(s) to {args.export_plan}[/green]"
+                f"[green]Exported a merge plan for {len(dupes)} group(s) to {safe_markup(args.export_plan)}[/green]"
             )
 
         status_color = {"MATCHING": "green", "CONFLICTING": "red", "UNSCREENED": "yellow"}
@@ -198,7 +198,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
                 safe_markup(row["title"]),
                 row["key"],
                 safe_markup(row["collection"]),
-                f"[{color}]{row['sdb_status']}[/{color}]",
+                f"[{color}]{safe_markup(row['sdb_status'])}[/{color}]",
             )
         console.print(table)
 
@@ -283,7 +283,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
         add_row("Screening Note", report.items_missing_note)
 
         console.print(table)
-        console.print(f"Total items analyzed: {report.total_items}")
+        console.print(f"Total items analyzed: {safe_markup(report.total_items)}")
 
         has_failures = any(
             [
@@ -295,17 +295,17 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             ]
         )
 
-        if args.verbose and has_failures:
+        if args.details and has_failures:
             console.print("\n[bold]--- Failure Details ---[/bold]")
             if report.items_missing_id:
-                console.print(f"Missing ID: {', '.join([i.key for i in report.items_missing_id])}")
+                console.print(f"Missing ID: {safe_markup(', '.join([i.key for i in report.items_missing_id]))}")
             if report.items_missing_pdf:
                 console.print(
-                    f"Missing PDF: {', '.join([i.key for i in report.items_missing_pdf])}"
+                    f"Missing PDF: {safe_markup(', '.join([i.key for i in report.items_missing_pdf]))}"
                 )
             if report.items_missing_note:
                 console.print(
-                    f"Missing Note: {', '.join([i.key for i in report.items_missing_note])}"
+                    f"Missing Note: {safe_markup(', '.join([i.key for i in report.items_missing_note]))}"
                 )
 
         if args.export_missing:
@@ -337,11 +337,11 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
 
     def _handle_verify_latex(self, args: argparse.Namespace) -> None:
         service = GatewayFactory.get_audit_service(force_user=getattr(args, "user", False))
-        with console.status(f"[bold green]Verifying LaTeX manuscript: {args.latex}..."):
+        with console.status(f"[bold green]Verifying LaTeX manuscript: {safe_markup(args.latex)}..."):
             report = service.audit_manuscript(Path(args.latex))
 
-        console.print(f"\n[bold]SLR LaTeX Verification for:[/bold] [cyan]{args.latex}[/cyan]")
-        console.print(f"Total unique citations found: {report['total_citations']}")
+        console.print(f"\n[bold]SLR LaTeX Verification for:[/bold] [cyan]{safe_markup(args.latex)}[/cyan]")
+        console.print(f"Total unique citations found: {safe_markup(report['total_citations'])}")
 
         if not report["items"]:
             console.print("[yellow]No citations found in the manuscript.[/yellow]")
@@ -381,7 +381,7 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
 
         if errors > 0 or unscreened > 0:
             console.print(
-                f"\n[bold red]Verification Failed:[/bold red] {errors} missing from library, {unscreened} unscreened in SLR."
+                f"\n[bold red]Verification Failed:[/bold red] {errors} missing from library, {safe_markup(unscreened)} unscreened in SLR."
             )
             sys.exit(1)
         else:
@@ -556,5 +556,5 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             with open(args.output, "w", encoding="utf-8") as f:
                 f.write("\n".join(md))
             console.print(
-                f"[bold green]✓ Attachment report successfully exported to {args.output}[/bold green]"
+                f"[bold green]✓ Attachment report successfully exported to {safe_markup(args.output)}[/bold green]"
             )

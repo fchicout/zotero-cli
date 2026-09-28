@@ -33,7 +33,7 @@ class ReconcileCommand:
         parser.add_argument(
             "--execute", action="store_true", help="Perform the actual displacement moves"
         )
-        parser.add_argument("--verbose", action="store_true", help="Show detailed move logs")
+        parser.add_argument("--verbose", dest="details", action="store_true", help="Show detailed move logs")
 
     @staticmethod
     def execute(args: argparse.Namespace) -> None:
@@ -51,7 +51,7 @@ class ReconcileCommand:
         if not gateway.get_collection(root_key):
             raise NotFound(f"Tree root '{args.tree}' not found.")
 
-        with console.status(f"[bold green]Auditing SLR Tree: {args.tree}..."):
+        with console.status(f"[bold green]Auditing SLR Tree: {safe_markup(args.tree)}..."):
             # 2. Aggregation: Get all papers in tree
             papers: List[ZoteroItem] = orchestrator.get_all_papers_in_tree(root_key)
             tree_keys = set(orchestrator.get_tree_keys(root_key))
@@ -93,7 +93,7 @@ class ReconcileCommand:
 
         if not planned_moves:
             console.print(
-                f"[bold green]Tree '{args.tree}' is perfectly synchronized. No moves needed.[/bold green]"
+                f"[bold green]Tree '{safe_markup(args.tree)}' is perfectly synchronized. No moves needed.[/bold green]"
             )
             return
 
@@ -118,7 +118,7 @@ class ReconcileCommand:
                 target_name = tc["data"]["name"] if tc else m["target_id"]
 
             table.add_row(
-                f"{safe_markup(p.title[:40])}... ({p.key})",
+                f"{safe_markup(p.title[:40])}... ({safe_markup(p.key)})",
                 safe_markup(", ".join(curr_names)),
                 f"{safe_markup(m['target_phase'])} -> {safe_markup(target_name)}",
             )

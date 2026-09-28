@@ -6,6 +6,7 @@ from rich.table import Table
 from zotero_cli.core.exceptions import ZoteroCliError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -122,7 +123,7 @@ class LoadCommand:
         table.add_column("Metric")
         table.add_column("Value", justify="right")
         table.add_row("Total Rows", str(results["total_rows"]))
-        table.add_row("Matched Items", f"[green]{results['matched']}[/]")
+        table.add_row("Matched Items", f"[green]{safe_markup(results['matched'])}[/]")
         table.add_row("Unmatched Rows", f"[red]{len(results['unmatched'])}[/]")
         table.add_row("Notes Updated", str(results.get("updated", 0)))
         table.add_row("Notes Created", str(results.get("created", 0)))

@@ -3,6 +3,7 @@ import argparse
 from zotero_cli.cli.tui.factory import TUIFactory
 from zotero_cli.core.exceptions import ZoteroCliError
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.opener import OpenerService
 
@@ -40,7 +41,7 @@ class ExtractionCommand:
         # 2. Export mode
         if args.export:
             path = args.export
-            console.print(f"[bold green]Exporting extraction matrix to: {path}[/bold green]")
+            console.print(f"[bold green]Exporting extraction matrix to: {safe_markup(path)}[/bold green]")
             # Implementation omitted for brevity, should follow original logic
             return
 

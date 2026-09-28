@@ -4,6 +4,7 @@ from rich.markup import escape
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 
 console = Console()
 
@@ -61,7 +62,7 @@ class SDBCommand:
         if args.sdb_verb == "inspect":
             entries = service.inspect_item_sdb(args.key)
             if not entries:
-                console.print(f"[yellow]No SDB entries found for {args.key}[/yellow]")
+                console.print(f"[yellow]No SDB entries found for {safe_markup(args.key)}[/yellow]")
                 return
             table = service.build_inspect_table(args.key, entries)
             console.print(table)
@@ -75,7 +76,7 @@ class SDBCommand:
                 args.key, args.persona, args.phase, changes, dry_run=not args.execute
             )
             color = "green" if success else "red"
-            console.print(f"[{color}]{msg}[/{color}]")
+            console.print(f"[{color}]{safe_markup(msg)}[/{color}]")
 
         elif args.sdb_verb == "upgrade":
             if not args.execute:
@@ -127,7 +128,7 @@ class SDBCommand:
             # 2. Confirmation
             if not args.force:
                 if not Confirm.ask(
-                    f"Are you sure you want to reset {args.phase} metadata for {len(keys)} items in '{args.name}'?"
+                    f"Are you sure you want to reset {safe_markup(args.phase)} metadata for {len(keys)} items in '{safe_markup(args.name)}'?"
                 ):
                     return
 
@@ -142,7 +143,7 @@ class SDBCommand:
             tag_stats = purge_service.purge_tags(keys, tag_name=tag_name, dry_run=dry_run)
 
             console.print(
-                f"\n[bold]Reset results for '{escape(args.name)}' (Phase: {args.phase}):[/bold]"
+                f"\n[bold]Reset results for '{escape(args.name)}' (Phase: {safe_markup(args.phase)}):[/bold]"
             )
             console.print(f" - Notes purged: {note_stats['deleted']}")
             console.print(f" - Tags purged:  {tag_stats['deleted']}")

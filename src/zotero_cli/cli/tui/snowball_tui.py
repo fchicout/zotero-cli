@@ -14,6 +14,7 @@ from zotero_cli.core.interfaces import SnowballGraphService, ZoteroGateway
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 
 
 class SnowballReviewTUI:
@@ -100,7 +101,7 @@ class SnowballReviewTUI:
             reason = self._get_decision_reason(status)
 
             self.graph_service.update_status(candidate["doi"], status, reason=reason, depth=depth)
-            self.console.print(f"[bold green]Marked as {status}![/bold green]")
+            self.console.print(f"[bold green]Marked as {safe_markup(status)}![/bold green]")
 
         self.console.print("[bold cyan]Session Complete.[/bold cyan]")
 
@@ -245,7 +246,7 @@ class SnowballReviewTUI:
         mirrors ScreeningService.record_decision's reason/evidence fields."""
         try:
             reason = Prompt.ask(
-                f"Reason for {status} (optional)", default="", console=self.console
+                f"Reason for {safe_markup(status)} (optional)", default="", console=self.console
             )
             return reason or None
         except (EOFError, StopIteration):

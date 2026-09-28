@@ -45,7 +45,7 @@ class SLRSourceCommand:
         add_p.add_argument(
             "--file", required=True, help="Path to RIS, BibTeX, or CSV file to import"
         )
-        add_p.add_argument("--verbose", action="store_true", help="Print verbose details")
+        add_p.add_argument("--verbose", dest="details", action="store_true", help="Print verbose details")
 
         # slr source list
         sub.add_parser(
@@ -70,11 +70,11 @@ class SLRSourceCommand:
         if not parent_key:
             parent_key = gateway.create_collection(parent_name)
             console.print(
-                f"[bold green]✓ Created parent collection '{parent_name}' (Key: {parent_key})[/bold green]"
+                f"[bold green]✓ Created parent collection '{safe_markup(parent_name)}' (Key: {safe_markup(parent_key)})[/bold green]"
             )
         else:
             console.print(
-                f"[yellow]! Collection '{parent_name}' already exists (Key: {parent_key})[/yellow]"
+                f"[yellow]! Collection '{safe_markup(parent_name)}' already exists (Key: {safe_markup(parent_key)})[/yellow]"
             )
 
         # Standard 4-phase directory structure
@@ -86,7 +86,7 @@ class SLRSourceCommand:
         ]
         for phase in phases:
             key = gateway.create_collection(phase, parent_key=parent_key)
-            console.print(f"  - Created sub-collection '[cyan]{phase}[/cyan]' (Key: {key})")
+            console.print(f"  - Created sub-collection '[cyan]{safe_markup(phase)}[/cyan]' (Key: {safe_markup(key)})")
 
         console.print(
             "\n[bold yellow]⚠️  Zotero Group setup guidance for collaboration:[/bold yellow]"
@@ -107,10 +107,10 @@ class SLRSourceCommand:
         target_key = gateway.get_collection_id_by_name(target_name)
         if not target_key:
             console.print(
-                f"[bold red]Error: SLR source collection '{target_name}' not found.[/bold red]"
+                f"[bold red]Error: SLR source collection '{safe_markup(target_name)}' not found.[/bold red]"
             )
             console.print(
-                f"Please initialize it first: [cyan]zotero-cli slr source init --name {args.name}[/cyan]"
+                f"Please initialize it first: [cyan]zotero-cli slr source init --name {safe_markup(args.name)}[/cyan]"
             )
             sys.exit(1)
 
@@ -146,24 +146,24 @@ class SLRSourceCommand:
                     )
                 else:
                     console.print(
-                        f"[bold red]Error: Unknown CSV format. Headers: {header}[/bold red]"
+                        f"[bold red]Error: Unknown CSV format. Headers: {safe_markup(header)}[/bold red]"
                     )
                     sys.exit(1)
         else:
-            console.print(f"[bold red]Unsupported file extension: {ext}[/bold red]")
+            console.print(f"[bold red]Unsupported file extension: {safe_markup(ext)}[/bold red]")
             sys.exit(1)
 
         console.print(
-            f"[bold green]Ingesting '{args.file}' into SLR collection '{target_name}'...[/bold green]"
+            f"[bold green]Ingesting '{safe_markup(args.file)}' into SLR collection '{safe_markup(target_name)}'...[/bold green]"
         )
         papers = strategy.fetch_papers(args.file)
 
         import_service = GatewayFactory.get_import_service(force_user=getattr(args, "user", False))
         count = import_service.import_papers(
-            papers, target_key, verbose=getattr(args, "verbose", False)
+            papers, target_key, verbose=getattr(args, "details", False)
         )
         console.print(
-            f"[bold green]✓ Successfully imported {count} items into '{target_name}'.[/bold green]"
+            f"[bold green]✓ Successfully imported {count} items into '{safe_markup(target_name)}'.[/bold green]"
         )
 
     @staticmethod
@@ -269,7 +269,7 @@ class SLRSourceCommand:
                 key,
                 str(total),
                 f"{compl_percent:.2f}%",
-                f"{has_pdf}/{total}",
+                f"{safe_markup(has_pdf)}/{total}",
                 str(missing_abstract),
             )
 

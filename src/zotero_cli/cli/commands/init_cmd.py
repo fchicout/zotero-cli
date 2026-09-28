@@ -9,6 +9,7 @@ from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.config import ConfigLoader, ZoteroConfig, secure_config_open
 from zotero_cli.core.logging_config import redact, register_secrets
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
@@ -48,7 +49,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         config_path = loader.config_path
 
         if config_path.exists() and not args.force:
-            console.print(f"[yellow]Config file already exists at: {config_path}[/]")
+            console.print(f"[yellow]Config file already exists at: {safe_markup(config_path)}[/]")
             if not Confirm.ask("Do you want to overwrite it?"):
                 console.print("[red]Aborted.[/]")
                 return
@@ -69,7 +70,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             identity = ZoteroAPIClient.resolve_key_identity(api_key)
             resolved_user_id = str(identity.user_id)
             console.print(
-                f"[green]✔ Key belongs to '{identity.username}' (User ID: {identity.user_id})[/]\n"
+                f"[green]✔ Key belongs to '{safe_markup(identity.username)}' (User ID: {safe_markup(identity.user_id)})[/]\n"
             )
         except Exception as e:
             console.print(
@@ -119,7 +120,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             else:
                 raise RuntimeError("API request returned failure status")
         except Exception as e:
-            console.print(f"[bold red]✘ Verification failed:[/] {e}")
+            console.print(f"[bold red]✘ Verification failed:[/] {safe_markup(e)}")
             if not Confirm.ask("Do you want to save the configuration anyway?"):
                 console.print("[red]Aborted.[/]")
                 return
@@ -149,12 +150,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             with secure_config_open(config_path) as f:
                 f.write("\n".join(toml_content) + "\n")
 
-            console.print(f"\n[green]✔ Configuration saved to:[/] {config_path}")
+            console.print(f"\n[green]✔ Configuration saved to:[/] {safe_markup(config_path)}")
             console.print("\n[bold]Next Steps:[/]")
             console.print("1. Run [cyan]zotero-cli system info[/] to check your setup.")
             console.print("2. Run [cyan]zotero-cli collection list[/] to see your collections.")
             console.print("3. Happy researching!")
 
         except Exception as e:
-            console.print(f"[bold red]Failed to save config: {e}[/]")
+            console.print(f"[bold red]Failed to save config: {safe_markup(e)}[/]")
             sys.exit(1)

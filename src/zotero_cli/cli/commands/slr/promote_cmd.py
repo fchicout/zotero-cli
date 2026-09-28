@@ -3,6 +3,7 @@ import sys
 
 from zotero_cli.core.exceptions import ZoteroCliError
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -56,7 +57,7 @@ class PromoteCommand:
 
         # 2. Record Decision
         # Note: ScreeningService internally handles tags and SDB note creation
-        with console.status(f"[bold green]Recording {args.vote} decision..."):
+        with console.status(f"[bold green]Recording {safe_markup(args.vote)} decision..."):
             # If accepted, we set source/target for auto-move
             # If rejected, we don't move (it stays in source)
             move_source = source_key if args.vote == "INCLUDE" else None
@@ -78,9 +79,9 @@ class PromoteCommand:
                 "moved to " + args.phase if args.vote == "INCLUDE" else "retained in current folder"
             )
             console.print(
-                f"[bold green]Success:[/bold green] Decision recorded for {args.key} and item {action}."
+                f"[bold green]Success:[/bold green] Decision recorded for {safe_markup(args.key)} and item {safe_markup(action)}."
             )
         else:
             console.print(
-                f"[bold red]Failure:[/bold red] Could not record decision for {args.key}."
+                f"[bold red]Failure:[/bold red] Could not record decision for {safe_markup(args.key)}."
             )

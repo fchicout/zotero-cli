@@ -179,7 +179,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         clean_p.add_argument(
             "--execute", action="store_true", help="Apply the change (default: preview only)"
         )
-        clean_p.add_argument("--verbose", action="store_true", help="List every item affected")
+        clean_p.add_argument("--verbose", dest="details", action="store_true", help="List every item affected")
 
         # Backup
         backup_p = sub.add_parser(
@@ -421,12 +421,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         unfiled = len(plan.becomes_unfiled)
         console.print(
             f"{len(plan.items)} item(s) will be removed from {label}. They stay in your "
-            f"library; {unfiled} of them are in no other collection and will appear under "
+            f"library; {safe_markup(unfiled)} of them are in no other collection and will appear under "
             "Unfiled Items."
         )
-        if getattr(args, "verbose", False):
+        if getattr(args, "details", False):
             for item in plan.items:
-                console.print(f"  {item.key}  {safe_markup(item.title or 'Untitled')}")
+                console.print(f"  {safe_markup(item.key)}  {safe_markup(item.title or 'Untitled')}")
         if not getattr(args, "execute", False):
             console.print(preview_notice("remove them"))
             return
@@ -446,16 +446,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         to_delete = plan.items_to_delete + (plan.shared_items if include_shared else [])
 
         console.print(
-            f"Deleting '{safe_markup(args.key)}' ({col_id}) recursively would permanently delete:"
+            f"Deleting '{safe_markup(args.key)}' ({safe_markup(col_id)}) recursively would permanently delete:"
         )
         console.print(f"  {len(plan.collections)} collection(s):")
         for key, _, name in reversed(plan.collections):
-            console.print(f"    {key}  {safe_markup(name)}")
+            console.print(f"    {safe_markup(key)}  {safe_markup(name)}")
         console.print(f"  {len(to_delete)} item(s) filed only inside this tree")
         if plan.shared_items:
             verb = "WILL ALSO BE DELETED" if include_shared else "will be kept"
             console.print(
-                f"  {len(plan.shared_items)} item(s) also filed in other collections {verb}"
+                f"  {len(plan.shared_items)} item(s) also filed in other collections {safe_markup(verb)}"
                 + ("" if include_shared else " (pass --include-shared to delete them too)")
             )
         console.print("Deletion through the Web API is permanent: it bypasses Zotero's trash.")
@@ -468,7 +468,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             return
         result = service.execute_recursive_delete(plan, include_shared=include_shared)
         console.print(
-            f"Deleted {result.deleted_items} item(s) and {result.deleted_collections} collection(s)."
+            f"Deleted {safe_markup(result.deleted_items)} item(s) and {safe_markup(result.deleted_collections)} collection(s)."
         )
         if result.failed_items:
             print(
@@ -506,7 +506,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         service = BackupService(gateway)
         console.print(
-            f"Starting Backup for Collection '[cyan]{args.name}[/cyan]' ({col_id}) to [green]{args.output}[/green]..."
+            f"Starting Backup for Collection '[cyan]{safe_markup(args.name)}[/cyan]' ({safe_markup(col_id)}) to [green]{safe_markup(args.output)}[/green]..."
         )
 
         try:
@@ -525,7 +525,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 service.backup_collection(col_id, args.output, on_item_processed=on_item)
                 progress.update(task, description="Finalizing .zaf container...")
 
-            console.print(f"[bold green]Backup complete:[/bold green] {args.output}")
+            console.print(f"[bold green]Backup complete:[/bold green] {safe_markup(args.output)}")
         except Exception as e:
             console.print(f"[bold red]Backup failed:[/bold red] {escape(str(e))}")
 
@@ -582,7 +582,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         output_dir.mkdir(parents=True, exist_ok=True)
 
         console.print(
-            f"Exporting [bold]{len(items)}[/bold] items from '[cyan]{args.name}[/cyan]' to [green]{output_dir}[/green]..."
+            f"Exporting [bold]{len(items)}[/bold] items from '[cyan]{safe_markup(args.name)}[/cyan]' to [green]{safe_markup(output_dir)}[/green]..."
         )
 
         # 3. Bulk Export with Progress
@@ -613,6 +613,6 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         console.print(f"  - [green]Success:[/green] {stats['success']}")
         console.print(f"  - [yellow]Skipped (No PDF):[/yellow] {stats['skipped']}")
         console.print(f"  - [red]Failed:[/red] {stats['failed']}")
-        console.print(f"\nFiles saved to: [bold]{output_dir.absolute()}[/bold]")
+        console.print(f"\nFiles saved to: [bold]{safe_markup(output_dir.absolute())}[/bold]")
         if stats["failed"]:
             sys.exit(1)

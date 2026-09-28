@@ -513,6 +513,33 @@ def test_item_trash_preview_only_without_execute(env_vars, capsys):
     assert "Preview only" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("verb", ["trash", "restore"])
+@pytest.mark.parametrize(
+    "title", ["Closing [/b] tags in titles", "Deep Learning for [red]Things[/red]"]
+)
+def test_item_trash_restore_preview_shows_brackets_literally(env_vars, capsys, verb, title):
+    """Issue #371: a closing tag in a title crashed the preview; other
+    markup was swallowed."""
+    from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
+
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get:
+        gateway = MagicMock(spec=SqliteZoteroGateway)
+        gateway.get_item.return_value = MagicMock(title=title)
+        mock_get.return_value = gateway
+
+        args = MagicMock()
+        args.verb = verb
+        args.key = "ABCD1234"
+        args.execute = False
+        args.force = False
+        args.user = False
+
+        ItemCommand().execute(args)
+
+    out = " ".join(capsys.readouterr().out.split())
+    assert title in out
+
+
 def test_item_trash_missing_item(env_vars, capsys):
     from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
 

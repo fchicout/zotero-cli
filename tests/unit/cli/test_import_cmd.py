@@ -29,7 +29,7 @@ def test_import_file_bib(mock_splitext, mock_import_service, capsys):
         import_type="file",
         file="references.bib",
         collection="COL123",
-        verbose=True,
+        details=True,
         user=False,
     )
     mock_import_service.import_papers.return_value = 2
@@ -51,7 +51,7 @@ def test_import_file_ris(mock_splitext, mock_import_service, capsys):
         import_type="file",
         file="references.ris",
         collection="COL123",
-        verbose=True,
+        details=True,
         user=False,
     )
     mock_import_service.import_papers.return_value = 1
@@ -74,7 +74,7 @@ def test_import_file_springer_csv(mock_file, mock_splitext, mock_import_service,
         import_type="file",
         file="springer.csv",
         collection="COL123",
-        verbose=True,
+        details=True,
         user=False,
     )
     mock_import_service.import_papers.return_value = 5
@@ -99,7 +99,7 @@ def test_import_file_canonical_csv(mock_file, mock_splitext, mock_import_service
         import_type="file",
         file="canonical.csv",
         collection="COL123",
-        verbose=True,
+        details=True,
         user=False,
     )
     mock_import_service.import_papers.return_value = 3
@@ -124,7 +124,7 @@ def test_import_file_unknown_csv(mock_file, mock_splitext, mock_import_service, 
         import_type="file",
         file="unknown.csv",
         collection="COL123",
-        verbose=True,
+        details=True,
         user=False,
     )
 
@@ -143,7 +143,7 @@ def test_import_arxiv_file(mock_file, mock_import_service, capsys):
         file="query.txt",
         limit=10,
         collection="COL123",
-        verbose=True,
+        details=True,
         user=False,
     )
     mock_import_service.import_papers.return_value = 10
@@ -167,7 +167,7 @@ def test_import_arxiv_parsed(mock_import_service, capsys):
         file=None,
         limit=10,
         collection="COL123",
-        verbose=True,
+        details=True,
         user=False,
     )
     mock_import_service.import_papers.return_value = 5
@@ -190,7 +190,7 @@ def test_import_bdtd(mock_import_service, capsys):
         query=None,
         limit=20,
         collection="COL123",
-        verbose=True,
+        details=True,
         user=False,
     )
     mock_import_service.import_papers.return_value = 1
@@ -222,7 +222,7 @@ def test_import_bdtd_query_bulk(mock_import_service, capsys):
         query="aprendizado de maquina",
         limit=5,
         collection="COL123",
-        verbose=False,
+        details=False,
         user=False,
     )
     mock_import_service.import_papers.return_value = 3
@@ -247,7 +247,7 @@ def test_import_bdtd_requires_exactly_one_of_identifier_or_query(mock_import_ser
         query=None,
         limit=20,
         collection="COL123",
-        verbose=False,
+        details=False,
         user=False,
     )
 
@@ -267,7 +267,7 @@ def test_import_bdtd_rejects_both_identifier_and_query(mock_import_service, caps
         query="topic",
         limit=20,
         collection="COL123",
-        verbose=False,
+        details=False,
         user=False,
     )
 

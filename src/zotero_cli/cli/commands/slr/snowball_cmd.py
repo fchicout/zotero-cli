@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import sys
 
 from rich.markup import escape
 
@@ -8,6 +9,7 @@ from zotero_cli.core.config import ZoteroConfig, get_config
 from zotero_cli.core.exceptions import NotFound
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -143,7 +145,7 @@ class SnowballCommand:
                     doi, SnowballDiscoveryWorker.TASK_FORWARD, {"generation": args.generation}
                 )
                 enqueued += 1
-        console.print(f"[green]Enqueued {enqueued} discovery jobs.[/green]")
+        console.print(f"[green]Enqueued {safe_markup(enqueued)} discovery jobs.[/green]")
 
     @staticmethod
     def _handle_import(
@@ -188,10 +190,8 @@ class SnowballCommand:
         if args.output:
             with open(args.output, "w") as f:
                 f.write(output)
-            console.print(f"[green]Graph exported to {args.output}[/green]")
+            console.print(f"[green]Graph exported to {safe_markup(args.output)}[/green]")
         else:
-            # markup=False: JSON/Mermaid node labels routinely contain
-            # literal "[...]" (paper titles, mermaid's own node syntax),
-            # which Rich would otherwise try to parse as markup tags and
-            # silently mangle.
-            console.print(output, markup=False)
+            # Machine output bypasses Rich: it word-wraps at the console
+            # width (80 when piped), breaking JSON strings (Issue #373).
+            sys.stdout.write(output + "\n")

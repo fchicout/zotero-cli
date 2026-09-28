@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
+- **Output fixes (Issues #373, #371, #374):**
+  - `slr snowball export` to stdout is no longer wrapped at 80 columns, which broke JSON strings with long titles and Mermaid labels.
+  - Titles with brackets no longer crash `item trash`/`item restore` (`[/b]`) or lose text (`[red]…[/red]`). 158 places that put library text, keys, paths or error messages into styled output now escape it, and a test keeps new code from skipping that.
+  - The global `-v` is no longer turned off by the `--verbose` of `import`, `item pdf fetch`, `item pdf strip`, `collection clean`, `report audit`, `slr source add`, `slr reconcile` and `slr report prisma`. The per-command `--verbose` keeps its name and still shows its details, but no longer turns on debug logging: put `-v` before the command for that.
 - **`system check` can gate scripts, and doesn't claim a check it didn't run (Issues #408, #382):**
   - It exits 1 when a check fails, naming the failed checks and the log file.
   - A rejected Zotero key says where to create a new one and to run `zotero-cli init`. A network failure is no longer reported as a bad key.
