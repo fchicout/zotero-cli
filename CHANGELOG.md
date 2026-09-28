@@ -4,18 +4,15 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
-### 🐛 Bug Fixes
-- **Deletes honor the object's version (Issue #384):** `item delete` sent the library's last-seen version instead of the item's (`--version` was ignored). On a 412 it retried blindly and printed "Deleted ... successfully" even when the item survived. `delete_collection` had the same pattern. Now the object's own version is sent (`--version`, or the current one), and a conflict deletes nothing and exits 1. `item merge` re-reads each duplicate's version before deleting it.
-- **`item delete` exits 1** when the item doesn't exist or can't be deleted; **`system restore` exits 1** when the restore reported errors.
-- **`storage checkout`** printed a literal `[green]Moved[/]`.
-
-### 📚 Documentation
-- **Destructive-command policy** in `docs/PROCESS.md`. A new test (`tests/unit/test_destructive_paths.py`) fails when a new file calls a delete method, until its gate has been reviewed.
-
 ### 🛡️ Security
 - **Terminal control characters are removed from CSV, Markdown, BibTeX and RIS output (GHSA-3r38-p632-f79q):** `item list --format csv|markdown` and `item inspect --format bibtex|ris` wrote library fields to the terminal unchanged. Anyone who can edit a shared library could make a title carry escape sequences (a disguised hyperlink, a clipboard write, a screen clear) that the terminal would act on. 2.8.12 fixed this for tables and other rich output. JSON escapes these characters itself.
 - **`rag` models are pinned, and repository code needs consent (GHSA-wv6f-cg7x-pg85):** `rag model set`, `rag ingest` and the local generative model downloaded and loaded models at `revision="main"`, a branch the repository owner can move, and always with `trust_remote_code=True`. A changed or taken-over model repository could run Python on your machine. The models `rag model set` offers are now pinned to a commit, and repository code runs only with explicit consent: `rag model set` asks, or you set `trust_remote_code = true` / `ZOTERO_TRUST_REMOTE_CODE=1`. Only Jina v3 and gte-Qwen2 need it; the defaults don't. Other models named in the config load at `main`, with a warning. Affects only users of the optional `rag` extra. **Security exception** ([docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)): this patch release adds the `trust_remote_code` setting. If you use Jina v3 or gte-Qwen2, set it (or re-run `rag model set`) to keep using them.
 - **With `--config`, state is kept private (GHSA-4ffp-8wvr-hmvg):** the job queue, `rag` vector stores and snowball discovery graphs were written next to the `--config` file, often a shared project folder or a git repository, and were world-readable. They now go into a private profile in the per-user zotero-cli directory (`profiles/<id>/`, mode 0700). State left next to a `--config` file moves there on first run, with a notice. Logs always go to the default `logs/` directory, and `system info` now shows the state directory and log file.
+
+### 🐛 Bug Fixes
+- **Deletes honor the object's version (Issue #384):** `item delete` sent the library's last-seen version instead of the item's (`--version` was ignored). On a 412 it retried blindly and printed "Deleted ... successfully" even when the item survived. `delete_collection` had the same pattern. Now the object's own version is sent (`--version`, or the current one), and a conflict deletes nothing and exits 1. `item merge` re-reads each duplicate's version before deleting it.
+- **`item delete` exits 1** when the item doesn't exist or can't be deleted; **`system restore` exits 1** when the restore reported errors.
+- **`storage checkout`** printed a literal `[green]Moved[/]`.
 - **A retried write can no longer create duplicate items (Issue #409):** when the connection dropped after Zotero had already saved new items (from `import`, `item add`, notes, attachments, collections), the automatic retry saved them again. Every object-creating request now carries a Zotero write token, the same on each retry, so Zotero applies it at most once. POSTs also time out after 60 s, retry at most 5 times within 90 s, and log each retry.
 - **Files from a newer zotero-cli are refused, not misread (Issue #455):** SDB decision notes, `.zaf` backup archives (`system restore`, `system verify`) and `slr report shift` snapshots now check their format version. Every older version is still read. A newer major version stops the command with a message asking you to upgrade and changes nothing. A `.zaf` whose manifest isn't a zotero-cli archive is refused. This applies the rule in docs/COMPATIBILITY.md.
 - **An unreadable snowball discovery graph is no longer silently wiped (Issue #410):** when the graph file couldn't be read (truncated, hand-edited, a sync-conflict copy, or written by an older networkx in the `"links"` format), zotero-cli started an empty graph and the next save overwrote the file, losing the seeds and every triage decision. Now `links`-format files load. Any other unreadable file is moved to `<name>.corrupt-<timestamp>` and the command stops with an error naming it. A graph written by a newer zotero-cli is refused and left untouched. Graph files now record `format_version` 1, and networkx 3.4 or newer is required.
@@ -24,6 +21,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
   - copy it to `zotero.sqlite.zotero-cli-bak` (mode 0600) before the first write of a run;
   - look the key up only in your configured library (a group via `groups.groupID`, or the user library);
   - refuse a key found in several synced libraries when the configured one can't be matched, instead of changing the first match.
+
+### 📚 Documentation
+- **Destructive-command policy** in `docs/PROCESS.md`. A new test (`tests/unit/test_destructive_paths.py`) fails when a new file calls a delete method, until its gate has been reviewed.
 
 ## [3.0.0] - 2026-09-26
 
