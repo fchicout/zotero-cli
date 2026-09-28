@@ -9,6 +9,7 @@ from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.services.backup_service import BackupService
 from zotero_cli.core.strategies import (
     BibtexImportStrategy,
@@ -437,6 +438,9 @@ Cognitive Safeguards
             console.print("\n[bold red]❌ ARCHIVE IS INVALID OR CORRUPT[/bold red]")
             for error in report.errors:
                 console.print(f"  - [red]Error:[/red] {escape(error)}")
+            raise ZoteroCliError(
+                f"{args.file} is not a valid archive ({len(report.errors)} problem(s) listed above)."
+            )
 
     def _handle_restore(self, args: argparse.Namespace) -> None:
         from zotero_cli.infra.factory import GatewayFactory
@@ -484,10 +488,7 @@ Cognitive Safeguards
 
         config = get_config()
         if not config.user_id:
-            console.print(
-                "[red]Error: ZOTERO_USER_ID not configured. Cannot fetch user groups.[/red]"
-            )
-            return
+            raise ZoteroCliError("ZOTERO_USER_ID not configured. Cannot fetch user groups.")
 
         groups = gateway.get_user_groups(config.user_id)
         table = Table(title="Zotero Groups")
@@ -560,8 +561,7 @@ Cognitive Safeguards
         try:
             name, created = service.create_sandbox(args.name)
         except RuntimeError as e:
-            console.print(f"[red]Error: {escape(str(e))}[/red]")
-            return
+            raise ZoteroCliError(f"{str(e)}") from e
 
         console.print(
             Panel(
@@ -621,8 +621,7 @@ Cognitive Safeguards
         elif args.jobs_verb == "retry":
             job = job_service.repo.get_job(args.id)
             if not job:
-                print(f"Error: Job {args.id} not found.")
-                return
+                raise NotFound(f"Job {args.id} not found.")
 
             job.status = "PENDING"
             job.attempts = 0
@@ -641,8 +640,7 @@ Cognitive Safeguards
             elif args.type.startswith("discover"):
                 worker_service = GatewayFactory.get_snowball_worker(force_user=force_user)
             else:
-                print(f"Error: Unsupported task type '{args.type}' for direct worker.")
-                return
+                raise UsageError(f"Unsupported task type '{args.type}' for direct worker.")
 
             if args.watch:
                 self._watch_jobs(job_service, args.type, force_user)
@@ -710,8 +708,7 @@ Cognitive Safeguards
 
         config = get_config()
         if not config.user_id:
-            print("Error: ZOTERO_USER_ID not configured. Cannot fetch user groups.")
-            return
+            raise ZoteroCliError("ZOTERO_USER_ID not configured. Cannot fetch user groups.")
 
         gateway = GatewayFactory.get_zotero_gateway(force_user=True)
         groups = gateway.get_user_groups(config.user_id)
@@ -775,11 +772,9 @@ Cognitive Safeguards
                     gateway = CanonicalCsvLibGateway()
                     strategy = CanonicalCsvImportStrategy(gateway)
                 else:
-                    print("Error: Unknown CSV format for normalization.")
-                    return
+                    raise UsageError("Unknown CSV format for normalization.")
         else:
-            print(f"Error: Unsupported file extension {ext}")
-            return
+            raise UsageError(f"Unsupported file extension {ext}")
 
         print(f"Parsing {args.file}...")
         papers = list(strategy.fetch_papers(args.file))

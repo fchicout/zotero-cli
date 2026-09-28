@@ -4,6 +4,7 @@ from typing import Iterator, List
 
 import rispy
 
+from zotero_cli.core.exceptions import ImportParseError, NotFound
 from zotero_cli.core.interfaces import RisGateway
 from zotero_cli.core.models import ResearchPaper
 
@@ -18,10 +19,11 @@ class RisLibGateway(RisGateway):
 
             for entry in entries:
                 yield self._map_entry_to_paper(entry)
+        except FileNotFoundError as e:
+            raise NotFound(f"RIS file '{file_path}' not found.") from e
         except Exception as e:
-            print(f"Error parsing RIS file: {e}")
             logger.exception("Error parsing RIS file %s", file_path)
-            return
+            raise ImportParseError(f"Could not parse RIS file '{file_path}': {e}") from e
 
     def serialize(self, papers: List[ResearchPaper]) -> str:
         """Serialize list of papers to a RIS string."""

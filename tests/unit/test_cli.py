@@ -287,10 +287,14 @@ def test_list_items_not_found(mock_clients, env_vars, capsys):
     mock_clients["zotero"].get_collection_id_by_name.return_value = None
 
     test_args = ["zotero-cli", "item", "list", "--collection", "NonExistent"]
-    with patch.object(sys, "argv", test_args):
+    with patch.object(sys, "argv", test_args), pytest.raises(SystemExit) as raised:
         main()
 
-    assert "Showing 0 items" in capsys.readouterr().out
+    # Issue #377: an unknown collection used to "list" 0 items, exit 0.
+    assert raised.value.code == 3
+    captured = capsys.readouterr()
+    assert "Collection 'NonExistent' not found." in captured.err
+    assert captured.out == ""
 
 
 def test_list_items_top_only(mock_clients, env_vars, capsys):

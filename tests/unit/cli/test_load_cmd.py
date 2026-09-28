@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zotero_cli.cli.commands.slr.load_cmd import LoadCommand
+from zotero_cli.core.exceptions import ZoteroCliError
 
 
 @pytest.fixture
@@ -77,9 +78,10 @@ def test_load_command_error(mock_deps, capsys):
         user=False,
     )
 
-    LoadCommand.execute(MagicMock(), args)
-    out = capsys.readouterr().out
-    assert "Error: File not found" in out
+    with pytest.raises(ZoteroCliError) as raised:
+        LoadCommand.execute(MagicMock(), args)
+    out = str(raised.value)
+    assert "File not found" in out
 
 
 def _load_args(**kw):

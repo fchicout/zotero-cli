@@ -5,6 +5,7 @@ import bibtexparser
 from bibtexparser.bibdatabase import BibDatabase
 from bibtexparser.bwriter import BibTexWriter
 
+from zotero_cli.core.exceptions import ImportParseError, NotFound
 from zotero_cli.core.interfaces import BibtexGateway
 from zotero_cli.core.models import ResearchPaper
 
@@ -23,10 +24,11 @@ class BibtexLibGateway(BibtexGateway):
 
             for entry in bib_database.entries:
                 yield self._map_entry_to_paper(entry)
+        except FileNotFoundError as e:
+            raise NotFound(f"BibTeX file '{file_path}' not found.") from e
         except Exception as e:
-            print(f"Error parsing BibTeX file: {e}")
             logger.exception("Error parsing BibTeX file %s", file_path)
-            return
+            raise ImportParseError(f"Could not parse BibTeX file '{file_path}': {e}") from e
 
     def serialize(self, papers: List[ResearchPaper]) -> str:
         """Serialize list of papers to a BibTeX string."""

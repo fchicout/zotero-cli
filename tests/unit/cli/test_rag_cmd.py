@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zotero_cli.cli.commands.rag_cmd import RAGCommand
+from zotero_cli.core.exceptions import ZoteroCliError
 from zotero_cli.core.models import SearchResult
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -163,9 +164,8 @@ def test_rag_ingest_invalid_params(mock_rag_service, env_vars, capsys):
         qa_limit=None,
         user=False,
     )
-    RAGCommand().execute(args)
-    out = capsys.readouterr().out
-    assert "Cannot specify --collection or --key with 'qa-approved' target" in out
+    with pytest.raises(ZoteroCliError, match="Cannot specify --collection or --key"):
+        RAGCommand().execute(args)
 
     # tree without qa-approved
     args2 = argparse.Namespace(
@@ -179,8 +179,9 @@ def test_rag_ingest_invalid_params(mock_rag_service, env_vars, capsys):
         qa_limit=None,
         user=False,
     )
-    RAGCommand().execute(args2)
-    out2 = capsys.readouterr().out
+    with pytest.raises(ZoteroCliError) as raised:
+        RAGCommand().execute(args2)
+    out2 = str(raised.value)
     assert "Cannot specify --tree without 'qa-approved' target" in out2
 
 

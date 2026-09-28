@@ -4,6 +4,7 @@ from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.core.exceptions import UsageError
 from zotero_cli.core.models import ZoteroQuery
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
@@ -60,8 +61,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             query = ZoteroQuery(q=args.query, qmode="titleCreatorYear")
             results = list(gateway.search_items(query))
         else:
-            console.print("[red]Error: Provide a query, --doi, or --title.[/red]")
-            return
+            raise UsageError("Provide a query, --doi, or --title.")
 
         if not results:
             console.print("[yellow]No items found.[/yellow]")

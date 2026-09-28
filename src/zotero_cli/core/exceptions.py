@@ -82,6 +82,13 @@ class AmbiguousCollectionError(UsageError):
         )
 
 
+class ImportParseError(ZoteroCliError):
+    """An input file for `import` couldn't be parsed (Issue #368: parse
+    errors used to be printed while the import "succeeded" with 0 items)."""
+
+    pass
+
+
 class DataFileError(ZoteroCliError):
     """
     Raised when a file zotero-cli keeps its own state in can't be read.

@@ -1,6 +1,7 @@
 import argparse
 
 from zotero_cli.cli.tui.factory import TUIFactory
+from zotero_cli.core.exceptions import ZoteroCliError
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.opener import OpenerService
@@ -34,8 +35,7 @@ class ExtractionCommand:
             items = list(gateway.get_items_in_collection(col_id))
 
         if not items:
-            console.print("[red]Error: No items found for extraction.[/red]")
-            return
+            raise ZoteroCliError("No items found for extraction.")
 
         # 2. Export mode
         if args.export:

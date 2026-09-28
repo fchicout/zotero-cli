@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from zotero_cli.cli.commands.search_cmd import SearchCommand
+from zotero_cli.core.exceptions import ZoteroCliError
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -70,7 +71,8 @@ def test_search_by_query(search_cmd, mock_gateway):
 
 def test_search_no_args(search_cmd, mock_gateway):
     args = argparse.Namespace(query=None, doi=None, title=None, limit=50, user=False)
-    search_cmd.execute(args)
+    with pytest.raises(ZoteroCliError):
+        search_cmd.execute(args)
     mock_gateway.get_items_by_doi.assert_not_called()
     mock_gateway.search_items.assert_not_called()
 

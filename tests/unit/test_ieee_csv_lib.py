@@ -1,5 +1,8 @@
 from unittest.mock import mock_open, patch
 
+import pytest
+
+from zotero_cli.core.exceptions import NotFound
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
 
@@ -62,5 +65,5 @@ def test_parse_file_empty(mock_file, MockDictReader):
 @patch("builtins.open", side_effect=FileNotFoundError)
 def test_parse_file_not_found(mock_file):
     gateway = IeeeCsvLibGateway()
-    papers = list(gateway.parse_file("nonexistent.csv"))
-    assert len(papers) == 0
+    with pytest.raises(NotFound, match="nonexistent.csv"):
+        list(gateway.parse_file("nonexistent.csv"))

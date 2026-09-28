@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
+- **Failed commands no longer exit 0 (Issues #368, #377):**
+  - 42 places printed an error and returned success: a missing key, collection or file, a missing required option, `--output` missing on `item export`/`collection export`, an unknown job, an unsupported file. They now fail with exit 3 (not found), 2 (usage) or 1 (error), and a one-line message on stderr.
+  - `item list` with no scope, or with a collection that doesn't exist, now fails instead of printing `[]`.
+  - `item inspect` shows the keys it found and then fails, naming the missing ones.
+  - `system verify` exits 1 on an invalid archive.
+  - `storage checkout` without `storage_path`, or on a group library without `--allow-group-library`, fails instead of reporting "Checkout complete".
+  - `import file` stops with an error on a missing or unparseable BibTeX, RIS or CSV file, where it used to "succeed" with 0 items.
+  - A test now keeps new code from printing an error and exiting 0.
 - **Network problems no longer hang, and failures are no longer reported as "not found" (Issues #398, #369):**
   - Every Web API request now has a timeout: 5 s to connect, 30 s to read (60 s for writes). Retries stop after 4 attempts or 60 s, honour Zotero's `Retry-After` and `Backoff` headers, and print one "retrying..." notice. A network outage used to hang for about 5 minutes and then exit 0 with no output.
   - A request that still fails becomes a clear error with its own exit code: a rejected API key (4, with a hint to run `zotero-cli init`), not found (3), a conflict (6) or the service unavailable (5).
@@ -14,7 +22,6 @@ All notable changes to this project will be documented in this file. From 3.0.0 
   - exit codes follow a table: 1 error, 2 usage, 3 not found, 4 authentication, 5 unavailable, 6 conflict, 7 partial failure, 130 Ctrl-C. They're documented in [docs/EXIT_CODES.md](docs/EXIT_CODES.md) and at the end of `zotero-cli --help`;
   - missing files, a confirmation prompt with no terminal (exit 2: pass `--force`/`--yes`), Ctrl-C and a closed pipe (`| head`) are handled cleanly;
   - offline writes raise the shared `OfflineReadOnly`.
-
   Commands move to the specific codes (3–7) over the 3.0.x releases. Scripts that looked for `Error:` on stdout should read stderr.
 
 ## [3.0.1] - 2026-09-27

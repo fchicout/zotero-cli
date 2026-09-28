@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zotero_cli.cli.commands.slr.extraction_cmd import ExtractionCommand
+from zotero_cli.core.exceptions import ZoteroCliError
 
 
 @pytest.fixture
@@ -73,7 +74,8 @@ def test_extraction_command_no_items(mock_deps, capsys):
         export=None,
         user=False,
     )
-    ExtractionCommand.execute(args)
+    with pytest.raises(ZoteroCliError) as raised:
+        ExtractionCommand.execute(args)
 
-    out = capsys.readouterr().out
+    out = str(raised.value)
     assert "No items found for extraction" in out

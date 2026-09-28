@@ -2,6 +2,7 @@ import csv
 import logging
 from typing import Iterator
 
+from zotero_cli.core.exceptions import ImportParseError, NotFound
 from zotero_cli.core.interfaces import SpringerCsvGateway
 from zotero_cli.core.models import ResearchPaper
 
@@ -15,14 +16,11 @@ class SpringerCsvLibGateway(SpringerCsvGateway):
                 reader = csv.DictReader(csv_file)
                 for row in reader:
                     yield self._map_row_to_paper(row)
-        except FileNotFoundError:
-            print(f"Error: Springer CSV file '{file_path}' not found.")
-            logger.warning("Springer CSV file not found: %s", file_path)
-            return
+        except FileNotFoundError as e:
+            raise NotFound(f"Springer CSV file '{file_path}' not found.") from e
         except Exception as e:
-            print(f"Error parsing Springer CSV file: {e}")
             logger.exception("Error parsing Springer CSV file %s", file_path)
-            return
+            raise ImportParseError(f"Could not parse Springer CSV file '{file_path}': {e}") from e
 
     def _map_row_to_paper(self, row: dict) -> ResearchPaper:
         title = row.get("Item Title", "No Title")

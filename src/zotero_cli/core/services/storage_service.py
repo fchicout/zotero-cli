@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from zotero_cli.core.config import ZoteroConfig
-from zotero_cli.core.exceptions import ConfigurationError
+from zotero_cli.core.exceptions import ConfigurationError, UsageError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import ZoteroQuery
 from zotero_cli.core.utils.terminal_safety import strip_controls
@@ -38,16 +38,17 @@ class StorageService:
         everyone else.
         """
         if not self.config.storage_path:
-            print("Error: 'storage_path' is not configured in config.toml.")
-            return 0
+            raise ConfigurationError(
+                "'storage_path' is not configured in config.toml; set it to the folder "
+                "attachments should be checked out to."
+            )
 
         if self._is_group_library() and not allow_group_library:
-            print(
+            raise UsageError(
                 "Refusing to check out attachments from a group library: the local path "
                 "(including your username) would be synced to every member, and the "
                 "files would be missing for them. Pass --allow-group-library to do it anyway."
             )
-            return 0
 
         storage_root = Path(self.config.storage_path)
         if not storage_root.exists():

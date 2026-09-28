@@ -8,6 +8,7 @@ from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.presenters import item_list_presenter
+from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.sdb_parser import decode_json_note
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
@@ -65,13 +66,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 keys.extend([line.strip() for line in f if line.strip()])
 
         if not keys:
-            console.print("[bold red]Error: You must specify --key or --file.[/bold red]")
-            return
+            raise UsageError("You must specify --key or --file.")
 
+        missing: list[str] = []
         for idx, key in enumerate(keys):
             item = gateway.get_item(key)
             if not item:
-                console.print(f"[bold red]Item '{key}' not found.[/bold red]")
+                missing.append(key)
                 continue
 
             if len(keys) > 1:
@@ -169,6 +170,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                     else:
                         filename = cdata.get("filename") or "N/A"
                         console.print(f"  - [green]Attachment[/green] ({ckey}): {escape(filename)}")
+
+        if missing:
+            # Shown items first, then a non-zero exit naming the rest (#368).
+            raise NotFound(f"Item(s) not found: {', '.join(missing)}")
 
 
 @CommandRegistry.register
@@ -727,10 +732,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             return
 
         if not args.master or not args.duplicates:
-            console.print(
-                "[red]Error: Provide either (--master and --duplicates) or --from-plan.[/red]"
-            )
-            return
+            raise UsageError("Provide either (--master and --duplicates) or --from-plan.")
 
         from rich.prompt import Confirm, Prompt
 
@@ -821,8 +823,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         path = Path(args.from_plan)
         if not path.exists():
-            console.print(f"[red]Error: Plan file '{path}' not found.[/red]")
-            return
+            raise NotFound(f"Plan file '{path}' not found.")
 
         text = path.read_text(encoding="utf-8")
         if path.suffix.lower() == ".json":
@@ -902,13 +903,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             title = "Root/Orphan Items (unfiled)"
         else:
             if not getattr(args, "collection", None):
-                console.print(
-                    "[red]Error: --collection or --root required for non-trash listings.[/red]"
-                )
-                return
+                raise UsageError("--collection or --root required for non-trash listings.")
+            # The resolver accepts a key or a name (#381); None means neither
+            # exists. It used to fall through and print [] (Issue #377).
             col_id = gateway.get_collection_id_by_name(args.collection)
             if not col_id:
-                col_id = args.collection  # Try Key
+                raise NotFound(f"Collection '{args.collection}' not found.")
 
             items = list(
                 gateway.get_items_in_collection(col_id, top_only=getattr(args, "top_only", False))
@@ -979,8 +979,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             types.append("tags")
 
         if not types:
-            console.print("[red]Error: Specify what to purge using --files, --notes, or --tags.[/]")
-            return
+            raise UsageError("Specify what to purge using --files, --notes, or --tags.")
 
         if not args.force:
             msg = f"Are you sure you want to purge {', '.join(types)} from item '{args.key}'?"
@@ -1096,23 +1095,18 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                     items = gateway.get_items_in_collection(col_id)
                     keys.extend([i.key for i in items])
                 else:
-                    console.print(
-                        f"[red]Error: Collection '{escape(args.collection)}' not found.[/red]"
-                    )
-                    return
+                    raise NotFound(f"Collection '{args.collection}' not found.")
 
             if args.file:
                 import os
 
                 if not os.path.exists(args.file):
-                    console.print(f"[red]Error: File '{args.file}' not found.[/red]")
-                    return
+                    raise NotFound(f"File '{args.file}' not found.")
                 with open(args.file, "r") as f:
                     keys.extend([line.strip() for line in f if line.strip()])
 
             if not keys:
-                console.print("[red]Error: Provide a key, --collection, or --file.[/red]")
-                return
+                raise UsageError("Provide a key, --collection, or --file.")
 
             # Deduplicate
             unique_keys = []
@@ -1155,8 +1149,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         path = args.file
         if not os.path.exists(path):
-            print(f"Error: File not found: {path}")
-            return
+            raise NotFound(f"File not found: {path}")
 
         mime_type, _ = mimetypes.guess_type(path)
         mime_type = mime_type or "application/octet-stream"
@@ -1189,17 +1182,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
 
         if not isinstance(gateway, SqliteZoteroGateway):
-            console.print(
-                "[red]Error:[/red] `item trash` currently only supports [bold]--offline[/bold] "
+            raise UsageError("`item trash` currently only supports --offline "
                 "mode. The Zotero Web API has no documented, reversible trash write - only a "
-                "permanent DELETE (see `item delete`)."
-            )
-            return
+                "permanent DELETE (see `item delete`).")
 
         item = gateway.get_item(args.key)
         if not item:
-            console.print(f"[bold red]Item '{args.key}' not found.[/bold red]")
-            return
+            raise NotFound(f"Item '{args.key}' not found.")
 
         if not args.execute:
             console.print(
@@ -1229,16 +1218,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
 
         if not isinstance(gateway, SqliteZoteroGateway):
-            console.print(
-                "[red]Error:[/red] `item restore` currently only supports [bold]--offline[/bold] "
-                "mode."
-            )
-            return
+            raise UsageError("`item restore` currently only supports --offline "
+                "mode.")
 
         item = gateway.get_item(args.key)
         if not item:
-            console.print(f"[bold red]Item '{args.key}' not found.[/bold red]")
-            return
+            raise NotFound(f"Item '{args.key}' not found.")
 
         if not args.execute:
             console.print(
@@ -1279,15 +1264,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             payload["abstractNote"] = args.abstract
 
         if not payload:
-            print("Error: No updates provided. Use --doi, --title, --abstract, or --json.")
-            return
+            raise UsageError("No updates provided. Use --doi, --title, --abstract, or --json.")
 
         version = args.version
         if version is None:
             item = gateway.get_item(args.key)
             if not item:
-                print(f"Error: Item {args.key} not found.")
-                return
+                raise NotFound(f"Item {args.key} not found.")
             version = item.version
 
         if gateway.update_item(args.key, version, payload):
@@ -1318,8 +1301,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         item = gateway.get_item(args.key)
         if not item:
-            console.print(f"[bold red]Error:[/bold red] Item '{args.key}' not found.")
-            return
+            raise NotFound(f"Item '{args.key}' not found.")
 
         if args.format == "md":
             attach_service = GatewayFactory.get_attachment_service(force_user=force_user)
@@ -1339,8 +1321,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         else:
             # BibTeX / RIS
             if not args.output:
-                console.print("[red]Error: --output required for metadata export.[/red]")
-                return
+                raise UsageError("--output required for metadata export.")
 
             export_service = GatewayFactory.get_export_service(force_user=force_user)
             console.print(
@@ -1360,10 +1341,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         # 2. Get Template
         template = gateway.get_item_template(args.type)
         if not template:
-            console.print(
-                f"[bold red]Error:[/bold red] Could not fetch template for type '{args.type}'."
-            )
-            return
+            raise ZoteroCliError(f"Could not fetch template for type '{args.type}'.")
 
         # 3. Populate Template
         template["title"] = args.title

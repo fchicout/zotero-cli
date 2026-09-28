@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zotero_cli.cli.commands.system_cmd import SystemCommand
+from zotero_cli.core.exceptions import ZoteroCliError
 
 
 @pytest.fixture
@@ -92,8 +93,8 @@ def test_system_verify_failure(system_cmd, capsys):
         mock_service.verify_archive.return_value = mock_report
 
         args = argparse.Namespace(verb="verify", file="bad.zaf")
-        system_cmd.execute(args)
-
+        with pytest.raises(ZoteroCliError, match="not a valid archive"):
+            system_cmd.execute(args)
         out = capsys.readouterr().out
         assert "❌ ARCHIVE IS INVALID OR CORRUPT" in out
         assert "Missing manifest.json" in out
@@ -231,10 +232,11 @@ def test_system_demo_sandbox_create_failure(system_cmd, capsys):
         args = argparse.Namespace(
             verb="demo-sandbox", name="Zotero-CLI Sandbox", clean=False, user=False
         )
-        system_cmd.execute(args)
+        with pytest.raises(ZoteroCliError) as raised:
+            system_cmd.execute(args)
 
-        out = capsys.readouterr().out
-        assert "Error: boom" in out
+        out = str(raised.value)
+        assert "boom" in out
 
 
 def test_system_demo_sandbox_clean(system_cmd, capsys):

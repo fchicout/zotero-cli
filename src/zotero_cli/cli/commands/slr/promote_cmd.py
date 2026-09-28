@@ -1,6 +1,7 @@
 import argparse
 import sys
 
+from zotero_cli.core.exceptions import ZoteroCliError
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.infra.factory import GatewayFactory
 
@@ -51,10 +52,7 @@ class PromoteCommand:
         source_key, target_key = orchestrator.get_promotion_path(root_key, args.phase)
 
         if not target_key:
-            console.print(
-                f"[bold red]Error:[/bold red] Could not resolve folders for phase '{args.phase}' in tree '{args.tree}'."
-            )
-            return
+            raise ZoteroCliError(f"Could not resolve folders for phase '{args.phase}' in tree '{args.tree}'.")
 
         # 2. Record Decision
         # Note: ScreeningService internally handles tags and SDB note creation

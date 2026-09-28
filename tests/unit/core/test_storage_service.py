@@ -4,6 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from zotero_cli.core.exceptions import ConfigurationError, UsageError
 from zotero_cli.core.services.storage_service import StorageService
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -24,7 +25,8 @@ def storage_service(tmp_path, mock_gateway, mock_config):
 def test_checkout_items_no_path(mock_gateway, mock_config):
     config = dataclasses.replace(mock_config, storage_path=None, database_path=None)
     service = StorageService(config, mock_gateway)
-    assert service.checkout_items() == 0
+    with pytest.raises(ConfigurationError, match="storage_path"):
+        service.checkout_items()
 
 
 def test_checkout_single_item_success(storage_service, mock_gateway):
@@ -112,7 +114,8 @@ def test_checkout_refuses_group_library_by_default(tmp_path, mock_gateway, mock_
         mock_config, library_type="group", storage_path=str(tmp_path / "s"), database_path=None
     )
     service = StorageService(config, mock_gateway)
-    assert service.checkout_items() == 0
+    with pytest.raises(UsageError, match="--allow-group-library"):
+        service.checkout_items()
     mock_gateway.search_items.assert_not_called()
     mock_gateway.update_attachment_link.assert_not_called()
 

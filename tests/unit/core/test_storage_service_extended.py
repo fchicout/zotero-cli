@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from zotero_cli.core.config import ZoteroConfig
+from zotero_cli.core.exceptions import ConfigurationError
 from zotero_cli.core.services.storage_service import StorageService
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -24,7 +25,8 @@ def test_checkout_items_no_path(mock_gateway):
     config = MagicMock(spec=ZoteroConfig)
     config.storage_path = None
     service = StorageService(config, mock_gateway)
-    assert service.checkout_items() == 0
+    with pytest.raises(ConfigurationError):
+        service.checkout_items()
 
 
 def test_mkdir_failure(mock_gateway, tmp_path):
