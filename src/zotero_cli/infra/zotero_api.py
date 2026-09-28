@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, TypeVar, cast
 
 import requests
 
+from zotero_cli.core.exceptions import NotFound
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import KeyIdentity, ResearchPaper, ZoteroQuery
 from zotero_cli.core.utils.collection_resolver import resolve_collection_key
@@ -62,10 +63,14 @@ class ZoteroAPIClient(ZoteroGateway):
         )
 
     def _safe_execute(self, operation: str, default_val: T, func: Callable[[], T]) -> T:
+        """`default_val` only when the object genuinely doesn't exist (404).
+        Any other failure - a rejected key, an outage, a server error -
+        propagates as a typed error (Issue #369): it used to be reported as
+        "not found" or an empty list, with exit status 0."""
         try:
             return func()
-        except Exception:
-            logger.exception(f"ZoteroAPIClient: Error {operation}")
+        except NotFound as e:
+            logger.info("ZoteroAPIClient: %s: not found (%s)", operation, e)
             return default_val
 
     def _parse_write_response(self, response: requests.Response) -> Optional[str]:
@@ -112,12 +117,11 @@ class ZoteroAPIClient(ZoteroGateway):
                 break
 
     def _paginate_items(self, endpoint: str, params: Optional[Dict] = None) -> Iterator[ZoteroItem]:
-        try:
-            for raw in self._paginate(endpoint, params):
-                yield ZoteroItem.from_raw_zotero_item(raw)
-        except Exception:
-            # Still truncates on a mid-listing error; tracked in #369.
-            logger.exception(f"ZoteroAPIClient: Error fetching items from {endpoint}")
+        # An error mid-listing propagates (Issue #369): stopping quietly used
+        # to hand callers a truncated list (a partial backup, export or
+        # report) with exit status 0.
+        for raw in self._paginate(endpoint, params):
+            yield ZoteroItem.from_raw_zotero_item(raw)
 
     # --- Read Operations ---
 
@@ -222,7 +226,7 @@ class ZoteroAPIClient(ZoteroGateway):
                 # an endpoint that returns a list rather than a 404 - fail with
                 # a clear message instead of an opaque AttributeError from
                 # ZoteroItem.from_raw_zotero_item (Issue #207).
-                raise ValueError(
+                raise NotFound(
                     f"'{item_key}' is not a valid Zotero item key "
                     f"(expected an item object, got {type(raw).__name__})"
                 )

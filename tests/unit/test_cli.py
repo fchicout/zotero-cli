@@ -378,7 +378,13 @@ def test_slr_report_screening(mock_clients, env_vars, capsys, tmp_path):
 
 
 def test_slr_report_status(mock_clients, env_vars, capsys):
-    with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_report_cls:
+    # The status service is mocked too: it used to be built for real and
+    # sent live requests, whose failure was swallowed (Issue #369).
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_slr_status_service") as status,
+        patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_report_cls,
+    ):
+        status.return_value.get_slr_status.return_value = []
         mock_service = mock_report_cls.return_value
         mock_report = Mock()
         mock_report.collection_name = "MyCol"

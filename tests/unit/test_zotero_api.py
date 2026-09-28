@@ -104,7 +104,7 @@ def test_get_user_groups(client):
     assert groups[0]["data"]["name"] == "G1"
     # HttpClient handles prefix, but here we override
     client.http.session.get.assert_called_with(
-        "https://api.zotero.org/users/123/groups", params={"limit": 100, "start": 0}
+        "https://api.zotero.org/users/123/groups", params={"limit": 100, "start": 0}, timeout=(5, 30)
     )
 
 
@@ -125,9 +125,12 @@ def test_get_all_collections_success(client):
 
 
 def test_get_all_collections_failure(client):
+    """Issue #369: a request failure is an error, not an empty collection list."""
+    from zotero_cli.core.exceptions import Unavailable
+
     client.http.session.get.side_effect = requests.exceptions.RequestException("API Error")
-    collections = client.get_all_collections()
-    assert collections == []
+    with pytest.raises(Unavailable):
+        client.get_all_collections()
 
 
 # --- Item Fetching Methods ---
@@ -476,7 +479,7 @@ def test_get_item_template(client):
     template = client.get_item_template("thesis")
     assert template["itemType"] == "thesis"
     client.http.session.get.assert_called_with(
-        "https://api.zotero.org/items/new", params={"itemType": "thesis"}
+        "https://api.zotero.org/items/new", params={"itemType": "thesis"}, timeout=(5, 30)
     )
 
 

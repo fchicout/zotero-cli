@@ -1,16 +1,26 @@
 import logging
 import secrets
+import sys
+import time
 from typing import Any, Dict, Optional, cast
 
 import requests
 from tenacity import (
+    RetryCallState,
     after_log,
-    before_sleep_log,
     retry,
     retry_if_exception,
     stop_after_attempt,
     stop_after_delay,
     wait_exponential,
+)
+
+from zotero_cli.core.exceptions import (
+    AuthError,
+    Conflict,
+    NotFound,
+    Unavailable,
+    ZoteroCliError,
 )
 
 
@@ -29,7 +39,14 @@ logger = logging.getLogger(__name__)
 # Issue #409: a POST that creates objects carries a random write token, the
 # same on every retry of that request, so Zotero processes it at most once.
 IDEMPOTENCY_HEADER = "Zotero-Write-Token"
-POST_TIMEOUT = 60
+
+# Issue #398: every request has a timeout, and retries are bounded in count
+# and in total time, so a network outage fails in about a minute instead of
+# hanging for five.
+REQUEST_TIMEOUT = (5, 30)  # connect, read (seconds)
+POST_TIMEOUT = (5, 60)
+MAX_ATTEMPTS = 4
+MAX_RETRY_SECONDS = 60
 
 
 def is_post_retryable(exception: BaseException) -> bool:
@@ -38,20 +55,84 @@ def is_post_retryable(exception: BaseException) -> bool:
     return is_http_retryable(exception) or isinstance(exception, requests.exceptions.Timeout)
 
 
+def is_read_retryable(exception: BaseException) -> bool:
+    return is_http_retryable(exception) or isinstance(exception, requests.exceptions.Timeout)
+
+
 def is_duplicate_write(response: requests.Response) -> bool:
     """Zotero's answer to a write token it has already processed."""
     return response.status_code == 412 and "write token" in (response.text or "").lower()
 
 
+def _seconds(value: Any) -> Optional[float]:
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
+        return None
+    return seconds if seconds >= 0 else None
+
+
+def _server_delay(exception: Optional[BaseException]) -> Optional[float]:
+    """Seconds the server asked us to wait (Retry-After, or Zotero's Backoff)."""
+    response = getattr(exception, "response", None)
+    headers = getattr(response, "headers", None) or {}
+    for name in ("Retry-After", "Backoff"):
+        seconds = _seconds(headers.get(name))
+        if seconds is not None:
+            return seconds
+    return None
+
+
+_exponential = wait_exponential(multiplier=2, min=2, max=20)
+
+
+def _wait(retry_state: RetryCallState) -> float:
+    """Wait what the server asked for, else back off exponentially."""
+    outcome = retry_state.outcome
+    requested = _server_delay(outcome.exception() if outcome else None)
+    if requested is not None:
+        return min(requested, MAX_RETRY_SECONDS)
+    return float(_exponential(retry_state))
+
+
+def _notice(retry_state: RetryCallState) -> None:
+    """One stderr line on the first retry, so a slow command isn't silent."""
+    outcome = retry_state.outcome
+    error = outcome.exception() if outcome else None
+    logger.warning("Zotero API request failed (%s); retrying.", error)
+    if retry_state.attempt_number == 1:
+        print("Zotero API unreachable or busy, retrying...", file=sys.stderr)
+
+
+def translate_error(exception: requests.RequestException, what: str) -> ZoteroCliError:
+    """The CLI error for a request that failed after retries (Issue #369):
+    a rejected key, a missing object and an outage used to look alike."""
+    if isinstance(exception, requests.exceptions.HTTPError) and exception.response is not None:
+        status = exception.response.status_code
+        if status in (401, 403):
+            return AuthError(
+                f"Zotero rejected the request for {what} (HTTP {status}): the API key is invalid "
+                "or has no access to this library. Run `zotero-cli init`, or check ZOTERO_API_KEY "
+                "and the library ID."
+            )
+        if status == 404:
+            return NotFound(f"{what} not found (HTTP 404).")
+        if status == 412:
+            return Conflict(f"{what} changed on the server since it was read (HTTP 412).")
+        if status == 429 or status >= 500:
+            return Unavailable(f"The Zotero API is unavailable (HTTP {status}) after retries.")
+        return ZoteroCliError(f"The Zotero API refused the request for {what} (HTTP {status}).")
+    return Unavailable(
+        f"Could not reach the Zotero API ({type(exception).__name__}); check your network "
+        "connection and try again."
+    )
+
+
 class ZoteroHttpClient:
     """
-    Low-level HTTP Client for Zotero API.
-    Responsibilities:
-    - Authentication (Headers)
-    - Base URL construction (User vs Group)
-    - Session management
-    - Rate Limiting / Retries (TODO)
-    - Error Handling (Basic)
+    Low-level HTTP client for the Zotero Web API: authentication headers,
+    the user/group URL prefix, timeouts, bounded retries that honour the
+    server's Retry-After/Backoff, and typed errors once retries run out.
     """
 
     API_VERSION = "3"
@@ -73,25 +154,50 @@ class ZoteroHttpClient:
 
         # State
         self.last_library_version = 0
+        # Zotero's `Backoff` header asks clients to pause before the next
+        # request, even after a successful one.
+        self._pause_until = 0.0
 
-    @retry(
-        stop=stop_after_attempt(10),
-        wait=wait_exponential(multiplier=2, min=2, max=60),
-        retry=retry_if_exception(is_http_retryable),
-        after=after_log(logger, logging.DEBUG),
-        reraise=True,
-    )
+    def _respect_backoff(self) -> None:
+        remaining = self._pause_until - time.monotonic()
+        if remaining > 0:
+            time.sleep(min(remaining, MAX_RETRY_SECONDS))
+
+    def _note_backoff(self, response: requests.Response) -> None:
+        backoff = _seconds(response.headers.get("Backoff"))
+        if backoff is not None:
+            self._pause_until = time.monotonic() + backoff
+
+    # --- GET -----------------------------------------------------------------
+
     def get(
         self, endpoint: str, params: Optional[Dict] = None, use_prefix: bool = True, **kwargs: Any
     ) -> requests.Response:
         url = f"{self.api_prefix}/{endpoint}" if use_prefix else f"{self.BASE_URL}/{endpoint}"
-        # Strip leading slash if present in endpoint to avoid double slash issues?
-        # requests handles it mostly, but let's be clean.
+        try:
+            return self._get_with_retries(url, params, **kwargs)
+        except requests.RequestException as e:
+            raise translate_error(e, endpoint) from e
 
+    @retry(
+        stop=(stop_after_attempt(MAX_ATTEMPTS) | stop_after_delay(MAX_RETRY_SECONDS)),
+        wait=_wait,
+        retry=retry_if_exception(is_read_retryable),
+        before_sleep=_notice,
+        reraise=True,
+    )
+    def _get_with_retries(
+        self, url: str, params: Optional[Dict], **kwargs: Any
+    ) -> requests.Response:
+        self._respect_backoff()
+        kwargs.setdefault("timeout", REQUEST_TIMEOUT)
         response = self.session.get(url, params=params, **kwargs)
         self._update_version(response)
+        self._note_backoff(response)
         response.raise_for_status()
         return response
+
+    # --- POST ----------------------------------------------------------------
 
     def post(
         self,
@@ -114,20 +220,25 @@ class ZoteroHttpClient:
             h["If-Unmodified-Since-Version"] = str(self.last_library_version)
         if isinstance(json_data, list) and IDEMPOTENCY_HEADER not in h:
             h[IDEMPOTENCY_HEADER] = secrets.token_hex(16)
-        return self._post_with_retries(url, json_data, h)
+        try:
+            return self._post_with_retries(url, json_data, h)
+        except requests.RequestException as e:
+            raise translate_error(e, endpoint) from e
 
     @retry(
         stop=(stop_after_attempt(5) | stop_after_delay(90)),
-        wait=wait_exponential(multiplier=2, min=2, max=30),
+        wait=_wait,
         retry=retry_if_exception(is_post_retryable),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
+        before_sleep=_notice,
         reraise=True,
     )
     def _post_with_retries(
         self, url: str, json_data: Any, headers: Dict[str, Any]
     ) -> requests.Response:
+        self._respect_backoff()
         response = self.session.post(url, json=json_data, headers=headers, timeout=POST_TIMEOUT)
         self._update_version(response)
+        self._note_backoff(response)
         if is_duplicate_write(response):
             logger.warning(
                 "Zotero had already processed this write (an earlier attempt succeeded before "
@@ -137,41 +248,22 @@ class ZoteroHttpClient:
         response.raise_for_status()
         return response
 
-    @retry(
-        stop=stop_after_attempt(10),
-        wait=wait_exponential(multiplier=2, min=2, max=60),
-        retry=retry_if_exception(is_http_retryable),
-        after=after_log(logger, logging.DEBUG),
-        reraise=True,
-    )
+    # --- PATCH / DELETE --------------------------------------------------------
+
     def patch(
         self, endpoint: str, json_data: Any, version_check: bool = False
     ) -> requests.Response:
+        """A 412 (version precondition failed) is returned, not raised, so
+        the caller can decide what to do."""
         url = f"{self.api_prefix}/{endpoint}"
         headers = dict(self.session.headers).copy()
-
-        # Concurrency Control
         if version_check:
             headers["If-Unmodified-Since-Version"] = str(self.last_library_version)
+        try:
+            return self._write_with_retries("patch", url, headers=headers, json=json_data)
+        except requests.RequestException as e:
+            raise translate_error(e, endpoint) from e
 
-        response = self.session.patch(url, json=json_data, headers=headers)
-
-        # Simple retry logic for 412 could go here, but logic currently resides in caller.
-        # For now, we return raw response for caller to handle 412.
-
-        if response.status_code != 412:
-            response.raise_for_status()
-
-        self._update_version(response)
-        return response
-
-    @retry(
-        stop=stop_after_attempt(10),
-        wait=wait_exponential(multiplier=2, min=2, max=60),
-        retry=retry_if_exception(is_http_retryable),
-        after=after_log(logger, logging.DEBUG),
-        reraise=True,
-    )
     def delete(
         self,
         endpoint: str,
@@ -188,17 +280,35 @@ class ZoteroHttpClient:
             headers["If-Unmodified-Since-Version"] = str(version)
         elif version_check:
             headers["If-Unmodified-Since-Version"] = str(self.last_library_version)
-
-        response = self.session.delete(url, params=params, headers=headers)
-        if response.status_code != 412:
-            response.raise_for_status()
-
-        self._update_version(response)
-        return response
+        try:
+            return self._write_with_retries("delete", url, headers=headers, params=params)
+        except requests.RequestException as e:
+            raise translate_error(e, endpoint) from e
 
     @retry(
-        stop=stop_after_attempt(10),
-        wait=wait_exponential(multiplier=2, min=2, max=60),
+        stop=(stop_after_attempt(MAX_ATTEMPTS) | stop_after_delay(MAX_RETRY_SECONDS)),
+        wait=_wait,
+        retry=retry_if_exception(is_read_retryable),
+        before_sleep=_notice,
+        reraise=True,
+    )
+    def _write_with_retries(self, method: str, url: str, **kwargs: Any) -> requests.Response:
+        # PATCH and DELETE are idempotent, so retrying them is safe.
+        self._respect_backoff()
+        response: requests.Response = getattr(self.session, method)(
+            url, timeout=REQUEST_TIMEOUT, **kwargs
+        )
+        if response.status_code != 412:
+            response.raise_for_status()
+        self._update_version(response)
+        self._note_backoff(response)
+        return response
+
+    # --- File upload / form posts ----------------------------------------------
+
+    @retry(
+        stop=(stop_after_attempt(MAX_ATTEMPTS) | stop_after_delay(MAX_RETRY_SECONDS)),
+        wait=_wait,
         retry=retry_if_exception(is_http_retryable),
         after=after_log(logger, logging.DEBUG),
         reraise=True,
@@ -207,13 +317,13 @@ class ZoteroHttpClient:
         """
         Direct upload bypasses the Zotero Prefix, usually going to S3 or a specific upload URL.
         """
-        response = requests.post(url, data=data, files=files, timeout=30)
+        response = requests.post(url, data=data, files=files, timeout=(5, 120))
         response.raise_for_status()
         return response
 
     @retry(
-        stop=stop_after_attempt(10),
-        wait=wait_exponential(multiplier=2, min=2, max=60),
+        stop=(stop_after_attempt(MAX_ATTEMPTS) | stop_after_delay(MAX_RETRY_SECONDS)),
+        wait=_wait,
         retry=retry_if_exception(is_http_retryable),
         after=after_log(logger, logging.DEBUG),
         reraise=True,
@@ -229,15 +339,15 @@ class ZoteroHttpClient:
         if headers:
             h.update(headers)
 
-        response = self.session.post(url, data=data, headers=h)
+        response = self.session.post(url, data=data, headers=h, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         return response
 
     @staticmethod
     @retry(
-        stop=stop_after_attempt(10),
-        wait=wait_exponential(multiplier=2, min=2, max=60),
-        retry=retry_if_exception(is_http_retryable),
+        stop=(stop_after_attempt(MAX_ATTEMPTS) | stop_after_delay(MAX_RETRY_SECONDS)),
+        wait=_wait,
+        retry=retry_if_exception(is_read_retryable),
         after=after_log(logger, logging.DEBUG),
         reraise=True,
     )
@@ -258,7 +368,7 @@ class ZoteroHttpClient:
                 "Zotero-API-Version": ZoteroHttpClient.API_VERSION,
                 "Zotero-API-Key": api_key,
             },
-            timeout=30,
+            timeout=REQUEST_TIMEOUT,
         )
         response.raise_for_status()
         return cast(Dict[str, Any], response.json())

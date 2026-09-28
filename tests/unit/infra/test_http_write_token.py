@@ -106,5 +106,7 @@ def test_a_version_conflict_412_still_raises():
     conflict._content = b"Library has been modified since the specified version"
     http.session = Mock(headers={}, post=Mock(return_value=conflict))
 
-    with pytest.raises(requests.exceptions.HTTPError):
+    from zotero_cli.core.exceptions import Conflict
+
+    with pytest.raises(Conflict):
         http.post("items", json_data=[{}], version_check=True)

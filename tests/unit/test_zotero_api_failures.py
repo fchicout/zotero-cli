@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, Mock, mock_open, patch
 
 import pytest
 
+from zotero_cli.core.exceptions import AuthError, NotFound, Unavailable
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
@@ -15,30 +16,38 @@ def client():
     return c
 
 
-def test_get_user_groups_failure(client):
-    client.http.get.side_effect = Exception("Boom")
-    assert client.get_user_groups("uid") == []
+READS: list[tuple[str, tuple[str, ...], object]] = [
+    ("get_user_groups", ("uid",), []),
+    ("get_all_collections", (), []),
+    ("get_tags", (), []),
+    ("get_item", ("K1",), None),
+    ("get_item_children", ("K1",), []),
+]
 
 
-def test_get_all_collections_failure(client):
-    client.http.get.side_effect = Exception("Boom")
-    assert client.get_all_collections() == []
+@pytest.mark.parametrize("method, args, default", READS)
+def test_a_missing_object_gives_the_default(client, method, args, default):
+    client.http.get.side_effect = NotFound("gone")
+    assert getattr(client, method)(*args) == default
 
 
-def test_get_tags_failure(client):
-    client.http.get.side_effect = Exception("Boom")
-    assert client.get_tags() == []
+@pytest.mark.parametrize("error", [AuthError("key rejected"), Unavailable("down"), Exception("Boom")])
+@pytest.mark.parametrize("method, args, default", READS)
+def test_other_failures_are_not_reported_as_empty(client, method, args, default, error):
+    """Issue #369: a rejected key or an outage used to look like "not found"
+    or an empty library, with exit status 0."""
+    client.http.get.side_effect = error
+    with pytest.raises(type(error)):
+        getattr(client, method)(*args)
 
 
-def test_get_items_by_tag_failure(client):
-    client.http.get.side_effect = Exception("Boom")
-    # Generator should yield nothing
-    assert list(client.get_items_by_tag("t")) == []
-
-
-def test_get_item_failure(client):
-    client.http.get.side_effect = Exception("Boom")
-    assert client.get_item("K1") is None
+@pytest.mark.parametrize("error", [AuthError("key rejected"), Unavailable("down")])
+def test_item_listings_raise_instead_of_truncating(client, error):
+    client.http.get.side_effect = error
+    with pytest.raises(type(error)):
+        list(client.get_items_in_collection("C1"))
+    with pytest.raises(type(error)):
+        list(client.get_items_by_tag("t"))
 
 
 def test_get_item_non_dict_response(client, caplog):
@@ -47,20 +56,10 @@ def test_get_item_non_dict_response(client, caplog):
     fail with a clear message, not an opaque AttributeError."""
     client.http.get.return_value.json.return_value = []
 
-    with caplog.at_level("ERROR"):
+    with caplog.at_level("INFO"):
         assert client.get_item("10.1109/TIFS.2024.3376968") is None
     assert "is not a valid Zotero item key" in caplog.text
     assert "'list' object has no attribute" not in caplog.text
-
-
-def test_get_items_in_collection_failure(client):
-    client.http.get.side_effect = Exception("Boom")
-    assert list(client.get_items_in_collection("C1")) == []
-
-
-def test_get_item_children_failure(client):
-    client.http.get.side_effect = Exception("Boom")
-    assert client.get_item_children("K1") == []
 
 
 # Write Operations Failures
