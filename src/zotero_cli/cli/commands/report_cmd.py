@@ -210,9 +210,14 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
         self, dupes: List[DuplicateGroup], col_names_by_id: Dict[str, str], sdb_service: SDBService
     ) -> List[dict]:
         rows = []
+        # Every occurrence's SDB notes together, not one request per
+        # occurrence (Issue #430: 37k requests at 50k items)
+        entries = sdb_service.inspect_items_sdb(
+            [occ.key for group in dupes for occ in group.occurrences]
+        )
         for group in dupes:
             sdb_status = sdb_service.classify_decision_agreement(
-                [occ.key for occ in group.occurrences]
+                [occ.key for occ in group.occurrences], entries
             )
 
             for occ in group.occurrences:
@@ -251,11 +256,9 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
 
         plan = MergeService.build_plan(dupes)
         if path.lower().endswith(".json"):
-            sdb_history = {
-                occ.key: sdb_service.inspect_item_sdb(occ.key)
-                for group in dupes
-                for occ in group.occurrences
-            }
+            sdb_history = sdb_service.inspect_items_sdb(
+                [occ.key for group in dupes for occ in group.occurrences]
+            )
             content = serialize_plan_to_json(plan, sdb_history=sdb_history)
         else:
             content = serialize_plan_to_csv(plan)

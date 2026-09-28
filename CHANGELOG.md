@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### ⚡ Performance
+- **`report duplicates` on a whole library (Issue #430):**
+  - Bug fix: it looked at attachments and notes too, so thousands of PDFs titled "Full Text PDF" were reported as one duplicate group (3,502 rows at 5k items). Only regular items are compared now.
+  - The fuzzy tier compared every pair of items, which grew quadratically. It now compares only items that share an author and are at most a year apart, which are the only ones that could match: 0.09 s instead of 2.2 s for 8,000 items, with the same results.
+  - The screening-agreement column read each occurrence's notes with its own request (38,506 requests at 50k items); they're now read together.
 - **Downloads reuse connections (Issue #428):** every attachment and PDF download opened a new HTTP session, so a new TCP and TLS handshake per file: 34,500 for a 50k-library backup, roughly 1–4 extra hours. Downloads now share one connection pool per thread. Each connection is still checked against the public-address rules when it opens.
 - **`system backup` and `collection backup` are much faster on large libraries (Issues #426, #427):**
   - A whole-library backup asked for each item's children and then fetched each child again: about 2.8 requests per item, 9–17 hours of metadata requests at 50k items. It now uses the listing it already has; a collection backup fetches its items' children together.
