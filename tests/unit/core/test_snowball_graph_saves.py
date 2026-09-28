@@ -42,8 +42,10 @@ def test_flush_writes_pending_decisions_only_when_there_are_some(service, tmp_pa
 
 def test_a_slow_session_still_saves_every_interval(service):
     with (
+        # Past the interval, not on it: (t + 30.0) - t can be 29.999... in
+        # floating point, which made this test depend on the clock value.
         patch("zotero_cli.core.services.snowball_graph.time.monotonic",
-              return_value=service._last_save + SnowballGraphService.SAVE_INTERVAL),
+              return_value=service._last_save + SnowballGraphService.SAVE_INTERVAL + 1),
         patch.object(SnowballGraphService, "save_graph", autospec=True) as save,
     ):
         service.update_status("10.1/2", SnowballGraphService.STATUS_ACCEPTED)
