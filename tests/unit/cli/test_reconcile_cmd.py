@@ -56,13 +56,13 @@ def test_reconcile_command_dry_run(mock_deps):
             "zotero_cli.core.services.slr.orchestrator.SLROrchestrator.resolve_target_phase"
         ) as rtp,
         patch(
-            "zotero_cli.core.services.slr.orchestrator.SLROrchestrator.get_folder_key_for_phase"
+            "zotero_cli.core.services.slr.orchestrator.SLROrchestrator.find_slr_hierarchy"
         ) as gfk,
     ):
         gap.return_value = [paper]
         gtk.return_value = ["ROOT_KEY", "PHASE1_KEY"]
         rtp.return_value = "title_abstract"
-        gfk.return_value = "PHASE1_KEY"
+        gfk.return_value = {"1-title_abstract": "PHASE1_KEY"}
 
         args = argparse.Namespace(
             tree="raw_test", execute=False, verbose=False, user=False, qa_threshold=2.0
@@ -100,13 +100,13 @@ def test_reconcile_command_execute(mock_deps):
             "zotero_cli.core.services.slr.orchestrator.SLROrchestrator.resolve_target_phase"
         ) as rtp,
         patch(
-            "zotero_cli.core.services.slr.orchestrator.SLROrchestrator.get_folder_key_for_phase"
+            "zotero_cli.core.services.slr.orchestrator.SLROrchestrator.find_slr_hierarchy"
         ) as gfk,
     ):
         gap.return_value = [paper]
         gtk.return_value = ["ROOT_KEY", "PHASE1_KEY"]
         rtp.return_value = "title_abstract"
-        gfk.return_value = "PHASE1_KEY"
+        gfk.return_value = {"1-title_abstract": "PHASE1_KEY"}
 
         coll_service.move_item.return_value = True
 

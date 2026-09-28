@@ -97,7 +97,7 @@ class SLRStatusService:
                 item_notes[paper.key] = parsed_notes
 
             # 3. Calculate Phase Stats (Note-First)
-            phase_map = self.orchestrator.ensure_slr_hierarchy(source_key, all_collections)
+            phase_map = self.orchestrator.find_slr_hierarchy(source_key, all_collections)
 
             # Start with Root as the initial queue
             current_queue_key = source_key
@@ -157,7 +157,7 @@ class SLRStatusService:
             source_key = raw_col["key"]
             source_name = raw_col["data"]["name"]
 
-            phase_map = self.orchestrator.ensure_slr_hierarchy(source_key, all_collections)
+            phase_map = self.orchestrator.find_slr_hierarchy(source_key, all_collections)
 
             current_queue_key = source_key
 
