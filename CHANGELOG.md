@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
+- **`init` writes a valid config and keeps what it doesn't ask about (Issue #388):**
+  - The file is written with a TOML library. A key, email or Windows path containing `"` or `\` used to produce a file that every later command failed to parse, and a pasted newline could add settings.
+  - Re-running `init` updates the existing file: settings it doesn't ask about (AI keys, `ncbi_api_key`, `storage_path`, other tables) are kept, and the current values are offered as defaults. Pressing Enter at the API-key prompt keeps the current key.
+  - It asks for `database_path`, suggesting `~/Zotero/zotero.sqlite` when it exists.
+  - For a group, it asks for the group's ID or URL. The old "group slug" answer was saved as `target_group`, which zotero-cli couldn't use.
+  - The library type defaults to `user`.
+  - `config.toml.example` now leaves the optional keys commented out; its placeholder values were sent to Semantic Scholar, CORE and Unpaywall as real ones. It also documents `database_path` and `storage_path`.
 - **`--config` and `--user` are honoured everywhere (Issue #383):** `system switch` and `rag model set` under `--config lab.toml` changed the default `~/.config/zotero-cli/config.toml` instead of `lab.toml`. `storage checkout` and `slr report status` ignored `--user`, so `slr report status` mixed data from two libraries.
 - **Setup mistakes are reported with the fix (Issues #376, #397):**
   - A `--config` path that doesn't exist is an error; it used to be read as an empty config.
