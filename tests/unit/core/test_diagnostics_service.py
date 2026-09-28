@@ -175,3 +175,14 @@ def test_run_checks_default_rows(mock_gateway, mock_aggregator, base_config):
     results = service.run_checks()
     names = {r.name for r in results}
     assert names == {"Zotero API", "Semantic Scholar", "Unpaywall", "PubMed/NCBI"}
+
+
+def test_unconfigured_library_is_a_required_not_configured_row(mock_aggregator, base_config):
+    """Issue #376: `system check` runs before setup and says what's missing."""
+    service = DiagnosticsService(
+        None, mock_aggregator, None, None, base_config, "No Zotero API key is set. Run `zotero-cli init`"
+    )
+    row = result_for(service.run_checks(), "Zotero API")
+    assert row.status == "NOT_CONFIGURED"
+    assert row.required is True
+    assert "zotero-cli init" in row.details

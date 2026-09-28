@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- **Setup mistakes are reported with the fix (Issues #376, #397):**
+  - A `--config` path that doesn't exist is an error; it used to be read as an empty config.
+  - A config file with settings but no `[zotero]` table gets a warning that its settings are ignored.
+  - "Zotero API Key not set", "No target library defined" and the offline `database_path` error now name the config file that was read and the next step (`zotero-cli init`, or the environment variables). The `database_path` error also says where `zotero.sqlite` usually is.
+  - `system check` runs before setup: the Zotero row says "NOT CONFIGURED" with what's missing (and the command exits 1), instead of stopping at the first error.
+  - `system info` shows the endpoint requests go to (`users/…` or `groups/…`) and says what to do when nothing is configured.
+  - With `ZOTERO_API_KEY` and `ZOTERO_LIBRARY_ID` set but no library type, as the tutorial and the Docker example showed, requests went to `groups/<your user ID>` and returned nothing. When the type isn't set, zotero-cli now uses your user library if the ID is the key's own user ID, and a group otherwise. The tutorial and README now set `ZOTERO_LIBRARY_TYPE`, and SETUP_GUIDE documents `database_path`.
+
 ## [3.0.2] - 2026-09-28
 
 The second patch train: errors that scripts can trust. No new commands or flags. **If a script checks zotero-cli's output or exit status, read this first:**

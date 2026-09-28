@@ -64,7 +64,8 @@ The tool will **verify** your connection automatically. If everything is correct
 For advanced users or temporary sessions, you can still use:
 ```bash
 export ZOTERO_API_KEY="your_key"
-export ZOTERO_LIBRARY_ID="12345"
+export ZOTERO_LIBRARY_ID="12345"      # your User ID from Step A
+export ZOTERO_LIBRARY_TYPE="user"     # or "group" with a Group ID
 ```
 
 ---

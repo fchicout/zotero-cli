@@ -6,6 +6,7 @@ from zotero_cli.infra.repository_factory import RepositoryFactory
 from zotero_cli.infra.resolver_factory import ResolverFactory
 
 if TYPE_CHECKING:
+    from zotero_cli.core.interfaces import ZoteroGateway
     from zotero_cli.core.services.attachment_service import AttachmentService
     from zotero_cli.core.services.audit_service import AuditService
     from zotero_cli.core.services.collection_service import CollectionService
@@ -389,14 +390,23 @@ class ServiceFactory:
 
             config = main_get_config()
 
-        gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
+        from zotero_cli.core.exceptions import ConfigurationError
+
+        # Unconfigured, `system check` still runs and says what's missing
+        # (Issue #376).
+        gateway: Optional["ZoteroGateway"] = None
+        gateway_error = None
+        try:
+            gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
+        except ConfigurationError as e:
+            gateway_error = str(e)
         aggregator = MetadataClientFactory.get_metadata_aggregator(config)
 
         from zotero_cli.core.services.diagnostics_service import DiagnosticsService
 
         # No LLM/embedding providers are built: `system check` reports their
         # configuration without loading anything (Issues #382, #408).
-        return DiagnosticsService(gateway, aggregator, None, None, config)
+        return DiagnosticsService(gateway, aggregator, None, None, config, gateway_error)
 
     @staticmethod
     def get_sandbox_service(

@@ -37,6 +37,8 @@ class CheckResult:
     name: str
     status: str  # STATUS_CONNECTED | STATUS_FAILED | STATUS_NOT_CONFIGURED
     details: str
+    # A required check fails `system check` even when NOT_CONFIGURED.
+    required: bool = False
 
 
 class DiagnosticsService:
@@ -47,13 +49,17 @@ class DiagnosticsService:
 
     def __init__(
         self,
-        gateway: ZoteroGateway,
+        gateway: Optional[ZoteroGateway],
         metadata_aggregator: MetadataAggregatorService,
         llm_provider: Optional[LLMProvider],
         embedding_provider: Optional[EmbeddingProvider],
         config: ZoteroConfig,
+        gateway_error: Optional[str] = None,
     ):
+        # gateway is None when the library isn't configured; gateway_error
+        # says why, and the other checks still run (Issue #376).
         self.gateway = gateway
+        self.gateway_error = gateway_error
         self.metadata_aggregator = metadata_aggregator
         self.llm_provider = llm_provider
         self.embedding_provider = embedding_provider
@@ -72,6 +78,13 @@ class DiagnosticsService:
         return results
 
     def _check_zotero(self) -> CheckResult:
+        if self.gateway is None:
+            return CheckResult(
+                _CHECK_ZOTERO,
+                STATUS_NOT_CONFIGURED,
+                self.gateway_error or "Not configured",
+                required=True,
+            )
         local_db = getattr(self.gateway, "original_db_path", None)
         if local_db:
             # --offline: the Web API isn't used, so don't claim it was

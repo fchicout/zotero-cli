@@ -165,7 +165,8 @@ git clone https://github.com/fchicout/zotero-cli.git
 cd zotero-cli
 docker build -t zotero-cli .
 
-# Configure with an env file (ZOTERO_API_KEY=..., ZOTERO_LIBRARY_ID=..., one per line),
+# Configure with an env file (ZOTERO_API_KEY=..., ZOTERO_LIBRARY_ID=...,
+# ZOTERO_LIBRARY_TYPE=user or group, one per line),
 # which keeps keys out of your shell history...
 docker run --rm --env-file zotero.env zotero-cli system info
 
