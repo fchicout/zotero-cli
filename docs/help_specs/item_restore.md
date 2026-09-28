@@ -34,6 +34,8 @@ Removes a single item from Zotero's trash by writing directly to the local `zote
 
 Like `item trash`, this is preview-only by default (`--execute` required), shows a confirmation unless `--force` is given, and is rejected outright against an online/API gateway - there is no restore path for the Web API's `items/trash` (read-only there).
 
+**Safety (Issue #417):** writing to `zotero.sqlite` directly is not supported by Zotero, so prefer online mode where you can. Before the first write of a run, zotero-cli copies the database to `zotero.sqlite.zotero-cli-bak` (mode 0600) and says so. The item key is looked up only in your configured library. If that library can't be matched in `zotero.sqlite` and the key exists in more than one synced library, the command refuses instead of guessing. Close Zotero Desktop first; if it's busy writing, the command fails with a clear message.
+
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |

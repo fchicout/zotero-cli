@@ -41,7 +41,11 @@ class RepositoryFactory:
         if offline:
             if not config.database_path:
                 raise ConfigurationError("Error: Offline mode requires 'database_path' in config.")
-            return SqliteZoteroGateway(config.database_path)
+            return SqliteZoteroGateway(
+                config.database_path,
+                library_id=config.library_id,
+                library_type=config.library_type,
+            )
 
         api_key = config.api_key
         if not api_key:

@@ -32,9 +32,19 @@ class SqliteZoteroGateway(ZoteroGateway):
     Uses a 'Shadow Copy' strategy to avoid locking the database.
     """
 
-    def __init__(self, database_path: str):
+    def __init__(
+        self,
+        database_path: str,
+        library_id: Optional[str] = None,
+        library_type: Optional[str] = None,
+    ):
         self._temp_db_path: Optional[str] = None
         self._temp_dir: Optional[str] = None
+        # The configured library, used to scope the only writes this class
+        # makes (item trash/restore, Issue #417).
+        self.library_id = library_id
+        self.library_type = library_type
+        self._backed_up = False
         if not database_path or not os.path.exists(database_path):
             raise ConfigurationError(f"Zotero database not found at: {database_path}")
         self.original_db_path = database_path
@@ -562,6 +572,64 @@ class SqliteZoteroGateway(ZoteroGateway):
         conn.row_factory = sqlite3.Row
         return conn
 
+    def _local_library_id(self, conn: sqlite3.Connection) -> Optional[int]:
+        """The zotero.sqlite libraryID of the configured library, or None
+        when it can't be determined (no library configured, or an older
+        schema without the libraries/groups tables)."""
+        try:
+            if self.library_type == "group" and self.library_id:
+                row = conn.execute(
+                    "SELECT libraryID FROM groups WHERE groupID = ?", (int(self.library_id),)
+                ).fetchone()
+            elif self.library_type == "user":
+                row = conn.execute("SELECT libraryID FROM libraries WHERE type = 'user'").fetchone()
+            else:
+                return None
+        except (sqlite3.OperationalError, ValueError):
+            return None
+        return int(row["libraryID"]) if row else None
+
+    def _find_item_for_write(self, conn: sqlite3.Connection, item_key: str) -> Optional[int]:
+        """The itemID to write to. Scoped to the configured library when it
+        can be determined; otherwise a key found in more than one library is
+        refused rather than guessed (Issue #417: keys are unique per library
+        only, and the first match used to be trashed)."""
+        library = self._local_library_id(conn)
+        if library is not None:
+            row = conn.execute(
+                "SELECT itemID FROM items WHERE key = ? AND libraryID = ?", (item_key, library)
+            ).fetchone()
+            return int(row["itemID"]) if row else None
+        rows = conn.execute("SELECT itemID FROM items WHERE key = ?", (item_key,)).fetchall()
+        if len(rows) > 1:
+            raise RuntimeError(
+                f"Item key {item_key} exists in {len(rows)} locally synced libraries and the "
+                "configured library couldn't be matched in zotero.sqlite; refusing to guess. "
+                "Use online mode (without --offline) for this item."
+            )
+        return int(rows[0]["itemID"]) if rows else None
+
+    def _backup_before_first_write(self) -> None:
+        """Copies zotero.sqlite to `zotero.sqlite.zotero-cli-bak` before the
+        first write of this run (Issue #417). Uses SQLite's backup API, so
+        the copy is consistent even if Zotero has the file open."""
+        if self._backed_up:
+            return
+        backup_path = f"{self.original_db_path}.zotero-cli-bak"
+        src = sqlite3.connect(self.original_db_path, timeout=5.0)
+        try:
+            fd = os.open(backup_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            os.close(fd)
+            dst = sqlite3.connect(backup_path)
+            try:
+                src.backup(dst)
+            finally:
+                dst.close()
+        finally:
+            src.close()
+        self._backed_up = True
+        print(f"Backed up zotero.sqlite to {backup_path} before writing.", file=sys.stderr)
+
     def trash_item(self, item_key: str) -> bool:
         """
         Moves an item to the trash, matching Desktop's Zotero.Items.trash():
@@ -572,10 +640,10 @@ class SqliteZoteroGateway(ZoteroGateway):
         """
         conn = self._get_write_connection()
         try:
-            row = conn.execute("SELECT itemID FROM items WHERE key = ?", (item_key,)).fetchone()
-            if not row:
+            item_id = self._find_item_for_write(conn, item_key)
+            if item_id is None:
                 return False
-            item_id = row["itemID"]
+            self._backup_before_first_write()
             conn.execute(
                 "UPDATE items SET synced=0, clientDateModified=CURRENT_TIMESTAMP, "
                 "dateModified=CURRENT_TIMESTAMP WHERE itemID=?",
@@ -606,10 +674,10 @@ class SqliteZoteroGateway(ZoteroGateway):
         """
         conn = self._get_write_connection()
         try:
-            row = conn.execute("SELECT itemID FROM items WHERE key = ?", (item_key,)).fetchone()
-            if not row:
+            item_id = self._find_item_for_write(conn, item_key)
+            if item_id is None:
                 return False
-            item_id = row["itemID"]
+            self._backup_before_first_write()
             conn.execute(
                 "UPDATE items SET dateModified=CURRENT_TIMESTAMP, synced=0, "
                 "clientDateModified=CURRENT_TIMESTAMP WHERE itemID=?",
