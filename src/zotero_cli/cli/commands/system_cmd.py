@@ -29,6 +29,7 @@ from zotero_cli.infra.ris_lib import RisLibGateway
 from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
 
 if TYPE_CHECKING:
+    from zotero_cli.core.config import ZoteroConfig
     from zotero_cli.core.services.job_queue_service import JobQueueService
 
 console = Console()
@@ -61,9 +62,13 @@ class InfoCommand(BaseCommand):
         print(f"Config Path: {get_config_path() or 'None (using defaults/env)'}")
         print(f"State Dir:   {get_storage_dir()}")
         print(f"Log File:    {default_storage_dir() / 'logs' / 'zotero-cli.log'}")
-        print(f"Library ID:  {config.library_id}")
-        print(f"Library Type: {config.library_type}")
+        print(f"Library ID:  {config.library_id or 'not set'}")
+        type_note = "" if config.library_type_set else " (not set; see Endpoint)"
+        print(f"Library Type: {config.library_type}{type_note}")
         print(f"Zotero API Key: {'********' if config.api_key else 'NOT SET'}")
+        # The library requests actually go to (Issue #397).
+        endpoint = self._endpoint(config, getattr(args, "user", False))
+        print(f"Endpoint:    {endpoint}")
         if config.openai_api_key:
             print("OpenAI API Key: ********")
         if config.gemini_api_key:
@@ -79,6 +84,27 @@ class InfoCommand(BaseCommand):
         # impossible: this line always matches "Library ID" above it.
         if config.library_type == "group" and config.library_id:
             print(f"Group URL:   https://www.zotero.org/groups/{config.library_id}")
+        if not config.api_key or endpoint.startswith("not configured"):
+            from zotero_cli.core.config import SETUP_HINT
+
+            print(f"\nNot configured yet. {SETUP_HINT}")
+
+    @staticmethod
+    def _endpoint(config: "ZoteroConfig", force_user: bool) -> str:
+        from zotero_cli.core.exceptions import ZoteroCliError
+        from zotero_cli.core.runtime import is_offline_mode
+        from zotero_cli.infra.repository_factory import RepositoryFactory
+
+        if is_offline_mode():
+            return f"local database {config.database_path or '(database_path not set)'}"
+        if not config.api_key:
+            return "not configured (no API key)"
+        try:
+            library_id, library_type = RepositoryFactory.resolve_target(config, force_user)
+        except ZoteroCliError:
+            return "not configured (no library)"
+        prefix = "users" if library_type == "user" else "groups"
+        return f"https://api.zotero.org/{prefix}/{library_id}"
 
 
 @CommandRegistry.register
@@ -536,7 +562,11 @@ Cognitive Safeguards
             )
         console.print(table)
 
-        failed = [r.name for r in results if r.status == STATUS_FAILED]
+        failed = [
+            r.name
+            for r in results
+            if r.status == STATUS_FAILED or (r.required and r.status == STATUS_NOT_CONFIGURED)
+        ]
         if failed:
             # Usable as a health gate: `system check && ...` (Issue #408).
             log_file = default_storage_dir() / "logs" / "zotero-cli.log"

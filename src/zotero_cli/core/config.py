@@ -44,6 +44,10 @@ class ZoteroConfig:
     api_key: Optional[str] = None
     library_id: Optional[str] = None
     library_type: str = "group"
+    # False when neither the config file nor ZOTERO_LIBRARY_TYPE set it, so
+    # "group" above is only the default: the online gateway then checks
+    # whether library_id is the key's own user library (Issue #397).
+    library_type_set: bool = True
     target_group_url: Optional[str] = None
     user_id: Optional[str] = None
     semantic_scholar_api_key: Optional[str] = None
@@ -86,8 +90,9 @@ class ZoteroConfig:
             if self.target_group_url:
                 match = re.search(r"/groups/(\d+)", self.target_group_url)
                 if not match:
-                    raise ConfigurationError(
-                        f"Error: Could not extract Group ID from URL: {self.target_group_url}"
+                    raise not_configured(
+                        f"target_group {self.target_group_url!r} isn't a group URL "
+                        "(https://www.zotero.org/groups/<id>/...)."
                     )
                 library_id = match.group(1)
                 library_type = "group"
@@ -97,7 +102,10 @@ class ZoteroConfig:
 
         if not library_id:
             if require_group:
-                raise ConfigurationError("Error: No target library defined.")
+                raise not_configured(
+                    "No Zotero library is set: library_id, user_id and ZOTERO_LIBRARY_ID are all "
+                    "empty."
+                )
             return "0", "user"
 
         return library_id, library_type
@@ -168,9 +176,9 @@ class ConfigLoader:
 
         # Derive library_id/type from group_url or user_id
         library_id = os.environ.get("ZOTERO_LIBRARY_ID") or file_config.get("library_id")
-        library_type = os.environ.get("ZOTERO_LIBRARY_TYPE") or file_config.get(
-            "library_type", "group"
-        )
+        library_type = os.environ.get("ZOTERO_LIBRARY_TYPE") or file_config.get("library_type")
+        library_type_set = library_type is not None
+        library_type = library_type or "group"
         if library_type not in ("user", "group"):
             # Issue #300: infra/http_client.py treats anything other than
             # the exact literal "user" as "group" - a typo'd value (e.g.
@@ -220,6 +228,7 @@ class ConfigLoader:
             api_key=api_key,
             library_id=library_id,
             library_type=library_type,
+            library_type_set=library_type_set,
             target_group_url=group_url,
             user_id=user_id,
             semantic_scholar_api_key=ss_key,
@@ -247,8 +256,13 @@ class ConfigLoader:
         try:
             with open(self.config_path, "rb") as f:
                 data = tomllib.load(f)
-                # Expecting a [zotero] section
-                return cast(Dict[str, Any], data.get("zotero", {}))
+            if data and "zotero" not in data:
+                _warn_once(
+                    self.config_path,
+                    f"Warning: {self.config_path} has no [zotero] table, so its settings are "
+                    "ignored. Add a line `[zotero]` above them.",
+                )
+            return cast(Dict[str, Any], data.get("zotero", {}))
         except OSError as e:
             # Can't read the file at all (permissions, etc.) - degrade to
             # "no config" rather than blocking every command, matching the
@@ -340,7 +354,12 @@ def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
     global _GLOBAL_CONFIG, _GLOBAL_CONFIG_PATH
     with _config_lock:
         if _GLOBAL_CONFIG is None or config_path:
-            path = Path(config_path) if config_path else None
+            path = Path(config_path).expanduser() if config_path else None
+            if path is not None and not path.exists():
+                # A typo in --config used to mean "no config" (Issue #376).
+                raise ConfigurationError(
+                    f"Config file not found: {path}. Check the --config path."
+                )
             loader = ConfigLoader(config_path=path)
             _GLOBAL_CONFIG = loader.load()
             _GLOBAL_CONFIG_PATH = loader.config_path
@@ -349,6 +368,34 @@ def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
 
 def get_config_path() -> Optional[Path]:
     return _GLOBAL_CONFIG_PATH
+
+
+SETUP_HINT = (
+    "Run `zotero-cli init`, or set ZOTERO_API_KEY, ZOTERO_LIBRARY_ID and ZOTERO_LIBRARY_TYPE."
+)
+
+
+def not_configured(problem: str) -> ConfigurationError:
+    """A configuration error that names the config file consulted and the
+    next step (Issue #376)."""
+    path = get_config_path()
+    if path is None:
+        where = "No config file was read."
+    elif path.exists():
+        where = f"Config file: {path}."
+    else:
+        where = f"No config file at {path}."
+    return ConfigurationError(f"{problem} {where} {SETUP_HINT}")
+
+
+_WARNED: set = set()
+
+
+def _warn_once(key: Any, message: str) -> None:
+    # The config is loaded more than once per run (main, then commands).
+    if key not in _WARNED:
+        _WARNED.add(key)
+        print(message, file=sys.stderr)
 
 
 def default_storage_dir() -> Path:

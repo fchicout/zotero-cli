@@ -37,7 +37,7 @@ This generates a `config.toml` file in the standard directory:
 For CI/CD or ephemeral sessions, use these variables:
 - `ZOTERO_API_KEY`: Your secret API key.
 - `ZOTERO_LIBRARY_ID`: The ID of the group or user library.
-- `ZOTERO_LIBRARY_TYPE`: Either `group` (default) or `user`.
+- `ZOTERO_LIBRARY_TYPE`: Either `user` or `group`. If it isn't set, zotero-cli uses `user` when `ZOTERO_LIBRARY_ID` is the API key's own user ID, and `group` otherwise. `zotero-cli system info` shows the resulting endpoint.
 - `ZOTERO_USER_ID`: Your personal Zotero User ID.
 - `ZOTERO_TARGET_GROUP`: Full URL to derive ID.
 

@@ -1,7 +1,7 @@
-from typing import Optional
+import logging
+from typing import Dict, Optional, Tuple
 
-from zotero_cli.core.config import ZoteroConfig
-from zotero_cli.core.exceptions import ConfigurationError
+from zotero_cli.core.config import ZoteroConfig, not_configured
 from zotero_cli.core.interfaces import (
     AttachmentRepository,
     CollectionRepository,
@@ -12,6 +12,41 @@ from zotero_cli.core.interfaces import (
 )
 from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
+logger = logging.getLogger(__name__)
+
+# Where zotero.sqlite usually is, for the offline-mode error (Issue #376).
+_DATABASE_HINT = (
+    "Set database_path in the [zotero] table (or ZOTERO_DATABASE_PATH) to your zotero.sqlite, "
+    "usually ~/Zotero/zotero.sqlite (Windows: %USERPROFILE%\\Zotero\\zotero.sqlite)."
+)
+
+# (api key, library id) -> "user" | "group", resolved once per process.
+_IMPLICIT_TYPE: Dict[Tuple[str, str], str] = {}
+
+
+def _implicit_library_type(api_key: str, library_id: str) -> str:
+    """The type of `library_id` when the config doesn't say (Issue #397):
+    "user" if it is the key's own user ID, else "group". The docs have
+    users put their user ID in ZOTERO_LIBRARY_ID, and the old "group"
+    default then requested /groups/<userID>."""
+    cache_key = (api_key, library_id)
+    if cache_key not in _IMPLICIT_TYPE:
+        try:
+            identity = ZoteroAPIClient.resolve_key_identity(api_key)
+        except Exception as e:
+            # The real request will report the problem; keep the default.
+            logger.debug("Could not resolve the key's user ID: %s", e)
+            return "group"
+        is_user = str(identity.user_id) == str(library_id)
+        _IMPLICIT_TYPE[cache_key] = "user" if is_user else "group"
+        if is_user:
+            logger.info(
+                "library_type isn't set and %s is this key's user library: using it. "
+                "Set library_type (or ZOTERO_LIBRARY_TYPE) to skip this check.",
+                library_id,
+            )
+    return _IMPLICIT_TYPE[cache_key]
 
 
 class RepositoryFactory:
@@ -40,7 +75,7 @@ class RepositoryFactory:
 
         if offline:
             if not config.database_path:
-                raise ConfigurationError("Error: Offline mode requires 'database_path' in config.")
+                raise not_configured(f"--offline needs database_path. {_DATABASE_HINT}")
             return SqliteZoteroGateway(
                 config.database_path,
                 library_id=config.library_id,
@@ -49,11 +84,29 @@ class RepositoryFactory:
 
         api_key = config.api_key
         if not api_key:
-            raise ConfigurationError("Error: Zotero API Key not set.")
+            raise not_configured("No Zotero API key is set.")
 
-        library_id, library_type = config.resolve_library_target(force_user, require_group)
-
+        library_id, library_type = RepositoryFactory.resolve_target(
+            config, force_user, require_group
+        )
         return ZoteroAPIClient(api_key, library_id, library_type)
+
+    @staticmethod
+    def resolve_target(
+        config: ZoteroConfig, force_user: bool = False, require_group: bool = True
+    ) -> Tuple[str, str]:
+        """The (library id, type) the online gateway uses, including the
+        implicit type check (Issue #397)."""
+        library_id, library_type = config.resolve_library_target(force_user, require_group)
+        if (
+            not config.library_type_set
+            and not force_user
+            and config.api_key
+            and config.library_id
+            and library_id == config.library_id
+        ):
+            library_type = _implicit_library_type(config.api_key, library_id)
+        return library_id, library_type
 
     @staticmethod
     def get_item_repository(

@@ -20,6 +20,10 @@ def test_system_info(system_cmd, capsys):
         mock_config.api_key = "key"
         mock_config.target_group_url = None
         mock_get_config.return_value = mock_config
+        mock_config.resolve_library_target.return_value = (
+            mock_config.library_id,
+            mock_config.library_type,
+        )
 
         args = argparse.Namespace(verb="info", config=None)
         system_cmd.execute(args)
@@ -41,6 +45,10 @@ def test_system_info_group_url_derived_from_active_library_id(system_cmd, capsys
         # Stale/unrelated value - must NOT appear in the output.
         mock_config.target_group_url = "https://www.zotero.org/groups/6287212/rsl-xm"
         mock_get_config.return_value = mock_config
+        mock_config.resolve_library_target.return_value = (
+            mock_config.library_id,
+            mock_config.library_type,
+        )
 
         args = argparse.Namespace(verb="info", config=None)
         system_cmd.execute(args)
@@ -58,6 +66,10 @@ def test_system_info_no_group_url_for_user_library(system_cmd, capsys):
         mock_config.api_key = "key"
         mock_config.target_group_url = "https://www.zotero.org/groups/456/somegroup"
         mock_get_config.return_value = mock_config
+        mock_config.resolve_library_target.return_value = (
+            mock_config.library_id,
+            mock_config.library_type,
+        )
 
         args = argparse.Namespace(verb="info", config=None)
         system_cmd.execute(args)
@@ -481,3 +493,45 @@ def test_system_jobs_watch(system_cmd, capsys):
         )
         system_cmd.execute(args)
         assert mock_job_service.list_jobs.called
+
+
+def test_system_check_unconfigured_library_fails(system_cmd, capsys):
+    """Issue #376: the table is shown, and the command still fails because
+    the library isn't set up."""
+    from zotero_cli.core.services.diagnostics_service import CheckResult
+
+    with patch(
+        "zotero_cli.infra.factory.GatewayFactory.get_diagnostics_service"
+    ) as mock_get_service:
+        mock_get_service.return_value.run_checks.return_value = [
+            CheckResult("Zotero API", "NOT_CONFIGURED", "No Zotero API key is set.", required=True),
+            CheckResult("Semantic Scholar", "NOT_CONFIGURED", "No API key set"),
+        ]
+        with pytest.raises(ZoteroCliError) as raised:
+            system_cmd.execute(argparse.Namespace(verb="check", user=False))
+
+    assert "NOT CONFIGURED" in capsys.readouterr().out
+    assert "Zotero API" in str(raised.value)
+
+
+def test_system_info_unconfigured_says_what_to_do(system_cmd, capsys):
+    from zotero_cli.core.config import ZoteroConfig
+
+    with patch("zotero_cli.core.config.get_config", return_value=ZoteroConfig()):
+        system_cmd.execute(argparse.Namespace(verb="info", config=None))
+
+    out = capsys.readouterr().out
+    assert "Library ID:  not set" in out
+    assert "Endpoint:    not configured" in out
+    assert "zotero-cli init" in out
+
+
+def test_system_info_prints_the_effective_endpoint(system_cmd, capsys):
+    """Issue #397: shows whether requests go to users/ or groups/."""
+    from zotero_cli.core.config import ZoteroConfig
+
+    config = ZoteroConfig(api_key="k", library_id="1234567", library_type="user")
+    with patch("zotero_cli.core.config.get_config", return_value=config):
+        system_cmd.execute(argparse.Namespace(verb="info", config=None))
+
+    assert "https://api.zotero.org/users/1234567" in capsys.readouterr().out
