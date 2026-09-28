@@ -26,14 +26,15 @@ def test_export_service_with_sdb():
         "reason_text": "Good paper",
         "evidence": "Found in title",
     }
-    mock_sdb.inspect_item_sdb.return_value = [sdb_entry]
+    mock_sdb.inspect_items_sdb.return_value = {"K1": [sdb_entry]}
     mock_bibtex.write_file.return_value = True
 
     # Execute
     service.export_collection("MyCol", "out.bib")
 
     # Verify
-    mock_sdb.inspect_item_sdb.assert_called_once_with("K1")
+    # one batched lookup for the whole export (Issue #431)
+    mock_sdb.inspect_items_sdb.assert_called_once_with(["K1"])
     papers = mock_bibtex.write_file.call_args[0][1]
     assert len(papers) == 1
     assert papers[0].sdb_metadata == [sdb_entry]

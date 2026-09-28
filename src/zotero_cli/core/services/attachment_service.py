@@ -13,6 +13,7 @@ from zotero_cli.core.interfaces import (
     ItemRepository,
     NoteRepository,
 )
+from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 from zotero_cli.core.services.pdf_finder_service import PDFFinderService
 from zotero_cli.core.services.purge_service import PurgeService
@@ -27,6 +28,9 @@ from zotero_cli.core.utils.url_safety import (
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
+
+# "Not looked up yet", as distinct from None ("no PDF").
+_UNKNOWN: Any = object()
 
 
 
@@ -246,14 +250,16 @@ class AttachmentService(FullTextProvider):
                 os.remove(path)
             return None
 
-    def get_fulltext(self, item_key: str) -> Optional[str]:
+    def get_fulltext(self, item_key: str, attachment_key: Optional[str] = None) -> Optional[str]:
         """
         Retrieves the text of an item's PDF attachment (plain text, saved as
         .md by the exports). Ensures zero-persistence of temporary files
-        [SPEC-RAG-005].
+        [SPEC-RAG-005]. A caller that already knows the attachment passes
+        its key, saving a children lookup (Issue #432).
         """
         # 1. Find PDF attachment
-        attachment_key = self._get_pdf_attachment_key(item_key)
+        if attachment_key is None:
+            attachment_key = self._get_pdf_attachment_key(item_key)
         if not attachment_key:
             return None
 
@@ -275,7 +281,17 @@ class AttachmentService(FullTextProvider):
             # No finally block needed here as TemporaryDirectory cleans up on __exit__
 
     def _get_pdf_attachment_key(self, item_key: str) -> Optional[str]:
-        children = self.note_repo.get_item_children(item_key)
+        return self._pdf_key(self.note_repo.get_item_children(item_key))
+
+    def pdf_attachment_keys(self, items: List[ZoteroItem]) -> Dict[str, Optional[str]]:
+        """Each item's PDF attachment key (None if it has none), found for
+        all items together. Markdown export made two children requests per
+        item, one to check and one again to download (Issue #432)."""
+        attachments = children_by_parent(self.note_repo, [i.key for i in items], "attachment")
+        return {key: self._pdf_key(children) for key, children in attachments.items()}
+
+    @staticmethod
+    def _pdf_key(children: List[Dict[str, Any]]) -> Optional[str]:
         for child in children:
             data = child.get("data", {})
             if (
@@ -293,10 +309,16 @@ class AttachmentService(FullTextProvider):
         """
         output_dir.mkdir(parents=True, exist_ok=True)
         stats = {"total": len(items), "success": 0, "failed": 0, "skipped": 0}
+        pdf_keys = self.pdf_attachment_keys(items)
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_item = {
-                executor.submit(self._export_item_markdown, item, output_dir): item
+                executor.submit(
+                    self._export_item_markdown,
+                    item,
+                    output_dir,
+                    pdf_keys.get(item.key),
+                ): item
                 for item in items
             }
 
@@ -317,14 +339,18 @@ class AttachmentService(FullTextProvider):
 
         return stats
 
-    def _export_item_markdown(self, item: ZoteroItem, output_dir: Path) -> str:
+    def _export_item_markdown(
+        self, item: ZoteroItem, output_dir: Path, pdf_key: Optional[str] = _UNKNOWN
+    ) -> str:
         """Helper for bulk export."""
         # 1. Check for PDF
-        if not self._get_pdf_attachment_key(item.key):
+        if pdf_key is _UNKNOWN:
+            pdf_key = self._get_pdf_attachment_key(item.key)
+        if not pdf_key:
             return "skipped"
 
         # 2. Extract text
-        text = self.get_fulltext(item.key)
+        text = self.get_fulltext(item.key, pdf_key)
         if not text:
             return "failed"
 
