@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### ⚡ Performance
+- **`system backup` and `collection backup` are much faster on large libraries (Issues #426, #427):**
+  - A whole-library backup asked for each item's children and then fetched each child again: about 2.8 requests per item, 9–17 hours of metadata requests at 50k items. It now uses the listing it already has; a collection backup fetches its items' children together.
+  - PDFs, images and other already-compressed attachments are stored as they are instead of LZMA-compressed at about 2 MB/s (roughly 6 hours of CPU for 50 GB of PDFs), for an archive about 8% larger. Metadata uses DEFLATE, and `data.json` is written compactly as it goes instead of as one large string in memory.
+  - Existing `.zaf` archives still verify and restore; `system verify` accepts both kinds.
 - **Exports and `report attachments` stop asking about each item (Issues #429, #431, #432):**
   - BibTeX/RIS export read each item's screening data with its own request: 12,340 requests for a 12,300-item collection (1–2 hours). It's now read in one pass.
   - Markdown export made two requests per item to find the PDF, one to check and one again to download; now it's one lookup for the whole export.
