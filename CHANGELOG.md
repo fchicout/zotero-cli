@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.0.4] - 2026-09-28
+
+The fourth patch train: offline mode. No new commands, flags or config keys. **If you use `--offline` for systematic reviews, upgrade:** screening decisions stored in notes were invisible offline, so `slr report status` and related commands reported every paper as unscreened. Offline runs also copy `zotero.sqlite` once instead of once per internal service, and keep that copy in `~/.cache/zotero-cli` rather than `/tmp`.
+
 ### 🐛 Bug Fixes
 - **`search --limit` and `search --doi` read less (Issue #438):** `--limit` was applied only after every page of hits had been fetched. The command now stops once it has enough, so `search aa --limit 5` is one request. Online, `--doi` scans only top-level items, skipping attachments and notes, which never have a DOI: about half the requests (1,040 pages in a 50k library, 5–10 minutes).
 - **`--offline` sees screening decisions (Issue #437):** offline, a paper's notes and attachments came back as bare keys, so every SLR decision stored in a note was invisible. `slr report status` showed 0 accepted and 0 rejected, and `slr list`, consensus, snapshots and BibTeX/RIS export lost their SDB data. Offline children now have the same fields as online ones: note text, item type, parent, dates, tags, and the attachment's link mode, file name, content type and title. Trashed children are left out.
