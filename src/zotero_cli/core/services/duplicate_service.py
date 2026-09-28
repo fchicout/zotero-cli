@@ -8,6 +8,9 @@ from typing import Dict, List, Optional, Set, Tuple
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.zotero_item import ZoteroItem
 
+# Item types that are never references, and so never duplicates.
+_NOT_REFERENCES = ("attachment", "note", "annotation")
+
 
 @dataclass
 class DuplicateOccurrence:
@@ -146,12 +149,20 @@ class DuplicateFinder:
     def _collect_items(
         self, collection_ids: Optional[List[str]]
     ) -> List[Tuple[ZoteroItem, str]]:
+        # Only regular items can be duplicates of each other: the library
+        # listing also has every attachment and note, and 3,502 PDFs titled
+        # "Full Text PDF" came out as one duplicate group (Issue #430).
         if collection_ids is None:
             return [
                 (item, item.collections[0] if item.collections else "UNFILED")
                 for item in self.gateway.get_all_items()
+                if item.item_type not in _NOT_REFERENCES
             ]
-        return self._collect_from_collections(collection_ids)
+        return [
+            (item, scope)
+            for item, scope in self._collect_from_collections(collection_ids)
+            if item.item_type not in _NOT_REFERENCES
+        ]
 
     def _collect_from_collections(
         self, collection_ids: List[str]
@@ -220,31 +231,23 @@ class DuplicateFinder:
 
         component_label: Dict[int, str] = {}
 
-        for i in range(n):
-            title_i, year_i, authors_i = norm_titles[i], years[i], author_sigs[i]
-            if not title_i or year_i is None or not authors_i:
+        for i, j in self._fuzzy_candidates(norm_titles, years, author_sigs):
+            title_i, title_j = norm_titles[i], norm_titles[j]
+            if not title_i or not title_j:
                 continue
-            for j in range(i + 1, n):
-                title_j, year_j, authors_j = norm_titles[j], years[j], author_sigs[j]
-                if not title_j or year_j is None or not authors_j:
-                    continue
-                if abs(year_i - year_j) > 1:
-                    continue
-                if not (authors_i & authors_j):
-                    continue
-                if self._title_similarity(title_i, title_j) < self.FUZZY_TITLE_THRESHOLD:
-                    continue
+            if self._title_similarity(title_i, title_j) < self.FUZZY_TITLE_THRESHOLD:
+                continue
 
-                item_i, _ = singletons[i]
-                item_j, _ = singletons[j]
-                label = self._classify_type_pair(item_i.item_type, item_j.item_type)
-                if label is None:
-                    continue
+            item_i, _ = singletons[i]
+            item_j, _ = singletons[j]
+            label = self._classify_type_pair(item_i.item_type, item_j.item_type)
+            if label is None:
+                continue
 
-                union(i, j)
-                root = find(i)
-                if component_label.get(root) != "preprint-published-pair":
-                    component_label[root] = label
+            union(i, j)
+            root = find(i)
+            if component_label.get(root) != "preprint-published-pair":
+                component_label[root] = label
 
         groups_by_root: Dict[int, List[int]] = defaultdict(list)
         for idx in range(n):
@@ -279,6 +282,31 @@ class DuplicateFinder:
         if (types & self.PREPRINT_TYPES) and (types & self.PUBLISHED_TYPES):
             return "preprint-published-pair"
         return None
+
+    @staticmethod
+    def _fuzzy_candidates(
+        titles: List[Optional[str]], years: List[Optional[int]], author_sigs: List[Set[str]]
+    ) -> List[Tuple[int, int]]:
+        """
+        The pairs (i < j) worth a title comparison: titled, dated, sharing an
+        author signature, and at most a year apart. They come from blocks
+        keyed by (signature, year) instead of every pair, which was
+        quadratic (Issue #430), and are sorted so pairs are visited in the
+        same order as the old nested loops (the group labels depend on it).
+        """
+        blocks: Dict[Tuple[str, int], List[int]] = defaultdict(list)
+        for i, (title, year) in enumerate(zip(titles, years)):
+            if title and year is not None:
+                for sig in author_sigs[i]:
+                    blocks[(sig, year)].append(i)
+        pairs: Set[Tuple[int, int]] = set()
+        for (sig, year), members in blocks.items():
+            for position, i in enumerate(members):
+                for j in members[position + 1 :]:
+                    pairs.add((i, j))
+                for j in blocks.get((sig, year + 1), []):
+                    pairs.add((min(i, j), max(i, j)))
+        return sorted(pairs)
 
     def _author_signatures(self, item: ZoteroItem) -> Set[str]:
         signatures: Set[str] = set()

@@ -47,7 +47,11 @@ class SDBService:
                     sdb_entries.append(parsed)
         return sdb_entries
 
-    def classify_decision_agreement(self, item_keys: List[str]) -> str:
+    def classify_decision_agreement(
+        self,
+        item_keys: List[str],
+        entries_by_item: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+    ) -> str:
         """
         Classifies whether a set of items' recorded SDB screening decisions
         agree: MATCHING (all decided the same way), CONFLICTING (decided
@@ -55,10 +59,12 @@ class SDBService:
         duplicate groups where independently-screened copies of the same
         paper may disagree - a real SLR audit concern, not just noise.
         """
+        if entries_by_item is None:
+            entries_by_item = self.inspect_items_sdb(item_keys)
         decisions = {
             entry.get("decision")
             for key in item_keys
-            for entry in self.inspect_item_sdb(key)
+            for entry in entries_by_item.get(key, [])
             if entry.get("decision")
         }
         if not decisions:

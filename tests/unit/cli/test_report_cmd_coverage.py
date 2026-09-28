@@ -289,9 +289,9 @@ class TestReportCommandDuplicates:
         mock_gateway.get_items_in_collection.side_effect = [iter([item_a]), iter([item_b])]
 
         mock_sdb_service = MagicMock()
-        mock_sdb_service.inspect_item_sdb.return_value = [
-            {"decision": "INCLUDE", "persona": "reviewer-a"}
-        ]
+        history = [{"decision": "INCLUDE", "persona": "reviewer-a"}]
+        # read for every occurrence at once (Issue #430)
+        mock_sdb_service.inspect_items_sdb.return_value = {"KEY_A": history, "KEY_B": history}
 
         out_file = str(tmp_path / "plan.json")
         args = argparse.Namespace(
