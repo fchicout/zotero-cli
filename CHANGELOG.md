@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### ⚡ Performance
+- **`system restore` asks for a paper's notes once (Issue #440):** it made one request per restored note to check for an existing copy, about 20,000 extra requests for a 50k library. It now asks once per paper and remembers what it has added, and papers it has just created are known to have no notes yet.
 - **Snowball review no longer rewrites the whole graph on every decision (Issue #435):** each accept or reject rewrote the discovery graph file: 1.1–2.4 s per decision at 50k–100k nodes. Decisions are now saved every 25 decisions or 30 seconds, and when the session ends (including with `q` or Ctrl-C) or the import finishes. The graph file is written compactly; `slr snowball export --format json` output is unchanged.
 - **`report duplicates` on a whole library (Issue #430):**
   - Bug fix: it looked at attachments and notes too, so thousands of PDFs titled "Full Text PDF" were reported as one duplicate group (3,502 rows at 5k items). Only regular items are compared now.

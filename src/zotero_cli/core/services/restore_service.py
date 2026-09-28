@@ -1,7 +1,7 @@
 import logging
 import zipfile
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
@@ -48,9 +48,13 @@ class RestoreService:
         self.orchestrator = orchestrator
         self.item_map: Dict[str, str] = {}  # old_key -> new_key
         self.coll_map: Dict[str, str] = {}  # old_key -> new_key
+        # new parent key -> the note texts it has, fetched once per parent
+        # (Issue #440: one children request per restored note)
+        self._note_texts: Dict[str, Set[str]] = {}
 
     def restore_archive(self, file_path: str, dry_run: bool = False) -> RestoreReport:
         report = RestoreReport(is_dry_run=dry_run)
+        self._note_texts = {}
 
         try:
             with zipfile.ZipFile(file_path, "r") as zf:
@@ -185,6 +189,7 @@ class RestoreService:
             new_key = self.gateway.create_generic_item(new_data)
             if new_key:
                 self.item_map[old_key] = new_key
+                self._note_texts[new_key] = set()  # just created: no notes yet
                 report.items_created += 1
             else:
                 report.errors.append(f"Failed to create item: {data.get('title', 'Unknown')}")
@@ -210,13 +215,19 @@ class RestoreService:
         if report.is_dry_run:
             return
 
-        children = self.gateway.get_item_children(new_parent)
-        for child in children:
-            if child.get("data", {}).get("itemType") == "note":
-                if child.get("data", {}).get("note") == note_content:
-                    return
+        existing = self._note_texts.get(new_parent)
+        if existing is None:
+            existing = {
+                child.get("data", {}).get("note")
+                for child in self.gateway.get_item_children(new_parent)
+                if child.get("data", {}).get("itemType") == "note"
+            }
+            self._note_texts[new_parent] = existing
+        if note_content in existing:
+            return
 
-        self.gateway.create_note(new_parent, note_content)
+        if self.gateway.create_note(new_parent, note_content):
+            existing.add(note_content)
 
     def _restore_attachment(
         self,
