@@ -596,10 +596,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             task = progress.add_task("Converting PDFs...", total=len(items))
 
             stats = {"total": len(items), "success": 0, "failed": 0, "skipped": 0}
+            pdf_keys = attach_service.pdf_attachment_keys(items)
 
             for item in items:
                 progress.update(task, description=f"Processing: {item.key}")
-                result = attach_service._export_item_markdown(item, output_dir)
+                result = attach_service._export_item_markdown(
+                    item, output_dir, pdf_keys.get(item.key)
+                )
                 if result == "success":
                     stats["success"] += 1
                 elif result == "skipped":

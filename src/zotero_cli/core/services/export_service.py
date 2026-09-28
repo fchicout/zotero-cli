@@ -1,5 +1,5 @@
 import sys
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from zotero_cli.core.interfaces import BibtexGateway, CollectionRepository, RisGateway
 from zotero_cli.core.models import ResearchPaper
@@ -46,11 +46,7 @@ class ExportService:
         """
         Exports specific items to a file.
         """
-        papers = [
-            self._map_item_to_paper(item)
-            for item in items
-            if item.item_type not in ["attachment", "note"]
-        ]
+        papers = self._map_items_to_papers(items)
 
         if not papers:
             print("Warning: No valid papers to export.", file=sys.stderr)
@@ -66,19 +62,25 @@ class ExportService:
 
     def serialize_bibtex(self, items: List[ZoteroItem]) -> str:
         """Serialize items to BibTeX string."""
-        papers = [
-            self._map_item_to_paper(i) for i in items if i.item_type not in ["attachment", "note"]
-        ]
+        papers = self._map_items_to_papers(items)
         return self.bibtex_gateway.serialize(papers) if papers else ""
 
     def serialize_ris(self, items: List[ZoteroItem]) -> str:
         """Serialize items to RIS string."""
-        papers = [
-            self._map_item_to_paper(i) for i in items if i.item_type not in ["attachment", "note"]
-        ]
+        papers = self._map_items_to_papers(items)
         return self.ris_gateway.serialize(papers) if papers else ""
 
-    def _map_item_to_paper(self, item: ZoteroItem) -> ResearchPaper:
+    def _map_items_to_papers(self, items: List[ZoteroItem]) -> List[ResearchPaper]:
+        """The exportable items as papers, with the SDB data of all of them
+        read together: one request per item made a 12.3k-item export
+        12,340 requests (Issue #431)."""
+        papers = [i for i in items if i.item_type not in ["attachment", "note"]]
+        sdb = self.sdb_service.inspect_items_sdb([i.key for i in papers])
+        return [self._map_item_to_paper(i, sdb.get(i.key, [])) for i in papers]
+
+    def _map_item_to_paper(
+        self, item: ZoteroItem, sdb_entries: Optional[List[Dict[str, Any]]] = None
+    ) -> ResearchPaper:
         """Convert ZoteroItem to ResearchPaper for export."""
         year = None
         if item.date:
@@ -89,7 +91,8 @@ class ExportService:
                 year = match.group(1)
 
         publication = item.raw_data.get("data", {}).get("publicationTitle")
-        sdb_entries = self.sdb_service.inspect_item_sdb(item.key)
+        if sdb_entries is None:
+            sdb_entries = self.sdb_service.inspect_item_sdb(item.key)
 
         return ResearchPaper(
             title=item.title or "No Title",

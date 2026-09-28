@@ -10,6 +10,7 @@ from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.duplicate_service import DuplicateFinder, DuplicateGroup
 from zotero_cli.core.services.sdb.sdb_service import SDBService
 from zotero_cli.core.utils.csv_safety import sanitize_csv_rows
@@ -18,6 +19,9 @@ from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
+
+# Item types expected to have a PDF, for `report attachments`.
+_PAPER_TYPES = ("journalArticle", "thesis", "conferencePaper", "book", "report")
 
 
 @CommandRegistry.register
@@ -463,46 +467,38 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
                 items = list(gateway.get_all_items())
                 source_name = "Full Library"
 
-        total_files = 0
-        total_size_bytes = 0
-        missing_pdf = []
-        pdf_counts = 0
-        other_attachment_counts = 0
-
-        for item in items:
-            if item.item_type == "attachment":
-                total_files += 1
-                size = item.raw_data.get("data", {}).get("filesize", 0)
-                if isinstance(size, int):
-                    total_size_bytes += size
-                if "pdf" in item.raw_data.get("data", {}).get("contentType", "").lower():
-                    pdf_counts += 1
-                else:
-                    other_attachment_counts += 1
-            elif item.item_type in [
-                "journalArticle",
-                "thesis",
-                "conferencePaper",
-                "book",
-                "report",
-            ]:
-                # Check children for PDFs
-                children = gateway.get_item_children(item.key)
-                has_pdf = False
+        parents = [item for item in items if item.item_type in _PAPER_TYPES]
+        # Every attachment once, by key. The full library already lists the
+        # child attachments, so they are grouped locally; a collection lists
+        # only its members, so its papers' attachments are fetched together.
+        # It used to ask for each paper's children (50,517 requests at 50k)
+        # and counted the full library's attachments twice (Issue #429).
+        attachments = {
+            item.key: item.raw_data.get("data", {})
+            for item in items
+            if item.item_type == "attachment"
+        }
+        if args.collection:
+            fetched = children_by_parent(gateway, [p.key for p in parents], "attachment")
+            for children in fetched.values():
                 for child in children:
                     data = child.get("data", child)
-                    if data.get("itemType") == "attachment":
-                        total_files += 1
-                        size = data.get("filesize", 0)
-                        if isinstance(size, int):
-                            total_size_bytes += size
-                        if "pdf" in data.get("contentType", "").lower():
-                            has_pdf = True
-                            pdf_counts += 1
-                        else:
-                            other_attachment_counts += 1
-                if not has_pdf:
-                    missing_pdf.append(item)
+                    attachments[child.get("key") or data.get("key")] = data
+
+        total_files = len(attachments)
+        total_size_bytes = 0
+        pdf_counts = 0
+        with_pdf = set()
+        for data in attachments.values():
+            size = data.get("filesize", 0)
+            if isinstance(size, int):
+                total_size_bytes += size
+            if "pdf" in (data.get("contentType") or "").lower():
+                pdf_counts += 1
+                if data.get("parentItem"):
+                    with_pdf.add(data["parentItem"])
+        other_attachment_counts = total_files - pdf_counts
+        missing_pdf = [item for item in parents if item.key not in with_pdf]
 
         size_mb = total_size_bytes / (1024 * 1024)
 
