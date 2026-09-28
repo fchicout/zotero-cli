@@ -176,7 +176,7 @@ docker run --rm --user "$(id -u):$(id -g)" \
   -v ~/.config/zotero-cli:/config/zotero-cli zotero-cli system info
 ```
 
-The container runs as an unprivileged user and keeps its config in `/config/zotero-cli`. On SELinux hosts (Fedora, RHEL), add `:z` to the mount: `-v ~/.config/zotero-cli:/config/zotero-cli:z`.
+The container runs as an unprivileged user and keeps its config in `/config/zotero-cli`. That directory belongs to the image's own user, so with `--user` you must mount a directory you own there (as above); otherwise commands that keep state, such as `system jobs`, stop with an error saying so. On SELinux hosts (Fedora, RHEL), add `:z` to the mount: `-v ~/.config/zotero-cli:/config/zotero-cli:z`.
 
 > *Note: `--offline` mode (reading a local `zotero.sqlite`) needs that file mounted into the container too, e.g. `-v /path/to/zotero.sqlite:/data/zotero.sqlite`.*
 

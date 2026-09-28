@@ -69,7 +69,9 @@ LABEL org.opencontainers.image.licenses="MIT" \
 # root-owned files in a mounted directory. To own what it writes, run with
 # `--user "$(id -u):$(id -g)"` and mount your config directory - or pass
 # settings as environment variables with --env-file. See README.md.
-ENV XDG_CONFIG_HOME=/config
+# ZOTERO_CLI_CONTAINER: errors about /config/zotero-cli explain the mount.
+ENV XDG_CONFIG_HOME=/config \
+    ZOTERO_CLI_CONTAINER=1
 USER zotero
 WORKDIR /home/zotero
 ENTRYPOINT ["zotero-cli"]

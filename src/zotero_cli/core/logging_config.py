@@ -129,17 +129,21 @@ def setup_logging(verbose: bool = False, log_dir: Optional[Path] = None) -> None
     stream_handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
     root.addHandler(stream_handler)
 
-    try:
-        if log_dir is None:
-            from zotero_cli.core.config import default_storage_dir
+    storage_dir = None
+    if log_dir is None:
+        from zotero_cli.core.config import default_storage_dir
 
+        # Logs always go here, whichever --config is used. Resolved before
+        # the try so a failure names the directory (it said "at None",
+        # Issue #419).
+        storage_dir = default_storage_dir()
+        log_dir = storage_dir / "logs"
+    try:
+        if storage_dir is not None:
             # This runs before anything else touches the storage directory,
             # which also holds config.toml, jobs.sqlite and vector stores,
-            # so it's where the directory gets its 0700 mode. Logs always go
-            # here, whichever --config is used.
-            storage_dir = default_storage_dir()
+            # so it's where the directory gets its 0700 mode.
             _make_private_dir(storage_dir)
-            log_dir = storage_dir / "logs"
         _make_private_dir(log_dir)
         file_handler = PrivateRotatingFileHandler(
             log_dir / "zotero-cli.log",
