@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
+- **`--config` and `--user` are honoured everywhere (Issue #383):** `system switch` and `rag model set` under `--config lab.toml` changed the default `~/.config/zotero-cli/config.toml` instead of `lab.toml`. `storage checkout` and `slr report status` ignored `--user`, so `slr report status` mixed data from two libraries.
 - **Setup mistakes are reported with the fix (Issues #376, #397):**
   - A `--config` path that doesn't exist is an error; it used to be read as an empty config.
   - A config file with settings but no `[zotero]` table gets a warning that its settings are ignored.

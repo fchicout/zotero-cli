@@ -58,7 +58,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             print("Config not loaded.")
             return
 
-        gateway = GatewayFactory.get_zotero_gateway(config)
+        # --user applies here too (Issue #383).
+        gateway = GatewayFactory.get_zotero_gateway(
+            config, force_user=getattr(args, "user", False)
+        )
         service = StorageService(config, gateway)
 
         print(f"Starting storage checkout (Limit: {args.limit})...")
