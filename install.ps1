@@ -18,6 +18,8 @@ function Install-ZoteroCli {
     $Repo = "fchicout/zotero-cli"
     $InstallDir = if ($env:ZOTERO_CLI_INSTALL_DIR) { $env:ZOTERO_CLI_INSTALL_DIR } else { "$env:LOCALAPPDATA\zotero-cli" }
     $Version = if ($env:ZOTERO_CLI_VERSION) { $env:ZOTERO_CLI_VERSION } else { "latest" }
+    # Release tags start with "v"; accept "3.0.5" as well (Issue #418).
+    if ($Version -match '^\d') { $Version = "v$Version" }
     $Asset = "zotero-cli-windows-amd64.zip"
     $BaseUrl = if ($Version -eq "latest") {
         "https://github.com/$Repo/releases/latest/download"
@@ -31,7 +33,11 @@ function Install-ZoteroCli {
 
     try {
         Write-Host "Downloading $Asset ($Version)..."
-        Invoke-WebRequest -Uri "$BaseUrl/$Asset" -OutFile $ZipPath
+        try {
+            Invoke-WebRequest -Uri "$BaseUrl/$Asset" -OutFile $ZipPath
+        } catch {
+            throw "Could not download $Asset for $Version. Available releases: https://github.com/$Repo/releases"
+        }
         try {
             Invoke-WebRequest -Uri "$BaseUrl/SHA256SUMS" -OutFile $SumsPath
         } catch {

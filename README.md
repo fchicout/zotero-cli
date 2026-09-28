@@ -195,6 +195,23 @@ cd zotero-cli
 uv tool install .
 ```
 
+### ⬆️ Upgrading and uninstalling
+Upgrading keeps your configuration (`~/.config/zotero-cli`, or `%APPDATA%\zotero-cli` on Windows); uninstalling leaves it too, so delete that directory as well if you want no trace. Read the [CHANGELOG](CHANGELOG.md) before a major upgrade.
+
+| Installed with | Upgrade | Uninstall |
+|---|---|---|
+| `install.sh` | run it again (or set `ZOTERO_CLI_VERSION=3.0.5` for a given version) | `rm ~/.local/bin/zotero-cli` |
+| `install.ps1` | run it again | delete `%LOCALAPPDATA%\zotero-cli\zotero-cli.exe` |
+| `.msi` | install the newer `.msi`; it replaces the old one | Settings → Apps → *zotero-cli* → Uninstall |
+| `.deb` | `sudo apt install ./zotero-cli_<version>_amd64.deb` | `sudo apt remove zotero-cli` |
+| `.rpm` | `sudo dnf install ./zotero-cli-<version>.x86_64.rpm` | `sudo dnf remove zotero-cli` |
+| `.tar.gz` / `.zip` | replace the `zotero-cli` binary | delete the binary |
+| uv | `uv tool upgrade zotero-command-line` | `uv tool uninstall zotero-command-line` |
+| pipx | `pipx upgrade zotero-command-line` | `pipx uninstall zotero-command-line` |
+| Docker | `git pull` and `docker build -t zotero-cli .` again | `docker rmi zotero-cli` |
+
+**Installed from git before 2.8.12?** That package was named `zotero-cli`, and pip treats `zotero-command-line` as a different package, so both can end up installed and fight over the `zotero-cli` command. Remove the old one first: `pip uninstall zotero-cli`.
+
 ### 📦 Using `zotero-cli` as a Python library
 ```bash
 pip install zotero-command-line
