@@ -3,6 +3,7 @@ from typing import Any, List
 from rich.markup import escape
 from rich.prompt import Confirm, IntPrompt, Prompt
 
+from zotero_cli.core.exceptions import ZoteroCliError
 from zotero_cli.core.interfaces import ExtractionService, OpenerService
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
@@ -32,8 +33,7 @@ class ExtractionTUI:
             variables = schema.get("variables", [])
             schema_version = schema.get("version", "1.0")
         except Exception as e:
-            console.print(f"[bold red]Error loading schema:[/bold red] {escape(str(e))}")
-            return
+            raise ZoteroCliError(f"Error loading schema: {str(e)}") from e
 
         if not variables:
             console.print("[yellow]No variables defined in schema.yaml[/yellow]")

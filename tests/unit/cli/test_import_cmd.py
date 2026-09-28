@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, mock_open, patch
 import pytest
 
 from zotero_cli.cli.commands.import_cmd import ImportCommand
+from zotero_cli.core.exceptions import ZoteroCliError
 
 
 @pytest.fixture
@@ -127,9 +128,10 @@ def test_import_file_unknown_csv(mock_file, mock_splitext, mock_import_service, 
         user=False,
     )
 
-    ImportCommand().execute(args)
-    out = capsys.readouterr().out
-    assert "Error: Unknown CSV format" in out
+    with pytest.raises(ZoteroCliError) as raised:
+        ImportCommand().execute(args)
+    out = str(raised.value)
+    assert "Unknown CSV format" in out
 
 
 @patch("builtins.open", new_callable=mock_open, read_data="arxiv query string\n")
@@ -249,9 +251,10 @@ def test_import_bdtd_requires_exactly_one_of_identifier_or_query(mock_import_ser
         user=False,
     )
 
-    ImportCommand().execute(args)
+    with pytest.raises(ZoteroCliError) as raised:
+        ImportCommand().execute(args)
 
-    out = capsys.readouterr().out
+    out = str(raised.value)
     assert "exactly one" in out.lower()
     mock_import_service.import_papers.assert_not_called()
 
@@ -268,8 +271,9 @@ def test_import_bdtd_rejects_both_identifier_and_query(mock_import_service, caps
         user=False,
     )
 
-    ImportCommand().execute(args)
+    with pytest.raises(ZoteroCliError) as raised:
+        ImportCommand().execute(args)
 
-    out = capsys.readouterr().out
+    out = str(raised.value)
     assert "exactly one" in out.lower()
     mock_import_service.import_papers.assert_not_called()

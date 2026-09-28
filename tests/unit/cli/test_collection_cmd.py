@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zotero_cli.cli.commands.collection_cmd import CollectionCommand
+from zotero_cli.core.exceptions import ZoteroCliError
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -235,9 +236,10 @@ def test_collection_delete_not_found(mock_gateway, mock_collection_service, caps
     args = argparse.Namespace(
         verb="delete", key="INVALID_KEY", version=None, recursive=False, user=False
     )
-    CollectionCommand().execute(args)
+    with pytest.raises(ZoteroCliError) as raised:
+        CollectionCommand().execute(args)
 
-    out = capsys.readouterr().out
+    out = str(raised.value)
     assert "Collection 'INVALID_KEY' not found." in out
 
 
@@ -343,9 +345,10 @@ def test_collection_backup_not_found(mock_gateway, capsys):
     mock_gateway.get_collection.return_value = None
 
     args = argparse.Namespace(verb="backup", name="COL_KEY", output="backup.zaf", user=False)
-    CollectionCommand().execute(args)
+    with pytest.raises(ZoteroCliError) as raised:
+        CollectionCommand().execute(args)
 
-    out = capsys.readouterr().out
+    out = str(raised.value)
     assert "Collection 'COL_KEY' not found." in out
 
 
@@ -359,9 +362,10 @@ def test_collection_backup_not_found_bracketed_name_renders_literally(mock_gatew
     args = argparse.Namespace(
         verb="backup", name="[Archived] Old Project", output="backup.zaf", user=False
     )
-    CollectionCommand().execute(args)
+    with pytest.raises(ZoteroCliError) as raised:
+        CollectionCommand().execute(args)
 
-    out = capsys.readouterr().out
+    out = str(raised.value)
     assert "Collection '[Archived] Old Project' not found." in out
 
 
@@ -442,10 +446,11 @@ def test_collection_purge_no_asset_types_aborts(mock_purge_service, capsys):
         recursive=False,
         user=False,
     )
-    CollectionCommand().execute(args)
+    with pytest.raises(ZoteroCliError) as raised:
+        CollectionCommand().execute(args)
 
     mock_purge_service.purge_collection_assets.assert_not_called()
-    assert "Specify what to purge" in capsys.readouterr().out
+    assert "Specify what to purge" in str(raised.value)
 
 
 def test_collection_purge_success(mock_purge_service, capsys):

@@ -1,5 +1,8 @@
 from unittest.mock import Mock, mock_open, patch
 
+import pytest
+
+from zotero_cli.core.exceptions import ImportParseError
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.bibtex_lib import BibtexLibGateway
 
@@ -53,8 +56,6 @@ def test_parse_file_error_is_logged(mock_file, mock_load, caplog):
     mock_load.side_effect = ValueError("malformed entry")
 
     gateway = BibtexLibGateway()
-    with caplog.at_level("ERROR"):
-        papers = list(gateway.parse_file("bad.bib"))
-
-    assert papers == []
+    with caplog.at_level("ERROR"), pytest.raises(ImportParseError, match="malformed entry"):
+        list(gateway.parse_file("bad.bib"))
     assert any("bad.bib" in r.message for r in caplog.records)

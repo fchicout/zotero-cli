@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, mock_open, patch
 import pytest
 
 from zotero_cli.cli.commands.item_cmd import ItemCommand
+from zotero_cli.core.exceptions import NotFound, ZoteroCliError
 
 
 @pytest.fixture
@@ -141,10 +142,8 @@ def test_item_inspect_missing_key(mock_clients, env_vars, capsys):
     args.full_notes = False
     args.user = False
 
-    ItemCommand().execute(args)
-
-    out = capsys.readouterr().out
-    assert "Item 'MISSINGKEY' not found" in out
+    with pytest.raises(NotFound, match="MISSINGKEY"):
+        ItemCommand().execute(args)
 
 
 def test_item_inspect_no_keys(mock_clients, env_vars, capsys):
@@ -154,10 +153,11 @@ def test_item_inspect_no_keys(mock_clients, env_vars, capsys):
     args.file = None
     args.user = False
 
-    ItemCommand().execute(args)
+    with pytest.raises(ZoteroCliError) as raised:
+        ItemCommand().execute(args)
 
-    out = capsys.readouterr().out
-    assert "Error: You must specify --key or --file" in out
+    out = str(raised.value)
+    assert "You must specify --key or --file" in out
 
 
 def test_item_inspect_raw(mock_clients, env_vars, capsys):
@@ -325,10 +325,11 @@ def test_item_list_no_collection_or_root(mock_clients, env_vars, capsys):
     args.wide = False
     args.format = "table"
 
-    ItemCommand().execute(args)
+    with pytest.raises(ZoteroCliError) as raised:
+        ItemCommand().execute(args)
 
-    out = capsys.readouterr().out
-    assert "Error: --collection or --root required for non-trash listings" in out
+    out = str(raised.value)
+    assert "--collection or --root required for non-trash listings" in out
 
 
 def test_item_delete_subparser_is_reachable():
@@ -461,13 +462,14 @@ def test_item_trash_online_mode_rejected(env_vars, capsys):
         args.force = True
         args.user = False
 
-        ItemCommand().execute(args)
+        with pytest.raises(ZoteroCliError) as raised:
+            ItemCommand().execute(args)
 
     # ZoteroAPIClient (the online gateway) has no trash_item/restore_item
     # method at all -- calling one would raise AttributeError on this
     # spec'd mock, so a clean rejection message (and no such call) is the
     # only possible correct outcome here.
-    assert "only supports --offline mode" in capsys.readouterr().out
+    assert "only supports --offline mode" in str(raised.value)
 
 
 def test_item_restore_online_mode_rejected(env_vars, capsys):
@@ -484,9 +486,10 @@ def test_item_restore_online_mode_rejected(env_vars, capsys):
         args.force = True
         args.user = False
 
-        ItemCommand().execute(args)
+        with pytest.raises(ZoteroCliError) as raised:
+            ItemCommand().execute(args)
 
-    assert "only supports --offline mode" in capsys.readouterr().out
+    assert "only supports --offline mode" in str(raised.value)
 
 
 def test_item_trash_preview_only_without_execute(env_vars, capsys):
@@ -525,10 +528,11 @@ def test_item_trash_missing_item(env_vars, capsys):
         args.force = True
         args.user = False
 
-        ItemCommand().execute(args)
+        with pytest.raises(ZoteroCliError) as raised:
+            ItemCommand().execute(args)
 
     gateway.trash_item.assert_not_called()
-    assert "not found" in capsys.readouterr().out
+    assert "not found" in str(raised.value)
 
 
 def test_item_trash_execute_force_writes(env_vars, capsys):

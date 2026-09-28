@@ -1,7 +1,10 @@
 import argparse
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from zotero_cli.cli.commands.item_cmd import ItemCommand
+from zotero_cli.core.exceptions import ZoteroCliError
 from zotero_cli.core.services.merge_service import (
     FieldConflict,
     MergeResult,
@@ -167,12 +170,13 @@ def test_item_merge_errors_when_neither_single_group_nor_plan_given(capsys):
     with patch(
         "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
     ):
-        ItemCommand().execute(argparse.Namespace(
-            verb="merge", master=None, duplicates=None, from_plan=None,
-            execute=False, force=False, user=False,
-        ))
+        with pytest.raises(ZoteroCliError) as raised:
+            ItemCommand().execute(argparse.Namespace(
+                verb="merge", master=None, duplicates=None, from_plan=None,
+                execute=False, force=False, user=False,
+            ))
 
-    out = capsys.readouterr().out
+    out = str(raised.value)
     assert "Provide either" in out
 
 
@@ -181,9 +185,10 @@ def test_item_merge_from_plan_missing_file_reports_error(capsys, tmp_path):
     with patch(
         "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
     ):
-        ItemCommand().execute(_plan_args(str(missing)))
+        with pytest.raises(ZoteroCliError) as raised:
+            ItemCommand().execute(_plan_args(str(missing)))
 
-    out = capsys.readouterr().out
+    out = str(raised.value)
     assert "not found" in out
 
 

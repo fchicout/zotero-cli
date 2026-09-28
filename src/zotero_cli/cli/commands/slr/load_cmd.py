@@ -1,9 +1,9 @@
 import argparse
 import sys
 
-from rich.markup import escape
 from rich.table import Table
 
+from zotero_cli.core.exceptions import ZoteroCliError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.infra.factory import GatewayFactory
@@ -116,8 +116,7 @@ class LoadCommand:
         )
 
         if "error" in results:
-            console.print(f"[bold red]Error:[/bold red] {escape(results['error'])}")
-            return
+            raise ZoteroCliError(f"{results['error']}")
 
         table = Table(title="Import CSV Results")
         table.add_column("Metric")

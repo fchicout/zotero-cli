@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zotero_cli.cli.tui.extraction_tui import ExtractionTUI
+from zotero_cli.core.exceptions import ZoteroCliError
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -82,9 +83,8 @@ def test_run_extraction_single_item(
 def test_run_extraction_no_schema(mock_console, tui, mock_service):
     mock_service.validator.load_schema.side_effect = Exception("Missing file")
 
-    tui.run_extraction([ZoteroItem(key="1", version=1, item_type="note")])
-
-    mock_console.print.assert_any_call("[bold red]Error loading schema:[/bold red] Missing file")
+    with pytest.raises(ZoteroCliError, match="Error loading schema: Missing file"):
+        tui.run_extraction([ZoteroItem(key="1", version=1, item_type="note")])
 
 
 @patch("zotero_cli.cli.tui.extraction_tui.console")

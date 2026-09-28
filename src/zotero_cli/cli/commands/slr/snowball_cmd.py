@@ -5,6 +5,7 @@ from rich.markup import escape
 
 from zotero_cli.cli.tui.factory import TUIFactory
 from zotero_cli.core.config import ZoteroConfig, get_config
+from zotero_cli.core.exceptions import NotFound
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.infra.factory import GatewayFactory
@@ -155,11 +156,8 @@ class SnowballCommand:
                 console.print(f"Collection '{escape(args.target)}' not found. Creating...")
                 col_id = gateway.create_collection(args.target)
             else:
-                console.print(
-                    f"[red]Error: Collection '{escape(args.target)}' not found. "
-                    "Use --create to create it.[/red]"
-                )
-                return
+                raise NotFound(f"Collection '{args.target}' not found. "
+                    "Use --create to create it.")
         if col_id:
             console.print(
                 f"[bold]Ingesting ACCEPTED candidates into '{escape(args.target)}'...[/bold]"

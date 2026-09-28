@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from zotero_cli.cli.commands.slr.promote_cmd import PromoteCommand
+from zotero_cli.core.exceptions import ZoteroCliError
 
 
 @pytest.fixture
@@ -96,6 +97,7 @@ def test_promote_command_no_path(mock_deps, capsys):
         user=False,
     )
 
-    PromoteCommand.execute(args)
-    out = capsys.readouterr().out
-    assert "Error: Could not resolve folders" in out
+    with pytest.raises(ZoteroCliError) as raised:
+        PromoteCommand.execute(args)
+    out = str(raised.value)
+    assert "Could not resolve folders" in out

@@ -8,6 +8,7 @@ from rich.tree import Tree
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.safety import confirm_destructive, preview_notice
+from zotero_cli.core.exceptions import NotFound, UsageError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.backup_service import BackupService
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
@@ -290,8 +291,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             if version is None:
                 col = gateway.get_collection(col_id)
                 if not col:
-                    print(f"Collection '{args.key}' not found.")
-                    return
+                    raise NotFound(f"Collection '{args.key}' not found.")
                 version = col.get("version")
 
             if args.verb == "delete":
@@ -386,8 +386,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             types.append("tags")
 
         if not types:
-            console.print("[red]Error: Specify what to purge using --files, --notes, or --tags.[/]")
-            return
+            raise UsageError("Specify what to purge using --files, --notes, or --tags.")
 
         if not args.force:
             msg = f"Are you sure you want to purge {', '.join(types)} from collection '{args.name}'"
@@ -501,8 +500,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         col = gateway.get_collection(col_id)
         if not col:
-            console.print(f"[bold red]Error:[/bold red] Collection '{escape(args.name)}' not found.")
-            return
+            raise NotFound(f"Collection '{args.name}' not found.")
 
         total_items = col.get("meta", {}).get("numItems")
 
@@ -542,8 +540,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         service = GatewayFactory.get_export_service(force_user=force_user)
 
         if not args.output:
-            console.print("[red]Error: --output required for metadata export.[/red]")
-            return
+            raise UsageError("--output required for metadata export.")
 
         print(f"Exporting collection '{args.name}' to {args.output} ({args.format})...")
         if service.export_collection(args.name, args.output, args.format):
@@ -573,8 +570,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             col_id = args.name  # Try as raw key
 
         if not gateway.get_collection(col_id):
-            console.print(f"[bold red]Error:[/bold red] Collection '{escape(args.name)}' not found.")
-            return
+            raise NotFound(f"Collection '{args.name}' not found.")
 
         # 2. Get Items
         items = list(gateway.get_items_in_collection(col_id))

@@ -2,6 +2,7 @@ import argparse
 import os
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.core.exceptions import UsageError, ZoteroCliError
 from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
 from zotero_cli.core.services.import_service import ImportService
 from zotero_cli.core.utils.terminal_safety import strip_controls
@@ -220,8 +221,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                         GatewayFactory.get_canonical_csv_gateway()
                     )
                 else:
-                    print(f"Error: Unknown CSV format. Headers: {header}")
-                    return
+                    raise UsageError(f"Unknown CSV format. Headers: {header}")
         else:
             print(f"Unsupported: {ext}")
             return
@@ -261,8 +261,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
     def _handle_bdtd(self, service: ImportService, args: argparse.Namespace) -> None:
         if bool(args.query) == bool(args.identifier):
-            print("Error: Provide exactly one of an identifier or --query, not both/neither.")
-            return
+            raise UsageError("Provide exactly one of an identifier or --query, not both/neither.")
 
         bdtd_client = GatewayFactory.get_bdtd_client()
 
@@ -278,8 +277,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         paper = bdtd_client.get_paper_metadata(args.identifier)
 
         if not paper:
-            print(f"Error: No thesis found in BDTD for identifier: {args.identifier}")
-            return
+            raise ZoteroCliError(f"No thesis found in BDTD for identifier: {args.identifier}")
 
         if args.verbose:
             # Harvested repository metadata: untrusted text.

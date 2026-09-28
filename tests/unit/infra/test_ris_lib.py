@@ -1,5 +1,6 @@
 import pytest
 
+from zotero_cli.core.exceptions import NotFound
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.ris_lib import RisLibGateway
 
@@ -47,6 +48,5 @@ def test_ris_write_file(ris_gateway, tmp_path):
 
 
 def test_ris_parse_error(ris_gateway):
-    # Should not crash, just return empty/print error
-    papers = list(ris_gateway.parse_file("nonexistent.ris"))
-    assert len(papers) == 0
+    with pytest.raises(NotFound, match="nonexistent.ris"):
+        list(ris_gateway.parse_file("nonexistent.ris"))

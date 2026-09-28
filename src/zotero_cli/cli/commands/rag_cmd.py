@@ -9,6 +9,7 @@ from zotero_cli.cli.presenters.rag_presenter import (
     HumanPresenter,
     JsonPresenter,
 )
+from zotero_cli.core.exceptions import UsageError
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.factory import GatewayFactory
@@ -169,16 +170,10 @@ Cognitive Safeguards
 
             if qa_approved_only:
                 if args.collection or args.key:
-                    console.print(
-                        "[bold red]Error: Cannot specify --collection or --key with 'qa-approved' target.[/bold red]"
-                    )
-                    return
+                    raise UsageError("Cannot specify --collection or --key with 'qa-approved' target.")
             else:
                 if tree_filter:
-                    console.print(
-                        "[bold red]Error: Cannot specify --tree without 'qa-approved' target.[/bold red]"
-                    )
-                    return
+                    raise UsageError("Cannot specify --tree without 'qa-approved' target.")
 
             if args.prune:
                 console.print("[bold red]Pruning vector store before start...[/bold red]")

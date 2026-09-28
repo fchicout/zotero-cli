@@ -1,8 +1,8 @@
 import argparse
 
-from rich.markup import escape
 from rich.table import Table
 
+from zotero_cli.core.exceptions import NotFound
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
@@ -49,8 +49,7 @@ class ReconcileCommand:
         # 1. Resolve Tree Root
         root_key = gateway.get_collection_id_by_name(args.tree) or args.tree
         if not gateway.get_collection(root_key):
-            console.print(f"[bold red]Error:[/bold red] Tree root '{escape(args.tree)}' not found.")
-            return
+            raise NotFound(f"Tree root '{args.tree}' not found.")
 
         with console.status(f"[bold green]Auditing SLR Tree: {args.tree}..."):
             # 2. Aggregation: Get all papers in tree
