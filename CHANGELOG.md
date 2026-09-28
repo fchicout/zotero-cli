@@ -14,7 +14,6 @@ All notable changes to this project will be documented in this file. From 3.0.0 
   - exit codes follow a table: 1 error, 2 usage, 3 not found, 4 authentication, 5 unavailable, 6 conflict, 7 partial failure, 130 Ctrl-C. They're documented in [docs/EXIT_CODES.md](docs/EXIT_CODES.md) and at the end of `zotero-cli --help`;
   - missing files, a confirmation prompt with no terminal (exit 2: pass `--force`/`--yes`), Ctrl-C and a closed pipe (`| head`) are handled cleanly;
   - offline writes raise the shared `OfflineReadOnly`.
-
   Commands move to the specific codes (3–7) over the 3.0.x releases. Scripts that looked for `Error:` on stdout should read stderr.
 
 ## [3.0.1] - 2026-09-27
