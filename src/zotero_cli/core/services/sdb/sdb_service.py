@@ -4,6 +4,7 @@ from rich.table import Table
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.sdb_parser import encode_json_note, parse_sdb_note
+from zotero_cli.core.utils.terminal_safety import safe_markup
 
 SDB_STATUS_MATCHING = "MATCHING"
 SDB_STATUS_CONFLICTING = "CONFLICTING"
@@ -77,7 +78,7 @@ class SDBService:
                 reason += f" ({e['reason_text'][:30]}...)"
 
             table.add_row(
-                f"[{color}]{decision}[/{color}]",
+                f"[{color}]{safe_markup(decision)}[/{color}]",
                 reason,
                 e.get("persona", "N/A"),
                 e.get("phase", "N/A"),

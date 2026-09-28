@@ -77,7 +77,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
             if len(keys) > 1:
                 console.print(
-                    f"\n[bold yellow]--- Inspecting Item {idx + 1}/{len(keys)}: {key} ---[/bold yellow]"
+                    f"\n[bold yellow]--- Inspecting Item {idx + 1}/{len(keys)}: {safe_markup(key)} ---[/bold yellow]"
                 )
 
             if args.raw:
@@ -122,7 +122,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                     f"[bold]DOI:[/bold] {safe_markup(item.doi)}\n"
                     f"[bold]URL:[/bold] {safe_markup(item.url)}\n\n"
                     f"[bold]Abstract:[/bold]\n{abstract_display}",
-                    title=f"Item: {key}",
+                    title=f"Item: {safe_markup(key)}",
                 )
             )
 
@@ -146,7 +146,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
                         if args.full_notes:
                             console.print(
-                                f"  - [cyan]Note[/cyan] ({ckey}) [dim]Added: {date_added} | Mod: {date_modified}[/dim]"
+                                f"  - [cyan]Note[/cyan] ({safe_markup(ckey)}) [dim]Added: {date_added} | Mod: {safe_markup(date_modified)}[/dim]"
                             )
                             if is_json:
                                 from rich.json import JSON
@@ -164,12 +164,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
                             note_snippet = display_content[:150].replace("\n", " ")
                             console.print(
-                                f"  - [cyan]Note[/cyan] ({ckey}) [dim]Added: {date_added} | Mod: {date_modified}[/dim]\n"
+                                f"  - [cyan]Note[/cyan] ({safe_markup(ckey)}) [dim]Added: {date_added} | Mod: {safe_markup(date_modified)}[/dim]\n"
                                 f"    {escape(note_snippet)}..."
                             )
                     else:
                         filename = cdata.get("filename") or "N/A"
-                        console.print(f"  - [green]Attachment[/green] ({ckey}): {escape(filename)}")
+                        console.print(f"  - [green]Attachment[/green] ({safe_markup(ckey)}): {escape(filename)}")
 
         if missing:
             # Shown items first, then a non-zero exit naming the rest (#368).
@@ -332,7 +332,7 @@ Cognitive Safeguards
         fetch_p.add_argument("--key", help=ITEM_KEY_HELP)
         fetch_p.add_argument("--collection", help="Fetch PDFs for all items in a collection")
         fetch_p.add_argument("--file", help="Fetch PDFs for all items in a key-list file")
-        fetch_p.add_argument("--verbose", action="store_true")
+        fetch_p.add_argument("--verbose", dest="details", action="store_true")
 
         strip_p = pdf_sub.add_parser(
             "strip",
@@ -347,7 +347,7 @@ Cognitive Safeguards
         )
         strip_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         strip_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
-        strip_p.add_argument("--verbose", action="store_true")
+        strip_p.add_argument("--verbose", dest="details", action="store_true")
 
         attach_p = pdf_sub.add_parser(
             "attach",
@@ -749,12 +749,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 f"[yellow]{len(conflicts)} conflicting field(s) need an explicit resolution:[/yellow]"
             )
             for conflict in conflicts:
-                console.print(f"  [bold]{conflict.field_name}[/bold]:")
+                console.print(f"  [bold]{safe_markup(conflict.field_name)}[/bold]:")
                 for key, value in conflict.values.items():
-                    console.print(f"    {key}: {escape(repr(value))}")
+                    console.print(f"    {safe_markup(key)}: {escape(repr(value))}")
                 choices = [v for v in conflict.values.values() if v]
                 field_resolutions[conflict.field_name] = Prompt.ask(
-                    f"  Value to keep for '{conflict.field_name}'",
+                    f"  Value to keep for '{safe_markup(conflict.field_name)}'",
                     choices=choices,
                     default=choices[0],
                 )
@@ -809,7 +809,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if result.success:
             console.print(
                 f"[green]Merged {len(result.merged_keys)} duplicate(s) into "
-                f"'{result.master_key}'.[/green]"
+                f"'{safe_markup(result.master_key)}'.[/green]"
             )
         else:
             console.print("[red]Merge did not complete successfully - see warnings above.[/red]")
@@ -876,7 +876,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if not args.force:
             groups_with_merges = sum(1 for e in plan.entries if e.decision and e.decision.merge_keys)
             console.print(
-                f"[yellow]About to execute {groups_with_merges} merge(s) from this plan. "
+                f"[yellow]About to execute {safe_markup(groups_with_merges)} merge(s) from this plan. "
                 "This cannot be undone.[/yellow]"
             )
             if not Confirm.ask("Proceed?"):
@@ -886,7 +886,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         result = service.execute_plan(plan, dry_run=False)
         for group_result in result.group_results:
             for error in group_result.errors:
-                console.print(f"[red]Warning ({group_result.master_key}):[/red] {escape(error)}")
+                console.print(f"[red]Warning ({safe_markup(group_result.master_key)}):[/red] {escape(error)}")
         succeeded = sum(1 for g in result.group_results if g.success)
         console.print(
             f"[green]Merged {succeeded}/{len(result.group_results)} group(s) from the plan.[/green]"
@@ -1072,10 +1072,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         for r in results:
             counts[r.status] = counts.get(r.status, 0) + 1
         summary = ", ".join(f"{n} {status}" for status, n in sorted(counts.items()))
-        console.print(f"\n{len(results)} item(s): {summary or 'nothing to do'}")
+        console.print(f"\n{len(results)} item(s): {safe_markup(summary or 'nothing to do')}")
         failed = [r for r in results if r.status == "failed"]
         for r in failed:
-            console.print(f"[red]{r.key}[/red]: {safe_markup(r.message or 'failed')}")
+            console.print(f"[red]{safe_markup(r.key)}[/red]: {safe_markup(r.message or 'failed')}")
         if not execute and with_changes:
             console.print("[yellow]Preview only - re-run with --execute to write these changes.[/yellow]")
 
@@ -1119,8 +1119,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             # Enqueue all
             for k in unique_keys:
                 jid = pdf_finder.enqueue_find_pdf(k)
-                if args.verbose:
-                    console.print(f"Enqueued discovery job {jid} for item {k}")
+                if args.details:
+                    console.print(f"Enqueued discovery job {safe_markup(jid)} for item {safe_markup(k)}")
 
             console.print(
                 f"[bold]Starting resilient PDF discovery for {len(unique_keys)} items...[/bold]"
@@ -1135,7 +1135,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             count = stats["deleted"] if not dry_run else stats["skipped"]
             if dry_run:
                 console.print(
-                    f"[yellow]DRY RUN:[/yellow] Would remove {count} attachments from {args.key}."
+                    f"[yellow]DRY RUN:[/yellow] Would remove {count} attachments from {safe_markup(args.key)}."
                 )
             else:
                 print(f"Removed {count} attachments from {args.key}.")
@@ -1192,8 +1192,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         if not args.execute:
             console.print(
-                f"[yellow]Preview only[/yellow] - would move '[cyan]{item.title}[/cyan]' "
-                f"([magenta]{args.key}[/magenta]) to the trash in zotero.sqlite. Re-run with "
+                f"[yellow]Preview only[/yellow] - would move '[cyan]{safe_markup(item.title)}[/cyan]' "
+                f"([magenta]{safe_markup(args.key)}[/magenta]) to the trash in zotero.sqlite. Re-run with "
                 "--execute to apply."
             )
             return
@@ -1205,14 +1205,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 "[yellow]This writes directly to your local zotero.sqlite, the same file "
                 "Zotero Desktop reads. Close Desktop first to avoid a database lock.[/yellow]"
             )
-            if not Confirm.ask(f"Move '{safe_markup(item.title)}' ({args.key}) to trash?"):
+            if not Confirm.ask(f"Move '{safe_markup(item.title)}' ({safe_markup(args.key)}) to trash?"):
                 console.print(ABORTED_NO_WRITES_MSG)
                 return
 
         if gateway.trash_item(args.key):
-            console.print(f"[bold green]Moved to trash:[/bold green] {args.key}")
+            console.print(f"[bold green]Moved to trash:[/bold green] {safe_markup(args.key)}")
         else:
-            console.print(f"[bold red]Failed to trash item {args.key}.[/bold red]")
+            console.print(f"[bold red]Failed to trash item {safe_markup(args.key)}.[/bold red]")
 
     def _handle_restore(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
@@ -1227,8 +1227,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         if not args.execute:
             console.print(
-                f"[yellow]Preview only[/yellow] - would restore '[cyan]{item.title}[/cyan]' "
-                f"([magenta]{args.key}[/magenta]) from the trash in zotero.sqlite. Re-run with "
+                f"[yellow]Preview only[/yellow] - would restore '[cyan]{safe_markup(item.title)}[/cyan]' "
+                f"([magenta]{safe_markup(args.key)}[/magenta]) from the trash in zotero.sqlite. Re-run with "
                 "--execute to apply."
             )
             return
@@ -1240,14 +1240,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 "[yellow]This writes directly to your local zotero.sqlite, the same file "
                 "Zotero Desktop reads. Close Desktop first to avoid a database lock.[/yellow]"
             )
-            if not Confirm.ask(f"Restore '{safe_markup(item.title)}' ({args.key}) from trash?"):
+            if not Confirm.ask(f"Restore '{safe_markup(item.title)}' ({safe_markup(args.key)}) from trash?"):
                 console.print(ABORTED_NO_WRITES_MSG)
                 return
 
         if gateway.restore_item(args.key):
-            console.print(f"[bold green]Restored from trash:[/bold green] {args.key}")
+            console.print(f"[bold green]Restored from trash:[/bold green] {safe_markup(args.key)}")
         else:
-            console.print(f"[bold red]Failed to restore item {args.key}.[/bold red]")
+            console.print(f"[bold red]Failed to restore item {safe_markup(args.key)}.[/bold red]")
 
     def _handle_update(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         import json
@@ -1312,7 +1312,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             stats = attach_service.bulk_export_markdown([item], output_dir)
 
             if stats["success"] > 0:
-                console.print(f"[bold green]Success![/bold green] Markdown saved to {output_dir}")
+                console.print(f"[bold green]Success![/bold green] Markdown saved to {safe_markup(output_dir)}")
             elif stats["skipped"] > 0:
                 console.print("[yellow]Skipped:[/yellow] Item has no PDF attachment.")
             else:
@@ -1325,7 +1325,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
             export_service = GatewayFactory.get_export_service(force_user=force_user)
             console.print(
-                f"Exporting item [cyan]{args.key}[/cyan] to [green]{args.output}[/green] ({args.format})..."
+                f"Exporting item [cyan]{safe_markup(args.key)}[/cyan] to [green]{safe_markup(args.output)}[/green] ({safe_markup(args.format)})..."
             )
             if export_service.export_items([item], args.output, args.format):
                 console.print("[bold green]Export complete.[/bold green]")
@@ -1371,12 +1371,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             template["creators"] = creators
 
         # 4. Create Item
-        console.print(f"Creating new [cyan]{args.type}[/cyan]: [bold]{escape(args.title)}[/bold]...")
+        console.print(f"Creating new [cyan]{safe_markup(args.type)}[/cyan]: [bold]{escape(args.title)}[/bold]...")
         new_key = gateway.create_generic_item(template)
 
         if new_key:
             console.print(
-                f"[bold green]Success![/bold green] Item created with key: [magenta]{new_key}[/magenta]"
+                f"[bold green]Success![/bold green] Item created with key: [magenta]{safe_markup(new_key)}[/magenta]"
             )
         else:
             console.print("[bold red]Error:[/bold red] Failed to create item.")

@@ -3,6 +3,7 @@ parsed as Rich markup."""
 
 import ast
 import io
+import re
 from pathlib import Path
 
 import pytest
@@ -99,3 +100,124 @@ def test_no_module_uses_rich_console_directly():
                 if any(alias.name == "Console" for alias in node.names):
                     offenders.append(rel)
     assert not offenders, f"Use terminal_safety.SafeConsole instead: {offenders}"
+
+
+# --- Library text interpolated into Rich markup (Issue #371) ---
+
+_MARKUP_SINKS = {"print", "status", "add_row", "ask", "Panel", "rule"}
+_MARKUP_KEYWORDS = {"title", "subtitle", "caption"}
+_SAFE_CALLS = {"safe_markup", "escape", "len", "int", "float", "round", "sum", "max", "min", "abs"}
+# Counters and style names, which can't carry markup.
+_SAFE_NAME = re.compile(
+    r"(^|_)(count|counts|total|n|num|number|size|len|idx|index|i|j|pct|percent|elapsed|seconds"
+    r"|secs|duration|ratio|score|limit|year|port|page|pages|attempt|attempts|added|removed"
+    r"|skipped|failed|succeeded|success|created|updated|upgraded|deleted|moved|processed|found"
+    r"|missing|imported|errors|done|code|version|depth|width|height|mb|kb|bytes|nodes|edges"
+    r"|scanned|qa|color|colour|style)$",
+    re.I,
+)
+# A local assigned from escaped text or a markup literal is already markup.
+_PREBUILT = re.compile(r"safe_markup\(|escape\(|\[/?[a-z ]*\]|\[/\]")
+
+
+def _safe_name(value):
+    return isinstance(value, str) and bool(_SAFE_NAME.search(value))
+
+
+def _interpolation_is_safe(expr):
+    if isinstance(expr, ast.Constant):
+        return True
+    if isinstance(expr, ast.Call):
+        name = getattr(expr.func, "attr", getattr(expr.func, "id", ""))
+        if name in _SAFE_CALLS:
+            return True
+        return (
+            name == "get"
+            and bool(expr.args)
+            and isinstance(expr.args[0], ast.Constant)
+            and _safe_name(expr.args[0].value)
+        )
+    if isinstance(expr, ast.BinOp):
+        return _interpolation_is_safe(expr.left) and _interpolation_is_safe(expr.right)
+    if isinstance(expr, ast.Name):
+        return _safe_name(expr.id)
+    if isinstance(expr, ast.Attribute):
+        return _safe_name(expr.attr)
+    if isinstance(expr, ast.Subscript):
+        return isinstance(expr.slice, ast.Constant) and _safe_name(expr.slice.value)
+    return False
+
+
+def _markup_fstrings(expr):
+    """f-strings that reach the sink as markup (not wrapped in another call)."""
+    if isinstance(expr, ast.JoinedStr):
+        yield expr
+    elif isinstance(expr, ast.BinOp):
+        yield from _markup_fstrings(expr.left)
+        yield from _markup_fstrings(expr.right)
+    elif isinstance(expr, ast.IfExp):
+        yield from _markup_fstrings(expr.body)
+        yield from _markup_fstrings(expr.orelse)
+
+
+def _unescaped_interpolations(source):
+    tree = ast.parse(source)
+    prebuilt = []
+    for fn in ast.walk(tree):
+        if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            names = {
+                n.targets[0].id
+                for n in ast.walk(fn)
+                if isinstance(n, ast.Assign)
+                and len(n.targets) == 1
+                and isinstance(n.targets[0], ast.Name)
+                and _PREBUILT.search(ast.get_source_segment(source, n.value) or "")
+            }
+            prebuilt.append((fn.lineno, fn.end_lineno, names))
+
+    def is_prebuilt(value):
+        return isinstance(value.value, ast.Name) and any(
+            a <= value.lineno <= b and value.value.id in names for a, b, names in prebuilt
+        )
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = getattr(node.func, "attr", getattr(node.func, "id", ""))
+        if name not in _MARKUP_SINKS or (name == "print" and isinstance(node.func, ast.Name)):
+            continue
+        if any(
+            k.arg == "markup" and isinstance(k.value, ast.Constant) and k.value.value is False
+            for k in node.keywords
+        ):
+            continue
+        exprs = list(node.args) + [k.value for k in node.keywords if k.arg in _MARKUP_KEYWORDS]
+        for expr in exprs:
+            for fstring in _markup_fstrings(expr):
+                for value in fstring.values:
+                    if (
+                        isinstance(value, ast.FormattedValue)
+                        and value.format_spec is None
+                        and not _interpolation_is_safe(value.value)
+                        and not is_prebuilt(value)
+                    ):
+                        yield value.lineno, ast.unparse(value.value)
+
+
+def test_markup_lint_flags_an_unescaped_title():
+    source = "def f(item):\n    console.print(f\"[cyan]{item.title}[/cyan] {count}\")\n"
+    assert list(_unescaped_interpolations(source)) == [(2, "item.title")]
+    safe = "def f(item):\n    console.print(f\"[cyan]{safe_markup(item.title)}[/cyan]\")\n"
+    assert list(_unescaped_interpolations(safe)) == []
+
+
+def test_no_unescaped_text_in_rich_markup():
+    """Text interpolated into Rich markup goes through safe_markup(): a
+    title with "[/b]" crashed `item trash`, and "[red]" was swallowed."""
+    src = Path(next(iter(zotero_cli.__path__)))
+    offenders = [
+        f"{path.relative_to(src).as_posix()}:{line}: {{{expr}}}"
+        for path in sorted(src.rglob("*.py"))
+        for line, expr in _unescaped_interpolations(path.read_text(encoding="utf-8"))
+    ]
+    assert not offenders, "Wrap these in safe_markup(): " + ", ".join(offenders)

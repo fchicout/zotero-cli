@@ -135,6 +135,23 @@ def test_snowball_command_export_json(mock_deps, capsys):
     assert '{"nodes": [], "links": []}' in out
 
 
+def test_snowball_export_json_to_stdout_is_not_wrapped(mock_deps, capsys):
+    """Issue #373: Rich wrapped stdout at 80 columns, breaking JSON strings
+    with long titles; brackets must also survive."""
+    import json
+
+    mock_gw, mock_ingest, mock_graph, mock_jq = mock_deps
+    payload = {"nodes": [{"id": "10.1/x", "title": "A very long paper title [2024] " * 8}]}
+    mock_graph.to_json.return_value = json.dumps(payload, indent=2)
+
+    args = argparse.Namespace(
+        verb="snowball", snow_verb="export", format="json", collection="Col1", output=None, user=False
+    )
+    SnowballCommand.execute(mock_gw, args)
+
+    assert json.loads(capsys.readouterr().out) == payload
+
+
 def test_snowball_command_review_passes_gateway_for_duplicate_flagging(mock_deps):
     """Issue #224: the review TUI needs the gateway to flag candidates
     already in the library - confirm execute() wires it through."""

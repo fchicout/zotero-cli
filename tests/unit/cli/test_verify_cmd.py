@@ -28,7 +28,7 @@ def test_verify_collection_pass(mock_deps, capsys):
     mock_integrity.audit_collection.return_value = report
 
     args = argparse.Namespace(
-        report_type="audit", collection="MyColl", verbose=False, export_missing=None, user=False
+        report_type="audit", collection="MyColl", details=False, export_missing=None, user=False
     )
     ReportCommand().execute(args)
 

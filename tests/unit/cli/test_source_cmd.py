@@ -52,7 +52,7 @@ def test_handle_add_collection_not_found():
     mock_gateway = MagicMock()
     mock_gateway.get_collection_id_by_name.return_value = None
 
-    args = argparse.Namespace(source_verb="add", name="nonexistent", file="test.ris", verbose=False)
+    args = argparse.Namespace(source_verb="add", name="nonexistent", file="test.ris", details=False)
 
     with pytest.raises(SystemExit) as excinfo:
         SLRSourceCommand.execute(mock_gateway, args)
@@ -73,7 +73,7 @@ def test_handle_add_ris_success(mock_fetch, mock_ris_gateway, mock_import_servic
     mock_imp_service.import_papers.return_value = 5
     mock_import_service.return_value = mock_imp_service
 
-    args = argparse.Namespace(source_verb="add", name="acm", file="test.ris", verbose=True)
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.ris", details=True)
 
     SLRSourceCommand.execute(mock_gateway, args)
 
@@ -95,7 +95,7 @@ def test_handle_add_bib_success(mock_fetch, mock_bib_gateway, mock_import_servic
     mock_imp_service.import_papers.return_value = 3
     mock_import_service.return_value = mock_imp_service
 
-    args = argparse.Namespace(source_verb="add", name="acm", file="test.bib", verbose=False)
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.bib", details=False)
 
     SLRSourceCommand.execute(mock_gateway, args)
 
@@ -120,7 +120,7 @@ def test_handle_add_springer_csv_success(
     mock_imp_service.import_papers.return_value = 10
     mock_import_service.return_value = mock_imp_service
 
-    args = argparse.Namespace(source_verb="add", name="acm", file="test.csv", verbose=False)
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.csv", details=False)
 
     SLRSourceCommand.execute(mock_gateway, args)
 
@@ -143,7 +143,7 @@ def test_handle_add_ieee_csv_success(mock_fetch, mock_ieee_gateway, mock_import_
     mock_imp_service.import_papers.return_value = 8
     mock_import_service.return_value = mock_imp_service
 
-    args = argparse.Namespace(source_verb="add", name="acm", file="test.csv", verbose=False)
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.csv", details=False)
 
     SLRSourceCommand.execute(mock_gateway, args)
 
@@ -168,7 +168,7 @@ def test_handle_add_canonical_csv_success(
     mock_imp_service.import_papers.return_value = 2
     mock_import_service.return_value = mock_imp_service
 
-    args = argparse.Namespace(source_verb="add", name="acm", file="test.csv", verbose=False)
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.csv", details=False)
 
     SLRSourceCommand.execute(mock_gateway, args)
 
@@ -181,7 +181,7 @@ def test_handle_add_unknown_csv(mock_file):
     mock_gateway = MagicMock()
     mock_gateway.get_collection_id_by_name.return_value = "RAW_KEY"
 
-    args = argparse.Namespace(source_verb="add", name="acm", file="test.csv", verbose=False)
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.csv", details=False)
 
     with pytest.raises(SystemExit) as excinfo:
         SLRSourceCommand.execute(mock_gateway, args)
@@ -192,7 +192,7 @@ def test_handle_add_unsupported_ext():
     mock_gateway = MagicMock()
     mock_gateway.get_collection_id_by_name.return_value = "RAW_KEY"
 
-    args = argparse.Namespace(source_verb="add", name="acm", file="test.txt", verbose=False)
+    args = argparse.Namespace(source_verb="add", name="acm", file="test.txt", details=False)
 
     with pytest.raises(SystemExit) as excinfo:
         SLRSourceCommand.execute(mock_gateway, args)

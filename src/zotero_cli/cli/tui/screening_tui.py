@@ -12,6 +12,7 @@ from zotero_cli.cli.tui.components import (
 from zotero_cli.core.interfaces import ScreeningService
 from zotero_cli.core.services.screening_state import ScreeningStateService
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -47,7 +48,7 @@ class ScreeningTUI:
         self.console.print("[bold cyan]Initializing Screening Session...[/bold cyan]")
         if self.state_manager:
             self.console.print(
-                f"State Tracking: [green]ENABLED[/green] ({self.state_manager.state_file})"
+                f"State Tracking: [green]ENABLED[/green] ({safe_markup(self.state_manager.state_file)})"
             )
 
         try:
@@ -119,7 +120,7 @@ class ScreeningTUI:
             else:
                 code = ""  # Inclusion implies all criteria met
 
-            with self.console.status(f"[bold blue]Recording decision ({decision})...[/bold blue]"):
+            with self.console.status(f"[bold blue]Recording decision ({safe_markup(decision)})...[/bold blue]"):
                 success = self.service.record_decision(
                     item_key=item.key,
                     decision=decision,
@@ -176,7 +177,7 @@ class ScreeningTUI:
         default = "IC1" if decision == "INCLUDE" else "EC1"
         try:
             code = Prompt.ask(
-                f"Enter {decision} Criteria Code", default=default, console=self.console
+                f"Enter {safe_markup(decision)} Criteria Code", default=default, console=self.console
             )
             return code
         except (EOFError, StopIteration):

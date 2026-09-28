@@ -16,7 +16,7 @@ def verify_environment() -> None:
             from rich.panel import Panel
 
             console = Console(stderr=True)
-            console.print(Panel(f"[bold red]{error_msg}[/bold red]", border_style="red"))
+            console.print(Panel(f"[bold red]{safe_markup(error_msg)}[/bold red]", border_style="red"))
         except ImportError:
             print(f"ERROR: {error_msg}", file=sys.stderr)
         sys.exit(1)
@@ -36,6 +36,7 @@ from zotero_cli.core.config import get_config  # noqa: E402
 from zotero_cli.core.exceptions import ZoteroCliError  # noqa: E402
 from zotero_cli.core.logging_config import setup_logging  # noqa: E402
 from zotero_cli.core.runtime import set_offline_mode  # noqa: E402
+from zotero_cli.core.utils.terminal_safety import safe_markup  # noqa: E402
 
 logger = logging.getLogger(__name__)
 

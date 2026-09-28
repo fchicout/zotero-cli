@@ -11,6 +11,7 @@ from zotero_cli.cli.presenters.rag_presenter import (
 )
 from zotero_cli.core.exceptions import UsageError
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
+from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.factory import GatewayFactory
 
@@ -328,7 +329,7 @@ Cognitive Safeguards
             )
 
         except Exception as e:
-            console.print(f"[bold red]Error during cleanup:[/bold red] {e}")
+            console.print(f"[bold red]Error during cleanup:[/bold red] {safe_markup(e)}")
 
     def _execute_set_model(self) -> None:
         from rich.prompt import Prompt
@@ -459,14 +460,14 @@ Cognitive Safeguards
             # nothing but registry models.
             for model_id in selected_ids:
                 revision = pinned(model_id).revision  # type: ignore[union-attr]
-                console.print(f"Downloading {model_id} @ {revision[:12]}...")
+                console.print(f"Downloading {safe_markup(model_id)} @ {safe_markup(revision[:12])}...")
                 snapshot_download(
                     repo_id=model_id, token=config.huggingface_token, revision=revision
                 )
             console.print("[green]All models downloaded and cached.[/green]")
 
         except Exception as e:
-            console.print(f"[bold red]Error downloading model:[/bold red] {e}")
+            console.print(f"[bold red]Error downloading model:[/bold red] {safe_markup(e)}")
             if "GatedRepoError" in str(type(e)):
                 console.print(
                     "[yellow]Hint: Some models (like Llama) are gated. Ensure you have accepted terms and your token is valid.[/yellow]"

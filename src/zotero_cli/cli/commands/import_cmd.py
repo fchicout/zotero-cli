@@ -49,7 +49,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         file_p.add_argument("file", help="Path to input file")
         file_p.add_argument("--collection", required=True)
-        file_p.add_argument("--verbose", action="store_true")
+        file_p.add_argument("--verbose", dest="details", action="store_true")
 
         # ArXiv
         arxiv_p = sub.add_parser(
@@ -77,7 +77,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         arxiv_p.add_argument("--file", help="Path to file containing DSL query")
         arxiv_p.add_argument("--collection", required=True)
         arxiv_p.add_argument("--limit", type=int, default=100)
-        arxiv_p.add_argument("--verbose", action="store_true")
+        arxiv_p.add_argument("--verbose", dest="details", action="store_true")
 
         # DOI
         doi_p = sub.add_parser(
@@ -103,7 +103,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         doi_p.add_argument("doi", help="Digital Object Identifier")
         doi_p.add_argument("--collection", required=True)
-        doi_p.add_argument("--verbose", action="store_true")
+        doi_p.add_argument("--verbose", dest="details", action="store_true")
 
         # BDTD
         bdtd_p = sub.add_parser(
@@ -144,7 +144,7 @@ Cognitive Safeguards
             "--limit", type=int, default=20, help="Max results to import for --query"
         )
         bdtd_p.add_argument("--collection", required=True)
-        bdtd_p.add_argument("--verbose", action="store_true")
+        bdtd_p.add_argument("--verbose", dest="details", action="store_true")
 
         # Manual
         man_p = sub.add_parser(
@@ -227,7 +227,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             return
 
         papers = strategy.fetch_papers(args.file)
-        count = service.import_papers(papers, args.collection, args.verbose)
+        count = service.import_papers(papers, args.collection, args.details)
         print(f"Imported {count} items.")
 
     def _handle_arxiv(self, service: ImportService, args: argparse.Namespace) -> None:
@@ -247,7 +247,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         strategy = ArxivImportStrategy(GatewayFactory.get_arxiv_gateway())
         papers = strategy.fetch_papers(q, limit=limit, sort_by=sort)
-        count = service.import_papers(papers, args.collection, args.verbose)
+        count = service.import_papers(papers, args.collection, args.details)
         print(f"Imported {count} items.")
 
     def _handle_doi(self, service: ImportService, args: argparse.Namespace) -> None:
@@ -256,7 +256,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         aggregator = GatewayFactory.get_metadata_aggregator()
         strategy = DoiImportStrategy(aggregator)
         papers = strategy.fetch_papers(args.doi)
-        count = service.import_papers(papers, args.collection, args.verbose)
+        count = service.import_papers(papers, args.collection, args.details)
         print(f"Imported {count} items.")
 
     def _handle_bdtd(self, service: ImportService, args: argparse.Namespace) -> None:
@@ -270,7 +270,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
             strategy = SearchableProviderImportStrategy(bdtd_client)
             papers = strategy.fetch_papers(args.query, limit=args.limit)
-            count = service.import_papers(papers, args.collection, args.verbose)
+            count = service.import_papers(papers, args.collection, args.details)
             print(f"Imported {count} thesis item(s).")
             return
 
@@ -279,7 +279,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if not paper:
             raise ZoteroCliError(f"No thesis found in BDTD for identifier: {args.identifier}")
 
-        if args.verbose:
+        if args.details:
             # Harvested repository metadata: untrusted text.
             print(strip_controls(f"Title: {paper.title}"))
             print(strip_controls(f"Authors: {', '.join(paper.authors)}"))
@@ -292,7 +292,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 print(strip_controls(f"PDF URL: {paper.pdf_url}"))
             print("---")
 
-        count = service.import_papers(iter([paper]), args.collection, args.verbose)
+        count = service.import_papers(iter([paper]), args.collection, args.details)
         print(f"Imported {count} thesis item(s).")
 
     def _handle_manual(self, service: ImportService, args: argparse.Namespace) -> None:

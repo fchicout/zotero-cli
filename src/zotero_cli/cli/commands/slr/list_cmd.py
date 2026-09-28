@@ -164,7 +164,7 @@ Cognitive Safeguards:
                         [item.item_key, item.title, item.source_collection, item.reason]
                     )
                 )
-        console.print(f"[green]Successfully exported to CSV: {filename}[/green]")
+        console.print(f"[green]Successfully exported to CSV: {safe_markup(filename)}[/green]")
 
     @staticmethod
     def _export_json(items: List[DecidedItem], filename: str) -> None:
@@ -181,7 +181,7 @@ Cognitive Safeguards:
         ]
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-        console.print(f"[green]Successfully exported to JSON: {filename}[/green]")
+        console.print(f"[green]Successfully exported to JSON: {safe_markup(filename)}[/green]")
 
     @staticmethod
     def _export_xlsx(items: List[DecidedItem], filename: str) -> None:
@@ -201,7 +201,7 @@ Cognitive Safeguards:
                     if isinstance(cell.value, str):
                         cell.data_type = "s"
             wb.save(filename)
-            console.print(f"[green]Successfully exported to XLSX: {filename}[/green]")
+            console.print(f"[green]Successfully exported to XLSX: {safe_markup(filename)}[/green]")
         except ImportError:
             console.print("[red]Error: openpyxl not installed. Cannot export to XLSX.[/red]")
 
@@ -235,7 +235,7 @@ Cognitive Safeguards:
                     tr.addElement(tc)
 
             doc.save(filename)
-            console.print(f"[green]Successfully exported to ODS: {filename}[/green]")
+            console.print(f"[green]Successfully exported to ODS: {safe_markup(filename)}[/green]")
         except ImportError:
             console.print(
                 "[red]Error: odfpy not installed. Cannot export to ODS. Please run 'pip install odfpy'[/red]"
@@ -282,14 +282,14 @@ Cognitive Safeguards:
         elif args.qa is not None:
             phase_filter = "quality_assessment"
 
-        with console.status(f"[bold green]Scanning for {decision_type} papers..."):
+        with console.status(f"[bold green]Scanning for {safe_markup(decision_type)} papers..."):
             items = service.get_decided_items(
                 decision_type, root_key=args.tree, phase_filter=phase_filter
             )
 
         if not items:
             console.print(
-                f"[yellow]No {decision_type} papers found for the specified filters.[/yellow]"
+                f"[yellow]No {safe_markup(decision_type)} papers found for the specified filters.[/yellow]"
             )
             return
 
@@ -317,5 +317,5 @@ Cognitive Safeguards:
 
         console.print(table)
         console.print(
-            f"\n[bold yellow]Total {decision_type.capitalize()} Items: {len(items)}[/bold yellow]"
+            f"\n[bold yellow]Total {safe_markup(decision_type.capitalize())} Items: {len(items)}[/bold yellow]"
         )

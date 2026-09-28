@@ -51,7 +51,7 @@ class SLRReportCommand:
         )
         prisma_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         prisma_p.add_argument("--output-chart", help="Path to save flowchart image (uses mmdc)")
-        prisma_p.add_argument("--verbose", action="store_true", help="Verbose details")
+        prisma_p.add_argument("--verbose", dest="details", action="store_true", help="Verbose details")
         prisma_p.add_argument(
             "--dedupe-source",
             help="Comma-separated collection names or keys to scan for duplicates (read-only) "
@@ -196,12 +196,12 @@ class SLRReportCommand:
             )
             table.add_row(
                 "Accepted (Included)",
-                f"[green]{report.accepted_items}[/green]",
+                f"[green]{safe_markup(report.accepted_items)}[/green]",
                 f"{percent_accepted:.1f}%",
             )
             table.add_row(
                 "Rejected (Excluded)",
-                f"[red]{report.rejected_items}[/red]",
+                f"[red]{safe_markup(report.rejected_items)}[/red]",
                 f"{percent_rejected:.1f}%",
             )
 
@@ -276,7 +276,7 @@ class SLRReportCommand:
             de_val = str(de.accepted) if de else "0"
 
             table.add_row(
-                f"[cyan]{safe_markup(status.source_name)} ({status.source_key})[/cyan]",
+                f"[cyan]{safe_markup(status.source_name)} ({safe_markup(status.source_key)})[/cyan]",
                 str(status.tree_total),
                 format_stats(ta),
                 format_stats(ft),
@@ -349,7 +349,7 @@ class SLRReportCommand:
             mermaid_code = service.generate_mermaid_prisma(report)
             if service.render_diagram(mermaid_code, args.output_chart):
                 console.print(
-                    f"\n[bold green]✓ Flowchart saved to {args.output_chart}[/bold green]"
+                    f"\n[bold green]✓ Flowchart saved to {safe_markup(args.output_chart)}[/bold green]"
                 )
             else:
                 console.print("\n[bold red]✗ Failed to render flowchart diagram.[/bold red]")
@@ -412,7 +412,7 @@ class SLRReportCommand:
         success = service.freeze_collection(args.collection, args.output, cli_progress)
         print("")
         if success:
-            console.print(f"[bold green]Snapshot saved to '{args.output}'.[/bold green]")
+            console.print(f"[bold green]Snapshot saved to '{safe_markup(args.output)}'.[/bold green]")
         else:
             sys.exit(1)
 
@@ -430,7 +430,7 @@ class SLRReportCommand:
         try:
             with open(args.output, "w", encoding="utf-8") as f:
                 f.write(md_content)
-            console.print(f"\n[bold green]✓ Screening report saved to {args.output}[/bold green]")
+            console.print(f"\n[bold green]✓ Screening report saved to {safe_markup(args.output)}[/bold green]")
         except Exception as e:
             console.print(f"\n[bold red]✗ Failed to write report: {escape(str(e))}[/bold red]")
             sys.exit(1)
@@ -447,7 +447,7 @@ class SLRReportCommand:
 
         console.print(f"\n[bold]Exclusion Summary Report: {escape(report.collection_name)}[/bold]\n")
         console.print(
-            f"Total Papers Excluded: [red]{report.rejected_items}[/red] (out of {report.screened_items} screened)"
+            f"Total Papers Excluded: [red]{safe_markup(report.rejected_items)}[/red] (out of {safe_markup(report.screened_items)} screened)"
         )
 
         if not report.rejections_by_code:

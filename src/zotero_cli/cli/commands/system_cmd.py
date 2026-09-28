@@ -420,7 +420,7 @@ Cognitive Safeguards
 
         verify_service = GatewayFactory.get_verify_service()
 
-        console.print(f"Verifying archive integrity: [green]{args.file}[/green]...")
+        console.print(f"Verifying archive integrity: [green]{safe_markup(args.file)}[/green]...")
 
         with console.status("[bold green]Analyzing archive structures..."):
             report = verify_service.verify_archive(args.file)
@@ -432,7 +432,7 @@ Cognitive Safeguards
             if report.manifest and report.manifest.get("scope_type") == "library":
                 console.print(f"  - Collections: {report.collection_count}")
             console.print(
-                f"  - Timestamp: {report.manifest.get('timestamp') if report.manifest else 'N/A'}"
+                f"  - Timestamp: {safe_markup(report.manifest.get('timestamp') if report.manifest else 'N/A')}"
             )
         else:
             console.print("\n[bold red]❌ ARCHIVE IS INVALID OR CORRUPT[/bold red]")
@@ -477,7 +477,7 @@ Cognitive Safeguards
         if report.errors:
             sys.exit(1)
         status = "SIMULATED" if args.dry_run else "COMPLETE"
-        console.print(f"\n[bold green]RESTORE {status}[/bold green]")
+        console.print(f"\n[bold green]RESTORE {safe_markup(status)}[/bold green]")
 
     def _handle_groups(self, args: argparse.Namespace) -> None:
         from zotero_cli.core.config import get_config
@@ -532,7 +532,7 @@ Cognitive Safeguards
         for r in results:
             color = status_color.get(r.status, "white")
             table.add_row(
-                r.name, f"[{color}]{r.status.replace('_', ' ')}[/{color}]", safe_markup(r.details)
+                r.name, f"[{color}]{safe_markup(r.status.replace('_', ' '))}[/{color}]", safe_markup(r.details)
             )
         console.print(table)
 
@@ -551,7 +551,7 @@ Cognitive Safeguards
         results = run_selftest()
         for r in results:
             status = "[green]OK[/green]" if r.ok else "[red]FAILED[/red]"
-            console.print(f"{status}  {r.name}: {escape(r.detail)}")
+            console.print(f"{status}  {safe_markup(r.name)}: {escape(r.detail)}")
         if not all(r.ok for r in results):
             sys.exit(1)
 
@@ -579,9 +579,9 @@ Cognitive Safeguards
 
         console.print(
             Panel(
-                f"Created collection [bold]'{name}'[/bold] with {created} mock papers.\n\n"
+                f"Created collection [bold]'{safe_markup(name)}'[/bold] with {created} mock papers.\n\n"
                 f"Try it out:\n"
-                f"  [cyan]zotero-cli slr screen --source '{name}'[/cyan]\n"
+                f"  [cyan]zotero-cli slr screen --source '{safe_markup(name)}'[/cyan]\n"
                 f"  [cyan]zotero-cli report prisma[/cyan] (after screening a few items)\n\n"
                 f"When you're done: [cyan]zotero-cli system demo-sandbox --clean[/cyan]",
                 title="Sandbox Ready",
@@ -625,7 +625,7 @@ Cognitive Safeguards
                     str(j.id),
                     j.task_type,
                     j.item_key,
-                    f"[{status_color}]{j.status}[/]",
+                    f"[{status_color}]{safe_markup(j.status)}[/]",
                     str(j.attempts),
                     j.next_retry_at or "-",
                     j.last_error or "",
@@ -641,7 +641,7 @@ Cognitive Safeguards
             job.attempts = 0
             job.next_retry_at = None
             if job_service.repo.update_job(job):
-                console.print(f"[green]Job {args.id} reset to PENDING.[/green]")
+                console.print(f"[green]Job {safe_markup(args.id)} reset to PENDING.[/green]")
             else:
                 raise ZoteroCliError(f"Failed to update job {args.id}.")
 
@@ -659,7 +659,7 @@ Cognitive Safeguards
             if args.watch:
                 self._watch_jobs(job_service, args.type, force_user)
             else:
-                console.print(f"[bold]Starting worker for task type '{args.type}'...[/bold]")
+                console.print(f"[bold]Starting worker for task type '{safe_markup(args.type)}'...[/bold]")
                 asyncio.run(worker_service.process_jobs(count=args.count))
                 console.print("[bold green]Done.[/bold green]")
 
@@ -689,7 +689,7 @@ Cognitive Safeguards
                 table.add_row(
                     str(j.id),
                     j.item_key,
-                    f"[{status_color}]{j.status}[/]",
+                    f"[{status_color}]{safe_markup(j.status)}[/]",
                     str(j.attempts),
                     j.last_error or "",
                 )
@@ -751,12 +751,12 @@ Cognitive Safeguards
         target_name = target.get("data", {}).get("name")
         target_id = str(target.get("id"))
 
-        if Confirm.ask(f"Switch context to group '{safe_markup(target_name)}' ({target_id})?"):
+        if Confirm.ask(f"Switch context to group '{safe_markup(target_name)}' ({safe_markup(target_id)})?"):
             try:
                 manager = ConfigManager()
                 manager.save_group_context(target_id)
                 console.print(
-                    f"[green]Switched context to group: {safe_markup(target_name)} ({target_id})[/green]"
+                    f"[green]Switched context to group: {safe_markup(target_name)} ({safe_markup(target_id)})[/green]"
                 )
             except Exception as e:
                 raise ZoteroCliError(f"Failed to save configuration: {e}") from e
@@ -811,7 +811,7 @@ Cognitive Safeguards
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
         service = BackupService(gateway)
 
-        console.print(f"Starting System Backup to [green]{args.output}[/green]...")
+        console.print(f"Starting System Backup to [green]{safe_markup(args.output)}[/green]...")
 
         try:
             with Progress(
@@ -840,6 +840,6 @@ Cognitive Safeguards
                 service.backup_system(args.output, on_item_processed=on_item)
                 progress.update(task, description="Finalizing .zaf container...")
 
-            console.print(f"[bold green]Backup complete:[/bold green] {args.output}")
+            console.print(f"[bold green]Backup complete:[/bold green] {safe_markup(args.output)}")
         except Exception as e:
             console.print(f"[bold red]Backup failed:[/bold red] {escape(str(e))}")
