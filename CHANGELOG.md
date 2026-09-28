@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### ⚡ Performance
+- **Every command starts faster (Issue #433):** starting zotero-cli imported the HTTP stack, the BibTeX parser and the web server whether or not the command used them. They now load only when needed: `zotero-cli --help` takes about 220 ms instead of 550 ms, and commands that don't use the network, such as `--offline` ones, save the same.
 - **`report stats` and `report attachments` use less memory (Issue #439):** both kept every item of the library in memory, about 3.6 KB each (roughly 180 MB at 50k items). `report stats` now counts as the items arrive, and `report attachments` keeps only the papers and each attachment's size and type.
 - **`system restore` asks for a paper's notes once (Issue #440):** it made one request per restored note to check for an existing copy, about 20,000 extra requests for a 50k library. It now asks once per paper and remembers what it has added, and papers it has just created are known to have no notes yet.
 - **Snowball review no longer rewrites the whole graph on every decision (Issue #435):** each accept or reject rewrote the discovery graph file: 1.1–2.4 s per decision at 50k–100k nodes. Decisions are now saved every 25 decisions or 30 seconds, and when the session ends (including with `q` or Ctrl-C) or the import finishes. The graph file is written compactly; `slr snowball export --format json` output is unchanged.

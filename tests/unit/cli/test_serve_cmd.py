@@ -28,7 +28,7 @@ def clean_env():
 
 
 def test_default_bind_is_loopback_without_token(monkeypatch):
-    with patch("zotero_cli.cli.commands.serve_cmd.uvicorn.run") as run:
+    with patch("uvicorn.run") as run:
         ServeCommand().execute(_args())
     assert run.call_args.kwargs["host"] == "127.0.0.1"
     assert os.environ[ENV_ALLOWED_HOSTS] == "127.0.0.1,localhost,::1"
@@ -36,7 +36,7 @@ def test_default_bind_is_loopback_without_token(monkeypatch):
 
 
 def test_non_loopback_bind_is_refused_without_allow_remote(capsys):
-    with patch("zotero_cli.cli.commands.serve_cmd.uvicorn.run") as run:
+    with patch("uvicorn.run") as run:
         with pytest.raises(SystemExit) as exc:
             ServeCommand().execute(_args(host="0.0.0.0"))
     assert exc.value.code == 2
@@ -45,7 +45,7 @@ def test_non_loopback_bind_is_refused_without_allow_remote(capsys):
 
 
 def test_allow_remote_generates_and_prints_a_token(capsys):
-    with patch("zotero_cli.cli.commands.serve_cmd.uvicorn.run") as run:
+    with patch("uvicorn.run") as run:
         ServeCommand().execute(_args(host="0.0.0.0", allow_remote=True))
     run.assert_called_once()
     token = os.environ[ENV_TOKEN]
@@ -55,6 +55,6 @@ def test_allow_remote_generates_and_prints_a_token(capsys):
 
 
 def test_allowed_host_is_added_to_the_allowlist():
-    with patch("zotero_cli.cli.commands.serve_cmd.uvicorn.run"):
+    with patch("uvicorn.run"):
         ServeCommand().execute(_args(allowed_host=["zotero.lan"]))
     assert os.environ[ENV_ALLOWED_HOSTS].split(",")[-1] == "zotero.lan"
