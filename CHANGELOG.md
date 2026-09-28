@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.0.3] - 2026-09-28
+
+The third patch train: config, setup and first run. No new commands, flags or config keys. Things that behave differently:
+- A `--config` path that doesn't exist is now an error instead of an empty config.
+- With `ZOTERO_LIBRARY_ID` but no library type, zotero-cli uses your user library when the ID is the API key's own user ID (one extra request per run; set `library_type` or `ZOTERO_LIBRARY_TYPE` to skip it).
+- Re-running `init` updates your config instead of replacing it.
+- `system switch` and `rag model set` write to the `--config` file, not the default one.
+
 ### 🐛 Bug Fixes
 - **An unwritable storage directory is one clear error (Issue #419):** in the Docker image, `docker run --user …` without the config mount printed "Could not set up log file at None", then a `sqlite3` traceback. zotero-cli now stops with one line naming the directory and, in the container, saying to mount a directory you own at `/config/zotero-cli`. The log warning names the real directory, and the README Docker section explains the mount.
 - **`init` writes a valid config and keeps what it doesn't ask about (Issue #388):**
