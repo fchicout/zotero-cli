@@ -163,6 +163,13 @@ class ZoteroAPIClient(ZoteroGateway):
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
         return self._paginate_items("items", params=query.to_params())
 
+    def count_search_results(self, query: ZoteroQuery) -> Optional[int]:
+        """How many items a search matches, from one `limit=1` request's
+        Total-Results header (None if the header is missing). Used to decide
+        between a scan and per-parent lookups (Issue #441)."""
+        response = self.http.get("items", params={**query.to_params(), "limit": 1})
+        return _total_results(response)
+
     def verify_credentials(self) -> bool:
         """
         Verifies that the API key and Library ID are valid by making a lightweight request.

@@ -16,6 +16,24 @@ def purge_service(mock_gateway):
     return PurgeService(mock_gateway)
 
 
+class _CountingGateway(MagicMock):
+    """An online gateway that reports how many items of a type exist, so
+    the scan-or-lookup choice can be made (Issue #441)."""
+
+    total = 150  # 2 pages: a scan beats 3+ per-parent lookups
+
+    def count_search_results(self, query):
+        self.counted.append(query.item_type)
+        return type(self).total
+
+
+@pytest.fixture
+def scan_gateway():
+    gateway = _CountingGateway()
+    gateway.counted = []
+    return gateway
+
+
 def test_purge_attachments_dry_run(purge_service, mock_gateway):
     mock_gateway.get_item_children.return_value = [
         {"key": "A1", "data": {"itemType": "attachment", "version": 1}},
@@ -478,10 +496,12 @@ def _note_item(key, parent_item, note="", version=1):
     )
 
 
-def test_purge_attachments_batches_scan_for_many_parents(purge_service, mock_gateway):
+def test_purge_attachments_batches_scan_for_many_parents(scan_gateway):
     """Regression test for Issue #276: with more than a couple of parent
     keys, purge_attachments must do one search_items(item_type=...) scan
     instead of one get_item_children round-trip per parent."""
+    mock_gateway = scan_gateway
+    purge_service = PurgeService(scan_gateway)
     mock_gateway.search_items.return_value = [
         _attachment_item("A1", "P1"),
         _attachment_item("A2", "P2"),
@@ -500,8 +520,10 @@ def test_purge_attachments_batches_scan_for_many_parents(purge_service, mock_gat
     mock_gateway.delete_item.assert_any_call("A2", 1)
 
 
-def test_purge_notes_batches_scan_for_many_parents(purge_service, mock_gateway):
+def test_purge_notes_batches_scan_for_many_parents(scan_gateway):
     """Regression test for Issue #276, notes path."""
+    mock_gateway = scan_gateway
+    purge_service = PurgeService(scan_gateway)
     mock_gateway.search_items.return_value = [
         _note_item("N1", "P1"),
         _note_item("N2", "P2"),
@@ -517,11 +539,11 @@ def test_purge_notes_batches_scan_for_many_parents(purge_service, mock_gateway):
     assert query.item_type == "note"
 
 
-def test_purge_attachments_batch_scan_failure_counts_errors_per_parent(
-    purge_service, mock_gateway
-):
+def test_purge_attachments_batch_scan_failure_counts_errors_per_parent(scan_gateway):
     """A failed batched scan must still report one error per requested
     parent, matching the pre-batching per-item error-isolation behavior."""
+    mock_gateway = scan_gateway
+    purge_service = PurgeService(scan_gateway)
     mock_gateway.search_items.side_effect = Exception("API Error")
 
     stats = purge_service.purge_attachments(["P1", "P2", "P3"], dry_run=False)
@@ -531,7 +553,7 @@ def test_purge_attachments_batch_scan_failure_counts_errors_per_parent(
 
 
 def test_purge_attachments_stays_per_item_at_or_below_threshold(purge_service, mock_gateway):
-    """At or below the batch threshold, purge_attachments must keep using
+    """A gateway that can't count (offline test double) keeps using
     per-parent get_item_children lookups rather than a full scan."""
     mock_gateway.get_item_children.return_value = [
         {"key": "A1", "data": {"itemType": "attachment", "version": 1}}
@@ -542,3 +564,22 @@ def test_purge_attachments_stays_per_item_at_or_below_threshold(purge_service, m
 
     assert stats["deleted"] == 2
     mock_gateway.search_items.assert_not_called()
+
+
+def test_small_purge_in_a_large_library_looks_up_each_parent(scan_gateway):
+    """Issue #441: purging 3 items paged through ~35k attachments (350
+    pages) because the threshold was a fixed 2."""
+    _CountingGateway.total = 35_000
+    try:
+        scan_gateway.get_item_children.return_value = [
+            {"key": "A1", "data": {"itemType": "attachment", "version": 1}}
+        ]
+        scan_gateway.delete_item.return_value = True
+        stats = PurgeService(scan_gateway).purge_attachments(["P1", "P2", "P3"], dry_run=False)
+    finally:
+        _CountingGateway.total = 150
+
+    assert stats["deleted"] == 3
+    scan_gateway.search_items.assert_not_called()
+    assert scan_gateway.get_item_children.call_count == 3
+    assert scan_gateway.counted == ["attachment"]
