@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Set
 
 from zotero_cli.core.interfaces import ItemRepository
+from zotero_cli.core.services.children_index import children_by_parent
 
 logger = logging.getLogger(__name__)
 
@@ -28,14 +29,19 @@ class AuditService:
 
         from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 
+        found = {}
         for key in sorted(citations):
             item = self.item_repo.get_item(key)
             if not item:
                 items_report[key] = {"exists": False, "screened": False}
-                continue
+            else:
+                found[key] = item
+        # The cited items' notes together, not one request each (Issue #425)
+        notes_by_item = children_by_parent(self.item_repo, list(found), "note")
 
+        for key, item in found.items():
             # Check for SDB note
-            children = self.item_repo.get_item_children(key)
+            children = notes_by_item.get(key, [])
             screened = False
             decision = None
 

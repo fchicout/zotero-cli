@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from rich.table import Table
 
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.utils.sdb_parser import encode_json_note, parse_sdb_note
 from zotero_cli.core.utils.terminal_safety import safe_markup
 
@@ -24,9 +25,16 @@ class SDBService:
         Retrieves all valid SDB entries for an item.
         Returns a list of parsed dictionaries.
         """
-        children = self.gateway.get_item_children(item_key)
-        sdb_entries = []
+        return self.inspect_items_sdb([item_key]).get(item_key, [])
 
+    def inspect_items_sdb(self, item_keys: List[str]) -> Dict[str, List[Dict[str, Any]]]:
+        """The SDB entries of many items, fetched together (Issue #425)."""
+        notes = children_by_parent(self.gateway, item_keys, "note")
+        return {key: self._sdb_entries(children) for key, children in notes.items()}
+
+    @staticmethod
+    def _sdb_entries(children: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        sdb_entries = []
         for child in children:
             data = child.get("data", child)
             if data.get("itemType") == "note":
@@ -37,7 +45,6 @@ class SDBService:
                     parsed["_note_key"] = child.get("key") or data.get("key")
                     parsed["_note_version"] = int(child.get("version") or data.get("version") or 0)
                     sdb_entries.append(parsed)
-
         return sdb_entries
 
     def classify_decision_agreement(self, item_keys: List[str]) -> str:
@@ -147,12 +154,11 @@ class SDBService:
             stats["errors"] += 1
             return stats
 
-        items = self.gateway.get_items_in_collection(col_id)
-
+        items = list(self.gateway.get_items_in_collection(col_id))
+        entries_by_item = self.inspect_items_sdb([item.key for item in items])
 
         for item in items:
-            entries = self.inspect_item_sdb(item.key)
-            for entry in entries:
+            for entry in entries_by_item.get(item.key, []):
                 stats["scanned"] += 1
                 current_ver = entry.get("audit_version", "1.0")
 
@@ -193,17 +199,19 @@ class SDBService:
         """
         filtered_results = []
 
-        for item in items:
-            # 1. Fast Filter (Tags) - Optimization
-            if included and "rsl:include" not in item.tags:
-                continue
-            if excluded and not any(t.startswith("rsl:exclude:") for t in item.tags):
-                continue
-            if criteria and f"rsl:exclude:{criteria}" not in item.tags:
-                continue
+        # 1. Fast Filter (Tags) - Optimization
+        candidates = [
+            item
+            for item in items
+            if not (included and "rsl:include" not in item.tags)
+            and not (excluded and not any(t.startswith("rsl:exclude:") for t in item.tags))
+            and not (criteria and f"rsl:exclude:{criteria}" not in item.tags)
+        ]
+        # 2. Deep Filter (Notes), fetched for all candidates together
+        entries_by_item = self.inspect_items_sdb([item.key for item in candidates])
 
-            # 2. Deep Filter (Notes)
-            entries = self.inspect_item_sdb(item.key)
+        for item in candidates:
+            entries = entries_by_item.get(item.key, [])
             matched_entry = None
             for entry in entries:
                 match = True

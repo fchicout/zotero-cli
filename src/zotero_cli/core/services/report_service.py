@@ -9,10 +9,11 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import Job
+from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -53,11 +54,12 @@ class ReportService:
             return None
 
         report = PrismaReport(collection_name=collection_name, duplicates_removed=duplicates_removed)
-        items = self.gateway.get_items_in_collection(col_id)
+        items = list(self.gateway.get_items_in_collection(col_id))
+        notes_by_item = children_by_parent(self.gateway, [item.key for item in items], "note")
 
         for item in items:
             report.total_items += 1
-            self._process_item_notes(item, report)
+            self._process_item_notes(item, report, notes_by_item.get(item.key, []))
 
         return report
 
@@ -151,8 +153,14 @@ class ReportService:
 
         return "\n".join(md)
 
-    def _process_item_notes(self, item: ZoteroItem, report: PrismaReport) -> None:
-        children = self.gateway.get_item_children(item.key)
+    def _process_item_notes(
+        self,
+        item: ZoteroItem,
+        report: PrismaReport,
+        children: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
+        if children is None:
+            children = self.gateway.get_item_children(item.key)
 
         for child in children:
             data_raw = child.get("data", child)

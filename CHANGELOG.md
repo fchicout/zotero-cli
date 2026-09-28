@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### ⚡ Performance
+- **SLR and screening commands fetch every paper's notes together (Issue #425):** `slr report status` and `slr list` made one API request per paper to read its screening notes: 5,131 requests, about 26–51 minutes, for 5,000 papers. So did `slr report consensus`, `snapshot` and `prisma`, the extraction matrix, pending screening, manuscript audit, state recovery, the RAG quality filter, and SDB upgrade and filter. They now read all the notes with one library-wide scan (about 200 requests for 20,000 notes), or one request per paper when that is fewer. Offline, it's one query.
 - **Purging a few items no longer pages through the whole library (Issue #441):** `purge` switched to a library-wide scan for anything above 2 items, so purging 3 items in a 50k library read about 350 pages of attachments. It now scans only when that takes fewer requests than one lookup per item, working this out from one extra request. Other commands move to the same rule in this release.
 
 ## [3.0.4] - 2026-09-28

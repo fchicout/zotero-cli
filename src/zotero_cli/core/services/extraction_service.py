@@ -9,6 +9,7 @@ import yaml
 
 from zotero_cli.core.interfaces import ExtractionService as IExtractionService
 from zotero_cli.core.interfaces import NoteRepository
+from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.utils.sdb_parser import decode_json_note, encode_json_note
 
 # Valid types as per SDB-Extraction v1.0
@@ -179,6 +180,8 @@ class ExtractionService(IExtractionService):
 
         headers = ["Item Key", "Title", "Year"] + var_labels
         matrix_data = []
+        # Every item's notes together, not one request each (Issue #425)
+        notes_by_item = children_by_parent(self.note_repo, [item.key for item in items], "note")
 
         for item in items:
             row = {
@@ -188,7 +191,7 @@ class ExtractionService(IExtractionService):
             }
 
             # Find extraction note
-            children = self.note_repo.get_item_children(item.key)
+            children = notes_by_item.get(item.key, [])
             extracted_values = {}
 
             for child in children:
