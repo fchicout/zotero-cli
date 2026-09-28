@@ -1,17 +1,10 @@
 from typing import Any, Dict, List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.models import ZoteroQuery
+from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 
 OFFLINE_ERROR_MSG = "Offline Veto: PurgeService cannot execute in offline mode."
-
-# Below this many parent keys, a single search_items(item_type=...) library
-# scan costs more than just looking each one up directly - the batched path
-# only pays off once N per-item get_item_children round-trips would exceed
-# the cost of the 1-2 scans (Issue #276, same class as #189).
-_BATCH_SCAN_THRESHOLD = 2
-
 
 class PurgeService:
     """
@@ -33,43 +26,19 @@ class PurgeService:
     ) -> Dict[str, Optional[List[Dict[str, Any]]]]:
         """
         Groups children of the given parent keys by parent, filtered to
-        `item_type`. For more than a couple of parents, does one
-        `search_items(item_type=...)` library-wide scan instead of one
-        `get_item_children` round-trip per parent (Issue #276, same class as
-        #189 - mirrors `slr/source_cmd.py`'s `_fetch_pdf_and_note_parent_keys`
-        fix). Below that, a per-parent lookup stays cheaper than a full scan.
+        `item_type`, with as few requests as possible (see children_index:
+        one scan only when it beats one lookup per parent, Issue #441).
 
-        A parent key maps to `None` (rather than an empty list) if its
-        lookup/the scan itself failed, so callers can distinguish "genuinely
-        has no children of this type" from "we couldn't tell" and count it
-        as an error like the pre-batching per-item code did.
+        A parent key maps to `None` (rather than an empty list) if the
+        lookup failed, so callers can distinguish "genuinely has no
+        children of this type" from "we couldn't tell" and count it as an
+        error like the pre-batching per-item code did.
         """
-        by_parent: Dict[str, Optional[List[Dict[str, Any]]]] = {}
-
-        if len(item_keys) > _BATCH_SCAN_THRESHOLD:
-            wanted = set(item_keys)
-            for key in wanted:
-                by_parent[key] = []
-            try:
-                for item in self.gateway.search_items(ZoteroQuery(item_type=item_type)):
-                    parent_key = item.parent_item
-                    if parent_key and parent_key in wanted:
-                        by_parent[parent_key].append(item.raw_data)  # type: ignore[union-attr]
-            except Exception:
-                by_parent = dict.fromkeys(wanted, None)
-        else:
-            for parent_key in item_keys:
-                try:
-                    children = self.gateway.get_item_children(parent_key)
-                    by_parent[parent_key] = [
-                        child
-                        for child in children
-                        if child.get("data", child).get("itemType") == item_type
-                    ]
-                except Exception:
-                    by_parent[parent_key] = None
-
-        return by_parent
+        try:
+            grouped = children_by_parent(self.gateway, item_keys, item_type)
+        except Exception:
+            return dict.fromkeys(item_keys, None)
+        return {key: grouped.get(key, []) for key in item_keys}
 
     def purge_attachments(self, item_keys: List[str], dry_run: bool = True) -> Dict[str, int]:
         """Deletes all attachments for the given parent item keys."""

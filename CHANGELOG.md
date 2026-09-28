@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### ⚡ Performance
+- **Purging a few items no longer pages through the whole library (Issue #441):** `purge` switched to a library-wide scan for anything above 2 items, so purging 3 items in a 50k library read about 350 pages of attachments. It now scans only when that takes fewer requests than one lookup per item, working this out from one extra request. Other commands move to the same rule in this release.
+
 ## [3.0.4] - 2026-09-28
 
 The fourth patch train: offline mode. No new commands, flags or config keys. **If you use `--offline` for systematic reviews, upgrade:** screening decisions stored in notes were invisible offline, so `slr report status` and related commands reported every paper as unscreened. Offline runs also copy `zotero.sqlite` once instead of once per internal service, and keep that copy in `~/.cache/zotero-cli` rather than `/tmp`.
