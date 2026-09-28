@@ -1,12 +1,15 @@
 import logging
+import secrets
 from typing import Any, Dict, Optional, cast
 
 import requests
 from tenacity import (
     after_log,
+    before_sleep_log,
     retry,
     retry_if_exception,
     stop_after_attempt,
+    stop_after_delay,
     wait_exponential,
 )
 
@@ -22,6 +25,22 @@ def is_http_retryable(exception: BaseException) -> bool:
 
 
 logger = logging.getLogger(__name__)
+
+# Issue #409: a POST that creates objects carries a random write token, the
+# same on every retry of that request, so Zotero processes it at most once.
+IDEMPOTENCY_HEADER = "Zotero-Write-Token"
+POST_TIMEOUT = 60
+
+
+def is_post_retryable(exception: BaseException) -> bool:
+    """With a write token, retrying a POST can't duplicate anything, so a
+    read timeout (the request may have been committed) is retried too."""
+    return is_http_retryable(exception) or isinstance(exception, requests.exceptions.Timeout)
+
+
+def is_duplicate_write(response: requests.Response) -> bool:
+    """Zotero's answer to a write token it has already processed."""
+    return response.status_code == 412 and "write token" in (response.text or "").lower()
 
 
 class ZoteroHttpClient:
@@ -74,13 +93,6 @@ class ZoteroHttpClient:
         response.raise_for_status()
         return response
 
-    @retry(
-        stop=stop_after_attempt(10),
-        wait=wait_exponential(multiplier=2, min=2, max=60),
-        retry=retry_if_exception(is_http_retryable),
-        after=after_log(logger, logging.DEBUG),
-        reraise=True,
-    )
     def post(
         self,
         endpoint: str,
@@ -89,15 +101,39 @@ class ZoteroHttpClient:
         headers: Optional[Dict] = None,
         version_check: bool = False,
     ) -> requests.Response:
+        """POST with retries. An object-creating POST (a JSON array) gets a
+        write token here, outside the retry loop, so every retry sends the
+        same one (Issue #409: a retry after a dropped connection used to
+        create the items again). If Zotero already processed it, the 412 is
+        returned instead of raised; see `is_duplicate_write`."""
         url = f"{self.api_prefix}/{endpoint}" if use_prefix else f"{self.BASE_URL}/{endpoint}"
         h = dict(self.session.headers).copy()
         if headers:
             h.update(headers)
         if version_check:
             h["If-Unmodified-Since-Version"] = str(self.last_library_version)
+        if isinstance(json_data, list) and IDEMPOTENCY_HEADER not in h:
+            h[IDEMPOTENCY_HEADER] = secrets.token_hex(16)
+        return self._post_with_retries(url, json_data, h)
 
-        response = self.session.post(url, json=json_data, headers=h)
+    @retry(
+        stop=(stop_after_attempt(5) | stop_after_delay(90)),
+        wait=wait_exponential(multiplier=2, min=2, max=30),
+        retry=retry_if_exception(is_post_retryable),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        reraise=True,
+    )
+    def _post_with_retries(
+        self, url: str, json_data: Any, headers: Dict[str, Any]
+    ) -> requests.Response:
+        response = self.session.post(url, json=json_data, headers=headers, timeout=POST_TIMEOUT)
         self._update_version(response)
+        if is_duplicate_write(response):
+            logger.warning(
+                "Zotero had already processed this write (an earlier attempt succeeded before "
+                "the connection failed); it was not sent again."
+            )
+            return response
         response.raise_for_status()
         return response
 

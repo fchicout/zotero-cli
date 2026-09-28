@@ -16,7 +16,7 @@ from zotero_cli.core.utils.url_safety import (
     safe_get,
 )
 from zotero_cli.core.zotero_item import ZoteroItem
-from zotero_cli.infra.http_client import ZoteroHttpClient
+from zotero_cli.infra.http_client import ZoteroHttpClient, is_duplicate_write
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +69,14 @@ class ZoteroAPIClient(ZoteroGateway):
             return default_val
 
     def _parse_write_response(self, response: requests.Response) -> Optional[str]:
+        if is_duplicate_write(response):
+            # The object exists (created by an earlier attempt of this same
+            # request), but Zotero doesn't say its key again (Issue #409).
+            logger.warning(
+                "ZoteroAPIClient: the object was already created by an earlier attempt of this "
+                "request; its key is not known here, so it is reported as not created."
+            )
+            return None
         data = cast(Dict[str, Any], response.json())
         if "successful" in data and data["successful"]:
             first_index = next(iter(data["successful"].keys()))
