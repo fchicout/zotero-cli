@@ -496,24 +496,107 @@ class SqliteZoteroGateway(ZoteroGateway):
         item = self.get_item(item_key)
         return item.tags if item else []
 
+    # Zotero's itemAttachments.linkMode integers, as the Web API names them.
+    _LINK_MODES = {
+        0: "imported_file",
+        1: "imported_url",
+        2: "linked_file",
+        3: "linked_url",
+        4: "embedded_image",
+    }
+
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
-        # No items.parentItemID in the real schema -- child linkage lives on
-        # itemAttachments/itemNotes instead (see _TOP_LEVEL_ONLY_SQL above).
+        return self.get_children_by_parent([item_key]).get(item_key, [])
+
+    def get_children_by_parent(self, parent_keys: List[str]) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        The notes and attachments of each parent, in the Web API's shape
+        (`data.itemType`, `data.note`, `data.parentItem`, ...), from one
+        query for all parents (Issue #437). Only keys used to be returned,
+        so every SDB decision read offline was empty: `slr report status`
+        showed 0 accepted and 0 rejected.
+
+        No items.parentItemID in the real schema -- child linkage lives on
+        itemAttachments/itemNotes instead (see _TOP_LEVEL_ONLY_SQL above).
+        The keys go in as one JSON parameter, not one "?" each (#422).
+        """
+        if not parent_keys:
+            return {}
         conn = self._get_connection()
-        cursor = conn.execute(
+        rows = conn.execute(
             """
-            SELECT key FROM items
-            WHERE itemID IN (
-                SELECT itemID FROM itemAttachments
-                WHERE parentItemID = (SELECT itemID FROM items WHERE key = ?)
-                UNION
-                SELECT itemID FROM itemNotes
-                WHERE parentItemID = (SELECT itemID FROM items WHERE key = ?)
+            SELECT c.itemID, c.key, c.version, c.dateAdded, c.dateModified,
+                   it.typeName, p.key AS parentKey,
+                   n.note, a.linkMode, a.contentType, a.path,
+                   (SELECT dv.value FROM itemData d
+                    JOIN fields f ON d.fieldID = f.fieldID
+                    JOIN itemDataValues dv ON d.valueID = dv.valueID
+                    WHERE d.itemID = c.itemID AND f.fieldName = 'title') AS title,
+                   (SELECT dv.value FROM itemData d
+                    JOIN fields f ON d.fieldID = f.fieldID
+                    JOIN itemDataValues dv ON d.valueID = dv.valueID
+                    WHERE d.itemID = c.itemID AND f.fieldName = 'url') AS url
+            FROM items c
+            JOIN itemTypes it ON c.itemTypeID = it.itemTypeID
+            LEFT JOIN itemNotes n ON n.itemID = c.itemID
+            LEFT JOIN itemAttachments a ON a.itemID = c.itemID
+            JOIN items p ON p.itemID = COALESCE(n.parentItemID, a.parentItemID)
+            WHERE p.key IN (SELECT value FROM json_each(?))
+              AND c.itemID NOT IN (SELECT itemID FROM deletedItems)
+            ORDER BY c.itemID
+            """,
+            (json.dumps(list(parent_keys)),),
+        ).fetchall()
+        if not rows:
+            return {}
+
+        tags: Dict[int, List[Dict[str, Any]]] = {}
+        child_ids = json.dumps([r["itemID"] for r in rows])
+        for t in conn.execute(
+            """
+            SELECT itg.itemID, tg.name FROM itemTags itg JOIN tags tg ON itg.tagID = tg.tagID
+            WHERE itg.itemID IN (SELECT value FROM json_each(?))
+            """,
+            (child_ids,),
+        ):
+            tags.setdefault(t["itemID"], []).append({"tag": t["name"]})
+
+        children: Dict[str, List[Dict[str, Any]]] = {}
+        for r in rows:
+            data: Dict[str, Any] = {
+                "key": r["key"],
+                "version": r["version"],
+                "itemType": r["typeName"],
+                "parentItem": r["parentKey"],
+                "dateAdded": r["dateAdded"],
+                "dateModified": r["dateModified"],
+                "tags": tags.get(r["itemID"], []),
+            }
+            if r["typeName"] == "note":
+                data["note"] = r["note"] or ""
+            else:
+                data.update(self._attachment_fields(r))
+            children.setdefault(r["parentKey"], []).append(
+                {"key": r["key"], "version": r["version"], "data": data}
             )
-        """,
-            (item_key, item_key),
-        )
-        return [{"key": r["key"]} for r in cursor]
+        return children
+
+    @classmethod
+    def _attachment_fields(cls, row: sqlite3.Row) -> Dict[str, Any]:
+        link_mode = cls._LINK_MODES.get(row["linkMode"], "imported_file")
+        fields: Dict[str, Any] = {
+            "linkMode": link_mode,
+            "title": row["title"] or "",
+            "contentType": row["contentType"] or "",
+        }
+        path = row["path"] or ""
+        if path.startswith("storage:"):
+            fields["filename"] = path[len("storage:") :]
+        elif path:
+            fields["path"] = path
+        if row["url"]:
+            fields["url"] = row["url"]
+        return fields
 
     # --- Write Operations (FORBIDDEN in Offline mode) ---
 
