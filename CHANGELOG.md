@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 - **Upgrading and uninstalling, for every install channel (Issue #418):** the README has a table for the installers, `.msi`, `.deb`, `.rpm`, archives, uv, pipx and Docker, and tells people who installed from git before 2.8.12 to remove the old `zotero-cli` package first. `install.sh` and `install.ps1` accept `ZOTERO_CLI_VERSION=3.0.5` as well as `v3.0.5`, and a version that doesn't exist now gets a message with the releases page instead of a bare "404".
 
 ### 📦 Distribution
+- **PyPI releases use Trusted Publishing (Issue #421):** the release workflow publishes with a short-lived token that PyPI issues to this repository's release workflow, instead of a long-lived API token stored as a secret, so there's no publishing credential left to leak.
 - **Releases publish in a safe order (Issue #416):**
   - A tag that doesn't match the package version now stops the release before anything is built, where before a GitHub release was already public.
   - PyPI is published before the GitHub release, so the installers' "latest" never points at a version PyPI doesn't have, and a rerun after a partial upload finishes instead of failing.

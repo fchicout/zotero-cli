@@ -375,9 +375,10 @@ jobs:
 
   publish-pypi:
     # First to publish (Issue #416): the GitHub release waits for it. Kept
-    # apart from the build jobs: it gets a read-only GITHUB_TOKEN, no cached
-    # state, and the PyPI token only through the `pypi` environment
-    # (restricted to v* tags).
+    # apart from the build jobs: it gets a read-only GITHUB_TOKEN and no
+    # cached state. PyPI Trusted Publishing (Issue #421): PyPI accepts a
+    # short-lived OIDC token for this repository, this workflow and the
+    # `pypi` environment (restricted to v* tags) - no stored API token.
     if: github.event_name == 'push'
     needs: [build-linux, build-windows, build-python]
     runs-on: ubuntu-latest
@@ -386,6 +387,7 @@ jobs:
       url: https://pypi.org/project/zotero-command-line/
     permissions:
       contents: read
+      id-token: write  # the OIDC token PyPI Trusted Publishing checks
     steps:
       - name: Install uv
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -401,6 +403,4 @@ jobs:
       # --check-url skips files PyPI already has, so a rerun after a partial
       # upload finishes instead of failing on "file exists".
       - name: Publish to PyPI
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        run: uv publish --check-url https://pypi.org/simple/ dist/*
+        run: uv publish --trusted-publishing always --check-url https://pypi.org/simple/ dist/*
