@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.0.5] - 2026-09-28
+
+The fifth patch train: large libraries. No new commands, flags or config keys. Commands that used to make one request per item now read what they need in a few requests, so SLR reports, exports, backups and duplicate reports on libraries with thousands of items finish in minutes instead of hours, and every command starts faster. Worth knowing:
+- `report attachments` on a whole library counted each attachment twice; its totals are now lower and correct.
+- `report duplicates` no longer lists attachments and notes (thousands of "Full Text PDF" rows appeared as one duplicate).
+- Backups store PDFs uncompressed: archives are about 8% larger but much faster to create. Existing archives still verify and restore.
+- Snowball review saves every 25 decisions or 30 seconds and when the session ends, including with Ctrl-C.
+
 ### ⚡ Performance
 - **Smaller, faster Linux binaries (Issue #434, first step):** the Linux release binaries and the Docker image are now stripped. The binary goes from 49 MB to 45 MB, and each command starts about 30 ms sooner, since the whole payload is unpacked on every run. Switching the installed packages to an unpacked layout is planned separately.
 - **Every command starts faster (Issue #433):** starting zotero-cli imported the HTTP stack, the BibTeX parser and the web server whether or not the command used them. They now load only when needed: `zotero-cli --help` takes about 220 ms instead of 550 ms, and commands that don't use the network, such as `--offline` ones, save the same.
