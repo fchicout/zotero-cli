@@ -1,4 +1,6 @@
 import argparse
+from itertools import islice
+from typing import Iterable
 
 from rich.markup import escape
 from rich.table import Table
@@ -8,6 +10,7 @@ from zotero_cli.core.exceptions import UsageError
 from zotero_cli.core.models import ZoteroQuery
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
+from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.factory import GatewayFactory
 
 console = Console()
@@ -47,29 +50,25 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
-        results = []
-
         if args.doi:
             console.print(f"Searching for DOI: [cyan]{escape(args.doi)}[/cyan]...")
-            results = list(gateway.get_items_by_doi(args.doi))
+            hits: Iterable[ZoteroItem] = gateway.get_items_by_doi(args.doi)
         elif args.title:
             console.print(f"Searching for title: [cyan]{escape(args.title)}[/cyan]...")
-            query = ZoteroQuery(q=args.title, qmode="titleCreatorYear")
-            results = list(gateway.search_items(query))
+            hits = gateway.search_items(ZoteroQuery(q=args.title, qmode="titleCreatorYear"))
         elif args.query:
             console.print(f"Searching for: [cyan]{escape(args.query)}[/cyan]...")
-            query = ZoteroQuery(q=args.query, qmode="titleCreatorYear")
-            results = list(gateway.search_items(query))
+            hits = gateway.search_items(ZoteroQuery(q=args.query, qmode="titleCreatorYear"))
         else:
             raise UsageError("Provide a query, --doi, or --title.")
+
+        # Stop reading once --limit hits are in: results arrive a page at a
+        # time, and every page used to be fetched first (Issue #438).
+        results = list(islice(hits, args.limit) if args.limit and args.limit > 0 else hits)
 
         if not results:
             console.print("[yellow]No items found.[/yellow]")
             return
-
-        # Apply limit if necessary (though Zotero API already paginates)
-        if args.limit and len(results) > args.limit:
-            results = results[: args.limit]
 
         table = Table(title=f"Search Results ({len(results)})")
         table.add_column("Key", style="dim")

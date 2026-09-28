@@ -197,7 +197,9 @@ class ZoteroAPIClient(ZoteroGateway):
         target = normalize_doi(doi)
         if not target:
             return
-        for item in self.get_all_items():
+        # Only top-level items carry a DOI: skipping attachments and notes
+        # about halves the pages (Issue #438).
+        for item in self._paginate_items("items/top"):
             if item.doi and normalize_doi(item.doi) == target:
                 yield item
 

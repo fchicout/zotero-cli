@@ -3,7 +3,7 @@ from unittest.mock import Mock, mock_open, patch
 import pytest
 import requests
 
-from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.models import ResearchPaper, ZoteroQuery
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
 
@@ -783,3 +783,37 @@ def test_create_item_thesis_cleans_up_when_response_too_large(mock_unlink, mock_
     mock_unlink.assert_called_once()
     client.upload_attachment.assert_not_called()
     mock_unlink.assert_called_once()
+
+
+def test_search_with_a_small_limit_is_one_request(client):
+    """Issue #438: `search aa --limit 5` paged through every hit."""
+    from itertools import islice
+
+    page = Mock()
+    page.status_code = 200
+    page.headers = {"Total-Results": "300"}
+    page.json.return_value = [
+        {"key": f"K{n:07d}", "version": 1, "data": {"itemType": "journalArticle"}}
+        for n in range(100)
+    ]
+    client.http.session.get.return_value = page
+
+    found = list(islice(client.search_items(ZoteroQuery(q="aa")), 5))
+
+    assert len(found) == 5
+    assert client.http.session.get.call_count == 1
+
+
+def test_get_items_by_doi_scans_top_level_items_only(client):
+    """Issue #438: attachments and notes have no DOI; skipping them about
+    halves the pages of the scan."""
+    page = Mock()
+    page.status_code = 200
+    page.headers = {}
+    page.json.return_value = []
+    client.http.session.get.return_value = page
+
+    list(client.get_items_by_doi("10.1/x"))
+
+    url = client.http.session.get.call_args.args[0]
+    assert url.endswith("/items/top")
