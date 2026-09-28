@@ -6,6 +6,7 @@ import shutil
 import sqlite3
 import sys
 import tempfile
+import threading
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from zotero_cli.core.exceptions import ConfigurationError, OfflineReadOnly
@@ -39,6 +40,103 @@ def _warn_unscoped_once() -> None:
     )
 
 
+# --- One shadow copy per process (Issue #436) ---
+#
+# Every service builds its own gateway, and each used to copy the whole
+# database (2 x 842 MB for `slr report status`) and open a connection per
+# call (12,218 for one export). The copy is now shared by every gateway and
+# keyed by the file's identity, so a changed database (after `item trash`)
+# is copied again.
+_shadow_lock = threading.Lock()
+_shadows: Dict[Tuple[str, int, int], str] = {}
+# One connection per thread to the current copy, shared by every gateway
+# (`serve` runs handlers in a threadpool; a connection stays in its thread).
+_thread_state = threading.local()
+_all_connections: List[sqlite3.Connection] = []
+
+
+def _shadow_parent() -> Optional[str]:
+    """A private directory in the user's cache, on disk: /tmp is tmpfs on
+    Fedora and Arch, where each copy would sit in RAM. None falls back to
+    the system temp directory."""
+    if os.name == "nt":
+        base = os.environ.get("LOCALAPPDATA") or tempfile.gettempdir()
+    else:
+        base = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
+    path = os.path.join(base, "zotero-cli")
+    try:
+        os.makedirs(path, mode=0o700, exist_ok=True)
+        if os.name != "nt":
+            os.chmod(path, 0o700)
+    except OSError:
+        return None
+    return path
+
+
+def _shadow_copy(database_path: str) -> str:
+    """The process-wide copy of `database_path`, made on first use."""
+    real = os.path.realpath(database_path)
+    st = os.stat(real)
+    key = (real, st.st_mtime_ns, st.st_size)
+    with _shadow_lock:
+        cached = _shadows.get(key)
+        if cached and os.path.exists(cached):
+            return cached
+        for old in [k for k in _shadows if k[0] == real]:
+            shutil.rmtree(os.path.dirname(_shadows.pop(old)), ignore_errors=True)
+        # Non-predictable temp path (Issue #240) - a manually joined
+        # tempfile.gettempdir()/f"zotero_cli_shadow_{os.getpid()}.sqlite"
+        # path is deterministic (PID space is bounded/reused), letting
+        # a local attacker on a shared host pre-plant a symlink there.
+        # The copy is the user's whole Zotero database, so it lives in a
+        # mkdtemp() directory (0700) as a file created 0600 - copying
+        # the source's mode (shutil.copy2) left it world-readable - and
+        # is removed at exit. A plain file copy, since Zotero Desktop
+        # holds an exclusive lock on the live database while it runs.
+        temp_dir = tempfile.mkdtemp(prefix="zotero_cli_shadow_", dir=_shadow_parent())
+        temp_path = os.path.join(temp_dir, "zotero.sqlite")
+        fd = os.open(temp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "wb") as dst, open(real, "rb") as src:
+            shutil.copyfileobj(src, dst)
+        _shadows[key] = temp_path
+        return temp_path
+
+
+def _shadow_connection(database_path: str) -> Tuple[sqlite3.Connection, str]:
+    """This thread's connection to the current copy of `database_path`."""
+    path = _shadow_copy(database_path)
+    conns: Dict[str, Tuple[sqlite3.Connection, str]] = getattr(_thread_state, "conns", {})
+    _thread_state.conns = conns
+    cached = conns.get(database_path)
+    if cached is not None and cached[1] == path:
+        return cached
+    if cached is not None:
+        cached[0].close()  # the database changed and was copied again
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    with _shadow_lock:
+        _all_connections.append(conn)
+    conns[database_path] = (conn, path)
+    return conn, path
+
+
+def _cleanup_shadows() -> None:
+    # Close first: Windows can't delete a file that is still open.
+    with _shadow_lock:
+        for conn in _all_connections:
+            try:
+                conn.close()
+            except sqlite3.Error:
+                pass
+        _all_connections.clear()
+        for path in _shadows.values():
+            shutil.rmtree(os.path.dirname(path), ignore_errors=True)
+        _shadows.clear()
+
+
+atexit.register(_cleanup_shadows)
+
+
 class SqliteZoteroGateway(ZoteroGateway):
     """
     Read-only implementation of ZoteroGateway using local zotero.sqlite.
@@ -52,7 +150,6 @@ class SqliteZoteroGateway(ZoteroGateway):
         library_type: Optional[str] = None,
     ):
         self._temp_db_path: Optional[str] = None
-        self._temp_dir: Optional[str] = None
         # The configured library, used to scope the only writes this class
         # makes (item trash/restore, Issue #417).
         self.library_id = library_id
@@ -73,33 +170,11 @@ class SqliteZoteroGateway(ZoteroGateway):
         _warn_unscoped_once()
 
     def _get_connection(self) -> sqlite3.Connection:
-        # Create shadow copy
-        if not self._temp_db_path:
-            # Non-predictable temp path (Issue #240) - a manually joined
-            # tempfile.gettempdir()/f"zotero_cli_shadow_{os.getpid()}.sqlite"
-            # path is deterministic (PID space is bounded/reused), letting
-            # a local attacker on a shared host pre-plant a symlink there.
-            # The copy is the user's whole Zotero database, so it lives in a
-            # mkdtemp() directory (0700) as a file created 0600 - copying
-            # the source's mode (shutil.copy2) left it world-readable - and
-            # is removed at exit, not only when the gateway is collected.
-            temp_dir = tempfile.mkdtemp(prefix="zotero_cli_shadow_")
-            temp_path = os.path.join(temp_dir, "zotero.sqlite")
-            fd = os.open(temp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            with os.fdopen(fd, "wb") as dst, open(self.original_db_path, "rb") as src:
-                shutil.copyfileobj(src, dst)
-            atexit.register(shutil.rmtree, temp_dir, True)
-            self._temp_dir = temp_dir
-            self._temp_db_path = temp_path
-
-        conn = sqlite3.connect(self._temp_db_path)
-        conn.row_factory = sqlite3.Row
+        """This thread's connection to the shared shadow copy, kept open
+        for the gateway's lifetime (Issue #436). Callers don't close it."""
+        conn, path = _shadow_connection(self.original_db_path)
+        self._temp_db_path = path
         return conn
-
-    def __del__(self) -> None:
-        temp_dir = getattr(self, "_temp_dir", None)
-        if temp_dir:
-            shutil.rmtree(temp_dir, ignore_errors=True)
 
     def _map_row_to_item(
         self,
@@ -165,35 +240,29 @@ class SqliteZoteroGateway(ZoteroGateway):
 
     def get_all_collections(self) -> List[Dict[str, Any]]:
         conn = self._get_connection()
-        try:
-            cursor = conn.execute(self._COLLECTION_SELECT)
-            return [
-                {
-                    "key": r["key"],
-                    "data": {"name": r["name"], "parentCollection": r["parentCollection"]},
-                    "meta": {"numItems": r["numItems"]},
-                }
-                for r in cursor
-            ]
-        finally:
-            conn.close()
+        cursor = conn.execute(self._COLLECTION_SELECT)
+        return [
+            {
+                "key": r["key"],
+                "data": {"name": r["name"], "parentCollection": r["parentCollection"]},
+                "meta": {"numItems": r["numItems"]},
+            }
+            for r in cursor
+        ]
 
     def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
         conn = self._get_connection()
-        try:
-            row = conn.execute(
-                self._COLLECTION_SELECT + " WHERE c.key = ?",
-                (collection_key,),
-            ).fetchone()
-            if row:
-                return {
-                    "key": row["key"],
-                    "data": {"name": row["name"], "parentCollection": row["parentCollection"]},
-                    "meta": {"numItems": row["numItems"]},
-                }
-            return None
-        finally:
-            conn.close()
+        row = conn.execute(
+            self._COLLECTION_SELECT + " WHERE c.key = ?",
+            (collection_key,),
+        ).fetchone()
+        if row:
+            return {
+                "key": row["key"],
+                "data": {"name": row["name"], "parentCollection": row["parentCollection"]},
+                "meta": {"numItems": row["numItems"]},
+            }
+        return None
 
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
         """Resolves a collection key or name to one key (None if no match).
@@ -205,115 +274,112 @@ class SqliteZoteroGateway(ZoteroGateway):
         self, filter_sql: str = "", params: tuple = (), trash_only: bool = False
     ) -> Iterator[ZoteroItem]:
         conn = self._get_connection()
-        try:
-            membership = "IN" if trash_only else "NOT IN"
-            # Zotero 7 stores every PDF highlight/note as an `items` row whose
-            # parent is in itemAnnotations; they aren't library items and
-            # usually outnumber the references (Issue #423).
-            where_template = """
-                WHERE i.itemID {membership} (SELECT itemID FROM deletedItems)
-                  AND it.typeName <> 'annotation'
-                  {filter_sql}
-            """
-            # filter_sql/membership are always fixed literal fragments supplied by call
-            # sites in this file (never user input); actual values are passed via the
-            # parameterized `params` tuple, not interpolated into the SQL text.
-            where_sql = where_template.format(filter_sql=filter_sql, membership=membership)
-            # The creators/collections/tags lookups below select by this same
-            # filter instead of binding one "?" per matched item: SQLite caps
-            # bound variables at 32,766 in most builds (Issue #422).
-            matched_ids_sql = (
-                "SELECT i.itemID FROM items i "
-                "JOIN itemTypes it ON i.itemTypeID = it.itemTypeID" + where_sql  # nosec B608
-            )
-            query_sql_template = """
-                SELECT i.itemID, i.key, i.version, i.libraryID, it.typeName,
-                       (SELECT k.key FROM items k WHERE k.itemID = COALESCE(
-                           (SELECT parentItemID FROM itemAttachments WHERE itemID = i.itemID),
-                           (SELECT parentItemID FROM itemNotes WHERE itemID = i.itemID)
-                       )) as parentKey,
-                       MAX(CASE WHEN f.fieldName = 'title' THEN dv.value END) as title,
-                       MAX(CASE WHEN f.fieldName = 'abstractNote' THEN dv.value END) as abstractNote,
-                       MAX(CASE WHEN f.fieldName = 'date' THEN dv.value END) as date,
-                       MAX(CASE WHEN f.fieldName = 'DOI' THEN dv.value END) as DOI,
-                       MAX(CASE WHEN f.fieldName = 'url' THEN dv.value END) as url,
-                       MAX(CASE WHEN f.fieldName = 'extra' THEN dv.value END) as extra,
-                       MAX(CASE WHEN f.fieldName = 'publicationTitle' THEN dv.value END)
-                           as publicationTitle,
-                       MAX(CASE WHEN f.fieldName = 'proceedingsTitle' THEN dv.value END)
-                           as proceedingsTitle,
-                       MAX(CASE WHEN f.fieldName = 'conferenceName' THEN dv.value END)
-                           as conferenceName,
-                       MAX(CASE WHEN f.fieldName = 'bookTitle' THEN dv.value END) as bookTitle
-                FROM items i
-                JOIN itemTypes it ON i.itemTypeID = it.itemTypeID
-                LEFT JOIN itemData id ON i.itemID = id.itemID
-                LEFT JOIN fields f ON id.fieldID = f.fieldID
-                LEFT JOIN itemDataValues dv ON id.valueID = dv.valueID
-                {where_sql}
-                GROUP BY i.itemID
-            """
-            query_sql = query_sql_template.format(where_sql=where_sql)  # nosec B608
-            rows = conn.execute(query_sql, params).fetchall()
-            if not rows:
-                return
+        membership = "IN" if trash_only else "NOT IN"
+        # Zotero 7 stores every PDF highlight/note as an `items` row whose
+        # parent is in itemAnnotations; they aren't library items and
+        # usually outnumber the references (Issue #423).
+        where_template = """
+            WHERE i.itemID {membership} (SELECT itemID FROM deletedItems)
+              AND it.typeName <> 'annotation'
+              {filter_sql}
+        """
+        # filter_sql/membership are always fixed literal fragments supplied by call
+        # sites in this file (never user input); actual values are passed via the
+        # parameterized `params` tuple, not interpolated into the SQL text.
+        where_sql = where_template.format(filter_sql=filter_sql, membership=membership)
+        # The creators/collections/tags lookups below select by this same
+        # filter instead of binding one "?" per matched item: SQLite caps
+        # bound variables at 32,766 in most builds (Issue #422).
+        matched_ids_sql = (
+            "SELECT i.itemID FROM items i "
+            "JOIN itemTypes it ON i.itemTypeID = it.itemTypeID" + where_sql  # nosec B608
+        )
+        query_sql_template = """
+            SELECT i.itemID, i.key, i.version, i.libraryID, it.typeName,
+                   (SELECT k.key FROM items k WHERE k.itemID = COALESCE(
+                       (SELECT parentItemID FROM itemAttachments WHERE itemID = i.itemID),
+                       (SELECT parentItemID FROM itemNotes WHERE itemID = i.itemID)
+                   )) as parentKey,
+                   MAX(CASE WHEN f.fieldName = 'title' THEN dv.value END) as title,
+                   MAX(CASE WHEN f.fieldName = 'abstractNote' THEN dv.value END) as abstractNote,
+                   MAX(CASE WHEN f.fieldName = 'date' THEN dv.value END) as date,
+                   MAX(CASE WHEN f.fieldName = 'DOI' THEN dv.value END) as DOI,
+                   MAX(CASE WHEN f.fieldName = 'url' THEN dv.value END) as url,
+                   MAX(CASE WHEN f.fieldName = 'extra' THEN dv.value END) as extra,
+                   MAX(CASE WHEN f.fieldName = 'publicationTitle' THEN dv.value END)
+                       as publicationTitle,
+                   MAX(CASE WHEN f.fieldName = 'proceedingsTitle' THEN dv.value END)
+                       as proceedingsTitle,
+                   MAX(CASE WHEN f.fieldName = 'conferenceName' THEN dv.value END)
+                       as conferenceName,
+                   MAX(CASE WHEN f.fieldName = 'bookTitle' THEN dv.value END) as bookTitle
+            FROM items i
+            JOIN itemTypes it ON i.itemTypeID = it.itemTypeID
+            LEFT JOIN itemData id ON i.itemID = id.itemID
+            LEFT JOIN fields f ON id.fieldID = f.fieldID
+            LEFT JOIN itemDataValues dv ON id.valueID = dv.valueID
+            {where_sql}
+            GROUP BY i.itemID
+        """
+        query_sql = query_sql_template.format(where_sql=where_sql)  # nosec B608
+        rows = conn.execute(query_sql, params).fetchall()
+        if not rows:
+            return
 
-            creators_by_item: Dict[int, List[Dict[str, Any]]] = {}
-            creator_cursor = conn.execute(
-                f"""
-                SELECT ic.itemID, c.firstName, c.lastName, ct.creatorType
-                FROM itemCreators ic
-                JOIN creators c ON ic.creatorID = c.creatorID
-                JOIN creatorTypes ct ON ic.creatorTypeID = ct.creatorTypeID
-                WHERE ic.itemID IN ({matched_ids_sql})
-                ORDER BY ic.itemID, ic.orderIndex
-            """,  # nosec B608
-                params,
+        creators_by_item: Dict[int, List[Dict[str, Any]]] = {}
+        creator_cursor = conn.execute(
+            f"""
+            SELECT ic.itemID, c.firstName, c.lastName, ct.creatorType
+            FROM itemCreators ic
+            JOIN creators c ON ic.creatorID = c.creatorID
+            JOIN creatorTypes ct ON ic.creatorTypeID = ct.creatorTypeID
+            WHERE ic.itemID IN ({matched_ids_sql})
+            ORDER BY ic.itemID, ic.orderIndex
+        """,  # nosec B608
+            params,
+        )
+        for r in creator_cursor:
+            creators_by_item.setdefault(r["itemID"], []).append(
+                {
+                    "creatorType": r["creatorType"],
+                    "firstName": r["firstName"],
+                    "lastName": r["lastName"],
+                }
             )
-            for r in creator_cursor:
-                creators_by_item.setdefault(r["itemID"], []).append(
-                    {
-                        "creatorType": r["creatorType"],
-                        "firstName": r["firstName"],
-                        "lastName": r["lastName"],
-                    }
-                )
 
-            collections_by_item: Dict[int, List[str]] = {}
-            col_cursor = conn.execute(
-                f"""
-                SELECT ci.itemID, c.key
-                FROM collectionItems ci
-                JOIN collections c ON ci.collectionID = c.collectionID
-                WHERE ci.itemID IN ({matched_ids_sql})
-            """,  # nosec B608
-                params,
+        collections_by_item: Dict[int, List[str]] = {}
+        col_cursor = conn.execute(
+            f"""
+            SELECT ci.itemID, c.key
+            FROM collectionItems ci
+            JOIN collections c ON ci.collectionID = c.collectionID
+            WHERE ci.itemID IN ({matched_ids_sql})
+        """,  # nosec B608
+            params,
+        )
+        for r in col_cursor:
+            collections_by_item.setdefault(r["itemID"], []).append(r["key"])
+
+        tags_by_item: Dict[int, List[str]] = {}
+        tag_cursor = conn.execute(
+            f"""
+            SELECT itg.itemID, t.name
+            FROM itemTags itg
+            JOIN tags t ON itg.tagID = t.tagID
+            WHERE itg.itemID IN ({matched_ids_sql})
+        """,  # nosec B608
+            params,
+        )
+        for r in tag_cursor:
+            tags_by_item.setdefault(r["itemID"], []).append(r["name"])
+
+        for row in rows:
+            yield self._map_row_to_item(
+                row,
+                creators_by_item.get(row["itemID"], []),
+                collections_by_item.get(row["itemID"], []),
+                tags_by_item.get(row["itemID"], []),
             )
-            for r in col_cursor:
-                collections_by_item.setdefault(r["itemID"], []).append(r["key"])
-
-            tags_by_item: Dict[int, List[str]] = {}
-            tag_cursor = conn.execute(
-                f"""
-                SELECT itg.itemID, t.name
-                FROM itemTags itg
-                JOIN tags t ON itg.tagID = t.tagID
-                WHERE itg.itemID IN ({matched_ids_sql})
-            """,  # nosec B608
-                params,
-            )
-            for r in tag_cursor:
-                tags_by_item.setdefault(r["itemID"], []).append(r["name"])
-
-            for row in rows:
-                yield self._map_row_to_item(
-                    row,
-                    creators_by_item.get(row["itemID"], []),
-                    collections_by_item.get(row["itemID"], []),
-                    tags_by_item.get(row["itemID"], []),
-                )
-        finally:
-            conn.close()
 
     # Quick-search subqueries; each takes one LIKE pattern per placeholder.
     _MATCH_FIELDS_SQL = """i.itemID IN (
@@ -423,11 +489,8 @@ class SqliteZoteroGateway(ZoteroGateway):
 
     def get_tags(self) -> List[str]:
         conn = self._get_connection()
-        try:
-            cursor = conn.execute("SELECT name FROM tags")
-            return [r["name"] for r in cursor]
-        finally:
-            conn.close()
+        cursor = conn.execute("SELECT name FROM tags")
+        return [r["name"] for r in cursor]
 
     def get_tags_for_item(self, item_key: str) -> List[str]:
         item = self.get_item(item_key)
@@ -437,23 +500,20 @@ class SqliteZoteroGateway(ZoteroGateway):
         # No items.parentItemID in the real schema -- child linkage lives on
         # itemAttachments/itemNotes instead (see _TOP_LEVEL_ONLY_SQL above).
         conn = self._get_connection()
-        try:
-            cursor = conn.execute(
-                """
-                SELECT key FROM items
-                WHERE itemID IN (
-                    SELECT itemID FROM itemAttachments
-                    WHERE parentItemID = (SELECT itemID FROM items WHERE key = ?)
-                    UNION
-                    SELECT itemID FROM itemNotes
-                    WHERE parentItemID = (SELECT itemID FROM items WHERE key = ?)
-                )
-            """,
-                (item_key, item_key),
+        cursor = conn.execute(
+            """
+            SELECT key FROM items
+            WHERE itemID IN (
+                SELECT itemID FROM itemAttachments
+                WHERE parentItemID = (SELECT itemID FROM items WHERE key = ?)
+                UNION
+                SELECT itemID FROM itemNotes
+                WHERE parentItemID = (SELECT itemID FROM items WHERE key = ?)
             )
-            return [{"key": r["key"]} for r in cursor]
-        finally:
-            conn.close()
+        """,
+            (item_key, item_key),
+        )
+        return [{"key": r["key"]} for r in cursor]
 
     # --- Write Operations (FORBIDDEN in Offline mode) ---
 
@@ -569,7 +629,7 @@ class SqliteZoteroGateway(ZoteroGateway):
     def _get_write_connection(self, timeout: float = 5.0) -> sqlite3.Connection:
         """
         Opens a direct connection to the real zotero.sqlite -- deliberately
-        NOT _get_connection()'s shadow copy, which is deleted on __del__ and
+        NOT _get_connection()'s shadow copy, which is deleted at exit and
         would silently discard any write made through it. `timeout` sets
         SQLite's busy-retry window so a momentary lock (e.g. Desktop mid-write)
         is retried rather than failing immediately.
@@ -707,13 +767,10 @@ class SqliteZoteroGateway(ZoteroGateway):
     def count_items(self) -> int:
         """Items in the local database, for `system check` (Issue #382)."""
         conn = self._get_connection()
-        try:
-            row = conn.execute(
-                "SELECT COUNT(*) FROM items WHERE itemID NOT IN (SELECT itemID FROM deletedItems)"
-            ).fetchone()
-            return int(row[0])
-        finally:
-            conn.close()
+        row = conn.execute(
+            "SELECT COUNT(*) FROM items WHERE itemID NOT IN (SELECT itemID FROM deletedItems)"
+        ).fetchone()
+        return int(row[0])
 
     def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:
         return []

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- **`--offline` copies `zotero.sqlite` once per run (Issue #436):**
+  - Each internal service copied the whole database: two copies (1.7 GB for an 842 MB database) for `slr report status` and `report duplicates`. It also opened a new SQLite connection per lookup: 12,218 for one BibTeX export.
+  - Now every service shares one copy per run and one connection per thread. The copy is taken again if the database changes (for example after `item trash`).
+  - The copy is kept in `~/.cache/zotero-cli` (`%LOCALAPPDATA%\zotero-cli` on Windows) instead of `/tmp`, which is RAM on Fedora and Arch. It's private (0700/0600) and deleted at exit.
+
 ## [3.0.3] - 2026-09-28
 
 The third patch train: config, setup and first run. No new commands, flags or config keys. Things that behave differently:

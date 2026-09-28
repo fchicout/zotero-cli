@@ -41,6 +41,7 @@ def isolate_home() -> Path:
     os.environ["XDG_CONFIG_HOME"] = str(home / ".config")
     os.environ["XDG_DATA_HOME"] = str(home / ".local" / "share")
     os.environ["XDG_STATE_HOME"] = str(home / ".local" / "state")
+    os.environ["XDG_CACHE_HOME"] = str(home / ".cache")
     os.environ["APPDATA"] = str(home / "AppData" / "Roaming")
     os.environ["LOCALAPPDATA"] = str(home / "AppData" / "Local")
     for env_key in ("ZOTERO_API_KEY", "ZOTERO_LIBRARY_ID", "ZOTERO_USER_ID"):
