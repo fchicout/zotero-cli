@@ -181,6 +181,26 @@ def test_merge_executes_full_flow(service, item_repo, note_repo):
     item_repo.delete_item.assert_called_once_with("D1", 5)
 
 
+def test_merge_deletes_the_duplicate_at_its_current_version(service, item_repo, note_repo):
+    """Issue #384: deletes are version-checked now, so the merge re-reads each
+    duplicate after moving its children and deletes the version that exists."""
+    master = make_item("M1", version=1)
+    dup_before = make_item("D1", version=5)
+    dup_after = make_item("D1", version=8)
+    reads = {"M1": [master], "D1": [dup_before, dup_after]}
+    item_repo.get_item.side_effect = lambda k: reads[k].pop(0) if len(reads[k]) > 1 else reads[k][0]
+    item_repo.get_item_children.return_value = [
+        {"key": "ATT1", "data": {"itemType": "attachment", "version": 3}}
+    ]
+    item_repo.update_items.return_value = True
+    item_repo.delete_item.return_value = True
+
+    result = service.merge("M1", ["D1"], dry_run=False)
+
+    assert result.merged_keys == ["D1"]
+    item_repo.delete_item.assert_called_once_with("D1", 8)
+
+
 def test_merge_applies_field_resolutions(service, item_repo, note_repo):
     master = make_item("M1", title="Title A", version=1)
     dup = make_item("D1", title="Title B", version=1)

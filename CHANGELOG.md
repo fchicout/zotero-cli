@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- **Deletes honor the object's version (Issue #384):** `item delete` sent the library's last-seen version instead of the item's (`--version` was ignored). On a 412 it retried blindly and printed "Deleted ... successfully" even when the item survived. `delete_collection` had the same pattern. Now the object's own version is sent (`--version`, or the current one), and a conflict deletes nothing and exits 1. `item merge` re-reads each duplicate's version before deleting it.
+- **`item delete` exits 1** when the item doesn't exist or can't be deleted; **`system restore` exits 1** when the restore reported errors.
+- **`storage checkout`** printed a literal `[green]Moved[/]`.
+
+### 📚 Documentation
+- **Destructive-command policy** in `docs/PROCESS.md`. A new test (`tests/unit/test_destructive_paths.py`) fails when a new file calls a delete method, until its gate has been reviewed.
+
 ## [3.0.0] - 2026-09-26
 
 The launch release. It fixes the launch blockers found by the pre-launch audits (#328-#331): commands that could lose data, offline mode, PDF export, platform support, licence notices and the documentation. It is a major release because several commands now preview until `--execute`: see **Upgrading to 3.0** below. From this release on, zotero-cli follows Semantic Versioning ([docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)).
