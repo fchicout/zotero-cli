@@ -196,6 +196,54 @@ jobs:
             zotero-cli-linux-amd64.deb
             zotero-cli-linux-amd64.rpm
 
+  # Verifies the documented glibc floor (Issue #413) against the distros the
+  # README names as supported, on every run (a tag or a PR touching this
+  # pipeline), rather than trusting an unverified claim. --help alone doesn't
+  # reach the lowest floor: PDF text extraction pulls in `cryptography`'s
+  # Rust extension, which needs a newer glibc than everything else in the
+  # binary - checked with `system selftest` and the #399 fixture commands.
+  # Runs the target distros as containers from the host runner (not
+  # `jobs.<id>.container`), so it doesn't depend on git/python3 already
+  # being in a minimal base image.
+  check-glibc-floor:
+    needs: build-linux
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - almalinux:9      # RHEL 9-compatible, glibc 2.34: the floor
+          - ubuntu:22.04
+          - debian:12
+          - fedora:36
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: linux-artifacts
+          path: bin
+
+      - name: Build the fixture library
+        run: python3 scripts/build_smoke_fixture.py smoke-fixture
+
+      - name: Run the binary in ${{ matrix.image }}
+        run: |
+          chmod +x bin/dist/zotero-cli
+          docker run --rm \
+            -v "$PWD/bin/dist/zotero-cli:/z:ro" \
+            -v "$PWD/smoke-fixture:/fixture:ro" \
+            -e ZOTERO_DATABASE_PATH=/fixture/zotero.sqlite \
+            "${{ matrix.image }}" sh -euc '
+              /z --help >/dev/null
+              /z system selftest
+              /z --offline item list --collection "Smoke Test" --format json | grep -q "A Paper With a PDF"
+              /z --offline search Lovelace | grep -q "A Paper With a PDF"
+              /z --offline item inspect --key SMOKE001 | grep -q "SMOKEPDF"
+            '
+
   build-windows:
     needs: verify-tag
     runs-on: windows-latest
@@ -404,7 +452,7 @@ jobs:
     # short-lived OIDC token for this repository, this workflow and the
     # `pypi` environment (restricted to v* tags) - no stored API token.
     if: github.event_name == 'push'
-    needs: [build-linux, build-windows, build-python]
+    needs: [build-linux, build-windows, build-python, check-glibc-floor]
     runs-on: ubuntu-latest
     environment:
       name: pypi

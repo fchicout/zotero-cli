@@ -123,13 +123,15 @@ Every command has built-in help: `zotero-cli <noun> <verb> --help`. Every exampl
 
 | Platform | Standalone binary | Python package (`zotero-command-line`) |
 | :--- | :--- | :--- |
-| Linux x86_64, glibc 2.35+ (Ubuntu 22.04, Debian 12, Fedora 36, RHEL 10 or newer) | ✅ `.tar.gz`, `.deb`, `.rpm`, Docker | ✅ Python 3.11–3.14 |
+| Linux x86_64, glibc 2.34+ (RHEL 9/AlmaLinux 9, Ubuntu 22.04, Debian 12, Fedora 36 or newer) | ✅ `.tar.gz`, `.deb`, `.rpm`, Docker | ✅ Python 3.11–3.14 |
 | Linux x86_64 or ARM64, older glibc (2.17+) | ❌ | ✅ Python 3.11–3.13; 3.14 needs glibc 2.28+ |
 | Linux with musl (Alpine) | ❌ | ✅ Python 3.11–3.14 |
 | Windows x64 | ✅ `.msi`, `.zip` | ✅ Python 3.11–3.14 |
 | macOS (Apple Silicon and Intel) | ❌ | ✅ Python 3.11–3.14, via `uv tool install` or `pipx` |
 
 CI checks that the Python package installs from pre-built wheels on each of these platforms. Other platforms may work but aren't tested.
+
+The release workflow also runs the built Linux binary (`--help`, `system selftest`, and offline commands against a fixture library) inside containers for each of the distros named above, so the glibc floor is checked on every release, not just claimed (Issue #413). The Windows binaries are unsigned: expect a SmartScreen "unknown publisher" warning and possible antivirus false positives on first run; `gh attestation verify <file> -R fchicout/zotero-cli` (see above) is the way to confirm a download is genuinely from this repository's release workflow without relying on code signing.
 
 ### Option 1: Standalone binaries (recommended)
 Download a pre-built binary for your system. **You don't need Python.**
