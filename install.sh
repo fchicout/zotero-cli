@@ -18,6 +18,10 @@ main() {
     local repo="fchicout/zotero-cli"
     local install_dir="${ZOTERO_CLI_INSTALL_DIR:-$HOME/.local/bin}"
     local version="${ZOTERO_CLI_VERSION:-latest}"
+    # Release tags start with "v"; accept "3.0.5" as well (Issue #418).
+    case "$version" in
+        [0-9]*) version="v${version}" ;;
+    esac
     local asset="zotero-cli-linux-amd64.tar.gz"
 
     local os arch
@@ -79,7 +83,11 @@ main() {
     trap "rm -rf '$tmp_dir'" EXIT
 
     echo "Downloading ${asset} (${version})..."
-    curl -fsSL "${base_url}/${asset}" -o "${tmp_dir}/${asset}"
+    if ! curl -fsSL "${base_url}/${asset}" -o "${tmp_dir}/${asset}"; then
+        echo "Error: could not download ${asset} for ${version}." >&2
+        echo "Available releases: https://github.com/${repo}/releases" >&2
+        exit 1
+    fi
     if ! curl -fsSL "${base_url}/SHA256SUMS" -o "${tmp_dir}/SHA256SUMS"; then
         echo "Error: this release has no SHA256SUMS (checksums are published from v2.8.12 on)." >&2
         echo "Refusing to install an unverified binary." >&2
