@@ -21,15 +21,15 @@ class StorageCommand(BaseCommand):
             description="Moves research files (PDFs) from Zotero's internal cloud storage to your local filesystem, transforming them into 'Linked Files' to save cloud space.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Migrating a library to local storage to save cloud space
 Problem: My Zotero cloud storage is full and I want to move all my PDFs to my computer's "Documents/Zotero_PDFs" folder.
 Action:  zotero-cli storage checkout --limit 100
 Result:  The 100 oldest stored PDFs are downloaded to your local path and their links are updated in Zotero.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting a checkout without having a local storage path defined in your config.toml.
 • Safety Tips: Ensure that your local storage directory is backed up. Group libraries are refused by default: the linked file's local path (with your username) syncs to every member, and the files are missing for them; --allow-group-library overrides this.
 

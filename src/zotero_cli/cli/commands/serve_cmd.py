@@ -15,8 +15,8 @@ class ServeCommand(BaseCommand):
         parser.description = "Starts a local, read-only HTTP API server that exposes your Zotero library through REST endpoints."
         parser.formatter_class = argparse.RawDescriptionHelpFormatter
         parser.epilog = """
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Connecting Zotero to a custom research dashboard
 Problem: I'm building a web app to track my research progress and I need a way to fetch item data from Zotero via JavaScript.
 Action:  zotero-cli serve --port 8000
@@ -27,8 +27,8 @@ Problem: My dashboard runs on a different host on my home network.
 Action:  zotero-cli serve --host 0.0.0.0 --allow-remote
 Result:  The server prints an access token once. Every request must send `Authorization: Bearer <token>`.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to bind to a port already in use. Requests with a Host header other than 127.0.0.1/localhost/::1 get 400 unless added with --allowed-host (e.g. a custom local hostname).
 • Safety Tips: The API has no user accounts. The default bind (127.0.0.1) keeps it on this machine. A non-loopback --host is refused unless you pass --allow-remote, which requires a bearer token on every request. Only do that on a network you trust: the traffic is plain HTTP.
 • Scope: One `serve` process targets exactly one Zotero library (whichever `--config`/`--user`/`system switch` resolves at startup) - it is not multi-tenant. For HTTP access to more than one library, run a separate `serve` instance per library on a different port.

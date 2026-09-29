@@ -55,8 +55,8 @@ class SLRCommand(BaseCommand):
             description="Initializes a text-based user interface for rapid item screening. Fetches pending items and records decisions automatically to SDB notes.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Rapid Abstract Screening
 Problem: I have 200 papers in my "Unscreened" folder and I need to review their abstracts quickly.
 Action:  zotero-cli slr screen --source "Unscreened" --include "Accepted" --exclude "Rejected"
@@ -72,8 +72,8 @@ Result:  The TUI launches, displaying the first abstract. Decisions will automat
             description="Records a single screening decision (Include/Exclude) for an item, updating Screening Database (SDB) notes and optionally moving the item between collections. Ensures traceability of persona, phase, and rationale.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Manually excluding a paper during Abstract Review
 Problem: I am reading an abstract and realized it's a survey paper, which violates my inclusion criteria.
 Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" --reason "Is a survey paper" --phase "title_abstract"
@@ -86,6 +86,12 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
             help="Bulk-import screening decisions from CSV",
             description="Bulk-imports screening decisions from an external CSV file into your Zotero library. Performs a Matching Phase (Key/DOI) and updates metadata notes. Always run without --force first for a dry-run.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr load --file decisions.csv --reviewer Chicout
+$ zotero-cli slr load --file decisions.csv --reviewer Chicout --execute
+""",
         )
         LoadCommand.register_args(load_p)
 
@@ -102,6 +108,11 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
             help="Synchronizes folder locations with audit notes",
             description="Analyzes an SLR tree and automatically moves papers to their correct phase folder based on SDB notes. Enforces exclusive membership.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr reconcile --tree raw_acm --execute
+""",
         )
         ReconcileCommand.register_args(reconcile_p)
 
@@ -110,6 +121,11 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
             help="Atomic decision and folder displacement",
             description="Records a screening decision (Include/Exclude) and automatically moves the paper into its target phase folder if accepted.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr promote --key ABCD1234 --vote INCLUDE --phase title_abstract --tree raw_acm
+""",
         )
         PromoteCommand.register_args(promote_p)
 
@@ -145,6 +161,12 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
             help="Data Extraction tools",
             description="Systematically extracts research variables, methodologies, and quantitative results from the full text of research papers, optionally using AI agents.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr extract --collection "included"
+$ zotero-cli slr extract --key ABCD1234 --agent
+""",
         )
         ExtractionCommand.register_args(ext_p)
 
@@ -154,6 +176,11 @@ Action:  zotero-cli slr decide --key "ABCD1234" --vote "EXCLUDE" --code "EXC02" 
             help="Take items that are also in --included out of --excluded",
             description="Makes two collections disjoint for PRISMA reporting: every item in '--excluded' that is also in '--included' (the same item, or a duplicate import with the same DOI/arXiv ID) is removed from '--excluded'. Nothing is deleted from your library; use item merge or slr dedupe to merge duplicate imports. Previews by default; pass --execute to apply.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr prune --included included --excluded excluded --execute
+""",
         )
         prune_p.add_argument(
             "--included", required=True, help="Primary collection (Winner/Included)"

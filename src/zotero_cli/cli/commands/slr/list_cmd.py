@@ -25,30 +25,45 @@ class ListCommand:
         parser.description = "Lists items in the SLR funnel based on their status (pending evaluation, accepted/included, or rejected/excluded) and phase."
         parser.formatter_class = argparse.RawDescriptionHelpFormatter
         parser.epilog = """
-Scenario-Based Example (ACM Source):
-------------------------------------
-- List Pending: zotero-cli slr list pending --tree raw_acm
-  (Identifies items awaiting data extraction)
-- List Included (TA): zotero-cli slr list included --tree raw_acm --ta
-  (Lists papers accepted during Title/Abstract)
-- List Excluded (TA): zotero-cli slr list excluded --tree raw_acm --ta
-  (Lists papers rejected during Title/Abstract with exclusion codes)
+Examples
+--------
+$ zotero-cli slr list pending --tree raw_acm
+$ zotero-cli slr list included --tree raw_acm --ta
+$ zotero-cli slr list excluded --tree raw_acm --ta
 
-Cognitive Safeguards:
---------------------
+Notes
+-----
 • Note-First Truth: The included and excluded commands scan the entire tree of a source (Root + all 4 phase subfolders) to find audit notes. This ensures we see the real status regardless of where the paper is physically located.
 • Phase Aliases: Supported --fullscreen as an alias for the --ft (full_text) phase.
 """
         sub = parser.add_subparsers(dest="list_verb", required=True)
 
         # Pending
-        pending_p = sub.add_parser("pending", help="List items currently pending in the SLR funnel")
+        pending_p = sub.add_parser(
+            "pending",
+            help="List items currently pending in the SLR funnel",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr list pending --tree raw_acm
+""",
+        )
         pending_p.add_argument(
             "--tree", help="Filter by root collection name or key (e.g. raw_acm)"
         )
 
         # Included
-        included_p = sub.add_parser("included", help="List items with 'Accepted' audit notes")
+        included_p = sub.add_parser(
+            "included",
+            help="List items with 'Accepted' audit notes",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr list included --tree raw_acm --ta
+""",
+        )
         included_p.add_argument("--tree", help=FILTER_TREE_HELP)
         included_p.add_argument(
             "--ta", action="store_true", help="Filter for Title & Abstract phase"
@@ -65,7 +80,16 @@ Cognitive Safeguards:
         )
 
         # Excluded
-        excluded_p = sub.add_parser("excluded", help="List items with 'Rejected' audit notes")
+        excluded_p = sub.add_parser(
+            "excluded",
+            help="List items with 'Rejected' audit notes",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr list excluded --tree raw_acm --ta
+""",
+        )
         excluded_p.add_argument("--tree", help=FILTER_TREE_HELP)
         excluded_p.add_argument(
             "--ta", action="store_true", help="Filter for Title & Abstract phase"
@@ -82,7 +106,16 @@ Cognitive Safeguards:
         )
 
         # QA-Approved
-        qa_p = sub.add_parser("qa-approved", help="List items approved after Quality Assessment")
+        qa_p = sub.add_parser(
+            "qa-approved",
+            help="List items approved after Quality Assessment",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr list qa-approved --tree raw_acm
+""",
+        )
         qa_p.add_argument("--tree", help=FILTER_TREE_HELP)
         qa_p.add_argument("--csv", help="Export to CSV file")
         qa_p.add_argument("--json", help="Export to JSON file")

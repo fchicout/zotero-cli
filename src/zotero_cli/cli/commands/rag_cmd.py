@@ -33,8 +33,8 @@ class RAGCommand(BaseCommand):
             description="Populates the local vector database with the text content of papers from Zotero, enabling semantic search and context retrieval.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Preparing a collection for semantic analysis
 Problem: I have a collection of 50 papers and I want to ask questions about their specific implementation details.
 Action:  zotero-cli rag ingest --collection "Transformer Papers"
@@ -45,8 +45,8 @@ Problem: I only want to search papers that passed screening and have a high qual
 Action:  zotero-cli rag ingest --approved --qa-limit 0.8
 Result:  Only items with 'rsl:include' tag and QA score >= 0.8 are indexed.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to ingest items without local PDF attachments.
 • Safety Tips: Ingestion is computationally expensive. Use targeted modes (--key, --approved) to save resources.
 """,
@@ -89,6 +89,12 @@ Cognitive Safeguards
             help="Semantic search against the vector store",
             description="Performs a semantic search across your indexed Zotero library to find the most relevant text snippets based on a natural language prompt.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli rag query "What methods were used for evaluation?"
+$ zotero-cli rag query "key findings on X" --format json --top-k 10
+""",
         )
         query_p.add_argument("prompt", help="Search prompt/query")
         query_p.add_argument("--top-k", type=int, default=5, help="Number of results (Default: 5)")
@@ -117,6 +123,11 @@ Cognitive Safeguards
             help="Retrieve context snippets for an item",
             description="Aggregates all textual snippets and metadata belonging to a specific item to reconstruct its original context for LLM ingestion.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli rag context --key ABCD1234
+""",
         )
         context_p.add_argument("--key", required=True, help="Item Key")
 
@@ -126,6 +137,12 @@ Cognitive Safeguards
             help="Remove indexed data from the vector store",
             description="Clears specific or all indexed data from the local vector database to manage storage and ensure data freshness.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli rag purge --key ABCD1234
+$ zotero-cli rag purge --all
+""",
         )
         purge_group = purge_p.add_mutually_exclusive_group(required=True)
         purge_group.add_argument("--all", action="store_true", help="Clear all indexed data")
@@ -145,12 +162,26 @@ Cognitive Safeguards
         model_sub.add_parser(
             "set",
             help="Select and download the embedding model",
+            description="Interactively choose and download the local embedding model `rag` uses. Prints instructions to set it in config.toml.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli rag model set
+""",
         )
 
         # model clean
         model_sub.add_parser(
             "clean",
             help="Remove all downloaded embedding models from disk",
+            description="Deletes the local Hugging Face model cache used by `rag`, freeing disk space. The next `rag` operation re-downloads what it needs.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli rag model clean
+""",
         )
 
     def execute(self, args: argparse.Namespace) -> None:

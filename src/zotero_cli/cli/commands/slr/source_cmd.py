@@ -28,6 +28,12 @@ class SLRSourceCommand:
             "init",
             help="Initialize SLR 4-phase directory structure",
             description="Creates a parent collection raw_<name> and the standard four sub-collections for Title/Abstract, Full Text, Quality Assessment, and Data Extraction phases.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr source init --name acm
+""",
         )
         init_p.add_argument(
             "--name", required=True, help="Name of the paper source (e.g. acm, ieee)"
@@ -38,6 +44,12 @@ class SLRSourceCommand:
             "add",
             help="targeted search result ingestion into a raw_ collection",
             description="Imports RIS, BibTeX, or CSV files directly into the raw_ collection. Enforces raw_ isolation and automatically maps metadata formats.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr source add --name acm --file acm_export.ris
+""",
         )
         add_p.add_argument(
             "--name", required=True, help="Name or key of the raw collection (e.g. acm)"
@@ -52,6 +64,12 @@ class SLRSourceCommand:
             "list",
             help="Inventory active SLR sources and pipeline health",
             description="Scans and lists active raw_ collections, detailing total item count, metadata completeness, abstract presence, and PDF coverage.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr source list
+""",
         )
 
     @staticmethod

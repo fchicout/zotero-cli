@@ -36,8 +36,8 @@ class CollectionCommand(BaseCommand):
             description="Displays a hierarchical tree of all collections available in the active Zotero library. Each node shows the collection name and its unique ZoteroID in parentheses.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Visualizing the library structure
 Problem: I have a complex hierarchy and want to see how my "raw_" folders are organized.
 Action:  zotero-cli collection list
@@ -60,15 +60,15 @@ Result:  A standard flat table with Name, Key, and Item count.
             description="Creates a new collection (folder) in your library, either at the root level or nested within an existing collection.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Organizing papers for a specific study
 Problem: I need a new folder named "Reinforcement Learning" under my existing "Artificial Intelligence" (Key: AI_CORE) folder.
 Action:  zotero-cli collection create --name "Reinforcement Learning" --parent "AI_CORE"
 Result:  A new sub-folder is created, and the CLI returns its unique key (e.g., RL_ROOT).
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to create a collection with a name that contains special characters that might conflict with shell environment variables. Use double quotes around the name.
 • Safety Tips: Always verify that the parent key is correct by running collection list first. Creating deep nested structures can lead to complex workflows.
 
@@ -85,16 +85,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Deletes a collection. Without --recursive only the collection itself goes; its items stay in your library. With --recursive, its sub-collections and the items filed only inside the tree are permanently deleted too: this previews by default and needs --execute and a confirmation (or --yes).",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Cleaning up an old project
 Problem: I have a folder "Obsolete_SLR_2023" (Key: OLD_123) that I no longer need, contents included.
 Action:  zotero-cli collection delete --key "OLD_123" --recursive
          zotero-cli collection delete --key "OLD_123" --recursive --execute
 Result:  The first run lists the sub-collections and items that would be deleted; the second deletes them after you confirm.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Items that are also filed in a collection outside the tree are kept (they only leave the deleted collections) unless you pass --include-shared.
 • Deletion through the Web API is permanent: it doesn't go through Zotero's trash. Back up first (collection backup).
 • A name shared by several collections is refused: pass the key shown in the error.
@@ -132,15 +132,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Changes the display name of an existing collection in your library without affecting its contents or hierarchical position.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Evolving a research focus
 Problem: My collection "Machine Learning Basic" (Key: ML_01) needs a more professional name for a publication.
 Action:  zotero-cli collection rename --key "ML_01" --name "Fundamentals of Reinforcement Learning"
 Result:  The folder is renamed, but all internal items and its unique key (ML_01) remain unchanged.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to rename a collection using an outdated version number (if --version is provided). This will result in a synchronization error.
 • Safety Tips: If you have multiple folders with the same name across different parents, always use the Collection Key for a guaranteed deterministic rename.
 
@@ -158,16 +158,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Empties a collection by removing its items from it. The items are NOT deleted: they stay in your library, and those filed nowhere else appear under Unfiled Items. Previews by default; pass --execute to apply.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Resetting a screening results folder
 Problem: My "Screened Results" folder (Key: SCR_456) has outdated data from a previous attempt and I want to start fresh.
 Action:  zotero-cli collection clean --collection "SCR_456"
          zotero-cli collection clean --collection "SCR_456" --execute
 Result:  The first run shows how many items would leave the folder; the second empties it. The items remain in your library.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • clean never deletes items; to delete a folder and its items, use collection delete --recursive.
 • Items filed only in this collection end up under Unfiled Items in your library.
 • A name shared by several collections is refused: pass the key shown in the error.
@@ -188,15 +188,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Creates a self-contained, portable backup archive (.zaf) of a specific collection, including all item metadata and PDF attachments.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Archiving a completed SLR project
 Problem: I have finished my SLR (Key: SLR_PROJ_2025) and I want to save a permanent, offline version of the final included items and their PDFs.
 Action:  zotero-cli collection backup --name "SLR_PROJ_2025" --output "Final_SLR_Archive.zaf"
 Result:  A single portable file is created that contains everything needed to reconstruct the project state later.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to backup to a directory without write permissions or to an external drive with insufficient space.
 • Safety Tips: Always perform a backup before using destructive commands like collection clean or collection delete. The .zaf format can be restored using the system restore command.
 
@@ -213,15 +213,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Exports the metadata and (optionally) content of a collection into various standard formats for use in citation managers, LaTeX documents, or research notes.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Syncing literature with a LaTeX project
 Problem: I need to update the .bib file for my paper with the latest items in my "Final Selection" folder (Key: FIN_01).
 Action:  zotero-cli collection export --name "FIN_01" --format bibtex --output "references.bib"
 Result:  The file references.bib is created/updated with the metadata from that folder.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to export to a restricted directory or choosing a format that doesn't support specific metadata fields.
 • Safety Tips: Use the md format to generate a searchable "Digital Library" in Markdown. This enables you to link papers and notes locally.
 
@@ -241,15 +241,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Permanently removes specific types of child assets (PDFs, notes, or tags) from every item in a collection, without deleting the items or the collection itself.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Clearing stale annotations before a re-screening pass
 Problem: My "Full Text Review" folder (Key: FT_01) has old notes and tags from a prior review round that no longer apply.
 Action:  zotero-cli collection purge --name "FT_01" --notes --tags
 Result:  All notes and tags are removed from every item in the collection, providing a clean slate.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Running this without at least one of --files/--notes/--tags - the command aborts with no changes. Forgetting --recursive when sub-collections also need purging.
 • Safety Tips: ALWAYS verify the collection with collection list before purging. This command is irreversible.
 

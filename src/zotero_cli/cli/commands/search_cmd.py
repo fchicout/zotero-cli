@@ -25,15 +25,15 @@ class SearchCommand(BaseCommand):
         parser.description = "Performs a fast, targeted search across your Zotero library to find items matching keywords, titles, or DOIs."
         parser.formatter_class = argparse.RawDescriptionHelpFormatter
         parser.epilog = """
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Finding a paper's key for inspection
 Problem: I know I have a paper about "Transformer" architectures by "Vaswani" but I don't remember its key.
 Action:  zotero-cli search "Vaswani Transformer"
 Result:  The CLI displays all matching papers, and I can see the key ABCD1234 for the specific paper I need.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to search for common terms without a --limit in a very large library.
 • Safety Tips: Use quotes for multi-word queries. Search is case-insensitive.
 

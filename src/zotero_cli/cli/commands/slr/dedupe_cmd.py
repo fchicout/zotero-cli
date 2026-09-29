@@ -34,8 +34,8 @@ class DedupeCommand:
             "safe cases. Conflicting groups are left for manual review."
         )
         parser.epilog = """
-Scenario-Based Examples
------------------------
+Examples
+--------
 Scenario: Reviewing SLR-wide duplicates before merging anything
 Problem: I want to see how many duplicate groups exist across my whole SLR tree, and which are safe to auto-merge.
 Action:  zotero-cli slr dedupe

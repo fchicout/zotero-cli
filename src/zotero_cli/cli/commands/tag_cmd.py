@@ -21,15 +21,15 @@ class TagCommand(BaseCommand):
             description="Displays an alphabetical list of all unique tags used across your Zotero library, including usage counts.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Auditing library categories
 Problem: I want to know which research topics I have the most papers on, based on my tagging system.
 Action:  zotero-cli tag list
 Result:  The CLI displays all tags, and I can see counts for each.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to run on a library with thousands of unique tags, which may result in long terminal output.
 • Safety Tips: Use this list to identify tags that should be merged using the Zotero desktop client.
 
@@ -44,15 +44,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Appends one or more new tags to a specific research item in your Zotero library.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Categorizing a paper for a specific project
 Problem: I've just finished reading a paper (Key: READ_123) and I want to tag it with "SLR_2024" and "Must_Cite."
 Action:  zotero-cli tag add --item "READ_123" --tags "SLR_2024,Must_Cite"
 Result:  The paper now includes both tags in Zotero.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to add tags to an item key that does not exist.
 • Safety Tips: Use quotes around your tags if they contain spaces.
 
@@ -69,15 +69,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Removes all tags from every item within a specific collection.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Resetting tags for a new project phase
 Problem: I've imported a collection that came with messy tags and I want to start fresh with my own codes.
 Action:  zotero-cli tag purge --collection "NEW_01" --execute
 Result:  All items in the collection are now tag-free.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to purge tags from a folder that doesn't exist.
 • Safety Tips: ALWAYS run without --execute first to ensure you are not accidentally clearing tags from a larger set.
 
