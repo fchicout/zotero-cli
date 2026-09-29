@@ -109,6 +109,18 @@ jobs:
           # Exercise bundled libraries, not just startup (Issue #403).
           ./dist/zotero-cli system selftest
 
+      # Real CLI commands against a fixture library, not just library-level
+      # calls (Issue #399): catches a regression in the offline read path
+      # (#363, #366) that --help/selftest alone would miss.
+      - name: Smoke test binary against a fixture library
+        run: |
+          python3 scripts/build_smoke_fixture.py smoke-fixture
+          export ZOTERO_DATABASE_PATH="$PWD/smoke-fixture/zotero.sqlite"
+          ./dist/zotero-cli --offline item list --collection "Smoke Test" --format json \
+            | grep -q "A Paper With a PDF"
+          ./dist/zotero-cli --offline search Lovelace | grep -q "A Paper With a PDF"
+          ./dist/zotero-cli --offline item inspect --key SMOKE001 | grep -q "SMOKEPDF"
+
       # Notices for exactly what PyInstaller bundled (Issue #405); fails if a
       # bundled file can't be attributed to a licence.
       - name: Generate licence notices
@@ -224,6 +236,18 @@ jobs:
           ./dist/zotero-cli.exe --help
           ./dist/zotero-cli.exe system selftest
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # See the Linux job's equivalent step (Issue #399).
+      - name: Smoke test binary against a fixture library
+        run: |
+          python scripts/build_smoke_fixture.py smoke-fixture
+          $env:ZOTERO_DATABASE_PATH = "$PWD\smoke-fixture\zotero.sqlite"
+          $out = ./dist/zotero-cli.exe --offline item list --collection "Smoke Test" --format json
+          if ($LASTEXITCODE -ne 0 -or -not ($out -match "A Paper With a PDF")) { throw "offline item list failed" }
+          $out = ./dist/zotero-cli.exe --offline search Lovelace
+          if ($LASTEXITCODE -ne 0 -or -not ($out -match "A Paper With a PDF")) { throw "offline search failed" }
+          $out = ./dist/zotero-cli.exe --offline item inspect --key SMOKE001
+          if ($LASTEXITCODE -ne 0 -or -not ($out -match "SMOKEPDF")) { throw "offline item inspect failed" }
 
       - name: Generate licence notices
         shell: pwsh
