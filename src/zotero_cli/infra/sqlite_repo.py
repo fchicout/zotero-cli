@@ -52,7 +52,11 @@ _shadows: Dict[Tuple[str, int, int], str] = {}
 # One connection per thread to the current copy, shared by every gateway
 # (`serve` runs handlers in a threadpool; a connection stays in its thread).
 _thread_state = threading.local()
-_all_connections: List[sqlite3.Connection] = []
+# (shadow path, connection): lets a stale path's connections be closed
+# before its directory is removed (Issue #413: shutil.rmtree silently
+# failed on Windows, which can't delete a file a connection still has
+# open, leaking the old copy on every database change).
+_all_connections: List[Tuple[str, sqlite3.Connection]] = []
 
 
 def _shadow_parent() -> Optional[str]:
@@ -83,7 +87,9 @@ def _shadow_copy(database_path: str) -> str:
         if cached and os.path.exists(cached):
             return cached
         for old in [k for k in _shadows if k[0] == real]:
-            shutil.rmtree(os.path.dirname(_shadows.pop(old)), ignore_errors=True)
+            stale_path = _shadows.pop(old)
+            _close_connections_for(stale_path)
+            shutil.rmtree(os.path.dirname(stale_path), ignore_errors=True)
         # Non-predictable temp path (Issue #240) - a manually joined
         # tempfile.gettempdir()/f"zotero_cli_shadow_{os.getpid()}.sqlite"
         # path is deterministic (PID space is bounded/reused), letting
@@ -115,21 +121,35 @@ def _shadow_connection(database_path: str) -> Tuple[sqlite3.Connection, str]:
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     with _shadow_lock:
-        _all_connections.append(conn)
+        _all_connections.append((path, conn))
     conns[database_path] = (conn, path)
     return conn, path
 
 
-def _cleanup_shadows() -> None:
-    # Close first: Windows can't delete a file that is still open.
-    with _shadow_lock:
-        for conn in _all_connections:
+def _close_connections_for(path: str) -> None:
+    """Closes and forgets every open connection to `path` from the calling
+    thread (caller holds _shadow_lock). Windows can't delete a file a
+    connection still has open. sqlite3 refuses to close a connection from a
+    thread other than the one that opened it (silently, via the same
+    sqlite3.Error catch every close here already uses) - a connection held
+    open by another thread when the database changes can still block the
+    old copy's removal there; the file is cleaned up at exit either way."""
+    remaining = []
+    for entry_path, conn in _all_connections:
+        if entry_path == path:
             try:
                 conn.close()
             except sqlite3.Error:
                 pass
-        _all_connections.clear()
+        else:
+            remaining.append((entry_path, conn))
+    _all_connections[:] = remaining
+
+
+def _cleanup_shadows() -> None:
+    with _shadow_lock:
         for path in _shadows.values():
+            _close_connections_for(path)
             shutil.rmtree(os.path.dirname(path), ignore_errors=True)
         _shadows.clear()
 

@@ -1,6 +1,6 @@
 import os
+import re
 import threading
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -18,10 +18,13 @@ def _reset_global_config_cache():
     reset_config()
 
 
-def test_config_loader_default_path():
-    with patch.dict(os.environ, {"XDG_CONFIG_HOME": "/tmp/config"}):
+def test_config_loader_default_path(tmp_path):
+    # The env var ConfigLoader actually reads differs by OS (Issue #413:
+    # found running this suite on Windows for the first time).
+    var = "APPDATA" if os.name == "nt" else "XDG_CONFIG_HOME"
+    with patch.dict(os.environ, {var: str(tmp_path)}):
         loader = ConfigLoader()
-        assert loader.config_path == Path("/tmp/config/zotero-cli/config.toml")
+        assert loader.config_path == tmp_path / "zotero-cli" / "config.toml"
 
 
 def test_load_from_env_only(tmp_path):
@@ -101,7 +104,9 @@ def test_load_from_file_malformed_toml_raises_configuration_error(tmp_path):
 
     with patch.dict(os.environ, {}, clear=True):
         loader = ConfigLoader(config_path=config_file)
-        with pytest.raises(ConfigurationError, match=str(config_file)):
+        # re.escape: str(config_file) on Windows has backslashes, which
+        # `match` (a regex) would otherwise interpret as escape sequences.
+        with pytest.raises(ConfigurationError, match=re.escape(str(config_file))):
             loader.load()
 
 

@@ -413,14 +413,17 @@ def test_shadow_copy_lives_in_the_cache_directory_not_tmp(mock_db, tmp_path, mon
     from zotero_cli.infra import sqlite_repo
 
     sqlite_repo._cleanup_shadows()
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    # _shadow_parent() reads LOCALAPPDATA on Windows, XDG_CACHE_HOME elsewhere.
+    var = "LOCALAPPDATA" if os.name == "nt" else "XDG_CACHE_HOME"
+    monkeypatch.setenv(var, str(tmp_path / "cache"))
     gateway = SqliteZoteroGateway(mock_db)
     gateway.get_tags()
 
     assert gateway._temp_db_path is not None
     parent = os.path.dirname(os.path.dirname(gateway._temp_db_path))
     assert parent == str(tmp_path / "cache" / "zotero-cli")
-    assert stat.S_IMODE(os.stat(parent).st_mode) == 0o700
+    if os.name != "nt":
+        assert stat.S_IMODE(os.stat(parent).st_mode) == 0o700
     sqlite_repo._cleanup_shadows()
 
 

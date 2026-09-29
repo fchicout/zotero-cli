@@ -60,7 +60,10 @@ def test_item_export_md_success(mock_factory, env_vars, capsys, tmp_path):
 
     out = capsys.readouterr().out
     assert "Success!" in out
-    assert str(tmp_path) in out
+    # Rich word-wraps the line (its default console width is 80 when not a
+    # real terminal), which can split a long temp path across a newline -
+    # seen on macOS/Windows CI, whose temp paths run longer than Linux's.
+    assert str(tmp_path) in out.replace("\n", "")
     mock_att.bulk_export_markdown.assert_called_once()
 
 

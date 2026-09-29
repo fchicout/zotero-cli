@@ -1,5 +1,6 @@
 """An unwritable storage directory is one clear error (Issue #419)."""
 
+import os
 from unittest.mock import patch
 
 import pytest
@@ -11,7 +12,10 @@ from zotero_cli.core.exceptions import ConfigurationError
 
 @pytest.fixture
 def storage(tmp_path, monkeypatch):
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    # default_storage_dir() reads APPDATA on Windows, XDG_CONFIG_HOME
+    # elsewhere (Issue #413).
+    var = "APPDATA" if os.name == "nt" else "XDG_CONFIG_HOME"
+    monkeypatch.setenv(var, str(tmp_path))
     monkeypatch.delenv("ZOTERO_CLI_CONTAINER", raising=False)
     config_module.reset_config()
     yield tmp_path / "zotero-cli"
@@ -29,7 +33,7 @@ def test_state_dir_not_ours_is_one_error_naming_it(storage):
     msg = str(raised.value)
     assert str(storage) in msg
     assert "Operation not permitted" in msg
-    assert "XDG_CONFIG_HOME" in msg
+    assert ("APPDATA" if os.name == "nt" else "XDG_CONFIG_HOME") in msg
 
 
 def test_state_dir_in_the_container_explains_the_mount(storage, monkeypatch):

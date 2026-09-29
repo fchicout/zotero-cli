@@ -1,3 +1,4 @@
+import os
 import stat
 import sys
 from unittest.mock import patch
@@ -42,7 +43,8 @@ def test_init_command_basic(tmp_path, capsys):
     assert 'unpaywall_email = "up@email.com"' in content
 
     # Issue #236: config.toml holds live API keys - must not be world-readable.
-    assert stat.S_IMODE(config_file.stat().st_mode) == 0o600
+    if os.name != "nt":
+        assert stat.S_IMODE(config_file.stat().st_mode) == 0o600
 
 
 def test_init_command_resolves_identity_and_prefills_user_library_id(tmp_path, capsys):
@@ -256,7 +258,8 @@ def test_init_keeps_settings_it_doesnt_ask_about(tmp_path):
     assert data["zotero"]["ncbi_api_key"] == "ncbi-keep"
     assert "target_group" not in data["zotero"]
     assert data["extraction"]["schema"] == "keep.yaml"
-    assert stat.S_IMODE(config_file.stat().st_mode) == 0o600
+    if os.name != "nt":
+        assert stat.S_IMODE(config_file.stat().st_mode) == 0o600
 
 
 def test_init_offers_existing_values_as_defaults(tmp_path):
