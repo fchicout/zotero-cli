@@ -16,13 +16,6 @@ updates:
       python-dependencies:
         patterns: ["*"]
         update-types: ["minor", "patch"]
-    ignore:
-      # bibtexparser 2.x is a rewrite with a different API (no
-      # `bibtexparser.bibdatabase`); the code targets 1.x and pyproject caps
-      # it at <2. Moving to 2.x is a code migration (Issue #360), not a version bump.
-      - dependency-name: "bibtexparser"
-        update-types: ["version-update:semver-major"]
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
