@@ -204,6 +204,11 @@ jobs:
             usr/bin/zotero-cli usr/lib/zotero-cli usr/share/doc/zotero-cli
           mv zotero-cli_*.deb zotero-cli-linux-amd64.deb
 
+      # --directories usr/lib/zotero-cli: without it, rpm doesn't consider
+      # itself the owner of that directory (only of the files inside it), so
+      # `rpm -e` removes the files but leaves the now-empty `zotero-cli/` and
+      # `_internal/` directories behind - found by the install/uninstall
+      # smoke test below.
       - name: Create RPM Package
         env:
           VERSION: ${{ steps.get_version.outputs.VERSION }}
@@ -211,6 +216,7 @@ jobs:
           fpm -s dir -t rpm -n zotero-cli -v "$VERSION" \
             --prefix / \
             -C dist/deb \
+            --directories usr/lib/zotero-cli \
             --description "Command-line interface for managing Zotero libraries" \
             --maintainer "Fabio Chicout <fchicout@gmail.com>" \
             --vendor "Fábio Chicout" \
@@ -444,17 +450,32 @@ jobs:
       # behind after uninstall). Full multi-version upgrade sequencing isn't
       # covered here - it would need a previous release's MSI on hand - but
       # `MajorUpgrade` above is what makes that path work.
+      #
+      # `msiexec` needs an absolute package path: the Windows Installer
+      # service resolves a relative one against its own working directory,
+      # not this step's, and fails almost instantly with no useful message.
+      # `Start-Process -Wait -PassThru` (not a bare `msiexec` call) is what
+      # makes its exit code land reliably in `$proc.ExitCode`.
       - name: Smoke test MSI install/uninstall
         shell: pwsh
         run: |
           $installDir = "$env:LOCALAPPDATA\zotero-cli"
-          msiexec /i zotero-cli-windows-amd64.msi /quiet /qn /norestart
-          if ($LASTEXITCODE -ne 0) { throw "MSI install failed with exit code $LASTEXITCODE" }
+          $msiPath = (Resolve-Path "zotero-cli-windows-amd64.msi").Path
+
+          $proc = Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /quiet /qn /norestart /l*v install.log" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) {
+            Get-Content install.log -Tail 60
+            throw "MSI install failed with exit code $($proc.ExitCode)"
+          }
           if (-not (Test-Path "$installDir\zotero-cli.exe")) { throw "zotero-cli.exe missing after install" }
           & "$installDir\zotero-cli.exe" --help
           if ($LASTEXITCODE -ne 0) { throw "installed exe failed to run" }
-          msiexec /x zotero-cli-windows-amd64.msi /quiet /qn /norestart
-          if ($LASTEXITCODE -ne 0) { throw "MSI uninstall failed with exit code $LASTEXITCODE" }
+
+          $proc = Start-Process msiexec.exe -ArgumentList "/x `"$msiPath`" /quiet /qn /norestart /l*v uninstall.log" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) {
+            Get-Content uninstall.log -Tail 60
+            throw "MSI uninstall failed with exit code $($proc.ExitCode)"
+          }
           if (Test-Path "$installDir\zotero-cli.exe") { throw "zotero-cli.exe still present after uninstall" }
 
       - name: Upload Artifacts
