@@ -1,0 +1,76 @@
+# Refreshes the SonarQube badges shown in the README (Issue #505).
+#
+# The Sonar server doesn't serve badges anonymously, and the badge token is a
+# repository secret, so the README can't link to Sonar directly. This workflow
+# downloads each badge with SONAR_BADGE_TOKEN and publishes the SVGs on the
+# `badges` branch, which the README links to. The token never leaves Actions.
+name: SonarQube badges
+
+on:
+  workflow_run:
+    workflows: ["Run Unit Tests"]  # the workflow that runs the Sonar analysis
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/sonar-badges.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonar-badges
+  cancel-in-progress: false
+
+jobs:
+  badges:
+    runs-on: ubuntu-latest
+    # Forks and Dependabot don't get the secrets.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+    env:
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_BADGE_TOKEN: ${{ secrets.SONAR_BADGE_TOKEN }}
+      PROJECT: zotero-cli
+    steps:
+      - name: Download badges
+        run: |
+          set -euo pipefail
+          if [ -z "$SONAR_HOST_URL" ] || [ -z "$SONAR_BADGE_TOKEN" ]; then
+            echo "::error::SONAR_HOST_URL and SONAR_BADGE_TOKEN secrets are required."
+            exit 1
+          fi
+          mkdir -p badges
+          base="${SONAR_HOST_URL%/}/api/project_badges"
+          fetch() {  # fetch <output name> <url path and query>; no URL is echoed
+            curl -fsS --retry 3 --max-time 30 -o "badges/$1.svg" "${base}/$2&token=${SONAR_BADGE_TOKEN}"
+            grep -q "<svg" "badges/$1.svg" || { echo "::error::$1 is not an SVG"; exit 1; }
+          }
+          fetch quality_gate "quality_gate?project=${PROJECT}"
+          for metric in coverage bugs vulnerabilities code_smells duplicated_lines_density \
+                        sqale_rating reliability_rating security_rating sqale_index ncloc; do
+            fetch "$metric" "measure?project=${PROJECT}&metric=${metric}"
+          done
+          # Newer servers only; skipped if this one doesn't offer it.
+          fetch security_hotspots "measure?project=${PROJECT}&metric=security_hotspots" \
+            || { rm -f badges/security_hotspots.svg; echo "::notice::security_hotspots badge not offered"; }
+          ls -l badges
+
+      - name: Publish to the badges branch
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd badges
+          git init -q -b badges
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '%s\n' "SonarQube badges for the README, refreshed by .github/workflows/sonar-badges.yml." > README.md
+          git add .
+          git commit -q -m "Update SonarQube badges"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" badges
