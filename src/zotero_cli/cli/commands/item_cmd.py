@@ -106,7 +106,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             abstract_display = (
                 safe_markup(item.abstract)
                 if item.abstract
-                else "[blink bright_red]<no abstract>[/blink bright_red] ❗"
+                # Plain ASCII, not an emoji glyph: Rich's legacy-Windows
+                # renderer writes through the console's codepage (often
+                # cp1252), which can't encode arbitrary Unicode and crashed
+                # here (found by the #399 release smoke test).
+                else "[blink bright_red]<no abstract>[/blink bright_red]"
             )
 
             console.print(

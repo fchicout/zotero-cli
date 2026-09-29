@@ -151,6 +151,8 @@ irm https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.ps1 | iex
 
 **Verifying a download yourself:** every release from v2.8.12 on includes a `SHA256SUMS` file and signed build provenance. With the [GitHub CLI](https://cli.github.com/), `gh attestation verify zotero-cli-linux-amd64.tar.gz -R fchicout/zotero-cli` confirms the file was built by this repository's release workflow.
 
+**Binaries don't bundle the `rag` extra** (local/HF embeddings, `torch`, `sentence-transformers`): that stack is large and most installs never touch it. `rag` commands print a clear error in the binary; install from PyPI with `pip install 'zotero-command-line[rag]'` (or `uv tool install 'zotero-command-line[rag]'`) for those. Everything else, including offline mode and Markdown/PDF text export, works the same in the binary and from PyPI.
+
 ### 🐍 Option 2: From PyPI (Python 3.11+) - recommended on macOS
 The package is called **`zotero-command-line`** on PyPI, because the `zotero-cli` name there belongs to an older, unrelated project. The command it installs is still `zotero-cli`. This is the way to install on macOS, Alpine, ARM Linux and older Linux systems, where there is no binary. [uv](https://docs.astral.sh/uv/) can install a suitable Python for you.
 

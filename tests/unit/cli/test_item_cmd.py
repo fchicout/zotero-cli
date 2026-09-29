@@ -130,6 +130,46 @@ def test_item_inspect_success(mock_clients, env_vars, capsys):
     assert "Modified: 2023-01-02" in out
 
 
+def test_item_inspect_no_abstract_message_is_plain_ascii(mock_clients, env_vars, capsys):
+    """Rich's legacy-Windows renderer writes content through the console's
+    codepage (often cp1252, which can't encode arbitrary Unicode) instead of
+    downgrading it the way it downgrades box-drawing characters - an emoji
+    here crashed `item inspect` on Windows (Issue #399: found by the release
+    smoke test's Windows job). Box-drawing/ANSI in the rest of the panel
+    aren't this bug, so this checks only the "no abstract" message itself."""
+    mock_gateway = mock_clients["gateway"]
+    item = MagicMock()
+    item.title = "No Abstract Paper"
+    item.item_type = "journalArticle"
+    item.date = "2023"
+    item.date_added = "2023-01-01"
+    item.date_modified = "2023-01-02"
+    item.authors = ["Author One"]
+    item.doi = "10.1234/test"
+    item.url = "http://test.com"
+    item.abstract = ""
+    item.collections = []
+    mock_gateway.get_item.return_value = item
+    mock_gateway.get_item_children.return_value = []
+
+    args = MagicMock()
+    args.verb = "inspect"
+    args.key = "TESTKEY123"
+    args.raw = False
+    args.format = None
+    args.full_notes = False
+    args.user = False
+
+    ItemCommand().execute(args)
+
+    out = capsys.readouterr().out
+    assert "<no abstract>" in out
+    # The panel's own box-drawing border isn't this bug (Rich downgrades it
+    # on a real legacy console); only the interpolated content is at risk.
+    content = out[out.index("<no abstract>") : out.index("<no abstract>") + len("<no abstract> !!")]
+    assert content.isascii(), f"non-ASCII content would crash a legacy-codepage console: {content!r}"
+
+
 def test_item_inspect_missing_key(mock_clients, env_vars, capsys):
     mock_gateway = mock_clients["gateway"]
     mock_gateway.get_item.return_value = None
