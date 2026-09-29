@@ -20,7 +20,17 @@ class SnowballCommand:
         snow_sub = parser.add_subparsers(dest="snow_verb", required=True)
 
         # seed
-        seed_p = snow_sub.add_parser("seed", help="Enqueue starting DOIs for discovery")
+        seed_p = snow_sub.add_parser(
+            "seed",
+            help="Enqueue starting DOIs for discovery",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr snowball seed --collection "Seed Papers" --forward --backward
+$ zotero-cli slr snowball seed --dois 10.1109/tse.2020.123 --forward
+""",
+        )
         seed_p.add_argument("--keys", help="Comma-separated Zotero keys")
         seed_p.add_argument("--collection", help="Collection name or key")
         seed_p.add_argument("--dois", help="Comma-separated bare DOIs (no Zotero lookup)")
@@ -47,22 +57,67 @@ class SnowballCommand:
         )
 
         # discovery
-        disc_p = snow_sub.add_parser("discovery", help="Run background workers to process jobs")
+        disc_p = snow_sub.add_parser(
+            "discovery",
+            help="Run background workers to process jobs",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr snowball discovery --count 20
+""",
+        )
         disc_p.add_argument("--count", type=int, help="Number of jobs to process")
 
         # review
-        snow_sub.add_parser("review", help="Interactive Review Interface (TUI)")
+        snow_sub.add_parser(
+            "review",
+            help="Interactive Review Interface (TUI)",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr snowball review
+""",
+        )
 
         # import
-        import_p = snow_sub.add_parser("import", help="Import ACCEPTED candidates to Zotero")
+        import_p = snow_sub.add_parser(
+            "import",
+            help="Import ACCEPTED candidates to Zotero",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr snowball import --target "Snowball Candidates" --create
+""",
+        )
         import_p.add_argument("--target", required=True, help="Target collection name")
         import_p.add_argument("--create", action="store_true", help="Create collection if missing")
 
         # status
-        snow_sub.add_parser("status", help="Show discovery graph statistics")
+        snow_sub.add_parser(
+            "status",
+            help="Show discovery graph statistics",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr snowball status
+""",
+        )
 
         # export
-        export_p = snow_sub.add_parser("export", help="Export discovery graph")
+        export_p = snow_sub.add_parser(
+            "export",
+            help="Export discovery graph",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr snowball export --format json --output graph.json
+""",
+        )
         export_p.add_argument(
             "--format", choices=["json", "mermaid"], default="mermaid", help="Export format"
         )

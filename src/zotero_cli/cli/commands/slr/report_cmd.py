@@ -35,6 +35,13 @@ class SLRReportCommand:
             "status",
             help="Displays SLR funnel progress dashboard",
             description="Scans SLR collections to report screening progress.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr report status --collection "raw_search"
+$ zotero-cli slr report status --all-sources
+""",
         )
         status_group = status_p.add_mutually_exclusive_group(required=True)
         status_group.add_argument("--collection", help=COLLECTION_NAME_OR_KEY_HELP)
@@ -49,6 +56,12 @@ class SLRReportCommand:
             "prisma",
             help="Generate PRISMA flow diagram",
             description="Generates PRISMA flow diagram data and flowchart image for a collection.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr report prisma --collection "raw_search"
+""",
         )
         prisma_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         prisma_p.add_argument("--output-chart", help="Path to save flowchart image (uses mmdc)")
@@ -65,6 +78,12 @@ class SLRReportCommand:
             "shift",
             help="Detect items that moved between snapshots",
             description="Compares two snapshots to identify items that shifted between collections.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr report shift --old snapshot_before.json --new snapshot_after.json
+""",
         )
         shift_p.add_argument("--old", required=True, help="Path to old Snapshot JSON file")
         shift_p.add_argument("--new", required=True, help="Path to new Snapshot JSON file")
@@ -74,6 +93,12 @@ class SLRReportCommand:
             "graph",
             help="Generate citation graph",
             description="Generates citation network mapping (DOT format) across collections.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr report graph --collections "raw_search,included"
+""",
         )
         graph_p.add_argument(
             "--collections", required=True, help="Comma-separated collection names or keys"
@@ -84,6 +109,12 @@ class SLRReportCommand:
             "snapshot",
             help="Create a frozen JSON audit trail snapshot of a collection",
             description="Generates a machine-readable JSON freeze snapshot of a collection including all SDB decisions.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr report snapshot --collection "included" --output snapshot.json
+""",
         )
         snap_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         snap_p.add_argument("--output", required=True, help="Output JSON path")
@@ -93,6 +124,12 @@ class SLRReportCommand:
             "screening",
             help="Generate Markdown Screening Report",
             description="Generates human-readable Markdown summary of screening phase decisions.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr report screening --collection "raw_search" --output screening.md
+""",
         )
         screen_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         screen_p.add_argument("--output", required=True, help="Output Markdown path")
@@ -102,6 +139,12 @@ class SLRReportCommand:
             "exclusion-summary",
             help="Summarize rejection reason codes and percentages",
             description="Aggregates and reports counts and percentages for rejection reason codes across screened papers.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr report exclusion-summary --collection "raw_search"
+""",
         )
         excl_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
 
@@ -110,6 +153,12 @@ class SLRReportCommand:
             "consensus",
             help="Double-screening consensus and conflict report",
             description="Finds and highlights discrepancies/conflicts in items screened by multiple reviewers.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr report consensus --collection "raw_search"
+""",
         )
         cons_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
 

@@ -15,21 +15,57 @@ class SDBCommand:
         sdb_sub = parser.add_subparsers(dest="sdb_verb", required=True)
 
         # inspect
-        inspect_p = sdb_sub.add_parser("inspect", help="Show all SDB notes for an item")
+        inspect_p = sdb_sub.add_parser(
+            "inspect",
+            help="Show all SDB notes for an item",
+            description="Prints every parsed Screening Database entry (decision, phase, persona, reason) stored in the item's notes.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr sdb inspect ABCD1234
+""",
+        )
         inspect_p.add_argument("key", help="Item Key")
 
         # edit
-        edit_p = sdb_sub.add_parser("edit", help="Edit an existing SDB entry")
+        edit_p = sdb_sub.add_parser(
+            "edit",
+            help="Edit an existing SDB entry",
+            description="Updates one reviewer's SDB entry for an item and phase; --execute writes the change back to the note.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr sdb edit ABCD1234 --persona reviewer-a --phase title_abstract --set-decision accepted --execute
+""",
+        )
         edit_p.add_argument("key", help="Item Key")
-        edit_p.add_argument("--persona", required=True)
-        edit_p.add_argument("--phase", required=True)
-        edit_p.add_argument("--set-decision", choices=["accepted", "rejected", "unknown"])
+        edit_p.add_argument("--persona", required=True, help="Reviewer persona the entry belongs to")
+        edit_p.add_argument("--phase", required=True, help="Screening phase the entry belongs to")
+        edit_p.add_argument(
+            "--set-decision",
+            choices=["accepted", "rejected", "unknown"],
+            help="New decision to record",
+        )
         edit_p.add_argument("--execute", action="store_true", help="Apply changes")
 
         # upgrade
-        upgrade_p = sdb_sub.add_parser("upgrade", help="Upgrade SDB entries to latest version")
-        upgrade_p.add_argument("--collection", required=True)
-        upgrade_p.add_argument("--execute", action="store_true")
+        upgrade_p = sdb_sub.add_parser(
+            "upgrade",
+            help="Upgrade SDB entries to latest version",
+            description="Finds legacy-format SDB entries (audit_version below the current schema) in a collection and rewrites them to the current version.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr sdb upgrade --collection "Screening" --execute
+""",
+        )
+        upgrade_p.add_argument("--collection", required=True, help="Collection name or key to scan")
+        upgrade_p.add_argument(
+            "--execute", action="store_true", help="Apply upgrades (default: preview only)"
+        )
 
         # reset
         reset_p = sdb_sub.add_parser(
@@ -37,6 +73,11 @@ class SDBCommand:
             help="Reset screening/audit metadata for a collection",
             description="Permanently deletes screening decisions and audit metadata for items in a specific collection and review phase.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr sdb reset --name "Screening" --phase title_abstract --force
+""",
         )
         reset_p.add_argument("--name", required=True, help="Collection name or key")
         reset_p.add_argument("--phase", required=True, help="Target phase to reset")
@@ -49,6 +90,11 @@ class SDBCommand:
             help="Recover/Sync local CSV from Zotero screening notes",
             description="Exports the current state of screening decisions from Zotero into a local CSV file, effectively creating an offline 'mirror' of your research audit trail.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli slr sdb export --collection "Screening" --output screening.csv
+""",
         )
         export_p.add_argument("--collection", required=True, help="Collection name or key")
         export_p.add_argument("--output", required=True, help="Path to output CSV")

@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 📚 Documentation
+- **Every command's `--help` has a worked example, and every option has help text (Issue #387):** 42 of 93 leaf commands (`rag query`, every `slr report *`, `slr snowball *`, `slr sdb *`, `system jobs retry`/`run` and more) had no example, and 22 options (`import * --collection`, the 7 bare `--verbose` flags, `item move --item-id`/`--target`, `slr sdb edit`'s options and others) had no help text at all - contradicting the README's claim that every command includes worked examples. Both are now checked by `tests/docs`. Also fixed: `system info`'s description claimed to show environment variables, connection status and an "Active Library ID" it doesn't show. The retired "Scenario-Based Examples (Cognitive Anchors)"/"Cognitive Safeguards" headings are renamed to "Examples"/"Notes" throughout.
 - **Upgrading and uninstalling, for every install channel (Issue #418):** the README has a table for the installers, `.msi`, `.deb`, `.rpm`, archives, uv, pipx and Docker, and tells people who installed from git before 2.8.12 to remove the old `zotero-cli` package first. `install.sh` and `install.ps1` accept `ZOTERO_CLI_VERSION=3.0.5` as well as `v3.0.5`, and a version that doesn't exist now gets a message with the releases page instead of a bare "404".
 
 ### 📦 Distribution

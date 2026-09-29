@@ -40,8 +40,8 @@ class ReportCommand(BaseCommand):
             description="Identifies duplicate items across specified collections, or the entire library if --collections is omitted, facilitating library cleanup. Matches by DOI, ISBN, ArXiv ID, or normalized title (exact tier), plus a fuzzy year/author/title fallback tier for near-duplicates that don't exactly match.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples
------------------------
+Examples
+--------
 Scenario: Identifying overlaps between search databases
 Problem: I've imported search results from IEEE (Key: IEEE_01) and Springer (Key: SPR_01) and want to see which papers are duplicates.
 Action:  zotero-cli report duplicates --collections "IEEE_01,SPR_01"
@@ -83,8 +83,8 @@ Result:  A CSV with one row per occurrence (role/reason columns blank) is writte
             description="Audits a specified collection to identify missing metadata (such as missing DOIs, abstracts, titles, or PDFs).",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples
------------------------
+Examples
+--------
 Scenario: Auditing collection metadata before paper submission
 Problem: I want to verify that all my final selected papers have abstracts and DOIs.
 Action:  zotero-cli report audit --collection "Final Selection" --verbose
@@ -106,8 +106,8 @@ Result:  A completeness report table is printed, and missing items are detailed.
             description="Scans a LaTeX document for citations and verifies whether they exist in your active Zotero library and are screened.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples
------------------------
+Examples
+--------
 Scenario: LaTeX citation verification
 Problem: I want to make sure I haven't cited any papers in my LaTeX file that are missing from Zotero.
 Action:  zotero-cli report verify-latex --latex "manuscript.tex"
@@ -120,6 +120,13 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             "stats",
             help="Show global library metrics",
             description="Gathers and displays global statistics about your Zotero library, including item types, total counts, and temporal distributions.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli report stats
+$ zotero-cli report stats --collection "Screening"
+""",
         )
         stats_p.add_argument(
             "--collection",
@@ -132,6 +139,12 @@ Action:  zotero-cli report verify-latex --latex "manuscript.tex"
             help="Analyze disk usage and missing files",
             description="Performs an audit of PDF attachments and other files in your library or a collection, detailing disk usage and identifying items missing PDFs.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli report attachments
+$ zotero-cli report attachments --collection "To Read" --output attachments.md
+""",
         )
         attach_p.add_argument("--collection", help="Filter analysis to a specific collection")
         attach_p.add_argument(

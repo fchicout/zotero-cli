@@ -26,15 +26,15 @@ class InitCommand(BaseCommand):
         parser.description = "Launches an interactive setup wizard to configure the Zotero CLI, establishing connection credentials and local storage paths."
         parser.formatter_class = argparse.RawDescriptionHelpFormatter
         parser.epilog = """
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: First-time setup of the CLI
 Problem: I've just installed the zotero-cli and I need to connect it to my Zotero account.
 Action:  zotero-cli init
 Result:  The CLI asks for my API key and Library ID, then creates the configuration file.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Providing an incorrect API key or ID during the wizard. The CLI will attempt to validate these via a heartbeat request to the API.
 • Safety Tips: Keep your API key private. The init command stores it in a plain-text config.toml file by default, so ensure your configuration directory has restricted access permissions.
 

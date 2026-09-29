@@ -28,15 +28,15 @@ class InspectCommand(BaseCommand):
         parser.description = "Provides a comprehensive view of all metadata, attachments, and child notes associated with a specific Zotero item."
         parser.formatter_class = argparse.RawDescriptionHelpFormatter
         parser.epilog = """
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Verifying metadata after an import
 Problem: I've imported a paper and want to ensure the DOI was correctly captured and check for any existing notes.
 Action:  zotero-cli item inspect --key "ABCD1234"
 Result:  The CLI displays a detailed view of the item, including its DOI, abstract, and list of child PDF attachments.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to inspect an item key that does not exist or for which you lack read permissions.
 • Safety Tips: Use item list or search to find the correct key if you are unsure. For very large notes, the --full-notes flag may result in a lot of terminal scroll.
 
@@ -198,24 +198,24 @@ class ItemCommand(BaseCommand):
             description="Moves a research item from one collection to another by updating its collection links in the Zotero library.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Categorizing a paper into a specific folder
 Problem: I have a paper in "Incoming Search" (Key: INC_01) and I want to move it to my "Methodology" folder (Key: METH_01).
 Action:  zotero-cli item move --item-id "ABCD1234" --source "INC_01" --target "METH_01"
 Result:  The item is now correctly linked to the "Methodology" folder and removed from "Incoming Search."
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to move an item using a name for the source or target that corresponds to multiple collections. This will lead to an ambiguity error.
 • Safety Tips: Always use item list or collection list to find the exact keys before moving critical items. Moving an item does not affect its metadata or attachments.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_move.md
 """,
         )
-        move_p.add_argument("--item-id", required=True)
+        move_p.add_argument("--item-id", required=True, help="Key of the item to move")
         move_p.add_argument("--source", help="Source collection (optional if unambiguous)")
-        move_p.add_argument("--target", required=True)
+        move_p.add_argument("--target", required=True, help="Destination collection name or key")
 
         # List (Subset of list items)
         list_p = sub.add_parser(
@@ -224,8 +224,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Displays a table of research items within a collection, the trash, or unfiled at the library root. For filtering by screening decision (included/excluded), phase, or persona, use `slr list` instead.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Browsing everything in a folder
 Problem: I want to see all items currently in my "Final Selection" folder (Key: FIN_01).
 Action:  zotero-cli item list --collection "FIN_01"
@@ -241,8 +241,8 @@ Problem: I need authors, year, venue and DOI for every paper in a collection, in
 Action:  zotero-cli item list --collection "FIN_01" --fields key,title,creators,year,venue,doi --format csv > fin_01.csv
 Result:  A CSV with one row per item and the requested columns. Use --wide for a quick on-screen view.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Confusion between the --collection name and key. For deterministic results, always prefer using the unique Key.
 • Safety Tips: Use the --top-only flag if you want to exclude child attachments and notes from the list for a cleaner view.
 
@@ -284,15 +284,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Corrects or enhances the metadata of an individual Zotero item, including fields such as Title, DOI, and Abstract.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Correcting a title with typos
 Problem: My paper with key ABCD1234 has a typo in the title: "Attension is all you need."
 Action:  zotero-cli item update --key "ABCD1234" --title "Attention is All You Need"
 Result:  The title is correctly updated in the Zotero library.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to update an item using a malformed JSON string. Always validate your JSON structure before running the command.
 • Safety Tips: Use the targeted flags (--title, --doi) for simple corrections. The --json flag can modify any Zotero field if correctly formatted.
 
@@ -326,8 +326,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Automatically attempts to retrieve a PDF for the item from the internet using its DOI or ArXiv ID metadata.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Cognitive Safeguards
---------------------
+Examples
+--------
+$ zotero-cli item pdf fetch --key ABCD1234
+$ zotero-cli item pdf fetch --collection "To Read"
+
+Notes
+-----
 • Common Failure Modes: Attempting to fetch for an item without valid DOI metadata.
 • Safety Tips: Use fetch as your first attempt for mass metadata enrichment.
 """,
@@ -335,7 +340,9 @@ Cognitive Safeguards
         fetch_p.add_argument("--key", help=ITEM_KEY_HELP)
         fetch_p.add_argument("--collection", help="Fetch PDFs for all items in a collection")
         fetch_p.add_argument("--file", help="Fetch PDFs for all items in a key-list file")
-        fetch_p.add_argument("--verbose", dest="details", action="store_true")
+        fetch_p.add_argument(
+            "--verbose", dest="details", action="store_true", help="Print each fetch attempt"
+        )
 
         strip_p = pdf_sub.add_parser(
             "strip",
@@ -343,14 +350,20 @@ Cognitive Safeguards
             description="Permanently deletes all existing PDF attachments linked to the item from the Zotero library.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Cognitive Safeguards
---------------------
+Examples
+--------
+$ zotero-cli item pdf strip --key ABCD1234 --execute
+
+Notes
+-----
 • Common Failure Modes: strip is irreversible and will permanently delete files from your Zotero storage.
 """,
         )
         strip_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         strip_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
-        strip_p.add_argument("--verbose", dest="details", action="store_true")
+        strip_p.add_argument(
+            "--verbose", dest="details", action="store_true", help="Print each item stripped"
+        )
 
         attach_p = pdf_sub.add_parser(
             "attach",
@@ -358,15 +371,15 @@ Cognitive Safeguards
             description="Manually uploads a local file from your computer and links it as a child attachment to the item in Zotero.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Manually attaching a downloaded paper
 Problem: I've manually downloaded a paper ("Manual_Ref.pdf") and want to attach it to its corresponding item (Key: REF_123) in Zotero.
 Action:  zotero-cli item pdf attach --key "REF_123" --file "Manual_Ref.pdf"
 Result:  The PDF is uploaded and linked to the item in the Zotero cloud storage.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attaching a file that is too large for your Zotero storage quota.
 """,
         )
@@ -380,8 +393,8 @@ Cognitive Safeguards
             description="Fills in missing metadata (abstract, date, venue, URL, creators, DOI) for items that have a DOI, an arXiv ID or a PMID, looking them up across the configured metadata providers (Semantic Scholar, CrossRef, OpenAlex, PubMed, ...). Previews by default; pass --execute to write.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Completing records imported from a BibTeX/CSV export
 Problem: A collection imported from a reference export has DOIs but no abstracts or venues.
 Action:  zotero-cli item hydrate --collection "Imported" && zotero-cli item hydrate --collection "Imported" --execute
@@ -397,8 +410,8 @@ Problem: I want machine-readable proposed changes before anything is written.
 Action:  zotero-cli item hydrate --all --format json > proposals.json
 Result:  One JSON object per item: status, identifier used, and every proposed change with its old and new value.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Nothing is written without --execute. Only empty fields are filled unless you pass --overwrite, and the title is never changed unless you name it in --fields.
 • Items with no DOI, arXiv ID or PMID are skipped; --by-title tries an exact title match (also checking year and first author) and skips anything less certain.
 • --offline is read-only: previews work, --execute doesn't.
@@ -447,15 +460,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Permanently removes specific types of child assets (PDFs, notes, or tags) from a research item without deleting the main bibliographic record itself.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Cleaning up annotations before a re-read
 Problem: I have a paper (Key: READ_456) filled with old notes and tags that are no longer relevant to my current project.
 Action:  zotero-cli item purge --key "READ_456" --notes --tags
 Result:  All notes and tags are removed from the paper, providing a clean slate for new analysis.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to purge assets without providing at least one asset type flag (--files, --notes, or --tags).
 • Safety Tips: ALWAYS verify the item key using item inspect before purging. This command is irreversible.
 
@@ -475,15 +488,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Permanently deletes a research item from the Zotero library. The Zotero Web API only exposes a hard, permanent DELETE - there is no soft-delete/trash-write path, so this cannot be undone.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Removing a genuine duplicate/junk record
 Problem: I manually added a test item (Key: JUNK_01) by mistake and want it gone entirely.
 Action:  zotero-cli item delete --key "JUNK_01"
 Result:  The item is permanently removed from the library. This cannot be undone.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Assuming this moves the item to a recoverable trash - it does not, the Web API has no such mechanism.
 • Safety Tips: ALWAYS verify the item key using item inspect before deleting. For consolidating duplicates instead of discarding one outright, use item merge.
 
@@ -504,15 +517,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Moves an item into Zotero's trash by writing directly to the local zotero.sqlite, replicating exactly what Zotero Desktop itself writes when you delete an item from its UI (bumps dateModified/clientDateModified, marks the row dirty so Desktop's next sync pushes the change to the server, adds a deletedItems row). Only supported in --offline mode: the Zotero Web API has no documented, reversible trash write, only a permanent DELETE - see `item delete`.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Cleaning up a duplicate found while working offline
 Problem: I want to trash item ABCD1234 in my local library, the same as clicking delete in Zotero Desktop.
 Action:  zotero-cli --offline item trash --key "ABCD1234" --execute
 Result:  The item is moved to the trash in zotero.sqlite. It appears in Zotero Desktop's trash next time Desktop opens or syncs.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Running without --offline (not supported in online/API mode); running while Zotero Desktop is actively writing to the same file - fails cleanly with a lock error, just retry or close Desktop first.
 • Safety Tips: Close Zotero Desktop first to avoid a database lock. Reversible via `item restore`, unless you also run Desktop's "Empty Trash".
 
@@ -534,15 +547,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Restores a trashed item by writing directly to the local zotero.sqlite, replicating exactly what Zotero Desktop itself writes when you restore an item from its trash (bumps dateModified/clientDateModified, marks the row dirty so Desktop's next sync pushes the change to the server, removes the deletedItems row). Only supported in --offline mode. Does not undo any prior `item merge` relations left on the item - a narrow edge case left untouched rather than guessed at.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Undoing an accidental trash
 Problem: I ran `item trash --key ABCD1234 --execute` by mistake and want it back.
 Action:  zotero-cli --offline item restore --key "ABCD1234" --execute
 Result:  The item is removed from the trash in zotero.sqlite and appears normally again in Zotero Desktop.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Running without --offline (not supported in online/API mode); trying to restore an item Desktop's "Empty Trash" already permanently deleted - restore only works before that point.
 • Safety Tips: Close Zotero Desktop first to avoid a database lock.
 
@@ -564,15 +577,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Copies or moves a research item (including its metadata and PDF attachments) from your personal library to a Zotero group library, or between different groups.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Moving a paper to a shared project group
 Problem: I've found a perfect paper in my personal library and I want to share it with my lab's Zotero group (ID: 987654).
 Action:  zotero-cli item transfer --key "ABCD1234" --target-group "987654"
 Result:  A duplicate of the paper and its PDF is created in the lab's group library.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to transfer to a group for which you do not have "Write" permissions.
 • Safety Tips: Always verify target group ID via system groups. Cross-library transfers can take time.
 
@@ -594,16 +607,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Exports a single Zotero item: its metadata as BibTeX or RIS to a file (--output is required), or the text of its PDF as a .md file (md). To print BibTeX/RIS to the terminal instead, use `item inspect --key KEY --format bibtex`.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Getting a BibTeX entry for a specific citation
 Problem: I'm writing a paper and I just need the BibTeX code for the item with key VA12345.
 Action:  zotero-cli item export --key "VA12345" --format bibtex --output va12345.bib
 Result:  The BibTeX entry is written to va12345.bib. (`zotero-cli item inspect --key "VA12345" --format bibtex`
          prints it to the terminal instead.)
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to export an item key that doesn't exist or for which metadata is incomplete.
 • Safety Tips: Use the md format to generate a local Markdown "Digital Twin" of your Zotero item.
 
@@ -623,15 +636,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Manually creates a new research item in a specific Zotero collection by providing core bibliographic fields directly from the terminal.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Manually adding an internal technical report
 Problem: I have a PDF of an internal company report that isn't online and I want to add it to my "References" folder (Key: REF_01).
 Action:  zotero-cli item add --title "Advanced RAG Pipelines V2" --authors "Engineering Team" --collection "REF_01" --type report
 Result:  A new item of type "report" is created in Zotero, ready for PDF attachment.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to run without providing the mandatory --title or --collection flags.
 • Safety Tips: Use item pdf attach immediately after creation if you have a local file for the item.
 
@@ -656,8 +669,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates. Use `report duplicates` first to find candidate keys, or `report duplicates --export-plan` for a bulk-editable plan file.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Consolidating a paper imported twice from different search databases
 Problem: report duplicates found the same paper as items IEEE_KEY1 (master, more complete) and SPR_KEY2 (duplicate).
 Action:  zotero-cli item merge --master "IEEE_KEY1" --duplicates "SPR_KEY2" --execute
@@ -673,8 +686,8 @@ Problem: I exported duplicates.csv via `report duplicates --export-plan`, filled
 Action:  zotero-cli item merge --from-plan duplicates.csv --execute
 Result:  Every fully-resolved group is merged in one pass; if any group is still missing a decision, nothing is written and the incomplete groups are listed.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Master and duplicates must share the same item type - Zotero Desktop enforces the same rule. Conflicting scalar fields (title, date, DOI, ISBN, URL, abstract) must be resolved interactively (single-group form) before --execute can proceed; there is no silent "first wins" default. With --from-plan, an incomplete plan (any group missing a decision) blocks the entire batch, not just that group.
 • Safety Tips: This is PERMANENT - the Zotero Web API only supports hard delete, there is no undo the way Zotero Desktop's internal merge has. Run without --execute first to preview. Any citation-management document referencing a duplicate's key by that key will break.
 

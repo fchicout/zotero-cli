@@ -8,6 +8,10 @@ from zotero_cli.core.services.import_service import ImportService
 from zotero_cli.core.utils.terminal_safety import strip_controls
 from zotero_cli.infra.factory import GatewayFactory
 
+# Repeated across the file's import subcommands (Issue #387).
+COLLECTION_HELP = "Target collection name or key"
+VERBOSE_HELP = "Print each imported item"
+
 
 @CommandRegistry.register
 class ImportCommand(BaseCommand):
@@ -32,15 +36,15 @@ class ImportCommand(BaseCommand):
             description="Bulk-imports research items from external bibliographic files (.bib, .ris, .csv) directly into a specified Zotero collection.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Importing search results from IEEE Xplore
 Problem: I've downloaded a results.ris file from IEEE and I want to import all 50 papers into my "Primary Search" folder (Key: PRI_01).
 Action:  zotero-cli import file "results.ris" --collection "PRI_01"
 Result:  All 50 items are uploaded to Zotero and linked to that collection.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to import files with malformed syntax or missing mandatory fields (like Title). Large files may hit Zotero API rate limits.
 • Safety Tips: Always verify your .bib or .ris encoding (UTF-8 preferred) to prevent character corruption.
 
@@ -48,8 +52,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 """,
         )
         file_p.add_argument("file", help="Path to input file")
-        file_p.add_argument("--collection", required=True)
-        file_p.add_argument("--verbose", dest="details", action="store_true")
+        file_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
+        file_p.add_argument(
+            "--verbose", dest="details", action="store_true", help=VERBOSE_HELP
+        )
 
         # ArXiv
         arxiv_p = sub.add_parser(
@@ -58,15 +64,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Directly imports research papers from the arXiv repository into a Zotero collection using a powerful Domain Specific Language (DSL) query.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Automated tracking of new papers on a topic
 Problem: I want to import all recent papers by "Vaswani" in the category "cs.LG" into my "Deep Learning Tracking" (Key: DL_01) folder.
 Action:  zotero-cli import arxiv --query "au:Vaswani AND cat:cs.LG" --collection "DL_01" --limit 10
 Result:  The CLI finds the 10 most relevant matches and imports them into Zotero.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Providing an invalid DSL syntax causing API errors. arXiv API rate limits can trigger failures if multiple imports run in quick succession.
 • Safety Tips: Use the --limit flag wisely. arXiv search results can be vast; importing thousands may lead to library clutter and API throttling.
 
@@ -75,9 +81,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         arxiv_p.add_argument("--query", required=True, help="DSL Search Query")
         arxiv_p.add_argument("--file", help="Path to file containing DSL query")
-        arxiv_p.add_argument("--collection", required=True)
-        arxiv_p.add_argument("--limit", type=int, default=100)
-        arxiv_p.add_argument("--verbose", dest="details", action="store_true")
+        arxiv_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
+        arxiv_p.add_argument("--limit", type=int, default=100, help="Max results to import")
+        arxiv_p.add_argument(
+            "--verbose", dest="details", action="store_true", help=VERBOSE_HELP
+        )
 
         # DOI
         doi_p = sub.add_parser(
@@ -86,15 +94,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Imports a single research item directly into a Zotero collection using its unique Digital Object Identifier (DOI).",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Adding a specific paper from a journal website
 Problem: I've found a critical paper on a journal website (DOI: 10.1038/nature12373) and want to add it to my "Climate Studies" folder (Key: CLIM_01).
 Action:  zotero-cli import doi "10.1038/nature12373" --collection "CLIM_01"
 Result:  The item is automatically created in Zotero with its full verified metadata.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to import an invalid DOI or one not yet indexed by primary providers.
 • Safety Tips: If import fails with "DOI not found", verify on doi.org. Some DOIs take a few days to propagate through major APIs.
 
@@ -102,8 +110,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 """,
         )
         doi_p.add_argument("doi", help="Digital Object Identifier")
-        doi_p.add_argument("--collection", required=True)
-        doi_p.add_argument("--verbose", dest="details", action="store_true")
+        doi_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
+        doi_p.add_argument(
+            "--verbose", dest="details", action="store_true", help=VERBOSE_HELP
+        )
 
         # BDTD
         bdtd_p = sub.add_parser(
@@ -112,8 +122,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Imports thesis/dissertation metadata from the Brazilian Biblioteca Digital de Teses e Dissertações (BDTD) into a Zotero collection. Accepts a single BDTD record ID, institutional repository handle URL, or DOI, or a free-text --query to bulk-import multiple matching theses/dissertations.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario 1: Importing a UFPE doctoral thesis by handle URL
 Problem: I've found a UFPE thesis on AI accountability and want to add it to my "Brazilian Theses" folder (Key: BR_THESES).
 Action:  zotero-cli import bdtd "https://repositorio.ufpe.br/handle/123456789/51746" --collection "BR_THESES"
@@ -129,8 +139,8 @@ Problem: I want every BDTD thesis about "aprendizado de maquina" (machine learni
 Action:  zotero-cli import bdtd --query "aprendizado de maquina" --collection "Brazilian_ML" --limit 20
 Result:  Up to 20 matching theses/dissertations are imported. Use `item pdf fetch` afterward to attach PDFs — search results don't resolve them (too slow to scrape per-record during a bulk search).
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Supported identifiers: BDTD record IDs (e.g. UFPE_xxx), handle URLs (e.g. https://repositorio.ufpe.br/handle/...), and DOIs. Exactly one of the identifier or --query must be given, not both.
 • The thesis PDF is automatically resolved from the institutional repository when importing a single identifier; --query bulk imports skip PDF resolution (run `item pdf fetch` afterward).
 • Items are created as Zotero "thesis" type with university and degree level fields.
@@ -143,8 +153,10 @@ Cognitive Safeguards
         bdtd_p.add_argument(
             "--limit", type=int, default=20, help="Max results to import for --query"
         )
-        bdtd_p.add_argument("--collection", required=True)
-        bdtd_p.add_argument("--verbose", dest="details", action="store_true")
+        bdtd_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
+        bdtd_p.add_argument(
+            "--verbose", dest="details", action="store_true", help=VERBOSE_HELP
+        )
 
         # Manual
         man_p = sub.add_parser(
@@ -153,25 +165,25 @@ Cognitive Safeguards
             description="Allows for manual creation of a research item in Zotero by providing key metadata fields like Title, ArXiv ID, and Abstract from the terminal.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Adding a pre-print discovered on social media
 Problem: I've found an interesting paper title ("Beyond GPT-4") and its ArXiv ID (2301.12345) on X and want to save it to my "AI Trends" folder (Key: AI_TRENDS).
 Action:  zotero-cli import manual --title "Beyond GPT-4" --arxiv-id "2301.12345" --collection "AI_TRENDS"
 Result:  The item is created in Zotero with the provided information.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to run without providing mandatory --title or --arxiv-id flags.
 • Safety Tips: This command is best for single items. For multiple items, prefer import file or import arxiv for efficiency.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/import_manual.md
 """,
         )
-        man_p.add_argument("--arxiv-id", required=True)
-        man_p.add_argument("--title", required=True)
-        man_p.add_argument("--abstract", default="")
-        man_p.add_argument("--collection", required=True)
+        man_p.add_argument("--arxiv-id", required=True, help="The arXiv ID, e.g. 2401.01234")
+        man_p.add_argument("--title", required=True, help="Paper title")
+        man_p.add_argument("--abstract", default="", help="Paper abstract (optional)")
+        man_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
 
     def execute(self, args: argparse.Namespace) -> None:
         """

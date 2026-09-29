@@ -113,23 +113,19 @@ class SystemCommand(BaseCommand):
         sub.add_parser(
             "info",
             help="Display environment and configuration",
-            description="Displays the current configuration, environment variables, and connection status of your zotero-cli installation.",
+            description="Displays the version, Python/platform, config and state paths, and which library "
+            "requests actually go to. Doesn't check connectivity - use `system check` for that.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
-Scenario: Verifying which Zotero group is active
-Problem: I'm not sure if my commands are currently targeting my personal library or my research group's library.
-Action:  zotero-cli system info
-Result:  The CLI displays its version, Python and platform, the "Active Library ID"
-         and the "Library Type" (User/Group).
+Examples
+--------
+$ zotero-cli system info
 
-Cognitive Safeguards
---------------------
-• Common Failure Modes: Running the command before initializing the CLI with init.
-• Safety Tips: Use this command to confirm your storage_path is set before running bulk fetches.
-
-Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_info.md
+Notes
+-----
+• Shows "Library ID" and "Library Type", and the resolved "Endpoint" (which library requests
+  actually target) - not "environment variables" or live connection status.
+• Run after `system switch`, or when unsure which library is active.
 """,
         )
 
@@ -140,15 +136,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Lists all Zotero groups that your account belongs to, displaying their names, unique numeric IDs, and your access permissions.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Finding a lab's Group ID for a new project
 Problem: I need to move papers into my lab's shared library, but I don't know the numeric ID for the "AI Ethics Lab" group.
 Action:  zotero-cli system groups
 Result:  The table lists all my groups, and I can see that "AI Ethics Lab" has ID 1234567.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to run the command with an expired or invalid API key.
 • Safety Tips: Use this command in combination with system switch to move between different project contexts quickly.
 
@@ -163,15 +159,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Runs lightweight, read-only connectivity and credential checks against Zotero, Semantic Scholar, Unpaywall, PubMed/NCBI, and the configured LLM/embedding providers.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: A command fails and you don't know why
 Problem: `import doi` silently returns no metadata and you're not sure if it's a bad key or a network issue.
 Action:  zotero-cli system check
 Result:  A table shows each configured service's status (CONNECTED/FAILED/NOT CONFIGURED) with details.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Running this before setting any optional API keys - most rows will show NOT CONFIGURED, which is expected, not an error.
 • Safety Tips: Run this after editing config.toml to confirm the new credentials actually work before a long-running import.
 
@@ -186,15 +182,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Runs offline checks of the features that depend on bundled libraries (PDF text extraction, SQLite). Needs no configuration or network. Exits 1 if any check fails.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Checking a fresh install
 Problem: You installed a binary or a new Python environment and want to know it works before configuring it.
 Action:  zotero-cli system selftest
 Result:  Each check prints OK or FAILED; the exit status is 1 if any failed.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: A FAILED "PDF text extraction" means `item export --format md` and `rag ingest` can't read PDFs on this install; reinstall, or report the details line.
 • Safety Tips: Read-only and offline - safe to run anywhere, including CI.
 
@@ -209,8 +205,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Creates a temporary collection populated with mock papers so you can try screening, reporting, and RAG commands without touching your real library.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Trying zotero-cli for the first time
 Problem: I just installed zotero-cli and don't have a populated collection I'm comfortable experimenting on yet.
 Action:  zotero-cli system demo-sandbox
@@ -220,8 +216,8 @@ Scenario: Cleaning up after trying the tool
 Problem: I'm done exploring and want to remove the mock data from my library.
 Action:  zotero-cli system demo-sandbox --clean
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Running this in --offline mode (the sandbox needs a live, writable Zotero API connection to create real items).
 • Safety Tips: Use a custom --name if you want to keep multiple sandboxes side by side.
 
@@ -242,15 +238,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Creates a complete, self-contained backup archive (.zaf) of your entire Zotero library, including all collections, metadata, and attachments.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Migrating research data to a new workstation
 Problem: I've bought a new computer and I want to move my entire zotero-cli environment and library state.
 Action:  zotero-cli system backup --output "Master_Research_Backup_2024.zaf"
 Result:  A single portable file is created that can be used with system restore on the new machine.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting backup on a very large library (>5000 items) without sufficient disk space.
 • Safety Tips: Run this command regularly and store the .zaf file in a secure, off-site location.
 
@@ -266,15 +262,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Performs a deep integrity check on a Zotero Archive Format (.zaf) file, validating checksums of all attachments and ensuring JSON data structures are correct.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Verifying a backup before cloud deletion
 Problem: I want to delete my Zotero cloud data to save space, but I must be 100% sure my backup is valid.
 Action:  zotero-cli system verify --file "backup_2024.zaf"
 Result:  The CLI confirms all 120 PDFs match their original checksums.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Running verify on a non-.zaf file or an archive that is still being written.
 """,
         )
@@ -287,15 +283,15 @@ Cognitive Safeguards
             description="Reconstructs an entire Zotero library or specific collections from a previously created Zotero Archive Format (.zaf) file.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Recovering from an accidental library deletion
 Problem: I've accidentally deleted a large set of folders in Zotero and I need to restore them from last week's backup.
 Action:  zotero-cli system restore --file "backup_2024_01_01.zaf" --dry-run
 Result:  The CLI shows exactly which items and folders will be recreated.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to restore a .zaf file that is corrupted or from a different account context.
 • Safety Tips: ALWAYS run with --dry-run first to understand the impact.
 
@@ -312,15 +308,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Converts raw search result CSV files from academic databases into a 'Canonical' format optimized for import into Zotero.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Preparing search results from multiple databases
 Problem: I have a CSV from IEEE and another from Springer, and their headers are completely different.
 Action:  zotero-cli system normalize "ieee_results.csv" --output "canonical_results.csv"
 Result:  The IEEE data is transformed into the standard format, ready for easy import.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to normalize a CSV from an unsupported provider or a file with corrupted formatting.
 • Safety Tips: Always check the normalized CSV in a spreadsheet viewer before importing.
 
@@ -337,17 +333,17 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Switches the active library context of the zotero-cli, allowing you to target different research groups or your personal library.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Moving from personal research to a team project
 Problem: I've finished my private search and now I want to run a screening TUI on our lab's shared collection.
 Action:  zotero-cli system switch "AI Lab"
 Result:  The CLI context is updated to the "AI Lab" group library.
 
-Cognitive Safeguards
---------------------
+Notes
+-----
 • Common Failure Modes: Attempting to switch to a group you don't belong to or providing an ambiguous name.
-• Safety Tips: Run system info after switching to confirm the "Active Library ID" is correct.
+• Safety Tips: Run system info after switching to confirm the "Library ID" is correct.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_switch.md
 """,
@@ -373,8 +369,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             description="Shows the current queue, indicating which tasks are PENDING, COMPLETED, or FAILED.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Scenario-Based Examples (Cognitive Anchors)
--------------------------------------------
+Examples
+--------
 Scenario: Monitoring a large snowballing discovery
 Problem: I've queued 1000 DOIs for discovery and I want to see how many are finished.
 Action:  zotero-cli system jobs list
@@ -391,8 +387,12 @@ Result:  The CLI displays a table showing that 800 are completed and 200 are sti
             description="Allows you to re-attempt a specific job that failed due to network issues or API rate limits.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Cognitive Safeguards
---------------------
+Examples
+--------
+$ zotero-cli system jobs retry 42
+
+Notes
+-----
 • Common Failure Modes: Attempting to retry a job that is already running.
 """,
         )
@@ -404,6 +404,11 @@ Cognitive Safeguards
             help="Run background worker to process jobs",
             description="Launches the background worker that actually performs the work in the queue.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples
+--------
+$ zotero-cli system jobs run --type fetch_pdf --watch
+""",
         )
         run_p.add_argument(
             "--type", default="fetch_pdf", help="Filter by task type (Default: fetch_pdf)"
