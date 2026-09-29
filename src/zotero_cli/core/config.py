@@ -482,7 +482,8 @@ def _unwritable(path: Path, reason: str) -> ConfigurationError:
             "e.g. -v ~/.config/zotero-cli:/config/zotero-cli (see the README)."
         )
     else:
-        hint = "Check its owner and permissions, or set XDG_CONFIG_HOME to a writable directory."
+        var = "APPDATA" if os.name == "nt" else "XDG_CONFIG_HOME"
+        hint = f"Check its owner and permissions, or set {var} to a writable directory."
     return ConfigurationError(f"Can't write zotero-cli's directory {path} ({reason}). {hint}")
 
 

@@ -1,4 +1,3 @@
-import os
 from unittest.mock import MagicMock
 
 import pytest
@@ -19,20 +18,12 @@ def test_orchestrator_missing_methods():
 
 
 @pytest.mark.unit
-def test_sqlite_gateway_interface_completeness():
+def test_sqlite_gateway_interface_completeness(tmp_path):
     """
     VALERIUS-002: SqliteZoteroGateway must implement all abstract methods of ZoteroGateway.
     """
-    dummy_db = "/tmp/audit.sqlite"
-    if not os.path.exists(dummy_db):
-        with open(dummy_db, "w") as f:
-            f.write("")
+    dummy_db = tmp_path / "audit.sqlite"
+    dummy_db.write_text("")
 
-    try:
-        # If this fails with TypeError, it means abstract methods are missing
-        SqliteZoteroGateway(dummy_db)
-    except TypeError as e:
-        pytest.fail(f"SqliteZoteroGateway is incomplete: {e}")
-    finally:
-        if os.path.exists(dummy_db):
-            os.remove(dummy_db)
+    # A TypeError here (abstract methods missing) fails the test on its own.
+    SqliteZoteroGateway(str(dummy_db))

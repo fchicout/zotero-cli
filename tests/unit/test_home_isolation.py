@@ -17,7 +17,13 @@ def test_storage_dir_is_inside_the_temporary_test_home():
 
     storage = get_storage_dir().resolve()
     assert _test_home().resolve() in storage.parents
-    assert real_home().resolve() not in storage.parents or real_home() == _test_home()
+    # On Windows, the isolated test home is itself created under %TEMP%,
+    # which the OS nests inside the real home directory - real_home() being
+    # an ancestor of _test_home() there is expected, not an isolation leak.
+    # The actual property this guards is storage staying out of the real
+    # per-user config location once _test_home() itself isn't inside it.
+    if real_home().resolve() not in _test_home().resolve().parents:
+        assert real_home().resolve() not in storage.parents or real_home() == _test_home()
 
 
 def test_home_and_config_env_point_at_the_test_home():

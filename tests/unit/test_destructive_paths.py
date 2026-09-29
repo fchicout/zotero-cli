@@ -30,8 +30,10 @@ REVIEWED = {
 
 
 def _files_calling_deletes() -> set:
+    # .as_posix(), not str(): REVIEWED's keys are "/"-separated, and str()
+    # would give "\\"-separated paths on Windows.
     return {
-        str(path.relative_to(SRC))
+        path.relative_to(SRC).as_posix()
         for path in SRC.rglob("*.py")
         if DELETE_CALL.search(path.read_text(encoding="utf-8"))
     }

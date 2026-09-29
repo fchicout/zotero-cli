@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from zotero_cli.core.utils.safe_tempfile import write_secure_temp_file
 
 
@@ -26,6 +28,7 @@ def test_write_secure_temp_file_produces_non_predictable_names():
         os.remove(path2)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
 def test_write_secure_temp_file_created_with_owner_only_permissions():
     """tempfile.mkstemp creates the file with mode 0600 - unlike a plain
     write to a manually joined predictable path, an attacker who somehow
