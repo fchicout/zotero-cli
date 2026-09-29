@@ -86,11 +86,14 @@ jobs:
           uv sync --locked --no-editable --group release
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
-      - name: Build Binary with PyInstaller
-        # --strip (Issue #434): an unstripped libpython3.14 is 34 MB instead
-        # of 22.7 MB, all of it extracted on every run.
+      # --onedir (Issue #434 step 2): the installed packages below (.deb,
+      # .rpm, .tar.gz) unpack once at install time instead of on every run.
+      # --strip: an unstripped libpython3.14 is 34 MB instead of 22.7 MB,
+      # all of it extracted from a onefile binary on every run - still worth
+      # it here since it also shrinks what onedir installs to disk.
+      - name: Build onedir binary with PyInstaller
         run: |
-          pyinstaller --onefile --strip --name zotero-cli \
+          pyinstaller --onedir --strip --name zotero-cli \
             --add-data "src/zotero_cli/templates/extraction_schema.yaml:zotero_cli/templates" \
             --add-data "src/zotero_cli/templates/demo_sandbox.yaml:zotero_cli/templates" \
             --exclude-module torch \
@@ -103,26 +106,52 @@ jobs:
             --clean src/zotero_cli/cli/main.py
 
       # Never publish a binary that can't start (Issue #333).
-      - name: Smoke test binary
+      - name: Smoke test onedir binary
         run: |
-          ./dist/zotero-cli --help
+          ./dist/zotero-cli/zotero-cli --help
           # Exercise bundled libraries, not just startup (Issue #403).
-          ./dist/zotero-cli system selftest
+          ./dist/zotero-cli/zotero-cli system selftest
 
       # Real CLI commands against a fixture library, not just library-level
       # calls (Issue #399): catches a regression in the offline read path
       # (#363, #366) that --help/selftest alone would miss.
-      - name: Smoke test binary against a fixture library
+      - name: Smoke test onedir binary against a fixture library
         run: |
           python3 scripts/build_smoke_fixture.py smoke-fixture
           export ZOTERO_DATABASE_PATH="$PWD/smoke-fixture/zotero.sqlite"
-          ./dist/zotero-cli --offline item list --collection "Smoke Test" --format json \
+          ./dist/zotero-cli/zotero-cli --offline item list --collection "Smoke Test" --format json \
             | grep -q "A Paper With a PDF"
-          ./dist/zotero-cli --offline search Lovelace | grep -q "A Paper With a PDF"
-          ./dist/zotero-cli --offline item inspect --key SMOKE001 | grep -q "SMOKEPDF"
+          ./dist/zotero-cli/zotero-cli --offline search Lovelace | grep -q "A Paper With a PDF"
+          ./dist/zotero-cli/zotero-cli --offline item inspect --key SMOKE001 | grep -q "SMOKEPDF"
+
+      # Issue #434: "keep the bare onefile download for people who want one
+      # file" - built separately (own --distpath/--workpath so it doesn't
+      # clobber the onedir build above) and published alongside it, not
+      # instead of it. Same module set, so a light smoke test is enough;
+      # the onedir build above already exercised the fixture commands.
+      - name: Build bare onefile binary with PyInstaller
+        run: |
+          pyinstaller --onefile --strip --name zotero-cli \
+            --distpath dist-onefile --workpath build-onefile \
+            --add-data "src/zotero_cli/templates/extraction_schema.yaml:zotero_cli/templates" \
+            --add-data "src/zotero_cli/templates/demo_sandbox.yaml:zotero_cli/templates" \
+            --exclude-module torch \
+            --exclude-module nvidia \
+            --exclude-module mkl \
+            --exclude-module numpy \
+            --exclude-module pandas \
+            --exclude-module matplotlib \
+            --exclude-module readline \
+            --clean src/zotero_cli/cli/main.py
+
+      - name: Smoke test bare onefile binary
+        run: |
+          ./dist-onefile/zotero-cli --help
+          ./dist-onefile/zotero-cli system selftest
 
       # Notices for exactly what PyInstaller bundled (Issue #405); fails if a
-      # bundled file can't be attributed to a licence.
+      # bundled file can't be attributed to a licence. Built from the onedir
+      # analysis; the onefile build above shares the same module set.
       - name: Generate licence notices
         run: |
           python scripts/gen_third_party_notices.py --build-dir build/zotero-cli \
@@ -150,12 +179,17 @@ jobs:
         run: |
           tar -czvf zotero-cli-linux-amd64.tar.gz -C dist zotero-cli LICENSE THIRD_PARTY_LICENSES.txt
 
+      # Issue #434 step 2: installs the onedir tree under /usr/lib/zotero-cli
+      # with a /usr/bin/zotero-cli symlink into it, the standard layout for a
+      # multi-file Linux program - rather than /usr/bin holding the whole
+      # tree, which would collide with every other package's files there.
       - name: Create DEB Package
         env:
           VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
-          mkdir -p dist/deb/usr/bin dist/deb/usr/share/doc/zotero-cli
-          cp dist/zotero-cli dist/deb/usr/bin/
+          mkdir -p dist/deb/usr/lib/zotero-cli dist/deb/usr/bin dist/deb/usr/share/doc/zotero-cli
+          cp -r dist/zotero-cli/. dist/deb/usr/lib/zotero-cli/
+          ln -s /usr/lib/zotero-cli/zotero-cli dist/deb/usr/bin/zotero-cli
           # /usr/share/doc/<package>/copyright is where Debian policy expects it.
           cp LICENSE dist/deb/usr/share/doc/zotero-cli/copyright
           cp dist/THIRD_PARTY_LICENSES.txt dist/deb/usr/share/doc/zotero-cli/
@@ -167,7 +201,7 @@ jobs:
             --vendor "Fábio Chicout" \
             --license MIT \
             --url "https://github.com/fchicout/zotero-cli" \
-            usr/bin/zotero-cli usr/share/doc/zotero-cli
+            usr/bin/zotero-cli usr/lib/zotero-cli usr/share/doc/zotero-cli
           mv zotero-cli_*.deb zotero-cli-linux-amd64.deb
 
       - name: Create RPM Package
@@ -182,8 +216,31 @@ jobs:
             --vendor "Fábio Chicout" \
             --license MIT \
             --url "https://github.com/fchicout/zotero-cli" \
-            usr/bin/zotero-cli usr/share/doc/zotero-cli
+            usr/bin/zotero-cli usr/lib/zotero-cli usr/share/doc/zotero-cli
           mv zotero-cli-*.rpm zotero-cli-linux-amd64.rpm
+
+      # Issue #434: install, run and remove each package inside a clean
+      # container - catches a broken symlink or a file-list mistake that
+      # `fpm` itself won't; check-glibc-floor separately runs the raw
+      # onedir binary across the supported-distro matrix.
+      - name: Smoke test DEB and RPM install/uninstall
+        run: |
+          docker run --rm -v "$PWD:/work:ro" -w /work ubuntu:22.04 bash -euc '
+            dpkg -i zotero-cli-linux-amd64.deb
+            test -L /usr/bin/zotero-cli
+            test -x /usr/lib/zotero-cli/zotero-cli
+            dpkg -r zotero-cli
+            test ! -e /usr/bin/zotero-cli
+            test ! -d /usr/lib/zotero-cli
+          '
+          docker run --rm -v "$PWD:/work:ro" -w /work fedora:36 bash -euc '
+            rpm -i zotero-cli-linux-amd64.rpm
+            test -L /usr/bin/zotero-cli
+            test -x /usr/lib/zotero-cli/zotero-cli
+            rpm -e zotero-cli
+            test ! -e /usr/bin/zotero-cli
+            test ! -d /usr/lib/zotero-cli
+          '
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -191,6 +248,7 @@ jobs:
           name: linux-artifacts
           path: |
             dist/zotero-cli
+            dist-onefile/zotero-cli
             THIRD_PARTY_LICENSES-linux.txt
             zotero-cli-linux-amd64.tar.gz
             zotero-cli-linux-amd64.deb
@@ -229,19 +287,27 @@ jobs:
       - name: Build the fixture library
         run: python3 scripts/build_smoke_fixture.py smoke-fixture
 
+      # Issue #434: the onedir tree (bin/dist/zotero-cli/) is mounted as a
+      # directory rather than a single file, matching what the .deb/.rpm/
+      # .tar.gz installers actually lay down; the bare onefile binary
+      # (bin/dist-onefile/zotero-cli) is checked too since it's a separately
+      # downloadable asset with its own glibc floor.
       - name: Run the binary in ${{ matrix.image }}
         run: |
-          chmod +x bin/dist/zotero-cli
+          chmod +x bin/dist/zotero-cli/zotero-cli bin/dist-onefile/zotero-cli
           docker run --rm \
-            -v "$PWD/bin/dist/zotero-cli:/z:ro" \
+            -v "$PWD/bin/dist/zotero-cli:/opt/zotero-cli:ro" \
+            -v "$PWD/bin/dist-onefile/zotero-cli:/zotero-cli-onefile:ro" \
             -v "$PWD/smoke-fixture:/fixture:ro" \
             -e ZOTERO_DATABASE_PATH=/fixture/zotero.sqlite \
             "${{ matrix.image }}" sh -euc '
-              /z --help >/dev/null
-              /z system selftest
-              /z --offline item list --collection "Smoke Test" --format json | grep -q "A Paper With a PDF"
-              /z --offline search Lovelace | grep -q "A Paper With a PDF"
-              /z --offline item inspect --key SMOKE001 | grep -q "SMOKEPDF"
+              for z in /opt/zotero-cli/zotero-cli /zotero-cli-onefile; do
+                "$z" --help >/dev/null
+                "$z" system selftest
+                "$z" --offline item list --collection "Smoke Test" --format json | grep -q "A Paper With a PDF"
+                "$z" --offline search Lovelace | grep -q "A Paper With a PDF"
+                "$z" --offline item inspect --key SMOKE001 | grep -q "SMOKEPDF"
+              done
             '
 
   build-windows:
@@ -265,9 +331,13 @@ jobs:
           uv sync --locked --no-editable --group release
           Add-Content -Path $env:GITHUB_PATH -Value "$PWD\.venv\Scripts"
 
-      - name: Build Binary with PyInstaller
+      # --onedir (Issue #434 step 2): the ZIP and MSI below install the
+      # unpacked tree instead of a self-extracting exe. No --strip: unlike
+      # objcopy on Linux, PyInstaller's Windows strip needs a separate
+      # toolchain this runner doesn't have, and wasn't used before either.
+      - name: Build onedir binary with PyInstaller
         run: |
-          pyinstaller --onefile --name zotero-cli `
+          pyinstaller --onedir --name zotero-cli `
             --add-data "src/zotero_cli/templates/extraction_schema.yaml;zotero_cli/templates" `
             --add-data "src/zotero_cli/templates/demo_sandbox.yaml;zotero_cli/templates" `
             --exclude-module torch `
@@ -279,23 +349,48 @@ jobs:
             --exclude-module readline `
             --clean src/zotero_cli/cli/main.py
 
-      - name: Smoke test binary
+      - name: Smoke test onedir binary
         run: |
-          ./dist/zotero-cli.exe --help
-          ./dist/zotero-cli.exe system selftest
+          ./dist/zotero-cli/zotero-cli.exe --help
+          ./dist/zotero-cli/zotero-cli.exe system selftest
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # See the Linux job's equivalent step (Issue #399).
-      - name: Smoke test binary against a fixture library
+      - name: Smoke test onedir binary against a fixture library
         run: |
           python scripts/build_smoke_fixture.py smoke-fixture
           $env:ZOTERO_DATABASE_PATH = "$PWD\smoke-fixture\zotero.sqlite"
-          $out = ./dist/zotero-cli.exe --offline item list --collection "Smoke Test" --format json
+          $out = ./dist/zotero-cli/zotero-cli.exe --offline item list --collection "Smoke Test" --format json
           if ($LASTEXITCODE -ne 0 -or -not ($out -match "A Paper With a PDF")) { throw "offline item list failed" }
-          $out = ./dist/zotero-cli.exe --offline search Lovelace
+          $out = ./dist/zotero-cli/zotero-cli.exe --offline search Lovelace
           if ($LASTEXITCODE -ne 0 -or -not ($out -match "A Paper With a PDF")) { throw "offline search failed" }
-          $out = ./dist/zotero-cli.exe --offline item inspect --key SMOKE001
+          $out = ./dist/zotero-cli/zotero-cli.exe --offline item inspect --key SMOKE001
           if ($LASTEXITCODE -ne 0 -or -not ($out -match "SMOKEPDF")) { throw "offline item inspect failed" }
+
+      # Issue #434: "keep the bare onefile download for people who want one
+      # file" - built separately so it doesn't clobber the onedir build
+      # above; a light smoke test is enough since it shares the same module
+      # set the onedir build already exercised against the fixture.
+      - name: Build bare onefile binary with PyInstaller
+        run: |
+          pyinstaller --onefile --name zotero-cli `
+            --distpath dist-onefile --workpath build-onefile `
+            --add-data "src/zotero_cli/templates/extraction_schema.yaml;zotero_cli/templates" `
+            --add-data "src/zotero_cli/templates/demo_sandbox.yaml;zotero_cli/templates" `
+            --exclude-module torch `
+            --exclude-module nvidia `
+            --exclude-module mkl `
+            --exclude-module numpy `
+            --exclude-module pandas `
+            --exclude-module matplotlib `
+            --exclude-module readline `
+            --clean src/zotero_cli/cli/main.py
+
+      - name: Smoke test bare onefile binary
+        run: |
+          ./dist-onefile/zotero-cli.exe --help
+          ./dist-onefile/zotero-cli.exe system selftest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Generate licence notices
         shell: pwsh
@@ -323,8 +418,13 @@ jobs:
           }
           echo "VERSION=$numericVersion" >> $env:GITHUB_OUTPUT
 
+      # WiX 5 (Issue #434): 4.0.1's authoring had no way to bulk-include a
+      # directory tree, only single <File> elements - fine for one exe, not
+      # for onedir's exe-plus-dozens-of-support-files tree. WiX 5's <Files
+      # Include="..."> element harvests it instead of hand-listing every
+      # file, which would silently go stale as dependencies change.
       - name: Install WiX Toolset
-        run: dotnet tool install --global wix --version 4.0.1
+        run: dotnet tool install --global wix --version 5.0.2
 
       - name: Build MSI Installer
         env:
@@ -335,15 +435,35 @@ jobs:
       - name: Create Windows ZIP
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/zotero-cli.exe, dist/LICENSE.txt, dist/THIRD_PARTY_LICENSES.txt `
+          Compress-Archive -Path dist/zotero-cli, dist/LICENSE.txt, dist/THIRD_PARTY_LICENSES.txt `
             -DestinationPath zotero-cli-windows-amd64.zip
+
+      # Issue #434: install and uninstall the MSI in a throwaway user
+      # profile, catching a harvesting/component mistake that a successful
+      # `wix build` wouldn't (a missing file, a broken PATH entry, files left
+      # behind after uninstall). Full multi-version upgrade sequencing isn't
+      # covered here - it would need a previous release's MSI on hand - but
+      # `MajorUpgrade` above is what makes that path work.
+      - name: Smoke test MSI install/uninstall
+        shell: pwsh
+        run: |
+          $installDir = "$env:LOCALAPPDATA\zotero-cli"
+          msiexec /i zotero-cli-windows-amd64.msi /quiet /qn /norestart
+          if ($LASTEXITCODE -ne 0) { throw "MSI install failed with exit code $LASTEXITCODE" }
+          if (-not (Test-Path "$installDir\zotero-cli.exe")) { throw "zotero-cli.exe missing after install" }
+          & "$installDir\zotero-cli.exe" --help
+          if ($LASTEXITCODE -ne 0) { throw "installed exe failed to run" }
+          msiexec /x zotero-cli-windows-amd64.msi /quiet /qn /norestart
+          if ($LASTEXITCODE -ne 0) { throw "MSI uninstall failed with exit code $LASTEXITCODE" }
+          if (Test-Path "$installDir\zotero-cli.exe") { throw "zotero-cli.exe still present after uninstall" }
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-artifacts
           path: |
-            dist/zotero-cli.exe
+            dist/zotero-cli
+            dist-onefile/zotero-cli.exe
             THIRD_PARTY_LICENSES-windows.txt
             zotero-cli-windows-amd64.zip
             zotero-cli-windows-amd64.msi
@@ -371,10 +491,14 @@ jobs:
           name: windows-artifacts
           path: assets
 
+      # Issue #434: the bare single-file download is now built separately
+      # from the onedir tree the packages below embed (assets/dist/zotero-cli
+      # is a directory, not a file - it's already inside the .tar.gz/.zip/
+      # .deb/.rpm/.msi and isn't published again on its own).
       - name: Collect release files and checksums
         run: |
           mkdir release
-          cp assets/dist/zotero-cli assets/dist/zotero-cli.exe \
+          cp assets/dist-onefile/zotero-cli assets/dist-onefile/zotero-cli.exe \
             assets/*.tar.gz assets/*.deb assets/*.rpm assets/*.zip assets/*.msi \
             assets/THIRD_PARTY_LICENSES-*.txt release/
           cd release

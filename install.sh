@@ -8,7 +8,8 @@
 #
 # Environment variables:
 #   ZOTERO_CLI_VERSION      release to install, e.g. v3.0.5 (default: latest)
-#   ZOTERO_CLI_INSTALL_DIR  install directory (default: ~/.local/bin)
+#   ZOTERO_CLI_INSTALL_DIR  symlink directory (default: ~/.local/bin)
+#   ZOTERO_CLI_LIB_DIR      program directory (default: ~/.local/lib/zotero-cli)
 #
 # Everything runs inside main(), called on the last line, so a download cut
 # short midway through `curl | bash` runs nothing at all.
@@ -17,6 +18,12 @@ set -euo pipefail
 main() {
     local repo="fchicout/zotero-cli"
     local install_dir="${ZOTERO_CLI_INSTALL_DIR:-$HOME/.local/bin}"
+    # Issue #434: the release moved from a single onefile binary to an
+    # unpacked onedir tree (an exe plus dozens of support files), so it's
+    # installed under its own directory with a symlink into $install_dir,
+    # the same layout as the .deb/.rpm packages (/usr/lib/zotero-cli +
+    # /usr/bin/zotero-cli).
+    local lib_dir="${ZOTERO_CLI_LIB_DIR:-$HOME/.local/lib/zotero-cli}"
     local version="${ZOTERO_CLI_VERSION:-latest}"
     # Release tags start with "v"; accept "3.0.5" as well (Issue #418).
     case "$version" in
@@ -101,10 +108,13 @@ main() {
     }
 
     tar -xzf "${tmp_dir}/${asset}" -C "$tmp_dir"
+    rm -rf "$lib_dir"
+    mkdir -p "$(dirname "$lib_dir")"
+    mv "${tmp_dir}/zotero-cli" "$lib_dir"
     mkdir -p "$install_dir"
-    install -m 0755 "${tmp_dir}/zotero-cli" "${install_dir}/zotero-cli"
+    ln -sf "${lib_dir}/zotero-cli" "${install_dir}/zotero-cli"
 
-    echo "Installed zotero-cli to ${install_dir}/zotero-cli"
+    echo "Installed zotero-cli to ${lib_dir} (linked from ${install_dir}/zotero-cli)"
     if ! command -v zotero-cli > /dev/null 2>&1; then
         echo "Note: ${install_dir} is not on your PATH. Add it, e.g.:"
         echo "  export PATH=\"${install_dir}:\$PATH\""
