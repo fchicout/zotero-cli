@@ -250,3 +250,18 @@ def test_rag_register_args():
     # verify main subparsers are added
     actions = parser._actions
     assert len(actions) > 0
+
+
+def test_every_rag_command_warns_that_it_is_deprecated(mock_rag_service, env_vars, capsys):
+    """Issue #414: rag leaves zotero-cli in 4.0; each run says so on stderr."""
+    args = argparse.Namespace(verb="purge", key="ITEM123", collection=None, user=False, all=False)
+    RAGCommand().execute(args)
+
+    captured = capsys.readouterr()
+    assert "deprecated and will be removed in 4.0" in captured.err
+    assert "deprecated" not in captured.out
+
+
+def test_rag_help_says_it_is_deprecated():
+    assert "deprecated" in RAGCommand.help
+    assert "4.0" in RAGCommand.help

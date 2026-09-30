@@ -1,5 +1,7 @@
 # Command: `rag`
 
+> **Deprecated.** `rag` is being removed from zotero-cli in **4.0** and rebuilt as a separate tool that connects to your Zotero library on its own (Issue #414). Until then it keeps working, and every `rag` command prints a deprecation warning to stderr.
+
 Retrieval-Augmented Generation (RAG) operations for Systematic Literature Reviews. This command promotes RAG to a top-level namespace for easier access to knowledge retrieval features.
 
 ## Verbs

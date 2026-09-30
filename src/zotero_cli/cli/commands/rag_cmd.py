@@ -1,4 +1,5 @@
 import argparse
+import sys
 from typing import Optional, Sequence
 
 from rich.markup import escape
@@ -21,7 +22,7 @@ console = Console()
 @CommandRegistry.register
 class RAGCommand(BaseCommand):
     name = "rag"
-    help = "Retrieval-Augmented Generation (RAG) Core operations"
+    help = "Retrieval-Augmented Generation (RAG) operations (deprecated: moving to a separate tool, removed in 4.0)"
 
     def register_args(self, parser: argparse.ArgumentParser) -> None:
         sub = parser.add_subparsers(dest="verb", required=True)
@@ -191,6 +192,15 @@ $ zotero-cli rag model clean
             Progress,
             TextColumn,
             TimeRemainingColumn,
+        )
+
+        # Issue #414: rag leaves zotero-cli in 4.0 and is rebuilt as its own
+        # product. Every invocation says so, on stderr so piped output stays clean.
+        print(
+            "Warning: `zotero-cli rag` is deprecated and will be removed in 4.0: it is moving "
+            "to a separate tool, which will connect to your Zotero library on its own. "
+            "See https://github.com/fchicout/zotero-cli/issues/414.",
+            file=sys.stderr,
         )
 
         force_user = getattr(args, "user", False)

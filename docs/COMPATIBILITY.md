@@ -33,7 +33,7 @@ These can change in any release:
 - The log file's format and location.
 - Importing `zotero_cli` modules from Python. Only the command line is a public interface.
 - **Exit codes**, until [#368](https://github.com/fchicout/zotero-cli/issues/368) makes them consistent. Today some failures still exit with status 0. Once #368 is fixed, exit codes join the public surface in a minor release.
-- **The `rag` commands** (the optional `rag` extra), which are experimental. Their future is being decided in [#414](https://github.com/fchicout/zotero-cli/issues/414).
+- **The `rag` commands** (the optional `rag` extra), which are experimental and **deprecated**: they warn on every run and are removed, with the `[rag]` extra, in 4.0, when RAG moves to a separate tool ([#414](https://github.com/fchicout/zotero-cli/issues/414), tracked in [#462](https://github.com/fchicout/zotero-cli/issues/462)).
 
 ## Deprecation
 
