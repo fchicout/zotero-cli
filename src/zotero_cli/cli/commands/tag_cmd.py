@@ -1,7 +1,7 @@
 import argparse
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import add_renamed_flag
+from zotero_cli.cli.flags import add_format_flag, add_renamed_flag
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 
 console = Console()
@@ -16,7 +16,7 @@ class TagCommand(BaseCommand):
         sub = parser.add_subparsers(dest="verb", required=True)
 
         # List
-        sub.add_parser(
+        tag_list_p = sub.add_parser(
             "list",
             help="List all unique tags",
             description="Displays an alphabetical list of all unique tags used across your Zotero library, including usage counts.",
@@ -29,6 +29,10 @@ Problem: I want to know which research topics I have the most papers on, based o
 Action:  zotero-cli tag list
 Result:  The CLI displays all tags, and I can see counts for each.
 
+Scenario: Getting the tags for a script
+Action:  zotero-cli tag list --format json
+Result:  A JSON list of {tag} objects on stdout.
+
 Notes
 -----
 • Common Failure Modes: Attempting to run on a library with thousands of unique tags, which may result in long terminal output.
@@ -36,6 +40,10 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/tag_list.md
 """,
+        )
+        add_format_flag(
+            tag_list_p,
+            help="Output format: table (default, one tag per line), or json/csv for scripts",
         )
 
         # Add
@@ -96,6 +104,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         if args.verb == "list":
             tags = gateway.get_tags()
+            fmt = getattr(args, "format", "table")
+            if fmt != "table":
+                from zotero_cli.cli.presenters import records
+
+                records.render_data(
+                    [{"tag": t} for t in sorted(tags)], [records.Column("tag", "Tag")], fmt
+                )
+                return
             for t in sorted(tags):
                 print(t)
         elif args.verb == "add":

@@ -9,7 +9,7 @@ List all unique tags present in the library.
 
 **Usage:**
 ```bash
-zotero-cli tag list
+zotero-cli tag list [--format table|json|csv]
 ```
 
 ---

@@ -27,6 +27,7 @@ The `report stats` command provides a high-level overview of a collection or lib
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--collection` | String | Filter statistics to a specific collection instead of the entire library | Optional. |
+| `--format` | String | Output format: `table`, `json` (one object: scope, totals, by_type, by_year) or `csv` (section, label, count, percent) | Optional. Default: table. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Getting publication statistics for a systematic review

@@ -9,7 +9,8 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import add_details_flag
+from zotero_cli.cli.flags import add_details_flag, add_format_flag
+from zotero_cli.cli.presenters import records
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.duplicate_service import DuplicateFinder, DuplicateGroup
@@ -127,11 +128,16 @@ Examples
 --------
 $ zotero-cli report stats
 $ zotero-cli report stats --collection "Screening"
+$ zotero-cli report stats --format json
 """,
         )
         stats_p.add_argument(
             "--collection",
             help="Filter statistics to a specific collection instead of the entire library",
+        )
+        add_format_flag(
+            stats_p,
+            help="Output format: table (default), or json (one object) / csv (section,label,count,percent) for scripts",
         )
 
         # report attachments
@@ -444,6 +450,11 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
                 creators = item.raw_data.get("data", {}).get("creators", [])
                 creators_count += len(creators)
 
+        fmt = getattr(args, "format", "table")
+        if fmt != "table":
+            self._emit_stats(fmt, source_name, total, creators_count, type_counts, year_counts)
+            return
+
         if not total:
             console.print("[yellow]No items found to generate statistics.[/yellow]")
             return
@@ -475,6 +486,62 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
             for year, count in sorted(year_counts.items(), key=lambda x: x[0]):
                 year_table.add_row(year, str(count))
             console.print(year_table)
+
+    @staticmethod
+    def _emit_stats(
+        fmt: str,
+        scope: str,
+        total: int,
+        creators: int,
+        type_counts: Dict[str, int],
+        year_counts: Dict[str, int],
+    ) -> None:
+        """json: one object; csv: one long-form row per figure. Untruncated,
+        nothing else on stdout."""
+        by_type = [
+            {"type": t, "count": n, "percent": round(n / total * 100, 2) if total else 0.0}
+            for t, n in sorted(type_counts.items(), key=lambda x: x[1], reverse=True)
+        ]
+        by_year = [{"year": y, "count": n} for y, n in sorted(year_counts.items())]
+        if fmt == "json":
+            import json
+
+            print(
+                json.dumps(
+                    {
+                        "scope": scope,
+                        "total_items": total,
+                        "total_creators": creators,
+                        "by_type": by_type,
+                        "by_year": by_year,
+                    },
+                    indent=2,
+                    ensure_ascii=False,
+                )
+            )
+            return
+        rows: List[Dict[str, Any]] = [
+            {"section": "summary", "label": "total_items", "count": total, "percent": ""},
+            {"section": "summary", "label": "total_creators", "count": creators, "percent": ""},
+        ]
+        rows += [
+            {"section": "type", "label": r["type"], "count": r["count"], "percent": r["percent"]}
+            for r in by_type
+        ]
+        rows += [
+            {"section": "year", "label": r["year"], "count": r["count"], "percent": ""}
+            for r in by_year
+        ]
+        records.render_data(
+            rows,
+            [
+                records.Column("section", "Section"),
+                records.Column("label", "Label"),
+                records.Column("count", "Count"),
+                records.Column("percent", "Percent"),
+            ],
+            "csv",
+        )
 
     def _handle_attachments(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         # Every attachment once, by key. The full library already lists the

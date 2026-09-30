@@ -9,7 +9,7 @@ List all collections in the library.
 
 **Usage:**
 ```bash
-zotero-cli collection list
+zotero-cli collection list [--table | --format tree|table|json|csv]
 ```
 
 ---
@@ -111,7 +111,7 @@ Exports all items in a collection to a specified format (BibTeX, RIS, or Markdow
 
 **Usage:**
 ```bash
-zotero-cli collection export --collection "COLLECTION_NAME" --format bibtex [--output ./export/]
+zotero-cli collection export --collection "COLLECTION_NAME" --as bibtex [--output ./export/]
 ```
 
 **Parameters:**

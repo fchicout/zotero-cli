@@ -35,7 +35,7 @@ zotero-cli system check
 ---
 
 ### `selftest`
-Checks offline that this installation works: converts a small embedded PDF to text (the code path of `item export --format md` and `rag ingest`) and opens a SQLite database (used by `--offline`). Needs no configuration or network; exits 1 if any check fails.
+Checks offline that this installation works: converts a small embedded PDF to text (the code path of `item export --as md` and `rag ingest`) and opens a SQLite database (used by `--offline`). Needs no configuration or network; exits 1 if any check fails.
 
 **Usage:**
 ```bash
@@ -135,7 +135,7 @@ Centralized management for background workers and persistent tasks (Operation PD
 #### `jobs list`
 List recent jobs and their current status.
 ```bash
-zotero-cli system jobs list [--limit 50] [--type fetch_pdf|discover_citations]
+zotero-cli system jobs list [--limit 50] [--type fetch_pdf|discover_citations] [--format table|json|csv]
 ```
 
 #### `jobs retry`

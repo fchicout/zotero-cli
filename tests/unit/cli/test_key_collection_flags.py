@@ -13,7 +13,7 @@ def parse(*argv):
     "argv, dest, value",
     [
         (["collection", "backup", "--collection", "C", "--output", "o.zaf"], "collection", "C"),
-        (["collection", "export", "--collection", "C", "--format", "bibtex", "--output", "o"], "collection", "C"),
+        (["collection", "export", "--collection", "C", "--as", "bibtex", "--output", "o"], "collection", "C"),
         (["collection", "purge", "--collection", "C", "--files"], "collection", "C"),
         (["slr", "sdb", "reset", "--collection", "C", "--phase", "p"], "collection", "C"),
         (["slr", "source", "add", "--collection", "acm", "--file", "f.ris"], "collection", "acm"),
@@ -30,7 +30,7 @@ def test_standard_spelling(argv, dest, value, capsys):
     "argv, old, new, dest, value",
     [
         (["collection", "backup", "--name", "C", "--output", "o.zaf"], "--name", "--collection", "collection", "C"),
-        (["collection", "export", "--name", "C", "--format", "bibtex", "--output", "o"], "--name", "--collection", "collection", "C"),
+        (["collection", "export", "--name", "C", "--as", "bibtex", "--output", "o"], "--name", "--collection", "collection", "C"),
         (["collection", "purge", "--name", "C", "--files"], "--name", "--collection", "collection", "C"),
         (["slr", "sdb", "reset", "--name", "C", "--phase", "p"], "--name", "--collection", "collection", "C"),
         (["slr", "source", "add", "--name", "acm", "--file", "f.ris"], "--name", "--collection", "collection", "acm"),

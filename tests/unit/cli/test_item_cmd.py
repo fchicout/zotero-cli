@@ -116,7 +116,7 @@ def test_item_inspect_success(mock_clients, env_vars, capsys):
     args.verb = "inspect"
     args.key = "TESTKEY123"
     args.raw = False
-    args.format = None
+    args.export_format = None
     args.full_notes = False
     args.user = False
 
@@ -156,7 +156,7 @@ def test_item_inspect_no_abstract_message_is_plain_ascii(mock_clients, env_vars,
     args.verb = "inspect"
     args.key = "TESTKEY123"
     args.raw = False
-    args.format = None
+    args.export_format = None
     args.full_notes = False
     args.user = False
 
@@ -178,7 +178,7 @@ def test_item_inspect_missing_key(mock_clients, env_vars, capsys):
     args.verb = "inspect"
     args.key = "MISSINGKEY"
     args.raw = False
-    args.format = None
+    args.export_format = None
     args.full_notes = False
     args.user = False
 
@@ -210,7 +210,7 @@ def test_item_inspect_raw(mock_clients, env_vars, capsys):
     args.verb = "inspect"
     args.key = "RAWKEY"
     args.raw = True
-    args.format = None
+    args.export_format = None
     args.full_notes = False
     args.user = False
 
@@ -232,7 +232,7 @@ def test_item_inspect_bibtex(mock_export, mock_clients, env_vars, capsys):
     args.verb = "inspect"
     args.key = "BIBKEY"
     args.raw = False
-    args.format = "bibtex"
+    args.export_format = "bibtex"
     args.full_notes = False
     args.user = False
 
@@ -253,7 +253,7 @@ def test_item_inspect_ris(mock_export, mock_clients, env_vars, capsys):
     args.verb = "inspect"
     args.key = "RISKEY"
     args.raw = False
-    args.format = "ris"
+    args.export_format = "ris"
     args.full_notes = False
     args.user = False
 
@@ -287,7 +287,7 @@ def test_item_inspect_from_file(mock_file, mock_clients, env_vars, capsys):
     args.key = None
     args.file = "keys.txt"
     args.raw = False
-    args.format = None
+    args.export_format = None
     args.full_notes = False
     args.user = False
 
@@ -837,7 +837,7 @@ def test_item_inspect_renders_markup_and_escapes_in_metadata_literally(
     args.verb = "inspect"
     args.key = "TESTKEY123"
     args.raw = False
-    args.format = None
+    args.export_format = None
     args.full_notes = True
     args.user = False
 
@@ -863,7 +863,7 @@ def test_item_inspect_export_formats_strip_terminal_controls(
         args.verb = "inspect"
         args.key = "K1"
         args.raw = False
-        args.format = fmt
+        args.export_format = fmt
         args.full_notes = False
         args.user = False
 

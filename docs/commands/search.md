@@ -4,7 +4,7 @@ Search for items in your Zotero library using keywords, titles, or exact DOIs.
 
 ## Usage
 ```bash
-zotero-cli search [query] [options]
+zotero-cli search [query] [--doi DOI] [--title TITLE] [--limit N] [--format table|json|csv]
 ```
 
 ---

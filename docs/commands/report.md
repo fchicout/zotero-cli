@@ -42,7 +42,7 @@ Displays an overview of library item types and counts, publication years, and to
 
 **Usage:**
 ```bash
-zotero-cli report stats [--collection "My Collection"]
+zotero-cli report stats [--collection "My Collection"] [--format table|json|csv]
 ```
 
 ---

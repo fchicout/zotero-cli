@@ -6,6 +6,8 @@ from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.flags import add_format_flag
+from zotero_cli.cli.presenters import records
 from zotero_cli.core.exceptions import UsageError
 from zotero_cli.core.models import ZoteroQuery
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
@@ -32,6 +34,10 @@ Problem: I know I have a paper about "Transformer" architectures by "Vaswani" bu
 Action:  zotero-cli search "Vaswani Transformer"
 Result:  The CLI displays all matching papers, and I can see the key ABCD1234 for the specific paper I need.
 
+Scenario: Feeding the hits to a script
+Action:  zotero-cli search "Vaswani Transformer" --format json
+Result:  A JSON list on stdout (key, title, authors, year, doi); progress messages go to stderr.
+
 Notes
 -----
 • Common Failure Modes: Attempting to search for common terms without a --limit in a very large library.
@@ -45,10 +51,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         parser.add_argument("--doi", help="Search by exact DOI")
         parser.add_argument("--title", help="Search by title substring")
         parser.add_argument("--limit", type=int, default=50, help="Limit results (default: 50)")
+        add_format_flag(parser)
 
     def execute(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
+
+        fmt = getattr(args, "format", "table")
+        # Progress goes to stderr when stdout is carrying data.
+        console = Console() if fmt == "table" else Console(stderr=True)
 
         if args.doi:
             console.print(f"Searching for DOI: [cyan]{escape(args.doi)}[/cyan]...")
@@ -65,6 +76,29 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         # Stop reading once --limit hits are in: results arrive a page at a
         # time, and every page used to be fetched first (Issue #438).
         results = list(islice(hits, args.limit) if args.limit and args.limit > 0 else hits)
+
+        if fmt != "table":
+            records.render_data(
+                [
+                    {
+                        "key": item.key,
+                        "title": item.title or "",
+                        "authors": list(item.authors),
+                        "year": item.date[:4] if item.date else "",
+                        "doi": item.doi or "",
+                    }
+                    for item in results
+                ],
+                [
+                    records.Column("key", "Key"),
+                    records.Column("title", "Title"),
+                    records.Column("authors", "Authors"),
+                    records.Column("year", "Year"),
+                    records.Column("doi", "DOI"),
+                ],
+                fmt,
+            )
+            return
 
         if not results:
             console.print("[yellow]No items found.[/yellow]")
