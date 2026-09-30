@@ -37,7 +37,10 @@ from zotero_cli.core.config import get_config  # noqa: E402
 from zotero_cli.core.exceptions import ZoteroCliError  # noqa: E402
 from zotero_cli.core.logging_config import setup_logging  # noqa: E402
 from zotero_cli.core.runtime import set_offline_mode  # noqa: E402
-from zotero_cli.core.utils.terminal_safety import safe_markup  # noqa: E402
+from zotero_cli.core.utils.terminal_safety import (  # noqa: E402
+    make_output_streams_tolerant,
+    safe_markup,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +118,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    # First, so even a usage error or --help is safe on a legacy console (#513).
+    make_output_streams_tolerant()
     parser = build_parser()
     args = parser.parse_args()
 
