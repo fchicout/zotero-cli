@@ -13,6 +13,7 @@ parsed as markup.
 """
 
 import re
+import sys
 from typing import Any, Iterable, Optional
 
 from rich.console import Console, ConsoleOptions, RenderableType
@@ -36,6 +37,23 @@ def safe_markup(value: Any) -> str:
     """`value` as a string that is safe to interpolate into Rich markup:
     control characters removed and markup escaped."""
     return escape(strip_controls("" if value is None else str(value)))
+
+
+def make_output_streams_tolerant() -> None:
+    """Make stdout/stderr replace characters their encoding can't represent
+    instead of raising (Issue #513).
+
+    On a Windows console whose codepage isn't UTF-8 (cp1252 is the common
+    default), printing one of our status glyphs (a check mark, a warning
+    sign, ...) raised UnicodeEncodeError and turned a finished command into a
+    crash. Only the error handler changes, never the encoding: a UTF-8
+    terminal still shows the real glyph, and a legacy one shows `?`. Streams
+    that can't be reconfigured (already replaced by a test or a pager) are
+    left alone."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None and getattr(stream, "errors", None) == "strict":
+            reconfigure(errors="replace")
 
 
 class SafeConsole(Console):

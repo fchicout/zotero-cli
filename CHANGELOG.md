@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- **Commands no longer crash on a console that can't show their status glyphs (Issue #513):** on a Windows console whose codepage isn't UTF-8 (cp1252 is the common default), printing a check mark, warning sign or similar glyph - `report attachments --output`, `system verify`, `slr source add`, `init` and others print them - raised `UnicodeEncodeError` and ended a command that had already done its work with an error. stdout and stderr now replace a character their encoding can't represent (shown as `?`) instead of raising. Only the error handler changes, never the encoding, so a UTF-8 terminal still shows the real glyph.
+
 ## [3.1.1] - 2026-09-30
 
 A security patch for 3.1.0: upgrade. No commands, flags or behaviour change. `urllib3`, the HTTP library under every request zotero-cli makes, had two advisories published after 3.1.0 shipped, and 3.1.1 carries the fixed version. The release binaries, packages and Docker image are rebuilt from the updated lock.
