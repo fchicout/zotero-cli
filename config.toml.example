@@ -32,6 +32,7 @@ library_type = "user"
 # values: a placeholder is sent to the service as if it were a key.
 # semantic_scholar_api_key = "..."
 # core_api_key = "..."  # Free registration at core.ac.uk/services/api
+# openalex_api_key = "..."  # Free account at openalex.org; a daily usage allowance
 # ncbi_api_key = "..."
 
 # Your own email: required by Unpaywall, and sent as the contact address to

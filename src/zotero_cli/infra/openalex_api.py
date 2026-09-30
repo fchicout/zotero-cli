@@ -14,9 +14,15 @@ _MAX_PER_PAGE = 200
 
 
 class OpenAlexAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider):
-    def __init__(self, email: Optional[str] = None):
+    def __init__(self, email: Optional[str] = None, api_key: Optional[str] = None):
         # OpenAlex's "polite pool" wants a contact address in the User-Agent.
         super().__init__(base_url="https://api.openalex.org/works", contact_email=email)
+        # Issue #420: a free OpenAlex account gets a key with a daily usage
+        # allowance; sent as `api_key=` on every request (the session merges
+        # it into each call's own params).
+        self.api_key = api_key
+        if api_key:
+            self.session.params = {"api_key": api_key}  # type: ignore[assignment]
 
     def get_paper_metadata(self, identifier: str) -> Optional[ResearchPaper]:
         """
@@ -58,7 +64,7 @@ class OpenAlexAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvi
     ) -> Iterator[ResearchPaper]:
         """
         Free-text/topic search via GET /works?search=<query> (Issue #179).
-        No API key required. sort_by="relevance" (the default) leaves
+        An API key is optional (see `openalex_api_key`). sort_by="relevance" (the default) leaves
         ordering to OpenAlex's own relevance ranking, which only applies
         when a `search` param is present; any other sort_by value sorts by
         publication_date instead.
