@@ -36,12 +36,14 @@ The `slr sdb` command is the "Database Administrator" for your review's audit tr
 | `--collection` | String | Collection name or key | Required. |
 | `--execute` | Boolean | N/A | Optional. Default: False. |
 | `--force` | Boolean | Skip confirmation | Optional. Default: False. |
-| `--name` | String | Collection name or key | Required. |
+| `--collection` | String | Collection name or key | Required. |
+| `--name` | String | Deprecated alias of `--collection`. | Hidden; prints a warning. Removed in 4.0 (Issue #379). |
 | `--output` | String | Path to output CSV | Required. |
 | `--persona` | String | Reviewer persona to reset (Optional) | Optional. |
 | `--phase` | String | Target phase to reset | Required. |
 | `--set-decision` | String | N/A | Optional. |
-| `key` | String | Item Key | Required. |
+| `key` | String | Item Key (`inspect`, `edit`) | Required, positional. `--key KEY` works too. |
+| `--key` | String | Item Key, as a flag instead of the positional | Optional alternative to `key` (Issue #379). |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Verifying the audit history of a controversial paper

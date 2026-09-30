@@ -26,14 +26,15 @@ If the item is only present in a single collection, the `source` parameter may b
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--item-id` | String | N/A | Required. |
+| `--key` | String | Key of the item to move | Required. |
+| `--item-id` | String | Deprecated alias of `--key`. | Hidden; prints a warning. Removed in 4.0 (Issue #379). |
 | `--source` | String | Source collection (optional if unambiguous) | Optional. |
 | `--target` | String | N/A | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Categorizing a paper into a specific folder
 **Problem:** I have a paper in "Incoming Search" (Key: `INC_01`) and I want to move it to my "Methodology" folder (Key: `METH_01`).
-**Action:** `zotero-cli item move --item-id "ABCD1234" --source "INC_01" --target "METH_01"`
+**Action:** `zotero-cli item move --key "ABCD1234" --source "INC_01" --target "METH_01"`
 **Result:** The item is now correctly linked to the "Methodology" folder and removed from "Incoming Search."
 
 ## 7. Cognitive Safeguards

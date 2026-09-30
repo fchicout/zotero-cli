@@ -108,7 +108,7 @@ zotero-cli tag purge --collection "Junk" --execute
 ```bash
 zotero-cli item list --collection "MyCol"
 zotero-cli item inspect --key BQPLL87F
-zotero-cli item move --item-id "KEY" --target "Read"
+zotero-cli item move --key "KEY" --target "Read"
 ```
 
 ---

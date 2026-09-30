@@ -32,7 +32,8 @@ The `slr source` subcommands manage search results ingestion:
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--file` | String | Path to RIS, BibTeX, or CSV file to import | Required. |
-| `--name` | String | Name or key of the raw collection (e.g. acm) | Required. |
+| `--collection` | String | Name or key of the raw collection (e.g. acm); `slr source add` only | Required for `add`. |
+| `--name` | String | Source name (`slr source init`); for `add`, a deprecated alias of `--collection` | Required for `init`. Deprecated on `add`: removed in 4.0 (Issue #379). |
 | `--details` | Boolean | Print verbose details | Optional. Default: False. |
 | `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 

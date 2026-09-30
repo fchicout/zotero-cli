@@ -40,3 +40,80 @@ def add_details_flag(parser: argparse.ArgumentParser, help: str) -> None:
         default=argparse.SUPPRESS,
         help=argparse.SUPPRESS,
     )
+
+
+class _DeprecatedAlias(argparse.Action):
+    """An old spelling of a flag: stores its value like the new one, but
+    warns and names the replacement."""
+
+    def __init__(
+        self, option_strings: Sequence[str], dest: str, replacement: str = "", **kwargs: Any
+    ) -> None:
+        self.replacement = replacement
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: str | Sequence[Any] | None,
+        option_string: str | None = None,
+    ) -> None:
+        print(
+            f"Warning: `{option_string}` is deprecated; use {self.replacement}. Removed in 4.0.",
+            file=sys.stderr,
+        )
+        setattr(namespace, self.dest, values)
+
+
+def add_renamed_flag(
+    parser: argparse.ArgumentParser,
+    new: str,
+    old: str,
+    *,
+    required: bool = False,
+    help: str,
+    metavar: str | None = None,
+    dest: str | None = None,
+) -> None:
+    """`new` as the flag, plus `old` as a hidden deprecated alias (Issue
+    #379). Both store to one dest. They sit in a mutually exclusive group
+    so a `required` flag is satisfied by either spelling."""
+    dest = dest or new.lstrip("-").replace("-", "_")
+    group = parser.add_mutually_exclusive_group(required=required)
+    group.add_argument(new, dest=dest, metavar=metavar, help=help)
+    group.add_argument(
+        old,
+        dest=dest,
+        metavar=metavar,
+        action=_DeprecatedAlias,
+        replacement=f"`{new}`",
+        default=argparse.SUPPRESS,
+        help=argparse.SUPPRESS,
+    )
+
+
+def add_key_argument(parser: argparse.ArgumentParser, help: str, *, required: bool = True) -> None:
+    """An item key given either as a positional `KEY` or as `--key KEY`
+    (Issue #379: the docs and `slr sdb inspect` used the positional form,
+    every other command `--key`). The flag stores to `key_flag`; call
+    `resolve_key` to merge both into `args.key`."""
+    parser.add_argument("key", nargs="?", metavar="KEY", help=help)
+    parser.add_argument("--key", dest="key_flag", metavar="KEY", help=help)
+    parser.set_defaults(_key_required=required)
+
+
+def resolve_key(args: argparse.Namespace) -> None:
+    """Merge `add_key_argument`'s two spellings into `args.key`."""
+    from zotero_cli.core.exceptions import UsageError
+
+    positional = getattr(args, "key", None)
+    flag = getattr(args, "key_flag", None)
+    positional = positional if isinstance(positional, str) else None
+    flag = flag if isinstance(flag, str) else None
+    if positional and flag and positional != flag:
+        raise UsageError(f"Two different item keys given ({positional} and --key {flag}).")
+    if positional or flag:
+        args.key = flag or positional
+    if getattr(args, "_key_required", False) is True and not args.key:
+        raise UsageError("An item key is required: pass KEY or --key KEY.")

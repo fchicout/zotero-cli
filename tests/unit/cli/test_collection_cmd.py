@@ -328,7 +328,7 @@ def test_collection_backup_success(mock_gateway, capsys):
     mock_gateway.get_collection_id_by_name.return_value = "COL_KEY"
     mock_gateway.get_collection.return_value = {"meta": {"numItems": 3}}
 
-    args = argparse.Namespace(verb="backup", name="COL_KEY", output="backup.zaf", user=False)
+    args = argparse.Namespace(verb="backup", collection="COL_KEY", output="backup.zaf", user=False)
     with patch("zotero_cli.cli.commands.collection_cmd.BackupService") as mock_backup_srv:
         service_inst = MagicMock()
         mock_backup_srv.return_value = service_inst
@@ -344,7 +344,7 @@ def test_collection_backup_not_found(mock_gateway, capsys):
     mock_gateway.get_collection_id_by_name.return_value = None
     mock_gateway.get_collection.return_value = None
 
-    args = argparse.Namespace(verb="backup", name="COL_KEY", output="backup.zaf", user=False)
+    args = argparse.Namespace(verb="backup", collection="COL_KEY", output="backup.zaf", user=False)
     with pytest.raises(ZoteroCliError) as raised:
         CollectionCommand().execute(args)
 
@@ -360,7 +360,7 @@ def test_collection_backup_not_found_bracketed_name_renders_literally(mock_gatew
     mock_gateway.get_collection.return_value = None
 
     args = argparse.Namespace(
-        verb="backup", name="[Archived] Old Project", output="backup.zaf", user=False
+        verb="backup", collection="[Archived] Old Project", output="backup.zaf", user=False
     )
     with pytest.raises(ZoteroCliError) as raised:
         CollectionCommand().execute(args)
@@ -373,7 +373,7 @@ def test_collection_export_metadata_success(mock_export_service, capsys):
     mock_export_service.export_collection.return_value = True
 
     args = argparse.Namespace(
-        verb="export", name="COL_KEY", format="bibtex", output="out.bib", user=False
+        verb="export", collection="COL_KEY", format="bibtex", output="out.bib", user=False
     )
     CollectionCommand().execute(args)
 
@@ -386,7 +386,7 @@ def test_collection_export_metadata_fail(mock_export_service, capsys):
     mock_export_service.export_collection.return_value = False
 
     args = argparse.Namespace(
-        verb="export", name="COL_KEY", format="ris", output="out.ris", user=False
+        verb="export", collection="COL_KEY", format="ris", output="out.ris", user=False
     )
     with pytest.raises(SystemExit):
         CollectionCommand().execute(args)
@@ -404,7 +404,7 @@ def test_collection_export_markdown_success(mock_gateway, mock_attachment_servic
     mock_attachment_service._export_item_markdown.side_effect = ["success", "skipped"]
 
     args = argparse.Namespace(
-        verb="export", name="COL_KEY", format="md", output="md_dir", user=False
+        verb="export", collection="COL_KEY", format="md", output="md_dir", user=False
     )
     CollectionCommand().execute(args)
 
@@ -423,11 +423,11 @@ def test_collection_purge_subparser_is_reachable():
     CollectionCommand().register_args(parser)
 
     args = parser.parse_args(
-        ["purge", "--name", "COL_KEY", "--files", "--notes", "--recursive", "--force"]
+        ["purge", "--collection", "COL_KEY", "--files", "--notes", "--recursive", "--force"]
     )
 
     assert args.verb == "purge"
-    assert args.name == "COL_KEY"
+    assert args.collection == "COL_KEY"
     assert args.files is True
     assert args.notes is True
     assert args.tags is False
@@ -438,7 +438,7 @@ def test_collection_purge_subparser_is_reachable():
 def test_collection_purge_no_asset_types_aborts(mock_purge_service, capsys):
     args = argparse.Namespace(
         verb="purge",
-        name="COL_KEY",
+        collection="COL_KEY",
         files=False,
         notes=False,
         tags=False,
@@ -458,7 +458,7 @@ def test_collection_purge_success(mock_purge_service, capsys):
 
     args = argparse.Namespace(
         verb="purge",
-        name="COL_KEY",
+        collection="COL_KEY",
         files=True,
         notes=True,
         tags=False,

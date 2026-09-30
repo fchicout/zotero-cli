@@ -5,7 +5,7 @@ from typing import Any
 
 from rich.table import Table
 
-from zotero_cli.cli.flags import add_details_flag
+from zotero_cli.cli.flags import add_details_flag, add_renamed_flag
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import ZoteroQuery
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
@@ -49,11 +49,11 @@ $ zotero-cli slr source init --name acm
             epilog="""
 Examples
 --------
-$ zotero-cli slr source add --name acm --file acm_export.ris
+$ zotero-cli slr source add --collection acm --file acm_export.ris
 """,
         )
-        add_p.add_argument(
-            "--name", required=True, help="Name or key of the raw collection (e.g. acm)"
+        add_renamed_flag(
+            add_p, "--collection", "--name", required=True, help="Name or key of the raw collection (e.g. acm)"
         )
         add_p.add_argument(
             "--file", required=True, help="Path to RIS, BibTeX, or CSV file to import"
@@ -119,7 +119,7 @@ $ zotero-cli slr source list
 
     @staticmethod
     def _handle_add(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
-        target_name = args.name
+        target_name = args.collection
         if not target_name.startswith("raw_"):
             target_name = f"raw_{target_name}"
 
@@ -129,7 +129,7 @@ $ zotero-cli slr source list
                 f"[bold red]Error: SLR source collection '{safe_markup(target_name)}' not found.[/bold red]"
             )
             console.print(
-                f"Please initialize it first: [cyan]zotero-cli slr source init --name {safe_markup(args.name)}[/cyan]"
+                f"Please initialize it first: [cyan]zotero-cli slr source init --name {safe_markup(args.collection)}[/cyan]"
             )
             sys.exit(1)
 

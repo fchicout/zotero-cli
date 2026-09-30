@@ -4,7 +4,14 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### Added
+- **Item keys can be positional or `--key` everywhere they were one or the other (Issue #379):** `item inspect ABCD1234` now works (the docs already showed it), and `slr sdb inspect|edit` accept `--key KEY` as well as the positional.
+
+### Changed
+- **A stray argument now reports the subcommand's usage line (Issue #379):** `item inspect K --bogus` prints `usage: zotero-cli item inspect ...` instead of the top-level usage.
+
 ### Deprecated
+- **`--key` and `--collection` are the standard spellings (Issue #379):** `item move --item-id`, `tag add --item`, and the `--name` flag of `collection backup`, `collection export`, `collection purge`, `slr sdb reset` and `slr source add` (where it names an existing collection) are now `--key` / `--collection`. The old spellings keep working as hidden aliases that print a deprecation warning; they are removed in 4.0 (Issue #462). Flags that *create* a name (`collection create/rename --name`, `slr source init --name`, `system demo-sandbox --name`) are unchanged, as are the plural list flags (`--keys`, `--collections`) and `--master`/`--tree`, which mean something different.
 - **The 11 per-command `--verbose` flags are renamed `--details` (Issue #374):** `import file/arxiv/doi/bdtd`, `item pdf fetch/strip`, `collection clean`, `report audit`, `slr report prisma`, `slr source add` and `slr reconcile` now take `--details`, which never touches the global `-v` (debug logging). `--verbose` on those commands keeps working as a hidden alias for one minor release, printing a deprecation warning; it is removed in 4.0 (Issue #462).
 - **`item delete`, `storage checkout` and `system restore` gain `--dry-run`/`--execute` (Issue #378):** all three predate the preview-by-default policy and still apply immediately when neither flag is given - that keeps working unchanged in 3.x, but now prints a deprecation warning to stderr telling you to pass `--execute`. `item delete --dry-run` also now previews the item and lists its attached notes/files (which the Web API's `DELETE` doesn't cascade to - they'd become orphaned, not deleted). `storage checkout --dry-run` lists what would be downloaded and relinked without touching the filesystem or the library. All three switch to preview-by-default in 4.0 (Issue #462).
 

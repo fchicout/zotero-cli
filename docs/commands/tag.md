@@ -19,7 +19,7 @@ Add one or more tags to a specific item.
 
 **Usage:**
 ```bash
-zotero-cli tag add --item "ITEMKEY" --tags "tag1, tag2"
+zotero-cli tag add --key "ITEMKEY" --tags "tag1, tag2"
 ```
 
 ---
