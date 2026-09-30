@@ -34,6 +34,7 @@ class TransferService:
         source_gateway: ZoteroGateway,
         dest_gateway: ZoteroGateway,
         delete_source: bool = False,
+        trash_source: bool = False,
     ) -> TransferResult:
         """
         Copies an item (metadata, notes and stored files) from the source to
@@ -76,11 +77,16 @@ class TransferService:
                 logger.warning(
                     f"Keeping source item {item_key}: {len(result.failures)} child(ren) not copied."
                 )
-            elif source_gateway.delete_item(item_key, source_item.version):
+            elif (
+                source_gateway.trash_item(item_key, source_item.version)
+                if trash_source
+                else source_gateway.delete_item(item_key, source_item.version)
+            ):
                 result.source_deleted = True
-                logger.info(f"Deleted source item {item_key}")
+                logger.info(f"{'Trashed' if trash_source else 'Deleted'} source item {item_key}")
             else:
-                result.failures.append(f"could not delete source item {item_key}")
+                verb = "trash" if trash_source else "delete"
+                result.failures.append(f"could not {verb} source item {item_key}")
 
         return result
 

@@ -331,16 +331,24 @@ class CollectionService:
         return plan
 
     def execute_recursive_delete(
-        self, plan: RecursiveDeletePlan, include_shared: bool = False
+        self, plan: RecursiveDeletePlan, include_shared: bool = False, trash: bool = False
     ) -> RecursiveDeleteResult:
         """Deletes the plan's items (plus the shared ones if
         `include_shared`), then its collections deepest first. Collections
         are only deleted if every item deletion succeeded, so a failure
-        never leaves items orphaned out of a half-deleted tree."""
+        never leaves items orphaned out of a half-deleted tree.
+
+        With `trash` (Issue #402) the items go to Zotero's trash instead, so
+        they can be restored; the collections themselves are still deleted
+        for good, so restored items come back without them."""
         result = RecursiveDeleteResult()
         targets = plan.items_to_delete + (plan.shared_items if include_shared else [])
         for item in targets:
-            if self.item_repo.delete_item(item.key, item.version):
+            if (
+                self.item_repo.trash_item(item.key, item.version)
+                if trash
+                else self.item_repo.delete_item(item.key, item.version)
+            ):
                 result.deleted_items += 1
             else:
                 result.failed_items.append(item.key)
@@ -354,12 +362,14 @@ class CollectionService:
         return result
 
     def delete_collection(
-        self, collection_id: str, version: int, recursive: bool = False
+        self, collection_id: str, version: int, recursive: bool = False, trash: bool = False
     ) -> bool:
         """Deletes one collection; its items stay in the library. With
         `recursive`, deletes the whole tree and the items filed only inside
         it (see plan_recursive_delete)."""
         if not recursive:
             return self.collection_repo.delete_collection(collection_id, version)
-        result = self.execute_recursive_delete(self.plan_recursive_delete(collection_id, version))
+        result = self.execute_recursive_delete(
+            self.plan_recursive_delete(collection_id, version), trash=trash
+        )
         return not result.failed_items and not result.failed_collections

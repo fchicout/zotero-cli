@@ -204,18 +204,19 @@ Transfer an item (metadata, notes, and attachments) between different Zotero lib
 
 **Usage:**
 ```bash
-zotero-cli item transfer --key "ITEMKEY" --target-group "123456" [--delete-source]
+zotero-cli item transfer --key "ITEMKEY" --target-group "123456" [--delete-source [--trash]]
 ```
 
 **Parameters:**
 *   `--key`: (Required) The Zotero Item Key to transfer.
 *   `--target-group`: (Required) The ID of the destination Zotero Group.
 *   `--delete-source`: If specified, delete the item from the source library after a successful transfer.
+*   `--trash`: With `--delete-source`, move the source item to Zotero's trash (recoverable with `item restore`) instead of deleting it permanently.
 
 ---
 
 ### `merge`
-Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates. Use `report duplicates` first to find candidate keys, or `report duplicates --export-plan` for a bulk-editable plan file. This is **permanent** — the Zotero Web API only supports hard delete, there is no undo the way Zotero Desktop's internal merge has.
+Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates - or, with `--trash`, moves them to Zotero's trash so the merge can be undone. Use `report duplicates` first to find candidate keys, or `report duplicates --export-plan` for a bulk-editable plan file. This is **permanent** — the Zotero Web API only supports hard delete, there is no undo the way Zotero Desktop's internal merge has.
 
 **Usage:**
 ```bash
@@ -230,6 +231,7 @@ zotero-cli item merge --from-plan duplicates_plan.csv --execute
 *   `--from-plan`: Path to a merge plan file (`.csv` or `.json`, from `report duplicates --export-plan`) for bulk execution of many groups at once, instead of a single `--master`/`--duplicates` group.
 *   `--execute`: Actually perform the merge. Without it, only a preview is shown and nothing is written.
 *   `--force`: Skip the interactive confirmation prompt (still requires `--execute`).
+*   `--trash`: Move the emptied duplicates to Zotero's trash (recoverable with `item restore`) instead of deleting them permanently (Issue #402).
 
 If master and duplicates disagree on a scalar field (title, date, DOI, ISBN, URL, abstract), the single-group form prompts you to pick which value to keep for each — there is no silent "first wins" default. Master and duplicates must share the same item type, matching the rule Zotero Desktop enforces for its own merge.
 

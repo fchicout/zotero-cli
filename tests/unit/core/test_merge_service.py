@@ -181,6 +181,50 @@ def test_merge_executes_full_flow(service, item_repo, note_repo):
     item_repo.delete_item.assert_called_once_with("D1", 5)
 
 
+def test_merge_with_trash_trashes_the_duplicate_instead_of_deleting_it(service, item_repo, note_repo):
+    """Issue #402: a merge can be undone by restoring the trashed duplicate."""
+    master = make_item("M1", version=1)
+    dup = make_item("D1", version=5)
+    item_repo.get_item.side_effect = lambda k: {"M1": master, "D1": dup}[k]
+    item_repo.get_item_children.return_value = []
+    item_repo.update_item.return_value = True
+    item_repo.trash_item.return_value = True
+
+    result = service.merge("M1", ["D1"], dry_run=False, trash=True)
+
+    assert result.success is True
+    assert result.merged_keys == ["D1"]
+    item_repo.trash_item.assert_called_once_with("D1", 5)
+    item_repo.delete_item.assert_not_called()
+
+
+def test_merge_with_trash_reports_a_failed_trash(service, item_repo, note_repo):
+    master = make_item("M1", version=1)
+    dup = make_item("D1", version=5)
+    item_repo.get_item.side_effect = lambda k: {"M1": master, "D1": dup}[k]
+    item_repo.get_item_children.return_value = []
+    item_repo.update_item.return_value = True
+    item_repo.trash_item.return_value = False
+
+    result = service.merge("M1", ["D1"], dry_run=False, trash=True)
+
+    assert result.success is False
+    assert "Failed to trash duplicate item 'D1'" in result.errors[0]
+
+
+def test_execute_plan_passes_trash_to_every_merge(service, item_repo):
+    from unittest.mock import patch
+
+    plan = MergeService.build_plan([make_group()])
+    plan.entries[0].decision = MergeDecision(master_key="M1", merge_keys=["D1"], reason="same DOI")
+    item_repo.get_item.return_value = make_item("M1")
+    with patch.object(service, "merge") as merge:
+        merge.return_value.success = True
+        service.execute_plan(plan, dry_run=False, trash=True)
+
+    assert merge.call_args.kwargs["trash"] is True
+
+
 def test_merge_deletes_the_duplicate_at_its_current_version(service, item_repo, note_repo):
     """Issue #384: deletes are version-checked now, so the merge re-reads each
     duplicate after moving its children and deletes the version that exists."""

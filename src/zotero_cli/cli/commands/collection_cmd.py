@@ -105,10 +105,15 @@ Action:  zotero-cli collection delete --key "OLD_123" --recursive
          zotero-cli collection delete --key "OLD_123" --recursive --execute
 Result:  The first run lists the sub-collections and items that would be deleted; the second deletes them after you confirm.
 
+Scenario: Cleaning up, but keeping the items recoverable
+Problem: I'm not sure I won't need some of those papers again.
+Action:  zotero-cli collection delete --key "OLD_123" --recursive --trash --execute
+Result:  The items go to Zotero's trash (`item restore` brings one back, without the deleted collections); the collections are deleted.
+
 Notes
 -----
 • Items that are also filed in a collection outside the tree are kept (they only leave the deleted collections) unless you pass --include-shared.
-• Deletion through the Web API is permanent: it doesn't go through Zotero's trash. Back up first (collection backup).
+• Without --trash, deletion through the Web API is permanent: it doesn't go through Zotero's trash. Back up first (collection backup). Even with --trash the collections themselves are deleted for good.
 • A name shared by several collections is refused: pass the key shown in the error.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_delete.md
@@ -135,6 +140,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--include-shared",
             action="store_true",
             help="With --recursive: also delete items that are filed in other collections",
+        )
+        delete_p.add_argument(
+            "--trash",
+            action="store_true",
+            help="With --recursive: move the items to Zotero's trash (recoverable) instead of "
+            "deleting them permanently. The collections themselves are still deleted",
         )
 
         # Rename
@@ -313,6 +324,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 version = col.get("version")
 
             if args.verb == "delete":
+                if getattr(args, "trash", False) is True and not args.recursive:
+                    raise UsageError(
+                        "--trash moves the deleted items to Zotero's trash, so it needs --recursive "
+                        "(without it the collection's items stay in your library anyway)."
+                    )
                 if args.recursive:
                     self._handle_recursive_delete(args, col_id, version)
                     return
@@ -485,8 +501,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         include_shared = getattr(args, "include_shared", False)
         to_delete = plan.items_to_delete + (plan.shared_items if include_shared else [])
 
+        trash = getattr(args, "trash", False) is True
         console.print(
-            f"Deleting '{safe_markup(args.key)}' ({safe_markup(col_id)}) recursively would permanently delete:"
+            f"Deleting '{safe_markup(args.key)}' ({safe_markup(col_id)}) recursively would "
+            + ("move the items to the trash and permanently delete the collections:" if trash else "permanently delete:")
         )
         console.print(f"  {len(plan.collections)} collection(s):")
         for key, _, name in reversed(plan.collections):
@@ -498,17 +516,31 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 f"  {len(plan.shared_items)} item(s) also filed in other collections {safe_markup(verb)}"
                 + ("" if include_shared else " (pass --include-shared to delete them too)")
             )
-        console.print("Deletion through the Web API is permanent: it bypasses Zotero's trash.")
+        if trash:
+            console.print(
+                "Items go to Zotero's trash and can be restored with `item restore`, but without "
+                "these collections: the collections are deleted for good."
+            )
+        else:
+            console.print("Deletion through the Web API is permanent: it bypasses Zotero's trash.")
 
         if not getattr(args, "execute", False):
             console.print(preview_notice("delete them"))
             return
-        if not confirm_destructive("Permanently delete all of the above?", args.yes):
+        if not confirm_destructive(
+            "Delete the collections and trash the items above?" if trash else "Permanently delete all of the above?",
+            args.yes,
+        ):
             console.print("Cancelled; nothing was deleted.")
             return
-        result = service.execute_recursive_delete(plan, include_shared=include_shared)
+        result = service.execute_recursive_delete(plan, include_shared=include_shared, trash=trash)
         console.print(
-            f"Deleted {safe_markup(result.deleted_items)} item(s) and {safe_markup(result.deleted_collections)} collection(s)."
+            (
+                f"Trashed {safe_markup(result.deleted_items)} item(s) and deleted "
+                f"{safe_markup(result.deleted_collections)} collection(s)."
+                if trash
+                else f"Deleted {safe_markup(result.deleted_items)} item(s) and {safe_markup(result.deleted_collections)} collection(s)."
+            )
         )
         if result.failed_items:
             print(

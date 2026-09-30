@@ -51,6 +51,7 @@ Delete a collection. Without `--recursive`, only the collection goes and its ite
 zotero-cli collection delete --key "Target Name"                                  # collection only
 zotero-cli collection delete --key "OLD_123" --recursive                          # preview
 zotero-cli collection delete --key "OLD_123" --recursive --execute                # delete, after confirming
+zotero-cli collection delete --key "OLD_123" --recursive --trash --execute        # items to the trash (recoverable)
 ```
 
 **Parameters:**
@@ -59,8 +60,9 @@ zotero-cli collection delete --key "OLD_123" --recursive --execute              
 *   `--execute`: With `--recursive`, actually delete (default: preview only).
 *   `--yes`: Skip the confirmation (required when there's no terminal, e.g. in scripts).
 *   `--include-shared`: Also delete items that are filed in collections outside the tree (kept by default).
+*   `--trash`: With `--recursive`, move the items to Zotero's trash (recoverable with `item restore`) instead of deleting them permanently. The collections themselves are still deleted for good, so restored items come back without them (Issue #402).
 
-Deletion through the Web API is permanent: it doesn't go through Zotero's trash.
+Without `--trash`, deletion through the Web API is permanent: it doesn't go through Zotero's trash.
 
 ---
 

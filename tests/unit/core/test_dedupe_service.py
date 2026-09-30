@@ -278,3 +278,22 @@ def test_execute_reconciliation_skips_provenance_when_execute_plan_fails(
 
     assert result.success is False
     orchestrator.record_duplicate_resolution.assert_not_called()
+
+
+def test_execute_reconciliation_passes_trash_to_the_merge(
+    gateway, duplicate_finder, merge_service
+):
+    """Issue #402: `slr dedupe --trash` reaches MergeService.execute_plan."""
+    from unittest.mock import Mock as _Mock
+
+    sdb, orchestrator = _Mock(spec=SDBService), _Mock(spec=SLROrchestrator)
+    service = SLRDedupeService(gateway, duplicate_finder, merge_service, sdb, orchestrator)
+    merge_service.execute_plan.return_value = PlanExecutionResult(
+        success=True, dry_run=False, group_results=[]
+    )
+
+    service.execute_reconciliation(MergePlan(entries=[]), dry_run=False, trash=True)
+
+    merge_service.execute_plan.assert_called_once_with(
+        MergePlan(entries=[]), dry_run=False, trash=True
+    )

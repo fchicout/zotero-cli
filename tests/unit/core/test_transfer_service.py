@@ -78,6 +78,44 @@ def test_transfer_item_with_delete(service):
     assert result.source_deleted
 
 
+def test_transfer_with_trash_source_trashes_instead_of_deleting(service):
+    """Issue #402: --delete-source --trash leaves the source recoverable."""
+    source_gw = MagicMock()
+    dest_gw = MagicMock()
+    item = ZoteroItem(key="K1", version=1, item_type="journalArticle", title="T")
+    item.raw_data = {"data": {"title": "T", "key": "K1", "version": 1, "library": "L1"}}
+    source_gw.get_item.return_value = item
+    source_gw.get_item_children.return_value = []
+    source_gw.trash_item.return_value = True
+    dest_gw.create_generic_item.return_value = "NEW_K1"
+
+    result = service.transfer_item(
+        "K1", source_gw, dest_gw, delete_source=True, trash_source=True
+    )
+
+    source_gw.trash_item.assert_called_once_with("K1", 1)
+    source_gw.delete_item.assert_not_called()
+    assert result.source_deleted
+
+
+def test_transfer_with_trash_source_reports_a_failed_trash(service):
+    source_gw = MagicMock()
+    dest_gw = MagicMock()
+    item = ZoteroItem(key="K1", version=1, item_type="journalArticle", title="T")
+    item.raw_data = {"data": {"title": "T", "key": "K1", "version": 1, "library": "L1"}}
+    source_gw.get_item.return_value = item
+    source_gw.get_item_children.return_value = []
+    source_gw.trash_item.return_value = False
+    dest_gw.create_generic_item.return_value = "NEW_K1"
+
+    result = service.transfer_item(
+        "K1", source_gw, dest_gw, delete_source=True, trash_source=True
+    )
+
+    assert not result.source_deleted
+    assert result.failures == ["could not trash source item K1"]
+
+
 def test_transfer_item_not_found(service):
     source_gw = MagicMock()
     dest_gw = MagicMock()

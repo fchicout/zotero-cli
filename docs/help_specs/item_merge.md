@@ -36,7 +36,7 @@ Merges one or more duplicate items into a chosen master item: unions tags and co
 ## 4. Description (Instructional Architecture)
 `item merge` is the generic, SLR-independent counterpart to Zotero Desktop's own duplicate-merge feature — use `report duplicates` first to find candidate master/duplicate keys (or `report duplicates --export-plan` to get a bulk-editable file), then run this command to actually consolidate them.
 
-Unlike Zotero Desktop, the Zotero Web API only exposes a hard, permanent `DELETE` — there is no documented soft-delete or relations-based merge the way Desktop's internal "equate item IDs" mechanism provides. That means this command's deletions are **permanent and non-reversible**, and any external document (e.g. a Word/LibreOffice manuscript) citing a duplicate's key by that key will break once the duplicate is deleted — Desktop's citation-plugin transparency on merge cannot be replicated here.
+Unlike Zotero Desktop, the Zotero Web API has no relations-based merge (the way Desktop's internal "equate item IDs" mechanism works), so the duplicates are retired another way. By default they are deleted with the Web API's hard, permanent `DELETE`: **permanent and non-reversible**, and any external document (e.g. a Word/LibreOffice manuscript) citing a duplicate's key by that key will break once the duplicate is deleted - Desktop's citation-plugin transparency on merge cannot be replicated here. With `--trash` (Issue #402) the duplicates go to Zotero's trash instead, through the item's `deleted` flag, and `item restore` brings one back - so a merge can be undone, although its notes and attachments stay on the master.
 
 By default the command only shows a preview (nothing is written) — pass `--execute` to actually perform the merge, and confirm the interactive prompt (or pass `--force` to skip it). In the **single-group form**, if the master and duplicates disagree on any of title, date, DOI, ISBN, URL, or abstract, you are prompted to pick which value to keep for each conflicting field — there is no silent "first wins" default, since choosing the wrong survivor value for a real methodological attribute (like DOI) can quietly corrupt records. Master and duplicates must share the same Zotero item type, the same rule Zotero Desktop enforces before allowing its own merge.
 
@@ -50,6 +50,7 @@ In the **`--from-plan` bulk form**, a CSV or JSON file (produced by `report dupl
 | `--from-plan` | String | Path to a merge plan file (`.csv` or `.json`) for bulk execution | Optional. Mutually exclusive in practice with `--master`/`--duplicates`. |
 | `--execute` | Boolean | Actually perform the merge | Optional. Default: False (preview only). |
 | `--force` | Boolean | Skip the interactive confirmation prompt | Optional. Default: False. Still requires `--execute`. |
+| `--trash` | Boolean | Move the emptied duplicates to Zotero's trash (recoverable with `item restore`) instead of deleting them permanently | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Consolidating a paper imported twice from different search databases

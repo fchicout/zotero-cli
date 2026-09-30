@@ -197,6 +197,7 @@ SLR-specific duplicate reconciliation. Detects duplicates across the SLR source 
 zotero-cli slr dedupe
 zotero-cli slr dedupe --sources "raw_ieee,raw_acm"
 zotero-cli slr dedupe --execute
+zotero-cli slr dedupe --execute --trash
 zotero-cli slr dedupe --export-plan slr_dedupe_plan.csv
 ```
 
@@ -205,6 +206,7 @@ zotero-cli slr dedupe --export-plan slr_dedupe_plan.csv
 *   `--export-plan`: Optional path (`.csv` or `.json`) to export the full reconciliation plan for manual resolution via `item merge --from-plan`.
 *   `--execute`: Merge the auto-resolved (MATCHING/UNSCREENED) groups. CONFLICTING groups are never auto-merged.
 *   `--force`: Skip the interactive confirmation prompt (still requires `--execute`).
+*   `--trash`: Move the merged duplicates to Zotero's trash (recoverable with `item restore`) instead of deleting them permanently.
 
 ---
 
