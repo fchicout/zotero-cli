@@ -49,6 +49,7 @@ Without `--execute`, only a preview is shown (and `--export-plan`, if given, sti
 | `--export-plan` | String | Optional path to export the full reconciliation plan (`.csv` or `.json`) | Includes blank CONFLICTING rows for manual resolution via `item merge --from-plan`. |
 | `--execute` | Boolean | Merge the auto-resolved (MATCHING/UNSCREENED) groups | Optional. Default: False (preview only). CONFLICTING groups are never auto-merged. |
 | `--force` | Boolean | Skip the interactive confirmation prompt | Optional. Default: False. Still requires `--execute`. |
+| `--trash` | Boolean | Move the merged duplicates to Zotero's trash (recoverable with `item restore`) instead of deleting them permanently | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Reviewing SLR-wide duplicates before merging anything

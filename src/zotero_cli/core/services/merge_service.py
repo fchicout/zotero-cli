@@ -107,12 +107,13 @@ class MergeService:
     the master, and hard-deletes the (now emptied) duplicates once any
     conflicting scalar fields have an explicit resolution.
 
-    The Web API only exposes a hard, permanent DELETE - there is no
-    documented soft-delete/relations-based merge the way Zotero Desktop's
+    The Web API has no relations-based merge the way Zotero Desktop's
     internal "equate item IDs" mechanism implies (see Issue #145). Retiring
-    the losing duplicates here is therefore permanent and non-reversible,
-    and cannot preserve external citation-plugin references pointing at
-    their keys the way Desktop's internal mechanism does. Callers (CLI or
+    the losing duplicates here is therefore, by default, a permanent hard
+    DELETE, and cannot preserve external citation-plugin references pointing
+    at their keys the way Desktop's internal mechanism does. With `trash`
+    (Issue #402) they are moved to Zotero's trash instead, which can be
+    undone. Callers (CLI or
     otherwise) must make that plain to the user before calling with
     `dry_run=False`.
 
@@ -159,7 +160,9 @@ class MergeService:
             ]
         )
 
-    def execute_plan(self, plan: MergePlan, dry_run: bool = True) -> PlanExecutionResult:
+    def execute_plan(
+        self, plan: MergePlan, dry_run: bool = True, trash: bool = False
+    ) -> PlanExecutionResult:
         """
         Executes every resolved group in `plan`. Refuses to write anything at
         all - not even for otherwise-valid groups - if any entry is missing a
@@ -216,6 +219,7 @@ class MergeService:
                 decision.merge_keys,
                 field_resolutions=field_resolutions,
                 dry_run=dry_run,
+                trash=trash,
             )
             group_results.append(result)
             if not result.success:
@@ -287,7 +291,11 @@ class MergeService:
         duplicate_keys: List[str],
         field_resolutions: Optional[Dict[str, str]] = None,
         dry_run: bool = True,
+        trash: bool = False,
     ) -> MergeResult:
+        """With `trash` (Issue #402) the emptied duplicates go to Zotero's
+        trash instead of being deleted for good, so a merge can be undone
+        by restoring them."""
         field_resolutions = field_resolutions or {}
         result = MergeResult(success=False, dry_run=dry_run, master_key=master_key)
 
@@ -400,10 +408,15 @@ class MergeService:
             # delete the version that exists now (the merge made that change).
             current = self.item_repo.get_item(d.key)
             version = current.version if current else d.version
-            if self.item_repo.delete_item(d.key, version):
+            if (
+                self.item_repo.trash_item(d.key, version)
+                if trash
+                else self.item_repo.delete_item(d.key, version)
+            ):
                 deleted_keys.append(d.key)
             else:
-                result.errors.append(f"Failed to delete duplicate item '{d.key}' after merge.")
+                verb = "trash" if trash else "delete"
+                result.errors.append(f"Failed to {verb} duplicate item '{d.key}' after merge.")
 
         result.merged_keys = deleted_keys
         result.notes_moved = moved_notes

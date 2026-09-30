@@ -176,7 +176,9 @@ class SLRDedupeService:
             )
         return MergePlan(entries=entries)
 
-    def execute_reconciliation(self, plan: MergePlan, dry_run: bool = True) -> PlanExecutionResult:
+    def execute_reconciliation(
+        self, plan: MergePlan, dry_run: bool = True, trash: bool = False
+    ) -> PlanExecutionResult:
         """
         Delegates physical consolidation entirely to
         `MergeService.execute_plan` (all-or-nothing across whatever entries
@@ -209,7 +211,7 @@ class SLRDedupeService:
                     for occ in entry.occurrences
                 ]
 
-        result = self.merge_service.execute_plan(plan, dry_run=dry_run)
+        result = self.merge_service.execute_plan(plan, dry_run=dry_run, trash=trash)
 
         if not dry_run and result.success:
             for entry in plan.entries:

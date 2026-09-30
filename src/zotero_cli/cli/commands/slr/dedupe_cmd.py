@@ -49,6 +49,12 @@ Result:  MATCHING/UNSCREENED groups are merged (tags/collections unioned, notes/
          duplicates permanently deleted) with a richer SDB reconciliation note recording each folded
          occurrence's prior screening decisions and source collection. CONFLICTING groups are untouched.
 
+Scenario: Auto-merging in a way I can undo
+Problem: I want the same consolidation, but with the duplicates recoverable.
+Action:  zotero-cli slr dedupe --execute --trash
+Result:  The same merge, but the duplicates go to Zotero's trash instead of being deleted; `item restore`
+         brings one back.
+
 Scenario: Resolving conflicting groups by hand
 Problem: Some duplicate groups have genuinely conflicting screening decisions across sources and need a human call.
 Action:  zotero-cli slr dedupe --export-plan slr_dedupe_plan.csv
@@ -75,6 +81,11 @@ Result:  A CSV is written with one row per occurrence; MATCHING/UNSCREENED rows 
             "--force",
             action="store_true",
             help="Skip the interactive confirmation prompt (still requires --execute).",
+        )
+        parser.add_argument(
+            "--trash",
+            action="store_true",
+            help="Move the merged duplicates to Zotero's trash (recoverable) instead of deleting them permanently.",
         )
 
     @staticmethod
@@ -134,18 +145,20 @@ Result:  A CSV is written with one row per occurrence; MATCHING/UNSCREENED rows 
             return
 
         resolved_plan = MergePlan(entries=resolved_entries)
+        trash = getattr(args, "trash", False) is True
         preview = service.execute_reconciliation(resolved_plan, dry_run=True)
         merge_count = sum(len(r.merged_keys) for r in preview.group_results)
         console.print(
             f"\n[bold]About to merge {len(resolved_entries)} group(s), "
-            f"permanently deleting {merge_count} duplicate item(s).[/bold]"
+            f"{safe_markup('moving' if trash else 'permanently deleting')} {merge_count} duplicate item(s)"
+            f"{safe_markup(' to the trash' if trash else '')}.[/bold]"
         )
 
         if not args.force and not Confirm.ask("Proceed?"):
             console.print("[yellow]Aborted. Nothing written.[/yellow]")
             return
 
-        result = service.execute_reconciliation(resolved_plan, dry_run=False)
+        result = service.execute_reconciliation(resolved_plan, dry_run=False, trash=trash)
         merged = sum(len(r.merged_keys) for r in result.group_results if r.success)
         failed = [r for r in result.group_results if not r.success]
         console.print(

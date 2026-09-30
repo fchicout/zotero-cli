@@ -119,6 +119,47 @@ def test_recursive_delete_leaves_collections_when_an_item_delete_fails(
     mock_col_repo.delete_collection.assert_not_called()
 
 
+def test_recursive_trash_trashes_the_items_but_still_deletes_the_collections(
+    col_service, mock_col_repo, mock_item_repo
+):
+    """Issue #402: with trash, the items are recoverable; the collections are
+    deleted for good, so the order (items first, then collections) still holds."""
+    mock_col_repo.get_all_collections.return_value = [
+        {"key": "ROOT", "version": 5, "data": {"name": "R", "parentCollection": False}},
+        {"key": "SUB", "version": 6, "data": {"name": "Sub", "parentCollection": "ROOT"}},
+    ]
+    _collections(mock_col_repo, {"ROOT": [_item("A", ["ROOT"])], "SUB": [_item("B", ["SUB"])]})
+    mock_item_repo.trash_item.return_value = True
+    mock_col_repo.delete_collection.return_value = True
+
+    result = col_service.execute_recursive_delete(
+        col_service.plan_recursive_delete("ROOT"), trash=True
+    )
+
+    assert {c.args[0] for c in mock_item_repo.trash_item.call_args_list} == {"A", "B"}
+    mock_item_repo.delete_item.assert_not_called()
+    assert result.deleted_items == 2
+    assert result.deleted_collections == 2
+
+
+def test_recursive_trash_leaves_collections_when_an_item_cannot_be_trashed(
+    col_service, mock_col_repo, mock_item_repo
+):
+    mock_col_repo.get_all_collections.return_value = [
+        {"key": "ROOT", "version": 5, "data": {"name": "R", "parentCollection": False}}
+    ]
+    _collections(mock_col_repo, {"ROOT": [_item("A", ["ROOT"])]})
+    mock_item_repo.trash_item.return_value = False
+
+    result = col_service.execute_recursive_delete(
+        col_service.plan_recursive_delete("ROOT"), trash=True
+    )
+
+    assert result.failed_items == ["A"]
+    mock_col_repo.delete_collection.assert_not_called()
+    mock_item_repo.delete_item.assert_not_called()
+
+
 def test_analyze_shift():
     # Setup Snapshot Data
     snap_old = [

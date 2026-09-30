@@ -618,6 +618,11 @@ Problem: I've found a perfect paper in my personal library and I want to share i
 Action:  zotero-cli item transfer --key "ABCD1234" --target-group "987654"
 Result:  A duplicate of the paper and its PDF is created in the lab's group library.
 
+Scenario: Moving it, but keeping the original recoverable
+Problem: I want the paper out of my personal library once it's safely in the group, without losing it for good.
+Action:  zotero-cli item transfer --key "ABCD1234" --target-group "987654" --delete-source --trash
+Result:  After every note and file has been copied, the original goes to Zotero's trash (`item restore` brings it back).
+
 Notes
 -----
 • Common Failure Modes: Attempting to transfer to a group for which you do not have "Write" permissions.
@@ -632,6 +637,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--delete-source",
             action="store_true",
             help="Delete item from source library after transfer",
+        )
+        transfer_p.add_argument(
+            "--trash",
+            action="store_true",
+            help="With --delete-source: move the source item to Zotero's trash (recoverable) instead of deleting it permanently",
         )
 
         # Export
@@ -706,7 +716,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         merge_p = sub.add_parser(
             "merge",
             help="Merge duplicate items into one survivor",
-            description="Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates. Use `report duplicates` first to find candidate keys, or `report duplicates --export-plan` for a bulk-editable plan file.",
+            description="Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates - or, with --trash, moves them to Zotero's trash so the merge can be undone. Use `report duplicates` first to find candidate keys, or `report duplicates --export-plan` for a bulk-editable plan file.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples
@@ -715,6 +725,11 @@ Scenario: Consolidating a paper imported twice from different search databases
 Problem: report duplicates found the same paper as items IEEE_KEY1 (master, more complete) and SPR_KEY2 (duplicate).
 Action:  zotero-cli item merge --master "IEEE_KEY1" --duplicates "SPR_KEY2" --execute
 Result:  SPR_KEY2's tags, collections, notes, and attachments move onto IEEE_KEY1; SPR_KEY2 is permanently deleted.
+
+Scenario: Consolidating in a way I can undo
+Problem: I'm not sure the two records are really the same paper.
+Action:  zotero-cli item merge --master "IEEE_KEY1" --duplicates "SPR_KEY2" --trash --execute
+Result:  The same merge, but SPR_KEY2 goes to Zotero's trash; `item restore --key "SPR_KEY2" --execute` brings it back (its notes and attachments stay on the master).
 
 Scenario: Previewing a merge before committing
 Problem: I want to see what a merge would do without touching my library yet.
@@ -729,7 +744,7 @@ Result:  Every fully-resolved group is merged in one pass; if any group is still
 Notes
 -----
 • Common Failure Modes: Master and duplicates must share the same item type - Zotero Desktop enforces the same rule. Conflicting scalar fields (title, date, DOI, ISBN, URL, abstract) must be resolved interactively (single-group form) before --execute can proceed; there is no silent "first wins" default. With --from-plan, an incomplete plan (any group missing a decision) blocks the entire batch, not just that group.
-• Safety Tips: This is PERMANENT - the Zotero Web API only supports hard delete, there is no undo the way Zotero Desktop's internal merge has. Run without --execute first to preview. Any citation-management document referencing a duplicate's key by that key will break.
+• Safety Tips: Without --trash this is PERMANENT: the duplicates are deleted for good and there is no undo. With --trash they go to Zotero's trash and can be restored (their notes and attachments stay on the master). Run without --execute first to preview. Any citation-management document referencing a duplicate's key by that key will break.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_merge.md
 """,
@@ -748,6 +763,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--execute", action="store_true", help="Actually perform the merge (default: preview only)"
         )
         merge_p.add_argument("--force", action="store_true", help="Skip the confirmation prompt")
+        merge_p.add_argument(
+            "--trash",
+            action="store_true",
+            help="Move the emptied duplicates to Zotero's trash (recoverable) instead of deleting them permanently",
+        )
 
     def execute(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
@@ -840,25 +860,37 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             table.add_row("Field resolutions", str(preview.field_resolutions_applied))
         console.print(table)
 
+        trash = getattr(args, "trash", False) is True
         if not args.execute:
             console.print(
-                "[yellow]Preview only - nothing was written. This merge is PERMANENT and "
-                "cannot be undone once run with --execute (the Zotero Web API only supports "
-                "hard delete). Re-run with --execute to apply.[/yellow]"
+                "[yellow]Preview only - nothing was written. "
+                + (
+                    "The duplicates will go to Zotero's trash and can be restored."
+                    if trash
+                    else "This merge is PERMANENT and cannot be undone once run with --execute."
+                )
+                + " Re-run with --execute to apply.[/yellow]"
             )
             return
 
         if not args.force:
             console.print(
-                f"[yellow]About to permanently delete {len(duplicate_keys)} item(s) after "
-                "moving their notes/attachments to the master. This cannot be undone.[/yellow]"
+                f"[yellow]About to {safe_markup('move' if trash else 'permanently delete')} "
+                f"{len(duplicate_keys)} item(s) {safe_markup('to the trash' if trash else '')} "
+                "after moving their notes/attachments to the master."
+                + ("" if trash else " This cannot be undone.")
+                + "[/yellow]"
             )
             if not Confirm.ask("Proceed?"):
                 console.print(ABORTED_NO_WRITES_MSG)
                 return
 
         result = service.merge(
-            master_key, duplicate_keys, field_resolutions=field_resolutions, dry_run=False
+            master_key,
+            duplicate_keys,
+            field_resolutions=field_resolutions,
+            dry_run=False,
+            trash=trash,
         )
         for error in result.errors:
             console.print(f"[red]Warning:[/red] {escape(error)}")
@@ -922,10 +954,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 console.print(f"  [red]{escape(error)}[/red]")
             return
 
+        trash = getattr(args, "trash", False) is True
         if not args.execute:
             console.print(
-                "[yellow]Preview only - nothing was written. This merge is PERMANENT and "
-                "cannot be undone once run with --execute. Re-run with --execute to apply.[/yellow]"
+                "[yellow]Preview only - nothing was written. "
+                + (
+                    "The duplicates will go to Zotero's trash and can be restored."
+                    if trash
+                    else "This merge is PERMANENT and cannot be undone once run with --execute."
+                )
+                + " Re-run with --execute to apply.[/yellow]"
             )
             return
 
@@ -933,13 +971,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             groups_with_merges = sum(1 for e in plan.entries if e.decision and e.decision.merge_keys)
             console.print(
                 f"[yellow]About to execute {safe_markup(groups_with_merges)} merge(s) from this plan. "
-                "This cannot be undone.[/yellow]"
+                + ("The duplicates go to the trash." if trash else "This cannot be undone.")
+                + "[/yellow]"
             )
             if not Confirm.ask("Proceed?"):
                 console.print(ABORTED_NO_WRITES_MSG)
                 return
 
-        result = service.execute_plan(plan, dry_run=False)
+        result = service.execute_plan(plan, dry_run=False, trash=trash)
         for group_result in result.group_results:
             for error in group_result.errors:
                 console.print(f"[red]Warning ({safe_markup(group_result.master_key)}):[/red] {escape(error)}")
@@ -997,9 +1036,17 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         service = GatewayFactory.get_transfer_service()
 
+        trash = getattr(args, "trash", False) is True
+        if trash and not args.delete_source:
+            raise UsageError("--trash applies to the source item, so it needs --delete-source.")
+
         print(f"Transferring item {args.key} to group {args.target_group}...")
         result = service.transfer_item(
-            args.key, source_gateway, dest_gateway, delete_source=args.delete_source
+            args.key,
+            source_gateway,
+            dest_gateway,
+            delete_source=args.delete_source,
+            trash_source=trash,
         )
 
         if result.new_key is None:
@@ -1015,13 +1062,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 print(f"  - {failure}", file=sys.stderr)
             if args.delete_source:
                 print(
-                    f"The source item {args.key} was NOT deleted, so nothing is lost. "
-                    "Copy the missing parts by hand, then delete it.",
+                    f"The source item {args.key} was NOT {'trashed' if trash else 'deleted'}, so nothing is lost. "
+                    "Copy the missing parts by hand, then remove it.",
                     file=sys.stderr,
                 )
             sys.exit(1)
         if result.source_deleted:
-            print(f"Deleted the source item {args.key}.")
+            if trash:
+                print(f"Moved the source item {args.key} to the trash (`item restore` undoes it).")
+            else:
+                print(f"Deleted the source item {args.key}.")
 
     def _handle_purge(self, args: argparse.Namespace) -> None:
         from rich.prompt import Confirm
