@@ -193,6 +193,65 @@ def test_system_restore_dry_run(system_cmd, capsys):
         assert "RESTORE SIMULATED" in out
 
 
+def test_system_restore_warns_when_neither_flag_given(system_cmd, capsys):
+    """Issue #378: `system restore` predates preview-by-default and still
+    applies immediately without --dry-run/--execute, but must now warn."""
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_restore_service") as mock_get_service:
+        mock_service = mock_get_service.return_value
+        mock_report = MagicMock()
+        mock_report.errors = []
+        mock_service.restore_archive.return_value = mock_report
+
+        args = argparse.Namespace(verb="restore", file="test.zaf", dry_run=False, execute=False, user=False)
+        system_cmd.execute(args)
+
+        err = capsys.readouterr().err
+        assert "currently applies its changes by default" in err
+        assert "--execute" in err
+        mock_service.restore_archive.assert_called_once_with("test.zaf", dry_run=False)
+
+
+def test_system_restore_execute_no_warning(system_cmd, capsys):
+    """Passing --execute explicitly applies the restore without the
+    deprecation warning (Issue #378)."""
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_restore_service") as mock_get_service:
+        mock_service = mock_get_service.return_value
+        mock_report = MagicMock()
+        mock_report.errors = []
+        mock_service.restore_archive.return_value = mock_report
+
+        args = argparse.Namespace(verb="restore", file="test.zaf", dry_run=False, execute=True, user=False)
+        system_cmd.execute(args)
+
+        err = capsys.readouterr().err
+        assert "currently applies its changes by default" not in err
+
+
+def test_system_restore_dry_run_no_warning(system_cmd, capsys):
+    """--dry-run alone previews without the deprecation warning (Issue #378)."""
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_restore_service") as mock_get_service:
+        mock_service = mock_get_service.return_value
+        mock_report = MagicMock()
+        mock_report.errors = []
+        mock_service.restore_archive.return_value = mock_report
+
+        args = argparse.Namespace(verb="restore", file="test.zaf", dry_run=True, execute=False, user=False)
+        system_cmd.execute(args)
+
+        err = capsys.readouterr().err
+        assert "currently applies its changes by default" not in err
+
+
+def test_system_restore_dry_run_and_execute_are_mutually_exclusive():
+    """Issue #378: passing both flags together is refused, not silently
+    resolved one way or the other."""
+    parser = argparse.ArgumentParser()
+    SystemCommand().register_args(parser)
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["restore", "--file", "test.zaf", "--dry-run", "--execute"])
+
+
 def test_system_check(system_cmd, capsys):
     from zotero_cli.core.services.diagnostics_service import CheckResult
 

@@ -7,6 +7,7 @@ from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.presenters import item_list_presenter
+from zotero_cli.cli.safety import warn_default_apply
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.sdb_parser import decode_json_note
@@ -492,13 +493,19 @@ Examples
 --------
 Scenario: Removing a genuine duplicate/junk record
 Problem: I manually added a test item (Key: JUNK_01) by mistake and want it gone entirely.
-Action:  zotero-cli item delete --key "JUNK_01"
+Action:  zotero-cli item delete --key "JUNK_01" --execute
 Result:  The item is permanently removed from the library. This cannot be undone.
+
+Scenario: Checking what a delete would remove before committing to it
+Problem: I want to see the item and its attachments/notes before deleting it.
+Action:  zotero-cli item delete --key "JUNK_01" --dry-run
+Result:  The item and its children are listed; nothing is deleted.
 
 Notes
 -----
 • Common Failure Modes: Assuming this moves the item to a recoverable trash - it does not, the Web API has no such mechanism.
 • Safety Tips: ALWAYS verify the item key using item inspect before deleting. For consolidating duplicates instead of discarding one outright, use item merge.
+• Deprecation: omitting both --dry-run and --execute still deletes immediately (for now) but prints a warning; pass --execute explicitly. This becomes preview-by-default in 4.0 (Issue #378).
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_delete.md
 """,
@@ -508,6 +515,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--version",
             type=int,
             help="Delete only if the item is still at this version (default: its current version)",
+        )
+        delete_mode = delete_p.add_mutually_exclusive_group()
+        delete_mode.add_argument(
+            "--execute", action="store_true", help="Delete the item (default for now; see Deprecation note)"
+        )
+        delete_mode.add_argument(
+            "--dry-run", action="store_true", help="Preview the item and its children without deleting"
         )
 
         # Trash
@@ -1183,6 +1197,28 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if not item:
             print(f"Error: Item {args.key} not found.", file=sys.stderr)
             sys.exit(1)
+
+        # Issue #378: predates the preview-by-default policy, so it still
+        # applies immediately without either flag - just warns instead of
+        # silently keeping the old behaviour forever.
+        execute = bool(getattr(args, "execute", False))
+        dry_run = bool(getattr(args, "dry_run", False))
+        if not execute and not dry_run:
+            warn_default_apply("item delete")
+            execute = True
+
+        if not execute:
+            children = gateway.get_item_children(args.key)
+            print(f"Would delete item {args.key}: {item.title}")
+            if children:
+                print(f"  {len(children)} attached note(s)/file(s) are NOT deleted with it "
+                    "(the Web API doesn't cascade) and would become orphaned:")
+                for child in children:
+                    ctype = child.get("data", {}).get("itemType", "unknown")
+                    ckey = str(child.get("key", ""))
+                    print(f"    {ckey}  ({ctype})")
+            print("Preview only - nothing was changed. Re-run with --execute to delete it.")
+            return
 
         # Issue #384: delete only the version the user saw (--version) or the
         # current one - never whatever the item became in between.
