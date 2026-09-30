@@ -309,3 +309,21 @@ def test_get_config_concurrent_calls_do_not_corrupt_the_cache(tmp_path):
         assert config.api_key is not None
         assert config.library_id is not None
         assert config.api_key.replace("key_", "") == config.library_id.replace("lib_", "")
+
+
+def test_openalex_api_key_from_file_and_env_and_masked_in_logs(tmp_path):
+    """Issue #420: `openalex_api_key` / OPENALEX_API_KEY, env winning."""
+    from zotero_cli.core.logging_config import redact
+
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(
+        '[zotero]\napi_key = "k"\nlibrary_id = "1"\nopenalex_api_key = "file-oa-key-999"\n'
+    )
+    with patch.dict(os.environ, {}, clear=True):
+        assert ConfigLoader(config_path=config_file).load().openalex_api_key == "file-oa-key-999"
+        assert "file-oa-key-999" not in redact("failed: file-oa-key-999")
+    with patch.dict(os.environ, {"OPENALEX_API_KEY": "env-oa-key-888"}, clear=True):
+        assert ConfigLoader(config_path=config_file).load().openalex_api_key == "env-oa-key-888"
+    with patch.dict(os.environ, {}, clear=True):
+        config_file.write_text('[zotero]\napi_key = "k"\nlibrary_id = "1"\n')
+        assert ConfigLoader(config_path=config_file).load().openalex_api_key is None

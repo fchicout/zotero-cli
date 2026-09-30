@@ -127,3 +127,30 @@ def test_search_error_stops_iteration(client):
         results = list(client.search("topic"))
 
     assert results == []
+
+
+def test_api_key_is_sent_on_every_request():
+    """Issue #420: a configured key goes out as `api_key=` on each call."""
+    keyed = OpenAlexAPIClient(email="a@b.c", api_key="oa-secret-123")
+    assert keyed.session.params == {"api_key": "oa-secret-123"}
+
+    request = requests.Request("GET", "https://api.openalex.org/works", params={"search": "x"})
+    url = str(keyed.session.prepare_request(request).url)
+    assert "api_key=oa-secret-123" in url
+    assert "search=x" in url
+
+
+def test_no_key_sends_no_api_key_param():
+    keyless = OpenAlexAPIClient(email="a@b.c")
+    url = str(
+        keyless.session.prepare_request(
+            requests.Request("GET", "https://api.openalex.org/works", params={"search": "x"})
+        ).url
+    )
+    assert "api_key" not in url
+
+
+def test_the_key_is_masked_in_logs():
+    from zotero_cli.core.logging_config import redact
+
+    assert "oa-secret-123" not in redact("GET https://api.openalex.org/works?api_key=oa-secret-123")

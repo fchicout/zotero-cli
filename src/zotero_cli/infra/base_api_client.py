@@ -1,6 +1,8 @@
 import logging
 import time
 from abc import ABC
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any, Dict, Optional
 
 import requests
@@ -18,6 +20,34 @@ from zotero_cli.core.utils.user_agent import user_agent
 logger = logging.getLogger(__name__)
 
 __all__ = ["BaseAPIClient", "user_agent"]
+
+# Rate-limit policy (Issue #420): a 429 is retried at most this many times,
+# waiting what the provider's Retry-After asks, and never more than this long
+# in one go. A provider that wants a longer wait (a daily quota that resets
+# at midnight UTC) can't be waited out inside a command, so the request
+# fails at once with a warning that says so instead of hanging.
+MAX_RATE_LIMIT_RETRIES = 2
+MAX_RATE_LIMIT_WAIT = 30.0
+_DEFAULT_RATE_LIMIT_WAIT = 5.0
+
+
+def retry_after_seconds(response: requests.Response) -> Optional[float]:
+    """Seconds a `Retry-After` header asks for (delta-seconds or HTTP-date),
+    or None when it's absent or unreadable."""
+    value = response.headers.get("Retry-After") if response.headers else None
+    if not value:
+        return None
+    try:
+        return max(0.0, float(value))
+    except (TypeError, ValueError):
+        pass
+    try:
+        when = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return max(0.0, (when - datetime.now(timezone.utc)).total_seconds())
 
 
 class BaseAPIClient(ABC):
@@ -96,7 +126,29 @@ class BaseAPIClient(ABC):
         else:
             url = f"{self.base_url}/{endpoint.lstrip('/')}" if endpoint else self.base_url
 
-        self._apply_rate_limit()
-        response = self.session.get(url, params=params, timeout=10)
+        provider = type(self).__name__
+        for attempt in range(MAX_RATE_LIMIT_RETRIES + 1):
+            self._apply_rate_limit()
+            response = self.session.get(url, params=params, timeout=10)
+            if response.status_code != 429:
+                break
+            requested = retry_after_seconds(response)
+            wait = _DEFAULT_RATE_LIMIT_WAIT * (attempt + 1) if requested is None else requested
+            if wait > MAX_RATE_LIMIT_WAIT or attempt == MAX_RATE_LIMIT_RETRIES:
+                logger.warning(
+                    "%s: rate limited (HTTP 429), not retrying%s. Its limit or daily quota is "
+                    "used up; try again later or configure an API key for this provider.",
+                    provider,
+                    f" (Retry-After {requested:.0f}s)" if requested is not None else "",
+                )
+                break
+            logger.warning(
+                "%s: rate limited (HTTP 429); waiting %.0fs (retry %d/%d).",
+                provider,
+                wait,
+                attempt + 1,
+                MAX_RATE_LIMIT_RETRIES,
+            )
+            time.sleep(wait)
         response.raise_for_status()
         return response

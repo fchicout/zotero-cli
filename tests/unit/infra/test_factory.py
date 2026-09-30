@@ -232,6 +232,13 @@ def test_get_core_client(mock_config):
     assert client.api_key == "test_core_key"
 
 
+def test_get_openalex_client_passes_the_configured_key(mock_config):
+    import dataclasses
+
+    config = dataclasses.replace(mock_config, openalex_api_key="oa-key-123")
+    assert GatewayFactory.get_openalex_client(config).api_key == "oa-key-123"
+
+
 def test_get_doaj_client():
     from zotero_cli.infra.doaj_api import DOAJAPIClient
 

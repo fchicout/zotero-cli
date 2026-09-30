@@ -8,7 +8,13 @@ Your use of each service is subject to that provider's terms. Read them before b
 
 Every request carries an honest User-Agent: `zotero-cli/<version> (+https://github.com/fchicout/zotero-cli)`. If you set `unpaywall_email` in your config, it's added as `mailto:<your address>`, which Crossref and OpenAlex use to place requests in their "polite pool". zotero-cli never sends a browser User-Agent, and never retries a refused request under a different identity. A `403` with an API key fails with a message saying the key was rejected.
 
-API keys you configure (Zotero, Semantic Scholar, CORE, NCBI, ...) are sent only to the provider they belong to, and are stripped when a redirect leaves that provider's origin.
+API keys you configure (Zotero, Semantic Scholar, CORE, NCBI, OpenAlex, ...) are sent only to the provider they belong to, and are stripped when a redirect leaves that provider's origin.
+
+## Rate limits
+
+When a provider answers `429 Too Many Requests`, the metadata clients wait what its `Retry-After` header asks (at most 30 seconds) and retry, at most twice. A provider that asks for a longer wait - a daily quota that resets at midnight - isn't waited out: the request fails at once and a warning names the provider. Requests are also paced to about three a second per provider.
+
+**OpenAlex:** its [pricing page](https://help.openalex.org/access/pricing) says a free account gets an API key with a daily usage allowance (it resets at midnight UTC), and no longer mentions the `mailto` polite pool. It doesn't say whether unkeyed requests still work, so heavy enrichment or snowballing may hit the limit without a key. Set `openalex_api_key` in `config.toml` or the `OPENALEX_API_KEY` environment variable; it's sent as `api_key=` on every OpenAlex request and masked in logs.
 
 ## Providers
 
@@ -17,7 +23,7 @@ API keys you configure (Zotero, Semantic Scholar, CORE, NCBI, ...) are sent only
 | Zotero Web API | Your library (every online command) | `api.zotero.org` | <https://www.zotero.org/support/dev/web_api/v3/start> |
 | Crossref | DOI metadata, references | `api.crossref.org` | <https://www.crossref.org/documentation/retrieve-metadata/rest-api/> |
 | Semantic Scholar | Citations and references (snowballing), PDFs | `api.semanticscholar.org` | <https://www.semanticscholar.org/product/api/license> |
-| OpenAlex | Metadata, open-access PDFs | `api.openalex.org` | <https://docs.openalex.org/> |
+| OpenAlex | Metadata, open-access PDFs (optional API key: `openalex_api_key`) | `api.openalex.org` | <https://docs.openalex.org/> |
 | Unpaywall | Open-access PDF locations | `api.unpaywall.org` | <https://unpaywall.org/products/api> |
 | arXiv | Metadata, PDFs | `export.arxiv.org`, `arxiv.org` | <https://info.arxiv.org/help/api/tou.html> |
 | PubMed / NCBI E-utilities | Metadata, PMID/PMC conversion | `eutils.ncbi.nlm.nih.gov`, `www.ncbi.nlm.nih.gov` | <https://www.ncbi.nlm.nih.gov/books/NBK25497/> |

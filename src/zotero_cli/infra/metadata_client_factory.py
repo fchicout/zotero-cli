@@ -46,7 +46,7 @@ class MetadataClientFactory:
 
         from zotero_cli.infra.openalex_api import OpenAlexAPIClient
 
-        return OpenAlexAPIClient(email=config.unpaywall_email)
+        return OpenAlexAPIClient(email=config.unpaywall_email, api_key=config.openalex_api_key)
 
     @staticmethod
     def get_pubmed_client(config: Optional[ZoteroConfig] = None) -> "PubMedAPIClient":

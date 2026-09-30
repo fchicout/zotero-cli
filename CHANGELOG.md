@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### Added
+- **OpenAlex API key, and one 429 policy for every metadata client (Issue #420):** set `openalex_api_key` (or `OPENALEX_API_KEY`) to send your free OpenAlex key as `api_key=` on every request; it's masked in logs and listed, commented, in `config.toml.example`. OpenAlex's pricing page now describes a daily usage allowance per key, so unkeyed heavy use may run out. Every client built on `BaseAPIClient` now handles `429` the same way: wait the provider's `Retry-After` (at most 30 s) and retry twice, or fail at once with a warning naming the provider when it wants a longer wait (a daily quota) instead of a bare HTTP error. `docs/DATA_SOURCES.md` documents both.
 - **Item keys can be positional or `--key` everywhere they were one or the other (Issue #379):** `item inspect ABCD1234` now works (the docs already showed it), and `slr sdb inspect|edit` accept `--key KEY` as well as the positional.
 
 ### Changed
