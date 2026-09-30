@@ -28,8 +28,11 @@ RUN apt-get update \
 RUN pip install --no-cache-dir "uv==0.12.18" && \
     uv sync --locked --no-editable --group release
 
-# --strip (Issue #434): smaller payload, extracted on every run.
-RUN .venv/bin/pyinstaller --onefile --strip --name zotero-cli \
+# --strip (Issue #434): smaller payload. --onedir instead of --onefile
+# (Issue #434 step 2): a onefile binary re-extracts its ~90 MB payload into
+# /tmp on every `docker run`; `COPY`ing the unpacked tree below avoids that
+# entirely.
+RUN .venv/bin/pyinstaller --onedir --strip --name zotero-cli \
     --add-data "src/zotero_cli/templates/extraction_schema.yaml:zotero_cli/templates" \
     --add-data "src/zotero_cli/templates/demo_sandbox.yaml:zotero_cli/templates" \
     --exclude-module torch \
@@ -40,7 +43,7 @@ RUN .venv/bin/pyinstaller --onefile --strip --name zotero-cli \
     --exclude-module matplotlib \
     --exclude-module readline \
     --clean src/zotero_cli/cli/main.py \
-    && ./dist/zotero-cli system selftest \
+    && ./dist/zotero-cli/zotero-cli system selftest \
     && .venv/bin/python scripts/gen_third_party_notices.py --build-dir build/zotero-cli \
         --output dist/THIRD_PARTY_LICENSES.txt
 
@@ -58,7 +61,8 @@ RUN apt-get update \
     && install -d -m 0755 /config \
     && install -d -o zotero -g zotero -m 0700 /config/zotero-cli
 
-COPY --from=builder /build/dist/zotero-cli /usr/local/bin/zotero-cli
+COPY --from=builder /build/dist/zotero-cli /usr/local/lib/zotero-cli
+RUN ln -s /usr/local/lib/zotero-cli/zotero-cli /usr/local/bin/zotero-cli
 # Issue #405: the licence and the notices for everything the binary bundles.
 COPY --from=builder /build/LICENSE /build/dist/THIRD_PARTY_LICENSES.txt /usr/share/licenses/zotero-cli/
 LABEL org.opencontainers.image.licenses="MIT" \

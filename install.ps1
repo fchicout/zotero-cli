@@ -52,8 +52,14 @@ function Install-ZoteroCli {
         if ($Expected -ne $Actual) { throw "Checksum verification failed for $Asset. Not installing." }
 
         Expand-Archive -Path $ZipPath -DestinationPath $TempDir -Force
-        New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
-        Move-Item -Force (Join-Path $TempDir "zotero-cli.exe") (Join-Path $InstallDir "zotero-cli.exe")
+
+        # Issue #434: the release moved from a single onefile exe to an
+        # unpacked onedir tree (zotero-cli.exe plus an `_internal\` support
+        # folder), extracted here as `zotero-cli\`. $InstallDir becomes that
+        # tree itself, replacing whatever was installed before.
+        if (Test-Path $InstallDir) { Remove-Item -Recurse -Force $InstallDir }
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $InstallDir) | Out-Null
+        Move-Item -Force (Join-Path $TempDir "zotero-cli") $InstallDir
 
         Write-Host "Installed zotero-cli to $InstallDir\zotero-cli.exe"
 
