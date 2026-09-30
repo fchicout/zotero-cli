@@ -30,12 +30,13 @@ The `report audit` command checks if your research items are submission-ready. I
 | :--- | :--- | :--- | :--- |
 | `--collection` | String | Collection Name or Key to validate | Required. |
 | `--export-missing` | String | Path to export keys of missing items to a file | Optional. |
-| `--verbose` | Boolean | Show detailed failure logs | Optional. Default: False. |
+| `--details` | Boolean | Show detailed failure logs | Optional. Default: False. |
+| `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Verifying metadata completeness of selected items
 **Problem:** I need to verify that all final papers have abstracts and DOIs.
-**Action:** `zotero-cli report audit --collection "Final Selection" --verbose`
+**Action:** `zotero-cli report audit --collection "Final Selection" --details`
 **Result:** A verification report is printed, showcasing completeness metrics.
 
 ## 7. Cognitive Safeguards

@@ -9,6 +9,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.flags import add_details_flag
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.duplicate_service import DuplicateFinder, DuplicateGroup
@@ -87,14 +88,14 @@ Examples
 --------
 Scenario: Auditing collection metadata before paper submission
 Problem: I want to verify that all my final selected papers have abstracts and DOIs.
-Action:  zotero-cli report audit --collection "Final Selection" --verbose
+Action:  zotero-cli report audit --collection "Final Selection" --details
 Result:  A completeness report table is printed, and missing items are detailed.
 """,
         )
         audit_p.add_argument(
             "--collection", required=True, help="Collection Name or Key to validate"
         )
-        audit_p.add_argument("--verbose", dest="details", action="store_true", help="Show detailed failure logs")
+        add_details_flag(audit_p, "Show detailed failure logs")
         audit_p.add_argument(
             "--export-missing", help="Path to export keys of missing items to a file"
         )

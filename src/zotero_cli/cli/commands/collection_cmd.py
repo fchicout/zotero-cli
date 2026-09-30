@@ -7,6 +7,7 @@ from rich.table import Table
 from rich.tree import Tree
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.flags import add_details_flag
 from zotero_cli.cli.safety import confirm_destructive, preview_notice
 from zotero_cli.core.exceptions import NotFound, UsageError
 from zotero_cli.core.interfaces import ZoteroGateway
@@ -179,7 +180,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         clean_p.add_argument(
             "--execute", action="store_true", help="Apply the change (default: preview only)"
         )
-        clean_p.add_argument("--verbose", dest="details", action="store_true", help="List every item affected")
+        add_details_flag(clean_p, "List every item affected")
 
         # Backup
         backup_p = sub.add_parser(

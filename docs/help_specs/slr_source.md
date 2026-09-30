@@ -33,7 +33,8 @@ The `slr source` subcommands manage search results ingestion:
 | :--- | :--- | :--- | :--- |
 | `--file` | String | Path to RIS, BibTeX, or CSV file to import | Required. |
 | `--name` | String | Name or key of the raw collection (e.g. acm) | Required. |
-| `--verbose` | Boolean | Print verbose details | Optional. Default: False. |
+| `--details` | Boolean | Print verbose details | Optional. Default: False. |
+| `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Initializing a new review pipeline for ACM papers

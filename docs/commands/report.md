@@ -22,7 +22,7 @@ Audits collection metadata completeness (e.g. missing DOIs, abstracts, titles, o
 
 **Usage:**
 ```bash
-zotero-cli report audit --collection "My Collection" [--verbose] [--export-missing missing.txt]
+zotero-cli report audit --collection "My Collection" [--details] [--export-missing missing.txt]
 ```
 
 ---

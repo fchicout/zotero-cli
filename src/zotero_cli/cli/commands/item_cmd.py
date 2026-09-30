@@ -6,6 +6,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.flags import add_details_flag
 from zotero_cli.cli.presenters import item_list_presenter
 from zotero_cli.cli.safety import warn_default_apply
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
@@ -341,9 +342,7 @@ Notes
         fetch_p.add_argument("--key", help=ITEM_KEY_HELP)
         fetch_p.add_argument("--collection", help="Fetch PDFs for all items in a collection")
         fetch_p.add_argument("--file", help="Fetch PDFs for all items in a key-list file")
-        fetch_p.add_argument(
-            "--verbose", dest="details", action="store_true", help="Print each fetch attempt"
-        )
+        add_details_flag(fetch_p, "Print each fetch attempt")
 
         strip_p = pdf_sub.add_parser(
             "strip",
@@ -362,9 +361,7 @@ Notes
         )
         strip_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         strip_p.add_argument("--execute", action="store_true", help="Actually perform deletions")
-        strip_p.add_argument(
-            "--verbose", dest="details", action="store_true", help="Print each item stripped"
-        )
+        add_details_flag(strip_p, "Print each item stripped")
 
         attach_p = pdf_sub.add_parser(
             "attach",
