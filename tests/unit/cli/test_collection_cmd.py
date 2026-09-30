@@ -373,7 +373,7 @@ def test_collection_export_metadata_success(mock_export_service, capsys):
     mock_export_service.export_collection.return_value = True
 
     args = argparse.Namespace(
-        verb="export", collection="COL_KEY", format="bibtex", output="out.bib", user=False
+        verb="export", collection="COL_KEY", export_format="bibtex", output="out.bib", user=False
     )
     CollectionCommand().execute(args)
 
@@ -386,7 +386,7 @@ def test_collection_export_metadata_fail(mock_export_service, capsys):
     mock_export_service.export_collection.return_value = False
 
     args = argparse.Namespace(
-        verb="export", collection="COL_KEY", format="ris", output="out.ris", user=False
+        verb="export", collection="COL_KEY", export_format="ris", output="out.ris", user=False
     )
     with pytest.raises(SystemExit):
         CollectionCommand().execute(args)
@@ -404,7 +404,7 @@ def test_collection_export_markdown_success(mock_gateway, mock_attachment_servic
     mock_attachment_service._export_item_markdown.side_effect = ["success", "skipped"]
 
     args = argparse.Namespace(
-        verb="export", collection="COL_KEY", format="md", output="md_dir", user=False
+        verb="export", collection="COL_KEY", export_format="md", output="md_dir", user=False
     )
     CollectionCommand().execute(args)
 

@@ -33,6 +33,7 @@ The `system jobs` command is the "Worker Supervisor" for asynchronous operations
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--count` | Integer | Number of jobs to process | Optional. |
+| `--format` | String | `jobs list` output format: `table`, `json` or `csv` (id, type, item_key, status, attempts, next_retry, error) | Optional. Default: table. |
 | `--limit` | Integer | Max jobs to show | Optional. Default: 50. |
 | `--type` | String | Filter by task type (Default: fetch_pdf) | Optional. Default: fetch_pdf. |
 | `--watch` | Boolean | Live progress monitor | Optional. Default: False. |

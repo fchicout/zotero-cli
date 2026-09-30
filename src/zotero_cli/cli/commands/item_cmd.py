@@ -47,8 +47,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         add_key_argument(parser, "Zotero Item Key(s) - comma-separated, e.g. K1,K2,K3", required=False)
         parser.add_argument("--file", help="Path to file containing keys (one key per line)")
         parser.add_argument("--raw", action="store_true", help="Show raw JSON")
-        parser.add_argument(
-            "--format", choices=["bibtex", "ris"], help="Export in specific bibliographic format"
+        add_renamed_flag(
+            parser,
+            "--as",
+            "--format",
+            dest="export_format",
+            choices=["bibtex", "ris"],
+            help="Export in a specific bibliographic format (--format is a deprecated alias)",
         )
         parser.add_argument(
             "--full-notes", action="store_true", help="Show full content of child notes"
@@ -86,15 +91,15 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 print(json.dumps(item.raw_data, indent=2))
                 continue
 
-            if args.format:
+            if args.export_format:
                 export_service = GatewayFactory.get_export_service(
                     force_user=getattr(args, "user", False)
                 )
                 # Library fields go to the terminal as-is in these formats:
                 # remove control characters (GHSA-3r38-p632-f79q).
-                if args.format == "bibtex":
+                if args.export_format == "bibtex":
                     print(strip_controls(export_service.serialize_bibtex([item])))
-                elif args.format == "ris":
+                elif args.export_format == "ris":
                     print(strip_controls(export_service.serialize_ris([item])))
                 continue
 
@@ -623,8 +628,8 @@ Examples
 --------
 Scenario: Getting a BibTeX entry for a specific citation
 Problem: I'm writing a paper and I just need the BibTeX code for the item with key VA12345.
-Action:  zotero-cli item export --key "VA12345" --format bibtex --output va12345.bib
-Result:  The BibTeX entry is written to va12345.bib. (`zotero-cli item inspect --key "VA12345" --format bibtex`
+Action:  zotero-cli item export --key "VA12345" --as bibtex --output va12345.bib
+Result:  The BibTeX entry is written to va12345.bib. (`zotero-cli item inspect --key "VA12345" --as bibtex`
          prints it to the terminal instead.)
 
 Notes
@@ -636,8 +641,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 """,
         )
         export_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
-        export_p.add_argument(
-            "--format", default="bibtex", choices=["bibtex", "ris", "md"], help="Export format"
+        add_renamed_flag(
+            export_p,
+            "--as",
+            "--format",
+            dest="export_format",
+            choices=["bibtex", "ris", "md"],
+            default="bibtex",
+            help="Export type (--format is a deprecated alias: it means output rendering elsewhere)",
         )
         export_p.add_argument("--output", help="Output file path or directory (for md)")
 
@@ -1355,7 +1366,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if not item:
             raise NotFound(f"Item '{args.key}' not found.")
 
-        if args.format == "md":
+        if args.export_format == "md":
             attach_service = GatewayFactory.get_attachment_service(force_user=force_user)
             output_dir = Path(args.output) if args.output else Path("./export_md")
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -1377,9 +1388,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
             export_service = GatewayFactory.get_export_service(force_user=force_user)
             console.print(
-                f"Exporting item [cyan]{safe_markup(args.key)}[/cyan] to [green]{safe_markup(args.output)}[/green] ({safe_markup(args.format)})..."
+                f"Exporting item [cyan]{safe_markup(args.key)}[/cyan] to [green]{safe_markup(args.output)}[/green] ({safe_markup(args.export_format)})..."
             )
-            if export_service.export_items([item], args.output, args.format):
+            if export_service.export_items([item], args.output, args.export_format):
                 console.print("[bold green]Export complete.[/bold green]")
             else:
                 console.print("[bold red]Export failed.[/bold red]")

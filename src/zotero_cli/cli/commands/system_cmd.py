@@ -8,6 +8,7 @@ from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.flags import add_format_flag
 from zotero_cli.cli.safety import warn_default_apply
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.services.backup_service import BackupService
@@ -192,7 +193,7 @@ Result:  Each check prints OK or FAILED; the exit status is 1 if any failed.
 
 Notes
 -----
-• Common Failure Modes: A FAILED "PDF text extraction" means `item export --format md` and `rag ingest` can't read PDFs on this install; reinstall, or report the details line.
+• Common Failure Modes: A FAILED "PDF text extraction" means `item export --as md` and `rag ingest` can't read PDFs on this install; reinstall, or report the details line.
 • Safety Tips: Read-only and offline - safe to run anywhere, including CI.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_selftest.md
@@ -386,10 +387,15 @@ Scenario: Monitoring a large snowballing discovery
 Problem: I've queued 1000 DOIs for discovery and I want to see how many are finished.
 Action:  zotero-cli system jobs list
 Result:  The CLI displays a table showing that 800 are completed and 200 are still pending.
+
+Scenario: Checking job status from a script
+Action:  zotero-cli system jobs list --format json
+Result:  A JSON list of jobs (id, type, item_key, status, attempts, next_retry, error) on stdout.
 """,
         )
         list_p.add_argument("--type", help="Filter by task type")
         list_p.add_argument("--limit", type=int, default=50, help="Max jobs to show")
+        add_format_flag(list_p)
 
         # jobs retry
         retry_p = jobs_sub.add_parser(
@@ -645,6 +651,35 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
 
         if args.jobs_verb == "list":
             jobs = job_service.list_jobs(task_type=args.type, limit=args.limit)
+            fmt = getattr(args, "format", "table")
+            if fmt != "table":
+                from zotero_cli.cli.presenters import records
+
+                records.render_data(
+                    [
+                        {
+                            "id": j.id,
+                            "type": j.task_type,
+                            "item_key": j.item_key,
+                            "status": j.status,
+                            "attempts": j.attempts,
+                            "next_retry": j.next_retry_at or "",
+                            "error": j.last_error or "",
+                        }
+                        for j in jobs
+                    ],
+                    [
+                        records.Column("id", "ID"),
+                        records.Column("type", "Type"),
+                        records.Column("item_key", "Item Key"),
+                        records.Column("status", "Status"),
+                        records.Column("attempts", "Attempts"),
+                        records.Column("next_retry", "Next Retry"),
+                        records.Column("error", "Error"),
+                    ],
+                    fmt,
+                )
+                return
             if not jobs:
                 print("No jobs found.")
                 return

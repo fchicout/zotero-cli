@@ -75,17 +75,22 @@ def add_renamed_flag(
     help: str,
     metavar: str | None = None,
     dest: str | None = None,
+    choices: Sequence[str] | None = None,
+    default: Any = None,
 ) -> None:
-    """`new` as the flag, plus `old` as a hidden deprecated alias (Issue
-    #379). Both store to one dest. They sit in a mutually exclusive group
-    so a `required` flag is satisfied by either spelling."""
+    """`new` as the flag, plus `old` as a hidden deprecated alias (Issues
+    #379, #380). Both store to one dest. They sit in a mutually exclusive
+    group so a `required` flag is satisfied by either spelling."""
     dest = dest or new.lstrip("-").replace("-", "_")
     group = parser.add_mutually_exclusive_group(required=required)
-    group.add_argument(new, dest=dest, metavar=metavar, help=help)
+    group.add_argument(
+        new, dest=dest, metavar=metavar, help=help, choices=choices, default=default
+    )
     group.add_argument(
         old,
         dest=dest,
         metavar=metavar,
+        choices=choices,
         action=_DeprecatedAlias,
         replacement=f"`{new}`",
         default=argparse.SUPPRESS,
@@ -117,3 +122,13 @@ def resolve_key(args: argparse.Namespace) -> None:
         args.key = flag or positional
     if getattr(args, "_key_required", False) is True and not args.key:
         raise UsageError("An item key is required: pass KEY or --key KEY.")
+
+
+def add_format_flag(
+    parser: argparse.ArgumentParser,
+    choices: Sequence[str] = ("table", "json", "csv"),
+    default: str = "table",
+    help: str = "Output format: a table for people, json or csv for scripts (stdout carries only the data)",
+) -> None:
+    """`--format`, always meaning output rendering (Issue #380)."""
+    parser.add_argument("--format", choices=list(choices), default=default, help=help)

@@ -32,14 +32,15 @@ It is particularly useful for workflows where you need to copy a single BibTeX e
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--format` | String | Export format | Optional. Default: bibtex. |
+| `--as` | String | Export type: `bibtex`, `ris` or `md` | Optional. Default: bibtex. |
+| `--format` | String | Deprecated alias of `--as`. | Hidden-style: prints a warning; `--format` means output rendering elsewhere. Removed in 4.0 (Issue #380). |
 | `--key` | String | Item Key | Required. |
 | `--output` | String | Output file path or directory (for md) | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Getting a BibTeX entry for a specific citation
 **Problem:** I'm writing a paper and I just need the BibTeX code for the item with key `VA12345`.
-**Action:** `zotero-cli item export --key "VA12345" --format bibtex`
+**Action:** `zotero-cli item export --key "VA12345" --as bibtex`
 **Result:** The CLI prints the formatted BibTeX entry directly to the terminal.
 
 ## 7. Cognitive Safeguards

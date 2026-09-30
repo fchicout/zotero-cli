@@ -29,7 +29,7 @@ def gateway():
         (["item", "list", "--collection", "Nope"], 3, "Collection 'Nope' not found"),
         (["search"], 2, "Provide a query"),
         (["item", "inspect", "--key", "NOPE0000"], 3, "NOPE0000"),
-        (["item", "export", "--key", "K1", "--format", "bibtex"], 2, "--output required"),
+        (["item", "export", "--key", "K1", "--as", "bibtex"], 2, "--output required"),
         (["collection", "delete", "--key", "NOPE0000"], 3, "Collection 'NOPE0000' not found"),
     ],
 )

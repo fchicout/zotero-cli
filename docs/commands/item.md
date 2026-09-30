@@ -169,7 +169,7 @@ Exports an item to a specified format (BibTeX, RIS, or Markdown).
 
 **Usage:**
 ```bash
-zotero-cli item export --key "ITEMKEY" --format md [--output ./export/]
+zotero-cli item export --key "ITEMKEY" --as md [--output ./export/]
 ```
 
 **Parameters:**

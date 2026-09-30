@@ -31,6 +31,7 @@ You can perform a generic "Keyword" search which matches against the item's titl
 | :--- | :--- | :--- | :--- |
 | `--doi` | String | Search by exact DOI | Optional. |
 | `--limit` | Integer | Limit results (default: 50) | Optional. Default: 50. |
+| `--format` | String | Output format: `table`, `json` or `csv` (key, title, authors, year, doi; untruncated, stdout carries only the data) | Optional. Default: table. |
 | `--title` | String | Search by title substring | Optional. |
 | `query` | String | Keyword search (matches title, creator, or year) | Optional. |
 

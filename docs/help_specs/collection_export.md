@@ -32,7 +32,8 @@ Supported formats include:
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--format` | String | Export format | Optional. Default: bibtex. |
+| `--as` | String | Export type: `bibtex`, `ris` or `md` | Optional. Default: bibtex. |
+| `--format` | String | Deprecated alias of `--as`. | Hidden-style: prints a warning; `--format` means output rendering elsewhere. Removed in 4.0 (Issue #380). |
 | `--collection` | String | Collection name or key | Required. |
 | `--name` | String | Deprecated alias of `--collection`. | Hidden; prints a warning. Removed in 4.0 (Issue #379). |
 | `--output` | String | Output file path or directory (for md) | Optional. |
@@ -40,7 +41,7 @@ Supported formats include:
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Syncing literature with a LaTeX project
 **Problem:** I need to update the `.bib` file for my paper with the latest items in my "Final Selection" folder (Key: `FIN_01`).
-**Action:** `zotero-cli collection export --collection "FIN_01" --format bibtex --output "references.bib"`
+**Action:** `zotero-cli collection export --collection "FIN_01" --as bibtex --output "references.bib"`
 **Result:** The file `references.bib` is created/updated with the metadata from that folder.
 
 ## 7. Cognitive Safeguards

@@ -7,7 +7,8 @@ from rich.table import Table
 from rich.tree import Tree
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import add_details_flag, add_renamed_flag
+from zotero_cli.cli.flags import add_details_flag, add_format_flag, add_renamed_flag
+from zotero_cli.cli.presenters import records
 from zotero_cli.cli.safety import confirm_destructive, preview_notice
 from zotero_cli.core.exceptions import NotFound, UsageError
 from zotero_cli.core.interfaces import ZoteroGateway
@@ -48,10 +49,20 @@ Scenario: Getting a flat table view
 Problem: I need to copy-paste multiple keys into a spreadsheet.
 Action:  zotero-cli collection list --table
 Result:  A standard flat table with Name, Key, and Item count.
+
+Scenario: Getting collections for a script
+Action:  zotero-cli collection list --format json
+Result:  A JSON list of {key, name, parent, num_items} on stdout.
 """,
         )
         list_p.add_argument(
             "--table", action="store_true", help="Display results as a flat table instead of a tree"
+        )
+        add_format_flag(
+            list_p,
+            choices=("tree", "table", "json", "csv"),
+            default="tree",
+            help="Output format: tree (default), table, or json/csv (key, name, parent, num_items) for scripts",
         )
 
         # Create
@@ -218,7 +229,7 @@ Examples
 --------
 Scenario: Syncing literature with a LaTeX project
 Problem: I need to update the .bib file for my paper with the latest items in my "Final Selection" folder (Key: FIN_01).
-Action:  zotero-cli collection export --collection "FIN_01" --format bibtex --output "references.bib"
+Action:  zotero-cli collection export --collection "FIN_01" --as bibtex --output "references.bib"
 Result:  The file references.bib is created/updated with the metadata from that folder.
 
 Notes
@@ -230,8 +241,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 """,
         )
         add_renamed_flag(export_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
-        export_p.add_argument(
-            "--format", default="bibtex", choices=["bibtex", "ris", "md"], help="Export format"
+        add_renamed_flag(
+            export_p,
+            "--as",
+            "--format",
+            dest="export_format",
+            choices=["bibtex", "ris", "md"],
+            default="bibtex",
+            help="Export type (--format is a deprecated alias: it means output rendering elsewhere)",
         )
         export_p.add_argument("--output", help="Output file path or directory (for md)")
 
@@ -323,7 +340,29 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
     def _handle_list(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         cols = gateway.get_all_collections()
 
-        if args.table:
+        fmt = "table" if args.table else getattr(args, "format", "tree")
+        if fmt in ("json", "csv"):
+            records.render_data(
+                [
+                    {
+                        "key": c["key"],
+                        "name": c["data"]["name"],
+                        "parent": c["data"].get("parentCollection") or "",
+                        "num_items": (c.get("meta") or {}).get("numItems", 0),
+                    }
+                    for c in cols
+                ],
+                [
+                    records.Column("key", "Key"),
+                    records.Column("name", "Name"),
+                    records.Column("parent", "Parent"),
+                    records.Column("num_items", "Items"),
+                ],
+                fmt,
+            )
+            return
+
+        if fmt == "table":
             table = Table(title="Zotero Collections")
             table.add_column("Name")
             table.add_column("Key", style="cyan")
@@ -531,7 +570,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             console.print(f"[bold red]Backup failed:[/bold red] {escape(str(e))}")
 
     def _handle_export(self, args: argparse.Namespace) -> None:
-        if args.format == "md":
+        if args.export_format == "md":
             self._handle_export_markdown(args)
         else:
             self._handle_export_metadata(args)
@@ -543,8 +582,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if not args.output:
             raise UsageError("--output required for metadata export.")
 
-        print(f"Exporting collection '{args.collection}' to {args.output} ({args.format})...")
-        if service.export_collection(args.collection, args.output, args.format):
+        print(f"Exporting collection '{args.collection}' to {args.output} ({args.export_format})...")
+        if service.export_collection(args.collection, args.output, args.export_format):
             print(f"Export complete: {args.output}")
         else:
             print("Export failed.", file=sys.stderr)

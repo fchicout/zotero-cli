@@ -18,7 +18,7 @@ graph TD
 Runs offline checks of the features that depend on bundled libraries (PDF text extraction, SQLite). Needs no configuration or network.
 
 ## 4. Description (Instructional Architecture)
-`system selftest` checks that this installation can actually do the work that depends on bundled libraries, not only that it starts. It converts a small PDF embedded in the program (the same code path as `item export --format md`, `collection export --format md` and `rag ingest`) and opens an in-memory SQLite database (used by `--offline`).
+`system selftest` checks that this installation can actually do the work that depends on bundled libraries, not only that it starts. It converts a small PDF embedded in the program (the same code path as `item export --as md`, `collection export --format md` and `rag ingest`) and opens an in-memory SQLite database (used by `--offline`).
 
 It reads no configuration and makes no network requests, so it can run right after installing, before `zotero-cli init`, and in CI. The release workflow runs it against every built binary.
 

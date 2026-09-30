@@ -1,9 +1,15 @@
 import argparse
-from typing import List
+from typing import List, Sequence
 
 from rich.table import Table
 
-from zotero_cli.core.services.slr.status_service import DecidedItem, SLRStatusService
+from zotero_cli.cli.flags import add_format_flag
+from zotero_cli.cli.presenters import records
+from zotero_cli.core.services.slr.status_service import (
+    DecidedItem,
+    PendingItem,
+    SLRStatusService,
+)
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.infra.factory import GatewayFactory
@@ -47,11 +53,13 @@ Notes
 Examples
 --------
 $ zotero-cli slr list pending --tree raw_acm
+$ zotero-cli slr list pending --tree raw_acm --format json
 """,
         )
         pending_p.add_argument(
             "--tree", help="Filter by root collection name or key (e.g. raw_acm)"
         )
+        add_format_flag(pending_p)
 
         # Included
         included_p = sub.add_parser(
@@ -65,6 +73,7 @@ $ zotero-cli slr list included --tree raw_acm --ta
 """,
         )
         included_p.add_argument("--tree", help=FILTER_TREE_HELP)
+        add_format_flag(included_p)
         included_p.add_argument(
             "--ta", action="store_true", help="Filter for Title & Abstract phase"
         )
@@ -91,6 +100,7 @@ $ zotero-cli slr list excluded --tree raw_acm --ta
 """,
         )
         excluded_p.add_argument("--tree", help=FILTER_TREE_HELP)
+        add_format_flag(excluded_p)
         excluded_p.add_argument(
             "--ta", action="store_true", help="Filter for Title & Abstract phase"
         )
@@ -117,6 +127,7 @@ $ zotero-cli slr list qa-approved --tree raw_acm
 """,
         )
         qa_p.add_argument("--tree", help=FILTER_TREE_HELP)
+        add_format_flag(qa_p)
         qa_p.add_argument("--csv", help="Export to CSV file")
         qa_p.add_argument("--json", help="Export to JSON file")
         qa_p.add_argument("--xlsx", help="Export to XLSX file")
@@ -134,6 +145,33 @@ $ zotero-cli slr list qa-approved --tree raw_acm
         elif args.list_verb == "qa-approved":
             ListCommand._handle_qa_approved(service, args)
 
+    _COLUMNS = [
+        records.Column("key", "Key"),
+        records.Column("phase", "Phase"),
+        records.Column("source", "Source"),
+        records.Column("reason", "Reason"),
+        records.Column("title", "Title"),
+    ]
+
+    @staticmethod
+    def _emit(items: Sequence[PendingItem | DecidedItem], fmt: str) -> None:
+        """json/csv to stdout, untruncated and in the same order as the table."""
+        ordered = sorted(items, key=lambda x: (x.phase, x.source_collection, x.item_key))
+        records.render_data(
+            [
+                {
+                    "key": i.item_key,
+                    "phase": i.phase,
+                    "source": i.source_collection,
+                    "reason": i.reason,
+                    "title": i.title,
+                }
+                for i in ordered
+            ],
+            ListCommand._COLUMNS,
+            fmt,
+        )
+
     @staticmethod
     def _handle_qa_approved(service: SLRStatusService, args: argparse.Namespace) -> None:
         with console.status("[bold green]Scanning for QA-approved papers..."):
@@ -141,6 +179,11 @@ $ zotero-cli slr list qa-approved --tree raw_acm
             items = service.get_decided_items(
                 "accepted", root_key=args.tree, phase_filter="quality_assessment"
             )
+
+        fmt = getattr(args, "format", "table")
+        if fmt != "table":
+            ListCommand._emit(items, fmt)
+            return
 
         if not items:
             console.print("[yellow]No QA-approved papers found.[/yellow]")
@@ -279,6 +322,11 @@ $ zotero-cli slr list qa-approved --tree raw_acm
         with console.status("[bold green]Scanning for pending papers..."):
             pending_items = service.get_pending_items(root_key=args.tree)
 
+        fmt = getattr(args, "format", "table")
+        if fmt != "table":
+            ListCommand._emit(pending_items, fmt)
+            return
+
         if not pending_items:
             console.print("[bold green]No pending papers found![/bold green]")
             return
@@ -319,6 +367,11 @@ $ zotero-cli slr list qa-approved --tree raw_acm
             items = service.get_decided_items(
                 decision_type, root_key=args.tree, phase_filter=phase_filter
             )
+
+        fmt = getattr(args, "format", "table")
+        if fmt != "table":
+            ListCommand._emit(items, fmt)
+            return
 
         if not items:
             console.print(

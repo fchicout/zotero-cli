@@ -25,6 +25,7 @@ The command retrieves all tags currently in use and presents them in a formatted
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
+| `--format` | String | Output format: `table` (one tag per line), `json` or `csv` (a `tag` column) | Optional. Default: table. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Auditing library categories

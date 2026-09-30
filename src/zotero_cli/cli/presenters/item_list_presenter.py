@@ -1,22 +1,15 @@
 """Field projection and output formats for `item list` (Issue #323)."""
 
-import csv
-import json
 import re
-import sys
 from typing import Any, Callable, Dict, List, Optional, Sequence, TextIO
 
-from rich.table import Table
-from rich.text import Text
-
-from zotero_cli.core.utils.csv_safety import sanitize_csv_row
+from zotero_cli.cli.presenters import records
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
-from zotero_cli.core.utils.terminal_safety import strip_controls
 from zotero_cli.core.zotero_item import ZoteroItem
 
 DEFAULT_FIELDS = ["key", "title", "type"]
 WIDE_FIELDS = ["key", "title", "first_author", "year", "venue", "doi"]
-FORMATS = ["table", "json", "csv", "markdown"]
+FORMATS = ["table", "json", "csv", "markdown"]  # item list also offers markdown
 
 # Zotero stores a work's venue under a different field per item type.
 VENUE_FIELDS = ("publicationTitle", "proceedingsTitle", "conferenceName", "bookTitle")
@@ -118,58 +111,38 @@ def unknown_fields(items: Sequence[ZoteroItem], fields: Sequence[str]) -> List[s
     return [f for f in raw if f.lower() not in present]
 
 
-def _flat(value: FieldValue) -> str:
-    """One cell as text, with terminal control characters removed: CSV and
-    Markdown go straight to the terminal, and item fields are settable by
-    any library collaborator (GHSA-3r38-p632-f79q)."""
-    if isinstance(value, list):
-        return strip_controls("; ".join(str(v) for v in value))
-    return strip_controls(str(value))
-
-
 def _records(items: Sequence[ZoteroItem], fields: Sequence[str]) -> List[Dict[str, FieldValue]]:
     return [{f: resolve_field(item, f) for f in fields} for item in items]
+
+
+def _columns(fields: Sequence[str]) -> List[records.Column]:
+    return [
+        records.Column(f, label(f), style="cyan" if f == "key" else None) for f in fields
+    ]
 
 
 def render_table(
     items: Sequence[ZoteroItem], fields: Sequence[str], title: str, console: Console
 ) -> None:
-    table = Table(title=title)
-    for name in fields:
-        table.add_column(label(name), style="cyan" if name == "key" else None)
-    for record in _records(items, fields):
-        # Text(), not a plain str: a title like "[Retracted] ..." must render
-        # literally rather than be parsed as Rich markup (Issue #253).
-        table.add_row(*(Text(_flat(record[f])) for f in fields))
-    console.print(table)
-    console.print(f"\n[dim]Showing {len(items)} items.[/dim]")
+    records.render_table(
+        _records(items, fields),
+        _columns(fields),
+        title,
+        console,
+        footer=f"Showing {len(items)} items.",
+    )
 
 
 def render_json(items: Sequence[ZoteroItem], fields: Sequence[str], out: TextIO) -> None:
-    out.write(json.dumps(_records(items, fields), indent=2, ensure_ascii=False) + "\n")
+    records.render_json(_records(items, fields), _columns(fields), out)
 
 
 def render_csv(items: Sequence[ZoteroItem], fields: Sequence[str], out: TextIO) -> None:
-    writer = csv.writer(out)
-    writer.writerow(fields)
-    for record in _records(items, fields):
-        # Item fields are settable by any library collaborator - guard
-        # against spreadsheet formula injection (Issue #237).
-        writer.writerow(sanitize_csv_row([_flat(record[f]) for f in fields]))
-
-
-def _md_cell(value: FieldValue) -> str:
-    return _flat(value).replace("|", "\\|").replace("\r", " ").replace("\n", " ")
+    records.render_csv(_records(items, fields), _columns(fields), out)
 
 
 def render_markdown(items: Sequence[ZoteroItem], fields: Sequence[str], out: TextIO) -> None:
-    lines = [
-        "| " + " | ".join(label(f) for f in fields) + " |",
-        "| " + " | ".join("---" for _ in fields) + " |",
-    ]
-    for record in _records(items, fields):
-        lines.append("| " + " | ".join(_md_cell(record[f]) for f in fields) + " |")
-    out.write("\n".join(lines) + "\n")
+    records.render_markdown(_records(items, fields), _columns(fields), out)
 
 
 def render(
@@ -183,7 +156,4 @@ def render(
     if fmt == "table":
         render_table(items, fields, title, console)
         return
-    stream = out or sys.stdout
-    {"json": render_json, "csv": render_csv, "markdown": render_markdown}[fmt](
-        items, fields, stream
-    )
+    records.render_data(_records(items, fields), _columns(fields), fmt, out)
