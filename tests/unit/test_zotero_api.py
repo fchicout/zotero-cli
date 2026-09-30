@@ -311,6 +311,76 @@ def test_delete_item_without_a_version_uses_the_current_one(client):
     assert headers["If-Unmodified-Since-Version"] == "77"
 
 
+# --- Trash / restore through the `deleted` flag (Issue #402) ---
+
+
+def _patch_response(status):
+    res = Mock()
+    res.status_code = status
+    res.headers = {"Last-Modified-Version": "60"}
+    return res
+
+
+def test_trash_item_sets_the_deleted_flag_with_the_item_version(client):
+    client.http.session.patch.return_value = _patch_response(204)
+
+    assert client.trash_item("K1", 40) is True
+    call = client.http.session.patch.call_args
+    assert call.kwargs["headers"]["If-Unmodified-Since-Version"] == "40"
+    assert call.kwargs["json"] == {"deleted": 1}
+    assert call.args[0].endswith("/items/K1")
+
+
+def test_restore_item_clears_the_deleted_flag(client):
+    client.http.session.patch.return_value = _patch_response(204)
+
+    assert client.restore_item("K1", 41) is True
+    call = client.http.session.patch.call_args
+    assert call.kwargs["json"] == {"deleted": 0}
+    assert call.kwargs["headers"]["If-Unmodified-Since-Version"] == "41"
+
+
+def test_trash_item_fails_on_412_without_retrying(client):
+    """The item changed since it was read: nothing is written, nothing retried."""
+    client.http.session.patch.return_value = _patch_response(412)
+
+    assert client.trash_item("K1", 40) is False
+    assert client.http.session.patch.call_count == 1
+
+
+def test_trash_item_without_a_version_uses_the_current_one(client):
+    current = Mock()
+    current.version = 88
+    client.http.session.patch.return_value = _patch_response(204)
+
+    with patch.object(client, "get_item", return_value=current):
+        assert client.trash_item("K1") is True
+    assert client.http.session.patch.call_args.kwargs["headers"]["If-Unmodified-Since-Version"] == "88"
+
+
+def test_trash_item_swallows_transport_errors_as_false(client):
+    client.http.session.patch.side_effect = Exception("boom")
+
+    assert client.trash_item("K1", 40) is False
+    assert client.restore_item("K1", 40) is False
+
+
+def test_trash_item_of_a_missing_item_is_false(client):
+    with patch.object(client, "get_item", return_value=None):
+        assert client.trash_item("NOPE") is False
+    client.http.session.patch.assert_not_called()
+
+
+def test_patch_sends_the_objects_own_version_not_the_library_one(client):
+    client.http.session.patch.return_value = _patch_response(204)
+
+    client.http.patch("items/K1", json_data={"title": "x"}, version_check=True, version=5)
+    assert client.http.session.patch.call_args.kwargs["headers"]["If-Unmodified-Since-Version"] == "5"
+    client.http.last_library_version = 999
+    client.http.patch("items/K1", json_data={"title": "x"}, version_check=True)
+    assert client.http.session.patch.call_args.kwargs["headers"]["If-Unmodified-Since-Version"] == "999"
+
+
 def test_delete_collection_fails_on_412(client):
     res412 = Mock()
     res412.status_code = 412

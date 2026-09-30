@@ -93,7 +93,7 @@ zotero-cli item update --key "ITEMKEY" --doi "10.1101/new-doi" --title "Correcte
 ---
 
 ### `delete`
-Permanently deletes an item from the Zotero library. The Zotero Web API only exposes a hard, permanent `DELETE` - there is no soft-delete/trash-write path, so this **cannot be undone**. To consolidate a genuine duplicate into another item instead of discarding it outright, use `item merge`.
+Permanently deletes an item from the Zotero library, which **cannot be undone** - unless you pass `--trash`, which moves it to Zotero's trash instead (the same as `item trash`). To consolidate a genuine duplicate into another item instead of discarding it outright, use `item merge`.
 
 **Usage:**
 ```bash
@@ -105,36 +105,39 @@ zotero-cli item delete --key "ITEMKEY" --execute
 *   `--version`: Optional item version (auto-resolved if omitted).
 *   `--execute`: Delete the item. Mutually exclusive with `--dry-run`. Currently the default when neither flag is given (with a deprecation warning) - pass it explicitly; this changes to preview-by-default in 4.0 (Issue #378).
 *   `--dry-run`: Preview the item and its children without deleting. Mutually exclusive with `--execute`.
+*   `--trash`: Move the item to Zotero's trash (recoverable with `item restore`) instead of deleting it permanently. No deprecation warning, since it is recoverable. Trash becomes the default in 4.0, with `--permanent` for a hard delete (Issue #402, #462).
 
 ---
 
 ### `trash`
-Moves an item into Zotero's trash, in `--offline` mode only, by writing directly to the local `zotero.sqlite` the same way Zotero Desktop's own client writes it (bumps `dateModified`/`clientDateModified`, marks the row dirty so Desktop's next sync pushes the change to the server, adds a `deletedItems` row - `version` is left untouched). Preview-only by default. Not supported in online/API mode, which has no documented reversible trash write - see `item delete` for the permanent alternative there.
+Moves an item into Zotero's trash, exactly as deleting it in Zotero Desktop would. Online it sets the item's `deleted` flag through the Web API (Desktop syncs it); with `--offline` it writes the same rows Desktop itself writes to the local `zotero.sqlite` (bumps `dateModified`/`clientDateModified`, marks the row dirty so Desktop's next sync pushes the change to the server, adds a `deletedItems` row - `version` is left untouched). Preview-only by default. The item keeps its collections and `item restore` brings it back.
 
 **Usage:**
 ```bash
-zotero-cli --offline item trash --key "ITEMKEY" --execute
+zotero-cli item trash --key "ITEMKEY" --execute
+zotero-cli --offline item trash --key "ITEMKEY" --execute   # local zotero.sqlite instead
 ```
 
 **Parameters:**
 *   `--key`: (Required) The Zotero Item Key.
 *   `--execute`: Actually perform the write (default: preview only).
-*   `--force`: Skip the interactive confirmation prompt.
+*   `--force`: Skip the interactive confirmation prompt (only asked with `--offline`, which writes a live file).
 
 ---
 
 ### `restore`
-Reverses `item trash`: removes an item from the trash, in `--offline` mode only, writing the same way Zotero Desktop's own client writes a restore. Does not undo any prior `item merge` relations left on the item - see `docs/help_specs/item_restore.md` for that known limitation.
+Reverses `item trash`: removes an item from the trash, online through the Web API or with `--offline` by writing the same way Zotero Desktop's own client writes a restore. Does not undo any prior `item merge` relations left on the item - see `docs/help_specs/item_restore.md` for that known limitation.
 
 **Usage:**
 ```bash
-zotero-cli --offline item restore --key "ITEMKEY" --execute
+zotero-cli item restore --key "ITEMKEY" --execute
+zotero-cli --offline item restore --key "ITEMKEY" --execute   # local zotero.sqlite instead
 ```
 
 **Parameters:**
 *   `--key`: (Required) The Zotero Item Key.
 *   `--execute`: Actually perform the write (default: preview only).
-*   `--force`: Skip the interactive confirmation prompt.
+*   `--force`: Skip the interactive confirmation prompt (only asked with `--offline`).
 
 ---
 
