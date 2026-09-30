@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-09-30
+
+The first minor release after 3.0: output you can pipe, deletes you can undo, and consistent flags. Nothing is removed or changed incompatibly in 3.x: every command and flag that works today still works. Where a spelling or behaviour is going away it prints a deprecation warning now and is removed in 4.0, and each item is listed in [#462](https://github.com/fchicout/zotero-cli/issues/462). Worth knowing:
+- `search`, `collection list`, `tag list`, `report stats`, `slr list *` and `system jobs list` take `--format json|csv`, and `item trash`, `item restore` and a new `--trash` flag on `item delete`, `item merge`, `slr dedupe`, `collection delete --recursive` and `item transfer --delete-source` move things to Zotero's trash (recoverable) through the Web API, not only `--offline`.
+- `item delete`, `storage checkout` and `system restore` still apply without a flag, but warn; from 4.0 they preview unless you pass `--execute`.
+- The old flag spellings (`--item-id`, `--item`, `--name` on existing collections, `--verbose` on subcommands, `--format` on exports) keep working, with a warning, until 4.0.
+- `rag` is deprecated and leaves zotero-cli in 4.0; it is becoming a separate tool.
+
 ### Added
 - **`--trash` on the bulk deletes (Issue #402):** `collection delete --recursive`, `item merge` (and `--from-plan`), `slr dedupe` and `item transfer --delete-source` take `--trash` to move what they would delete to Zotero's trash instead, where `item restore` (or Desktop) brings it back - so a merge or a transfer can be undone. Without it nothing changes: they still delete permanently. For `collection delete --recursive --trash` the items are recoverable but the collections themselves are still deleted for good (only items' trash was verified against the Web API), so restored items come back without them; the preview says so. `slr prune` needs no flag: it only removes items from a collection. Trash by default, with `--permanent`, is 4.0 (#462).
 - **`item trash` and `item restore` work online, and `item delete --trash` (Issue #402):** moving an item to Zotero's trash no longer needs `--offline`. Online the commands set the item's `deleted` flag through the Web API - the property Zotero Desktop syncs - so the item appears in Desktop's trash, keeps its collections, and can be restored from either side; with `--offline` they still write Desktop's own rows to `zotero.sqlite`. Verified against a real library before building it (trash and restore, each `204`, reflected in `items/trash`). Writes use the item's own version, so an item changed since it was read is refused, not overwritten. `item delete --trash` does the same in one step and applies without the `item delete` deprecation warning, being recoverable; `--permanent` and trash-by-default arrive in 4.0 (#462), and the bulk deletes take `--trash` too (below).
