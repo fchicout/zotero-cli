@@ -97,7 +97,9 @@ def test_stray_argument_reports_the_leaf_usage_line(capsys):
     with pytest.raises(SystemExit):
         parse("item", "inspect", "K", "--bogus")
     err = capsys.readouterr().err
-    assert "item inspect [-h]" in err
+    assert "item inspect" in err
+    assert "--file FILE" in err.replace("\n", " ")  # the leaf's options, not the top-level choices
+    assert "{collection," not in err
     assert "unrecognized arguments: --bogus" in err
 
 
