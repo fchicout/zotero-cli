@@ -12,7 +12,7 @@ from zotero_cli.infra.service_factory import ServiceFactory
 def test_rag_full_flow(tmp_path, monkeypatch, mock_config):
     """
     Verifies the complete RAG flow: Ingest -> Query -> Context.
-    Uses MockEmbeddingProvider and temp SQLite database.
+    Uses MockEmbeddingProvider (selected explicitly) and temp SQLite database.
     """
     # 1. Setup Mock Environment
     config_dir = tmp_path / "config"
@@ -24,7 +24,11 @@ def test_rag_full_flow(tmp_path, monkeypatch, mock_config):
         api_key="fake_api_key",
         library_id="fake_lib_id",
         database_path=None,
-        openai_api_key=None,  # This ensures MockEmbeddingProvider is used
+        # Without an explicit "mock", no API key falls through to the local
+        # SentenceTransformer provider, which downloads a model (Issue #389).
+        embedding_provider="mock",
+        openai_api_key=None,
+        gemini_api_key=None,
     )
 
     # Mock config retrieval

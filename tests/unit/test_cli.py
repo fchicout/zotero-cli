@@ -4,6 +4,7 @@ from unittest.mock import Mock, mock_open, patch
 import pytest
 
 from zotero_cli.cli.main import main
+from zotero_cli.core.models import KeyIdentity
 
 
 @pytest.fixture
@@ -57,6 +58,12 @@ def test_init_command(mock_clients, env_vars, capsys, tmp_path):
     with (
         patch("zotero_cli.cli.commands.init_cmd.Prompt.ask") as mock_ask,
         patch("zotero_cli.cli.commands.init_cmd.Confirm.ask") as mock_confirm,
+        # init resolves the key's identity over the network; without this the
+        # test really called api.zotero.org, with retries (Issue #389).
+        patch(
+            "zotero_cli.infra.zotero_api.ZoteroAPIClient.resolve_key_identity",
+            return_value=KeyIdentity(user_id=12345, username="tester", access={}),
+        ),
         patch("builtins.open", mock_open()),
     ):
         # api_key, lib_type, lib_id, user_id, target_group, ss_key, up_email
