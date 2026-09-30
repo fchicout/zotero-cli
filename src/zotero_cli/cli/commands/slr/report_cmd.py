@@ -7,6 +7,7 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
+from zotero_cli.cli.flags import add_details_flag
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.graph_service import CitationGraphService
@@ -65,7 +66,7 @@ $ zotero-cli slr report prisma --collection "raw_search"
         )
         prisma_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         prisma_p.add_argument("--output-chart", help="Path to save flowchart image (uses mmdc)")
-        prisma_p.add_argument("--verbose", dest="details", action="store_true", help="Verbose details")
+        add_details_flag(prisma_p, "Verbose details")
         prisma_p.add_argument(
             "--dedupe-source",
             help="Comma-separated collection names or keys to scan for duplicates (read-only) "

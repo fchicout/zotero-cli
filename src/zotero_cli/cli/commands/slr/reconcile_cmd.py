@@ -2,6 +2,7 @@ import argparse
 
 from rich.table import Table
 
+from zotero_cli.cli.flags import add_details_flag
 from zotero_cli.core.exceptions import NotFound
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
@@ -33,7 +34,7 @@ class ReconcileCommand:
         parser.add_argument(
             "--execute", action="store_true", help="Perform the actual displacement moves"
         )
-        parser.add_argument("--verbose", dest="details", action="store_true", help="Show detailed move logs")
+        add_details_flag(parser, "Show detailed move logs")
 
     @staticmethod
     def execute(args: argparse.Namespace) -> None:

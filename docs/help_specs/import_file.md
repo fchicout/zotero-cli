@@ -27,7 +27,8 @@ The command parses the metadata from the input file, maps the fields to the Zote
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--collection` | String | N/A | Required. |
-| `--verbose` | Boolean | N/A | Optional. Default: False. |
+| `--details` | Boolean | N/A | Optional. Default: False. |
+| `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 | `file` | String | Path to input file | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
@@ -37,5 +38,5 @@ The command parses the metadata from the input file, maps the fields to the Zote
 **Result:** All 50 items are uploaded to Zotero and linked to that collection.
 
 ## 7. Cognitive Safeguards
-- **Common Failure Modes:** Attempting to import files with malformed syntax or missing mandatory fields (like Title). Large files (>1000 items) may hit Zotero API rate limits; use `--verbose` to monitor progress.
+- **Common Failure Modes:** Attempting to import files with malformed syntax or missing mandatory fields (like Title). Large files (>1000 items) may hit Zotero API rate limits; use `--details` to monitor progress.
 - **Safety Tips:** Always verify your `.bib` or `.ris` encoding (UTF-8 is preferred) to prevent character corruption during the import process.

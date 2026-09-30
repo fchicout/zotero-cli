@@ -27,7 +27,8 @@ The `slr reconcile` command is a structural cleanup tool. Over the course of a s
 | `--execute` | Boolean | Perform the actual displacement moves | Optional. Default: False. |
 | `--qa-threshold` | Float | Minimum total score for QA success (default: 2.0) | Optional. Default: 2.0. |
 | `--tree` | String | Root collection name or key (e.g. raw_acm) | Required. |
-| `--verbose` | Boolean | Show detailed move logs | Optional. Default: False. |
+| `--details` | Boolean | Show detailed move logs | Optional. Default: False. |
+| `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Recovering folder alignment after manual changes

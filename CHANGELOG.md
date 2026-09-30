@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### Deprecated
+- **The 11 per-command `--verbose` flags are renamed `--details` (Issue #374):** `import file/arxiv/doi/bdtd`, `item pdf fetch/strip`, `collection clean`, `report audit`, `slr report prisma`, `slr source add` and `slr reconcile` now take `--details`, which never touches the global `-v` (debug logging). `--verbose` on those commands keeps working as a hidden alias for one minor release, printing a deprecation warning; it is removed in 4.0 (Issue #462).
 - **`item delete`, `storage checkout` and `system restore` gain `--dry-run`/`--execute` (Issue #378):** all three predate the preview-by-default policy and still apply immediately when neither flag is given - that keeps working unchanged in 3.x, but now prints a deprecation warning to stderr telling you to pass `--execute`. `item delete --dry-run` also now previews the item and lists its attached notes/files (which the Web API's `DELETE` doesn't cascade to - they'd become orphaned, not deleted). `storage checkout --dry-run` lists what would be downloaded and relinked without touching the filesystem or the library. All three switch to preview-by-default in 4.0 (Issue #462).
 
 ## [3.0.6] - 2026-09-29

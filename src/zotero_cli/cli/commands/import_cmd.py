@@ -2,6 +2,7 @@ import argparse
 import os
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.flags import add_details_flag
 from zotero_cli.core.exceptions import UsageError, ZoteroCliError
 from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
 from zotero_cli.core.services.import_service import ImportService
@@ -53,9 +54,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         file_p.add_argument("file", help="Path to input file")
         file_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
-        file_p.add_argument(
-            "--verbose", dest="details", action="store_true", help=VERBOSE_HELP
-        )
+        add_details_flag(file_p, VERBOSE_HELP)
 
         # ArXiv
         arxiv_p = sub.add_parser(
@@ -83,9 +82,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         arxiv_p.add_argument("--file", help="Path to file containing DSL query")
         arxiv_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
         arxiv_p.add_argument("--limit", type=int, default=100, help="Max results to import")
-        arxiv_p.add_argument(
-            "--verbose", dest="details", action="store_true", help=VERBOSE_HELP
-        )
+        add_details_flag(arxiv_p, VERBOSE_HELP)
 
         # DOI
         doi_p = sub.add_parser(
@@ -111,9 +108,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         doi_p.add_argument("doi", help="Digital Object Identifier")
         doi_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
-        doi_p.add_argument(
-            "--verbose", dest="details", action="store_true", help=VERBOSE_HELP
-        )
+        add_details_flag(doi_p, VERBOSE_HELP)
 
         # BDTD
         bdtd_p = sub.add_parser(
@@ -154,9 +149,7 @@ Notes
             "--limit", type=int, default=20, help="Max results to import for --query"
         )
         bdtd_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
-        bdtd_p.add_argument(
-            "--verbose", dest="details", action="store_true", help=VERBOSE_HELP
-        )
+        add_details_flag(bdtd_p, VERBOSE_HELP)
 
         # Manual
         man_p = sub.add_parser(

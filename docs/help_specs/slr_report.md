@@ -41,7 +41,8 @@ The `slr report` subcommands provide a detailed dashboard of your systematic lit
 | `--old` | String | Path to old Snapshot JSON file | Required. |
 | `--output` | String | Output Markdown path | Required. |
 | `--output-chart` | String | Path to save flowchart image (uses mmdc) | Optional. |
-| `--verbose` | Boolean | Verbose details | Optional. Default: False. |
+| `--details` | Boolean | Verbose details | Optional. Default: False. |
+| `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Generating a PRISMA chart for a publication

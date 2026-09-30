@@ -5,6 +5,7 @@ from typing import Any
 
 from rich.table import Table
 
+from zotero_cli.cli.flags import add_details_flag
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import ZoteroQuery
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
@@ -57,7 +58,7 @@ $ zotero-cli slr source add --name acm --file acm_export.ris
         add_p.add_argument(
             "--file", required=True, help="Path to RIS, BibTeX, or CSV file to import"
         )
-        add_p.add_argument("--verbose", dest="details", action="store_true", help="Print verbose details")
+        add_details_flag(add_p, "Print verbose details")
 
         # slr source list
         sub.add_parser(

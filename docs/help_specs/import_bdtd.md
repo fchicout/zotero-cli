@@ -29,7 +29,8 @@ The `import bdtd` command enables seamless integration with the Brazilian digita
 | `--query` | String | Free-text search query for bulk import | Required unless `identifier` is given. |
 | `--limit` | Integer | Max results to import for `--query` | Optional. Default: 20. |
 | `--collection` | String | N/A | Required. |
-| `--verbose` | Boolean | N/A | Optional. Default: False. |
+| `--details` | Boolean | N/A | Optional. Default: False. |
+| `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Importing a thesis by handle URL

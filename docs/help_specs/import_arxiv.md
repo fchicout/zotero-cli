@@ -30,7 +30,8 @@ The command is unique because it supports a **DSL Query** (using the `all:`, `ti
 | `--file` | String | Path to file containing DSL query | Optional. |
 | `--limit` | Integer | N/A | Optional. Default: 100. |
 | `--query` | String | DSL Search Query | Required. |
-| `--verbose` | Boolean | N/A | Optional. Default: False. |
+| `--details` | Boolean | N/A | Optional. Default: False. |
+| `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Automated tracking of new papers on a topic
