@@ -463,6 +463,58 @@ def test_item_delete_failure_exits_1(mock_clients, env_vars, capsys):
     assert "Failed to delete item ABCD1234" in captured.err
 
 
+def test_item_delete_warns_when_neither_flag_given(mock_clients, env_vars, capsys):
+    """Issue #378: `item delete` predates preview-by-default and still
+    deletes immediately without --dry-run/--execute, but must now warn."""
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5)
+    gateway.delete_item.return_value = True
+
+    ItemCommand().execute(_delete_args(execute=False, dry_run=False))
+
+    gateway.delete_item.assert_called_once_with("ABCD1234", 5)
+    err = capsys.readouterr().err
+    assert "currently applies its changes by default" in err
+    assert "--execute" in err
+
+
+def test_item_delete_execute_no_warning(mock_clients, env_vars, capsys):
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5)
+    gateway.delete_item.return_value = True
+
+    ItemCommand().execute(_delete_args(execute=True, dry_run=False))
+
+    gateway.delete_item.assert_called_once_with("ABCD1234", 5)
+    assert "currently applies its changes by default" not in capsys.readouterr().err
+
+
+def test_item_delete_dry_run_previews_without_deleting(mock_clients, env_vars, capsys):
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5, title="Junk Item")
+    gateway.get_item_children.return_value = [
+        {"key": "CHILD1", "data": {"itemType": "attachment"}},
+    ]
+
+    ItemCommand().execute(_delete_args(execute=False, dry_run=True))
+
+    gateway.delete_item.assert_not_called()
+    out = capsys.readouterr().out
+    assert "Would delete item ABCD1234" in out
+    assert "CHILD1" in out
+    assert "Preview only" in out
+
+
+def test_item_delete_dry_run_and_execute_are_mutually_exclusive():
+    """Issue #378: passing both flags together is refused, not silently
+    resolved one way or the other."""
+    parser = argparse.ArgumentParser()
+    ItemCommand().register_args(parser)
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["delete", "--key", "ABCD1234", "--dry-run", "--execute"])
+
+
 def test_item_trash_subparser_is_reachable():
     """Regression test for Issue #145: `trash`/`restore` must have registered
     subparsers, not just execute() dispatch branches (same bug class as

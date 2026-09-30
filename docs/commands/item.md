@@ -96,12 +96,14 @@ Permanently deletes an item from the Zotero library. The Zotero Web API only exp
 
 **Usage:**
 ```bash
-zotero-cli item delete --key "ITEMKEY"
+zotero-cli item delete --key "ITEMKEY" --execute
 ```
 
 **Parameters:**
 *   `--key`: (Required) The Zotero Item Key.
 *   `--version`: Optional item version (auto-resolved if omitted).
+*   `--execute`: Delete the item. Mutually exclusive with `--dry-run`. Currently the default when neither flag is given (with a deprecation warning) - pass it explicitly; this changes to preview-by-default in 4.0 (Issue #378).
+*   `--dry-run`: Preview the item and its children without deleting. Mutually exclusive with `--execute`.
 
 ---
 

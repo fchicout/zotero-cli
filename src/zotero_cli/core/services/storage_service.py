@@ -28,7 +28,9 @@ class StorageService:
         except ConfigurationError:
             return False
 
-    def checkout_items(self, limit: int = 50, allow_group_library: bool = False) -> int:
+    def checkout_items(
+        self, limit: int = 50, allow_group_library: bool = False, dry_run: bool = False
+    ) -> int:
         """
         Moves 'imported_file' attachments to local storage and converts them to 'linked_file'.
 
@@ -37,6 +39,9 @@ class StorageService:
         member of the group (exposing the local username and folder layout)
         and points nowhere on their machines, so the attachment breaks for
         everyone else.
+
+        With `dry_run` (Issue #378), lists what would move without
+        downloading, relinking, or even creating the storage directory.
         """
         if not self.config.storage_path:
             raise ConfigurationError(
@@ -52,7 +57,7 @@ class StorageService:
             )
 
         storage_root = Path(self.config.storage_path)
-        if not storage_root.exists():
+        if not dry_run and not storage_root.exists():
             try:
                 storage_root.mkdir(parents=True, exist_ok=True)
             except Exception as e:
@@ -62,33 +67,11 @@ class StorageService:
 
         print(f"Scanning for stored attachments (Limit: {limit})...", file=sys.stderr)
 
-        # Search for attachments
-        # itemType: attachment
         query = ZoteroQuery(
             item_type="attachment",
-            sort="date",  # No direct size sort in API, using date as proxy for now
+            sort="date",  # No direct size sort in the API; date is used as a proxy.
             direction="desc",
         )
-
-        # Gateway must support search_items (it does in ZoteroAPIClient)
-        # We need to cast because the interface in interfaces.py splits them up
-        # but ZoteroGateway inherits them.
-        # Wait, ZoteroGateway inherits ItemRepository but ItemRepository doesn't have search_items.
-        # I need to check interfaces.py again. ArxivGateway has search, but ZoteroGateway?
-        # ZoteroAPIClient implements search_items, but is it on the interface?
-
-        # Let's assume we can call search_items if it exists on the implementation
-        # or we update the interface.
-        # Checking interfaces.py...
-        # ItemRepository has `get_items_by_tag`.
-        # ZoteroGateway inherits ItemRepo...
-        # It seems `search_items` is missing from ZoteroGateway interface!
-        # I should add it to ZoteroGateway interface to be safe.
-
-        # For now, I'll assume we can use the client directly or update interface.
-        # I will update the interface in the next step to be correct.
-
-        # Temporary logic assuming interface update:
         items_iter = self.gateway.search_items(query)
 
         processed = 0
@@ -96,12 +79,14 @@ class StorageService:
             if processed >= limit:
                 break
 
-            if self.checkout_single_item(item, storage_root):
+            if self.checkout_single_item(item, storage_root, dry_run=dry_run):
                 processed += 1
 
         return processed
 
-    def checkout_single_item(self, item: ZoteroItem, storage_root: Path) -> bool:
+    def checkout_single_item(
+        self, item: ZoteroItem, storage_root: Path, dry_run: bool = False
+    ) -> bool:
         # Check if it's eligible
         if item.item_type != "attachment":
             return False
@@ -130,6 +115,10 @@ class StorageService:
         if target_path.exists():
             print(strip_controls(f"Skipping {item.key}: File {filename} already exists."), file=sys.stderr)
             return False
+
+        if dry_run:
+            print(strip_controls(f"Would move {item.key} to {target_path}"), file=sys.stderr)
+            return True
 
         print(strip_controls(f"Processing {item.key}: {filename}..."), file=sys.stderr)
 

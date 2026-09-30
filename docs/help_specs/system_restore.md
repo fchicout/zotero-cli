@@ -30,7 +30,8 @@ The command carefully parses the `.zaf` archive, identifies all bibliographic re
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--dry-run` | Boolean | Simulate restore | Optional. Default: False. |
+| `--dry-run` | Boolean | Simulate restore | Mutually exclusive with `--execute`. |
+| `--execute` | Flag | Apply the restore | Mutually exclusive with `--dry-run`. Currently the default for now (see Cognitive Safeguards) - kept for scripts that already pass it and for future-proofing once 4.0 flips the default (Issue #378, #462). |
 | `--file` | String | Input .zaf file | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
@@ -39,6 +40,11 @@ The command carefully parses the `.zaf` archive, identifies all bibliographic re
 **Action:** `zotero-cli system restore --file "backup_2024_01_01.zaf" --dry-run`
 **Result:** The CLI shows exactly which items and folders will be recreated, allowing me to proceed with confidence.
 
+### Scenario: Applying a restore after reviewing the plan
+**Problem:** I've checked the `--dry-run` output and I'm ready to actually restore.
+**Action:** `zotero-cli system restore --file "backup_2024_01_01.zaf" --execute`
+**Result:** The archive is restored into the library.
+
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Attempting to restore a `.zaf` file that is corrupted or from a different account context that lacks matching permissions. 
-- **Safety Tips:** Restore operations can be complex and destructive if the target library already contains data. ALWAYS run with `--dry-run` first to understand the impact of the restore.
+- **Safety Tips:** Restore operations can be complex and destructive if the target library already contains data. ALWAYS run with `--dry-run` first to understand the impact of the restore. Passing neither `--dry-run` nor `--execute` still restores immediately today (unchanged 3.x behaviour), but prints a deprecation warning to stderr - pass `--execute` explicitly. This becomes preview-by-default in 4.0 (Issue #378, #462).

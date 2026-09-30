@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### Deprecated
+- **`item delete`, `storage checkout` and `system restore` gain `--dry-run`/`--execute` (Issue #378):** all three predate the preview-by-default policy and still apply immediately when neither flag is given - that keeps working unchanged in 3.x, but now prints a deprecation warning to stderr telling you to pass `--execute`. `item delete --dry-run` also now previews the item and lists its attached notes/files (which the Web API's `DELETE` doesn't cascade to - they'd become orphaned, not deleted). `storage checkout --dry-run` lists what would be downloaded and relinked without touching the filesystem or the library. All three switch to preview-by-default in 4.0 (Issue #462).
+
 ## [3.0.6] - 2026-09-29
 
 The sixth patch train: distribution and documentation. No new commands, flags or config keys. Every command now has a worked `--help` example and every option has help text; the release binaries, packages and Docker image no longer re-extract their payload on every run; and the documented glibc floor, licence format and release ordering are all corrected and verified on every release instead of asserted.

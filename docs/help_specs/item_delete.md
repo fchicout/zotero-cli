@@ -34,13 +34,20 @@ This command discards the item outright. If the goal is instead to consolidate a
 | :--- | :--- | :--- | :--- |
 | `--key` | String | The Zotero Item Key to delete | Required. |
 | `--version` | Integer | Delete only if the item is still at this version | Optional - defaults to the item's current version. If the item changed since, nothing is deleted and the command exits 1. |
+| `--execute` | Flag | Delete the item | Mutually exclusive with `--dry-run`. Currently the default for now (see Cognitive Safeguards) - kept for scripts that already pass it and for future-proofing once 4.0 flips the default (Issue #378, #462). |
+| `--dry-run` | Flag | Preview the item and its children without deleting | Mutually exclusive with `--execute`. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Removing a mistakenly-added test/junk record
 **Problem:** I manually added a test item (`JUNK_01`) by mistake and want it gone entirely, not just moved somewhere.
-**Action:** `zotero-cli item delete --key "JUNK_01"`
+**Action:** `zotero-cli item delete --key "JUNK_01" --execute`
 **Result:** The item is permanently removed from the library. This cannot be undone.
+
+### Scenario: Checking what a delete would remove first
+**Problem:** I want to see the item and its attached notes/files before committing to a delete.
+**Action:** `zotero-cli item delete --key "JUNK_01" --dry-run`
+**Result:** The item and its children are listed; nothing is deleted.
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Assuming this behaves like Zotero Desktop's trash (recoverable) - it does not. Using this to resolve a duplicate when `item merge` (which preserves tags/notes/attachments before deleting) would better fit the goal.
-- **Safety Tips:** Always verify the item key with `item inspect` before deleting. There is no `--dry-run`/confirmation gate on this command today - double-check the key first.
+- **Safety Tips:** Always verify the item key with `item inspect` before deleting. Passing neither `--dry-run` nor `--execute` still deletes immediately today (unchanged 3.x behaviour), but prints a deprecation warning to stderr - pass `--execute` explicitly. This becomes preview-by-default in 4.0 (Issue #378, #462).

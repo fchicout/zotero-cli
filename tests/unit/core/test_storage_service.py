@@ -128,3 +128,44 @@ def test_checkout_group_library_with_explicit_opt_in(tmp_path, mock_gateway, moc
     service = StorageService(config, mock_gateway)
     assert service.checkout_items(allow_group_library=True) == 0
     mock_gateway.search_items.assert_called_once()
+
+
+def test_checkout_dry_run_does_not_download_or_relink(storage_service, mock_gateway):
+    """Issue #378: --dry-run must not download, relink, or even create the
+    storage directory."""
+    item = ZoteroItem(
+        key="ITEM123",
+        version=1,
+        item_type="attachment",
+        raw_data={"data": {"linkMode": "imported_file", "filename": "test_paper.pdf"}},
+    )
+    mock_gateway.search_items.return_value = iter([item])
+
+    storage_root = Path(storage_service.config.storage_path)
+    assert not storage_root.exists()
+
+    count = storage_service.checkout_items(limit=10, dry_run=True)
+
+    assert count == 1
+    assert not storage_root.exists()
+    mock_gateway.download_attachment.assert_not_called()
+    mock_gateway.update_attachment_link.assert_not_called()
+
+
+def test_checkout_single_item_dry_run_skips_existing_target(storage_service, mock_gateway):
+    """A dry run still reports a file it would skip, the same as a real run."""
+    item = ZoteroItem(
+        key="ITEM123",
+        version=1,
+        item_type="attachment",
+        raw_data={"data": {"linkMode": "imported_file", "filename": "test_paper.pdf"}},
+    )
+    storage_root = Path(storage_service.config.storage_path)
+    storage_root.mkdir(parents=True, exist_ok=True)
+    (storage_root / "test_paper.pdf").write_text("existing")
+    (storage_root / "ITEM123_test_paper.pdf").write_text("existing")
+
+    success = storage_service.checkout_single_item(item, storage_root, dry_run=True)
+
+    assert success is False
+    mock_gateway.download_attachment.assert_not_called()

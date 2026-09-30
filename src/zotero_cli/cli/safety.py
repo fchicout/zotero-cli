@@ -33,3 +33,18 @@ def confirm_destructive(question: str, assume_yes: bool) -> bool:
 def preview_notice(what: str) -> str:
     """The standard closing line of a preview."""
     return f"[yellow]Preview only - nothing was changed. Re-run with --execute to {what}.[/yellow]"
+
+
+def warn_default_apply(command: str) -> None:
+    """For a command that predates this policy and still applies its changes
+    by default in 3.x (Issue #378: `item delete`, `storage checkout`,
+    `system restore`) - printed once when neither `--dry-run` nor `--execute`
+    was given, so a script written before these flags existed keeps working
+    unchanged but is told what to add. `command` switches to preview-by-
+    default in 4.0 (Issue #462), when this warning is removed."""
+    print(
+        f"Warning: `{command}` currently applies its changes by default; pass --execute "
+        "explicitly, or --dry-run to preview first. This will change to preview-by-default "
+        "in 4.0.",
+        file=sys.stderr,
+    )

@@ -8,6 +8,7 @@ from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.safety import warn_default_apply
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.services.backup_service import BackupService
 from zotero_cli.core.strategies import (
@@ -290,16 +291,26 @@ Problem: I've accidentally deleted a large set of folders in Zotero and I need t
 Action:  zotero-cli system restore --file "backup_2024_01_01.zaf" --dry-run
 Result:  The CLI shows exactly which items and folders will be recreated.
 
+Scenario: Applying a restore after reviewing the plan
+Problem: I've checked the dry-run output and I'm ready to actually restore.
+Action:  zotero-cli system restore --file "backup_2024_01_01.zaf" --execute
+Result:  The archive is restored into the library.
+
 Notes
 -----
 • Common Failure Modes: Attempting to restore a .zaf file that is corrupted or from a different account context.
 • Safety Tips: ALWAYS run with --dry-run first to understand the impact.
+• Deprecation: omitting both --dry-run and --execute still restores immediately (for now) but prints a warning; pass --execute explicitly. This becomes preview-by-default in 4.0 (Issue #378).
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_restore.md
 """,
         )
         restore_p.add_argument("--file", required=True, help="Input .zaf file")
-        restore_p.add_argument("--dry-run", action="store_true", help="Simulate restore")
+        restore_mode = restore_p.add_mutually_exclusive_group()
+        restore_mode.add_argument("--dry-run", action="store_true", help="Simulate restore")
+        restore_mode.add_argument(
+            "--execute", action="store_true", help="Apply the restore (default for now; see Deprecation note)"
+        )
 
         # Normalize CSV
         norm_p = sub.add_parser(
@@ -469,6 +480,12 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
 
     def _handle_restore(self, args: argparse.Namespace) -> None:
         from zotero_cli.infra.factory import GatewayFactory
+
+        # Issue #378: predates the preview-by-default policy, so it still
+        # applies immediately without either flag - just warns instead of
+        # silently keeping the old behaviour forever.
+        if not args.dry_run and not getattr(args, "execute", False):
+            warn_default_apply("system restore")
 
         restore_service = GatewayFactory.get_restore_service(
             force_user=getattr(args, "user", False)
