@@ -4,8 +4,15 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-09-30
+
+A security patch for 3.1.0: upgrade. No commands, flags or behaviour change. `urllib3`, the HTTP library under every request zotero-cli makes, had two advisories published after 3.1.0 shipped, and 3.1.1 carries the fixed version. The release binaries, packages and Docker image are rebuilt from the updated lock.
+
 ### 🛡️ Security
 - **`urllib3` is updated to 2.8.0 (CVE-2026-97687, CVE-2026-97689):** `urllib3` is the HTTP transport under every request zotero-cli makes (through `requests`), and 2.7.0, which 3.1.0 shipped, has two advisories fixed in 2.8.0. GHSA-vxq7-64xx-v4gw: a malicious server could make a response read grow without bound by sending an endless chunk-size line, which matters to a tool that downloads PDFs from many third-party servers. GHSA-8988-9cw3-xx77: when an HTTPS proxy is used together with custom TLS settings, the target server's TLS settings could be applied to the proxy connection instead of kept separate. Nothing changes in how you use zotero-cli; upgrade, or run `pip install -U urllib3` in a pip install. The release binaries, packages and Docker image are rebuilt from the updated lock.
+
+### 📦 Distribution
+- **Dependency updates:** `uvicorn` 0.54.0 (the server behind `serve`; the release adds opt-in, experimental HTTP/2 response trailers and early hints, which zotero-cli doesn't use) and `filelock` 4.0.4.
 
 ## [3.1.0] - 2026-09-30
 
