@@ -111,7 +111,7 @@ zotero-cli system demo-sandbox --clean
 | **[`system`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/system.md)** | Operations | `info`, `check`, `selftest`, `groups`, `switch`, `backup`, `verify`, `restore`, `normalize`, `demo-sandbox`, `jobs` |
 | **[`serve`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/serve.md)** | Local HTTP API | `(default)` |
 | **[`slr`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/slr.md)** | Literature review | `source`, `screen`, `decide`, `load`, `list`, `reconcile`, `promote`, `dedupe`, `prune`, `extract`, `snowball`, `sdb`, `report` |
-| **[`rag`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/rag.md)** | Semantic search (optional `rag` extra) | `ingest`, `query`, `context`, `purge`, `model` |
+| **[`rag`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/rag.md)** | Semantic search (optional `rag` extra; **deprecated**, moving to a separate tool and removed in 4.0) | `ingest`, `query`, `context`, `purge`, `model` |
 
 Every command has built-in help: `zotero-cli <noun> <verb> --help`. Every example in these docs is checked against the real command-line parser in CI.
 
