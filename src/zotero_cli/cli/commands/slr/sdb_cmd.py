@@ -2,6 +2,7 @@ import argparse
 
 from rich.markup import escape
 
+from zotero_cli.cli.flags import add_key_argument, add_renamed_flag, resolve_key
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
@@ -26,7 +27,7 @@ Examples
 $ zotero-cli slr sdb inspect ABCD1234
 """,
         )
-        inspect_p.add_argument("key", help="Item Key")
+        add_key_argument(inspect_p, "Item Key")
 
         # edit
         edit_p = sdb_sub.add_parser(
@@ -40,7 +41,7 @@ Examples
 $ zotero-cli slr sdb edit ABCD1234 --persona reviewer-a --phase title_abstract --set-decision accepted --execute
 """,
         )
-        edit_p.add_argument("key", help="Item Key")
+        add_key_argument(edit_p, "Item Key")
         edit_p.add_argument("--persona", required=True, help="Reviewer persona the entry belongs to")
         edit_p.add_argument("--phase", required=True, help="Screening phase the entry belongs to")
         edit_p.add_argument(
@@ -76,10 +77,10 @@ $ zotero-cli slr sdb upgrade --collection "Screening" --execute
             epilog="""
 Examples
 --------
-$ zotero-cli slr sdb reset --name "Screening" --phase title_abstract --force
+$ zotero-cli slr sdb reset --collection "Screening" --phase title_abstract --force
 """,
         )
-        reset_p.add_argument("--name", required=True, help="Collection name or key")
+        add_renamed_flag(reset_p, "--collection", "--name", required=True, help="Collection name or key")
         reset_p.add_argument("--phase", required=True, help="Target phase to reset")
         reset_p.add_argument("--persona", help="Reviewer persona to reset (Optional)")
         reset_p.add_argument("--force", action="store_true", help="Skip confirmation")
@@ -104,6 +105,9 @@ $ zotero-cli slr sdb export --collection "Screening" --output screening.csv
         from zotero_cli.core.services.sdb.sdb_service import SDBService
 
         service = SDBService(gateway)
+
+        if args.sdb_verb in ("inspect", "edit"):
+            resolve_key(args)
 
         if args.sdb_verb == "inspect":
             entries = service.inspect_item_sdb(args.key)
@@ -161,12 +165,12 @@ $ zotero-cli slr sdb export --collection "Screening" --output screening.csv
             from zotero_cli.core.services.purge_service import PurgeService
 
             # 1. Resolve Items
-            col_id = gateway.get_collection_id_by_name(args.name)
+            col_id = gateway.get_collection_id_by_name(args.collection)
             if not col_id:
-                col_id = args.name
+                col_id = args.collection
             items = list(gateway.get_items_in_collection(col_id))
             if not items:
-                console.print(f"[yellow]No items found in '{escape(args.name)}'.[/yellow]")
+                console.print(f"[yellow]No items found in '{escape(args.collection)}'.[/yellow]")
                 return
 
             keys = [i.key for i in items]
@@ -174,7 +178,7 @@ $ zotero-cli slr sdb export --collection "Screening" --output screening.csv
             # 2. Confirmation
             if not args.force:
                 if not Confirm.ask(
-                    f"Are you sure you want to reset {safe_markup(args.phase)} metadata for {len(keys)} items in '{safe_markup(args.name)}'?"
+                    f"Are you sure you want to reset {safe_markup(args.phase)} metadata for {len(keys)} items in '{safe_markup(args.collection)}'?"
                 ):
                     return
 
@@ -189,7 +193,7 @@ $ zotero-cli slr sdb export --collection "Screening" --output screening.csv
             tag_stats = purge_service.purge_tags(keys, tag_name=tag_name, dry_run=dry_run)
 
             console.print(
-                f"\n[bold]Reset results for '{escape(args.name)}' (Phase: {safe_markup(args.phase)}):[/bold]"
+                f"\n[bold]Reset results for '{escape(args.collection)}' (Phase: {safe_markup(args.phase)}):[/bold]"
             )
             console.print(f" - Notes purged: {note_stats['deleted']}")
             console.print(f" - Tags purged:  {tag_stats['deleted']}")

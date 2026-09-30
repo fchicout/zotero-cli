@@ -26,13 +26,14 @@ In Zotero, tags are a powerful way to cross-reference items regardless of which 
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--item` | String | Item Key | Required. |
+| `--key` | String | Item Key | Required. |
+| `--item` | String | Deprecated alias of `--key`. | Hidden; prints a warning. Removed in 4.0 (Issue #379). |
 | `--tags` | String | Comma-separated tags | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Categorizing a paper for a specific project
 **Problem:** I've just finished reading a paper (Key: `READ_123`) and I want to tag it with "SLR_2024" and "Must_Cite."
-**Action:** `zotero-cli tag add --item "READ_123" --tags "SLR_2024,Must_Cite"`
+**Action:** `zotero-cli tag add --key "READ_123" --tags "SLR_2024,Must_Cite"`
 **Result:** The paper now includes both tags in Zotero, making it easy to find using the `tag list` or Zotero's search.
 
 ## 7. Cognitive Safeguards

@@ -1,6 +1,7 @@
 import argparse
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.flags import add_renamed_flag
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 
 console = Console()
@@ -48,7 +49,7 @@ Examples
 --------
 Scenario: Categorizing a paper for a specific project
 Problem: I've just finished reading a paper (Key: READ_123) and I want to tag it with "SLR_2024" and "Must_Cite."
-Action:  zotero-cli tag add --item "READ_123" --tags "SLR_2024,Must_Cite"
+Action:  zotero-cli tag add --key "READ_123" --tags "SLR_2024,Must_Cite"
 Result:  The paper now includes both tags in Zotero.
 
 Notes
@@ -59,7 +60,7 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/tag_add.md
 """,
         )
-        add_p.add_argument("--item", required=True, help="Item Key")
+        add_renamed_flag(add_p, "--key", "--item", required=True, dest="key", help="Item Key")
         add_p.add_argument("--tags", required=True, help="Comma-separated tags")
 
         # Purge
@@ -99,11 +100,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 print(t)
         elif args.verb == "add":
             tags = [t.strip() for t in args.tags.split(",")]
-            item = gateway.get_item(args.item)
-            if item and service.add_tags_to_item(args.item, item, tags):
-                print(f"Added tags to {args.item}")
+            item = gateway.get_item(args.key)
+            if item and service.add_tags_to_item(args.key, item, tags):
+                print(f"Added tags to {args.key}")
             else:
-                print(f"Failed to add tags to {args.item}")
+                print(f"Failed to add tags to {args.key}")
         elif args.verb == "purge":
             purge_service = GatewayFactory.get_purge_service(
                 force_user=getattr(args, "user", False)

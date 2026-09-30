@@ -6,7 +6,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import add_details_flag
+from zotero_cli.cli.flags import add_details_flag, add_key_argument, add_renamed_flag, resolve_key
 from zotero_cli.cli.presenters import item_list_presenter
 from zotero_cli.cli.safety import warn_default_apply
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
@@ -44,7 +44,7 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_inspect.md
 """
-        parser.add_argument("--key", help="Zotero Item Key(s) - comma-separated, e.g. K1,K2,K3")
+        add_key_argument(parser, "Zotero Item Key(s) - comma-separated, e.g. K1,K2,K3", required=False)
         parser.add_argument("--file", help="Path to file containing keys (one key per line)")
         parser.add_argument("--raw", action="store_true", help="Show raw JSON")
         parser.add_argument(
@@ -59,6 +59,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
 
+        resolve_key(args)
         keys = []
         if args.key:
             keys.extend([k.strip() for k in args.key.split(",") if k.strip()])
@@ -204,7 +205,7 @@ Examples
 --------
 Scenario: Categorizing a paper into a specific folder
 Problem: I have a paper in "Incoming Search" (Key: INC_01) and I want to move it to my "Methodology" folder (Key: METH_01).
-Action:  zotero-cli item move --item-id "ABCD1234" --source "INC_01" --target "METH_01"
+Action:  zotero-cli item move --key "ABCD1234" --source "INC_01" --target "METH_01"
 Result:  The item is now correctly linked to the "Methodology" folder and removed from "Incoming Search."
 
 Notes
@@ -215,7 +216,7 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_move.md
 """,
         )
-        move_p.add_argument("--item-id", required=True, help="Key of the item to move")
+        add_renamed_flag(move_p, "--key", "--item-id", required=True, dest="key", help="Key of the item to move")
         move_p.add_argument("--source", help="Source collection (optional if unambiguous)")
         move_p.add_argument("--target", required=True, help="Destination collection name or key")
 
@@ -1332,7 +1333,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
     def _handle_move(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_collection_service(force_user=force_user)
-        if service.move_item(args.source, args.target, args.item_id):
+        if service.move_item(args.source, args.target, args.key):
             source_display = args.source or "auto"
             target_display = args.target
             if target_display.lower() in ["/", "root", "unfiled"]:
@@ -1340,7 +1341,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             if source_display.lower() in ["/", "root", "unfiled"]:
                 source_display = "Root (Unfiled Items)"
 
-            print(f"Moved item {args.item_id} from {source_display} to {target_display}.")
+            print(f"Moved item {args.key} from {source_display} to {target_display}.")
         else:
             print("Failed to move item.")
 

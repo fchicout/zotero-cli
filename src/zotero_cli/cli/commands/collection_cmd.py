@@ -7,7 +7,7 @@ from rich.table import Table
 from rich.tree import Tree
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import add_details_flag
+from zotero_cli.cli.flags import add_details_flag, add_renamed_flag
 from zotero_cli.cli.safety import confirm_destructive, preview_notice
 from zotero_cli.core.exceptions import NotFound, UsageError
 from zotero_cli.core.interfaces import ZoteroGateway
@@ -193,7 +193,7 @@ Examples
 --------
 Scenario: Archiving a completed SLR project
 Problem: I have finished my SLR (Key: SLR_PROJ_2025) and I want to save a permanent, offline version of the final included items and their PDFs.
-Action:  zotero-cli collection backup --name "SLR_PROJ_2025" --output "Final_SLR_Archive.zaf"
+Action:  zotero-cli collection backup --collection "SLR_PROJ_2025" --output "Final_SLR_Archive.zaf"
 Result:  A single portable file is created that contains everything needed to reconstruct the project state later.
 
 Notes
@@ -204,7 +204,7 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_backup.md
 """,
         )
-        backup_p.add_argument("--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+        add_renamed_flag(backup_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         backup_p.add_argument("--output", required=True, help="Output file path")
 
         # Export
@@ -218,7 +218,7 @@ Examples
 --------
 Scenario: Syncing literature with a LaTeX project
 Problem: I need to update the .bib file for my paper with the latest items in my "Final Selection" folder (Key: FIN_01).
-Action:  zotero-cli collection export --name "FIN_01" --format bibtex --output "references.bib"
+Action:  zotero-cli collection export --collection "FIN_01" --format bibtex --output "references.bib"
 Result:  The file references.bib is created/updated with the metadata from that folder.
 
 Notes
@@ -229,7 +229,7 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_export.md
 """,
         )
-        export_p.add_argument("--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+        add_renamed_flag(export_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         export_p.add_argument(
             "--format", default="bibtex", choices=["bibtex", "ris", "md"], help="Export format"
         )
@@ -246,7 +246,7 @@ Examples
 --------
 Scenario: Clearing stale annotations before a re-screening pass
 Problem: My "Full Text Review" folder (Key: FT_01) has old notes and tags from a prior review round that no longer apply.
-Action:  zotero-cli collection purge --name "FT_01" --notes --tags
+Action:  zotero-cli collection purge --collection "FT_01" --notes --tags
 Result:  All notes and tags are removed from every item in the collection, providing a clean slate.
 
 Notes
@@ -257,7 +257,7 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_purge.md
 """,
         )
-        purge_p.add_argument("--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+        add_renamed_flag(purge_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
         purge_p.add_argument("--notes", action="store_true", help="Purge notes")
         purge_p.add_argument("--tags", action="store_true", help="Purge tags")
@@ -390,7 +390,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             raise UsageError("Specify what to purge using --files, --notes, or --tags.")
 
         if not args.force:
-            msg = f"Are you sure you want to purge {', '.join(types)} from collection '{args.name}'"
+            msg = f"Are you sure you want to purge {', '.join(types)} from collection '{args.collection}'"
             if args.recursive:
                 msg += " and its sub-collections"
             msg += "?"
@@ -401,7 +401,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         service = GatewayFactory.get_purge_service(force_user=getattr(args, "user", False))
         stats = service.purge_collection_assets(
-            args.name, types=types, recursive=args.recursive, dry_run=False
+            args.collection, types=types, recursive=args.recursive, dry_run=False
         )
 
         console.print(
@@ -495,19 +495,19 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
         # Resolve collection ID
-        col_id = gateway.get_collection_id_by_name(args.name)
+        col_id = gateway.get_collection_id_by_name(args.collection)
         if not col_id:
-            col_id = args.name
+            col_id = args.collection
 
         col = gateway.get_collection(col_id)
         if not col:
-            raise NotFound(f"Collection '{args.name}' not found.")
+            raise NotFound(f"Collection '{args.collection}' not found.")
 
         total_items = col.get("meta", {}).get("numItems")
 
         service = BackupService(gateway)
         console.print(
-            f"Starting Backup for Collection '[cyan]{safe_markup(args.name)}[/cyan]' ({safe_markup(col_id)}) to [green]{safe_markup(args.output)}[/green]..."
+            f"Starting Backup for Collection '[cyan]{safe_markup(args.collection)}[/cyan]' ({safe_markup(col_id)}) to [green]{safe_markup(args.output)}[/green]..."
         )
 
         try:
@@ -543,8 +543,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if not args.output:
             raise UsageError("--output required for metadata export.")
 
-        print(f"Exporting collection '{args.name}' to {args.output} ({args.format})...")
-        if service.export_collection(args.name, args.output, args.format):
+        print(f"Exporting collection '{args.collection}' to {args.output} ({args.format})...")
+        if service.export_collection(args.collection, args.output, args.format):
             print(f"Export complete: {args.output}")
         else:
             print("Export failed.", file=sys.stderr)
@@ -566,24 +566,24 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         attach_service = GatewayFactory.get_attachment_service(force_user=force_user)
 
         # 1. Resolve Collection
-        col_id = gateway.get_collection_id_by_name(args.name)
+        col_id = gateway.get_collection_id_by_name(args.collection)
         if not col_id:
-            col_id = args.name  # Try as raw key
+            col_id = args.collection  # Try as raw key
 
         if not gateway.get_collection(col_id):
-            raise NotFound(f"Collection '{args.name}' not found.")
+            raise NotFound(f"Collection '{args.collection}' not found.")
 
         # 2. Get Items
         items = list(gateway.get_items_in_collection(col_id))
         if not items:
-            console.print(f"[yellow]No items found in collection '{escape(args.name)}'.[/yellow]")
+            console.print(f"[yellow]No items found in collection '{escape(args.collection)}'.[/yellow]")
             return
 
         output_dir = Path(args.output) if args.output else Path("./export_md")
         output_dir.mkdir(parents=True, exist_ok=True)
 
         console.print(
-            f"Exporting [bold]{len(items)}[/bold] items from '[cyan]{safe_markup(args.name)}[/cyan]' to [green]{safe_markup(output_dir)}[/green]..."
+            f"Exporting [bold]{len(items)}[/bold] items from '[cyan]{safe_markup(args.collection)}[/cyan]' to [green]{safe_markup(output_dir)}[/green]..."
         )
 
         # 3. Bulk Export with Progress

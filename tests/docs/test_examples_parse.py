@@ -228,7 +228,7 @@ def test_every_documented_example_parses():
 @pytest.mark.parametrize(
     "command",
     [
-        'zotero-cli item inspect "ITEMKEY"',  # positional key; it's --key
+        "zotero-cli item inspect --keys ITEMKEY",  # it is --key
         "zotero-cli tag rename --old a --new b",  # no such verb
         'zotero-cli slr decide --key K --vote "include"',  # choices are upper-case
     ],

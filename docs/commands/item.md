@@ -24,11 +24,12 @@ Move an item from one collection to another.
 
 **Usage:**
 ```bash
-zotero-cli item move --item-id "ITEMKEY" --target "Target Collection"
+zotero-cli item move --key "ITEMKEY" --target "Target Collection"
 ```
 
 **Parameters:**
-*   `--item-id`: (Required) The Zotero Item Key.
+*   `--key`: (Required) The Zotero Item Key.
+*   `--item-id`: Deprecated alias of `--key` (removed in 4.0, Issue #379).
 *   `--target`: (Required) Name or Key of the destination collection.
 *   `--source`: Optional source collection. If omitted, the tool attempts to infer the source.
 

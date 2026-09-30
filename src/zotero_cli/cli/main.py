@@ -28,6 +28,7 @@ verify_environment()
 import argparse  # noqa: E402
 import logging  # noqa: E402
 import os  # noqa: E402
+from typing import Any  # noqa: E402
 
 from zotero_cli import __version__  # noqa: E402
 from zotero_cli.cli import commands  # noqa: F401, E402 (Trigger registration)
@@ -43,10 +44,33 @@ logger = logging.getLogger(__name__)
 # --- Main Router ---
 
 
+_LAST_PARSER: list["argparse.ArgumentParser | None"] = [None]
+
+
+class _LeafErrorParser(argparse.ArgumentParser):
+    """Reports a stray argument through the subcommand that was being
+    parsed, so the usage line names it (Issue #379). Plain argparse hands
+    the leftovers back to the top-level parser, which then prints the
+    top-level usage - useless for `item inspect KEY --bogus`."""
+
+    def parse_known_args(  # type: ignore[override]
+        self, args: Any = None, namespace: Any = None
+    ) -> Any:
+        _LAST_PARSER[0] = self
+        return super().parse_known_args(args, namespace)
+
+    def parse_args(self, args: Any = None, namespace: Any = None) -> Any:  # type: ignore[override]
+        _LAST_PARSER[0] = None
+        parsed, extras = self.parse_known_args(args, namespace)
+        if extras:
+            (_LAST_PARSER[0] or self).error(f"unrecognized arguments: {' '.join(extras)}")
+        return parsed
+
+
 def build_parser() -> argparse.ArgumentParser:
     """The full command-line parser (also used by the docs tests to check
     that every documented example parses, Issue #386)."""
-    parser = argparse.ArgumentParser(
+    parser = _LeafErrorParser(
         description="zotero-cli - manage your Zotero library from the command line",
         epilog=(
             "Exit status: 0 success, 1 error, 2 usage error, 3 not found, 4 authentication, "

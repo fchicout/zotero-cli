@@ -26,13 +26,14 @@ It traverses the entire collection hierarchy, fetches the JSON metadata for ever
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--name` | String | Collection name or key | Required. |
+| `--collection` | String | Collection name or key | Required. |
+| `--name` | String | Deprecated alias of `--collection`. | Hidden; prints a warning. Removed in 4.0 (Issue #379). |
 | `--output` | String | Output file path | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Archiving a completed SLR project
 **Problem:** I have finished my SLR (Key: `SLR_PROJ_2025`) and I want to save a permanent, offline version of the final included items and their PDFs.
-**Action:** `zotero-cli collection backup --name "SLR_PROJ_2025" --output "Final_SLR_Archive.zaf"`
+**Action:** `zotero-cli collection backup --collection "SLR_PROJ_2025" --output "Final_SLR_Archive.zaf"`
 **Result:** A single portable file is created that contains everything needed to reconstruct the project state later.
 
 ## 7. Cognitive Safeguards

@@ -36,7 +36,8 @@ By default the command asks for interactive confirmation before deleting anythin
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--name` | String | Collection Name or Key | Required. |
+| `--collection` | String | Collection Name or Key | Required. |
+| `--name` | String | Deprecated alias of `--collection`. | Hidden; prints a warning. Removed in 4.0 (Issue #379). |
 | `--files` | Boolean | Purge attachments/files from every item | Optional. Default: False. |
 | `--notes` | Boolean | Purge notes from every item | Optional. Default: False. |
 | `--tags` | Boolean | Purge tags from every item | Optional. Default: False. |
@@ -46,12 +47,12 @@ By default the command asks for interactive confirmation before deleting anythin
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Clearing stale annotations before a re-screening pass
 **Problem:** My "Full Text Review" folder (Key: `FT_01`) has old notes and tags from a prior review round that no longer apply.
-**Action:** `zotero-cli collection purge --name "FT_01" --notes --tags`
+**Action:** `zotero-cli collection purge --collection "FT_01" --notes --tags`
 **Result:** All notes and tags are removed from every item in the collection, providing a clean slate.
 
 ### Scenario: Reclaiming disk space across a whole SLR tree
 **Problem:** I've already extracted the data I need from a source's PDFs and want to free up storage across the entire tree, including its phase subfolders.
-**Action:** `zotero-cli collection purge --name "raw_ieee" --files --recursive --force`
+**Action:** `zotero-cli collection purge --collection "raw_ieee" --files --recursive --force`
 **Result:** File attachments are removed from every item in `raw_ieee` and all of its sub-collections, with no confirmation prompt.
 
 ## 7. Cognitive Safeguards

@@ -96,11 +96,12 @@ Produces a `.zaf` archive containing only the items within the target collection
 
 **Usage:**
 ```bash
-zotero-cli collection backup --name "My Review" --output "review_backup.zaf"
+zotero-cli collection backup --collection "My Review" --output "review_backup.zaf"
 ```
 
 **Parameters:**
-*   `--name`: (Required) Collection name or key.
+*   `--collection`: (Required) Collection name or key.
+*   `--name`: Deprecated alias of `--collection` (removed in 4.0, Issue #379).
 *   `--output`: (Required) Output .zaf file path.
 
 ---
@@ -110,11 +111,12 @@ Exports all items in a collection to a specified format (BibTeX, RIS, or Markdow
 
 **Usage:**
 ```bash
-zotero-cli collection export --name "COLLECTION_NAME" --format bibtex [--output ./export/]
+zotero-cli collection export --collection "COLLECTION_NAME" --format bibtex [--output ./export/]
 ```
 
 **Parameters:**
-*   `--name`: (Required) The collection Name or Key.
+*   `--collection`: (Required) The collection Name or Key.
+*   `--name`: Deprecated alias of `--collection` (removed in 4.0, Issue #379).
 *   `--format`: Output format. Supported: `bibtex`, `ris`, `md`.
 *   `--output`: Destination directory or file path.
 
@@ -125,11 +127,12 @@ Permanently removes specific types of child assets (files, notes, tags) from eve
 
 **Usage:**
 ```bash
-zotero-cli collection purge --name "COLLECTION_NAME" --files --notes --tags --recursive
+zotero-cli collection purge --collection "COLLECTION_NAME" --files --notes --tags --recursive
 ```
 
 **Parameters:**
-*   `--name`: (Required) The collection Name or Key.
+*   `--collection`: (Required) The collection Name or Key.
+*   `--name`: Deprecated alias of `--collection` (removed in 4.0, Issue #379).
 *   `--files`: Purge attachments/files from all items in the collection.
 *   `--notes`: Purge notes from all items in the collection.
 *   `--tags`: Purge tags from all items in the collection.

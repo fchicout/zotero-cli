@@ -31,6 +31,7 @@ It retrieves information about the item's authors, identifiers (DOI, ISBN), publ
 | `--format` | String | Export in specific bibliographic format | Optional. |
 | `--full-notes` | Boolean | Show full content of child notes | Optional. Default: False. |
 | `--key` | String | Zotero Item Key(s) - comma-separated, e.g. K1,K2,K3 | Optional. |
+| `key` | String | The same key(s), as a positional: `item inspect ABCD1234` | Optional alternative to `--key` (Issue #379). |
 | `--raw` | Boolean | Show raw JSON | Optional. Default: False. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
