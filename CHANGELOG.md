@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🛡️ Security
+- **`urllib3` is updated to 2.8.0 (CVE-2026-97687, CVE-2026-97689):** `urllib3` is the HTTP transport under every request zotero-cli makes (through `requests`), and 2.7.0, which 3.1.0 shipped, has two advisories fixed in 2.8.0. GHSA-vxq7-64xx-v4gw: a malicious server could make a response read grow without bound by sending an endless chunk-size line, which matters to a tool that downloads PDFs from many third-party servers. GHSA-8988-9cw3-xx77: when an HTTPS proxy is used together with custom TLS settings, the target server's TLS settings could be applied to the proxy connection instead of kept separate. Nothing changes in how you use zotero-cli; upgrade, or run `pip install -U urllib3` in a pip install. The release binaries, packages and Docker image are rebuilt from the updated lock.
+
 ## [3.1.0] - 2026-09-30
 
 The first minor release after 3.0: output you can pipe, deletes you can undo, and consistent flags. Nothing is removed or changed incompatibly in 3.x: every command and flag that works today still works. Where a spelling or behaviour is going away it prints a deprecation warning now and is removed in 4.0, and each item is listed in [#462](https://github.com/fchicout/zotero-cli/issues/462). Worth knowing:
