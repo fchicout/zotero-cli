@@ -799,7 +799,7 @@ class SqliteZoteroGateway(ZoteroGateway):
         self._backed_up = True
         print(f"Backed up zotero.sqlite to {backup_path} before writing.", file=sys.stderr)
 
-    def trash_item(self, item_key: str) -> bool:
+    def trash_item(self, item_key: str, version: int = 0) -> bool:
         """
         Moves an item to the trash, matching Desktop's Zotero.Items.trash():
         bumps dateModified/clientDateModified, marks the row dirty (synced=0)
@@ -830,7 +830,7 @@ class SqliteZoteroGateway(ZoteroGateway):
         finally:
             conn.close()
 
-    def restore_item(self, item_key: str) -> bool:
+    def restore_item(self, item_key: str, version: int = 0) -> bool:
         """
         Reverses trash_item(), matching Desktop's `item.deleted = false;
         item.save()` path: bumps dateModified/clientDateModified, marks the

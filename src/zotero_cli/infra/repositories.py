@@ -37,6 +37,12 @@ class ZoteroItemRepository(ItemRepository):
     def delete_item(self, item_key: str, version: int) -> bool:
         return self.gateway.delete_item(item_key, version)
 
+    def trash_item(self, item_key: str, version: int = 0) -> bool:
+        return self.gateway.trash_item(item_key, version)
+
+    def restore_item(self, item_key: str, version: int = 0) -> bool:
+        return self.gateway.restore_item(item_key, version)
+
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
         return self.gateway.get_item_children(item_key)
 

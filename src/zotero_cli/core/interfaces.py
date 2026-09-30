@@ -47,6 +47,15 @@ class ItemRepository(ABC):
         pass
 
     @abstractmethod
+    def trash_item(self, item_key: str, version: int = 0) -> bool:
+        """Moves the item to Zotero's trash (recoverable, unlike `delete_item`).
+        A falsy `version` means "whatever the current one is"."""
+
+    @abstractmethod
+    def restore_item(self, item_key: str, version: int = 0) -> bool:
+        """Takes the item out of the trash."""
+
+    @abstractmethod
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
         pass
 

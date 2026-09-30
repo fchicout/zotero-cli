@@ -607,6 +607,36 @@ class ZoteroAPIClient(ZoteroGateway):
             logger.exception(f"ZoteroAPIClient: Error deleting item {item_key}")
             return False
 
+    def trash_item(self, item_key: str, version: int = 0) -> bool:
+        """Moves the item to Zotero's trash by setting its `deleted` flag -
+        the same property Zotero Desktop syncs, so it shows in Desktop's
+        trash and can be restored there (Issue #402, verified against a real
+        library). The item keeps its collections."""
+        return self._set_deleted(item_key, version, True)
+
+    def restore_item(self, item_key: str, version: int = 0) -> bool:
+        return self._set_deleted(item_key, version, False)
+
+    def _set_deleted(self, item_key: str, version: int, deleted: bool) -> bool:
+        """Only the item's own version is accepted (Issue #384's rule): a 412
+        means it changed since it was read, and nothing is written."""
+        try:
+            if not version:
+                current = self.get_item(item_key)
+                if not current:
+                    return False
+                version = current.version
+            response = self.http.patch(
+                f"items/{item_key}", json_data={"deleted": 1 if deleted else 0}, version=version
+            )
+            if response.status_code == 412:
+                logger.warning(f"Item {item_key} changed since version {version}; not updated.")
+                return False
+            return True
+        except Exception:
+            logger.exception(f"ZoteroAPIClient: Error setting deleted={deleted} on {item_key}")
+            return False
+
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
         return self.update_item(item_key, version, metadata)
 

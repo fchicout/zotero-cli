@@ -251,13 +251,21 @@ class ZoteroHttpClient:
     # --- PATCH / DELETE --------------------------------------------------------
 
     def patch(
-        self, endpoint: str, json_data: Any, version_check: bool = False
+        self,
+        endpoint: str,
+        json_data: Any,
+        version_check: bool = False,
+        version: Optional[int] = None,
     ) -> requests.Response:
         """A 412 (version precondition failed) is returned, not raised, so
-        the caller can decide what to do."""
+        the caller can decide what to do. `version` is the object's own
+        version (single-object writes); without it `version_check` sends the
+        last-seen library version."""
         url = f"{self.api_prefix}/{endpoint}"
         headers = dict(self.session.headers).copy()
-        if version_check:
+        if version is not None:
+            headers["If-Unmodified-Since-Version"] = str(version)
+        elif version_check:
             headers["If-Unmodified-Since-Version"] = str(self.last_library_version)
         try:
             return self._write_with_retries("patch", url, headers=headers, json=json_data)

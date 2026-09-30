@@ -505,6 +505,72 @@ def test_item_delete_dry_run_previews_without_deleting(mock_clients, env_vars, c
     assert "Preview only" in out
 
 
+def test_item_delete_trash_moves_to_trash_without_the_legacy_warning(mock_clients, env_vars, capsys):
+    """Issue #402: --trash is the recoverable, opt-in form; nothing permanent
+    happens and there's no old behaviour to warn about."""
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5)
+    gateway.trash_item.return_value = True
+
+    ItemCommand().execute(_delete_args(execute=False, dry_run=False, trash=True))
+
+    gateway.trash_item.assert_called_once_with("ABCD1234", 5)
+    gateway.delete_item.assert_not_called()
+    captured = capsys.readouterr()
+    assert "currently applies its changes by default" not in captured.err
+    assert "to the trash" in captured.out
+    assert "item restore" in captured.out
+
+
+def test_item_delete_trash_honours_the_given_version(mock_clients, env_vars):
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=9)
+    gateway.trash_item.return_value = True
+
+    ItemCommand().execute(_delete_args(execute=True, dry_run=False, trash=True, version=5))
+
+    gateway.trash_item.assert_called_once_with("ABCD1234", 5)
+
+
+def test_item_delete_trash_dry_run_changes_nothing(mock_clients, env_vars, capsys):
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5, title="Junk")
+    gateway.get_item_children.return_value = [{"key": "C1", "data": {"itemType": "note"}}]
+
+    ItemCommand().execute(_delete_args(execute=False, dry_run=True, trash=True))
+
+    gateway.trash_item.assert_not_called()
+    gateway.delete_item.assert_not_called()
+    out = capsys.readouterr().out
+    assert "move to the trash" in out
+    assert "stay with it" in out
+
+
+def test_item_delete_trash_failure_exits_1(mock_clients, env_vars, capsys):
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5)
+    gateway.trash_item.return_value = False
+
+    command = ItemCommand()
+    args = _delete_args(execute=True, dry_run=False, trash=True)
+    with pytest.raises(SystemExit) as raised:
+        command.execute(args)
+
+    assert raised.value.code == 1
+    assert "Failed to trash item ABCD1234" in capsys.readouterr().err
+
+
+def test_item_delete_without_trash_is_still_permanent(mock_clients, env_vars):
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5)
+    gateway.delete_item.return_value = True
+
+    ItemCommand().execute(_delete_args(execute=True, dry_run=False, trash=False))
+
+    gateway.delete_item.assert_called_once_with("ABCD1234", 5)
+    gateway.trash_item.assert_not_called()
+
+
 def test_item_delete_dry_run_and_execute_are_mutually_exclusive():
     """Issue #378: passing both flags together is refused, not silently
     resolved one way or the other."""
@@ -540,11 +606,62 @@ def test_item_restore_subparser_is_reachable():
     assert args.force is False
 
 
-def test_item_trash_online_mode_rejected(env_vars, capsys):
+def test_item_trash_works_online_through_the_api(env_vars, capsys):
+    """Issue #402: the same command trashes through the Web API's `deleted`
+    flag when not --offline, with the item's own version and no sqlite prompt."""
     from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
     with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get:
         gateway = MagicMock(spec=ZoteroAPIClient)
+        gateway.get_item.return_value = MagicMock(title="Some Paper", version=29848)
+        gateway.trash_item.return_value = True
+        mock_get.return_value = gateway
+
+        args = MagicMock()
+        args.verb = "trash"
+        args.key = "ABCD1234"
+        args.execute = True
+        args.force = False
+        args.user = False
+
+        with patch("rich.prompt.Confirm.ask") as confirm:
+            ItemCommand().execute(args)
+
+    confirm.assert_not_called()
+    gateway.trash_item.assert_called_once_with("ABCD1234", 29848)
+    assert "Moved to trash" in capsys.readouterr().out
+
+
+def test_item_restore_works_online_through_the_api(env_vars, capsys):
+    from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get:
+        gateway = MagicMock(spec=ZoteroAPIClient)
+        gateway.get_item.return_value = MagicMock(title="Some Paper", version=29870)
+        gateway.restore_item.return_value = True
+        mock_get.return_value = gateway
+
+        args = MagicMock()
+        args.verb = "restore"
+        args.key = "ABCD1234"
+        args.execute = True
+        args.force = False
+        args.user = False
+
+        ItemCommand().execute(args)
+
+    gateway.restore_item.assert_called_once_with("ABCD1234", 29870)
+    assert "Restored from trash" in capsys.readouterr().out
+
+
+def test_item_trash_online_failure_exits_1(env_vars, capsys):
+    """A refused write (the item changed since it was read) is an error."""
+    from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get:
+        gateway = MagicMock(spec=ZoteroAPIClient)
+        gateway.get_item.return_value = MagicMock(title="Some Paper", version=1)
+        gateway.trash_item.return_value = False
         mock_get.return_value = gateway
 
         args = MagicMock()
@@ -554,34 +671,35 @@ def test_item_trash_online_mode_rejected(env_vars, capsys):
         args.force = True
         args.user = False
 
-        with pytest.raises(ZoteroCliError) as raised:
-            ItemCommand().execute(args)
+        command = ItemCommand()
+        with pytest.raises(SystemExit) as raised:
+            command.execute(args)
 
-    # ZoteroAPIClient (the online gateway) has no trash_item/restore_item
-    # method at all -- calling one would raise AttributeError on this
-    # spec'd mock, so a clean rejection message (and no such call) is the
-    # only possible correct outcome here.
-    assert "only supports --offline mode" in str(raised.value)
+    assert raised.value.code == 1
+    assert "Failed to trash item ABCD1234" in capsys.readouterr().err
 
 
-def test_item_restore_online_mode_rejected(env_vars, capsys):
+def test_item_trash_online_preview_changes_nothing(env_vars, capsys):
     from zotero_cli.infra.zotero_api import ZoteroAPIClient
 
     with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as mock_get:
         gateway = MagicMock(spec=ZoteroAPIClient)
+        gateway.get_item.return_value = MagicMock(title="Some Paper", version=1)
         mock_get.return_value = gateway
 
         args = MagicMock()
-        args.verb = "restore"
+        args.verb = "trash"
         args.key = "ABCD1234"
-        args.execute = True
-        args.force = True
+        args.execute = False
+        args.force = False
         args.user = False
 
-        with pytest.raises(ZoteroCliError) as raised:
-            ItemCommand().execute(args)
+        ItemCommand().execute(args)
 
-    assert "only supports --offline mode" in str(raised.value)
+    gateway.trash_item.assert_not_called()
+    out = capsys.readouterr().out
+    assert "Preview only" in out
+    assert "zotero.sqlite" not in out
 
 
 def test_item_trash_preview_only_without_execute(env_vars, capsys):
@@ -672,7 +790,8 @@ def test_item_trash_execute_force_writes(env_vars, capsys):
 
         ItemCommand().execute(args)
 
-    gateway.trash_item.assert_called_once_with("ABCD1234")
+    gateway.trash_item.assert_called_once()
+    assert gateway.trash_item.call_args[0][0] == "ABCD1234"
     assert "Moved to trash" in capsys.readouterr().out
 
 
@@ -694,7 +813,8 @@ def test_item_restore_execute_force_writes(env_vars, capsys):
 
         ItemCommand().execute(args)
 
-    gateway.restore_item.assert_called_once_with("ABCD1234")
+    gateway.restore_item.assert_called_once()
+    assert gateway.restore_item.call_args[0][0] == "ABCD1234"
     assert "Restored from trash" in capsys.readouterr().out
 
 
