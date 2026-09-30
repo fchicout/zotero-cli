@@ -2,7 +2,7 @@
 
 import argparse
 import sys
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Sequence
 
 
 class _DeprecatedVerbose(argparse.Action):
@@ -16,8 +16,8 @@ class _DeprecatedVerbose(argparse.Action):
         self,
         parser: argparse.ArgumentParser,
         namespace: argparse.Namespace,
-        values: Union[str, Sequence[Any], None],
-        option_string: Optional[str] = None,
+        values: str | Sequence[Any] | None,
+        option_string: str | None = None,
     ) -> None:
         print(
             "Warning: `--verbose` on this command is deprecated; use --details "
