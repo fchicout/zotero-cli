@@ -26,6 +26,18 @@ def _no_external_network(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_leaked_notify_sink():
+    """`cli.main.main()` installs the stderr sink for domain services (Issue #393);
+    clear it around every test so one test driving `main()` can't turn the next
+    test's logging into terminal output."""
+    from zotero_cli.core.utils.notify import set_default_notify
+
+    set_default_notify(None)
+    yield
+    set_default_notify(None)
+
+
+@pytest.fixture(autouse=True)
 def _no_real_logging_setup(monkeypatch):
     """
     tests/unit must stay fully offline/file-write-free (CLAUDE.md) -

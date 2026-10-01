@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, List, Optional, cast
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.utils.csv_safety import sanitize_csv_rows
-from zotero_cli.core.utils.notify import Notify, notify_or_log
+from zotero_cli.core.utils.notify import Notify, NotifyMixin
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 ProgressCallback = Callable[[int, int, str], None]
 
 
-class SyncService:
+class SyncService(NotifyMixin):
     """
     Service responsible for synchronizing local state (CSV) from remote truth (Zotero Notes).
     """
@@ -29,9 +29,6 @@ class SyncService:
         self.collection_repo = collection_repo
         self.item_repo = item_repo
         self.notify = notify
-
-    def _say(self, message: str, level: int = logging.INFO) -> None:
-        notify_or_log(self.notify, logger, message, level)
 
     def recover_state_from_notes(
         self,

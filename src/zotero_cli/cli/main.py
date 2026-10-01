@@ -35,10 +35,12 @@ from typing import Any  # noqa: E402
 from zotero_cli import __version__  # noqa: E402
 from zotero_cli.cli import commands  # noqa: F401, E402 (Trigger registration)
 from zotero_cli.cli.base import CommandRegistry  # noqa: E402
+from zotero_cli.cli.notify import stderr_notify  # noqa: E402
 from zotero_cli.core.config import get_config  # noqa: E402
 from zotero_cli.core.exceptions import ZoteroCliError  # noqa: E402
 from zotero_cli.core.logging_config import setup_logging  # noqa: E402
 from zotero_cli.core.runtime import set_offline_mode  # noqa: E402
+from zotero_cli.core.utils.notify import set_default_notify  # noqa: E402
 from zotero_cli.core.utils.terminal_safety import (  # noqa: E402
     make_output_streams_tolerant,
     safe_markup,
@@ -120,6 +122,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     # First, so even a usage error or --help is safe on a legacy console (#513).
     make_output_streams_tolerant()
+    # Domain services speak through this sink; without it they only log (Issue #393).
+    set_default_notify(stderr_notify)
     parser = build_parser()
     args = parser.parse_args()
 

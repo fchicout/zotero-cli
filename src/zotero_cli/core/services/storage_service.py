@@ -7,14 +7,14 @@ from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.exceptions import ConfigurationError, UsageError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import ZoteroQuery
-from zotero_cli.core.utils.notify import Notify, notify_or_log
+from zotero_cli.core.utils.notify import Notify, NotifyMixin
 from zotero_cli.core.utils.terminal_safety import strip_controls
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
 
 
-class StorageService:
+class StorageService(NotifyMixin):
     def __init__(
         self,
         config: ZoteroConfig,
@@ -24,9 +24,6 @@ class StorageService:
         self.config = config
         self.gateway = gateway
         self.notify = notify
-
-    def _say(self, message: str, level: int = logging.INFO) -> None:
-        notify_or_log(self.notify, logger, message, level)
 
     def _is_group_library(self) -> bool:
         try:
