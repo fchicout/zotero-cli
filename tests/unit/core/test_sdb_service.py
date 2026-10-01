@@ -98,21 +98,6 @@ def test_classify_decision_agreement_conflicting(service, mock_gateway):
     assert service.classify_decision_agreement(["I1", "I2"]) == "CONFLICTING"
 
 
-def test_build_inspect_table(service):
-    entries = [
-        {
-            "decision": "accepted",
-            "persona": "P1",
-            "phase": "ph1",
-            "audit_version": "1.2",
-            "timestamp": "2026-01-01",
-        }
-    ]
-    table = service.build_inspect_table("ITEM1", entries)
-    assert table.title == "SDB Inspect: ITEM1"
-    assert len(table.rows) == 1
-
-
 def test_edit_sdb_entry_success(service, mock_gateway):
     mock_gateway.get_item_children.return_value = [
         {

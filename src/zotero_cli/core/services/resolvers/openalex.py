@@ -2,20 +2,19 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from zotero_cli.core.interfaces import PDFResolver, ResolutionError
+from zotero_cli.core.interfaces import MetadataProvider, PDFResolver, ResolutionError
 from zotero_cli.core.utils.safe_tempfile import write_secure_temp_file
 from zotero_cli.core.zotero_item import ZoteroItem
-from zotero_cli.infra.openalex_api import OpenAlexAPIClient
 
 logger = logging.getLogger(__name__)
 
 
 class OpenAlexResolver(PDFResolver):
     """
-    Resolves PDFs using the OpenAlex API Client.
+    Resolves PDFs using an OpenAlex metadata client.
     """
 
-    def __init__(self, client: OpenAlexAPIClient):
+    def __init__(self, client: MetadataProvider):
         self.client = client
 
     async def resolve(self, item: ZoteroItem) -> Optional[Path]:

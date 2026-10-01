@@ -31,7 +31,7 @@ def test_slr_sdb_inspect(mock_gateway, mock_sdb_service, capsys):
             main()
 
     mock_sdb_service.inspect_item_sdb.assert_called_with("KEY1")
-    mock_sdb_service.build_inspect_table.assert_called_once()
+    assert "SDB Inspect: KEY1" in capsys.readouterr().out
 
 
 def test_slr_sdb_edit_dry_run(mock_gateway, mock_sdb_service, capsys):

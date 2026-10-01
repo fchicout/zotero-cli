@@ -3,6 +3,7 @@ import argparse
 from rich.markup import escape
 
 from zotero_cli.cli.flags import add_key_argument, add_renamed_flag, resolve_key
+from zotero_cli.cli.presenters.sdb_presenter import build_inspect_table
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
@@ -118,7 +119,7 @@ $ zotero-cli slr sdb export --collection "Screening" --output screening.csv
             if not entries:
                 console.print(f"[yellow]No SDB entries found for {safe_markup(args.key)}[/yellow]")
                 return
-            table = service.build_inspect_table(args.key, entries)
+            table = build_inspect_table(args.key, entries)
             console.print(table)
 
         elif args.sdb_verb == "edit":
