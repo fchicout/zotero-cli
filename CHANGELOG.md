@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🛡️ Quality & Infrastructure
+- **The unit suite can no longer reach the network unnoticed (Issue #389):** `tests/unit` was meant to be fully offline, but nothing enforced it, and two tests reached out: `test_rag_full_flow` said it used the mock embedding provider but fell through to a local model and downloaded ~88 MB from Hugging Face on every run (and failed whenever Hugging Face rate-limited CI), and `test_init_command` really called `api.zotero.org` with retry backoff of up to 14 s. Both are fixed. Every unit test now refuses non-loopback connections and fails at teardown if one was attempted (code under test often catches `Exception`, which would otherwise hide it), and Hugging Face libraries run with `HF_HUB_OFFLINE=1`.
+
 ### 🐛 Bug Fixes
 - **Commands no longer crash on a console that can't show their status glyphs (Issue #513):** on a Windows console whose codepage isn't UTF-8 (cp1252 is the common default), printing a check mark, warning sign or similar glyph - `report attachments --output`, `system verify`, `slr source add`, `init` and others print them - raised `UnicodeEncodeError` and ended a command that had already done its work with an error. stdout and stderr now replace a character their encoding can't represent (shown as `?`) instead of raising. Only the error handler changes, never the encoding, so a UTF-8 terminal still shows the real glyph.
 

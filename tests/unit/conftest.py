@@ -1,14 +1,28 @@
 from unittest.mock import MagicMock
 
 from tests.home_isolation import isolate_home
+from tests.network_guard import ExternalConnectionGuard, offline_env
 
 # Before any zotero_cli import: nothing in the unit suite may resolve the
-# developer's real ~/.config/zotero-cli (Issue #365).
+# developer's real ~/.config/zotero-cli (Issue #365), or reach Hugging Face
+# (Issue #389: huggingface_hub reads this variable once, at import).
 isolate_home()
+offline_env()
 
 import pytest  # noqa: E402
 
 from zotero_cli.core.config import ZoteroConfig  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _no_external_network(monkeypatch):
+    """tests/unit never leaves this machine (Issue #389). A refused connection
+    is also recorded, because code under test often catches Exception and
+    would hide it: the test fails at teardown if any was attempted."""
+    guard = ExternalConnectionGuard()
+    guard.install(monkeypatch)
+    yield guard
+    assert not guard.attempts, f"unit test tried to reach the network: {guard.attempts}"
 
 
 @pytest.fixture(autouse=True)
