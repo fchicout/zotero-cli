@@ -254,14 +254,14 @@ class ScreeningService(IScreeningService):
             item
             for item in self.collection_repo.get_items_in_collection(col_id)
             if not any(
-                tag.startswith("rsl:phase:") or tag.startswith("rsl:exclude:") or tag == "rsl:include"
+                tag.startswith("rsl:phase:")
+                or tag.startswith("rsl:exclude:")
+                or tag == "rsl:include"
                 for tag in item.tags
             )
         ]
         # SLOW PATH: the rest's notes, fetched together (Issue #425)
-        notes_by_item = children_by_parent(
-            self.note_repo, [item.key for item in undecided], "note"
-        )
+        notes_by_item = children_by_parent(self.note_repo, [item.key for item in undecided], "note")
         pending = []
 
         for item in undecided:

@@ -86,7 +86,9 @@ class BibtexLibGateway(BibtexGateway):
 
         # ArXiv ID
         arxiv_id = None
-        archive_prefix = self._field(entry, "archiveprefix") or self._field(entry, "archivePrefix") or ""
+        archive_prefix = (
+            self._field(entry, "archiveprefix") or self._field(entry, "archivePrefix") or ""
+        )
         if archive_prefix.lower() == "arxiv":
             arxiv_id = self._field(entry, "eprint")
 

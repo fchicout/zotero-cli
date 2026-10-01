@@ -120,7 +120,9 @@ class ScreeningTUI:
             else:
                 code = ""  # Inclusion implies all criteria met
 
-            with self.console.status(f"[bold blue]Recording decision ({safe_markup(decision)})...[/bold blue]"):
+            with self.console.status(
+                f"[bold blue]Recording decision ({safe_markup(decision)})...[/bold blue]"
+            ):
                 success = self.service.record_decision(
                     item_key=item.key,
                     decision=decision,
@@ -177,7 +179,9 @@ class ScreeningTUI:
         default = "IC1" if decision == "INCLUDE" else "EC1"
         try:
             code = Prompt.ask(
-                f"Enter {safe_markup(decision)} Criteria Code", default=default, console=self.console
+                f"Enter {safe_markup(decision)} Criteria Code",
+                default=default,
+                console=self.console,
             )
             return code
         except (EOFError, StopIteration):

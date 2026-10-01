@@ -83,9 +83,7 @@ def add_renamed_flag(
     group so a `required` flag is satisfied by either spelling."""
     dest = dest or new.lstrip("-").replace("-", "_")
     group = parser.add_mutually_exclusive_group(required=required)
-    group.add_argument(
-        new, dest=dest, metavar=metavar, help=help, choices=choices, default=default
-    )
+    group.add_argument(new, dest=dest, metavar=metavar, help=help, choices=choices, default=default)
     group.add_argument(
         old,
         dest=dest,

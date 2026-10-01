@@ -336,7 +336,9 @@ def test_public_only_session_mounts_pinned_pools():
     session = url_safety.public_only_session()
     adapter = session.get_adapter("https://example.com/")
     assert isinstance(adapter, url_safety.PublicOnlyAdapter)
-    assert adapter.poolmanager.pool_classes_by_scheme["https"] is url_safety._PinnedHTTPSConnectionPool
+    assert (
+        adapter.poolmanager.pool_classes_by_scheme["https"] is url_safety._PinnedHTTPSConnectionPool
+    )
 
 
 @pytest.mark.anyio

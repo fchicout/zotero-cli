@@ -4,9 +4,8 @@
 "previous version" new-code period the baseline only moves when it changes.
 """
 
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 

@@ -41,11 +41,14 @@ def debug_sonar() -> None:
                 error_threshold = cond.get("errorThreshold")
                 actual_value = cond.get("actualValue")
 
-                print(f"  - Metric: {metric:<30} | Status: {status:<8} | Actual: {actual_value:<10} | Threshold: {operator} {error_threshold}")
+                print(
+                    f"  - Metric: {metric:<30} | Status: {status:<8} | Actual: {actual_value:<10} | Threshold: {operator} {error_threshold}"
+                )
         else:
             print(f"Failed to fetch project status: {response.text}")
     except Exception as e:
         print(f"Error connecting to SonarQube: {e}")
+
 
 if __name__ == "__main__":
     debug_sonar()

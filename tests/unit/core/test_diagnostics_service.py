@@ -99,14 +99,20 @@ def test_pubmed_not_configured(mock_gateway, mock_aggregator, base_config):
 
 def test_zotero_rejected_key_says_what_to_do(mock_gateway, mock_aggregator, base_config):
     mock_gateway.verify_credentials.return_value = False
-    result = result_for(make_service(mock_gateway, mock_aggregator, base_config).run_checks(), "Zotero API")
+    result = result_for(
+        make_service(mock_gateway, mock_aggregator, base_config).run_checks(), "Zotero API"
+    )
     assert "zotero.org/settings/keys" in result.details
     assert "zotero-cli init" in result.details
 
 
-def test_zotero_unavailable_is_not_reported_as_a_bad_key(mock_gateway, mock_aggregator, base_config):
+def test_zotero_unavailable_is_not_reported_as_a_bad_key(
+    mock_gateway, mock_aggregator, base_config
+):
     mock_gateway.verify_credentials.side_effect = Unavailable("Zotero API unreachable (timed out)")
-    result = result_for(make_service(mock_gateway, mock_aggregator, base_config).run_checks(), "Zotero API")
+    result = result_for(
+        make_service(mock_gateway, mock_aggregator, base_config).run_checks(), "Zotero API"
+    )
     assert result.status == "FAILED"
     assert "unreachable" in result.details
     assert "key" not in result.details
@@ -128,7 +134,9 @@ def test_offline_reports_the_local_database(mock_gateway, mock_aggregator, base_
 def test_offline_unreadable_database_is_failed(mock_gateway, mock_aggregator, base_config):
     mock_gateway.original_db_path = "/nope/zotero.sqlite"
     mock_gateway.count_items.side_effect = RuntimeError("unable to open database file")
-    row = result_for(make_service(mock_gateway, mock_aggregator, base_config).run_checks(), "Local database")
+    row = result_for(
+        make_service(mock_gateway, mock_aggregator, base_config).run_checks(), "Local database"
+    )
     assert row.status == "FAILED"
     assert "unable to open" in row.details
 
@@ -143,13 +151,14 @@ def test_rag_rows_absent_when_not_configured(mock_gateway, mock_aggregator, base
 def test_rag_configured_is_reported_without_calling_providers(mock_gateway, mock_aggregator):
     """No model load, download or API call (Issue #382)."""
     config = ZoteroConfig(
-        api_key="k", library_id="1", embedding_provider="openai", generative_provider="gemini",
+        api_key="k",
+        library_id="1",
+        embedding_provider="openai",
+        generative_provider="gemini",
         generative_model="gemini-pro",
     )
     llm, embedder = MagicMock(), MagicMock()
-    with patch(
-        "zotero_cli.core.services.diagnostics_service._importable", return_value=True
-    ):
+    with patch("zotero_cli.core.services.diagnostics_service._importable", return_value=True):
         service = DiagnosticsService(mock_gateway, mock_aggregator, llm, embedder, config)
         results = service.run_checks()
     emb = result_for(results, "Embedding Provider")
@@ -162,10 +171,10 @@ def test_rag_configured_is_reported_without_calling_providers(mock_gateway, mock
 
 def test_rag_configured_without_the_extra_says_how_to_install(mock_gateway, mock_aggregator):
     config = ZoteroConfig(api_key="k", library_id="1", embedding_provider="local")
-    with patch(
-        "zotero_cli.core.services.diagnostics_service._importable", return_value=False
-    ):
-        row = result_for(make_service(mock_gateway, mock_aggregator, config).run_checks(), "Embedding Provider")
+    with patch("zotero_cli.core.services.diagnostics_service._importable", return_value=False):
+        row = result_for(
+            make_service(mock_gateway, mock_aggregator, config).run_checks(), "Embedding Provider"
+        )
     assert row.status == "FAILED"
     assert "zotero-command-line[rag]" in row.details
 
@@ -180,7 +189,12 @@ def test_run_checks_default_rows(mock_gateway, mock_aggregator, base_config):
 def test_unconfigured_library_is_a_required_not_configured_row(mock_aggregator, base_config):
     """Issue #376: `system check` runs before setup and says what's missing."""
     service = DiagnosticsService(
-        None, mock_aggregator, None, None, base_config, "No Zotero API key is set. Run `zotero-cli init`"
+        None,
+        mock_aggregator,
+        None,
+        None,
+        base_config,
+        "No Zotero API key is set. Run `zotero-cli init`",
     )
     row = result_for(service.run_checks(), "Zotero API")
     assert row.status == "NOT_CONFIGURED"

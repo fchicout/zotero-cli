@@ -200,9 +200,7 @@ class ResolverFactory:
         graph_service = ResolverFactory.get_snowball_graph_service(config, force_user)
         metadata_service = MetadataClientFactory.get_metadata_aggregator(config)
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
-        col_repo = RepositoryFactory.get_collection_repository(
-            config, force_user, offline=offline
-        )
+        col_repo = RepositoryFactory.get_collection_repository(config, force_user, offline=offline)
 
         from zotero_cli.core.services.duplicate_service import DuplicateFinder
 

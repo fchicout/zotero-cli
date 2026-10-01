@@ -133,7 +133,9 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider)
 
             page += 1
 
-    def _map_to_research_paper(self, item: Dict[str, Any], resolve_pdf: bool = True) -> ResearchPaper:
+    def _map_to_research_paper(
+        self, item: Dict[str, Any], resolve_pdf: bool = True
+    ) -> ResearchPaper:
         # Title
         title = (item.get("title") or "").strip()
 

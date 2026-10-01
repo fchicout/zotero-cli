@@ -37,9 +37,13 @@ def db(tmp_path):
     conn = sqlite3.connect(path)
     conn.executescript(SCHEMA)
     rows = [
-        (1, "PAPER001", 1), (2, "PAPER002", 1),
-        (10, "NOTE0001", 3), (11, "PDF00001", 2), (12, "LINK0001", 2),
-        (20, "NOTE0002", 3), (21, "GONE0001", 3),
+        (1, "PAPER001", 1),
+        (2, "PAPER002", 1),
+        (10, "NOTE0001", 3),
+        (11, "PDF00001", 2),
+        (12, "LINK0001", 2),
+        (20, "NOTE0002", 3),
+        (21, "GONE0001", 3),
     ]
     for item_id, key, type_id in rows:
         conn.execute(
@@ -53,7 +57,9 @@ def db(tmp_path):
     conn.execute(
         "INSERT INTO itemAttachments VALUES (11, 1, 0, 'application/pdf', 'storage:paper.pdf')"
     )
-    conn.execute("INSERT INTO itemAttachments VALUES (12, 1, 2, 'application/pdf', '/papers/x.pdf')")
+    conn.execute(
+        "INSERT INTO itemAttachments VALUES (12, 1, 2, 'application/pdf', '/papers/x.pdf')"
+    )
     conn.execute("INSERT INTO itemDataValues VALUES (1, 'Full Text PDF')")
     conn.execute("INSERT INTO itemData VALUES (11, 1, 1)")
     conn.execute("INSERT INTO tags VALUES (1, 'sdb')")

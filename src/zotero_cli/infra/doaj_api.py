@@ -18,7 +18,9 @@ logger = logging.getLogger(__name__)
 _MAX_PER_PAGE = 100
 
 
-class DOAJAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider, CountableMetadataProvider):
+class DOAJAPIClient(
+    BaseAPIClient, MetadataProvider, SearchableMetadataProvider, CountableMetadataProvider
+):
     """
     Client for the Directory of Open Access Journals (doaj.org) search API.
     No API key required (Issue #190).

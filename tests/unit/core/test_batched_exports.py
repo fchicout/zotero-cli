@@ -33,7 +33,9 @@ def test_bibtex_export_reads_sdb_data_in_one_scan():
     bibtex = MagicMock()
     bibtex.write_file.return_value = True
 
-    service = ExportService(ZoteroCollectionRepository(gateway), bibtex, MagicMock(), SDBService(gateway))
+    service = ExportService(
+        ZoteroCollectionRepository(gateway), bibtex, MagicMock(), SDBService(gateway)
+    )
     assert service.export_collection("COL", "out.bib") is True
 
     gateway.get_item_children.assert_not_called()
@@ -46,7 +48,10 @@ def test_markdown_export_finds_every_pdf_in_one_scan_and_downloads_by_key(tmp_pa
     gateway = _SmallLibrary()
     papers = [_item(f"P{n}") for n in range(5)]
     gateway.search_items.return_value = iter(
-        [_item(f"A{n}", "attachment", parent=f"P{n}", contentType="application/pdf") for n in (0, 2)]
+        [
+            _item(f"A{n}", "attachment", parent=f"P{n}", contentType="application/pdf")
+            for n in (0, 2)
+        ]
     )
     service = AttachmentService(
         MagicMock(), MagicMock(), MagicMock(), ZoteroNoteRepository(gateway), MagicMock()
@@ -63,7 +68,9 @@ def test_markdown_export_finds_every_pdf_in_one_scan_and_downloads_by_key(tmp_pa
 def _run_attachments_report(gateway, collection=None):
     from zotero_cli.cli.commands.report_cmd import ReportCommand
 
-    args = argparse.Namespace(report_type="attachments", collection=collection, output=None, user=False)
+    args = argparse.Namespace(
+        report_type="attachments", collection=collection, output=None, user=False
+    )
     with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway):
         ReportCommand().execute(args)
 

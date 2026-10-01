@@ -167,7 +167,9 @@ def test_item_inspect_no_abstract_message_is_plain_ascii(mock_clients, env_vars,
     # The panel's own box-drawing border isn't this bug (Rich downgrades it
     # on a real legacy console); only the interpolated content is at risk.
     content = out[out.index("<no abstract>") : out.index("<no abstract>") + len("<no abstract> !!")]
-    assert content.isascii(), f"non-ASCII content would crash a legacy-codepage console: {content!r}"
+    assert content.isascii(), (
+        f"non-ASCII content would crash a legacy-codepage console: {content!r}"
+    )
 
 
 def test_item_inspect_missing_key(mock_clients, env_vars, capsys):
@@ -505,7 +507,9 @@ def test_item_delete_dry_run_previews_without_deleting(mock_clients, env_vars, c
     assert "Preview only" in out
 
 
-def test_item_delete_trash_moves_to_trash_without_the_legacy_warning(mock_clients, env_vars, capsys):
+def test_item_delete_trash_moves_to_trash_without_the_legacy_warning(
+    mock_clients, env_vars, capsys
+):
     """Issue #402: --trash is the recoverable, opt-in form; nothing permanent
     happens and there's no old behaviour to warn about."""
     gateway = mock_clients["gateway"]

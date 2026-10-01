@@ -53,7 +53,9 @@ class PromoteCommand:
         source_key, target_key = orchestrator.get_promotion_path(root_key, args.phase)
 
         if not target_key:
-            raise ZoteroCliError(f"Could not resolve folders for phase '{args.phase}' in tree '{args.tree}'.")
+            raise ZoteroCliError(
+                f"Could not resolve folders for phase '{args.phase}' in tree '{args.tree}'."
+            )
 
         # 2. Record Decision
         # Note: ScreeningService internally handles tags and SDB note creation

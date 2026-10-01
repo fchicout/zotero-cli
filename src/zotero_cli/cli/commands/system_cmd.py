@@ -230,7 +230,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--name", default="Zotero-CLI Sandbox", help="Name for the sandbox collection"
         )
         sandbox_p.add_argument(
-            "--clean", action="store_true", help="Delete the sandbox collection instead of creating it"
+            "--clean",
+            action="store_true",
+            help="Delete the sandbox collection instead of creating it",
         )
 
         # Backup
@@ -310,7 +312,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         restore_mode = restore_p.add_mutually_exclusive_group()
         restore_mode.add_argument("--dry-run", action="store_true", help="Simulate restore")
         restore_mode.add_argument(
-            "--execute", action="store_true", help="Apply the restore (default for now; see Deprecation note)"
+            "--execute",
+            action="store_true",
+            help="Apply the restore (default for now; see Deprecation note)",
         )
 
         # Normalize CSV
@@ -580,7 +584,9 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
         for r in results:
             color = status_color.get(r.status, "white")
             table.add_row(
-                r.name, f"[{color}]{safe_markup(r.status.replace('_', ' '))}[/{color}]", safe_markup(r.details)
+                r.name,
+                f"[{color}]{safe_markup(r.status.replace('_', ' '))}[/{color}]",
+                safe_markup(r.details),
             )
         console.print(table)
 
@@ -740,7 +746,9 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
             if args.watch:
                 self._watch_jobs(job_service, args.type, force_user)
             else:
-                console.print(f"[bold]Starting worker for task type '{safe_markup(args.type)}'...[/bold]")
+                console.print(
+                    f"[bold]Starting worker for task type '{safe_markup(args.type)}'...[/bold]"
+                )
                 asyncio.run(worker_service.process_jobs(count=args.count))
                 console.print("[bold green]Done.[/bold green]")
 
@@ -794,7 +802,6 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
 
                 import asyncio
 
-
                 asyncio.run(svc.process_jobs(count=1))
                 time.sleep(0.5)
 
@@ -835,7 +842,9 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
         target_name = target.get("data", {}).get("name")
         target_id = str(target.get("id"))
 
-        if Confirm.ask(f"Switch context to group '{safe_markup(target_name)}' ({safe_markup(target_id)})?"):
+        if Confirm.ask(
+            f"Switch context to group '{safe_markup(target_name)}' ({safe_markup(target_id)})?"
+        ):
             try:
                 manager = ConfigManager()
                 manager.save_group_context(target_id)

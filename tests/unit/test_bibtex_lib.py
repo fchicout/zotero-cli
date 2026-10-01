@@ -198,7 +198,7 @@ def test_latex_escapes_become_unicode_on_import(tmp_path):
         '  title = {Na{\\"i}ve {B}ayes {\\`a} la carte},\n'
         '  author = {M{\\"u}ller, Hans and Erd\\H{o}s, Paul and Fran\\c{c}ois, Jean},\n'
         "  journal = {Revue d'{\\'E}tudes},\n"
-        '  abstract = {The S{\\o}ren method \\& beyond},\n'
+        "  abstract = {The S{\\o}ren method \\& beyond},\n"
         "  year = {2022}\n"
         "}\n",
     )
@@ -212,7 +212,7 @@ def test_latex_escapes_become_unicode_on_import(tmp_path):
 def test_booktitle_and_journaltitle_are_translated_too(tmp_path):
     paper = _parse_one(
         tmp_path,
-        "@inproceedings{k, title={T}, booktitle={Proc. of the {\\\"U}berconf}, year={2020}}\n",
+        '@inproceedings{k, title={T}, booktitle={Proc. of the {\\"U}berconf}, year={2020}}\n',
     )
     assert paper.publication == "Proc. of the \u00dcberconf"
 

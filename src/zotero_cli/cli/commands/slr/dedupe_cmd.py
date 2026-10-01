@@ -128,7 +128,9 @@ Result:  A CSV is written with one row per occurrence; MATCHING/UNSCREENED rows 
             )
             with open(args.export_plan, "w", newline="", encoding="utf-8") as f:
                 f.write(content)
-            console.print(f"[green]Exported reconciliation plan to {safe_markup(args.export_plan)}[/green]")
+            console.print(
+                f"[green]Exported reconciliation plan to {safe_markup(args.export_plan)}[/green]"
+            )
 
         if not args.execute:
             console.print(
@@ -165,7 +167,9 @@ Result:  A CSV is written with one row per occurrence; MATCHING/UNSCREENED rows 
             f"[bold green]Merged {safe_markup(merged)} duplicate item(s) across {len(resolved_entries)} group(s).[/bold green]"
         )
         for r in failed:
-            console.print(f"[red]Failed to merge into '{safe_markup(r.master_key)}': {safe_markup(', '.join(r.errors))}[/red]")
+            console.print(
+                f"[red]Failed to merge into '{safe_markup(r.master_key)}': {safe_markup(', '.join(r.errors))}[/red]"
+            )
 
         if conflicting_count:
             console.print(

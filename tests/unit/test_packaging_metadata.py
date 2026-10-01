@@ -1,8 +1,7 @@
 """Packaging metadata stays consistent (Issue #415)."""
 
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 import zotero_cli
 

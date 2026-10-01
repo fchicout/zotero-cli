@@ -255,4 +255,9 @@ def test_checker_rejects_broken_synopses(command):
 def test_checker_accepts_valid_forms():
     assert parse_error(to_argv('zotero-cli item inspect --key "K" | jq .') or ["x"]) is None
     assert synopsis_error("zotero-cli item hydrate (--key KEY | --all) [--execute]") is None
-    assert to_argv("zotero-cli system verify --file <archive.zaf>") == ["system", "verify", "--file", "1"]
+    assert to_argv("zotero-cli system verify --file <archive.zaf>") == [
+        "system",
+        "verify",
+        "--file",
+        "1",
+    ]

@@ -54,8 +54,10 @@ def unsanitize_csv_cell(value: Any) -> Any:
     entered (indistinguishable from - and no worse than - any other CSV
     round-trip through a spreadsheet application).
     """
-    if isinstance(value, str) and value.startswith("'") and value[1:].startswith(
-        _DANGEROUS_PREFIXES
+    if (
+        isinstance(value, str)
+        and value.startswith("'")
+        and value[1:].startswith(_DANGEROUS_PREFIXES)
     ):
         return value[1:]
     return value

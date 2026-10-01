@@ -147,7 +147,10 @@ class CSVInboundService:
             payload = self._build_sdb_payload(row, reviewer, phase, actual_map)
 
             if dry_run or not force:
-                print(strip_controls(f"[DRY RUN] Match: {item.key} | {(item.title or '')[:40]}..."), file=sys.stderr)
+                print(
+                    strip_controls(f"[DRY RUN] Match: {item.key} | {(item.title or '')[:40]}..."),
+                    file=sys.stderr,
+                )
                 results["skipped"] += 1
                 continue
 

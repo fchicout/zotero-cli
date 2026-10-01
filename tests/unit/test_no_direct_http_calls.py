@@ -16,7 +16,18 @@ SRC = Path(next(iter(zotero_cli.__path__)))
 
 _DIRECT_CALLS = {
     "requests": {"get", "head", "post", "put", "patch", "delete", "request", "Session"},
-    "httpx": {"get", "head", "post", "put", "patch", "delete", "request", "Client", "AsyncClient", "stream"},
+    "httpx": {
+        "get",
+        "head",
+        "post",
+        "put",
+        "patch",
+        "delete",
+        "request",
+        "Client",
+        "AsyncClient",
+        "stream",
+    },
 }
 
 ALLOWLIST = {

@@ -205,9 +205,9 @@ def _unescaped_interpolations(source):
 
 
 def test_markup_lint_flags_an_unescaped_title():
-    source = "def f(item):\n    console.print(f\"[cyan]{item.title}[/cyan] {count}\")\n"
+    source = 'def f(item):\n    console.print(f"[cyan]{item.title}[/cyan] {count}")\n'
     assert list(_unescaped_interpolations(source)) == [(2, "item.title")]
-    safe = "def f(item):\n    console.print(f\"[cyan]{safe_markup(item.title)}[/cyan]\")\n"
+    safe = 'def f(item):\n    console.print(f"[cyan]{safe_markup(item.title)}[/cyan]")\n'
     assert list(_unescaped_interpolations(safe)) == []
 
 

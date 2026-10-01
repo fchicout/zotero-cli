@@ -24,6 +24,7 @@ def _check_manifest(manifest: object, source: str) -> None:
         raise DataFileError(f"{source} is not a zotero-cli backup archive (.zaf).")
     check_format_version("backup archive", manifest.get("version"), source)
 
+
 logger = logging.getLogger(__name__)
 
 

@@ -60,9 +60,7 @@ class OfflineReadOnly(ConfigurationError):
     `item trash`/`item restore` (Issue #370). Exit 1."""
 
     def __init__(self, message: str = "Offline mode is read-only") -> None:
-        super().__init__(
-            f"{message}. Run the command without --offline to change your library."
-        )
+        super().__init__(f"{message}. Run the command without --offline to change your library.")
 
 
 class AmbiguousCollectionError(UsageError):

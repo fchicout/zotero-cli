@@ -34,6 +34,7 @@ def _gateway_class(name: str) -> Any:
     # A test may have patched the module attribute; prefer it.
     return globals().get(name) or __getattr__(name)
 
+
 # Where zotero.sqlite usually is, for the offline-mode error (Issue #376).
 _DATABASE_HINT = (
     "Set database_path in the [zotero] table (or ZOTERO_DATABASE_PATH) to your zotero.sqlite, "

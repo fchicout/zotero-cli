@@ -19,9 +19,8 @@ def test_version_flag_prints_the_version(flag, capsys):
 
 
 def test_version_matches_pyproject():
-    from pathlib import Path
-
     import tomllib
+    from pathlib import Path
 
     pyproject = Path(__file__).resolve().parents[3] / "pyproject.toml"
     assert tomllib.loads(pyproject.read_text())["project"]["version"] == __version__

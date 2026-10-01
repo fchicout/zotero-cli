@@ -9,7 +9,14 @@ from tests.network_guard import ExternalConnectionGuard, is_local_address
 
 @pytest.mark.parametrize(
     "address",
-    [("127.0.0.1", 80), ("localhost", 8000), ("::1", 443, 0, 0), ("", 9), "/tmp/a.sock", b"/tmp/a.sock"],
+    [
+        ("127.0.0.1", 80),
+        ("localhost", 8000),
+        ("::1", 443, 0, 0),
+        ("", 9),
+        "/tmp/a.sock",
+        b"/tmp/a.sock",
+    ],
 )
 def test_local_addresses_are_allowed(address):
     assert is_local_address(address)
@@ -17,7 +24,13 @@ def test_local_addresses_are_allowed(address):
 
 @pytest.mark.parametrize(
     "address",
-    [("192.0.2.1", 80), ("8.8.8.8", 53), ("huggingface.co", 443), ("api.zotero.org", 443), ("2001:db8::1", 443, 0, 0)],
+    [
+        ("192.0.2.1", 80),
+        ("8.8.8.8", 53),
+        ("huggingface.co", 443),
+        ("api.zotero.org", 443),
+        ("2001:db8::1", 443, 0, 0),
+    ],
 )
 def test_anything_that_leaves_the_machine_is_refused(address):
     assert not is_local_address(address)

@@ -41,7 +41,9 @@ class ExtractionCommand:
         # 2. Export mode
         if args.export:
             path = args.export
-            console.print(f"[bold green]Exporting extraction matrix to: {safe_markup(path)}[/bold green]")
+            console.print(
+                f"[bold green]Exporting extraction matrix to: {safe_markup(path)}[/bold green]"
+            )
             # Implementation omitted for brevity, should follow original logic
             return
 

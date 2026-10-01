@@ -19,13 +19,17 @@ class JobQueueService:
     was added.
     """
 
-    def __init__(self, repo: JobRepository, max_attempts: int = 5, library_id: Optional[str] = None):
+    def __init__(
+        self, repo: JobRepository, max_attempts: int = 5, library_id: Optional[str] = None
+    ):
         self.repo = repo
         self.max_attempts = max_attempts
         self.library_id = library_id
 
     def enqueue(self, item_key: str, task_type: str, payload: Dict[str, Any]) -> int:
-        job = Job(item_key=item_key, task_type=task_type, payload=payload, library_id=self.library_id)
+        job = Job(
+            item_key=item_key, task_type=task_type, payload=payload, library_id=self.library_id
+        )
         return self.repo.enqueue(job)
 
     def pop_next_job(self, task_type: str) -> Optional[Job]:

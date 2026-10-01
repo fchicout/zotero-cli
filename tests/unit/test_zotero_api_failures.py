@@ -31,7 +31,9 @@ def test_a_missing_object_gives_the_default(client, method, args, default):
     assert getattr(client, method)(*args) == default
 
 
-@pytest.mark.parametrize("error", [AuthError("key rejected"), Unavailable("down"), Exception("Boom")])
+@pytest.mark.parametrize(
+    "error", [AuthError("key rejected"), Unavailable("down"), Exception("Boom")]
+)
 @pytest.mark.parametrize("method, args, default", READS)
 def test_other_failures_are_not_reported_as_empty(client, method, args, default, error):
     """Issue #369: a rejected key or an outage used to look like "not found"

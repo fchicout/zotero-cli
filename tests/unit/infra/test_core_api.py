@@ -50,9 +50,7 @@ def test_get_paper_metadata_by_numeric_id(client):
 
 def test_get_paper_metadata_by_doi(client):
     mock_response = MagicMock()
-    mock_response.json.return_value = {
-        "results": [_core_work("DOI Paper", doi="10.1234/core")]
-    }
+    mock_response.json.return_value = {"results": [_core_work("DOI Paper", doi="10.1234/core")]}
 
     with patch.object(client, "_get", return_value=mock_response) as mock_get:
         paper = client.get_paper_metadata("10.1234/core")
@@ -61,7 +59,7 @@ def test_get_paper_metadata_by_doi(client):
     assert paper.title == "DOI Paper"
     assert paper.doi == "10.1234/core"
     assert mock_get.call_args.kwargs["endpoint"] == "search/works"
-    assert '10.1234/core' in mock_get.call_args.kwargs["params"]["q"]
+    assert "10.1234/core" in mock_get.call_args.kwargs["params"]["q"]
 
 
 def test_get_paper_metadata_not_found(client):

@@ -19,7 +19,7 @@ def _name(collection: Dict[str, Any]) -> str:
 
 
 def collection_path(collection: Dict[str, Any], by_key: Dict[str, Dict[str, Any]]) -> str:
-    """"Parent / Child / Name" for display, following parentCollection."""
+    """ "Parent / Child / Name" for display, following parentCollection."""
     parts: List[str] = [_name(collection)]
     parent = collection.get("data", {}).get("parentCollection")
     seen = {collection.get("key")}
@@ -52,8 +52,6 @@ def resolve_collection_key(
         if len(matches) == 1:
             return str(matches[0]["key"])
         if len(matches) > 1:
-            candidates = sorted(
-                (str(c["key"]), collection_path(c, by_key)) for c in matches
-            )
+            candidates = sorted((str(c["key"]), collection_path(c, by_key)) for c in matches)
             raise AmbiguousCollectionError(name_or_key, candidates)
     return None

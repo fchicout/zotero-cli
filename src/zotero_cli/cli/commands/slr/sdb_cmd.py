@@ -42,7 +42,9 @@ $ zotero-cli slr sdb edit ABCD1234 --persona reviewer-a --phase title_abstract -
 """,
         )
         add_key_argument(edit_p, "Item Key")
-        edit_p.add_argument("--persona", required=True, help="Reviewer persona the entry belongs to")
+        edit_p.add_argument(
+            "--persona", required=True, help="Reviewer persona the entry belongs to"
+        )
         edit_p.add_argument("--phase", required=True, help="Screening phase the entry belongs to")
         edit_p.add_argument(
             "--set-decision",
@@ -80,7 +82,9 @@ Examples
 $ zotero-cli slr sdb reset --collection "Screening" --phase title_abstract --force
 """,
         )
-        add_renamed_flag(reset_p, "--collection", "--name", required=True, help="Collection name or key")
+        add_renamed_flag(
+            reset_p, "--collection", "--name", required=True, help="Collection name or key"
+        )
         reset_p.add_argument("--phase", required=True, help="Target phase to reset")
         reset_p.add_argument("--persona", help="Reviewer persona to reset (Optional)")
         reset_p.add_argument("--force", action="store_true", help="Skip confirmation")

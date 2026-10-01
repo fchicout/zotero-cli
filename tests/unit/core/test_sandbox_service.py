@@ -27,9 +27,7 @@ def service(mock_collection_repo, mock_item_repo, mock_note_repo):
     return SandboxService(mock_collection_repo, mock_item_repo, mock_note_repo)
 
 
-def test_create_sandbox_creates_collection_and_items(
-    service, mock_collection_repo, mock_item_repo
-):
+def test_create_sandbox_creates_collection_and_items(service, mock_collection_repo, mock_item_repo):
     mock_collection_repo.create_collection.return_value = "COL123"
     mock_item_repo.create_generic_item.side_effect = [f"KEY{i}" for i in range(20)]
 

@@ -75,13 +75,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         existing_key = str(current.get("api_key") or "")
         api_key = Prompt.ask(
-            "Enter your Zotero API Key" + (" (Enter keeps the current one)" if existing_key else ""),
+            "Enter your Zotero API Key"
+            + (" (Enter keeps the current one)" if existing_key else ""),
             password=True,
             default=existing_key or None,
             show_default=False,
         )
         if not api_key:
-            raise UsageError("An API key is required: create one at https://www.zotero.org/settings/keys")
+            raise UsageError(
+                "An API key is required: create one at https://www.zotero.org/settings/keys"
+            )
         register_secrets(api_key)
 
         # Resolve the key's owning identity up front - no library_id needed
@@ -199,8 +202,7 @@ def _read_existing(config_path: Path, console: Console) -> Dict[str, Any]:
             return dict(tomllib.load(f))
     except (OSError, tomllib.TOMLDecodeError) as e:
         console.print(
-            f"[yellow]The existing config can't be read ({safe_markup(e)}); "
-            "it will be replaced.[/]"
+            f"[yellow]The existing config can't be read ({safe_markup(e)}); it will be replaced.[/]"
         )
         return {}
 

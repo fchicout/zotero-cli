@@ -209,9 +209,7 @@ class SnowballDiscoveryWorker:
             # {"authorId": ..., "name": ...} objects (Issue #318) - the
             # request already asks for it (`params` above), it was just
             # being discarded here before add_candidate ever saw it.
-            authors = [
-                a.get("name", "") for a in citing_paper.get("authors", []) if a.get("name")
-            ]
+            authors = [a.get("name", "") for a in citing_paper.get("authors", []) if a.get("name")]
 
             paper_metadata = {
                 "doi": cite_doi,

@@ -89,6 +89,4 @@ def test_snapshot_shift_refuses_a_newer_snapshot(tmp_path):
     new.write_text(json.dumps({"metadata": {"schema_version": "2.0"}, "items": []}))
 
     with pytest.raises(DataFileError, match="newer zotero-cli"):
-        SLRReportCommand._handle_shift(
-            MagicMock(), argparse.Namespace(old=str(old), new=str(new))
-        )
+        SLRReportCommand._handle_shift(MagicMock(), argparse.Namespace(old=str(old), new=str(new)))

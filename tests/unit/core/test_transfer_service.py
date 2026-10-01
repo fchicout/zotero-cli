@@ -89,9 +89,7 @@ def test_transfer_with_trash_source_trashes_instead_of_deleting(service):
     source_gw.trash_item.return_value = True
     dest_gw.create_generic_item.return_value = "NEW_K1"
 
-    result = service.transfer_item(
-        "K1", source_gw, dest_gw, delete_source=True, trash_source=True
-    )
+    result = service.transfer_item("K1", source_gw, dest_gw, delete_source=True, trash_source=True)
 
     source_gw.trash_item.assert_called_once_with("K1", 1)
     source_gw.delete_item.assert_not_called()
@@ -108,9 +106,7 @@ def test_transfer_with_trash_source_reports_a_failed_trash(service):
     source_gw.trash_item.return_value = False
     dest_gw.create_generic_item.return_value = "NEW_K1"
 
-    result = service.transfer_item(
-        "K1", source_gw, dest_gw, delete_source=True, trash_source=True
-    )
+    result = service.transfer_item("K1", source_gw, dest_gw, delete_source=True, trash_source=True)
 
     assert not result.source_deleted
     assert result.failures == ["could not trash source item K1"]

@@ -6,6 +6,7 @@ from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 
 OFFLINE_ERROR_MSG = "Offline Veto: PurgeService cannot execute in offline mode."
 
+
 class PurgeService:
     """
     Central engine for bulk data removal (attachments, notes, tags).

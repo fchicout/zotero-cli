@@ -371,9 +371,7 @@ def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
             path = Path(config_path).expanduser() if config_path else None
             if path is not None and not path.exists():
                 # A typo in --config used to mean "no config" (Issue #376).
-                raise ConfigurationError(
-                    f"Config file not found: {path}. Check the --config path."
-                )
+                raise ConfigurationError(f"Config file not found: {path}. Check the --config path.")
             loader = ConfigLoader(config_path=path)
             _GLOBAL_CONFIG = loader.load()
             _GLOBAL_CONFIG_PATH = loader.config_path

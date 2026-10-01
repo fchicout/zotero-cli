@@ -1,6 +1,5 @@
 """Release notes come from the CHANGELOG (Issue #416)."""
 
-
 from scripts import release_notes
 
 CHANGELOG = """# Changelog

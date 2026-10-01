@@ -33,7 +33,6 @@ logger = logging.getLogger(__name__)
 _UNKNOWN: Any = object()
 
 
-
 def extract_pdf_text(path: str) -> str:
     """
     The text of a PDF file. pdfminer.six directly (Issue #403): it's what
@@ -43,6 +42,7 @@ def extract_pdf_text(path: str) -> str:
     from pdfminer.high_level import extract_text
 
     return str(extract_text(path))
+
 
 class AttachmentService(FullTextProvider):
     def __init__(
@@ -226,7 +226,12 @@ class AttachmentService(FullTextProvider):
                     tmp.write(chunk)
 
             if not is_pdf:
-                print(strip_controls(f"Download error: {url!r} did not return a valid PDF signature."), file=sys.stderr)
+                print(
+                    strip_controls(
+                        f"Download error: {url!r} did not return a valid PDF signature."
+                    ),
+                    file=sys.stderr,
+                )
                 os.remove(path)
                 return None
 

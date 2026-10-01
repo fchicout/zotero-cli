@@ -81,12 +81,8 @@ def test_documentation_no_orphans():
     registry = get_registered_commands()
     expected_names = {f"{noun}.md" for noun in registry}
 
-    orphans = sorted(
-        f.name for f in docs_dir.glob("*.md") if f.name not in expected_names
-    )
-    assert not orphans, "Command doc files with no matching registered noun:\n" + "\n".join(
-        orphans
-    )
+    orphans = sorted(f.name for f in docs_dir.glob("*.md") if f.name not in expected_names)
+    assert not orphans, "Command doc files with no matching registered noun:\n" + "\n".join(orphans)
 
 
 @pytest.mark.docs

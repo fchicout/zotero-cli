@@ -53,7 +53,9 @@ class ReportService:
         if not col_id:
             return None
 
-        report = PrismaReport(collection_name=collection_name, duplicates_removed=duplicates_removed)
+        report = PrismaReport(
+            collection_name=collection_name, duplicates_removed=duplicates_removed
+        )
         items = list(self.gateway.get_items_in_collection(col_id))
         notes_by_item = children_by_parent(self.gateway, [item.key for item in items], "note")
 
@@ -68,7 +70,9 @@ class ReportService:
         identification_count = report.total_items + report.duplicates_removed
         mermaid = ["graph TD"]
         if report.duplicates_removed:
-            mermaid.append(f"  A[Identification: {identification_count} records] --> A2[Duplicates removed: {report.duplicates_removed}]")
+            mermaid.append(
+                f"  A[Identification: {identification_count} records] --> A2[Duplicates removed: {report.duplicates_removed}]"
+            )
             mermaid.append(f"  A2 --> B[Screening: {report.screened_items} items]")
         else:
             mermaid.append(
@@ -124,15 +128,17 @@ class ReportService:
         ]
         if report.duplicates_removed:
             md.append(f"*   **Duplicates Removed (Identification):** {report.duplicates_removed}")
-        md.extend([
-            f"*   **Items Screened:** {report.screened_items} ({percent_complete:.1f}%)",
-            f"*   **Included (Accepted):** {report.accepted_items}",
-            f"*   **Excluded (Rejected):** {report.rejected_items}",
-            "",
-            "## 2. Rejection Reasons",
-            "| Reason Code | Count | Percentage |",
-            "| :--- | :---: | :---: |",
-        ])
+        md.extend(
+            [
+                f"*   **Items Screened:** {report.screened_items} ({percent_complete:.1f}%)",
+                f"*   **Included (Accepted):** {report.accepted_items}",
+                f"*   **Excluded (Rejected):** {report.rejected_items}",
+                "",
+                "## 2. Rejection Reasons",
+                "| Reason Code | Count | Percentage |",
+                "| :--- | :---: | :---: |",
+            ]
+        )
 
         for code, count in sorted(report.rejections_by_code.items()):
             percent = (count / report.rejected_items * 100) if report.rejected_items > 0 else 0

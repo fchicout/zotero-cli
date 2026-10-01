@@ -20,8 +20,8 @@ def service(mock_gateway):
 
 
 def test_move_item_success_doi(service, mock_gateway):
-    mock_gateway.get_collection_id_by_name.side_effect = (
-        lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
+    mock_gateway.get_collection_id_by_name.side_effect = lambda name: (
+        "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
     )
 
     raw_item = {
@@ -51,8 +51,8 @@ def test_move_item_success_doi(service, mock_gateway):
 
 
 def test_move_item_not_found(service, mock_gateway):
-    mock_gateway.get_collection_id_by_name.side_effect = (
-        lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
+    mock_gateway.get_collection_id_by_name.side_effect = lambda name: (
+        "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
     )
     mock_gateway.get_item.return_value = None
     mock_gateway.get_items_in_collection.return_value = iter([])
@@ -63,8 +63,8 @@ def test_move_item_not_found(service, mock_gateway):
 
 
 def test_move_item_success_arxiv(service, mock_gateway):
-    mock_gateway.get_collection_id_by_name.side_effect = (
-        lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
+    mock_gateway.get_collection_id_by_name.side_effect = lambda name: (
+        "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
     )
 
     raw_item = {
@@ -86,8 +86,8 @@ def test_move_item_success_arxiv(service, mock_gateway):
 
 
 def test_move_item_success_key(service, mock_gateway):
-    mock_gateway.get_collection_id_by_name.side_effect = (
-        lambda name: "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
+    mock_gateway.get_collection_id_by_name.side_effect = lambda name: (
+        "ID_SRC" if name == "Source" else ("ID_DEST" if name == "Dest" else None)
     )
 
     raw_item = {"key": "KEY123", "data": {"key": "KEY123", "version": 1, "collections": ["ID_SRC"]}}
@@ -102,8 +102,8 @@ def test_move_item_success_key(service, mock_gateway):
 
 
 def test_move_item_auto_source_success(service, mock_gateway):
-    mock_gateway.get_collection_id_by_name.side_effect = (
-        lambda name: "ID_DEST" if name == "Dest" else None
+    mock_gateway.get_collection_id_by_name.side_effect = lambda name: (
+        "ID_DEST" if name == "Dest" else None
     )
 
     raw_item = {

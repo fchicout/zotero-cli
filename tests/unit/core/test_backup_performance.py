@@ -19,10 +19,22 @@ def _raw(key, item_type, parent=None, **data):
 def _library():
     raws = [
         _raw("P1", "journalArticle", title="Paper"),
-        _raw("A1", "attachment", "P1", linkMode="imported_file", filename="p.pdf",
-             contentType="application/pdf"),
-        _raw("S1", "attachment", "P1", linkMode="imported_file", filename="page.html",
-             contentType="text/html"),
+        _raw(
+            "A1",
+            "attachment",
+            "P1",
+            linkMode="imported_file",
+            filename="p.pdf",
+            contentType="application/pdf",
+        ),
+        _raw(
+            "S1",
+            "attachment",
+            "P1",
+            linkMode="imported_file",
+            filename="page.html",
+            contentType="text/html",
+        ),
         _raw("N1", "note", "P1", note="<p>hi</p>"),
         _raw("P2", "book", title="Book"),
     ]

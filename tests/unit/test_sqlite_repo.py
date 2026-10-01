@@ -255,9 +255,7 @@ def test_sqlite_trash_and_restore_item(mock_db):
     assert {i.key for i in trashed} == {"ITEMKEY1"}
 
     conn = sqlite3.connect(mock_db)
-    row = conn.execute(
-        "SELECT synced, version FROM items WHERE key = 'ITEMKEY1'"
-    ).fetchone()
+    row = conn.execute("SELECT synced, version FROM items WHERE key = 'ITEMKEY1'").fetchone()
     conn.close()
     assert row[0] == 0  # synced=0, marked dirty for next real sync
     assert row[1] == 1  # version untouched -- only the server bumps it

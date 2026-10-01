@@ -53,7 +53,11 @@ $ zotero-cli slr source add --collection acm --file acm_export.ris
 """,
         )
         add_renamed_flag(
-            add_p, "--collection", "--name", required=True, help="Name or key of the raw collection (e.g. acm)"
+            add_p,
+            "--collection",
+            "--name",
+            required=True,
+            help="Name or key of the raw collection (e.g. acm)",
         )
         add_p.add_argument(
             "--file", required=True, help="Path to RIS, BibTeX, or CSV file to import"
@@ -105,7 +109,9 @@ $ zotero-cli slr source list
         ]
         for phase in phases:
             key = gateway.create_collection(phase, parent_key=parent_key)
-            console.print(f"  - Created sub-collection '[cyan]{safe_markup(phase)}[/cyan]' (Key: {safe_markup(key)})")
+            console.print(
+                f"  - Created sub-collection '[cyan]{safe_markup(phase)}[/cyan]' (Key: {safe_markup(key)})"
+            )
 
         console.print(
             "\n[bold yellow]⚠️  Zotero Group setup guidance for collaboration:[/bold yellow]"
