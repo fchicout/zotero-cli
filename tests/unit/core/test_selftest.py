@@ -13,7 +13,11 @@ from zotero_cli.core.services import selftest
 def test_selftest_passes_on_this_install():
     results = selftest.run_selftest()
 
-    assert [r.name for r in results] == ["PDF text extraction", "SQLite (offline mode)"]
+    assert [r.name for r in results] == [
+        "PDF text extraction",
+        "SQLite (offline mode)",
+        "BibTeX LaTeX translation",
+    ]
     assert all(r.ok for r in results), results
 
 
@@ -26,6 +30,22 @@ def test_selftest_reports_a_broken_pdf_backend():
 
     assert not result.ok
     assert "pdfminer" in result.detail
+
+
+def test_selftest_reports_a_missing_bxc():
+    with patch.dict(sys.modules, {"bxc.latex": None}):
+        result = selftest._check_latex_translation()
+
+    assert not result.ok
+    assert "bxc" in result.detail
+
+
+def test_selftest_reports_wrong_translation_output():
+    with patch("bxc.latex.LatexTranslator.safe_latex_to_unicode", return_value="Muller"):
+        result = selftest._check_latex_translation()
+
+    assert not result.ok
+    assert "unexpected output" in result.detail
 
 
 def test_system_selftest_exits_1_when_a_check_fails(capsys):

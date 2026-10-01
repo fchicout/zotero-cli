@@ -5,12 +5,15 @@ from typing import Iterator, List, Optional
 import bibtexparser
 from bibtexparser.library import Library
 from bibtexparser.model import Entry, Field
+from bxc.latex import LatexTranslator
 
 from zotero_cli.core.exceptions import ImportParseError, NotFound
 from zotero_cli.core.interfaces import BibtexGateway
 from zotero_cli.core.models import ResearchPaper
 
 logger = logging.getLogger(__name__)
+
+_LATEX = LatexTranslator()
 
 
 class BibtexLibGateway(BibtexGateway):
@@ -23,6 +26,11 @@ class BibtexLibGateway(BibtexGateway):
     a field's own braces (only the entry's outer delimiter), and both
     resolve `@string` macros inline by default. So field-by-field reading
     and writing keeps the same values; only the object shapes change.
+
+    On import, the text fields (title, authors, venue, abstract) go through
+    bxc's LaTeX translator (Issue #531), so `M{\\"u}ller` is stored as
+    `Müller`. Identifier-like fields (DOI, URL, arXiv ID, year) are left
+    exactly as written.
     """
 
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
@@ -57,12 +65,15 @@ class BibtexLibGateway(BibtexGateway):
 
     def _map_entry_to_paper(self, entry: Entry) -> ResearchPaper:
         # Authors: "Smith, John and Doe, Jane"
-        authors_str = self._field(entry, "author") or ""
+        authors_str = self._text(entry, "author") or ""
         authors = [a.strip() for a in authors_str.split(" and ")] if authors_str else []
 
         # Publication
-        publication = self._field(entry, "journal") or self._field(entry, "journaltitle") \
-            or self._field(entry, "booktitle")
+        publication = (
+            self._text(entry, "journal")
+            or self._text(entry, "journaltitle")
+            or self._text(entry, "booktitle")
+        )
 
         # Year
         year = self._field(entry, "year") or self._field(entry, "date")
@@ -71,7 +82,7 @@ class BibtexLibGateway(BibtexGateway):
         url = self._field(entry, "url") or self._field(entry, "link")
 
         # Clean title (remove { })
-        title = (self._field(entry, "title") or "No Title").replace("{", "").replace("}", "")
+        title = (self._text(entry, "title") or "No Title").replace("{", "").replace("}", "")
 
         # ArXiv ID
         arxiv_id = None
@@ -81,7 +92,7 @@ class BibtexLibGateway(BibtexGateway):
 
         return ResearchPaper(
             title=title,
-            abstract=self._field(entry, "abstract") or "",
+            abstract=self._text(entry, "abstract") or "",
             authors=authors,
             publication=publication,
             year=year,
@@ -94,6 +105,12 @@ class BibtexLibGateway(BibtexGateway):
     def _field(entry: Entry, key: str) -> Optional[str]:
         field = entry.get(key)
         return field.value if field else None
+
+    @classmethod
+    def _text(cls, entry: Entry, key: str) -> Optional[str]:
+        """A human-readable field with its LaTeX escapes turned into Unicode."""
+        value = cls._field(entry, key)
+        return _LATEX.safe_latex_to_unicode(value) if value else value
 
     def _map_paper_to_entry(self, paper: ResearchPaper) -> Entry:
         """Convert ResearchPaper to a bibtexparser 2.x Entry."""

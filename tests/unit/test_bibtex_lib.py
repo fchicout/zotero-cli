@@ -1,4 +1,3 @@
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -183,19 +182,76 @@ def test_write_then_parse_round_trip_preserves_fields(tmp_path):
     assert reparsed.arxiv_id == original.arxiv_id
 
 
-def test_parse_file_handles_special_characters():
-    """LaTeX escapes and accented characters must survive parsing unchanged,
-    matching 1.x's behavior of not expanding LaTeX escape sequences."""
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        bib_file = Path(tmp_dir) / "special.bib"
-        bib_file.write_text(
-            '@article{special_chars_2022,\n'
-            '  title = {Na{\\"i}ve {B}ayes {\\`a} la carte},\n'
-            "  author = {M{\\\"u}ller, Hans},\n"
-            "  year = {2022}\n"
-            "}\n",
-            encoding="utf-8",
-        )
-        (paper,) = list(BibtexLibGateway().parse_file(str(bib_file)))
-    assert paper.title == 'Na\\"ive Bayes \\`a la carte'
-    assert paper.authors == ['M{\\"u}ller, Hans']
+def _parse_one(tmp_path, body: str) -> ResearchPaper:
+    bib_file = tmp_path / "one.bib"
+    bib_file.write_text(body, encoding="utf-8")
+    (paper,) = list(BibtexLibGateway().parse_file(str(bib_file)))
+    return paper
+
+
+def test_latex_escapes_become_unicode_on_import(tmp_path):
+    """Issue #531: bxc's translator turns accents into real characters, and the
+    existing brace stripping still removes the {B} case-protection groups."""
+    paper = _parse_one(
+        tmp_path,
+        "@article{special_chars_2022,\n"
+        '  title = {Na{\\"i}ve {B}ayes {\\`a} la carte},\n'
+        '  author = {M{\\"u}ller, Hans and Erd\\H{o}s, Paul and Fran\\c{c}ois, Jean},\n'
+        "  journal = {Revue d'{\\'E}tudes},\n"
+        '  abstract = {The S{\\o}ren method \\& beyond},\n'
+        "  year = {2022}\n"
+        "}\n",
+    )
+
+    assert paper.title == "Na\u00efve Bayes \u00e0 la carte"
+    assert paper.authors == ["M\u00fcller, Hans", "Erd\u0151s, Paul", "Fran\u00e7ois, Jean"]
+    assert paper.publication == "Revue d'\u00c9tudes"
+    assert paper.abstract == "The S\u00f8ren method & beyond"
+
+
+def test_booktitle_and_journaltitle_are_translated_too(tmp_path):
+    paper = _parse_one(
+        tmp_path,
+        "@inproceedings{k, title={T}, booktitle={Proc. of the {\\\"U}berconf}, year={2020}}\n",
+    )
+    assert paper.publication == "Proc. of the \u00dcberconf"
+
+
+def test_identifier_fields_are_left_exactly_as_written(tmp_path):
+    """A DOI or URL is not prose: a backslash or percent there must survive."""
+    paper = _parse_one(
+        tmp_path,
+        "@article{k, title={T}, doi={10.1000/a_b\\_c}, url={https://x.org/a%20b?q=1&r=2},\n"
+        "  eprint={2301.00001}, archivePrefix={arXiv}, year={2020}}\n",
+    )
+    assert paper.doi == "10.1000/a_b\\_c"
+    assert paper.url == "https://x.org/a%20b?q=1&r=2"
+    assert paper.arxiv_id == "2301.00001"
+    assert paper.year == "2020"
+
+
+def test_plain_and_already_unicode_text_is_unchanged(tmp_path):
+    paper = _parse_one(
+        tmp_path,
+        "@article{k, title={Plain title}, author={M\u00fcller, Hans}, journal={Journal}, year={2020}}\n",
+    )
+    assert paper.title == "Plain title"
+    assert paper.authors == ["M\u00fcller, Hans"]
+    assert paper.publication == "Journal"
+
+
+def test_math_and_unknown_commands_are_not_mangled(tmp_path):
+    paper = _parse_one(
+        tmp_path,
+        "@article{k, title={On $\\alpha$-stable laws}, abstract={Uses \\textbf{bold}}, year={2020}}\n",
+    )
+    assert "$\\alpha$" in paper.title
+    assert "\\textbf" in paper.abstract
+
+
+def test_a_missing_field_stays_missing(tmp_path):
+    paper = _parse_one(tmp_path, "@article{k, year={2020}}\n")
+    assert paper.title == "No Title"
+    assert paper.authors == []
+    assert paper.publication is None
+    assert paper.abstract == ""

@@ -168,6 +168,20 @@ wheels = [
 ]
 
 [[package]]
+name = "bxc"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "bibtexparser" },
+    { name = "citeproc-py" },
+    { name = "platformdirs" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6b/94/7e4f5e3e869b6209fcd7758fe6a93d2bca223427bda9c8385e424021ab97/bxc-1.2.0.tar.gz", hash = "sha256:e11c2062382a41b86d1fbdc1e276324ee6794b71c8fe698f40c2612d4f6f712c", size = 2424694, upload-time = "2026-10-01T00:27:01.105Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/58/a0440e40000063ff08a4caea27254160dd617eeee9f4a85e82fdb1609406/bxc-1.2.0-py3-none-any.whl", hash = "sha256:cc74cecaf9ba97eb0d5434cd25cb4f4433a4beb94377c1bce6acb382ddfb98c4", size = 2364869, upload-time = "2026-10-01T00:26:59.754Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.6.17"
 source = { registry = "https://pypi.org/simple" }
@@ -355,6 +369,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/80/3f/bd97d3d9c613013d07cb7733d299385b41df37f0471310f5a73dc359f0b8/charset_normalizer-3.4.9-cp314-cp314t-win_amd64.whl", hash = "sha256:9b8e0f3107e2200b76f6054de99016eac3ee6762713587b36baaa7e4bd2ae177", size = 167620, upload-time = "2026-07-07T14:34:33.438Z" },
     { url = "https://files.pythonhosted.org/packages/3d/c6/eee9dca4439b1061f76373f06ea855678cc4a64c1c3c90b50e479edbb8eb/charset_normalizer-3.4.9-cp314-cp314t-win_arm64.whl", hash = "sha256:19ac87f93086ce37b86e098888555c4b4bc48102279bae3350098c0ed664b501", size = 158037, upload-time = "2026-07-07T14:34:35.018Z" },
     { url = "https://files.pythonhosted.org/packages/98/2b/f97f1c193fb855c345d678f5077d6926034db0722df74c8f057020e05a25/charset_normalizer-3.4.9-py3-none-any.whl", hash = "sha256:68e5f26a1ad57ded6d1cfb85331d1c1a195314756471d97758c48498bb4dcdf5", size = 64538, upload-time = "2026-07-07T14:34:56.993Z" },
+]
+
+[[package]]
+name = "citeproc-py"
+version = "0.11.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "lxml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a1/24/4d8fe0564741603f49267a41459158e8946fea50819d3f75c852234921e6/citeproc_py-0.11.1.tar.gz", hash = "sha256:f2f9a64cd980706a0cac5deb7579e6f8acc87ce0140520cc9f30262d20c35307", size = 277750, upload-time = "2026-09-01T20:52:27.988Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0c/03/13057d4b5f57289e53ee03b84ce0cea45b3b71a1d8ebeaaf8a3cec074485/citeproc_py-0.11.1-py3-none-any.whl", hash = "sha256:086db0be0f09552bf4e5cb19bd0c5291f910e555cb0e641a0a4e7ec8a09529e3", size = 387680, upload-time = "2026-09-01T20:52:26.775Z" },
 ]
 
 [[package]]
@@ -3146,6 +3172,7 @@ dependencies = [
     { name = "arxiv" },
     { name = "beautifulsoup4" },
     { name = "bibtexparser" },
+    { name = "bxc" },
     { name = "defusedxml" },
     { name = "fastapi" },
     { name = "filelock" },
@@ -3207,6 +3234,7 @@ requires-dist = [
     { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7.5" },
     { name = "beautifulsoup4", specifier = ">=4.12.0" },
     { name = "bibtexparser", specifier = ">=2.0.1,<3" },
+    { name = "bxc", specifier = ">=1.2.0,<2" },
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "einops", marker = "extra == 'rag'", specifier = ">=0.7.0" },
     { name = "fastapi", specifier = ">=0.109.0" },
