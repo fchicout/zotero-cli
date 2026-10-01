@@ -4,7 +4,6 @@ import logging
 import os
 import shutil
 import sqlite3
-import sys
 import tempfile
 import threading
 from typing import Any, Dict, Iterator, List, Optional, Tuple
@@ -14,6 +13,7 @@ from zotero_cli.core.interfaces import JobRepository, ZoteroGateway
 from zotero_cli.core.models import Job, ResearchPaper, ZoteroQuery
 from zotero_cli.core.utils.collection_resolver import resolve_collection_key
 from zotero_cli.core.utils.normalization import normalize_doi
+from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -157,7 +157,7 @@ def _cleanup_shadows() -> None:
 atexit.register(_cleanup_shadows)
 
 
-class SqliteZoteroGateway(ZoteroGateway):
+class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
     """
     Read-only implementation of ZoteroGateway using local zotero.sqlite.
     Uses a 'Shadow Copy' strategy to avoid locking the database.
@@ -795,7 +795,7 @@ class SqliteZoteroGateway(ZoteroGateway):
         finally:
             src.close()
         self._backed_up = True
-        print(f"Backed up zotero.sqlite to {backup_path} before writing.", file=sys.stderr)
+        self._say(f"Backed up zotero.sqlite to {backup_path} before writing.")
 
     def trash_item(self, item_key: str, version: int = 0) -> bool:
         """

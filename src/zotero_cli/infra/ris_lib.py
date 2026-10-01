@@ -1,6 +1,5 @@
 import io
 import logging
-import sys
 from typing import Iterator, List
 
 import rispy
@@ -8,11 +7,12 @@ import rispy
 from zotero_cli.core.exceptions import ImportParseError, NotFound
 from zotero_cli.core.interfaces import RisGateway
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.utils.notify import NotifyMixin
 
 logger = logging.getLogger(__name__)
 
 
-class RisLibGateway(RisGateway):
+class RisLibGateway(RisGateway, NotifyMixin):
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:
         try:
             with open(file_path, "r", encoding="utf-8") as ris_file:
@@ -41,7 +41,7 @@ class RisLibGateway(RisGateway):
                 rispy.dump(entries, ris_file)
             return True
         except Exception as e:
-            print(f"Error writing RIS file: {e}", file=sys.stderr)
+            self._say(f"Error writing RIS file: {e}", logging.ERROR)
             logger.exception("Error writing RIS file %s", file_path)
             return False
 

@@ -1,6 +1,5 @@
 import csv
 import json
-import sys
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -9,6 +8,7 @@ from rapidfuzz import fuzz
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.normalization import normalize_doi, normalize_title
+from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.utils.terminal_safety import strip_controls
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -71,7 +71,7 @@ class FuzzyTitleMatcher(ItemMatcher):
         return best_match if best_score >= 95 else None
 
 
-class CSVInboundService:
+class CSVInboundService(NotifyMixin):
     """
     Handles retroactive metadata enrichment from CSV files.
     """
@@ -147,9 +147,8 @@ class CSVInboundService:
             payload = self._build_sdb_payload(row, reviewer, phase, actual_map)
 
             if dry_run or not force:
-                print(
-                    strip_controls(f"[DRY RUN] Match: {item.key} | {(item.title or '')[:40]}..."),
-                    file=sys.stderr,
+                self._say(
+                    strip_controls(f"[DRY RUN] Match: {item.key} | {(item.title or '')[:40]}...")
                 )
                 results["skipped"] += 1
                 continue

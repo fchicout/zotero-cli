@@ -1,3 +1,5 @@
+import logging
+
 # subprocess: only used with fixed argv lists below, never shell=True
 import os
 import subprocess  # nosec B404
@@ -6,6 +8,7 @@ import webbrowser
 from urllib.parse import urlparse
 
 from zotero_cli.core.interfaces import OpenerService as IOpenerService
+from zotero_cli.core.utils.notify import NotifyMixin, notify_or_log
 
 
 def is_web_url(url: str) -> bool:
@@ -16,7 +19,10 @@ def is_web_url(url: str) -> bool:
     return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
 
-class OpenerService(IOpenerService):
+logger = logging.getLogger(__name__)
+
+
+class OpenerService(IOpenerService, NotifyMixin):
     """
     Cross-platform file opener service.
     Implements 'Try-Then-Link' protocol:
@@ -30,7 +36,7 @@ class OpenerService(IOpenerService):
         Returns True if the command was successfully dispatched.
         """
         if not os.path.exists(path):
-            print(f"Error: File not found: {path}", file=sys.stderr)
+            self._say(f"Error: File not found: {path}", logging.ERROR)
             return False
 
         try:
@@ -58,7 +64,7 @@ class OpenerService(IOpenerService):
         out or run a program.
         """
         if not is_web_url(url):
-            print("Refusing to open a non-http(s) URL.", file=sys.stderr)
+            self._say("Refusing to open a non-http(s) URL.", logging.WARNING)
             return False
         try:
             return webbrowser.open(url)
@@ -75,4 +81,6 @@ class OpenerService(IOpenerService):
         if os.name == "nt":
             abs_path = abs_path.replace("\\", "/")
 
-        print(f"\n[Unable to open natively. Click to open]: file://{abs_path}\n", file=sys.stderr)
+        notify_or_log(
+            None, logger, f"\n[Unable to open natively. Click to open]: file://{abs_path}\n"
+        )

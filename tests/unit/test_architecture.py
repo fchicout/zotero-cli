@@ -16,19 +16,8 @@ SRC = Path(__file__).resolve().parents[2] / "src" / "zotero_cli"
 # only go down. Fixing a file means lowering its number (or deleting the line);
 # a new print anywhere fails the test.
 PRINT_BASELINE = {
-    "api/main.py": 1,
     "core/config.py": 3,
     "core/logging_config.py": 1,
-    "core/services/audit_service.py": 1,
-    "core/services/metadata_aggregator.py": 1,
-    "core/services/slr/csv_inbound.py": 1,
-    "core/services/slr/integrity.py": 1,
-    "infra/bibtex_lib.py": 1,
-    "infra/http_client.py": 1,
-    "infra/opener.py": 3,
-    "infra/resolver_factory.py": 1,
-    "infra/ris_lib.py": 1,
-    "infra/sqlite_repo.py": 1,
 }
 
 # Left on purpose: these run before the CLI installs its sink or sets up logging

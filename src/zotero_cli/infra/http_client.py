@@ -1,6 +1,5 @@
 import logging
 import secrets
-import sys
 import time
 from typing import Any, Dict, Optional, cast
 
@@ -22,6 +21,7 @@ from zotero_cli.core.exceptions import (
     Unavailable,
     ZoteroCliError,
 )
+from zotero_cli.core.utils.notify import notify_or_log
 
 
 def is_http_retryable(exception: BaseException) -> bool:
@@ -101,7 +101,7 @@ def _notice(retry_state: RetryCallState) -> None:
     error = outcome.exception() if outcome else None
     logger.warning("Zotero API request failed (%s); retrying.", error)
     if retry_state.attempt_number == 1:
-        print("Zotero API unreachable or busy, retrying...", file=sys.stderr)
+        notify_or_log(None, logger, "Zotero API unreachable or busy, retrying...")
 
 
 def translate_error(exception: requests.RequestException, what: str) -> ZoteroCliError:

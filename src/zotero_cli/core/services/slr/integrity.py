@@ -1,9 +1,10 @@
 import concurrent.futures
-import sys
+import logging
 from dataclasses import dataclass, field
 from typing import List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -17,7 +18,7 @@ class AuditReport:
     items_missing_note: List[ZoteroItem] = field(default_factory=list)
 
 
-class IntegrityService:
+class IntegrityService(NotifyMixin):
     """
     Handles metadata completeness and asset integrity audits for collections.
     """
@@ -68,7 +69,7 @@ class IntegrityService:
                     if not has_note:
                         report.items_missing_note.append(item)
                 except Exception as exc:
-                    print(f"Error checking children for item {item.key}: {exc}", file=sys.stderr)
+                    self._say(f"Error checking children for item {item.key}: {exc}", logging.ERROR)
 
         return report
 

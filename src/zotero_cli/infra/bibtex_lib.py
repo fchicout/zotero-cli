@@ -1,5 +1,4 @@
 import logging
-import sys
 from typing import Iterator, List, Optional
 
 import bibtexparser
@@ -10,13 +9,14 @@ from bxc.latex import LatexTranslator
 from zotero_cli.core.exceptions import ImportParseError, NotFound
 from zotero_cli.core.interfaces import BibtexGateway
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.utils.notify import NotifyMixin
 
 logger = logging.getLogger(__name__)
 
 _LATEX = LatexTranslator()
 
 
-class BibtexLibGateway(BibtexGateway):
+class BibtexLibGateway(BibtexGateway, NotifyMixin):
     """
     bibtexparser 2.x (Issue #360): its API replaced 1.x's `BibDatabase`/
     `BibTexWriter`/dict-of-strings entries with `Library`/`Entry`/`Field`
@@ -59,7 +59,7 @@ class BibtexLibGateway(BibtexGateway):
                 bibtex_file.write(content)
             return True
         except Exception as e:
-            print(f"Error writing BibTeX file: {e}", file=sys.stderr)
+            self._say(f"Error writing BibTeX file: {e}", logging.ERROR)
             logger.exception("Error writing BibTeX file %s", file_path)
             return False
 

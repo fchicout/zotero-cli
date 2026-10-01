@@ -1,13 +1,14 @@
 import concurrent.futures
-import sys
+import logging
 from typing import List, Optional
 
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.core.utils.normalization import is_valid_doi, normalize_doi
+from zotero_cli.core.utils.notify import NotifyMixin
 
 
-class MetadataAggregatorService:
+class MetadataAggregatorService(NotifyMixin):
     def __init__(self, providers: List[MetadataProvider]):
         self.providers = providers
         # Optional direct access for importer clients
@@ -51,7 +52,7 @@ class MetadataAggregatorService:
                     if data:
                         results.append(data)
                 except Exception as exc:
-                    print(f"Provider generated an exception: {exc}", file=sys.stderr)
+                    self._say(f"Provider generated an exception: {exc}", logging.WARNING)
 
         results = self._drop_mismatched_dois(identifier, results, require_doi_match)
         if not results:
