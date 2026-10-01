@@ -60,13 +60,9 @@ class ServiceFactory:
         att_repo = RepositoryFactory.get_attachment_repository(config, force_user, offline=offline)
         note_repo = RepositoryFactory.get_note_repository(config, force_user, offline=offline)
         aggregator = MetadataClientFactory.get_metadata_aggregator(config)
-        purge_service = ServiceFactory.get_purge_service(config, force_user, offline=offline)
-
         from zotero_cli.core.services.attachment_service import AttachmentService
 
-        return AttachmentService(
-            item_repo, col_repo, att_repo, note_repo, aggregator, purge_service
-        )
+        return AttachmentService(item_repo, col_repo, att_repo, note_repo, aggregator)
 
     @staticmethod
     def get_collection_service(

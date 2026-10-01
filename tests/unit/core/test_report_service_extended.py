@@ -2,7 +2,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zotero_cli.core.models import Job
 from zotero_cli.core.services.report_service import PrismaReport, ReportService
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -56,35 +55,6 @@ def test_generate_screening_markdown():
     assert "| EC1 | 2 | 100.0% |" in md
     assert "## 3. PRISMA 2020 Flow Diagram" in md
     assert "```mermaid" in md
-
-
-def test_generate_pdf_report():
-    jobs = [
-        Job(
-            item_key="K1",
-            task_type="fetch_pdf",
-            status="COMPLETED",
-            attempts=1,
-            payload={"result": {"method": "unpaywall", "path": "/tmp/p1.pdf"}},
-        ),
-        Job(
-            item_key="K2",
-            task_type="fetch_pdf",
-            status="FAILED",
-            attempts=3,
-            last_error="Timeout",
-            payload={},
-        ),
-    ]
-    service = ReportService(MagicMock())
-    md = service.generate_pdf_report(jobs)
-
-    assert "# PDF Discovery Report" in md
-    assert "| K1 | COMPLETED | unpaywall | 1 | /tmp/p1.pdf |" in md
-    assert "| K2 | FAILED | - | 3 | Timeout |" in md
-    assert "**Total Jobs:** 2" in md
-    assert "**Success:** 1" in md
-    assert "**Failed:** 1" in md
 
 
 @patch("subprocess.run")

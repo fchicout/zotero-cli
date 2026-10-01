@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 from zotero_cli.cli.tui.factory import TUIFactory
 from zotero_cli.core.exceptions import ZoteroCliError
@@ -9,6 +10,8 @@ from zotero_cli.infra.opener import OpenerService
 
 console = Console()
 
+_EXPORT_FORMATS = {".json": "json", ".md": "markdown"}
+
 
 class ExtractionCommand:
     @staticmethod
@@ -17,7 +20,11 @@ class ExtractionCommand:
         parser.add_argument("--key", help="Item key (for single item extraction)")
         parser.add_argument("--agent", action="store_true", help="Run in Agent-led mode")
         parser.add_argument("--persona", help="Reviewer persona (for Agent-led mode)")
-        parser.add_argument("--export", help="Export extraction matrix to file (JSON/BibTeX)")
+        parser.add_argument(
+            "--export",
+            help="Write the saved extractions as a matrix to this file instead of extracting "
+            "(.json, .md or .csv by extension; --persona picks whose notes)",
+        )
 
     @staticmethod
     def execute(args: argparse.Namespace) -> None:
@@ -38,13 +45,21 @@ class ExtractionCommand:
         if not items:
             raise ZoteroCliError("No items found for extraction.")
 
-        # 2. Export mode
+        # 2. Export mode: the saved extraction notes of one persona, as a matrix
         if args.export:
-            path = args.export
+            output_format = _EXPORT_FORMATS.get(Path(args.export).suffix.lower(), "csv")
+            try:
+                path = ext_service.export_matrix(
+                    items,
+                    output_format=output_format,
+                    persona=args.persona or "unknown",
+                    output_path=args.export,
+                )
+            except (FileNotFoundError, ValueError) as e:
+                raise ZoteroCliError(f"Cannot export the extraction matrix: {e}") from e
             console.print(
-                f"[bold green]Exporting extraction matrix to: {safe_markup(path)}[/bold green]"
+                f"[bold green]Exported extraction matrix to: {safe_markup(path)}[/bold green]"
             )
-            # Implementation omitted for brevity, should follow original logic
             return
 
         # 3. Launch TUI via Factory

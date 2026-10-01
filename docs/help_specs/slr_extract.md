@@ -41,15 +41,15 @@ In `--agent` mode, the CLI leverages Large Language Models to perform this extra
 | :--- | :--- | :--- | :--- |
 | `--agent` | Boolean | Run in Agent-led mode | Optional. Default: False. |
 | `--collection` | String | Collection name or key | Optional. |
-| `--export` | String | Export extraction matrix to file (JSON/BibTeX) | Optional. |
+| `--export` | String | Write the saved extractions as a matrix to this file (`.json`, `.md` or `.csv` by extension) instead of extracting | Optional. Exports the notes already saved for `--persona`; it does not run extraction. Needs the extraction schema (`schema.yaml` in the current directory). |
 | `--key` | String | Item key (for single item extraction) | Optional. |
 | `--persona` | String | Reviewer persona (for Agent-led mode) | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Building a summary table of research methods
 **Problem:** I have 30 included papers and I want to know the primary research method used in each without re-reading all of them.
-**Action:** `zotero-cli slr extract --collection "INCLUDED_PAPERS" --agent --export "methods_matrix.json"`
-**Result:** The CLI processes the papers and generates a JSON file summarizing the methodologies discovered by the AI agent.
+**Action:** `zotero-cli slr extract --collection "INCLUDED_PAPERS" --persona "Paula" --export "methods_matrix.json"`
+**Result:** Writes a JSON matrix of what Paula has already extracted for those papers (one row per paper, one column per schema variable).
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Attempting extraction on items that haven't been processed by `rag ingest`. The command requires the vector store to "see" the internal text of the PDFs. 

@@ -79,3 +79,68 @@ def test_extraction_command_no_items(mock_deps, capsys):
 
     out = str(raised.value)
     assert "No items found for extraction" in out
+
+
+def _export_args(path, persona="Paula"):
+    return argparse.Namespace(
+        verb="extraction",
+        key=None,
+        collection="MyCol",
+        agent=False,
+        persona=persona,
+        export=path,
+        user=False,
+    )
+
+
+@pytest.mark.parametrize(
+    ("path", "fmt"),
+    [("m.json", "json"), ("m.md", "markdown"), ("m.csv", "csv"), ("m.xlsx", "csv")],
+)
+def test_export_writes_the_matrix_in_the_format_of_the_extension(mock_deps, capsys, path, fmt):
+    mock_gateway, mock_service = mock_deps
+    mock_gateway.get_collection_id_by_name.return_value = "COL1"
+    item = MagicMock()
+    mock_gateway.get_items_in_collection.return_value = [item]
+    mock_service.export_matrix.return_value = path
+
+    ExtractionCommand.execute(_export_args(path))
+
+    mock_service.export_matrix.assert_called_once_with(
+        [item], output_format=fmt, persona="Paula", output_path=path
+    )
+    assert f"Exported extraction matrix to: {path}" in capsys.readouterr().out
+
+
+def test_export_does_not_open_the_extraction_tui(mock_deps):
+    mock_gateway, mock_service = mock_deps
+    mock_gateway.get_collection_id_by_name.return_value = "COL1"
+    mock_gateway.get_items_in_collection.return_value = [MagicMock()]
+    mock_service.export_matrix.return_value = "m.csv"
+
+    with patch("zotero_cli.cli.tui.factory.TUIFactory.get_extraction_tui") as tui_factory:
+        ExtractionCommand.execute(_export_args("m.csv"))
+
+    tui_factory.assert_not_called()
+
+
+def test_export_without_persona_uses_the_services_default(mock_deps):
+    mock_gateway, mock_service = mock_deps
+    mock_gateway.get_collection_id_by_name.return_value = "COL1"
+    mock_gateway.get_items_in_collection.return_value = [MagicMock()]
+    mock_service.export_matrix.return_value = "m.csv"
+
+    ExtractionCommand.execute(_export_args("m.csv", persona=None))
+
+    assert mock_service.export_matrix.call_args.kwargs["persona"] == "unknown"
+
+
+def test_export_without_a_schema_is_a_clear_error(mock_deps):
+    mock_gateway, mock_service = mock_deps
+    mock_gateway.get_collection_id_by_name.return_value = "COL1"
+    mock_gateway.get_items_in_collection.return_value = [MagicMock()]
+    mock_service.export_matrix.side_effect = FileNotFoundError("Schema file not found: schema.yaml")
+    args = _export_args("m.csv")
+
+    with pytest.raises(ZoteroCliError, match="Cannot export the extraction matrix.*schema.yaml"):
+        ExtractionCommand.execute(args)
