@@ -80,7 +80,16 @@ def test_unscoped_unique_key_still_works(db):
     assert _trashed(db) == {30}
 
 
+def _install_cli_sink():
+    """What cli.main.main() does: services and adapters speak to stderr (Issue #393)."""
+    from zotero_cli.cli.notify import stderr_notify
+    from zotero_cli.core.utils.notify import set_default_notify
+
+    set_default_notify(stderr_notify)
+
+
 def test_backup_is_taken_once_before_the_first_write(db, capsys):
+    _install_cli_sink()
     gateway = SqliteZoteroGateway(db, library_id="999", library_type="user")
     backup = db + ".zotero-cli-bak"
 

@@ -44,7 +44,16 @@ def test_every_get_has_a_timeout(sleeps):
     assert get.call_args.kwargs["timeout"] == http_client.REQUEST_TIMEOUT
 
 
+def _install_cli_sink():
+    """What cli.main.main() does: services and adapters speak to stderr (Issue #393)."""
+    from zotero_cli.cli.notify import stderr_notify
+    from zotero_cli.core.utils.notify import set_default_notify
+
+    set_default_notify(stderr_notify)
+
+
 def test_network_failure_is_bounded_and_ends_as_unavailable(sleeps, capsys):
+    _install_cli_sink()
     get = Mock(side_effect=requests.exceptions.ConnectionError("unreachable"))
 
     with pytest.raises(Unavailable, match="check your network"):

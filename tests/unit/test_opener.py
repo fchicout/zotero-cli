@@ -65,7 +65,16 @@ def test_open_file_failure_fallback(mock_subprocess, opener, mock_os_exists):
             mock_print.assert_called_once_with("test.pdf")
 
 
+def _install_cli_sink():
+    """What cli.main.main() does: services and adapters speak to stderr (Issue #393)."""
+    from zotero_cli.cli.notify import stderr_notify
+    from zotero_cli.core.utils.notify import set_default_notify
+
+    set_default_notify(stderr_notify)
+
+
 def test_print_link(capsys, opener):
+    _install_cli_sink()
     opener.print_link("test.pdf")
     captured = capsys.readouterr()
     # A hint for the person at the terminal: stderr, not stdout (#372).

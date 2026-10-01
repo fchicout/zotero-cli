@@ -1,16 +1,16 @@
 import logging
 import re
-import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
 
 from zotero_cli.core.interfaces import ItemRepository
 from zotero_cli.core.services.children_index import children_by_parent
+from zotero_cli.core.utils.notify import NotifyMixin
 
 logger = logging.getLogger(__name__)
 
 
-class AuditService:
+class AuditService(NotifyMixin):
     def __init__(self, item_repo: ItemRepository):
         self.item_repo = item_repo
 
@@ -78,7 +78,7 @@ class AuditService:
             with open(latex_file, "r", encoding="utf-8") as f:
                 content = f.read()
         except Exception as e:
-            print(f"Warning: Failed to read {latex_file}: {e}", file=sys.stderr)
+            self._say(f"Warning: Failed to read {latex_file}: {e}", logging.WARNING)
             logger.warning("Failed to read LaTeX file %s: %s", latex_file, e)
             return set()
 

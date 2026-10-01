@@ -1,8 +1,8 @@
 import logging
-import sys
 from typing import TYPE_CHECKING, List, Optional
 
 from zotero_cli.core.config import ZoteroConfig, get_state_dir
+from zotero_cli.core.utils.notify import notify_or_log
 from zotero_cli.infra.metadata_client_factory import MetadataClientFactory
 from zotero_cli.infra.repository_factory import RepositoryFactory
 
@@ -105,8 +105,11 @@ class ResolverFactory:
 
             return [GenericScraperResolver(gateway, cfg) for cfg in resolvers_config]
         except Exception as e:
-            print(
-                f"Warning: Failed to load generic resolvers from {yaml_path}: {e}", file=sys.stderr
+            notify_or_log(
+                None,
+                logger,
+                f"Warning: Failed to load generic resolvers from {yaml_path}: {e}",
+                logging.WARNING,
             )
             logger.warning("Failed to load generic resolvers from %s: %s", yaml_path, e)
             return []
