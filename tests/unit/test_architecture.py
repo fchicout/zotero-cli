@@ -24,6 +24,31 @@ PRINT_BASELINE = {
 # (config loading, logging bootstrap), so a message can only go straight to stderr.
 # core/config.py: 3, core/logging_config.py: 1.
 
+
+# Services that still take the whole `ZoteroGateway` instead of the narrow repository
+# interfaces (ItemRepository, CollectionRepository, NoteRepository, ...). A ratchet like
+# PRINT_BASELINE: no new service may join, and narrowing one means deleting its line.
+# Most need two or more repositories or a gateway-only method (search_items,
+# verify_credentials, count_items), so narrowing them changes constructors; do it as
+# each is touched.
+GATEWAY_BASELINE = {
+    "core/services/backup_service.py",
+    "core/services/children_index.py",
+    "core/services/diagnostics_service.py",
+    "core/services/duplicate_service.py",
+    "core/services/purge_service.py",
+    "core/services/rag_service.py",
+    "core/services/report_service.py",
+    "core/services/restore_service.py",
+    "core/services/sdb/sdb_service.py",
+    "core/services/slr/csv_inbound.py",
+    "core/services/slr/integrity.py",
+    "core/services/slr/orchestrator.py",
+    "core/services/slr/status_service.py",
+    "core/services/storage_service.py",
+    "core/services/transfer_service.py",
+}
+
 # core may use rich only in the terminal-safety helpers every layer shares.
 RICH_IN_CORE_ALLOWED = {"core/utils/terminal_safety.py"}
 
@@ -91,3 +116,25 @@ def test_print_baseline_is_lowered_as_prints_are_removed():
     counts = _print_counts()
     stale = {f: n for f, n in PRINT_BASELINE.items() if counts.get(f, 0) < n}
     assert stale == {}, "lower PRINT_BASELINE to the new counts (it only goes down)"
+
+
+def _services_using_the_full_gateway() -> set:
+    users = set()
+    for path in _python_files("core/services"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Name) and node.id == "ZoteroGateway") or (
+                isinstance(node, ast.alias) and node.name == "ZoteroGateway"
+            ):
+                users.add(path.relative_to(SRC).as_posix())
+    return users
+
+
+def test_no_new_service_takes_the_full_gateway():
+    new = _services_using_the_full_gateway() - GATEWAY_BASELINE
+    assert new == set(), "take the narrow repository interfaces from core/interfaces.py instead"
+
+
+def test_gateway_baseline_is_lowered_as_services_are_narrowed():
+    stale = GATEWAY_BASELINE - _services_using_the_full_gateway()
+    assert stale == set(), "delete these from GATEWAY_BASELINE (it only shrinks)"

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import CollectionRepository
 from zotero_cli.core.services.duplicate_service import (
     DuplicateFinder,
     DuplicateGroup,
@@ -66,7 +66,7 @@ class SLRDedupeService:
 
     def __init__(
         self,
-        gateway: ZoteroGateway,
+        gateway: CollectionRepository,
         duplicate_finder: DuplicateFinder,
         merge_service: MergeService,
         sdb_service: SDBService,
