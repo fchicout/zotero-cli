@@ -28,6 +28,8 @@ uv run python -m zotero_cli.cli.main <command> ...
 # Lint / format / type-check (must all pass before committing)
 uv run ruff check .
 uv run ruff check . --fix
+uv run ruff format .            # CI and pre-commit run `ruff format --check`
+git config blame.ignoreRevsFile .git-blame-ignore-revs   # one-time: keep blame useful past the format commit
 uv run mypy .
 
 # Security/dependency checks
@@ -81,7 +83,7 @@ Screening decisions are written back into Zotero as immutable JSON notes (SDB v1
 Documented in full in `docs/PROCESS.md` ("The Golden Path"). Key points relevant to code changes:
 
 - Branch naming: `feat/<issue-id>-<slug>`, `fix/...`, `chore/...`.
-- Before committing, code must pass the full gate: `ruff check .`, `mypy .`, `bandit -r src/`, the `pip-audit` dependency audit, `pytest tests/unit`, and any relevant integration/e2e tests.
+- Before committing, code must pass the full gate: `ruff check .`, `ruff format --check .`, `mypy .`, `bandit -r src/`, the `pip-audit` dependency audit, `pytest tests/unit`, and any relevant integration/e2e tests.
 - Commit style: `type(scope): description (Issue #ID)`.
 - If a change touches CLI args or workflow, update `README.md`'s command table, `docs/commands/*.md`, and `docs/help_specs/*.md` (and Mermaid diagrams if flow changed) — these command docs are also asserted against by `tests/docs`. `pytest tests/docs` only exercises real checks if `zotero_cli.cli.main` has been imported in-process (it registers every CLI command as a side effect); the test file handles this itself, so just running `pytest tests/docs` is enough. For a deliberate whole-tree documentation sweep rather than a single PR's own slice, follow `docs/DOC_CONSISTENCY_PROTOCOL.md`.
 - Version bumps touch both `pyproject.toml` and `src/zotero_cli/__init__.py` (SonarQube follows `pyproject.toml` through the CI workflow; don't set `sonar.projectVersion` anywhere); changelog entries go in `CHANGELOG.md`. Pushing the `vX.Y.Z` tag publishes to PyPI as **`zotero-command-line`** (the `zotero-cli` name there belongs to an unrelated 2016 project), so the tag must match `pyproject.toml`'s version exactly or the `publish-pypi` job fails.

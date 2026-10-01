@@ -28,6 +28,14 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
+      - id: ruff-format
+        name: ruff format --check
+        entry: .venv/bin/ruff format --check
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
+
       - id: mypy
         name: mypy
         entry: .venv/bin/mypy .
