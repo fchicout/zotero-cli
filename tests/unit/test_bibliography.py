@@ -28,13 +28,15 @@ def test_formatter_renderings_differ():
 
 
 def test_unknown_style_is_a_usage_error_with_matches():
+    formatter = BxcBibliographyFormatter(offline=True)
     with pytest.raises(UsageError, match="Unknown citation style 'apaa'.*apa"):
-        BxcBibliographyFormatter(offline=True).format(BIB, "apaa")
+        formatter.format(BIB, "apaa")
 
 
 def test_unknown_rendering_is_a_usage_error():
+    formatter = BxcBibliographyFormatter(offline=True)
     with pytest.raises(UsageError, match="Unknown rendering"):
-        BxcBibliographyFormatter(offline=True).format(BIB, "apa", "pdf")
+        formatter.format(BIB, "apa", "pdf")
 
 
 def test_formatter_never_writes_the_cache_and_honours_offline():
@@ -137,3 +139,106 @@ def test_collection_export_to_file_passes_style_and_render():
     ):
         CollectionCommand().execute(args)
     service.export_collection.assert_called_once_with("C", "o.txt", "bibliography", "ieee", "html")
+
+
+def test_unknown_style_without_any_close_match_keeps_bxc_message():
+    formatter = BxcBibliographyFormatter(offline=True)
+    with pytest.raises(UsageError, match="not in the bundled styles"):
+        formatter.format(BIB, "zzzzzzzzzzzzqqq")
+
+
+def test_service_without_a_formatter_says_so():
+    service = _service(None)
+    with pytest.raises(RuntimeError, match="No bibliography formatter"):
+        service.serialize_bibliography([_item()])
+
+
+def test_service_does_not_write_an_empty_bibliography(tmp_path, capsys):
+    formatter = MagicMock()
+    service = _service(formatter)
+    service.bibtex_gateway.serialize.return_value = ""
+    out = tmp_path / "refs.txt"
+    assert service.export_bibliography([_item()], str(out)) is False
+    assert not out.exists()
+    assert "No valid papers" in capsys.readouterr().err
+
+
+def test_collection_bibliography_and_export_use_the_collection_items():
+    formatter = MagicMock()
+    formatter.format.return_value = "REF"
+    service = _service(formatter)
+    service.collection_repo.get_collection_id_by_name.return_value = "C1"
+    service.collection_repo.get_items_in_collection.return_value = [_item()]
+    assert service.collection_bibliography("C", "ieee", "html") == "REF"
+    formatter.format.assert_called_once_with(BIB, "ieee", "html")
+
+
+def test_collection_bibliography_missing_collection_is_none(capsys):
+    service = _service(MagicMock())
+    service.collection_repo.get_collection_id_by_name.return_value = None
+    assert service.collection_bibliography("Nope") is None
+    assert "not found" in capsys.readouterr().err
+
+
+def test_collection_export_to_file_via_the_service(tmp_path):
+    formatter = MagicMock()
+    formatter.format.return_value = "REF"
+    service = _service(formatter)
+    service.collection_repo.get_collection_id_by_name.return_value = "C1"
+    service.collection_repo.get_items_in_collection.return_value = [_item()]
+    out = tmp_path / "c.txt"
+    assert service.export_collection("C", str(out), "bibliography", "apa", "plain") is True
+    assert out.read_text(encoding="utf-8") == "REF\n"
+
+
+def test_collection_export_without_output_exits_when_nothing_to_print():
+    service = MagicMock()
+    service.collection_bibliography.return_value = None
+    args = argparse.Namespace(
+        verb="export", collection="C", export_format="bibliography", output=None, user=False,
+        style="apa", render="plain",
+    )
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
+        patch("zotero_cli.infra.factory.GatewayFactory.get_export_service", return_value=service),
+        pytest.raises(SystemExit),
+    ):
+        CollectionCommand().execute(args)
+
+
+def test_item_export_to_file_writes_the_bibliography(capsys):
+    service = MagicMock()
+    service.export_bibliography.return_value = True
+    gateway = MagicMock()
+    gateway.get_item.return_value = _item()
+    args = argparse.Namespace(
+        verb="export", key="K", export_format="bibliography", output="o.txt", user=False,
+        style="apa", render="plain",
+    )
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway),
+        patch("zotero_cli.infra.factory.GatewayFactory.get_export_service", return_value=service),
+    ):
+        ItemCommand().execute(args)
+    service.export_bibliography.assert_called_once_with(
+        [gateway.get_item.return_value], "o.txt", "apa", "plain"
+    )
+    assert "Export complete" in capsys.readouterr().out
+
+
+def test_item_inspect_prints_the_bibliography(capsys):
+    service = MagicMock()
+    service.serialize_bibliography.return_value = "REF\x1b[31m"
+    gateway = MagicMock()
+    gateway.get_item.return_value = _item()
+    args = argparse.Namespace(
+        key="K", file=None, raw=False, export_format="bibliography", style="apa", render="plain",
+        full_notes=False, user=False, details=False, verb="inspect",
+    )
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway),
+        patch("zotero_cli.infra.factory.GatewayFactory.get_export_service", return_value=service),
+    ):
+        ItemCommand().execute(args)
+    out = capsys.readouterr().out
+    assert "REF" in out and "\x1b" not in out
