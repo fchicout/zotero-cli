@@ -5,7 +5,6 @@ import re
 
 # subprocess: only used with fixed argv lists below, never shell=True
 import subprocess  # nosec B404
-import sys
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -13,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.children_index import children_by_parent
+from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class PrismaReport:
     duplicates_removed: int = 0
 
 
-class ReportService:
+class ReportService(NotifyMixin):
     """
     Service for generating systematic review reports (PRISMA).
     Parses Standardized Decision Blocks (SDB) from Zotero notes.
@@ -100,12 +100,12 @@ class ReportService:
             # fixed argv list, no shell
             result = subprocess.run(cmd, capture_output=True, text=True)  # nosec B603
             if result.returncode != 0:
-                print(f"Error running mmdc: {result.stderr}", file=sys.stderr)
+                self._say(f"Error running mmdc: {result.stderr}", logging.ERROR)
                 logger.warning("mmdc exited with code %d: %s", result.returncode, result.stderr)
                 return False
             return True
         except Exception as e:
-            print(f"Error rendering diagram: {e}", file=sys.stderr)
+            self._say(f"Error rendering diagram: {e}", logging.ERROR)
             logger.exception("Error rendering diagram to %s", output_path)
             return False
         finally:

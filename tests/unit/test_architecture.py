@@ -19,15 +19,10 @@ PRINT_BASELINE = {
     "api/main.py": 1,
     "core/config.py": 3,
     "core/logging_config.py": 1,
-    "core/services/attachment_service.py": 3,
     "core/services/audit_service.py": 1,
-    "core/services/graph_service.py": 1,
-    "core/services/import_service.py": 2,
     "core/services/metadata_aggregator.py": 1,
-    "core/services/report_service.py": 2,
     "core/services/slr/csv_inbound.py": 1,
     "core/services/slr/integrity.py": 1,
-    "core/services/snapshot_service.py": 4,
     "infra/bibtex_lib.py": 1,
     "infra/http_client.py": 1,
     "infra/opener.py": 3,
@@ -35,6 +30,10 @@ PRINT_BASELINE = {
     "infra/ris_lib.py": 1,
     "infra/sqlite_repo.py": 1,
 }
+
+# Left on purpose: these run before the CLI installs its sink or sets up logging
+# (config loading, logging bootstrap), so a message can only go straight to stderr.
+# core/config.py: 3, core/logging_config.py: 1.
 
 # core may use rich only in the terminal-safety helpers every layer shares.
 RICH_IN_CORE_ALLOWED = {"core/utils/terminal_safety.py"}
