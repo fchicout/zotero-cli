@@ -85,6 +85,9 @@ jobs:
       - name: Type Check with Mypy
         run: uv run mypy .
 
+      - name: Security scan (bandit)
+        run: uv run bandit -q -r src
+
       - name: Run Tests
         env:
           PYTHONPATH: src
@@ -136,7 +139,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          uv run python scratch/debug_sonar_gate.py
+          uv run python scripts/debug_sonar_gate.py
 
   # Issue #404: the Python package must install from pre-built wheels on
   # every platform the README lists as supported, so a new dependency that

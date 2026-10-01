@@ -33,3 +33,6 @@ scratch/
 # Local configuration files
 schema.yaml
 
+
+# SonarScanner output
+.scannerwork/

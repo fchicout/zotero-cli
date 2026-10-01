@@ -129,7 +129,7 @@ disallow_untyped_defs = true
 check_untyped_defs = true
 ignore_missing_imports = true
 disable_error_code = ["import-untyped"]
-exclude = ["build/", "scratch/", "scripts/"]
+exclude = ["build/", "scratch/"]
 
 # tests/ stays lenient for now (Issue #132): src/ is fully strict-typed as
 # of this change, but annotating ~1050 pre-existing test-function
