@@ -16,10 +16,10 @@ graph TD
 ```
 
 ## 3. Synopsis
-Runs offline checks of the features that depend on bundled libraries (PDF text extraction, SQLite, BibTeX LaTeX translation). Needs no configuration or network.
+Runs offline checks of the features that depend on bundled libraries (PDF text extraction, SQLite, BibTeX LaTeX translation, CSL citation styles). Needs no configuration or network.
 
 ## 4. Description (Instructional Architecture)
-`system selftest` checks that this installation can actually do the work that depends on bundled libraries, not only that it starts. It converts a small PDF embedded in the program (the same code path as `item export --as md`, `collection export --format md` and `rag ingest`) opens an in-memory SQLite database (used by `--offline`), and translates a LaTeX accent to Unicode with the bundled `bxc` library (used by BibTeX import).
+`system selftest` checks that this installation can actually do the work that depends on bundled libraries, not only that it starts. It converts a small PDF embedded in the program (the same code path as `item export --as md`, `collection export --format md` and `rag ingest`) opens an in-memory SQLite database (used by `--offline`), and translates a LaTeX accent to Unicode with the bundled `bxc` library (used by BibTeX import), and formats one reference in a bundled citation style (used by `--as bibliography`).
 
 It reads no configuration and makes no network requests, so it can run right after installing, before `zotero-cli init`, and in CI. The release workflow runs it against every built binary.
 
@@ -34,5 +34,5 @@ It reads no configuration and makes no network requests, so it can run right aft
 **Result:** Each check prints OK or FAILED with a detail line; the exit status is 1 if any check failed.
 
 ## 7. Cognitive Safeguards
-- **Common Failure Modes:** A FAILED "PDF text extraction" means PDF exports and `rag ingest` can't read PDFs on this install; a FAILED "BibTeX LaTeX translation" means `.bib` imports would keep LaTeX escapes like `M{\"u}ller` raw. Reinstall, or include the detail line in a bug report.
+- **Common Failure Modes:** A FAILED "PDF text extraction" means PDF exports and `rag ingest` can't read PDFs on this install; a FAILED "BibTeX LaTeX translation" means `.bib` imports would keep LaTeX escapes like `M{\"u}ller` raw. a FAILED "CSL citation styles" means `--as bibliography` can't find its styles. Reinstall, or include the detail line in a bug report.
 - **Safety Tips:** Read-only and offline; safe to run anywhere.

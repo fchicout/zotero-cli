@@ -168,17 +168,20 @@ zotero-cli item hydrate --collection "Imported" --execute  # write
 ```
 
 ### `export`
-Exports an item to a specified format (BibTeX, RIS, or Markdown).
+Exports an item to a specified format (BibTeX, RIS, Markdown, or a formatted bibliography).
 
 **Usage:**
 ```bash
 zotero-cli item export --key "ITEMKEY" --as md [--output ./export/]
+zotero-cli item export --key "ITEMKEY" --as bibliography --style ieee [--render markdown] [--output refs.txt]
 ```
 
 **Parameters:**
 *   `--key`: (Required) The Zotero Item Key.
-*   `--format`: Output format. Supported: `bibtex`, `ris`, `md`.
-*   `--output`: Destination directory or file path.
+*   `--as`: Export type. Supported: `bibtex`, `ris`, `md`, `bibliography` (`--format` is the deprecated alias).
+*   `--style`: With `--as bibliography`, the CSL citation style (default `apa`; e.g. `ieee`, `chicago-author-date`). An unknown style lists close matches. Styles bundled with `bxc` work offline.
+*   `--render`: With `--as bibliography`: `plain` (default), `markdown` or `html`.
+*   `--output`: Destination directory or file path. With `--as bibliography` it is optional: without it the bibliography is printed.
 
 ---
 

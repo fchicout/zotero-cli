@@ -109,17 +109,19 @@ zotero-cli collection backup --collection "My Review" --output "review_backup.za
 ---
 
 ### `export`
-Exports all items in a collection to a specified format (BibTeX, RIS, or Markdown).
+Exports all items in a collection to a specified format (BibTeX, RIS, Markdown, or a formatted bibliography).
 
 **Usage:**
 ```bash
 zotero-cli collection export --collection "COLLECTION_NAME" --as bibtex [--output ./export/]
+zotero-cli collection export --collection "COLLECTION_NAME" --as bibliography --style apa --render markdown
 ```
 
 **Parameters:**
 *   `--collection`: (Required) The collection Name or Key.
 *   `--name`: Deprecated alias of `--collection` (removed in 4.0, Issue #379).
-*   `--format`: Output format. Supported: `bibtex`, `ris`, `md`.
+*   `--as`: Export type. Supported: `bibtex`, `ris`, `md`, `bibliography` (`--format` is the deprecated alias).
+*   `--style` / `--render`: With `--as bibliography`, the CSL citation style (default `apa`) and `plain`/`markdown`/`html` rendering. Without `--output` the bibliography is printed.
 *   `--output`: Destination directory or file path.
 
 ---

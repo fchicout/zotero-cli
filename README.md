@@ -27,7 +27,7 @@ It talks to the Zotero Web API (personal and group libraries). It can also read 
 
 ### Library management
 - **Items:** list, inspect, add, update, move, merge duplicates, trash/restore, delete, and copy between libraries.
-- **Collections:** create, rename, nest, empty, delete, and export whole collections (BibTeX, RIS, Markdown).
+- **Collections:** create, rename, nest, empty, delete, and export whole collections (BibTeX, RIS, Markdown, or a formatted bibliography in any CSL style).
 - **Tags:** list, add, and bulk-remove tags across a collection.
 - **Search:** by DOI or title substring.
 - **Attachments:** fetch missing PDFs from open-access sources, attach local files, strip attachments, and move stored files out to local or network storage while keeping them linked (`storage checkout`).

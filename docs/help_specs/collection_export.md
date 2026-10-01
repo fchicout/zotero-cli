@@ -32,8 +32,10 @@ Supported formats include:
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
-| `--as` | String | Export type: `bibtex`, `ris` or `md` | Optional. Default: bibtex. |
+| `--as` | String | Export type: `bibtex`, `ris`, `md` or `bibliography` (a formatted reference list, Issue #534) | Optional. Default: bibtex. |
 | `--format` | String | Deprecated alias of `--as`. | Hidden-style: prints a warning; `--format` means output rendering elsewhere. Removed in 4.0 (Issue #380). |
+| `--style` | String | CSL citation style for `--as bibliography`, e.g. `apa`, `ieee`, `chicago-author-date` | Optional. Default: apa. An unknown style lists close matches. |
+| `--render` | String | Rendering for `--as bibliography`: `plain`, `markdown` or `html` | Optional. Default: plain. |
 | `--collection` | String | Collection name or key | Required. |
 | `--name` | String | Deprecated alias of `--collection`. | Hidden; prints a warning. Removed in 4.0 (Issue #379). |
 | `--output` | String | Output file path or directory (for md) | Optional. |

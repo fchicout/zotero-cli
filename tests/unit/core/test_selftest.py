@@ -17,6 +17,7 @@ def test_selftest_passes_on_this_install():
         "PDF text extraction",
         "SQLite (offline mode)",
         "BibTeX LaTeX translation",
+        "CSL citation styles",
     ]
     assert all(r.ok for r in results), results
 
@@ -66,3 +67,22 @@ def test_system_selftest_exits_0_when_all_pass(capsys):
         main()
 
     assert "FAILED" not in capsys.readouterr().out
+
+
+def test_citation_style_check_reports_missing_bxc():
+    import sys
+    from unittest.mock import patch
+
+    with patch.dict(sys.modules, {"bxc": None}):
+        result = selftest._check_citation_styles()
+    assert result.name == "CSL citation styles"
+    assert not result.ok
+
+
+def test_citation_style_check_reports_wrong_output():
+    from unittest.mock import patch
+
+    with patch("bxc.format_bibtex", return_value="garbage"):
+        result = selftest._check_citation_styles()
+    assert not result.ok
+    assert "unexpected output" in result.detail

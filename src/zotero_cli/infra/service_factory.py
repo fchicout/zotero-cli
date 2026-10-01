@@ -106,7 +106,13 @@ class ServiceFactory:
         bibtex_gateway = MetadataClientFactory.get_bibtex_gateway()
         ris_gateway = MetadataClientFactory.get_ris_gateway()
         sdb_service = ServiceFactory.get_sdb_service(config, force_user, offline=offline)
-        return ExportService(collection_repo, bibtex_gateway, ris_gateway, sdb_service)
+        from zotero_cli.core.runtime import is_offline_mode
+        from zotero_cli.infra.bxc_formatter import BxcBibliographyFormatter
+
+        formatter = BxcBibliographyFormatter(
+            offline=is_offline_mode() if offline is None else offline
+        )
+        return ExportService(collection_repo, bibtex_gateway, ris_gateway, sdb_service, formatter)
 
     @staticmethod
     def get_transfer_service() -> "TransferService":

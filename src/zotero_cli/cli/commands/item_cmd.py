@@ -6,7 +6,13 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import add_details_flag, add_key_argument, add_renamed_flag, resolve_key
+from zotero_cli.cli.flags import (
+    add_bibliography_flags,
+    add_details_flag,
+    add_key_argument,
+    add_renamed_flag,
+    resolve_key,
+)
 from zotero_cli.cli.presenters import item_list_presenter
 from zotero_cli.cli.safety import warn_default_apply
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
@@ -52,9 +58,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--as",
             "--format",
             dest="export_format",
-            choices=["bibtex", "ris"],
+            choices=["bibtex", "ris", "bibliography"],
             help="Export in a specific bibliographic format (--format is a deprecated alias)",
         )
+        add_bibliography_flags(parser)
         parser.add_argument(
             "--full-notes", action="store_true", help="Show full content of child notes"
         )
@@ -101,6 +108,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                     print(strip_controls(export_service.serialize_bibtex([item])))
                 elif args.export_format == "ris":
                     print(strip_controls(export_service.serialize_ris([item])))
+                elif args.export_format == "bibliography":
+                    print(
+                        strip_controls(
+                            export_service.serialize_bibliography(
+                                [item], args.style, args.render
+                            )
+                        )
+                    )
                 continue
 
             # Resolve collections
@@ -673,10 +688,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--as",
             "--format",
             dest="export_format",
-            choices=["bibtex", "ris", "md"],
+            choices=["bibtex", "ris", "md", "bibliography"],
             default="bibtex",
             help="Export type (--format is a deprecated alias: it means output rendering elsewhere)",
         )
+        add_bibliography_flags(export_p)
         export_p.add_argument("--output", help="Output file path or directory (for md)")
 
         # Add
@@ -1454,8 +1470,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             else:
                 console.print("[bold red]Failed:[/bold red] Could not extract text from PDF.")
                 sys.exit(1)
+        elif args.export_format == "bibliography" and not args.output:
+            export_service = GatewayFactory.get_export_service(force_user=force_user)
+            print(strip_controls(export_service.serialize_bibliography([item], args.style, args.render)))
         else:
-            # BibTeX / RIS
+            # BibTeX / RIS / bibliography
             if not args.output:
                 raise UsageError("--output required for metadata export.")
 
@@ -1463,7 +1482,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             console.print(
                 f"Exporting item [cyan]{safe_markup(args.key)}[/cyan] to [green]{safe_markup(args.output)}[/green] ({safe_markup(args.export_format)})..."
             )
-            if export_service.export_items([item], args.output, args.export_format):
+            if args.export_format == "bibliography":
+                done = export_service.export_bibliography(
+                    [item], args.output, args.style, args.render
+                )
+            else:
+                done = export_service.export_items([item], args.output, args.export_format)
+            if done:
                 console.print("[bold green]Export complete.[/bold green]")
             else:
                 console.print("[bold red]Export failed.[/bold red]")

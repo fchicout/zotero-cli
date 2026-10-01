@@ -132,3 +132,19 @@ def add_format_flag(
 ) -> None:
     """`--format`, always meaning output rendering (Issue #380)."""
     parser.add_argument("--format", choices=list(choices), default=default, help=help)
+
+
+def add_bibliography_flags(parser: argparse.ArgumentParser) -> None:
+    """`--style` / `--render`, used with `--as bibliography` (Issue #534)."""
+    parser.add_argument(
+        "--style",
+        default="apa",
+        help="Citation style for --as bibliography: a CSL style id such as apa, ieee, "
+        "chicago-author-date (default: apa)",
+    )
+    parser.add_argument(
+        "--render",
+        choices=["plain", "markdown", "html"],
+        default="plain",
+        help="How --as bibliography is rendered (default: plain)",
+    )
