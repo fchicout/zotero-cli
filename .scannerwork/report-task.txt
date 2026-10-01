@@ -1,6 +1,0 @@
-projectKey=zotero-cli
-serverUrl=https://sonar.fchicout.dev
-serverVersion=26.5.0.122743
-dashboardUrl=https://sonar.fchicout.dev/dashboard?id=zotero-cli
-ceTaskId=8cd856f9-c47a-44c7-8fdf-b8b0f3c5dd51
-ceTaskUrl=https://sonar.fchicout.dev/api/ce/task?id=8cd856f9-c47a-44c7-8fdf-b8b0f3c5dd51
