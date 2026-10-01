@@ -1,14 +1,10 @@
-import os
-import tempfile
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.attachment_service import AttachmentService
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
-from zotero_cli.core.services.pdf_finder_service import PDFFinderService
-from zotero_cli.core.services.purge_service import PurgeService
 from zotero_cli.core.services.selftest import SAMPLE_PDF, SAMPLE_PDF_TEXT
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -30,17 +26,7 @@ def mock_aggregator():
 
 
 @pytest.fixture
-def mock_purge_service():
-    return MagicMock(spec=PurgeService)
-
-
-@pytest.fixture
-def mock_pdf_finder():
-    return MagicMock(spec=PDFFinderService)
-
-
-@pytest.fixture
-def service(mock_gateway, mock_aggregator, mock_purge_service, mock_pdf_finder):
+def service(mock_gateway, mock_aggregator):
     # Pass mock_gateway for all repo interfaces since it implements them all
     return AttachmentService(
         mock_gateway,
@@ -48,90 +34,11 @@ def service(mock_gateway, mock_aggregator, mock_purge_service, mock_pdf_finder):
         mock_gateway,
         mock_gateway,
         mock_aggregator,
-        mock_purge_service,
-        pdf_finder=mock_pdf_finder,
     )
 
 
 def create_item(key="KEY1", doi="10.1234/test"):
     return ZoteroItem(key=key, version=1, item_type="journalArticle", title="Test Paper", doi=doi)
-
-
-def test_collection_not_found(service, mock_gateway):
-    mock_gateway.get_collection_id_by_name.return_value = None
-    result = service.attach_pdfs_to_collection("NonExistent")
-    assert result == []
-    mock_gateway.get_items_in_collection.assert_not_called()
-
-
-def test_enqueue_pdf_job(service, mock_gateway, mock_pdf_finder):
-    """Test that items without PDFs are enqueued for processing."""
-    mock_gateway.get_collection_id_by_name.return_value = "COL1"
-    item = create_item()
-    mock_gateway.get_items_in_collection.return_value = iter([item])
-    mock_gateway.get_item.return_value = item
-
-    # No existing PDF
-    mock_gateway.get_item_children.return_value = []
-
-    # Mock PDF finder returning a job ID
-    mock_pdf_finder.enqueue_find_pdf.return_value = 101
-
-    job_ids = service.attach_pdfs_to_collection("TestCollection")
-
-    assert job_ids == [101]
-    mock_pdf_finder.enqueue_find_pdf.assert_called_with("KEY1")
-
-
-def test_already_has_pdf(service, mock_gateway, mock_pdf_finder):
-    """Test that items with existing PDFs are skipped."""
-    mock_gateway.get_collection_id_by_name.return_value = "COL1"
-    item = create_item()
-    mock_gateway.get_items_in_collection.return_value = iter([item])
-
-    # Simulate existing PDF attachment
-    attachment = {
-        "data": {
-            "itemType": "attachment",
-            "linkMode": "imported_file",
-            "contentType": "application/pdf",
-        }
-    }
-    mock_gateway.get_item_children.return_value = [attachment]
-
-    job_ids = service.attach_pdfs_to_collection("TestCollection")
-
-    assert job_ids == []
-    mock_pdf_finder.enqueue_find_pdf.assert_not_called()
-
-
-def test_multiple_items_mixed(service, mock_gateway, mock_pdf_finder):
-    """Test a mix of items needing PDF and items already having PDF."""
-    mock_gateway.get_collection_id_by_name.return_value = "COL1"
-
-    item1 = create_item(key="KEY1")  # Needs PDF
-    item2 = create_item(key="KEY2")  # Has PDF
-
-    mock_gateway.get_items_in_collection.return_value = iter([item1, item2])
-
-    # Mock children responses for the loop
-    # Call 1 (KEY1): []
-    # Call 2 (KEY2): [attachment]
-    attachment = {
-        "data": {
-            "itemType": "attachment",
-            "linkMode": "imported_file",
-            "contentType": "application/pdf",
-        }
-    }
-    mock_gateway.get_item_children.side_effect = [[], [attachment]]
-
-    mock_pdf_finder.enqueue_find_pdf.return_value = 202
-
-    job_ids = service.attach_pdfs_to_collection("TestCollection")
-
-    assert job_ids == [202]
-    mock_pdf_finder.enqueue_find_pdf.assert_called_once_with("KEY1")
 
 
 def test_get_fulltext_success(service, mock_gateway):
@@ -200,84 +107,3 @@ def test_get_fulltext_returns_none_for_a_corrupt_pdf(service, mock_gateway):
     mock_gateway.download_attachment.side_effect = write_garbage
 
     assert service.get_fulltext("K1") is None
-
-
-def test_download_file_refuses_unsafe_url(service, caplog):
-    """Issue #235: item.url is attacker-settable by any collaborator with
-    write access to a shared library - _download_file must refuse a URL
-    that resolves to a private/loopback/link-local address rather than
-    fetching it."""
-    with caplog.at_level("WARNING"):
-        result = service._download_file("http://127.0.0.1/admin")
-    assert result is None
-    # Issue #293: this error must also be logged, not just printed, so it's
-    # visible from logs alone in an unattended context (serve, background jobs).
-    assert any("unsafe URL" in r.message for r in caplog.records)
-
-
-def test_download_file_rejects_non_pdf_content(service):
-    """A response that passes URL validation but isn't actually a PDF
-    (wrong magic bytes) must not be handed to a caller that uploads it
-    back into the shared library (Issue #235)."""
-    with patch("zotero_cli.core.services.attachment_service.safe_get") as mock_safe_get:
-        mock_response = MagicMock()
-        mock_response.iter_content.return_value = [b"<html>not a pdf</html>"]
-        mock_response.raise_for_status = MagicMock()
-        mock_safe_get.return_value = mock_response
-
-        result = service._download_file("http://93.184.216.34/fake.pdf")
-
-    assert result is None
-
-
-def test_download_file_cleans_up_partial_file_when_response_too_large(service):
-    """Issue #239: a response exceeding the size cap must abort the
-    download and remove the partially-written temp file, not leave it
-    behind (the disk-exhaustion vector this cap exists to prevent)."""
-    from zotero_cli.core.utils.url_safety import ResponseTooLargeError
-
-    def fake_iter_capped_content(response, chunk_size=8192, max_bytes=None):
-        yield b"%PDF-1.4 partial"
-        raise ResponseTooLargeError("too big")
-
-    with (
-        patch("zotero_cli.core.services.attachment_service.safe_get") as mock_safe_get,
-        patch(
-            "zotero_cli.core.services.attachment_service.iter_capped_content",
-            side_effect=fake_iter_capped_content,
-        ),
-    ):
-        mock_response = MagicMock()
-        mock_response.raise_for_status = MagicMock()
-        mock_safe_get.return_value = mock_response
-
-        written_paths = []
-        original_mkstemp = tempfile.mkstemp
-
-        def tracking_mkstemp(*args, **kwargs):
-            fd, path = original_mkstemp(*args, **kwargs)
-            written_paths.append(path)
-            return fd, path
-
-        with patch(
-            "zotero_cli.core.services.attachment_service.tempfile.mkstemp", tracking_mkstemp
-        ):
-            result = service._download_file("http://93.184.216.34/huge.pdf")
-
-    assert result is None
-    assert written_paths and not os.path.exists(written_paths[0])
-
-
-def test_download_file_accepts_real_pdf(service):
-    with patch("zotero_cli.core.services.attachment_service.safe_get") as mock_safe_get:
-        mock_response = MagicMock()
-        mock_response.iter_content.return_value = [b"%PDF-1.4 real content"]
-        mock_response.raise_for_status = MagicMock()
-        mock_safe_get.return_value = mock_response
-
-        result = service._download_file("http://93.184.216.34/real.pdf")
-
-    assert result is not None
-    with open(result, "rb") as f:
-        assert f.read().startswith(b"%PDF")
-    os.remove(result)

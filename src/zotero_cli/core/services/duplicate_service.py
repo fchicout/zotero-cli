@@ -71,33 +71,11 @@ class DuplicateFinder:
         self.gateway = gateway
         self.warnings: List[str] = []
 
-    def find_duplicates(self, collection_ids: List[str]) -> List[DuplicateGroup]:
-        """
-        Analyzes the specified collections to find duplicate Zotero items
-        (exact tier only: DOI / ISBN / ArXiv / normalized title).
-        """
-        self.warnings = []
-        items_with_scope = self._collect_from_collections(collection_ids)
-
-        all_items_by_identifier: Dict[Tuple[str, str], List[Tuple[ZoteroItem, str]]] = defaultdict(
-            list
-        )
-        for item, scope in items_with_scope:
-            identifier = self._identifier_for(item)
-            if identifier:
-                all_items_by_identifier[identifier].append((item, scope))
-
-        return [
-            self._build_group(id_type, identifier_value, occurrences)
-            for (id_type, identifier_value), occurrences in all_items_by_identifier.items()
-            if len(occurrences) > 1
-        ]
-
     def compare_collections(
         self, collection_ids: Optional[List[str]] = None
     ) -> List[DuplicateGroup]:
         """
-        Like `find_duplicates`, but preserves which collection each duplicate
+        Finds duplicate groups and preserves which collection each duplicate
         occurrence came from, for read-only cross-collection duplicate reports
         (e.g. `report duplicates`) that need to show provenance rather than
         just a pooled list of keys.

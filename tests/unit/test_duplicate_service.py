@@ -50,70 +50,7 @@ def occurrence_keys(group):
     return {occ.key for occ in group.occurrences}
 
 
-def test_find_duplicates_no_duplicates(finder, mock_gateway):
-    item1 = create_zotero_item("KEY1", "Unique Title 1", "10.1/1")
-    item2 = create_zotero_item("KEY2", "Unique Title 2", "10.1/2")
-    mock_gateway.get_items_in_collection.side_effect = [iter([item1]), iter([item2])]
-    mock_gateway.get_collection.return_value = {"key": "ID_A"}
-
-    duplicates = finder.find_duplicates(["ID_A", "ID_B"])
-    assert len(duplicates) == 0
-
-
-def test_find_duplicates_by_doi(finder, mock_gateway):
-    item1 = create_zotero_item("KEY1", "Title A", "10.1/DUPLICATE")
-    item2 = create_zotero_item("KEY2", "Title B", "10.1/DUPLICATE")
-    item3 = create_zotero_item("KEY3", "Another Title", "10.1/UNIQUE")
-
-    mock_gateway.get_items_in_collection.side_effect = [iter([item1, item3]), iter([item2])]
-    mock_gateway.get_collection.return_value = {"key": "ID_A"}
-
-    duplicates = finder.find_duplicates(["ID_A", "ID_B"])
-    assert len(duplicates) == 1
-    assert duplicates[0].match_type == "doi"
-    assert duplicates[0].identifier == "10.1/duplicate"
-    assert occurrence_keys(duplicates[0]) == {"KEY1", "KEY2"}
-
-
-def test_find_duplicates_by_title(finder, mock_gateway):
-    item1 = create_zotero_item("KEY1", "Duplicate Title", None)
-    item2 = create_zotero_item("KEY2", "Duplicate Title", None)
-    item3 = create_zotero_item("KEY3", "Unique Title", None)
-
-    mock_gateway.get_items_in_collection.side_effect = [iter([item1, item3]), iter([item2])]
-    mock_gateway.get_collection.return_value = {"key": "ID_A"}
-
-    duplicates = finder.find_duplicates(["ID_A", "ID_B"])
-    assert len(duplicates) == 1
-    assert duplicates[0].match_type == "title"
-    assert duplicates[0].identifier == "duplicate title"
-    assert occurrence_keys(duplicates[0]) == {"KEY1", "KEY2"}
-
-
-def test_find_duplicates_mixed_identifiers(finder, mock_gateway):
-    item_doi_1 = create_zotero_item("KEY_DOI_1", "Original Title", "10.1/MIXED")
-    item_doi_2 = create_zotero_item("KEY_DOI_2", "Modified Title", "10.1/MIXED")
-    item_title_1 = create_zotero_item("KEY_TITLE_1", "Common Title", None)
-    item_title_2 = create_zotero_item("KEY_TITLE_2", "Common Title", None)
-    item_unique = create_zotero_item("KEY_UNIQUE", "One Of A Kind", "10.1/UNIQUE_ID")
-
-    mock_gateway.get_items_in_collection.side_effect = [
-        iter([item_doi_1, item_title_1, item_unique]),
-        iter([item_doi_2, item_title_2]),
-    ]
-    mock_gateway.get_collection.return_value = {"key": "ID_A"}
-
-    duplicates = finder.find_duplicates(["ID_A", "ID_B"])
-    assert len(duplicates) == 2
-
-    doi_group = next(g for g in duplicates if g.match_type == "doi")
-    assert occurrence_keys(doi_group) == {"KEY_DOI_1", "KEY_DOI_2"}
-
-    title_group = next(g for g in duplicates if g.match_type == "title")
-    assert occurrence_keys(title_group) == {"KEY_TITLE_1", "KEY_TITLE_2"}
-
-
-def test_find_duplicates_with_missing_collection(finder, mock_gateway):
+def test_compare_collections_with_missing_collection(finder, mock_gateway):
     item1 = create_zotero_item("KEY1", "Title 1", "10.1/1")
     # get_collection is only actually called for "MISSING": for "A", `not items`
     # is already False (items non-empty), so the `and` short-circuits before
@@ -121,7 +58,7 @@ def test_find_duplicates_with_missing_collection(finder, mock_gateway):
     mock_gateway.get_items_in_collection.side_effect = [iter([item1]), iter([])]
     mock_gateway.get_collection.side_effect = [None]
 
-    duplicates = finder.find_duplicates(["A", "MISSING"])
+    duplicates = finder.compare_collections(["A", "MISSING"])
     assert len(duplicates) == 0
     assert finder.warnings == ["Collection 'MISSING' not found or empty. Skipping."]
 

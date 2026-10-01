@@ -26,20 +26,6 @@ from zotero_cli.core.zotero_item import ZoteroItem
 logger = logging.getLogger(__name__)
 
 
-class FixedSizeChunker(TextSplitter):
-    """
-    Primitive chunking strategy implementation [SPEC-RAG-003].
-    """
-
-    def __init__(self, chunk_size: int = 1000):
-        self.chunk_size = chunk_size
-
-    def split_text(self, text: str, context_title: Optional[str] = None) -> List[str]:
-        if not text:
-            return []
-        return [text[i : i + self.chunk_size] for i in range(0, len(text), self.chunk_size)]
-
-
 class MarkdownRecursiveSplitter(TextSplitter):
     """
     High-fidelity structural splitter [SPEC-RAG-002].

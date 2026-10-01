@@ -249,7 +249,7 @@ Runs data extraction for the included items of a collection (or one item), inter
 zotero-cli slr extract --collection "Included"
 zotero-cli slr extract --key "ITEMKEY"
 zotero-cli slr extract --collection "Included" --agent --persona "Paula"
-zotero-cli slr extract --collection "Included" --export matrix.json
+zotero-cli slr extract --collection "Included" --persona "Paula" --export matrix.json   # saved extractions, .json/.md/.csv
 ```
 
 ---

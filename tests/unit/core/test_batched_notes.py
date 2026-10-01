@@ -76,13 +76,6 @@ def _assert_one_scan(gateway):
     assert gateway.search_items.call_args.args[0].item_type == "note"
 
 
-def test_sdb_filter_is_one_scan(gateway):
-    items = list(gateway.get_items_in_collection("COL1"))
-    included = SDBService(gateway).filter_items_by_sdb(items, included=True)
-    assert [item.key for item, _ in included] == ["P003", "P009", "P015", "P021", "P027"]
-    _assert_one_scan(gateway)
-
-
 def test_sdb_upgrade_is_one_scan(gateway):
     stats = SDBService(gateway).upgrade_sdb_entries("COL1", dry_run=True)
     assert stats["scanned"] == 10
