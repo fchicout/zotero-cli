@@ -1,0 +1,6 @@
+# Commits that only reformatted code. Use with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# (GitHub's blame view reads this file automatically.)
+
+# style: ruff format the whole tree and target py311 (Issue #390, #539)
+95ca1e635aa6bc92ba55d6a2f5c78d3b55244413
