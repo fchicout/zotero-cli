@@ -75,7 +75,8 @@ def test_citation_style_check_reports_missing_bxc():
 
     with patch.dict(sys.modules, {"bxc": None}):
         result = selftest._check_citation_styles()
-    assert not result.ok and result.name == "CSL citation styles"
+    assert result.name == "CSL citation styles"
+    assert not result.ok
 
 
 def test_citation_style_check_reports_wrong_output():
@@ -83,4 +84,5 @@ def test_citation_style_check_reports_wrong_output():
 
     with patch("bxc.format_bibtex", return_value="garbage"):
         result = selftest._check_citation_styles()
-    assert not result.ok and "unexpected output" in result.detail
+    assert not result.ok
+    assert "unexpected output" in result.detail

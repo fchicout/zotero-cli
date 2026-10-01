@@ -149,8 +149,9 @@ def test_unknown_style_without_any_close_match_keeps_bxc_message():
 
 def test_service_without_a_formatter_says_so():
     service = _service(None)
+    item = _item()
     with pytest.raises(RuntimeError, match="No bibliography formatter"):
-        service.serialize_bibliography([_item()])
+        service.serialize_bibliography([item])
 
 
 def test_service_does_not_write_an_empty_bibliography(tmp_path, capsys):
@@ -198,12 +199,13 @@ def test_collection_export_without_output_exits_when_nothing_to_print():
         verb="export", collection="C", export_format="bibliography", output=None, user=False,
         style="apa", render="plain",
     )
+    command = CollectionCommand()
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
         patch("zotero_cli.infra.factory.GatewayFactory.get_export_service", return_value=service),
         pytest.raises(SystemExit),
     ):
-        CollectionCommand().execute(args)
+        command.execute(args)
 
 
 def test_item_export_to_file_writes_the_bibliography(capsys):
@@ -241,4 +243,5 @@ def test_item_inspect_prints_the_bibliography(capsys):
     ):
         ItemCommand().execute(args)
     out = capsys.readouterr().out
-    assert "REF" in out and "\x1b" not in out
+    assert "REF" in out
+    assert "\x1b" not in out
