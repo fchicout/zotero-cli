@@ -431,3 +431,70 @@ def test_execute_plan_reports_partial_group_failure(service, item_repo):
     assert result.success is False
     assert len(result.group_results) == 1
     assert result.group_results[0].success is False
+
+
+# ---- Issue #549: never delete a duplicate whose children did not move ----------------
+
+
+def _merge_setup(item_repo, children):
+    master = make_item("M1", version=1)
+    dup = make_item("D1", version=5)
+    item_repo.get_item.side_effect = lambda k: {"M1": master, "D1": dup}[k]
+    item_repo.get_item_children.return_value = children
+    item_repo.update_item.return_value = True
+    item_repo.update_items.return_value = True
+    item_repo.delete_item.return_value = True
+    item_repo.trash_item.return_value = True
+
+
+NOTE_CHILD = {"key": "N1", "data": {"itemType": "note", "version": 2, "note": "hello"}}
+ATTACHMENT_CHILD = {"key": "A1", "data": {"itemType": "attachment", "version": 3}}
+
+
+@pytest.mark.parametrize("trash", [False, True])
+def test_a_note_that_fails_to_move_keeps_the_duplicate(service, item_repo, note_repo, trash):
+    _merge_setup(item_repo, [NOTE_CHILD])
+    note_repo.update_note.return_value = False
+
+    result = service.merge("M1", ["D1"], dry_run=False, trash=trash)
+
+    assert result.success is False
+    assert result.merged_keys == []
+    assert "Failed to move note 'N1' to master." in result.errors
+    item_repo.delete_item.assert_not_called()
+    item_repo.trash_item.assert_not_called()
+
+
+@pytest.mark.parametrize("trash", [False, True])
+def test_attachments_that_fail_to_move_keep_the_duplicate(service, item_repo, note_repo, trash):
+    _merge_setup(item_repo, [ATTACHMENT_CHILD])
+    item_repo.update_items.return_value = False
+
+    result = service.merge("M1", ["D1"], dry_run=False, trash=trash)
+
+    assert result.success is False
+    assert result.merged_keys == []
+    assert "Failed to move one or more attachments to master." in result.errors
+    item_repo.delete_item.assert_not_called()
+    item_repo.trash_item.assert_not_called()
+
+
+def test_the_failure_names_what_was_left_in_place(service, item_repo, note_repo):
+    _merge_setup(item_repo, [NOTE_CHILD])
+    note_repo.update_note.return_value = False
+
+    result = service.merge("M1", ["D1"], dry_run=False)
+
+    assert any("D1" in error and "left in place" in error for error in result.errors)
+
+
+def test_a_successful_move_of_every_child_still_deletes_the_duplicate(
+    service, item_repo, note_repo
+):
+    _merge_setup(item_repo, [NOTE_CHILD, ATTACHMENT_CHILD])
+    note_repo.update_note.return_value = True
+
+    result = service.merge("M1", ["D1"], dry_run=False)
+
+    assert result.success is True
+    item_repo.delete_item.assert_called_once_with("D1", 5)

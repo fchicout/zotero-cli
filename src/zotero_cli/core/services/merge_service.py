@@ -404,6 +404,20 @@ class MergeService:
             else:
                 result.errors.append("Failed to move one or more attachments to master.")
 
+        if result.errors:
+            # A note or file that did not move would be deleted with its duplicate
+            # (Zotero removes a parent's children with it): keep every duplicate and
+            # let the caller retry, as TransferService does for a failed child (#396).
+            result.notes_moved = moved_notes
+            result.attachments_moved = moved_attachments
+            kept = ", ".join(f"'{d.key}'" for d in duplicates)
+            result.errors.append(
+                f"Duplicate item(s) {kept} left in place because their children did not all "
+                "move; nothing was deleted."
+            )
+            result.success = False
+            return result
+
         deleted_keys = []
         for d in duplicates:
             # Moving children above may have changed the duplicate's version;
