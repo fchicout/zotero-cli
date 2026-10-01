@@ -25,8 +25,9 @@ import importlib.metadata as md
 import os
 import sys
 from dataclasses import dataclass, field
+from email.message import Message
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Dict, Iterable, List, Optional, Set, Tuple, cast
 
 REPO = Path(__file__).resolve().parents[1]
 STATIC_LICENSES = REPO / "packaging" / "licenses"
@@ -134,7 +135,8 @@ def attribute(entries: Iterable[Tuple[str, str]], build_dir: Path) -> Attributio
 
 
 def license_name(dist: md.Distribution) -> str:
-    meta = dist.metadata
+    # Typeshed for 3.11 types PackageMetadata without .get(); at runtime it is a Message.
+    meta = cast(Message, dist.metadata)
     expression = meta.get("License-Expression")
     if expression:
         return str(expression)

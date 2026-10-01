@@ -5,13 +5,13 @@ import re
 import subprocess
 import sys
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 # --- Configuration ---
 DRAFT_FILE = "RELEASE_DRAFT.md"
 
 
-def run(cmd, cwd=None, capture=True):
+def run(cmd: str, cwd: Optional[str] = None, capture: bool = True) -> "subprocess.CompletedProcess[str]":
     """Run a shell command."""
     result = subprocess.run(
         cmd,
@@ -24,7 +24,7 @@ def run(cmd, cwd=None, capture=True):
     return result
 
 
-def check_hygiene():
+def check_hygiene() -> None:
     """Ensure workspace is clean."""
     print("🧹 Checking Workspace Hygiene...")
     res = run("git status --porcelain")
@@ -35,7 +35,7 @@ def check_hygiene():
     print("✅ Workspace is clean.")
 
 
-def get_last_tag():
+def get_last_tag() -> Optional[str]:
     """Get the latest tag."""
     res = run("git describe --tags --abbrev=0")
     if res.returncode != 0:
@@ -43,7 +43,7 @@ def get_last_tag():
     return res.stdout.strip()
 
 
-def generate_notes(last_tag, new_version):
+def generate_notes(last_tag: Optional[str], new_version: str) -> str:
     """Generate release notes from git log."""
     print(f"📝 Generating Release Notes ({last_tag} -> HEAD)...")
 
@@ -91,7 +91,7 @@ def generate_notes(last_tag, new_version):
     return "\n".join(lines)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Argentis Release Wizard")
     parser.add_argument("version", help="New version tag (e.g., v2.3.0)")
     parser.add_argument("--force", action="store_true", help="Overwrite existing tag")

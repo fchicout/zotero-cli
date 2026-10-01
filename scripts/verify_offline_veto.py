@@ -1,12 +1,13 @@
 import os
 import sqlite3
 import tempfile
+from typing import Tuple
 
 from zotero_cli.core.services.purge_service import PurgeService
 from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
 
 
-def setup_mock_db():
+def setup_mock_db() -> Tuple[int, str]:
     fd, path = tempfile.mkstemp()
     conn = sqlite3.connect(path)
     conn.executescript("""
@@ -27,7 +28,7 @@ def setup_mock_db():
     return fd, path
 
 
-def test_offline_veto_real_object():
+def test_offline_veto_real_object() -> None:
     fd, path = setup_mock_db()
     try:
         gateway = SqliteZoteroGateway(path)

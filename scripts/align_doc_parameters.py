@@ -2,6 +2,7 @@ import argparse
 import re
 import sys
 from pathlib import Path
+from typing import Dict, Iterator, List, Tuple
 
 sys.path.insert(0, "src")
 
@@ -9,7 +10,9 @@ sys.path.insert(0, "src")
 from zotero_cli.cli.base import CommandRegistry
 
 
-def find_parser_paths(parser, current_path=[]):
+def find_parser_paths(
+    parser: argparse.ArgumentParser, current_path: List[str]
+) -> Iterator[Tuple[List[str], argparse.ArgumentParser]]:
     subparsers_found = False
     for action in parser._actions:
         if isinstance(action, argparse._SubParsersAction):
@@ -20,8 +23,8 @@ def find_parser_paths(parser, current_path=[]):
         yield current_path, parser
 
 
-def get_all_cli_command_paths():
-    command_paths = {}
+def get_all_cli_command_paths() -> Dict[Tuple[str, ...], argparse.ArgumentParser]:
+    command_paths: Dict[Tuple[str, ...], argparse.ArgumentParser] = {}
     for cmd in CommandRegistry.get_commands():
         if cmd.name == "maint":
             continue
@@ -36,11 +39,11 @@ def get_all_cli_command_paths():
     return command_paths
 
 
-def get_expected_doc_filename(path):
+def get_expected_doc_filename(path: Tuple[str, ...]) -> str:
     return "_".join(path[:2]) + ".md"
 
 
-def get_action_details(action):
+def get_action_details(action: argparse.Action) -> Tuple[str, str, str, str]:
     # Determine name/flag
     if action.option_strings:
         name = ", ".join(action.option_strings)
@@ -73,7 +76,7 @@ def get_action_details(action):
     return name, type_str, desc, note
 
 
-def main():
+def main() -> None:
     cli_paths = get_all_cli_command_paths()
     specs_dir = Path("docs/help_specs")
 

@@ -11,20 +11,9 @@ router = APIRouter(prefix="/items", tags=["items"])
 
 
 def _list_items_sync(gateway: ZoteroGateway, query: ZoteroQuery, limit: int) -> List[Dict[str, Any]]:
-    # Zotero API search pagination is tricky with search_items generator.
-    # We'll fetch from the iterator up to limit.
+    # ZoteroQuery carries no limit and search_items() is a generator, so take
+    # the first `limit` items from it.
     items = []
-
-    # search_items returns an Iterator[ZoteroItem]
-    # We need to respect the limit here manually since ZoteroQuery logic
-    # might apply limit at API level if implemented, but ZoteroQuery object doesn't carry 'limit' itself
-    # in the current definition (checking models.py... it doesn't have limit).
-    # wait, ZoteroAPIClient._paginate_items hardcodes limit=100.
-
-    # We should probably pass 'limit' to search_items if possible, but the interface definition
-    # of search_items(query: ZoteroQuery) doesn't take extra args.
-    # So we slice the iterator.
-
     iterator = gateway.search_items(query)
 
     for _ in range(limit):
