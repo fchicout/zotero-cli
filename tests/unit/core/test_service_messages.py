@@ -184,3 +184,80 @@ def test_without_a_sink_the_same_messages_are_logged_at_their_level(caplog, caps
         service.record_decision_note("K1", "MAYBE", "")
     assert [r.levelno for r in caplog.records] == [logging.ERROR]
     _silent(capsys)
+
+
+# ---- ImportService, CitationGraphService, AttachmentService ---------------------------
+
+
+def test_import_verbose_reports_each_paper_and_each_failure(said, capsys):
+    from zotero_cli.core.services.import_service import ImportService
+
+    item_repo = MagicMock()
+    item_repo.create_item.side_effect = [True, False]
+    service = ImportService(item_repo, MagicMock())
+    service.notify = said.append
+    papers = [MagicMock(title="Good", doi="10.1/g"), MagicMock(title="Bad", doi=None)]
+
+    assert service.import_papers(iter(papers), "Col", verbose=True) == 1
+
+    assert said == ["Adding: Good [DOI: 10.1/g]...", "Adding: Bad...", "Failed to add: Bad"]
+    _silent(capsys)
+
+
+def test_import_is_quiet_unless_verbose(said, capsys):
+    from zotero_cli.core.services.import_service import ImportService
+
+    item_repo = MagicMock()
+    item_repo.create_item.return_value = False
+    service = ImportService(item_repo, MagicMock())
+    service.notify = said.append
+
+    service.import_papers(iter([MagicMock(title="Bad", doi=None)]), "Col")
+
+    assert said == []
+    _silent(capsys)
+
+
+def test_graph_skips_a_missing_collection_with_a_warning(said, capsys):
+    from zotero_cli.core.services.graph_service import CitationGraphService
+
+    repo = MagicMock()
+    repo.get_collection_id_by_name.return_value = None
+    service = CitationGraphService(repo, MagicMock())
+    service.notify = said.append
+
+    service.build_graph(["Nope"])
+
+    assert said == ["Warning: Collection 'Nope' not found. Skipping."]
+    _silent(capsys)
+
+
+def _attachments(said):
+    from zotero_cli.core.services.attachment_service import AttachmentService
+
+    service = AttachmentService(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock())
+    service.notify = said.append
+    return service
+
+
+def test_bulk_export_reports_an_item_that_raises(said, capsys, tmp_path):
+    service = _attachments(said)
+    service.pdf_attachment_keys = MagicMock(return_value={"K1": "P1"})  # type: ignore[method-assign]
+    service._export_item_markdown = MagicMock(side_effect=RuntimeError("boom"))  # type: ignore[method-assign]
+
+    stats = service.bulk_export_markdown([_item()], tmp_path)
+
+    assert stats["failed"] == 1
+    assert said == ["Error exporting K1: boom"]
+    _silent(capsys)
+
+
+def test_bulk_export_reports_a_file_write_error(said, capsys, tmp_path, monkeypatch):
+    service = _attachments(said)
+    service.get_fulltext = MagicMock(return_value="text")  # type: ignore[method-assign]
+    monkeypatch.setattr("builtins.open", MagicMock(side_effect=OSError("disk full")))
+
+    assert service._export_item_markdown(_item(), tmp_path, "P1") == "failed"
+
+    assert said == ["File write error for K1: disk full"]
+    _silent(capsys)

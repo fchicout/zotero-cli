@@ -1,11 +1,11 @@
 import json
 import logging
-import sys
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.services.children_index import children_by_parent
+from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 ProgressCallback = Callable[[int, int, str], None]
 
 
-class SnapshotWriter:
+class SnapshotWriter(NotifyMixin):
     """
     Service responsible for creating immutable snapshots of Zotero collections.
     Adheres to SOLID principles: Single Responsibility (Snapshotting).
@@ -45,7 +45,7 @@ class SnapshotWriter:
 
         collection_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not collection_id:
-            print(f"Error: Collection '{collection_name}' not found.", file=sys.stderr)
+            self._say(f"Error: Collection '{collection_name}' not found.", logging.ERROR)
             return False
 
         # 2. Fetch Top-Level Items
@@ -91,9 +91,9 @@ class SnapshotWriter:
 
             except Exception as e:
                 # Capture the failure but continue processing
-                print(
+                self._say(
                     f"\nWarning: Failed to fetch children for item '{item.key}'. Error: {e}",
-                    file=sys.stderr,
+                    logging.WARNING,
                 )
                 logger.warning("Failed to fetch children for item %s: %s", item.key, e)
                 failed_items.append({"key": item.key, "title": item.title, "error": str(e)})
@@ -126,14 +126,14 @@ class SnapshotWriter:
                 json.dump(artifact, f, indent=2, ensure_ascii=False)
 
             if failed_items:
-                print(
+                self._say(
                     f"\nWarning: Snapshot completed with {len(failed_items)} failures. Check 'failures' block in output.",
-                    file=sys.stderr,
+                    logging.WARNING,
                 )
 
             return True
         except IOError as e:
-            print(f"Error writing snapshot file: {e}", file=sys.stderr)
+            self._say(f"Error writing snapshot file: {e}", logging.ERROR)
             logger.exception("Error writing snapshot file to %s", output_path)
             return False
 

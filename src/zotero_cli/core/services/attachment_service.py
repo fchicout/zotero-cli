@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -15,6 +14,7 @@ from zotero_cli.core.interfaces import (
 )
 from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.utils.slugify import slugify
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -35,7 +35,7 @@ def extract_pdf_text(path: str) -> str:
     return str(extract_text(path))
 
 
-class AttachmentService(FullTextProvider):
+class AttachmentService(FullTextProvider, NotifyMixin):
     def __init__(
         self,
         item_repo: ItemRepository,
@@ -75,7 +75,7 @@ class AttachmentService(FullTextProvider):
                 # 3. Extract the text
                 return extract_pdf_text(temp_path)
             except Exception as e:
-                print(f"Full-text extraction error for {item_key}: {e}", file=sys.stderr)
+                self._say(f"Full-text extraction error for {item_key}: {e}", logging.ERROR)
                 logger.exception("Full-text extraction error for %s", item_key)
                 return None
             # No finally block needed here as TemporaryDirectory cleans up on __exit__
@@ -133,7 +133,7 @@ class AttachmentService(FullTextProvider):
                     else:
                         stats["failed"] += 1
                 except Exception as e:
-                    print(f"Error exporting {item.key}: {e}", file=sys.stderr)
+                    self._say(f"Error exporting {item.key}: {e}", logging.ERROR)
                     logger.exception("Error exporting %s", item.key)
                     stats["failed"] += 1
 
@@ -166,6 +166,6 @@ class AttachmentService(FullTextProvider):
                 f.write(text)
             return "success"
         except Exception as e:
-            print(f"File write error for {item.key}: {e}", file=sys.stderr)
+            self._say(f"File write error for {item.key}: {e}", logging.ERROR)
             logger.exception("File write error for %s", item.key)
             return "failed"
