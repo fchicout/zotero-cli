@@ -1,12 +1,13 @@
 import logging
 import os
-import sys
 from pathlib import Path
+from typing import Optional
 
 from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.exceptions import ConfigurationError, UsageError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import ZoteroQuery
+from zotero_cli.core.utils.notify import Notify, notify_or_log
 from zotero_cli.core.utils.terminal_safety import strip_controls
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -18,9 +19,14 @@ class StorageService:
         self,
         config: ZoteroConfig,
         gateway: ZoteroGateway,
+        notify: Optional[Notify] = None,
     ):
         self.config = config
         self.gateway = gateway
+        self.notify = notify
+
+    def _say(self, message: str, level: int = logging.INFO) -> None:
+        notify_or_log(self.notify, logger, message, level)
 
     def _is_group_library(self) -> bool:
         try:
@@ -61,11 +67,11 @@ class StorageService:
             try:
                 storage_root.mkdir(parents=True, exist_ok=True)
             except Exception as e:
-                print(f"Error creating storage directory: {e}", file=sys.stderr)
+                self._say(f"Error creating storage directory: {e}", logging.ERROR)
                 logger.exception("Error creating storage directory %s", storage_root)
                 return 0
 
-        print(f"Scanning for stored attachments (Limit: {limit})...", file=sys.stderr)
+        self._say(f"Scanning for stored attachments (Limit: {limit})...")
 
         query = ZoteroQuery(
             item_type="attachment",
@@ -113,27 +119,24 @@ class StorageService:
             target_path = storage_root / filename
 
         if target_path.exists():
-            print(
-                strip_controls(f"Skipping {item.key}: File {filename} already exists."),
-                file=sys.stderr,
-            )
+            self._say(strip_controls(f"Skipping {item.key}: File {filename} already exists."))
             return False
 
         if dry_run:
-            print(strip_controls(f"Would move {item.key} to {target_path}"), file=sys.stderr)
+            self._say(strip_controls(f"Would move {item.key} to {target_path}"))
             return True
 
-        print(strip_controls(f"Processing {item.key}: {filename}..."), file=sys.stderr)
+        self._say(strip_controls(f"Processing {item.key}: {filename}..."))
 
         # 1. Download
         try:
             if not self.gateway.download_attachment(item.key, str(target_path)):
-                print("  Failed to download.", file=sys.stderr)
+                self._say("  Failed to download.", logging.WARNING)
                 if target_path.exists():
                     target_path.unlink()
                 return False
         except Exception as e:
-            print(f"  Exception downloading: {e}", file=sys.stderr)
+            self._say(f"  Exception downloading: {e}", logging.ERROR)
             logger.exception("Exception downloading attachment for item %s", item.key)
             if target_path.exists():
                 target_path.unlink()
@@ -142,15 +145,15 @@ class StorageService:
         # 2. Update Zotero
         try:
             if not self.gateway.update_attachment_link(item.key, item.version, str(target_path)):
-                print("  Failed to update Zotero item. Rolling back...", file=sys.stderr)
+                self._say("  Failed to update Zotero item. Rolling back...", logging.WARNING)
                 target_path.unlink()
                 return False
         except Exception as e:
-            print(f"  Exception updating: {e}", file=sys.stderr)
+            self._say(f"  Exception updating: {e}", logging.ERROR)
             logger.exception("Exception updating attachment link for item %s", item.key)
             if target_path.exists():
                 target_path.unlink()
             return False
 
-        print(strip_controls(f"  Moved to {target_path}"), file=sys.stderr)
+        self._say(strip_controls(f"  Moved to {target_path}"))
         return True

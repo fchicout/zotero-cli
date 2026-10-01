@@ -1,6 +1,7 @@
 import argparse
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.notify import stderr_notify
 from zotero_cli.cli.safety import warn_default_apply
 from zotero_cli.core.config import get_config
 from zotero_cli.core.services.storage_service import StorageService
@@ -78,7 +79,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         # --user applies here too (Issue #383).
         gateway = GatewayFactory.get_zotero_gateway(config, force_user=getattr(args, "user", False))
-        service = StorageService(config, gateway)
+        service = StorageService(config, gateway, notify=stderr_notify)
 
         # Issue #378: predates the preview-by-default policy, so it still
         # applies immediately without either flag - just warns instead of

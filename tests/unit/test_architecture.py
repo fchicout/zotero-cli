@@ -31,8 +31,6 @@ PRINT_BASELINE = {
     "core/services/slr/csv_inbound.py": 1,
     "core/services/slr/integrity.py": 1,
     "core/services/snapshot_service.py": 4,
-    "core/services/storage_service.py": 10,
-    "core/services/sync_service.py": 5,
     "infra/bibtex_lib.py": 1,
     "infra/http_client.py": 1,
     "infra/opener.py": 3,
