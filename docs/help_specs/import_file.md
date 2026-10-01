@@ -39,4 +39,5 @@ The command parses the metadata from the input file, maps the fields to the Zote
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Attempting to import files with malformed syntax or missing mandatory fields (like Title). Large files (>1000 items) may hit Zotero API rate limits; use `--details` to monitor progress.
+- **BibTeX text:** LaTeX escapes in a `.bib` file's title, authors, venue and abstract are converted to real characters on import (`M{\"u}ller` becomes `Müller`, `\&` becomes `&`); DOI, URL, arXiv ID and year are stored exactly as written, and math (`$\alpha$`) and unknown commands are left alone. Parsed with `bibtexparser` and translated with [`bxc`](https://pypi.org/project/bxc/).
 - **Safety Tips:** Always verify your `.bib` or `.ris` encoding (UTF-8 is preferred) to prevent character corruption during the import process.

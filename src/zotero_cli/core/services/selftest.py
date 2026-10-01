@@ -66,5 +66,20 @@ def _check_sqlite() -> SelfTestResult:
     return SelfTestResult(name, True, f"SQLite {sqlite3.sqlite_version}")
 
 
+def _check_latex_translation() -> SelfTestResult:
+    """BibTeX import turns LaTeX accents into Unicode through bxc (Issue #531);
+    a binary that lost bxc or its vendored data would import `M{\\"u}ller` raw."""
+    name = "BibTeX LaTeX translation"
+    try:
+        from bxc.latex import LatexTranslator
+
+        translated = LatexTranslator().safe_latex_to_unicode('M{\\"u}ller')
+    except Exception as e:
+        return SelfTestResult(name, False, f"{type(e).__name__}: {e}")
+    if translated != "M\u00fcller":
+        return SelfTestResult(name, False, f"unexpected output: {translated!r}")
+    return SelfTestResult(name, True, "LaTeX accent converted")
+
+
 def run_selftest() -> List[SelfTestResult]:
-    return [_check_pdf_extraction(), _check_sqlite()]
+    return [_check_pdf_extraction(), _check_sqlite(), _check_latex_translation()]

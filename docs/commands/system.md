@@ -35,7 +35,7 @@ zotero-cli system check
 ---
 
 ### `selftest`
-Checks offline that this installation works: converts a small embedded PDF to text (the code path of `item export --as md` and `rag ingest`) and opens a SQLite database (used by `--offline`). Needs no configuration or network; exits 1 if any check fails.
+Checks offline that this installation works: converts a small embedded PDF to text (the code path of `item export --as md` and `rag ingest`) opens a SQLite database (used by `--offline`), and translates a LaTeX accent with the bundled `bxc` library (used by BibTeX import). Needs no configuration or network; exits 1 if any check fails.
 
 **Usage:**
 ```bash

@@ -5,7 +5,7 @@ Ingest research papers from various external sources and local files.
 ## Verbs
 
 ### `file`
-Import papers from a local file. Supports `.bib`, `.ris`, and `.csv` (IEEE, Springer, and Zotero-CLI Canonical).
+Import papers from a local file. Supports `.bib`, `.ris`, and `.csv` (IEEE, Springer, and Zotero-CLI Canonical). In a `.bib` file, LaTeX escapes in the title, authors, venue and abstract (`M{\"u}ller`, `\&`) are converted to real characters.
 
 **Usage:**
 ```bash
