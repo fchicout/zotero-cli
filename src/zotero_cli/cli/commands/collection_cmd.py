@@ -7,14 +7,19 @@ from rich.table import Table
 from rich.tree import Tree
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import add_details_flag, add_format_flag, add_renamed_flag
+from zotero_cli.cli.flags import (
+    add_bibliography_flags,
+    add_details_flag,
+    add_format_flag,
+    add_renamed_flag,
+)
 from zotero_cli.cli.presenters import records
 from zotero_cli.cli.safety import confirm_destructive, preview_notice
 from zotero_cli.core.exceptions import NotFound, UsageError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.backup_service import BackupService
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
-from zotero_cli.core.utils.terminal_safety import safe_markup
+from zotero_cli.core.utils.terminal_safety import safe_markup, strip_controls
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.factory import GatewayFactory
 
@@ -257,10 +262,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--as",
             "--format",
             dest="export_format",
-            choices=["bibtex", "ris", "md"],
+            choices=["bibtex", "ris", "md", "bibliography"],
             default="bibtex",
             help="Export type (--format is a deprecated alias: it means output rendering elsewhere)",
         )
+        add_bibliography_flags(export_p)
         export_p.add_argument("--output", help="Output file path or directory (for md)")
 
         # Purge
@@ -611,11 +617,20 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         force_user = getattr(args, "user", False)
         service = GatewayFactory.get_export_service(force_user=force_user)
 
+        if args.export_format == "bibliography" and not args.output:
+            text = service.collection_bibliography(args.collection, args.style, args.render)
+            if not text:
+                sys.exit(1)
+            print(strip_controls(text))
+            return
+
         if not args.output:
             raise UsageError("--output required for metadata export.")
 
         print(f"Exporting collection '{args.collection}' to {args.output} ({args.export_format})...")
-        if service.export_collection(args.collection, args.output, args.export_format):
+        if service.export_collection(
+            args.collection, args.output, args.export_format, args.style, args.render
+        ):
             print(f"Export complete: {args.output}")
         else:
             print("Export failed.", file=sys.stderr)

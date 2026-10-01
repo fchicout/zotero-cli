@@ -81,5 +81,26 @@ def _check_latex_translation() -> SelfTestResult:
     return SelfTestResult(name, True, "LaTeX accent converted")
 
 
+def _check_citation_styles() -> SelfTestResult:
+    """`--as bibliography` formats through bxc's bundled CSL styles (Issue #534);
+    a binary built without that data file could not resolve a single style."""
+    name = "CSL citation styles"
+    bibtex = "@article{k,author={Doe, Jane},title={A title},journal={J},year={2020}}"
+    try:
+        import bxc
+
+        text = bxc.format_bibtex(bibtex, "apa", cache=False, offline=True)
+    except Exception as e:
+        return SelfTestResult(name, False, f"{type(e).__name__}: {e}")
+    if "Doe" not in text or "2020" not in text:
+        return SelfTestResult(name, False, f"unexpected output: {text!r}")
+    return SelfTestResult(name, True, "bundled style resolved")
+
+
 def run_selftest() -> List[SelfTestResult]:
-    return [_check_pdf_extraction(), _check_sqlite(), _check_latex_translation()]
+    return [
+        _check_pdf_extraction(),
+        _check_sqlite(),
+        _check_latex_translation(),
+        _check_citation_styles(),
+    ]

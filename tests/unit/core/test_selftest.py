@@ -17,6 +17,7 @@ def test_selftest_passes_on_this_install():
         "PDF text extraction",
         "SQLite (offline mode)",
         "BibTeX LaTeX translation",
+        "CSL citation styles",
     ]
     assert all(r.ok for r in results), results
 

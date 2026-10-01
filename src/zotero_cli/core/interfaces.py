@@ -254,6 +254,12 @@ class ArxivGateway(ABC):
         pass
 
 
+class BibliographyFormatter(ABC):
+    @abstractmethod
+    def format(self, bibtex: str, style: str, render: str = "plain") -> str:
+        """BibTeX source as a bibliography in a CSL style (plain, markdown or html)."""
+
+
 class BibtexGateway(ABC):
     @abstractmethod
     def parse_file(self, file_path: str) -> Iterator[ResearchPaper]:

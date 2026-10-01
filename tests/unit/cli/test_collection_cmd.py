@@ -373,11 +373,13 @@ def test_collection_export_metadata_success(mock_export_service, capsys):
     mock_export_service.export_collection.return_value = True
 
     args = argparse.Namespace(
-        verb="export", collection="COL_KEY", export_format="bibtex", output="out.bib", user=False
+        verb="export", collection="COL_KEY", export_format="bibtex", output="out.bib", user=False, style="apa", render="plain"
     )
     CollectionCommand().execute(args)
 
-    mock_export_service.export_collection.assert_called_with("COL_KEY", "out.bib", "bibtex")
+    mock_export_service.export_collection.assert_called_with(
+        "COL_KEY", "out.bib", "bibtex", "apa", "plain"
+    )
     out = capsys.readouterr().out
     assert "Export complete" in out
 
@@ -386,7 +388,7 @@ def test_collection_export_metadata_fail(mock_export_service, capsys):
     mock_export_service.export_collection.return_value = False
 
     args = argparse.Namespace(
-        verb="export", collection="COL_KEY", export_format="ris", output="out.ris", user=False
+        verb="export", collection="COL_KEY", export_format="ris", output="out.ris", user=False, style="apa", render="plain"
     )
     with pytest.raises(SystemExit):
         CollectionCommand().execute(args)
