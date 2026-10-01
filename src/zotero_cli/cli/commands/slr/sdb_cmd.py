@@ -3,6 +3,7 @@ import argparse
 from rich.markup import escape
 
 from zotero_cli.cli.flags import add_key_argument, add_renamed_flag, resolve_key
+from zotero_cli.cli.notify import stderr_notify
 from zotero_cli.cli.presenters.sdb_presenter import build_inspect_table
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
@@ -149,7 +150,7 @@ $ zotero-cli slr sdb export --collection "Screening" --output screening.csv
 
             from zotero_cli.core.services.sync_service import SyncService
 
-            sync_service = SyncService(gateway, gateway)
+            sync_service = SyncService(gateway, gateway, notify=stderr_notify)
 
             def cli_progress(current: int, total: int, msg: str) -> None:
                 percent = (current / total * 100) if total > 0 else 0

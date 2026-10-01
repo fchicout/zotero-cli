@@ -1,12 +1,12 @@
 import csv
 import json
 import logging
-import sys
 from typing import Any, Callable, Dict, List, Optional, cast
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.utils.csv_safety import sanitize_csv_rows
+from zotero_cli.core.utils.notify import Notify, notify_or_log
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -20,9 +20,18 @@ class SyncService:
     Service responsible for synchronizing local state (CSV) from remote truth (Zotero Notes).
     """
 
-    def __init__(self, collection_repo: CollectionRepository, item_repo: ItemRepository):
+    def __init__(
+        self,
+        collection_repo: CollectionRepository,
+        item_repo: ItemRepository,
+        notify: Optional[Notify] = None,
+    ):
         self.collection_repo = collection_repo
         self.item_repo = item_repo
+        self.notify = notify
+
+    def _say(self, message: str, level: int = logging.INFO) -> None:
+        notify_or_log(self.notify, logger, message, level)
 
     def recover_state_from_notes(
         self,
@@ -46,7 +55,7 @@ class SyncService:
             callback(0, 0, "Resolving collection ID...")
         collection_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not collection_id:
-            print(f"Error: Collection '{collection_name}' not found.", file=sys.stderr)
+            self._say(f"Error: Collection '{collection_name}' not found.", logging.ERROR)
             return False
 
         # 2. Fetch Items
@@ -101,12 +110,14 @@ class SyncService:
                     }
                     recovered_rows.append(row)
             except Exception as e:
-                print(f"\n[ERROR] Failed on item {item.key}: {e}", file=sys.stderr)
+                self._say(f"\n[ERROR] Failed on item {item.key}: {e}", logging.ERROR)
                 logger.exception("Failed to recover screening state for item %s", item.key)
 
         # 4. Write CSV
         if not recovered_rows:
-            print(f"\nWarning: No screening notes found in '{collection_name}'.", file=sys.stderr)
+            self._say(
+                f"\nWarning: No screening notes found in '{collection_name}'.", logging.WARNING
+            )
             return True
 
         try:
@@ -122,7 +133,7 @@ class SyncService:
                 writer.writerows(sanitize_csv_rows(recovered_rows))
             return True
         except Exception as e:
-            print(f"Error writing CSV file: {e}", file=sys.stderr)
+            self._say(f"Error writing CSV file: {e}", logging.ERROR)
             logger.exception("Error writing recovered-state CSV to %s", output_csv_path)
             return False
 
@@ -134,7 +145,7 @@ class SyncService:
             if children is None:
                 children = self.item_repo.get_item_children(item.key)
         except Exception as e:
-            print(f"Warning: Failed to fetch children for {item.key}: {e}", file=sys.stderr)
+            self._say(f"Warning: Failed to fetch children for {item.key}: {e}", logging.WARNING)
             logger.warning("Failed to fetch children for item %s: %s", item.key, e)
             return None
 
