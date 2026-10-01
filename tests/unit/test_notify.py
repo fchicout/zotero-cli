@@ -67,3 +67,30 @@ def test_storage_service_dry_run_lists_through_the_sink(tmp_path, capsys):
 
     assert messages[0] == "Scanning for stored attachments (Limit: 5)..."
     assert capsys.readouterr().err == ""
+
+
+def test_a_default_sink_receives_service_messages_and_logging_stays_quiet(caplog):
+    from zotero_cli.core.utils.notify import set_default_notify
+
+    messages: list[str] = []
+    set_default_notify(messages.append)
+    with caplog.at_level(logging.DEBUG):
+        assert _sync().recover_state_from_notes("Nope", "out.csv") is False
+    assert messages == ["Error: Collection 'Nope' not found."]
+    assert caplog.records == []
+
+
+def test_main_installs_the_stderr_sink(monkeypatch, capsys):
+    """The CLI keeps showing what the services used to print themselves."""
+    import sys
+
+    from zotero_cli.cli.main import main
+    from zotero_cli.core.utils import notify
+
+    monkeypatch.setattr(sys, "argv", ["zotero-cli", "--help"])
+    try:
+        main()
+    except SystemExit:
+        pass
+    assert notify._default_notify is stderr_notify
+    capsys.readouterr()

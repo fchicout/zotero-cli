@@ -1,8 +1,9 @@
-import sys
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
+from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -36,7 +37,7 @@ class RecursiveDeleteResult:
     failed_collections: List[str] = field(default_factory=list)
 
 
-class CollectionService:
+class CollectionService(NotifyMixin):
     def __init__(self, item_repo: ItemRepository, collection_repo: CollectionRepository):
         self.item_repo = item_repo
         self.collection_repo = collection_repo
@@ -71,9 +72,8 @@ class CollectionService:
                         self.collection_repo.get_collection_id_by_name(source_col_name)
                         or source_col_name
                     )
-                    print(
-                        f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'...",
-                        file=sys.stderr,
+                    self._say(
+                        f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'..."
                     )
                     found_items = list(
                         self.collection_repo.get_items_in_collection(lookup_source_id)
@@ -84,7 +84,7 @@ class CollectionService:
                             break
 
             if not item:
-                print(f"Item '{identifier}' not found.", file=sys.stderr)
+                self._say(f"Item '{identifier}' not found.", logging.WARNING)
                 return False
 
         # Resolve Source ID
@@ -116,9 +116,9 @@ class CollectionService:
             elif len(candidates) == 1:
                 source_id = next(iter(candidates))
             else:
-                print(
+                self._say(
                     f"Error: Ambiguous source. Item '{identifier}' is in multiple collections ({candidates}). Please specify --source to ensure correct movement.",
-                    file=sys.stderr,
+                    logging.ERROR,
                 )
                 return False
 
@@ -127,16 +127,16 @@ class CollectionService:
             if not item.collections:
                 return self._perform_move(item, None, dest_id)
             else:
-                print(
-                    f"Item '{identifier}' found but it is NOT in the root folder.", file=sys.stderr
+                self._say(
+                    f"Item '{identifier}' found but it is NOT in the root folder.", logging.WARNING
                 )
                 return False
         elif source_id in item.collections:
             return self._perform_move(item, source_id, dest_id)
         else:
-            print(
+            self._say(
                 f"Item '{identifier}' found but not in source collection '{source_col_name or source_id}'.",
-                file=sys.stderr,
+                logging.WARNING,
             )
             return False
 

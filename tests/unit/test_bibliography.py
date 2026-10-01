@@ -181,14 +181,14 @@ def test_service_without_a_formatter_says_so():
         service.serialize_bibliography([item])
 
 
-def test_service_does_not_write_an_empty_bibliography(tmp_path, capsys):
+def test_service_does_not_write_an_empty_bibliography(tmp_path, caplog):
     formatter = MagicMock()
     service = _service(formatter)
     service.bibtex_gateway.serialize.return_value = ""
     out = tmp_path / "refs.txt"
     assert service.export_bibliography([_item()], str(out)) is False
     assert not out.exists()
-    assert "No valid papers" in capsys.readouterr().err
+    assert "No valid papers" in caplog.text
 
 
 def test_collection_bibliography_and_export_use_the_collection_items():
@@ -201,11 +201,11 @@ def test_collection_bibliography_and_export_use_the_collection_items():
     formatter.format.assert_called_once_with(BIB, "ieee", "html")
 
 
-def test_collection_bibliography_missing_collection_is_none(capsys):
+def test_collection_bibliography_missing_collection_is_none(caplog):
     service = _service(MagicMock())
     service.collection_repo.get_collection_id_by_name.return_value = None
     assert service.collection_bibliography("Nope") is None
-    assert "not found" in capsys.readouterr().err
+    assert "not found" in caplog.text
 
 
 def test_collection_export_to_file_via_the_service(tmp_path):

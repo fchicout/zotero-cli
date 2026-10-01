@@ -1,4 +1,4 @@
-import sys
+import logging
 from typing import Any, Dict, List, Optional
 
 from zotero_cli.core.interfaces import (
@@ -9,10 +9,11 @@ from zotero_cli.core.interfaces import (
 )
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.core.services.sdb.sdb_service import SDBService
+from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
-class ExportService:
+class ExportService(NotifyMixin):
     """Service for exporting Zotero items to external formats."""
 
     def __init__(
@@ -32,12 +33,12 @@ class ExportService:
     def _collection_items(self, collection_name: str) -> Optional[List[ZoteroItem]]:
         col_id = self.collection_repo.get_collection_id_by_name(collection_name)
         if not col_id:
-            print(f"Error: Collection '{collection_name}' not found.", file=sys.stderr)
+            self._say(f"Error: Collection '{collection_name}' not found.", logging.ERROR)
             return None
 
         items = list(self.collection_repo.get_items_in_collection(col_id))
         if not items:
-            print(f"Warning: Collection '{collection_name}' is empty.", file=sys.stderr)
+            self._say(f"Warning: Collection '{collection_name}' is empty.", logging.WARNING)
             return None
         return items
 
@@ -77,7 +78,7 @@ class ExportService:
         papers = self._map_items_to_papers(items)
 
         if not papers:
-            print("Warning: No valid papers to export.", file=sys.stderr)
+            self._say("Warning: No valid papers to export.", logging.WARNING)
             return False
 
         if format.lower() == "bibtex":
@@ -85,7 +86,7 @@ class ExportService:
         elif format.lower() == "ris":
             return self.ris_gateway.write_file(output_path, papers)
         else:
-            print(f"Error: Unsupported export format '{format}'.", file=sys.stderr)
+            self._say(f"Error: Unsupported export format '{format}'.", logging.ERROR)
             return False
 
     def serialize_bibtex(self, items: List[ZoteroItem]) -> str:
@@ -112,7 +113,7 @@ class ExportService:
         """Write the formatted bibliography to a file."""
         text = self.serialize_bibliography(items, style, render)
         if not text:
-            print("Warning: No valid papers to export.", file=sys.stderr)
+            self._say("Warning: No valid papers to export.", logging.WARNING)
             return False
         with open(output_path, "w", encoding="utf-8") as handle:
             handle.write(text if text.endswith("\n") else text + "\n")

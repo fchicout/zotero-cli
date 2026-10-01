@@ -1,4 +1,4 @@
-import sys
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -13,11 +13,12 @@ from zotero_cli.core.interfaces import (
 )
 from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.collection_service import CollectionService
+from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.utils.sdb_parser import encode_json_note, parse_sdb_note
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
-class ScreeningService(IScreeningService):
+class ScreeningService(IScreeningService, NotifyMixin):
     """
     Service responsible for recording screening decisions and managing item movement.
     Provides the core logic for both CLI 'decision' command and TUI 'screen' mode.
@@ -108,9 +109,9 @@ class ScreeningService(IScreeningService):
         """
         decision_upper = decision.upper()
         if decision_upper not in ["INCLUDE", "EXCLUDE"]:
-            print(
+            self._say(
                 f"Error: Invalid decision '{decision_upper}'. Must be INCLUDE or EXCLUDE.",
-                file=sys.stderr,
+                logging.ERROR,
             )
             return False
 
@@ -162,7 +163,7 @@ class ScreeningService(IScreeningService):
             success = self.note_repo.create_note(item_key, note_content)
 
         if not success:
-            print(f"Error: Failed to record audit note for item {item_key}.", file=sys.stderr)
+            self._say(f"Error: Failed to record audit note for item {item_key}.", logging.ERROR)
             return False
 
         return True
@@ -185,9 +186,9 @@ class ScreeningService(IScreeningService):
         """
         decision_upper = decision.upper()
         if decision_upper not in ["INCLUDE", "EXCLUDE"]:
-            print(
+            self._say(
                 f"Error: Invalid decision '{decision_upper}'. Must be INCLUDE or EXCLUDE.",
-                file=sys.stderr,
+                logging.ERROR,
             )
             return False
 
@@ -204,9 +205,8 @@ class ScreeningService(IScreeningService):
 
         tag_success = self.tag_repo.add_tags(item_key, tags_to_add)
         if not tag_success:
-            print(
-                f"Warning: Failed to apply tags {tags_to_add} to item {item_key}.",
-                file=sys.stderr,
+            self._say(
+                f"Warning: Failed to apply tags {tags_to_add} to item {item_key}.", logging.WARNING
             )
 
         # Collection Movement (Optional)
@@ -215,9 +215,9 @@ class ScreeningService(IScreeningService):
                 source_collection, target_collection, item_key
             )
             if not move_success:
-                print(
+                self._say(
                     f"Warning: Decision recorded but failed to move item {item_key}.",
-                    file=sys.stderr,
+                    logging.WARNING,
                 )
 
         return True
