@@ -100,9 +100,19 @@ jobs:
         if: env.HAS_SONAR != 'true'
         run: echo "::notice::SonarQube analysis skipped - SONAR_TOKEN/SONAR_HOST_URL aren't available to this run (e.g. a Dependabot PR)."
 
+      - name: Read project version
+        if: env.HAS_SONAR == 'true'
+        id: version
+        run: |
+          echo "value=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")" >> "$GITHUB_OUTPUT"
+
       - name: SonarQube Scan
         if: env.HAS_SONAR == 'true'
         uses: sonarsource/sonarqube-scan-action@v8
+        with:
+          # SonarQube's new-code baseline is "previous version": it only moves
+          # when this value changes, so it must follow pyproject.toml.
+          args: -Dsonar.projectVersion=${{ steps.version.outputs.value }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
