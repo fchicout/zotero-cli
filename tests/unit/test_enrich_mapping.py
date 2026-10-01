@@ -82,7 +82,9 @@ def test_enrich_from_csv_backward_compatibility(csv_service, mock_gateway, tmp_p
     mock_gateway.get_item_children.return_value = []
     mock_gateway.create_note.return_value = True
 
-    results = csv_service.enrich_from_csv(str(csv_file), reviewer="Orion", dry_run=False, force=True)
+    results = csv_service.enrich_from_csv(
+        str(csv_file), reviewer="Orion", dry_run=False, force=True
+    )
 
     assert "error" not in results
     assert results["matched"] == 1

@@ -216,7 +216,9 @@ async def test_discover_forward_falls_back_to_unauthenticated_on_rejected_key(
             }
         ]
     }
-    mock_gateway.get = AsyncMock(side_effect=[ValueError("403 ... x-api-key ..."), success_response])
+    mock_gateway.get = AsyncMock(
+        side_effect=[ValueError("403 ... x-api-key ..."), success_response]
+    )
 
     await worker._discover_forward(doi, generation=1)
 

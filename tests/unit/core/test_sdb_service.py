@@ -187,9 +187,7 @@ def test_filter_items_by_sdb_included_matches(service, mock_gateway):
     assert results[0][1]["decision"] == "accepted"
 
 
-def test_filter_items_by_sdb_included_skips_untagged_item_without_deep_scan(
-    service, mock_gateway
-):
+def test_filter_items_by_sdb_included_skips_untagged_item_without_deep_scan(service, mock_gateway):
     """The tag fast-filter must short-circuit before the deep note scan -
     an item missing the rsl:include tag should never trigger
     get_item_children at all."""
@@ -233,9 +231,7 @@ def test_filter_items_by_sdb_criteria_matches_reason_code(service, mock_gateway)
     assert len(results) == 1
 
 
-def test_filter_items_by_sdb_criteria_not_in_entry_reason_code_excludes_item(
-    service, mock_gateway
-):
+def test_filter_items_by_sdb_criteria_not_in_entry_reason_code_excludes_item(service, mock_gateway):
     item = _item("I1", tags=["rsl:exclude:IC2"])
     mock_gateway.get_item_children.return_value = [
         _note_child("N1", 1, "rejected", reason_code=["IC3"])

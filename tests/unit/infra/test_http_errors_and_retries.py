@@ -111,8 +111,11 @@ def test_auth_error_says_what_to_do(sleeps):
 
 def test_patch_and_delete_keep_returning_412_to_the_caller(sleeps):
     client = ZoteroHttpClient("key", "123", "user")
-    client.session = Mock(headers={}, patch=Mock(return_value=_response(412)),
-                          delete=Mock(return_value=_response(412)))
+    client.session = Mock(
+        headers={},
+        patch=Mock(return_value=_response(412)),
+        delete=Mock(return_value=_response(412)),
+    )
 
     assert client.patch("items/K1", {}).status_code == 412
     assert client.delete("items/K1", version=3).status_code == 412

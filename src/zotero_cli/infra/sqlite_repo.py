@@ -453,9 +453,7 @@ class SqliteZoteroGateway(ZoteroGateway):
             note_sql = self._MATCH_NOTE_TEXT_SQL if everything else self._MATCH_NOTE_TITLE_SQL
             for word in query.q.split():
                 pattern = self._like_pattern(word)
-                clauses.append(
-                    f"({fields_sql} OR {self._MATCH_CREATORS_SQL} OR {note_sql})"
-                )
+                clauses.append(f"({fields_sql} OR {self._MATCH_CREATORS_SQL} OR {note_sql})")
                 params.extend([pattern, pattern, pattern, pattern])
 
         if query.item_type:
@@ -918,14 +916,11 @@ class SqliteJobRepository(JobRepository):
                 )
             """
                 )
-                existing_columns = {
-                    row["name"] for row in conn.execute("PRAGMA table_info(jobs)")
-                }
+                existing_columns = {row["name"] for row in conn.execute("PRAGMA table_info(jobs)")}
                 if "library_id" not in existing_columns:
                     conn.execute("ALTER TABLE jobs ADD COLUMN library_id TEXT")
                 conn.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_jobs_task_status "
-                    "ON jobs (task_type, status)"
+                    "CREATE INDEX IF NOT EXISTS idx_jobs_task_status ON jobs (task_type, status)"
                 )
         finally:
             conn.close()

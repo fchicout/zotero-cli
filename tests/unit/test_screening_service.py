@@ -223,12 +223,8 @@ def test_double_blind_two_personas_then_reconciled_outcome(screening_service, mo
     mock_gateway.get_item_children.return_value = []
 
     # Rater A includes, rater B excludes - recorded independently.
-    assert screening_service.record_decision_note(
-        item_key, "INCLUDE", "", persona="rater_a"
-    )
-    assert screening_service.record_decision_note(
-        item_key, "EXCLUDE", "EC1", persona="rater_b"
-    )
+    assert screening_service.record_decision_note(item_key, "INCLUDE", "", persona="rater_a")
+    assert screening_service.record_decision_note(item_key, "EXCLUDE", "EC1", persona="rater_b")
 
     # Neither independent call should have mutated shared item state.
     mock_gateway.add_tags.assert_not_called()

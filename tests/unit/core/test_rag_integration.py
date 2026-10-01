@@ -87,9 +87,7 @@ def test_rag_persistence(tmp_path, monkeypatch, mock_config):
     config_dir.mkdir()
     config_file = config_dir / "config.toml"
 
-    mock_config = dataclasses.replace(
-        mock_config, api_key="f", library_id="f", database_path=None
-    )
+    mock_config = dataclasses.replace(mock_config, api_key="f", library_id="f", database_path=None)
     monkeypatch.setattr("zotero_cli.core.config.get_config", lambda: mock_config)
     monkeypatch.setattr("zotero_cli.core.config.get_config_path", lambda: config_file)
 

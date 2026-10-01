@@ -144,9 +144,7 @@ $ zotero-cli slr snowball export --format json --output graph.json
             asyncio.run(worker.process_jobs(count=args.count))
             console.print("[bold green]Done.[/bold green]")
         elif args.snow_verb == "review":
-            graph_service = GatewayFactory.get_snowball_graph_service(
-                config, force_user=force_user
-            )
+            graph_service = GatewayFactory.get_snowball_graph_service(config, force_user=force_user)
             metadata_service = GatewayFactory.get_metadata_aggregator(config)
             tui = TUIFactory.get_snowball_tui(graph_service, metadata_service, gateway)
             tui.run_review_session()
@@ -180,9 +178,7 @@ $ zotero-cli slr snowball export --format json --output graph.json
         if getattr(args, "dois", None):
             dois.extend(doi.strip() for doi in args.dois.split(",") if doi.strip())
         if getattr(args, "from_accepted", False):
-            graph_service = GatewayFactory.get_snowball_graph_service(
-                config, force_user=force_user
-            )
+            graph_service = GatewayFactory.get_snowball_graph_service(config, force_user=force_user)
             dois.extend(
                 graph_service.get_accepted_dois(generation=getattr(args, "from_generation", None))
             )
@@ -214,8 +210,7 @@ $ zotero-cli slr snowball export --format json --output graph.json
                 console.print(f"Collection '{escape(args.target)}' not found. Creating...")
                 col_id = gateway.create_collection(args.target)
             else:
-                raise NotFound(f"Collection '{args.target}' not found. "
-                    "Use --create to create it.")
+                raise NotFound(f"Collection '{args.target}' not found. Use --create to create it.")
         if col_id:
             console.print(
                 f"[bold]Ingesting ACCEPTED candidates into '{escape(args.target)}'...[/bold]"

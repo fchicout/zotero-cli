@@ -118,7 +118,9 @@ def test_table_renders_bracketed_titles_literally():
 
 # GHSA-3r38-p632-f79q: CSV and Markdown go straight to the terminal, so a
 # collaborator-controlled title must not carry escape sequences through.
-HOSTILE_TITLE = "Evil \x1b]8;;https://attacker.example\x07click\x1b]8;;\x07 \x1b[31mred\x9b2J \u202etxt.exe"
+HOSTILE_TITLE = (
+    "Evil \x1b]8;;https://attacker.example\x07click\x1b]8;;\x07 \x1b[31mred\x9b2J \u202etxt.exe"
+)
 
 
 def _hostile_output(render) -> str:

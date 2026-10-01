@@ -50,7 +50,9 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_inspect.md
 """
-        add_key_argument(parser, "Zotero Item Key(s) - comma-separated, e.g. K1,K2,K3", required=False)
+        add_key_argument(
+            parser, "Zotero Item Key(s) - comma-separated, e.g. K1,K2,K3", required=False
+        )
         parser.add_argument("--file", help="Path to file containing keys (one key per line)")
         parser.add_argument("--raw", action="store_true", help="Show raw JSON")
         add_renamed_flag(
@@ -111,9 +113,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 elif args.export_format == "bibliography":
                     print(
                         strip_controls(
-                            export_service.serialize_bibliography(
-                                [item], args.style, args.render
-                            )
+                            export_service.serialize_bibliography([item], args.style, args.render)
                         )
                     )
                 continue
@@ -195,7 +195,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                             )
                     else:
                         filename = cdata.get("filename") or "N/A"
-                        console.print(f"  - [green]Attachment[/green] ({safe_markup(ckey)}): {escape(filename)}")
+                        console.print(
+                            f"  - [green]Attachment[/green] ({safe_markup(ckey)}): {escape(filename)}"
+                        )
 
         if missing:
             # Shown items first, then a non-zero exit naming the rest (#368).
@@ -236,7 +238,9 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_move.md
 """,
         )
-        add_renamed_flag(move_p, "--key", "--item-id", required=True, dest="key", help="Key of the item to move")
+        add_renamed_flag(
+            move_p, "--key", "--item-id", required=True, dest="key", help="Key of the item to move"
+        )
         move_p.add_argument("--source", help="Source collection (optional if unambiguous)")
         move_p.add_argument("--target", required=True, help="Destination collection name or key")
 
@@ -546,10 +550,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         delete_mode = delete_p.add_mutually_exclusive_group()
         delete_mode.add_argument(
-            "--execute", action="store_true", help="Delete the item (default for now; see Deprecation note)"
+            "--execute",
+            action="store_true",
+            help="Delete the item (default for now; see Deprecation note)",
         )
         delete_mode.add_argument(
-            "--dry-run", action="store_true", help="Preview the item and its children without deleting"
+            "--dry-run",
+            action="store_true",
+            help="Preview the item and its children without deleting",
         )
 
         # Trash
@@ -580,7 +588,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         trash_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         trash_p.add_argument(
-            "--execute", action="store_true", help="Actually perform the write (default: preview only)"
+            "--execute",
+            action="store_true",
+            help="Actually perform the write (default: preview only)",
         )
         trash_p.add_argument(
             "--force", action="store_true", help="Skip the interactive confirmation prompt"
@@ -613,7 +623,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         restore_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
         restore_p.add_argument(
-            "--execute", action="store_true", help="Actually perform the write (default: preview only)"
+            "--execute",
+            action="store_true",
+            help="Actually perform the write (default: preview only)",
         )
         restore_p.add_argument(
             "--force", action="store_true", help="Skip the interactive confirmation prompt"
@@ -776,7 +788,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "for bulk execution instead of a single --master/--duplicates group",
         )
         merge_p.add_argument(
-            "--execute", action="store_true", help="Actually perform the merge (default: preview only)"
+            "--execute",
+            action="store_true",
+            help="Actually perform the merge (default: preview only)",
         )
         merge_p.add_argument("--force", action="store_true", help="Skip the confirmation prompt")
         merge_p.add_argument(
@@ -984,7 +998,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             return
 
         if not args.force:
-            groups_with_merges = sum(1 for e in plan.entries if e.decision and e.decision.merge_keys)
+            groups_with_merges = sum(
+                1 for e in plan.entries if e.decision and e.decision.merge_keys
+            )
             console.print(
                 f"[yellow]About to execute {safe_markup(groups_with_merges)} merge(s) from this plan. "
                 + ("The duplicates go to the trash." if trash else "This cannot be undone.")
@@ -997,7 +1013,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         result = service.execute_plan(plan, dry_run=False, trash=trash)
         for group_result in result.group_results:
             for error in group_result.errors:
-                console.print(f"[red]Warning ({safe_markup(group_result.master_key)}):[/red] {escape(error)}")
+                console.print(
+                    f"[red]Warning ({safe_markup(group_result.master_key)}):[/red] {escape(error)}"
+                )
         succeeded = sum(1 for g in result.group_results if g.success)
         console.print(
             f"[green]Merged {succeeded}/{len(result.group_results)} group(s) from the plan.[/green]"
@@ -1034,9 +1052,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             Console(stderr=True).print(
                 f"[yellow]Warning: no listed item has a field named {escape(repr(name))}.[/yellow]"
             )
-        item_list_presenter.render(
-            items, fields, getattr(args, "format", "table"), title, console
-        )
+        item_list_presenter.render(items, fields, getattr(args, "format", "table"), title, console)
 
     def _handle_transfer(self, args: argparse.Namespace) -> None:
         from dataclasses import replace
@@ -1199,7 +1215,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         for r in failed:
             console.print(f"[red]{safe_markup(r.key)}[/red]: {safe_markup(r.message or 'failed')}")
         if not execute and with_changes:
-            console.print("[yellow]Preview only - re-run with --execute to write these changes.[/yellow]")
+            console.print(
+                "[yellow]Preview only - re-run with --execute to write these changes.[/yellow]"
+            )
 
     def _handle_pdf_ops(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
@@ -1242,7 +1260,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             for k in unique_keys:
                 jid = pdf_finder.enqueue_find_pdf(k)
                 if args.details:
-                    console.print(f"Enqueued discovery job {safe_markup(jid)} for item {safe_markup(k)}")
+                    console.print(
+                        f"Enqueued discovery job {safe_markup(jid)} for item {safe_markup(k)}"
+                    )
 
             console.print(
                 f"[bold]Starting resilient PDF discovery for {len(unique_keys)} items...[/bold]"
@@ -1304,12 +1324,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         if not execute:
             children = gateway.get_item_children(args.key)
-            print(f"Would {'move to the trash' if trash else 'delete'} item {args.key}: {item.title}")
+            print(
+                f"Would {'move to the trash' if trash else 'delete'} item {args.key}: {item.title}"
+            )
             if children and trash:
                 print(f"  {len(children)} attached note(s)/file(s) stay with it.")
             elif children:
-                print(f"  {len(children)} attached note(s)/file(s) are NOT deleted with it "
-                    "(the Web API doesn't cascade) and would become orphaned:")
+                print(
+                    f"  {len(children)} attached note(s)/file(s) are NOT deleted with it "
+                    "(the Web API doesn't cascade) and would become orphaned:"
+                )
                 for child in children:
                     ctype = child.get("data", {}).get("itemType", "unknown")
                     ckey = str(child.get("key", ""))
@@ -1322,7 +1346,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         version = args.version if args.version is not None else item.version
         if trash:
             if gateway.trash_item(args.key, version):
-                print(f"Moved item {args.key} to the trash (undo with `item restore --key {args.key} --execute`).")
+                print(
+                    f"Moved item {args.key} to the trash (undo with `item restore --key {args.key} --execute`)."
+                )
                 return
             print(
                 f"Failed to trash item {args.key} (it may have changed since version {version}).",
@@ -1398,7 +1424,10 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if done:
             console.print(f"[bold green]{safe_markup(past)}:[/bold green] {safe_markup(args.key)}")
         else:
-            print(f"Failed to {verb} item {args.key} (it may have changed since it was read).", file=sys.stderr)
+            print(
+                f"Failed to {verb} item {args.key} (it may have changed since it was read).",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
     def _handle_update(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
@@ -1464,7 +1493,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             stats = attach_service.bulk_export_markdown([item], output_dir)
 
             if stats["success"] > 0:
-                console.print(f"[bold green]Success![/bold green] Markdown saved to {safe_markup(output_dir)}")
+                console.print(
+                    f"[bold green]Success![/bold green] Markdown saved to {safe_markup(output_dir)}"
+                )
             elif stats["skipped"] > 0:
                 console.print("[yellow]Skipped:[/yellow] Item has no PDF attachment.")
             else:
@@ -1472,7 +1503,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 sys.exit(1)
         elif args.export_format == "bibliography" and not args.output:
             export_service = GatewayFactory.get_export_service(force_user=force_user)
-            print(strip_controls(export_service.serialize_bibliography([item], args.style, args.render)))
+            print(
+                strip_controls(
+                    export_service.serialize_bibliography([item], args.style, args.render)
+                )
+            )
         else:
             # BibTeX / RIS / bibliography
             if not args.output:
@@ -1532,7 +1567,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             template["creators"] = creators
 
         # 4. Create Item
-        console.print(f"Creating new [cyan]{safe_markup(args.type)}[/cyan]: [bold]{escape(args.title)}[/bold]...")
+        console.print(
+            f"Creating new [cyan]{safe_markup(args.type)}[/cyan]: [bold]{escape(args.title)}[/bold]..."
+        )
         new_key = gateway.create_generic_item(template)
 
         if new_key:
@@ -1541,4 +1578,3 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             )
         else:
             console.print("[bold red]Error:[/bold red] Failed to create item.")
-

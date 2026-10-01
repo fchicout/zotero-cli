@@ -113,7 +113,10 @@ class StorageService:
             target_path = storage_root / filename
 
         if target_path.exists():
-            print(strip_controls(f"Skipping {item.key}: File {filename} already exists."), file=sys.stderr)
+            print(
+                strip_controls(f"Skipping {item.key}: File {filename} already exists."),
+                file=sys.stderr,
+            )
             return False
 
         if dry_run:

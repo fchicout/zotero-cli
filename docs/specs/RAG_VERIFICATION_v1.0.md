@@ -24,8 +24,8 @@ The `RAGService` will be extended with:
 class VerifiedSearchResult(SearchResult):
     is_verified: bool = False
     verification_errors: List[str] = field(default_factory=list)
-    screening_status: str = "unknown" # accepted, rejected, pending
-    citation_key: Optional[str] = None # For easy inclusion in manuscripts
+    screening_status: str = "unknown"  # accepted, rejected, pending
+    citation_key: Optional[str] = None  # For easy inclusion in manuscripts
 ```
 
 ## 3. Workflow Integration

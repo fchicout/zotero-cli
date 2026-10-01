@@ -43,7 +43,9 @@ def test_rich_markup_is_never_passed_to_builtin_print():
     assert not offenders, f"Rich markup through builtin print() shows up literally: {offenders}"
 
 
-@pytest.mark.skipif(os.name == "nt" or os.geteuid() == 0, reason="needs POSIX permissions, non-root")
+@pytest.mark.skipif(
+    os.name == "nt" or os.geteuid() == 0, reason="needs POSIX permissions, non-root"
+)
 def test_json_output_stays_valid_with_an_unreadable_config(tmp_path, capsys):
     """The #372 reproduction: a config-load warning went to stdout and
     corrupted `--format json`."""
@@ -60,12 +62,23 @@ def test_json_output_stays_valid_with_an_unreadable_config(tmp_path, capsys):
     gateway = MagicMock()
     gateway.get_collection_id_by_name.return_value = "C1"
     gateway.get_items_in_collection.return_value = iter([item])
-    argv = ["zotero-cli", "--config", str(config), "item", "list", "--collection", "C1",
-            "--format", "json"]
+    argv = [
+        "zotero-cli",
+        "--config",
+        str(config),
+        "item",
+        "list",
+        "--collection",
+        "C1",
+        "--format",
+        "json",
+    ]
     try:
         with (
             patch.object(sys, "argv", argv),
-            patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway),
+            patch(
+                "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway
+            ),
         ):
             main()
     finally:

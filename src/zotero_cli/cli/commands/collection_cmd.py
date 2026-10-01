@@ -231,7 +231,9 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_backup.md
 """,
         )
-        add_renamed_flag(backup_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+        add_renamed_flag(
+            backup_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP
+        )
         backup_p.add_argument("--output", required=True, help="Output file path")
 
         # Export
@@ -256,7 +258,9 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_export.md
 """,
         )
-        add_renamed_flag(export_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+        add_renamed_flag(
+            export_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP
+        )
         add_renamed_flag(
             export_p,
             "--as",
@@ -291,7 +295,9 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_purge.md
 """,
         )
-        add_renamed_flag(purge_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+        add_renamed_flag(
+            purge_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP
+        )
         purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
         purge_p.add_argument("--notes", action="store_true", help="Purge notes")
         purge_p.add_argument("--tags", action="store_true", help="Purge tags")
@@ -340,7 +346,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                     return
                 service = GatewayFactory.get_collection_service(force_user=force_user)
                 if service.delete_collection(col_id, version):
-                    print(f"Deleted collection '{args.key}' ({col_id}). Its items stay in your library.")
+                    print(
+                        f"Deleted collection '{args.key}' ({col_id}). Its items stay in your library."
+                    )
                 else:
                     print(f"Failed to delete collection '{args.key}'.", file=sys.stderr)
                     sys.exit(1)
@@ -510,7 +518,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         trash = getattr(args, "trash", False) is True
         console.print(
             f"Deleting '{safe_markup(args.key)}' ({safe_markup(col_id)}) recursively would "
-            + ("move the items to the trash and permanently delete the collections:" if trash else "permanently delete:")
+            + (
+                "move the items to the trash and permanently delete the collections:"
+                if trash
+                else "permanently delete:"
+            )
         )
         console.print(f"  {len(plan.collections)} collection(s):")
         for key, _, name in reversed(plan.collections):
@@ -534,7 +546,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             console.print(preview_notice("delete them"))
             return
         if not confirm_destructive(
-            "Delete the collections and trash the items above?" if trash else "Permanently delete all of the above?",
+            "Delete the collections and trash the items above?"
+            if trash
+            else "Permanently delete all of the above?",
             args.yes,
         ):
             console.print("Cancelled; nothing was deleted.")
@@ -627,7 +641,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if not args.output:
             raise UsageError("--output required for metadata export.")
 
-        print(f"Exporting collection '{args.collection}' to {args.output} ({args.export_format})...")
+        print(
+            f"Exporting collection '{args.collection}' to {args.output} ({args.export_format})..."
+        )
         if service.export_collection(
             args.collection, args.output, args.export_format, args.style, args.render
         ):
@@ -662,7 +678,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         # 2. Get Items
         items = list(gateway.get_items_in_collection(col_id))
         if not items:
-            console.print(f"[yellow]No items found in collection '{escape(args.collection)}'.[/yellow]")
+            console.print(
+                f"[yellow]No items found in collection '{escape(args.collection)}'.[/yellow]"
+            )
             return
 
         output_dir = Path(args.output) if args.output else Path("./export_md")

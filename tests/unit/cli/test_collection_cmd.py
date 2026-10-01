@@ -162,9 +162,7 @@ def _recursive_plan():
     )
 
 
-def test_collection_delete_non_recursive_keeps_items(
-    mock_gateway, mock_collection_service, capsys
-):
+def test_collection_delete_non_recursive_keeps_items(mock_gateway, mock_collection_service, capsys):
     mock_gateway.get_collection_id_by_name.return_value = "COL_KEY"
     mock_gateway.get_collection.return_value = {"version": 42}
     mock_collection_service.delete_collection.return_value = True
@@ -317,7 +315,9 @@ def test_collection_clean_execute_removes_from_collection(mock_collection_servic
 
 def test_collection_clean_unknown_collection_exits_non_zero(mock_collection_service, capsys):
     mock_collection_service.plan_clean.return_value = None
-    args = argparse.Namespace(verb="clean", collection="Nope", verbose=False, execute=True, user=False)
+    args = argparse.Namespace(
+        verb="clean", collection="Nope", verbose=False, execute=True, user=False
+    )
     with pytest.raises(SystemExit) as exc:
         CollectionCommand().execute(args)
     assert exc.value.code == 1
@@ -373,7 +373,13 @@ def test_collection_export_metadata_success(mock_export_service, capsys):
     mock_export_service.export_collection.return_value = True
 
     args = argparse.Namespace(
-        verb="export", collection="COL_KEY", export_format="bibtex", output="out.bib", user=False, style="apa", render="plain"
+        verb="export",
+        collection="COL_KEY",
+        export_format="bibtex",
+        output="out.bib",
+        user=False,
+        style="apa",
+        render="plain",
     )
     CollectionCommand().execute(args)
 
@@ -388,7 +394,13 @@ def test_collection_export_metadata_fail(mock_export_service, capsys):
     mock_export_service.export_collection.return_value = False
 
     args = argparse.Namespace(
-        verb="export", collection="COL_KEY", export_format="ris", output="out.ris", user=False, style="apa", render="plain"
+        verb="export",
+        collection="COL_KEY",
+        export_format="ris",
+        output="out.ris",
+        user=False,
+        style="apa",
+        render="plain",
     )
     with pytest.raises(SystemExit):
         CollectionCommand().execute(args)

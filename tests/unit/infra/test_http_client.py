@@ -32,7 +32,9 @@ def test_resolve_key_identity_success():
 
 def test_resolve_key_identity_invalid_key_raises():
     mock_response = MagicMock()
-    mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(response=mock_response)
+    mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+        response=mock_response
+    )
     mock_response.status_code = 403
 
     with patch("zotero_cli.infra.http_client.requests.get", return_value=mock_response):

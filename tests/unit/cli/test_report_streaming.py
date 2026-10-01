@@ -19,9 +19,17 @@ def _counting_items(n: int, item_type: str, alive_peak: List[int]) -> Iterator[Z
                 gc.collect()
                 alive_peak[0] = max(alive_peak[0], sum(1 for r in refs if r() is not None))
             item = ZoteroItem.from_raw_zotero_item(
-                {"key": f"K{k}", "version": 1,
-                 "data": {"itemType": item_type, "title": f"t{k}", "date": "2020",
-                          "contentType": "application/pdf", "parentItem": "P"}}
+                {
+                    "key": f"K{k}",
+                    "version": 1,
+                    "data": {
+                        "itemType": item_type,
+                        "title": f"t{k}",
+                        "date": "2020",
+                        "contentType": "application/pdf",
+                        "parentItem": "P",
+                    },
+                }
             )
             refs.append(weakref.ref(item))
             yield item

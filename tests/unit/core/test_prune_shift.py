@@ -23,7 +23,12 @@ def col_service(mock_item_repo, mock_col_repo):
 
 
 def _item(key, collections, doi=None, parent=None):
-    data = {"title": f"Paper {key}", "version": 3, "itemType": "journalArticle", "collections": collections}
+    data = {
+        "title": f"Paper {key}",
+        "version": 3,
+        "itemType": "journalArticle",
+        "collections": collections,
+    }
     if doi:
         data["DOI"] = doi
     if parent:
@@ -34,8 +39,12 @@ def _item(key, collections, doi=None, parent=None):
 def _collections(mock_col_repo, contents):
     """contents: collection key -> items; names resolve to keys 'Inc'->'1', 'Exc'->'2'."""
     names = {"Inc": "1", "Exc": "2"}
-    mock_col_repo.get_collection_id_by_name.side_effect = lambda x: names.get(x, x if x in contents else None)
-    mock_col_repo.get_items_in_collection.side_effect = lambda key, **kw: iter(contents.get(key, []))
+    mock_col_repo.get_collection_id_by_name.side_effect = lambda x: names.get(
+        x, x if x in contents else None
+    )
+    mock_col_repo.get_items_in_collection.side_effect = lambda key, **kw: iter(
+        contents.get(key, [])
+    )
 
 
 def test_prune_takes_the_same_item_and_duplicate_imports_out_of_excluded(
@@ -76,7 +85,9 @@ def test_clean_plans_removal_without_deleting(col_service, mock_col_repo, mock_i
     mock_item_repo.delete_item.assert_not_called()
 
 
-def test_recursive_delete_keeps_items_filed_outside_the_tree(col_service, mock_col_repo, mock_item_repo):
+def test_recursive_delete_keeps_items_filed_outside_the_tree(
+    col_service, mock_col_repo, mock_item_repo
+):
     """Issue #378: items also filed in another collection were deleted with the tree."""
     mock_col_repo.get_all_collections.return_value = [
         {"key": "ROOT", "version": 5, "data": {"name": "Old project", "parentCollection": False}},

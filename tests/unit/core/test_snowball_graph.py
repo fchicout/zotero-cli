@@ -113,9 +113,7 @@ def test_authors_survive_json_round_trip(temp_storage):
     """Regression test for Issue #318: authors must be included in the
     exported/persisted node-link JSON, not just held in memory."""
     service = SnowballGraphService(temp_storage)
-    service.add_candidate(
-        {"doi": "10.1001/a", "title": "A", "authors": ["Jane Doe"]}, generation=0
-    )
+    service.add_candidate({"doi": "10.1001/a", "title": "A", "authors": ["Jane Doe"]}, generation=0)
 
     data = json.loads(service.to_json())
     node = next(n for n in data["nodes"] if n["id"] == "10.1001/a")

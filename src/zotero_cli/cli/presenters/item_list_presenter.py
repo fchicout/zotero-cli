@@ -116,9 +116,7 @@ def _records(items: Sequence[ZoteroItem], fields: Sequence[str]) -> List[Dict[st
 
 
 def _columns(fields: Sequence[str]) -> List[records.Column]:
-    return [
-        records.Column(f, label(f), style="cyan" if f == "key" else None) for f in fields
-    ]
+    return [records.Column(f, label(f), style="cyan" if f == "key" else None) for f in fields]
 
 
 def render_table(

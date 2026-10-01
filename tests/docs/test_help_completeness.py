@@ -16,7 +16,9 @@ import pytest
 from zotero_cli.cli.main import build_parser
 
 
-def _leaves(parser: argparse.ArgumentParser, path: str = "") -> Iterator[Tuple[str, argparse.ArgumentParser]]:
+def _leaves(
+    parser: argparse.ArgumentParser, path: str = ""
+) -> Iterator[Tuple[str, argparse.ArgumentParser]]:
     subparsers = [a for a in parser._actions if isinstance(a, argparse._SubParsersAction)]
     if not subparsers:
         yield path, parser

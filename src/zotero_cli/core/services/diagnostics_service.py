@@ -131,9 +131,7 @@ class DiagnosticsService:
             )
         return self._probe_metadata_client(_CHECK_PUBMED, self.metadata_aggregator.pubmed)
 
-    def _probe_metadata_client(
-        self, name: str, client: Optional[MetadataProvider]
-    ) -> CheckResult:
+    def _probe_metadata_client(self, name: str, client: Optional[MetadataProvider]) -> CheckResult:
         # These clients never raise - they catch every error internally and
         # return None, so a None response (not an exception) is the failure
         # signal here. The try/except is still a defensive backstop.
@@ -163,8 +161,11 @@ class DiagnosticsService:
                     _CHECK_EMBEDDING_PROVIDER,
                     embedding,
                     c.embedding_model,
-                    {"local": "sentence_transformers", "openai": "openai",
-                     "gemini": "google.generativeai"},
+                    {
+                        "local": "sentence_transformers",
+                        "openai": "openai",
+                        "gemini": "google.generativeai",
+                    },
                 )
             )
         generative = (c.generative_provider or "auto").lower()

@@ -56,12 +56,8 @@ class ServiceFactory:
             config = main_get_config()
 
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
-        col_repo = RepositoryFactory.get_collection_repository(
-            config, force_user, offline=offline
-        )
-        att_repo = RepositoryFactory.get_attachment_repository(
-            config, force_user, offline=offline
-        )
+        col_repo = RepositoryFactory.get_collection_repository(config, force_user, offline=offline)
+        att_repo = RepositoryFactory.get_attachment_repository(config, force_user, offline=offline)
         note_repo = RepositoryFactory.get_note_repository(config, force_user, offline=offline)
         aggregator = MetadataClientFactory.get_metadata_aggregator(config)
         purge_service = ServiceFactory.get_purge_service(config, force_user, offline=offline)
@@ -84,9 +80,7 @@ class ServiceFactory:
             config = main_get_config()
 
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
-        col_repo = RepositoryFactory.get_collection_repository(
-            config, force_user, offline=offline
-        )
+        col_repo = RepositoryFactory.get_collection_repository(config, force_user, offline=offline)
 
         from zotero_cli.core.services.collection_service import CollectionService
 
@@ -132,9 +126,7 @@ class ServiceFactory:
             config = main_get_config()
 
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
-        col_repo = RepositoryFactory.get_collection_repository(
-            config, force_user, offline=offline
-        )
+        col_repo = RepositoryFactory.get_collection_repository(config, force_user, offline=offline)
         arxiv_gateway = MetadataClientFactory.get_arxiv_gateway()
         aggregator = MetadataClientFactory.get_metadata_aggregator(config)
         # OpenAlex's search backs the opt-in --by-title matching (Issue #344).
@@ -201,7 +193,9 @@ class ServiceFactory:
         force_user: bool = False,
         offline: Optional[bool] = None,
     ) -> "SnapshotWriter":
-        collection_repo = RepositoryFactory.get_collection_repository(config, force_user, offline=offline)
+        collection_repo = RepositoryFactory.get_collection_repository(
+            config, force_user, offline=offline
+        )
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
         from zotero_cli.core.services.snapshot_service import SnapshotWriter
 
@@ -230,9 +224,7 @@ class ServiceFactory:
             config = main_get_config()
 
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
-        col_repo = RepositoryFactory.get_collection_repository(
-            config, force_user, offline=offline
-        )
+        col_repo = RepositoryFactory.get_collection_repository(config, force_user, offline=offline)
         note_repo = RepositoryFactory.get_note_repository(config, force_user, offline=offline)
         tag_repo = RepositoryFactory.get_tag_repository(config, force_user, offline=offline)
         col_service = ServiceFactory.get_collection_service(config, force_user, offline=offline)
@@ -360,9 +352,7 @@ class ServiceFactory:
 
         job_queue = ServiceFactory.get_job_queue_service(config, force_user)
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
-        att_repo = RepositoryFactory.get_attachment_repository(
-            config, force_user, offline=offline
-        )
+        att_repo = RepositoryFactory.get_attachment_repository(config, force_user, offline=offline)
 
         # Build Resolver Chain
         resolvers = [

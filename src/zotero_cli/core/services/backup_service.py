@@ -119,7 +119,13 @@ class BackupService:
 
                     # Process children
                     self._process_children(
-                        item, children.get(item.key, []), zf, manifest, errors, writer, processed_keys
+                        item,
+                        children.get(item.key, []),
+                        zf,
+                        manifest,
+                        errors,
+                        writer,
+                        processed_keys,
                     )
 
                     # Notify progress

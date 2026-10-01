@@ -290,7 +290,16 @@ def test_init_takes_the_group_id_from_a_url(tmp_path, capsys):
     config_file = tmp_path / "config.toml"
     _run_init(
         config_file,
-        ["k", "group", "my-research-group", "https://www.zotero.org/groups/6287212/rsl-xm", "", "", "", ""],
+        [
+            "k",
+            "group",
+            "my-research-group",
+            "https://www.zotero.org/groups/6287212/rsl-xm",
+            "",
+            "",
+            "",
+            "",
+        ],
     )
 
     data = tomllib.loads(config_file.read_text())["zotero"]

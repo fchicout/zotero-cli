@@ -626,5 +626,3 @@ class AuditService(ABC):
     @abstractmethod
     def audit_manuscript(self, path: Path) -> Dict[str, Any]:
         pass
-
-

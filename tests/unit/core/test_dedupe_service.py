@@ -56,9 +56,7 @@ def make_group(match_type, identifier, occ_specs):
     return DuplicateGroup(
         match_type=match_type,
         identifier=identifier,
-        occurrences=[
-            DuplicateOccurrence(key=k, collection_id=c, title=t) for k, c, t in occ_specs
-        ],
+        occurrences=[DuplicateOccurrence(key=k, collection_id=c, title=t) for k, c, t in occ_specs],
     )
 
 
@@ -76,9 +74,7 @@ def test_source_collection_ids_includes_raw_parents_and_phase_subfolders(service
     assert set(ids) == {"ROOT_A", "C1", "C2", "ROOT_B"}
 
 
-def test_find_and_classify_uses_source_tree_when_scope_omitted(
-    service, gateway, duplicate_finder
-):
+def test_find_and_classify_uses_source_tree_when_scope_omitted(service, gateway, duplicate_finder):
     gateway.get_all_collections.return_value = [
         {"key": "ROOT_A", "data": {"name": "raw_ieee", "parentCollection": None}},
     ]
@@ -280,9 +276,7 @@ def test_execute_reconciliation_skips_provenance_when_execute_plan_fails(
     orchestrator.record_duplicate_resolution.assert_not_called()
 
 
-def test_execute_reconciliation_passes_trash_to_the_merge(
-    gateway, duplicate_finder, merge_service
-):
+def test_execute_reconciliation_passes_trash_to_the_merge(gateway, duplicate_finder, merge_service):
     """Issue #402: `slr dedupe --trash` reaches MergeService.execute_plan."""
     from unittest.mock import Mock as _Mock
 

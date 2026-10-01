@@ -72,8 +72,9 @@ class CollectionService:
                         or source_col_name
                     )
                     print(
-                        f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'..."
-                    , file=sys.stderr)
+                        f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'...",
+                        file=sys.stderr,
+                    )
                     found_items = list(
                         self.collection_repo.get_items_in_collection(lookup_source_id)
                     )
@@ -126,14 +127,17 @@ class CollectionService:
             if not item.collections:
                 return self._perform_move(item, None, dest_id)
             else:
-                print(f"Item '{identifier}' found but it is NOT in the root folder.", file=sys.stderr)
+                print(
+                    f"Item '{identifier}' found but it is NOT in the root folder.", file=sys.stderr
+                )
                 return False
         elif source_id in item.collections:
             return self._perform_move(item, source_id, dest_id)
         else:
             print(
-                f"Item '{identifier}' found but not in source collection '{source_col_name or source_id}'."
-            , file=sys.stderr)
+                f"Item '{identifier}' found but not in source collection '{source_col_name or source_id}'.",
+                file=sys.stderr,
+            )
             return False
 
     def _is_match(self, item: ZoteroItem, identifier: str) -> bool:

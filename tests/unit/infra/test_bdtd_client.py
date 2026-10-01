@@ -239,9 +239,7 @@ def _bdtd_record(title: str, url: str = "https://repositorio.example/handle/1") 
 
 def test_search_single_page(client):
     mock_response = MagicMock()
-    mock_response.json.return_value = {
-        "records": [_bdtd_record("Tese A"), _bdtd_record("Tese B")]
-    }
+    mock_response.json.return_value = {"records": [_bdtd_record("Tese A"), _bdtd_record("Tese B")]}
 
     with patch.object(client, "_get", return_value=mock_response) as mock_get:
         results = list(client.search("aprendizado de maquina", max_results=2))

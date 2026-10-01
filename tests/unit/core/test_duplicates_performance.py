@@ -16,8 +16,10 @@ def _brute_force_pairs(titles, years, sigs):
         (i, j)
         for i in range(n)
         for j in range(i + 1, n)
-        if titles[i] and titles[j]
-        and years[i] is not None and years[j] is not None
+        if titles[i]
+        and titles[j]
+        and years[i] is not None
+        and years[j] is not None
         and abs(years[i] - years[j]) <= 1
         and sigs[i] & sigs[j]
     ]
@@ -57,8 +59,10 @@ def _similarity(_self, a, b):
 
 
 def test_fuzzy_groups_are_found_without_comparing_every_pair():
-    items = [(_item(f"K{n}", f"Unrelated study number {n}", 2000 + n % 20, f"author{n}"), "C")
-             for n in range(2000)]
+    items = [
+        (_item(f"K{n}", f"Unrelated study number {n}", 2000 + n % 20, f"author{n}"), "C")
+        for n in range(2000)
+    ]
     items += [
         (_item("DUP1", "Deep learning for screening", 2020, "smith"), "C"),
         (_item("DUP2", "Deep learning for the screening", 2021, "smith"), "C"),
@@ -78,8 +82,11 @@ def test_library_mode_ignores_attachments_and_notes():
     gateway = MagicMock()
     pdfs = [
         ZoteroItem.from_raw_zotero_item(
-            {"key": f"A{n}", "version": 1,
-             "data": {"itemType": "attachment", "title": "Full Text PDF", "parentItem": f"P{n}"}}
+            {
+                "key": f"A{n}",
+                "version": 1,
+                "data": {"itemType": "attachment", "title": "Full Text PDF", "parentItem": f"P{n}"},
+            }
         )
         for n in range(5)
     ]

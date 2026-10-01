@@ -284,7 +284,9 @@ class EnrichmentService:
             "venue": paper.publication or None,
             # A DOI resolver link is stable and publisher-neutral; a
             # provider's own page (PubMed, arXiv, ...) is the fallback.
-            "url": f"https://doi.org/{normalize_doi(paper.doi)}" if paper.doi else paper.url or None,
+            "url": f"https://doi.org/{normalize_doi(paper.doi)}"
+            if paper.doi
+            else paper.url or None,
             "creators": _creators_from_names(paper.authors) or None,
             "title": paper.title or None,
         }

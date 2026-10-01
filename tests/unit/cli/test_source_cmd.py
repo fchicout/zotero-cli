@@ -52,7 +52,9 @@ def test_handle_add_collection_not_found():
     mock_gateway = MagicMock()
     mock_gateway.get_collection_id_by_name.return_value = None
 
-    args = argparse.Namespace(source_verb="add", collection="nonexistent", file="test.ris", details=False)
+    args = argparse.Namespace(
+        source_verb="add", collection="nonexistent", file="test.ris", details=False
+    )
 
     with pytest.raises(SystemExit) as excinfo:
         SLRSourceCommand.execute(mock_gateway, args)

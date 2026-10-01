@@ -62,7 +62,16 @@ def test_collection_clean(run_cli, temp_collection):
 
     time.sleep(10)
     before_clean = run_cli(
-        ["item", "list", "--collection", temp_collection, "--fields", "key,title", "--format", "json"]
+        [
+            "item",
+            "list",
+            "--collection",
+            temp_collection,
+            "--fields",
+            "key,title",
+            "--format",
+            "json",
+        ]
     )
     rows = json.loads(before_clean.stdout)
     assert any("Attention" in r["title"] for r in rows)

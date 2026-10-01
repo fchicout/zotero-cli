@@ -106,7 +106,9 @@ def _item(key="K1", title="Attention", doi="10.1/x"):
 def _search(fmt, hits):
     from zotero_cli.cli.commands.search_cmd import SearchCommand
 
-    args = argparse.Namespace(query="attention", doi=None, title=None, limit=50, user=False, format=fmt)
+    args = argparse.Namespace(
+        query="attention", doi=None, title=None, limit=50, user=False, format=fmt
+    )
     with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as get:
         get.return_value.search_items.return_value = hits
         SearchCommand().execute(args)
@@ -226,7 +228,11 @@ def _stats(fmt):
         return i
 
     gateway = MagicMock()
-    gateway.get_all_items.return_value = [item("journalArticle", "2023"), item("book", "2023"), item("journalArticle", "2021")]
+    gateway.get_all_items.return_value = [
+        item("journalArticle", "2023"),
+        item("book", "2023"),
+        item("journalArticle", "2021"),
+    ]
     args = argparse.Namespace(report_type="stats", collection=None, format=fmt, user=False)
     with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway):
         ReportCommand().execute(args)
@@ -271,8 +277,17 @@ def _slr_list(verb, fmt, items):
     from zotero_cli.cli.commands.slr.list_cmd import ListCommand
 
     args = argparse.Namespace(
-        list_verb=verb, tree="raw_acm", format=fmt, user=False, ta=False, fullscreen=False, qa=None,
-        csv=None, json=None, xlsx=None, ods=None,
+        list_verb=verb,
+        tree="raw_acm",
+        format=fmt,
+        user=False,
+        ta=False,
+        fullscreen=False,
+        qa=None,
+        csv=None,
+        json=None,
+        xlsx=None,
+        ods=None,
     )
     with patch("zotero_cli.infra.factory.GatewayFactory.get_slr_status_service") as get:
         service = get.return_value
@@ -310,12 +325,22 @@ def test_jobs_list_json(capsys):
     job = MagicMock(id=7, task_type="fetch_pdf", item_key="K1", status="FAILED", attempts=2)
     job.next_retry_at = None
     job.last_error = "boom"
-    args = argparse.Namespace(verb="jobs", jobs_verb="list", type=None, limit=50, format="json", user=False)
+    args = argparse.Namespace(
+        verb="jobs", jobs_verb="list", type=None, limit=50, format="json", user=False
+    )
     with patch("zotero_cli.infra.factory.GatewayFactory.get_job_queue_service") as get:
         get.return_value.list_jobs.return_value = [job]
         SystemCommand().execute(args)
     assert json.loads(capsys.readouterr().out) == [
-        {"id": 7, "type": "fetch_pdf", "item_key": "K1", "status": "FAILED", "attempts": 2, "next_retry": "", "error": "boom"}
+        {
+            "id": 7,
+            "type": "fetch_pdf",
+            "item_key": "K1",
+            "status": "FAILED",
+            "attempts": 2,
+            "next_retry": "",
+            "error": "boom",
+        }
     ]
 
 
@@ -344,7 +369,10 @@ def test_old_format_spelling_on_exports_warns_and_still_works(argv, default, cap
 def test_item_inspect_as_and_deprecated_format(capsys):
     assert build_parser().parse_args(["item", "inspect", "K", "--as", "ris"]).export_format == "ris"
     assert capsys.readouterr().err == ""
-    assert build_parser().parse_args(["item", "inspect", "K", "--format", "bibtex"]).export_format == "bibtex"
+    assert (
+        build_parser().parse_args(["item", "inspect", "K", "--format", "bibtex"]).export_format
+        == "bibtex"
+    )
     assert "deprecated; use `--as`" in capsys.readouterr().err
 
 

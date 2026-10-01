@@ -16,7 +16,9 @@ def verify_environment() -> None:
             from rich.panel import Panel
 
             console = Console(stderr=True)
-            console.print(Panel(f"[bold red]{safe_markup(error_msg)}[/bold red]", border_style="red"))
+            console.print(
+                Panel(f"[bold red]{safe_markup(error_msg)}[/bold red]", border_style="red")
+            )
         except ImportError:
             print(f"ERROR: {error_msg}", file=sys.stderr)
         sys.exit(1)
@@ -81,9 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
             "stderr; -v adds the traceback. See docs/EXIT_CODES.md."
         ),
     )
-    parser.add_argument(
-        "-V", "--version", action="version", version=f"zotero-cli {__version__}"
-    )
+    parser.add_argument("-V", "--version", action="version", version=f"zotero-cli {__version__}")
     parser.add_argument("--user", action="store_true", help="Force Personal Library mode")
     parser.add_argument(
         "--offline",

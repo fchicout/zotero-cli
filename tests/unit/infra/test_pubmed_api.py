@@ -148,4 +148,8 @@ def test_contact_email_is_the_users_own_and_only_when_configured():
     anonymous = PubMedAPIClient()
     assert anonymous._ncbi_params() == {"tool": "zotero-cli"}
     configured = PubMedAPIClient(api_key="k", contact_email="me@example.org")
-    assert configured._ncbi_params() == {"tool": "zotero-cli", "email": "me@example.org", "api_key": "k"}
+    assert configured._ncbi_params() == {
+        "tool": "zotero-cli",
+        "email": "me@example.org",
+        "api_key": "k",
+    }

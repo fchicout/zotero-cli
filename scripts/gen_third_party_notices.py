@@ -52,7 +52,12 @@ PYTHON_RUNTIME_LIBRARIES: List[Tuple[str, str, str, Tuple[str, ...]]] = [
     ("Expat", "MIT", "expat.txt", ("libexpat",)),
     ("mpdecimal", "BSD-2-Clause", "mpdecimal.txt", ("libmpdec",)),
     ("libedit", "BSD-3-Clause", "libedit.txt", ("libedit",)),
-    ("ncurses", "X11-style (MIT)", "ncurses.txt", ("libncurses", "libtinfo", "libpanel", "libform", "libmenu")),
+    (
+        "ncurses",
+        "X11-style (MIT)",
+        "ncurses.txt",
+        ("libncurses", "libtinfo", "libpanel", "libform", "libmenu"),
+    ),
     ("Zstandard", "BSD-3-Clause (elected; dual-licensed with GPL-2.0)", "zstd.txt", ("libzstd",)),
     ("libuuid (util-linux)", "BSD-3-Clause", "libuuid.txt", ("libuuid",)),
     ("HACL*", "MIT OR Apache-2.0", "hacl-star.txt", ()),

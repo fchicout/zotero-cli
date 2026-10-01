@@ -55,7 +55,9 @@ def test_resolve_key_identity_does_not_require_an_instance(api_key):
     """The whole point (Issue #178): no library_id-carrying ZoteroAPIClient
     needs to be constructed to call this."""
     raw = {"userID": 1, "username": "u", "access": {}}
-    with patch("zotero_cli.infra.zotero_api.ZoteroHttpClient.resolve_key_identity", return_value=raw):
+    with patch(
+        "zotero_cli.infra.zotero_api.ZoteroHttpClient.resolve_key_identity", return_value=raw
+    ):
         ZoteroAPIClient.resolve_key_identity(api_key)  # called on the class, not an instance
 
 
@@ -104,7 +106,9 @@ def test_get_user_groups(client):
     assert groups[0]["data"]["name"] == "G1"
     # HttpClient handles prefix, but here we override
     client.http.session.get.assert_called_with(
-        "https://api.zotero.org/users/123/groups", params={"limit": 100, "start": 0}, timeout=(5, 30)
+        "https://api.zotero.org/users/123/groups",
+        params={"limit": 100, "start": 0},
+        timeout=(5, 30),
     )
 
 
@@ -355,7 +359,9 @@ def test_trash_item_without_a_version_uses_the_current_one(client):
 
     with patch.object(client, "get_item", return_value=current):
         assert client.trash_item("K1") is True
-    assert client.http.session.patch.call_args.kwargs["headers"]["If-Unmodified-Since-Version"] == "88"
+    assert (
+        client.http.session.patch.call_args.kwargs["headers"]["If-Unmodified-Since-Version"] == "88"
+    )
 
 
 def test_trash_item_swallows_transport_errors_as_false(client):
@@ -375,10 +381,15 @@ def test_patch_sends_the_objects_own_version_not_the_library_one(client):
     client.http.session.patch.return_value = _patch_response(204)
 
     client.http.patch("items/K1", json_data={"title": "x"}, version_check=True, version=5)
-    assert client.http.session.patch.call_args.kwargs["headers"]["If-Unmodified-Since-Version"] == "5"
+    assert (
+        client.http.session.patch.call_args.kwargs["headers"]["If-Unmodified-Since-Version"] == "5"
+    )
     client.http.last_library_version = 999
     client.http.patch("items/K1", json_data={"title": "x"}, version_check=True)
-    assert client.http.session.patch.call_args.kwargs["headers"]["If-Unmodified-Since-Version"] == "999"
+    assert (
+        client.http.session.patch.call_args.kwargs["headers"]["If-Unmodified-Since-Version"]
+        == "999"
+    )
 
 
 def test_delete_collection_fails_on_412(client):

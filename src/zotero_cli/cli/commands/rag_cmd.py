@@ -212,7 +212,9 @@ $ zotero-cli rag model clean
 
             if qa_approved_only:
                 if args.collection or args.key:
-                    raise UsageError("Cannot specify --collection or --key with 'qa-approved' target.")
+                    raise UsageError(
+                        "Cannot specify --collection or --key with 'qa-approved' target."
+                    )
             else:
                 if tree_filter:
                     raise UsageError("Cannot specify --tree without 'qa-approved' target.")
@@ -473,7 +475,9 @@ $ zotero-cli rag model clean
                 default="n",
             )
             if allow != "y":
-                console.print("[yellow]Operation cancelled. Choose a model without repository code.[/yellow]")
+                console.print(
+                    "[yellow]Operation cancelled. Choose a model without repository code.[/yellow]"
+                )
                 return
             allow_code = True
 
@@ -501,7 +505,9 @@ $ zotero-cli rag model clean
             # nothing but registry models.
             for model_id in selected_ids:
                 revision = pinned(model_id).revision  # type: ignore[union-attr]
-                console.print(f"Downloading {safe_markup(model_id)} @ {safe_markup(revision[:12])}...")
+                console.print(
+                    f"Downloading {safe_markup(model_id)} @ {safe_markup(revision[:12])}..."
+                )
                 snapshot_download(
                     repo_id=model_id, token=config.huggingface_token, revision=revision
                 )

@@ -50,10 +50,11 @@ def test_item_merge_dry_run_shows_preview_and_does_not_call_execute(capsys):
     )
     service.merge.return_value = preview
 
-    with patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service
-    ), patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+        ),
     ):
         ItemCommand().execute(_args(execute=False))
 
@@ -73,7 +74,9 @@ def test_item_merge_execute_confirms_then_merges(capsys):
 
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+        ),
         patch("rich.prompt.Confirm.ask", return_value=True),
     ):
         ItemCommand().execute(_args(execute=True, force=False))
@@ -93,7 +96,9 @@ def test_item_merge_execute_aborts_without_confirmation(capsys):
 
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+        ),
         patch("rich.prompt.Confirm.ask", return_value=False),
     ):
         ItemCommand().execute(_args(execute=True, force=False))
@@ -113,7 +118,9 @@ def test_item_merge_force_skips_confirmation(capsys):
 
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+        ),
         patch("rich.prompt.Confirm.ask") as mock_confirm,
     ):
         ItemCommand().execute(_args(execute=True, force=True))
@@ -132,7 +139,9 @@ def test_item_merge_prompts_for_each_conflict(capsys):
 
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+        ),
         patch("rich.prompt.Prompt.ask", return_value="Title A") as mock_prompt,
     ):
         ItemCommand().execute(_args(execute=False))
@@ -149,14 +158,17 @@ def test_item_merge_preview_reports_unresolved_conflict_error(capsys):
         success=False,
         dry_run=True,
         master_key="M1",
-        errors=["1 field conflict(s) require an explicit resolution before this merge can proceed."],
+        errors=[
+            "1 field conflict(s) require an explicit resolution before this merge can proceed."
+        ],
     )
     service.merge.return_value = preview
 
-    with patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service
-    ), patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+        ),
     ):
         ItemCommand().execute(_args(execute=False))
 
@@ -171,10 +183,17 @@ def test_item_merge_errors_when_neither_single_group_nor_plan_given(capsys):
         "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
     ):
         with pytest.raises(ZoteroCliError) as raised:
-            ItemCommand().execute(argparse.Namespace(
-                verb="merge", master=None, duplicates=None, from_plan=None,
-                execute=False, force=False, user=False,
-            ))
+            ItemCommand().execute(
+                argparse.Namespace(
+                    verb="merge",
+                    master=None,
+                    duplicates=None,
+                    from_plan=None,
+                    execute=False,
+                    force=False,
+                    user=False,
+                )
+            )
 
     out = str(raised.value)
     assert "Provide either" in out
@@ -207,7 +226,9 @@ def test_item_merge_from_plan_dry_run_shows_preview(capsys, tmp_path):
 
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+        ),
     ):
         ItemCommand().execute(_plan_args(str(csv_path), execute=False))
 
@@ -235,7 +256,9 @@ def test_item_merge_from_plan_reports_incomplete_groups_without_executing(capsys
 
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+        ),
     ):
         ItemCommand().execute(_plan_args(str(csv_path), execute=True))
 
@@ -259,13 +282,17 @@ def test_item_merge_from_plan_execute_confirms_then_runs(capsys, tmp_path):
     final = PlanExecutionResult(
         success=True,
         dry_run=False,
-        group_results=[MergeResult(success=True, dry_run=False, master_key="M1", merged_keys=["D1"])],
+        group_results=[
+            MergeResult(success=True, dry_run=False, master_key="M1", merged_keys=["D1"])
+        ],
     )
     service.execute_plan.side_effect = [preview, final]
 
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+        ),
         patch("rich.prompt.Confirm.ask", return_value=True),
     ):
         ItemCommand().execute(_plan_args(str(csv_path), execute=True))

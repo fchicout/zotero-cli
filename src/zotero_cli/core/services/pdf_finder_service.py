@@ -10,13 +10,13 @@ from zotero_cli.core.utils.url_safety import looks_like_pdf
 logger = logging.getLogger(__name__)
 
 
-
 def _file_looks_like_pdf(path: Any) -> bool:
     try:
         with open(path, "rb") as f:
             return looks_like_pdf(f.read(1024))
     except OSError:
         return False
+
 
 class PDFFinderService:
     """

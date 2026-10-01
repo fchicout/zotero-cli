@@ -146,9 +146,7 @@ class DuplicateFinder:
             ],
         )
 
-    def _collect_items(
-        self, collection_ids: Optional[List[str]]
-    ) -> List[Tuple[ZoteroItem, str]]:
+    def _collect_items(self, collection_ids: Optional[List[str]]) -> List[Tuple[ZoteroItem, str]]:
         # Only regular items can be duplicates of each other: the library
         # listing also has every attachment and note, and 3,502 PDFs titled
         # "Full Text PDF" came out as one duplicate group (Issue #430).
@@ -164,9 +162,7 @@ class DuplicateFinder:
             if item.item_type not in _NOT_REFERENCES
         ]
 
-    def _collect_from_collections(
-        self, collection_ids: List[str]
-    ) -> List[Tuple[ZoteroItem, str]]:
+    def _collect_from_collections(self, collection_ids: List[str]) -> List[Tuple[ZoteroItem, str]]:
         items_with_scope: List[Tuple[ZoteroItem, str]] = []
         for col_id in collection_ids:
             for item in self._fetch_collection_items(col_id):

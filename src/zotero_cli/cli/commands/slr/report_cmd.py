@@ -369,10 +369,14 @@ $ zotero-cli slr report consensus --collection "raw_search"
             duplicates_removed = sum(len(g.occurrences) - 1 for g in classified)
 
         console.print(f"Generating PRISMA report for '{escape(args.collection)}'...")
-        report = service.generate_prisma_report(args.collection, duplicates_removed=duplicates_removed)
+        report = service.generate_prisma_report(
+            args.collection, duplicates_removed=duplicates_removed
+        )
 
         if not report:
-            console.print(f"[bold red]Error:[/bold red] Collection '{escape(args.collection)}' not found.")
+            console.print(
+                f"[bold red]Error:[/bold red] Collection '{escape(args.collection)}' not found."
+            )
             sys.exit(1)
 
         summary = (
@@ -466,7 +470,9 @@ $ zotero-cli slr report consensus --collection "raw_search"
         success = service.freeze_collection(args.collection, args.output, cli_progress)
         print("")
         if success:
-            console.print(f"[bold green]Snapshot saved to '{safe_markup(args.output)}'.[/bold green]")
+            console.print(
+                f"[bold green]Snapshot saved to '{safe_markup(args.output)}'.[/bold green]"
+            )
         else:
             sys.exit(1)
 
@@ -477,14 +483,18 @@ $ zotero-cli slr report consensus --collection "raw_search"
         report = service.generate_prisma_report(args.collection)
 
         if not report:
-            console.print(f"[bold red]Error:[/bold red] Collection '{escape(args.collection)}' not found.")
+            console.print(
+                f"[bold red]Error:[/bold red] Collection '{escape(args.collection)}' not found."
+            )
             sys.exit(1)
 
         md_content = service.generate_screening_markdown(report)
         try:
             with open(args.output, "w", encoding="utf-8") as f:
                 f.write(md_content)
-            console.print(f"\n[bold green]✓ Screening report saved to {safe_markup(args.output)}[/bold green]")
+            console.print(
+                f"\n[bold green]✓ Screening report saved to {safe_markup(args.output)}[/bold green]"
+            )
         except Exception as e:
             console.print(f"\n[bold red]✗ Failed to write report: {escape(str(e))}[/bold red]")
             sys.exit(1)
@@ -496,10 +506,14 @@ $ zotero-cli slr report consensus --collection "raw_search"
             report = service.generate_prisma_report(args.collection)
 
         if not report:
-            console.print(f"[bold red]Error:[/bold red] Collection '{escape(args.collection)}' not found.")
+            console.print(
+                f"[bold red]Error:[/bold red] Collection '{escape(args.collection)}' not found."
+            )
             sys.exit(1)
 
-        console.print(f"\n[bold]Exclusion Summary Report: {escape(report.collection_name)}[/bold]\n")
+        console.print(
+            f"\n[bold]Exclusion Summary Report: {escape(report.collection_name)}[/bold]\n"
+        )
         console.print(
             f"Total Papers Excluded: [red]{safe_markup(report.rejected_items)}[/red] (out of {safe_markup(report.screened_items)} screened)"
         )
@@ -524,7 +538,9 @@ $ zotero-cli slr report consensus --collection "raw_search"
     def _handle_consensus(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         col_id = gateway.get_collection_id_by_name(args.collection) or args.collection
         if not col_id:
-            console.print(f"[bold red]Error: Collection '{escape(args.collection)}' not found.[/bold red]")
+            console.print(
+                f"[bold red]Error: Collection '{escape(args.collection)}' not found.[/bold red]"
+            )
             sys.exit(1)
 
         items = list(gateway.get_items_in_collection(col_id))

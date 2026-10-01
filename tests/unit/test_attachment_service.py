@@ -259,7 +259,9 @@ def test_download_file_cleans_up_partial_file_when_response_too_large(service):
             written_paths.append(path)
             return fd, path
 
-        with patch("zotero_cli.core.services.attachment_service.tempfile.mkstemp", tracking_mkstemp):
+        with patch(
+            "zotero_cli.core.services.attachment_service.tempfile.mkstemp", tracking_mkstemp
+        ):
             result = service._download_file("http://93.184.216.34/huge.pdf")
 
     assert result is None

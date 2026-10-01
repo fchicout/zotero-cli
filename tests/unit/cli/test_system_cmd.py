@@ -115,9 +115,7 @@ def test_system_verify_failure(system_cmd, capsys):
 def test_system_backup(system_cmd, capsys):
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
-        patch(
-            "zotero_cli.core.services.backup_service.BackupService.backup_system"
-        ) as mock_backup,
+        patch("zotero_cli.core.services.backup_service.BackupService.backup_system") as mock_backup,
     ):
         args = argparse.Namespace(verb="backup", output="test.zaf", user=False)
         system_cmd.execute(args)
@@ -202,7 +200,9 @@ def test_system_restore_warns_when_neither_flag_given(system_cmd, capsys):
         mock_report.errors = []
         mock_service.restore_archive.return_value = mock_report
 
-        args = argparse.Namespace(verb="restore", file="test.zaf", dry_run=False, execute=False, user=False)
+        args = argparse.Namespace(
+            verb="restore", file="test.zaf", dry_run=False, execute=False, user=False
+        )
         system_cmd.execute(args)
 
         err = capsys.readouterr().err
@@ -220,7 +220,9 @@ def test_system_restore_execute_no_warning(system_cmd, capsys):
         mock_report.errors = []
         mock_service.restore_archive.return_value = mock_report
 
-        args = argparse.Namespace(verb="restore", file="test.zaf", dry_run=False, execute=True, user=False)
+        args = argparse.Namespace(
+            verb="restore", file="test.zaf", dry_run=False, execute=True, user=False
+        )
         system_cmd.execute(args)
 
         err = capsys.readouterr().err
@@ -235,7 +237,9 @@ def test_system_restore_dry_run_no_warning(system_cmd, capsys):
         mock_report.errors = []
         mock_service.restore_archive.return_value = mock_report
 
-        args = argparse.Namespace(verb="restore", file="test.zaf", dry_run=True, execute=False, user=False)
+        args = argparse.Namespace(
+            verb="restore", file="test.zaf", dry_run=True, execute=False, user=False
+        )
         system_cmd.execute(args)
 
         err = capsys.readouterr().err
@@ -298,9 +302,7 @@ def test_system_check_all_ok_exits_zero(system_cmd, capsys):
 
 
 def test_system_demo_sandbox_create(system_cmd, capsys):
-    with patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_sandbox_service"
-    ) as mock_get_service:
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_sandbox_service") as mock_get_service:
         mock_service = mock_get_service.return_value
         mock_service.create_sandbox.return_value = ("Zotero-CLI Sandbox", 6)
 
@@ -316,9 +318,7 @@ def test_system_demo_sandbox_create(system_cmd, capsys):
 
 
 def test_system_demo_sandbox_create_failure(system_cmd, capsys):
-    with patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_sandbox_service"
-    ) as mock_get_service:
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_sandbox_service") as mock_get_service:
         mock_service = mock_get_service.return_value
         mock_service.create_sandbox.side_effect = RuntimeError("boom")
 
@@ -333,9 +333,7 @@ def test_system_demo_sandbox_create_failure(system_cmd, capsys):
 
 
 def test_system_demo_sandbox_clean(system_cmd, capsys):
-    with patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_sandbox_service"
-    ) as mock_get_service:
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_sandbox_service") as mock_get_service:
         mock_service = mock_get_service.return_value
         mock_service.clean_sandbox.return_value = True
 
@@ -350,9 +348,7 @@ def test_system_demo_sandbox_clean(system_cmd, capsys):
 
 
 def test_system_demo_sandbox_clean_not_found(system_cmd, capsys):
-    with patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_sandbox_service"
-    ) as mock_get_service:
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_sandbox_service") as mock_get_service:
         mock_service = mock_get_service.return_value
         mock_service.clean_sandbox.return_value = False
 
@@ -444,9 +440,7 @@ def test_system_jobs_run_honors_user_flag(system_cmd, capsys):
     always resolved against the cached global config."""
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_job_queue_service") as mock_job_factory,
-        patch(
-            "zotero_cli.infra.factory.GatewayFactory.get_pdf_finder_service"
-        ) as mock_pdf_factory,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_pdf_finder_service") as mock_pdf_factory,
         patch("asyncio.run"),
     ):
         args = argparse.Namespace(

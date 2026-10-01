@@ -1,11 +1,11 @@
 """Issue #400: the e2e suite writes to a real Zotero library, so it must
 never run from a bare `pytest` or without naming the library it may touch."""
 
+import tomllib
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-import tomllib
 
 from tests.e2e.conftest import e2e_skip_reason
 

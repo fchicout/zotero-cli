@@ -146,9 +146,7 @@ def test_overwrite_replaces_values_but_not_the_title_or_a_fuller_date(service, a
     assert "title" not in result.changes  # only when named in --fields
 
     titled = service.hydrate(item, overwrite=True, fields=("title",))
-    assert titled.changes == {
-        "title": {"old": "Deep learning", "new": "Deep Learning (updated)"}
-    }
+    assert titled.changes == {"title": {"old": "Deep learning", "new": "Deep Learning (updated)"}}
 
 
 def test_fields_restriction(service, aggregator):

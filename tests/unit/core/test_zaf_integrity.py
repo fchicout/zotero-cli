@@ -368,9 +368,7 @@ def test_build_existing_item_indexes_single_scan(mock_gateway, mock_orchestrator
     assert title_index["paper two"] is item2
 
     # DOI match (case/prefix-insensitive via normalize_doi)
-    match = service._find_existing_item(
-        {"DOI": "https://doi.org/10.1/ABC"}, doi_index, title_index
-    )
+    match = service._find_existing_item({"DOI": "https://doi.org/10.1/ABC"}, doi_index, title_index)
     assert match is item1
 
     # Title fallback when DOI doesn't match anything indexed
@@ -493,7 +491,11 @@ def test_restore_notes_on_a_new_parent_make_no_children_request(mock_gateway, mo
     mock_gateway.create_note.return_value = True
     service._restore_single_item(
         {"key": "OLD", "data": {"itemType": "journalArticle", "title": "A new paper"}},
-        MagicMock(), {}, report, {}, {},
+        MagicMock(),
+        {},
+        report,
+        {},
+        {},
     )
 
     service._restore_note({"note": "hello"}, "NEWKEY", report)

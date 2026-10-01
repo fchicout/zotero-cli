@@ -51,10 +51,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         checkout_mode = checkout_parser.add_mutually_exclusive_group()
         checkout_mode.add_argument(
-            "--execute", action="store_true", help="Check out the files (default for now; see Deprecation note)"
+            "--execute",
+            action="store_true",
+            help="Check out the files (default for now; see Deprecation note)",
         )
         checkout_mode.add_argument(
-            "--dry-run", action="store_true", help="Preview what would be checked out without moving anything"
+            "--dry-run",
+            action="store_true",
+            help="Preview what would be checked out without moving anything",
         )
         # checkout_parser.add_argument("--sort", choices=["size", "date"], default="size", help="Sort order")
 
@@ -73,9 +77,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             return
 
         # --user applies here too (Issue #383).
-        gateway = GatewayFactory.get_zotero_gateway(
-            config, force_user=getattr(args, "user", False)
-        )
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user=getattr(args, "user", False))
         service = StorageService(config, gateway)
 
         # Issue #378: predates the preview-by-default policy, so it still

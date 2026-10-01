@@ -29,8 +29,8 @@ def test_move_to_root_keyword(service, mock_item_repo, mock_collection_repo):
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
     mock_item_repo.get_item.return_value = item
-    mock_collection_repo.get_collection_id_by_name.side_effect = (
-        lambda x: None if x in ["/", "root", "unfiled"] else x
+    mock_collection_repo.get_collection_id_by_name.side_effect = lambda x: (
+        None if x in ["/", "root", "unfiled"] else x
     )
     mock_item_repo.update_items.return_value = True
     mock_item_repo.get_item_children.return_value = []
@@ -52,8 +52,8 @@ def test_move_from_root_keyword(service, mock_item_repo, mock_collection_repo):
     }
     item = ZoteroItem.from_raw_zotero_item(raw_item)
     mock_item_repo.get_item.return_value = item
-    mock_collection_repo.get_collection_id_by_name.side_effect = (
-        lambda x: None if x in ["/", "root", "unfiled"] else x
+    mock_collection_repo.get_collection_id_by_name.side_effect = lambda x: (
+        None if x in ["/", "root", "unfiled"] else x
     )
     mock_item_repo.update_items.return_value = True
     mock_item_repo.get_item_children.return_value = []

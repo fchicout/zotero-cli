@@ -137,7 +137,9 @@ def test_snowball_tui_no_metadata_service_skips_hydration(
 
 @patch("zotero_cli.cli.tui.snowball_tui.Prompt.ask")
 @patch("zotero_cli.cli.tui.snowball_tui.Console")
-def test_snowball_tui_flags_candidate_already_in_library(mock_console, mock_prompt, mock_graph_service):
+def test_snowball_tui_flags_candidate_already_in_library(
+    mock_console, mock_prompt, mock_graph_service
+):
     """Issue #224: a candidate whose DOI already exists in the library
     (matched via the same normalize_doi-based approach #205 introduced)
     is flagged rather than presented identically to a genuinely new one."""
@@ -162,7 +164,9 @@ def test_snowball_tui_flags_candidate_already_in_library(mock_console, mock_prom
 
 @patch("zotero_cli.cli.tui.snowball_tui.Prompt.ask")
 @patch("zotero_cli.cli.tui.snowball_tui.Console")
-def test_snowball_tui_no_gateway_skips_duplicate_check(mock_console, mock_prompt, mock_graph_service):
+def test_snowball_tui_no_gateway_skips_duplicate_check(
+    mock_console, mock_prompt, mock_graph_service
+):
     """Without a gateway configured, review still works - candidates just
     aren't flagged, rather than crashing (Issue #224)."""
     tui = SnowballReviewTUI(mock_graph_service)

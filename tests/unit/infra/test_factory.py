@@ -167,7 +167,9 @@ def test_get_enrichment_service(mock_config):
         patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_collection_repository"),
         patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_attachment_repository"),
         patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_note_repository"),
-        patch("zotero_cli.infra.metadata_client_factory.MetadataClientFactory.get_metadata_aggregator"),
+        patch(
+            "zotero_cli.infra.metadata_client_factory.MetadataClientFactory.get_metadata_aggregator"
+        ),
         patch("zotero_cli.infra.service_factory.ServiceFactory.get_purge_service"),
     ):
         service = GatewayFactory.get_enrichment_service(mock_config)
@@ -331,7 +333,9 @@ def test_get_snowball_ingestion_service(mock_config):
         patch(
             "zotero_cli.infra.resolver_factory.ResolverFactory.get_snowball_graph_service"
         ) as mock_graph,
-        patch("zotero_cli.infra.metadata_client_factory.MetadataClientFactory.get_metadata_aggregator"),
+        patch(
+            "zotero_cli.infra.metadata_client_factory.MetadataClientFactory.get_metadata_aggregator"
+        ),
         patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_item_repository"),
         patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_collection_repository"),
         patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"),

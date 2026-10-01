@@ -259,9 +259,7 @@ def test_job_repo_creates_task_status_index(tmp_path):
 
     conn = sqlite3.connect(db_path)
     try:
-        indexes = {
-            row[1] for row in conn.execute("PRAGMA index_list(jobs)").fetchall()
-        }
+        indexes = {row[1] for row in conn.execute("PRAGMA index_list(jobs)").fetchall()}
         assert "idx_jobs_task_status" in indexes
     finally:
         conn.close()

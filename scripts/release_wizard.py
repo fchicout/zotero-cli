@@ -11,7 +11,9 @@ from typing import Dict, List, Optional
 DRAFT_FILE = "RELEASE_DRAFT.md"
 
 
-def run(cmd: str, cwd: Optional[str] = None, capture: bool = True) -> "subprocess.CompletedProcess[str]":
+def run(
+    cmd: str, cwd: Optional[str] = None, capture: bool = True
+) -> "subprocess.CompletedProcess[str]":
     """Run a shell command."""
     result = subprocess.run(
         cmd,

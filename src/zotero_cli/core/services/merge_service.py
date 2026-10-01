@@ -314,7 +314,9 @@ class MergeService:
             item for item in (items[k] for k in duplicate_keys) if item is not None
         ]
 
-        mismatched_types = sorted({d.item_type for d in duplicates if d.item_type != master.item_type})
+        mismatched_types = sorted(
+            {d.item_type for d in duplicates if d.item_type != master.item_type}
+        )
         if mismatched_types:
             result.errors.append(
                 f"Item type mismatch: master '{master_key}' is '{master.item_type}', "

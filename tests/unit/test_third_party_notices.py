@@ -57,7 +57,9 @@ def test_every_bundled_distribution_gets_its_licence_text(tmp_path):
 
 
 def test_an_unattributed_bundled_file_fails_generation(tmp_path, capsys):
-    build = _write_build(tmp_path, binaries=[("libmystery.so", "/opt/vendor/libmystery.so")], modules=[])
+    build = _write_build(
+        tmp_path, binaries=[("libmystery.so", "/opt/vendor/libmystery.so")], modules=[]
+    )
     out = tmp_path / "THIRD_PARTY_LICENSES.txt"
 
     assert gen.main(["--build-dir", str(build), "--output", str(out)]) == 1
@@ -94,9 +96,7 @@ def test_distro_shared_library_is_noticed_without_the_static_set(tmp_path):
 
 def test_windows_runtime_dlls_go_to_the_microsoft_runtime_notice(tmp_path):
     dlls = ["vcruntime140.dll", "ucrtbase.dll", "api-ms-win-core-file-l1-1-0.dll"]
-    build = _write_build(
-        tmp_path, binaries=[(d, rf"C:\tools\bin\{d}") for d in dlls], modules=[]
-    )
+    build = _write_build(tmp_path, binaries=[(d, rf"C:\tools\bin\{d}") for d in dlls], modules=[])
     out = tmp_path / "N.txt"
 
     assert gen.main(["--build-dir", str(build), "--output", str(out)]) == 0

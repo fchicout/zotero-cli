@@ -181,7 +181,9 @@ def test_merge_executes_full_flow(service, item_repo, note_repo):
     item_repo.delete_item.assert_called_once_with("D1", 5)
 
 
-def test_merge_with_trash_trashes_the_duplicate_instead_of_deleting_it(service, item_repo, note_repo):
+def test_merge_with_trash_trashes_the_duplicate_instead_of_deleting_it(
+    service, item_repo, note_repo
+):
     """Issue #402: a merge can be undone by restoring the trashed duplicate."""
     master = make_item("M1", version=1)
     dup = make_item("D1", version=5)
@@ -313,7 +315,9 @@ def test_build_plan_produces_undecided_entries_with_deterministic_group_id():
 
 
 def test_execute_plan_refuses_all_writes_if_any_entry_undecided(service, item_repo):
-    plan = MergeService.build_plan([make_group(), make_group(identifier="10.1/y", keys=("M2", "D2"))])
+    plan = MergeService.build_plan(
+        [make_group(), make_group(identifier="10.1/y", keys=("M2", "D2"))]
+    )
     plan.entries[0].decision = MergeDecision(master_key="M1", merge_keys=["D1"], reason="dup")
     # entries[1] left undecided
 
@@ -347,7 +351,9 @@ def test_execute_plan_rejects_incomplete_role_coverage(service):
 
 def test_execute_plan_rejects_master_key_not_in_group():
     plan = MergeService.build_plan([make_group()])
-    plan.entries[0].decision = MergeDecision(master_key="NOT_IN_GROUP", merge_keys=["D1"], reason="x")
+    plan.entries[0].decision = MergeDecision(
+        master_key="NOT_IN_GROUP", merge_keys=["D1"], reason="x"
+    )
 
     result = MergeService(Mock(spec=ItemRepository), Mock(spec=NoteRepository)).execute_plan(
         plan, dry_run=False

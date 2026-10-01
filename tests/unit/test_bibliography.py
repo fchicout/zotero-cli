@@ -84,8 +84,18 @@ def test_flags_default_to_apa_plain_and_accept_bibliography():
     args = build_parser().parse_args(["item", "export", "--key", "K", "--as", "bibliography"])
     assert (args.export_format, args.style, args.render) == ("bibliography", "apa", "plain")
     args = build_parser().parse_args(
-        ["collection", "export", "--collection", "C", "--as", "bibliography",
-         "--style", "ieee", "--render", "markdown"]
+        [
+            "collection",
+            "export",
+            "--collection",
+            "C",
+            "--as",
+            "bibliography",
+            "--style",
+            "ieee",
+            "--render",
+            "markdown",
+        ]
     )
     assert (args.style, args.render) == ("ieee", "markdown")
     args = build_parser().parse_args(["item", "inspect", "K", "--as", "bibliography"])
@@ -98,15 +108,22 @@ def test_item_export_without_output_prints(capsys):
     gateway = MagicMock()
     gateway.get_item.return_value = _item()
     args = argparse.Namespace(
-        verb="export", key="K", export_format="bibliography", output=None, user=False,
-        style="ieee", render="html",
+        verb="export",
+        key="K",
+        export_format="bibliography",
+        output=None,
+        user=False,
+        style="ieee",
+        render="html",
     )
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway),
         patch("zotero_cli.infra.factory.GatewayFactory.get_export_service", return_value=service),
     ):
         ItemCommand().execute(args)
-    service.serialize_bibliography.assert_called_once_with([gateway.get_item.return_value], "ieee", "html")
+    service.serialize_bibliography.assert_called_once_with(
+        [gateway.get_item.return_value], "ieee", "html"
+    )
     assert capsys.readouterr().out.strip() == "REF"
 
 
@@ -114,8 +131,13 @@ def test_collection_export_without_output_prints(capsys):
     service = MagicMock()
     service.collection_bibliography.return_value = "REF"
     args = argparse.Namespace(
-        verb="export", collection="C", export_format="bibliography", output=None, user=False,
-        style="apa", render="plain",
+        verb="export",
+        collection="C",
+        export_format="bibliography",
+        output=None,
+        user=False,
+        style="apa",
+        render="plain",
     )
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
@@ -130,8 +152,13 @@ def test_collection_export_to_file_passes_style_and_render():
     service = MagicMock()
     service.export_collection.return_value = True
     args = argparse.Namespace(
-        verb="export", collection="C", export_format="bibliography", output="o.txt", user=False,
-        style="ieee", render="html",
+        verb="export",
+        collection="C",
+        export_format="bibliography",
+        output="o.txt",
+        user=False,
+        style="ieee",
+        render="html",
     )
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
@@ -196,8 +223,13 @@ def test_collection_export_without_output_exits_when_nothing_to_print():
     service = MagicMock()
     service.collection_bibliography.return_value = None
     args = argparse.Namespace(
-        verb="export", collection="C", export_format="bibliography", output=None, user=False,
-        style="apa", render="plain",
+        verb="export",
+        collection="C",
+        export_format="bibliography",
+        output=None,
+        user=False,
+        style="apa",
+        render="plain",
     )
     command = CollectionCommand()
     with (
@@ -214,8 +246,13 @@ def test_item_export_to_file_writes_the_bibliography(capsys):
     gateway = MagicMock()
     gateway.get_item.return_value = _item()
     args = argparse.Namespace(
-        verb="export", key="K", export_format="bibliography", output="o.txt", user=False,
-        style="apa", render="plain",
+        verb="export",
+        key="K",
+        export_format="bibliography",
+        output="o.txt",
+        user=False,
+        style="apa",
+        render="plain",
     )
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway),
@@ -234,8 +271,16 @@ def test_item_inspect_prints_the_bibliography(capsys):
     gateway = MagicMock()
     gateway.get_item.return_value = _item()
     args = argparse.Namespace(
-        key="K", file=None, raw=False, export_format="bibliography", style="apa", render="plain",
-        full_notes=False, user=False, details=False, verb="inspect",
+        key="K",
+        file=None,
+        raw=False,
+        export_format="bibliography",
+        style="apa",
+        render="plain",
+        full_notes=False,
+        user=False,
+        details=False,
+        verb="inspect",
     )
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway),

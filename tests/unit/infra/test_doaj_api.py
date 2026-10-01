@@ -84,9 +84,15 @@ def test_search_single_page(client):
 
 def test_search_paginates_until_max_results(client):
     page1 = MagicMock()
-    page1.json.return_value = {"total": 102, "results": [_doaj_article(f"P{i}") for i in range(100)]}
+    page1.json.return_value = {
+        "total": 102,
+        "results": [_doaj_article(f"P{i}") for i in range(100)],
+    }
     page2 = MagicMock()
-    page2.json.return_value = {"total": 102, "results": [_doaj_article("P100"), _doaj_article("P101")]}
+    page2.json.return_value = {
+        "total": 102,
+        "results": [_doaj_article("P100"), _doaj_article("P101")],
+    }
 
     with patch.object(client, "_get", side_effect=[page1, page2]) as mock_get:
         results = list(client.search("topic", max_results=102))

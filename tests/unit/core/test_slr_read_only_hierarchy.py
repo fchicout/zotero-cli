@@ -61,8 +61,16 @@ def test_status_report_creates_nothing():
 
 def _paper():
     return ZoteroItem.from_raw_zotero_item(
-        {"key": "P1", "data": {"key": "P1", "version": 1, "collections": ["ROOT"],
-                               "itemType": "journalArticle", "title": "Paper"}}
+        {
+            "key": "P1",
+            "data": {
+                "key": "P1",
+                "version": 1,
+                "collections": ["ROOT"],
+                "itemType": "journalArticle",
+                "title": "Paper",
+            },
+        }
     )
 
 
@@ -73,16 +81,25 @@ def reconcile_env():
     gateway.get_collection.return_value = ROOT
     gateway.get_items_in_collection.return_value = [_paper()]
     gateway.get_item_children.return_value = [
-        {"key": "N1", "data": {"itemType": "note", "note": '{"sdb_version": "1.2", '
-                               '"phase": "title_abstract", "decision": "accepted"}'}}
+        {
+            "key": "N1",
+            "data": {
+                "itemType": "note",
+                "note": '{"sdb_version": "1.2", "phase": "title_abstract", "decision": "accepted"}',
+            },
+        }
     ]
     coll_service = MagicMock()
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_slr_orchestrator",
-              return_value=SLROrchestrator(gateway)),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_collection_service",
-              return_value=coll_service),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_slr_orchestrator",
+            return_value=SLROrchestrator(gateway),
+        ),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_collection_service",
+            return_value=coll_service,
+        ),
     ):
         yield gateway, coll_service
 

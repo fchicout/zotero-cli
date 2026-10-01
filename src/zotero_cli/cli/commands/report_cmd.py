@@ -201,7 +201,9 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
 
         if args.csv:
             self._export_duplicates_csv(rows, args.csv)
-            console.print(f"[green]Exported {len(rows)} duplicate occurrences to {safe_markup(args.csv)}[/green]")
+            console.print(
+                f"[green]Exported {len(rows)} duplicate occurrences to {safe_markup(args.csv)}[/green]"
+            )
 
         if getattr(args, "export_plan", None):
             self._export_merge_plan(dupes, args.export_plan, sdb_service)
@@ -326,7 +328,9 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
         if args.details and has_failures:
             console.print("\n[bold]--- Failure Details ---[/bold]")
             if report.items_missing_id:
-                console.print(f"Missing ID: {safe_markup(', '.join([i.key for i in report.items_missing_id]))}")
+                console.print(
+                    f"Missing ID: {safe_markup(', '.join([i.key for i in report.items_missing_id]))}"
+                )
             if report.items_missing_pdf:
                 console.print(
                     f"Missing PDF: {safe_markup(', '.join([i.key for i in report.items_missing_pdf]))}"
@@ -365,10 +369,14 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
 
     def _handle_verify_latex(self, args: argparse.Namespace) -> None:
         service = GatewayFactory.get_audit_service(force_user=getattr(args, "user", False))
-        with console.status(f"[bold green]Verifying LaTeX manuscript: {safe_markup(args.latex)}..."):
+        with console.status(
+            f"[bold green]Verifying LaTeX manuscript: {safe_markup(args.latex)}..."
+        ):
             report = service.audit_manuscript(Path(args.latex))
 
-        console.print(f"\n[bold]SLR LaTeX Verification for:[/bold] [cyan]{safe_markup(args.latex)}[/cyan]")
+        console.print(
+            f"\n[bold]SLR LaTeX Verification for:[/bold] [cyan]{safe_markup(args.latex)}[/cyan]"
+        )
         console.print(f"Total unique citations found: {safe_markup(report['total_citations'])}")
 
         if not report["items"]:

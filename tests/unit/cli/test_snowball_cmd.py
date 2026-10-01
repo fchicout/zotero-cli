@@ -16,9 +16,7 @@ def mock_deps():
         # Issue #228: execute() now resolves a config once and threads it
         # through every call site above, so get_config must be mocked too
         # or these tests would hit the real singleton/local config file.
-        patch(
-            "zotero_cli.cli.commands.slr.snowball_cmd.get_config", return_value=MagicMock()
-        ),
+        patch("zotero_cli.cli.commands.slr.snowball_cmd.get_config", return_value=MagicMock()),
     ):
         yield mw.return_value, ms.return_value, mg.return_value, mj.return_value
 
@@ -145,7 +143,12 @@ def test_snowball_export_json_to_stdout_is_not_wrapped(mock_deps, capsys):
     mock_graph.to_json.return_value = json.dumps(payload, indent=2)
 
     args = argparse.Namespace(
-        verb="snowball", snow_verb="export", format="json", collection="Col1", output=None, user=False
+        verb="snowball",
+        snow_verb="export",
+        format="json",
+        collection="Col1",
+        output=None,
+        user=False,
     )
     SnowballCommand.execute(mock_gw, args)
 
@@ -190,9 +193,7 @@ def test_snowball_command_status_honors_user_flag():
     ):
         mock_graph.return_value.get_stats.return_value = {"total_nodes": 0, "total_edges": 0}
 
-        args = argparse.Namespace(
-            verb="snowball", snow_verb="status", collection="Col1", user=True
-        )
+        args = argparse.Namespace(verb="snowball", snow_verb="status", collection="Col1", user=True)
         SnowballCommand.execute(mock_gw, args)
 
         _, kwargs = mock_graph.call_args
@@ -208,9 +209,7 @@ def test_snowball_command_discovery_honors_user_flag():
         patch("zotero_cli.cli.commands.slr.snowball_cmd.get_config", return_value=MagicMock()),
         patch("asyncio.run"),
     ):
-        args = argparse.Namespace(
-            verb="snowball", snow_verb="discovery", count=5, user=True
-        )
+        args = argparse.Namespace(verb="snowball", snow_verb="discovery", count=5, user=True)
         SnowballCommand.execute(mock_gw, args)
 
         _, kwargs = mock_worker.call_args

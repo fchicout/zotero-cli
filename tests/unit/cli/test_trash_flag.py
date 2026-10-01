@@ -45,8 +45,15 @@ def test_trash_flag_is_accepted_and_off_by_default(argv):
 
 def _delete_args(**kw):
     base = dict(
-        verb="delete", key="COL_KEY", version=None, recursive=True, execute=True, yes=True,
-        include_shared=False, trash=True, user=False,
+        verb="delete",
+        key="COL_KEY",
+        version=None,
+        recursive=True,
+        execute=True,
+        yes=True,
+        include_shared=False,
+        trash=True,
+        user=False,
     )
     base.update(kw)
     return argparse.Namespace(**base)
@@ -67,7 +74,9 @@ def _run_collection_delete(args, result=None):
     )
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as gateway,
-        patch("zotero_cli.infra.factory.GatewayFactory.get_collection_service", return_value=service),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_collection_service", return_value=service
+        ),
     ):
         gateway.return_value.get_collection_id_by_name.return_value = "COL_KEY"
         gateway.return_value.get_collection.return_value = {"version": 42}
@@ -119,8 +128,14 @@ def test_trash_needs_recursive_on_collection_delete():
 
 def _merge_args(**kw):
     base = dict(
-        verb="merge", master="M1", duplicates="D1", from_plan=None, execute=True, force=True,
-        trash=True, user=False,
+        verb="merge",
+        master="M1",
+        duplicates="D1",
+        from_plan=None,
+        execute=True,
+        force=True,
+        trash=True,
+        user=False,
     )
     base.update(kw)
     return argparse.Namespace(**base)
@@ -135,7 +150,9 @@ def test_item_merge_trash_reaches_the_service_and_the_wording(capsys):
     ]
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+        ),
     ):
         ItemCommand().execute(_merge_args())
 
@@ -149,7 +166,9 @@ def test_item_merge_trash_preview_says_recoverable(capsys):
     service.merge.return_value = MergeResult(success=True, dry_run=True, master_key="M1")
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+        ),
     ):
         ItemCommand().execute(_merge_args(execute=False))
 
@@ -164,20 +183,26 @@ def test_item_merge_from_plan_passes_trash(tmp_path, capsys):
     plan = MergePlan(
         entries=[
             MergePlanEntry(
-                group_id="g1", match_type="doi", identifier="10.1/x", occurrences=[],
+                group_id="g1",
+                match_type="doi",
+                identifier="10.1/x",
+                occurrences=[],
                 decision=MergeDecision(master_key="M1", merge_keys=["D1"], reason="r"),
             )
         ]
     )
     service = MagicMock()
     service.execute_plan.return_value = PlanExecutionResult(
-        success=True, dry_run=False,
+        success=True,
+        dry_run=False,
         group_results=[MergeResult(success=True, dry_run=False, master_key="M1")],
     )
     args = _merge_args(master=None, duplicates=None, from_plan=str(plan_file))
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_merge_service", return_value=service),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=MagicMock()
+        ),
         patch("zotero_cli.core.services.merge_plan_io.parse_plan_from_json", return_value=plan),
     ):
         ItemCommand().execute(args)
@@ -248,7 +273,9 @@ def test_slr_dedupe_trash_reaches_the_reconciliation(capsys):
     )
 
     group = ClassifiedDuplicateGroup(
-        match_type="doi", identifier="10.1/x", sdb_status="MATCHING",
+        match_type="doi",
+        identifier="10.1/x",
+        sdb_status="MATCHING",
         occurrences=[
             OccurrenceScreening(key="A", collection_id="C1", title="T", decisions=["accepted"]),
             OccurrenceScreening(key="B", collection_id="C2", title="T", decisions=["accepted"]),
@@ -260,7 +287,10 @@ def test_slr_dedupe_trash_reaches_the_reconciliation(capsys):
     service.build_reconciliation_plan.return_value = MergePlan(
         entries=[
             MergePlanEntry(
-                group_id="g1", match_type="doi", identifier="10.1/x", occurrences=[],
+                group_id="g1",
+                match_type="doi",
+                identifier="10.1/x",
+                occurrences=[],
                 decision=MergeDecision(master_key="A", merge_keys=["B"], reason="auto"),
             )
         ]

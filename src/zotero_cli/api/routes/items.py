@@ -10,7 +10,9 @@ from zotero_cli.core.models import ZoteroQuery
 router = APIRouter(prefix="/items", tags=["items"])
 
 
-def _list_items_sync(gateway: ZoteroGateway, query: ZoteroQuery, limit: int) -> List[Dict[str, Any]]:
+def _list_items_sync(
+    gateway: ZoteroGateway, query: ZoteroQuery, limit: int
+) -> List[Dict[str, Any]]:
     # ZoteroQuery carries no limit and search_items() is a generator, so take
     # the first `limit` items from it.
     items = []

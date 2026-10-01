@@ -28,19 +28,32 @@ def _paper(n: int, tags=()) -> ZoteroItem:
         {
             "key": f"P{n:03d}",
             "version": 1,
-            "data": {"itemType": "journalArticle", "title": f"Paper {n}", "tags": [{"tag": t} for t in tags]},
+            "data": {
+                "itemType": "journalArticle",
+                "title": f"Paper {n}",
+                "tags": [{"tag": t} for t in tags],
+            },
         }
     )
 
 
 def _decision_note(n: int, decision: str) -> ZoteroItem:
-    body = {"sdb_version": "1.2", "action": "screening_decision", "decision": decision,
-            "phase": "title_abstract", "reason_code": ["EC1"]}
+    body = {
+        "sdb_version": "1.2",
+        "action": "screening_decision",
+        "decision": decision,
+        "phase": "title_abstract",
+        "reason_code": ["EC1"],
+    }
     return ZoteroItem.from_raw_zotero_item(
         {
             "key": f"N{n:03d}",
             "version": 3,
-            "data": {"itemType": "note", "parentItem": f"P{n:03d}", "note": f"<div>{json.dumps(body)}</div>"},
+            "data": {
+                "itemType": "note",
+                "parentItem": f"P{n:03d}",
+                "note": f"<div>{json.dumps(body)}</div>",
+            },
         }
     )
 
@@ -85,8 +98,11 @@ def test_prisma_report_is_one_scan(gateway):
 def test_screening_pending_batches_through_the_repository(gateway):
     """Repositories batch like the gateway they wrap."""
     service = ScreeningService(
-        MagicMock(), ZoteroCollectionRepository(gateway), ZoteroNoteRepository(gateway),
-        MagicMock(), MagicMock(),
+        MagicMock(),
+        ZoteroCollectionRepository(gateway),
+        ZoteroNoteRepository(gateway),
+        MagicMock(),
+        MagicMock(),
     )
     pending = service.get_pending_items("COL1")
     # untagged papers (even n) without a decision note (n not a multiple of 3)

@@ -704,7 +704,10 @@ class ZoteroAPIClient(ZoteroGateway):
             # (Issue #191); Zotero rejects this call with 428 "If-Match/
             # If-None-Match header not provided" without it.
             reg_data = {"upload": upload_key}
-            reg_headers = {"If-None-Match": "*", "Content-Type": "application/x-www-form-urlencoded"}
+            reg_headers = {
+                "If-None-Match": "*",
+                "Content-Type": "application/x-www-form-urlencoded",
+            }
             self.http.post_form(f"items/{attachment_key}/file", data=reg_data, headers=reg_headers)
 
             return True

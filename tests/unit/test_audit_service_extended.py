@@ -50,8 +50,8 @@ def test_audit_manuscript(audit_service, mock_gateway, tmp_path):
     mock_gateway.get_item.side_effect = get_item_mock
 
     # Mock children for SDB note check
-    mock_gateway.get_item_children.side_effect = (
-        lambda k: [
+    mock_gateway.get_item_children.side_effect = lambda k: (
+        [
             {
                 "data": {
                     "itemType": "note",
