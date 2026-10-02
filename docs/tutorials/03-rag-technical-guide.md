@@ -1,5 +1,7 @@
 # Tutorial 03: Powering SLRs with Zotero CLI RAG
 
+> **Heads-up:** `rag` is deprecated. It warns on every run and is removed, together with the `[rag]` extra, in 4.0, when semantic search moves to a separate tool (see [COMPATIBILITY.md](../COMPATIBILITY.md) and issue #414). This tutorial documents what exists today.
+
 This guide explains how to transform your Zotero library into a semantically searchable knowledge base using the **Retrieval-Augmented Generation (RAG)** feature.
 
 ## 1. Prerequisites & Configuration

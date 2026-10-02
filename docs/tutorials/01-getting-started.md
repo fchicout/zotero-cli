@@ -36,7 +36,13 @@ Before we start, you need two things from the Zotero website:
 ---
 
 ## 3. Installation
-Verify the tool is installed by typing this command and pressing **Enter**:
+Install zotero-cli first. The quickest way, if you have [uv](https://docs.astral.sh/uv/) (or `pipx`) installed:
+```bash
+uv tool install zotero-command-line     # or: pipx install zotero-command-line
+```
+The package on PyPI is called `zotero-command-line`; the command it installs is `zotero-cli`. There are also standalone binaries (Linux and Windows), `.deb`/`.rpm` packages and a Docker image: the [README's Installation section](../../README.md#-installation) lists every option and which platforms each supports.
+
+Then verify the tool is installed by typing this command and pressing **Enter**:
 ```bash
 zotero-cli --version
 ```
