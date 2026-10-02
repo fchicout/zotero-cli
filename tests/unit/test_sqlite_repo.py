@@ -584,3 +584,148 @@ def test_search_filters_combine(search_db):
 
 def test_empty_query_still_returns_everything(search_db):
     assert len(_keys(SqliteZoteroGateway(search_db))) == 4
+
+
+# --- Issue #562: several tags, collection filter, offline sorting, dates ---------------------
+
+
+def _ordered(gateway, **kwargs):
+    return [item.key for item in gateway.search_items(ZoteroQuery(**kwargs))]
+
+
+@pytest.fixture
+def sorted_db(search_db):
+    """search_db plus distinct titles, dates, dates added and a second tag on item 1."""
+    conn = sqlite3.connect(search_db)
+    conn.executescript("""
+        INSERT INTO itemTags VALUES (1, 2);
+        UPDATE items SET dateAdded = '2026-03-01 10:00:00', dateModified = '2026-04-01 10:00:00'
+            WHERE itemID = 1;
+        UPDATE items SET dateAdded = '2026-01-01 10:00:00', dateModified = '2026-05-01 10:00:00'
+            WHERE itemID = 2;
+        UPDATE items SET dateAdded = NULL, dateModified = NULL WHERE itemID IN (3, 4);
+        INSERT INTO itemData VALUES (2, 3, 6);
+        INSERT INTO itemDataValues VALUES (6, '2019-02-02');
+        INSERT INTO creators (creatorID, firstName, lastName, fieldMode) VALUES (2, 'Al', 'Adams', 0);
+        INSERT INTO itemCreators VALUES (2, 2, 1, 0);
+    """)
+    conn.commit()
+    conn.close()
+    return search_db
+
+
+def test_several_tags_must_all_match(sorted_db):
+    gateway = SqliteZoteroGateway(sorted_db)
+    assert _keys(gateway, tag=["reviewed", "todo"]) == ["ITEMKEY1"]
+    assert _keys(gateway, tag=["todo", "-reviewed"]) == ["ITEMKEY2"]
+    assert _keys(gateway, tag=["reviewed || todo", "-reviewed"]) == ["ITEMKEY2"]
+    assert _keys(gateway, tag=["reviewed", "nonexistent"]) == []
+
+
+def test_a_single_tag_string_still_works(sorted_db):
+    assert _keys(SqliteZoteroGateway(sorted_db), tag="todo") == ["ITEMKEY1", "ITEMKEY2"]
+
+
+def test_search_in_a_collection(sorted_db):
+    gateway = SqliteZoteroGateway(sorted_db)
+    assert _keys(gateway, collection="COLKEY1") == ["ITEMKEY1"]
+    assert _keys(gateway, collection="COLKEY2") == []
+    assert _keys(gateway, collection="NOPE") == []
+    assert _keys(gateway, collection="COLKEY1", tag="todo") == ["ITEMKEY1"]
+    assert _keys(gateway, collection="COLKEY1", tag="-reviewed") == []
+
+
+def test_the_default_order_is_newest_publication_date_first_with_undated_last(sorted_db):
+    # ITEMKEY1 2021-05-01, ITEMKEY2 2019-02-02, the attachment and the note have none
+    assert _ordered(SqliteZoteroGateway(sorted_db))[:2] == ["ITEMKEY1", "ITEMKEY2"]
+    assert _ordered(SqliteZoteroGateway(sorted_db), direction="asc")[:2] == ["ITEMKEY2", "ITEMKEY1"]
+
+
+def test_undated_items_stay_last_in_both_directions(sorted_db):
+    gateway = SqliteZoteroGateway(sorted_db)
+    for direction in ("asc", "desc"):
+        assert set(_ordered(gateway, direction=direction)[2:]) == {"ITEMKEY3", "ITEMKEY4"}
+
+
+def test_sort_by_date_added_and_modified(sorted_db):
+    gateway = SqliteZoteroGateway(sorted_db)
+    assert _ordered(gateway, sort="dateAdded", direction="asc")[:2] == ["ITEMKEY2", "ITEMKEY1"]
+    assert _ordered(gateway, sort="dateAdded", direction="desc")[:2] == ["ITEMKEY1", "ITEMKEY2"]
+    assert _ordered(gateway, sort="dateModified", direction="desc")[:2] == ["ITEMKEY2", "ITEMKEY1"]
+
+
+def test_sort_by_title_and_creator_and_type(sorted_db):
+    gateway = SqliteZoteroGateway(sorted_db)
+    # 'Orphan Attachment' (ITEMKEY3), 'Orphan Parent Title' (ITEMKEY2), 'Test Title' (ITEMKEY1);
+    # the untitled note comes last
+    assert _ordered(gateway, sort="title", direction="asc") == [
+        "ITEMKEY3",
+        "ITEMKEY2",
+        "ITEMKEY1",
+        "ITEMKEY4",
+    ]
+    assert _ordered(gateway, sort="title", direction="desc")[:3] == [
+        "ITEMKEY1",
+        "ITEMKEY2",
+        "ITEMKEY3",
+    ]
+    # Adams (ITEMKEY2) before Doe (ITEMKEY1)
+    assert _ordered(gateway, sort="creator", direction="asc")[:2] == ["ITEMKEY2", "ITEMKEY1"]
+    by_type = _ordered(gateway, sort="itemType", direction="asc")
+    assert (by_type[0], by_type[-1]) == ("ITEMKEY3", "ITEMKEY4")  # attachment ... note
+
+
+def test_a_sort_field_offline_does_not_know_leaves_every_item_in_the_results(sorted_db):
+    assert sorted(_ordered(SqliteZoteroGateway(sorted_db), sort="publisher")) == [
+        "ITEMKEY1",
+        "ITEMKEY2",
+        "ITEMKEY3",
+        "ITEMKEY4",
+    ]
+
+
+def test_items_carry_their_dates_added_and_modified(sorted_db):
+    items = {i.key: i for i in SqliteZoteroGateway(sorted_db).search_items(ZoteroQuery())}
+    assert items["ITEMKEY1"].date_added == "2026-03-01 10:00:00"
+    assert items["ITEMKEY1"].date_modified == "2026-04-01 10:00:00"
+    assert not items["ITEMKEY3"].date_added
+
+
+def test_search_command_filters_a_real_offline_database_end_to_end(sorted_db, capsys):
+    """The CLI's options through the real parser and gateway: two tags that must both
+    match, the collection's key, a year range and a sort, as JSON on stdout."""
+    import json
+    from unittest.mock import create_autospec, patch
+
+    from zotero_cli.cli.commands.search_cmd import SearchCommand
+    from zotero_cli.cli.main import build_parser
+    from zotero_cli.core.services.collection_service import CollectionService
+
+    gateway = SqliteZoteroGateway(sorted_db)
+    collections = create_autospec(CollectionService, instance=True)
+    collections.resolve_collection.return_value = "COLKEY1"
+
+    def run(*argv):
+        with (
+            patch(
+                "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway
+            ),
+            patch(
+                "zotero_cli.infra.factory.GatewayFactory.get_collection_service",
+                return_value=collections,
+            ),
+        ):
+            SearchCommand().execute(
+                build_parser().parse_args(["search", *argv, "--format", "json"])
+            )
+        return [row["key"] for row in json.loads(capsys.readouterr().out)]
+
+    assert run("--tag", "reviewed", "--tag", "todo") == ["ITEMKEY1"]
+    assert run("--tag", "todo", "--collection", "Inbox") == ["ITEMKEY1"]
+    assert run("--tag=-reviewed", "--tag", "todo") == ["ITEMKEY2"]
+    assert run("--tag", "todo", "--year", "2020-") == ["ITEMKEY1"]
+    assert run("--tag", "todo", "--year", "-2020") == ["ITEMKEY2"]
+    assert run("--tag", "todo", "--sort", "title", "--direction", "asc") == ["ITEMKEY2", "ITEMKEY1"]
+    assert run("--tag", "todo", "--sort", "title", "--direction", "desc", "--start", "1") == [
+        "ITEMKEY2"
+    ]

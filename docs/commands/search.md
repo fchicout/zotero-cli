@@ -4,7 +4,10 @@ Search for items in your Zotero library using keywords, titles, or exact DOIs.
 
 ## Usage
 ```bash
-zotero-cli search [query] [--doi DOI] [--title TITLE] [--limit N] [--format table|json|csv]
+zotero-cli search [query] [--doi DOI] [--title TITLE] [--limit N] [--start N]
+                   [--tag TAG]... [--type TYPE] [--collection NAME|KEY]
+                   [--year YEAR|FROM-TO] [--added-since DATE] [--added-until DATE]
+                   [--sort FIELD] [--direction asc|desc] [--format table|json|csv]
 ```
 
 ---
@@ -34,6 +37,22 @@ Limit the number of results displayed (default: 50).
 ```bash
 zotero-cli search "transformer" --limit 10
 ```
+
+### Filters
+Filters work with or without a keyword, with the Web API and with `--offline`, and combine freely.
+```bash
+zotero-cli search --tag to-read --tag ml                  # both tags
+zotero-cli search --tag "to-read || later" --type book    # either tag, books only
+zotero-cli search --tag=-archived "attention"             # keyword, excluding a tag (note the =)
+zotero-cli search --collection "Included" --year 2018-2022
+zotero-cli search --added-since 2026-01-01 --sort dateAdded --direction asc
+zotero-cli search "transformer" --limit 20 --start 20     # the second page
+```
+To exclude a tag write `--tag=-name` with the `=`: without it the shell hands `-name` to the parser as if it were an option.
+
+`--year` and `--added-since`/`--added-until` are applied as results arrive (the Web API has no date range), so an item without a publication year never matches `--year`. `--doi` names one item and can't be combined with filters.
+
+Saved searches can't be run: the Web API exposes their definitions but not their results.
 
 ---
 

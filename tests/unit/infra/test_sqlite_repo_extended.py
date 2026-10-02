@@ -23,7 +23,7 @@ def sample_zotero_db(tmp_path):
     conn.execute("INSERT INTO collections VALUES ('COL1', 'Test Collection', 1, NULL)")
     # Add items tables
     conn.execute(
-        "CREATE TABLE items (itemID INTEGER PRIMARY KEY, key TEXT, version INTEGER, libraryID INTEGER, itemTypeID INTEGER)"
+        "CREATE TABLE items (itemID INTEGER PRIMARY KEY, key TEXT, version INTEGER, libraryID INTEGER, itemTypeID INTEGER, dateAdded TEXT, dateModified TEXT)"
     )
     conn.execute("CREATE TABLE itemAttachments (itemID INTEGER, parentItemID INTEGER)")
     conn.execute("CREATE TABLE itemNotes (itemID INTEGER, parentItemID INTEGER)")
@@ -99,7 +99,9 @@ def test_gateway_forbidden_writes(sample_zotero_db):
 def test_gateway_read_tags(sample_zotero_db):
     gateway = SqliteZoteroGateway(sample_zotero_db)
     conn = sqlite3.connect(sample_zotero_db)
-    conn.execute("INSERT INTO items VALUES (1, 'K1', 1, 1, 1)")
+    conn.execute(
+        "INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES (1, 'K1', 1, 1, 1)"
+    )
     conn.execute("INSERT INTO itemTypes VALUES (1, 'journalArticle')")
     conn.execute("INSERT INTO tags VALUES (1, 'Tag1')")
     conn.execute("INSERT INTO itemTags VALUES (1, 1)")
@@ -115,7 +117,9 @@ def test_gateway_read_tags(sample_zotero_db):
 def test_gateway_read_item_by_key(sample_zotero_db):
     gateway = SqliteZoteroGateway(sample_zotero_db)
     conn = sqlite3.connect(sample_zotero_db)
-    conn.execute("INSERT INTO items VALUES (1, 'K1', 3, 1, 1)")
+    conn.execute(
+        "INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES (1, 'K1', 3, 1, 1)"
+    )
     conn.execute("INSERT INTO itemTypes VALUES (1, 'journalArticle')")
     conn.execute("INSERT INTO fields VALUES (100, 'title')")
     conn.execute("INSERT INTO itemDataValues VALUES (200, 'Direct SQL Lookup')")
@@ -135,7 +139,9 @@ def test_gateway_read_item_by_key(sample_zotero_db):
 def test_gateway_read_items_by_doi(sample_zotero_db):
     gateway = SqliteZoteroGateway(sample_zotero_db)
     conn = sqlite3.connect(sample_zotero_db)
-    conn.execute("INSERT INTO items VALUES (1, 'K1', 1, 1, 1)")
+    conn.execute(
+        "INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES (1, 'K1', 1, 1, 1)"
+    )
     conn.execute("INSERT INTO itemTypes VALUES (1, 'journalArticle')")
     conn.execute("INSERT INTO fields VALUES (101, 'DOI')")
     conn.execute("INSERT INTO itemDataValues VALUES (201, '10.1234/example')")
@@ -158,7 +164,9 @@ def test_gateway_read_items_by_doi_normalizes_case_and_url_prefix(sample_zotero_
     both sides via normalize_doi() instead of trusting an exact match."""
     gateway = SqliteZoteroGateway(sample_zotero_db)
     conn = sqlite3.connect(sample_zotero_db)
-    conn.execute("INSERT INTO items VALUES (1, 'K1', 1, 1, 1)")
+    conn.execute(
+        "INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES (1, 'K1', 1, 1, 1)"
+    )
     conn.execute("INSERT INTO itemTypes VALUES (1, 'journalArticle')")
     conn.execute("INSERT INTO fields VALUES (101, 'DOI')")
     conn.execute("INSERT INTO itemDataValues VALUES (201, 'HTTPS://DOI.ORG/10.1234/Example')")

@@ -55,7 +55,10 @@ def analyzed_db(tmp_path: Path) -> str:
     )
     rnd = random.Random(424)
     for paper in range(1, PAPERS + 1):
-        conn.execute("INSERT INTO items VALUES (?, ?, 1, 1, 1)", (paper, f"P{paper:07d}"))
+        conn.execute(
+            "INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES (?, ?, 1, 1, 1)",
+            (paper, f"P{paper:07d}"),
+        )
         conn.execute("INSERT INTO collectionItems (collectionID, itemID) VALUES (1, ?)", (paper,))
         conn.executemany(
             "INSERT INTO itemTags (itemID, tagID) VALUES (?, ?)",

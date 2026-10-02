@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### ✨ Added
+- **`search` filters, sorting and paging (Issue #562):** `zotero-cli search` now takes `--tag` (repeat it to require several; `"a || b"` means either, `--tag=-name` excludes), `--type`, `--collection` (name or key), `--year` (`2020`, `2018-2022`, `2018-`, `-2022`), `--added-since` and `--added-until` (`YYYY-MM-DD`), `--sort` (`date`, `dateAdded`, `dateModified`, `title`, `creator`, `itemType`) with `--direction asc|desc`, and `--start` to skip results (with `--limit`, a page). Filters work without a keyword and combine with it, with the Web API and with `--offline`, and with `--format json|csv`. `--year` and the added-date bounds are applied as results arrive, because the Web API has no date range. Offline results are now sorted like the Web API's (newest publication date first by default, items missing the field last); before, their order was whatever the database returned. Running a saved search is not possible: the Zotero Web API exposes saved-search definitions but not their results.
+
 ### 🛡️ Quality & Infrastructure
 - **Test hygiene, second part (Issue #389):** shared, typed autospec fakes for the repository interfaces in `tests/unit/conftest.py` (`mock_gateway`, `mock_item_repo`, `mock_collection_repo`, ...), which fail on a method the real interface lacks; a ceiling test on bare `MagicMock()`/`Mock()` (685 today, may only go down) so new tests use them; `disallow_untyped_defs` is now on for `tests/docs`, `tests/e2e`, `tests/unit/api`, `tests/unit/tui` and the unit `conftest.py` (the other ~2,000 test functions move in directory by directory); and `SyncService` is fully covered (it was 76%), including the batched-lookup fallback, legacy note fields, a bad item not stopping the rest, and an unwritable destination.
 

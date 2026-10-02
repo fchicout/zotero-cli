@@ -130,3 +130,52 @@ def test_items_are_paginated_with_the_same_paginator():
     keys = [item.key for item in _client(FakeSession(items)).get_all_items()]
 
     assert keys == [f"I{i}" for i in range(130)]
+
+
+# ---- Issue #562: search filters reach the Web API ----------------------------------------
+
+
+def test_a_search_in_a_collection_uses_that_collections_endpoint() -> None:
+    from zotero_cli.core.models import ZoteroQuery
+
+    session = FakeSession([{"key": "I1", "data": {"title": "T", "itemType": "book"}}])
+    client = _client(session)
+
+    keys = [i.key for i in client.search_items(ZoteroQuery(collection="COL1", tag="a"))]
+
+    assert keys == ["I1"]
+    assert session.requests[0]["url"].endswith("collections/COL1/items")
+    assert session.requests[0]["tag"] == "a"
+
+
+def test_a_search_without_a_collection_uses_the_items_endpoint() -> None:
+    from zotero_cli.core.models import ZoteroQuery
+
+    session = FakeSession([])
+    list(_client(session).search_items(ZoteroQuery(q="x")))
+    assert session.requests[0]["url"].endswith("/items") or session.requests[0]["url"] == "items"
+    assert "collections" not in session.requests[0]["url"]
+
+
+def test_several_tags_are_sent_as_repeated_parameters_and_sort_is_forwarded() -> None:
+    from zotero_cli.core.models import ZoteroQuery
+
+    session = FakeSession([])
+    query = ZoteroQuery(
+        tag=["to-read", "-archived"], item_type="book", sort="title", direction="asc"
+    )
+    list(_client(session).search_items(query))
+
+    sent = session.requests[0]
+    assert sent["tag"] == ["to-read", "-archived"]
+    assert (sent["itemType"], sent["sort"], sent["direction"]) == ("book", "title", "asc")
+
+
+def test_the_result_count_follows_the_collection_too() -> None:
+    from zotero_cli.core.models import ZoteroQuery
+
+    session = FakeSession([{"key": "I1", "data": {}}, {"key": "I2", "data": {}}])
+    count = _client(session).count_search_results(ZoteroQuery(collection="COL1"))
+
+    assert count == 2
+    assert session.requests[0]["url"].endswith("collections/COL1/items")

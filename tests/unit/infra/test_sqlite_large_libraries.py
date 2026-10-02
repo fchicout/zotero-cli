@@ -22,7 +22,7 @@ HIGHLIGHTS_PER_PAPER = 4
 SCHEMA = """
     CREATE TABLE itemTypes (itemTypeID INTEGER PRIMARY KEY, typeName TEXT);
     CREATE TABLE items (itemID INTEGER PRIMARY KEY, key TEXT, version INTEGER,
-        libraryID INTEGER, itemTypeID INTEGER);
+        libraryID INTEGER, itemTypeID INTEGER, dateAdded TEXT, dateModified TEXT);
     CREATE TABLE itemAttachments (itemID INTEGER PRIMARY KEY, parentItemID INTEGER,
         linkMode INTEGER, contentType TEXT, path TEXT);
     CREATE TABLE itemNotes (itemID INTEGER PRIMARY KEY, parentItemID INTEGER, note TEXT,
@@ -63,7 +63,10 @@ def _build(path: Path, analyze: bool) -> None:
     for paper in range(PAPERS):
         paper_id, pdf_id = next_id, next_id + 1
         next_id += 2
-        conn.execute("INSERT INTO items VALUES (?, ?, 1, 1, 1)", (paper_id, f"P{paper:07d}"))
+        conn.execute(
+            "INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES (?, ?, 1, 1, 1)",
+            (paper_id, f"P{paper:07d}"),
+        )
         conn.execute("INSERT INTO itemDataValues VALUES (?, ?)", (paper_id * 2, f"Paper {paper}"))
         conn.execute("INSERT INTO itemData VALUES (?, 1, ?)", (paper_id, paper_id * 2))
         conn.execute(
@@ -73,13 +76,19 @@ def _build(path: Path, analyze: bool) -> None:
         conn.execute("INSERT INTO itemCreators VALUES (?, 1, 1, 0)", (paper_id,))
         conn.execute("INSERT INTO collectionItems VALUES (1, ?)", (paper_id,))
         conn.execute("INSERT INTO itemTags VALUES (?, 1)", (paper_id,))
-        conn.execute("INSERT INTO items VALUES (?, ?, 1, 1, 2)", (pdf_id, f"A{paper:07d}"))
+        conn.execute(
+            "INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES (?, ?, 1, 1, 2)",
+            (pdf_id, f"A{paper:07d}"),
+        )
         conn.execute(
             "INSERT INTO itemAttachments VALUES (?, ?, 0, 'application/pdf', NULL)",
             (pdf_id, paper_id),
         )
         for _ in range(HIGHLIGHTS_PER_PAPER):
-            conn.execute("INSERT INTO items VALUES (?, ?, 1, 1, 3)", (next_id, f"N{next_id:07d}"))
+            conn.execute(
+                "INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES (?, ?, 1, 1, 3)",
+                (next_id, f"N{next_id:07d}"),
+            )
             conn.execute(
                 "INSERT INTO itemAnnotations VALUES (?, ?, 1, 'highlight')", (next_id, pdf_id)
             )

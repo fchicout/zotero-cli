@@ -216,6 +216,8 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
                 "title": row_dict.get("title") or "",
                 "abstractNote": row_dict.get("abstractNote") or "",
                 "date": row_dict.get("date") or "",
+                "dateAdded": row_dict.get("dateAdded") or "",
+                "dateModified": row_dict.get("dateModified") or "",
                 "DOI": row_dict.get("DOI") or "",
                 "url": row_dict.get("url") or "",
                 "extra": row_dict.get("extra") or "",
@@ -320,6 +322,7 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
                        (SELECT parentItemID FROM itemAttachments WHERE itemID = i.itemID),
                        (SELECT parentItemID FROM itemNotes WHERE itemID = i.itemID)
                    )) as parentKey,
+                   i.dateAdded AS dateAdded, i.dateModified AS dateModified,
                    MAX(CASE WHEN f.fieldName = 'title' THEN dv.value END) as title,
                    MAX(CASE WHEN f.fieldName = 'abstractNote' THEN dv.value END) as abstractNote,
                    MAX(CASE WHEN f.fieldName = 'date' THEN dv.value END) as date,
@@ -464,17 +467,27 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
                 params.extend(types)
 
         if query.tag:
-            negate, tags = self._split_alternatives(query.tag)
-            if tags:
-                placeholders = ",".join("?" for _ in tags)
-                # Only fixed keywords and "?" placeholders are interpolated;
-                # the tag names are bound as parameters.
-                clauses.append(
-                    f"i.itemID {'NOT IN' if negate else 'IN'} ("
-                    "SELECT stg.itemID FROM itemTags stg JOIN tags st ON stg.tagID = st.tagID "
-                    f"WHERE st.name IN ({placeholders}))"  # nosec B608
-                )
-                params.extend(tags)
+            # Several tags must all match, like repeated `tag` parameters in the Web API.
+            wanted = [query.tag] if isinstance(query.tag, str) else list(query.tag)
+            for value in wanted:
+                negate, tags = self._split_alternatives(value)
+                if tags:
+                    placeholders = ",".join("?" for _ in tags)
+                    # Only fixed keywords and "?" placeholders are interpolated;
+                    # the tag names are bound as parameters.
+                    clauses.append(
+                        f"i.itemID {'NOT IN' if negate else 'IN'} ("
+                        "SELECT stg.itemID FROM itemTags stg JOIN tags st ON stg.tagID = st.tagID "
+                        f"WHERE st.name IN ({placeholders}))"  # nosec B608
+                    )
+                    params.extend(tags)
+
+        if query.collection:
+            clauses.append(
+                "i.itemID IN (SELECT sci.itemID FROM collectionItems sci "
+                "JOIN collections sc ON sci.collectionID = sc.collectionID WHERE sc.key = ?)"
+            )
+            params.append(query.collection)
 
         if query.since:
             clauses.append("i.version > ?")
@@ -482,9 +495,42 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
 
         return "".join(f" AND {c}" for c in clauses), params
 
+    # Sort fields the offline search understands (a subset of the Web API's).
+    SORT_FIELDS = ("date", "dateAdded", "dateModified", "title", "creator", "itemType")
+
+    @staticmethod
+    def _sort_value(item: ZoteroItem, field: str) -> str:
+        if field == "date":
+            return (item.date or "")[:10]
+        if field == "dateAdded":
+            return item.date_added or ""
+        if field == "dateModified":
+            return item.date_modified or ""
+        if field == "title":
+            return (item.title or "").lower()
+        if field == "itemType":
+            return item.item_type
+        if field == "creator":
+            for creator in item.creators:
+                return str(creator.get("lastName") or creator.get("name") or "").lower()
+        return ""
+
+    def _sorted(self, items: List[ZoteroItem], query: ZoteroQuery) -> List[ZoteroItem]:
+        """The Web API sorts server-side; offline does it here, with items that
+        lack the field last whichever the direction."""
+        field = query.sort
+        if field not in self.SORT_FIELDS:
+            return items
+        present = [i for i in items if self._sort_value(i, field)]
+        missing = [i for i in items if not self._sort_value(i, field)]
+        present.sort(key=lambda i: self._sort_value(i, field), reverse=query.direction != "asc")
+        return present + missing
+
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
         filter_sql, params = self._search_filter(query)
-        return self._fetch_items_with_filter(filter_sql, tuple(params))
+        return iter(
+            self._sorted(list(self._fetch_items_with_filter(filter_sql, tuple(params))), query)
+        )
 
     def get_items_in_collection(
         self, collection_id: str, top_only: bool = False
