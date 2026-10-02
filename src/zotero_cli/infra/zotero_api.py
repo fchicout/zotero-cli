@@ -160,14 +160,20 @@ class ZoteroAPIClient(ZoteroGateway):
             lambda: [t["tag"] for t in self._paginate(f"items/{item_key}/tags")],
         )
 
+    @staticmethod
+    def _search_endpoint(query: ZoteroQuery) -> str:
+        return f"collections/{query.collection}/items" if query.collection else "items"
+
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
-        return self._paginate_items("items", params=query.to_params())
+        return self._paginate_items(self._search_endpoint(query), params=query.to_params())
 
     def count_search_results(self, query: ZoteroQuery) -> Optional[int]:
         """How many items a search matches, from one `limit=1` request's
         Total-Results header (None if the header is missing). Used to decide
         between a scan and per-parent lookups (Issue #441)."""
-        response = self.http.get("items", params={**query.to_params(), "limit": 1})
+        response = self.http.get(
+            self._search_endpoint(query), params={**query.to_params(), "limit": 1}
+        )
         return _total_results(response)
 
     def verify_credentials(self) -> bool:

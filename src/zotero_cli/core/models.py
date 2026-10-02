@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 from .zotero_item import ZoteroItem
 
@@ -40,7 +40,11 @@ class ZoteroQuery:
     q: Optional[str] = None
     qmode: Optional[str] = "titleCreatorYear"  # 'titleCreatorYear' or 'everything'
     item_type: Optional[str] = None
-    tag: Optional[str] = None
+    # One value, or several that must ALL match (the Web API ANDs repeated `tag`
+    # parameters). Each value may use `a || b` (either) and a leading `-` (exclude).
+    tag: str | Sequence[str] | None = None
+    # A collection key: only items filed in it.
+    collection: Optional[str] = None
     since: Optional[int] = None
     sort: Optional[str] = "date"
     direction: Optional[str] = "desc"  # 'asc' or 'desc'
@@ -54,7 +58,7 @@ class ZoteroQuery:
         if self.item_type:
             params["itemType"] = self.item_type
         if self.tag:
-            params["tag"] = self.tag
+            params["tag"] = self.tag if isinstance(self.tag, str) else list(self.tag)
         if self.since:
             params["since"] = self.since
         if self.sort:
