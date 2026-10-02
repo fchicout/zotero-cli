@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence
 
 from .zotero_item import ZoteroItem
 
@@ -42,7 +42,7 @@ class ZoteroQuery:
     item_type: Optional[str] = None
     # One value, or several that must ALL match (the Web API ANDs repeated `tag`
     # parameters). Each value may use `a || b` (either) and a leading `-` (exclude).
-    tag: Optional[Union[str, Sequence[str]]] = None
+    tag: str | Sequence[str] | None = None
     # A collection key: only items filed in it.
     collection: Optional[str] = None
     since: Optional[int] = None

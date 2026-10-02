@@ -14,21 +14,25 @@ from zotero_cli.core.zotero_item import ZoteroItem
 YearRange = Tuple[Optional[int], Optional[int]]
 
 _YEAR = re.compile(r"(?<!\d)(\d{4})(?!\d)")
+_FOUR_DIGITS = re.compile(r"\d{4}")
 
 
 def parse_year_range(text: str) -> YearRange:
     """`2020`, `2018-2022`, `2018-` (from) or `-2022` (until), as (low, high)."""
-    value = text.strip()
-    match = re.fullmatch(r"(\d{4})?\s*-?\s*(\d{4})?", value)
-    if not value or not match or not (match.group(1) or match.group(2)):
-        raise UsageError(f"--year takes a year or a range like 2018-2022, not '{text}'.")
-    low, high = match.group(1), match.group(2)
-    if "-" not in value:  # a single year
-        return int(low), int(low)
-    result = (int(low) if low else None, int(high) if high else None)
-    if result[0] is not None and result[1] is not None and result[0] > result[1]:
+    compact = "".join(text.split())
+    bad = UsageError(f"--year takes a year or a range like 2018-2022, not '{text}'.")
+    if _FOUR_DIGITS.fullmatch(compact):
+        return int(compact), int(compact)
+    low_text, dash, high_text = compact.partition("-")
+    if not dash or (low_text and not _FOUR_DIGITS.fullmatch(low_text)):
+        raise bad
+    if (high_text and not _FOUR_DIGITS.fullmatch(high_text)) or not (low_text or high_text):
+        raise bad
+    low = int(low_text) if low_text else None
+    high = int(high_text) if high_text else None
+    if low is not None and high is not None and low > high:
         raise UsageError(f"--year range '{text}' ends before it starts.")
-    return result
+    return low, high
 
 
 def parse_day(text: str, flag: str) -> str:
