@@ -1,5 +1,7 @@
 # Tutorial 04: The RAG-Driven Writing Workflow (SLR Synthesis)
 
+> **Heads-up:** `rag` is deprecated. It warns on every run and is removed, together with the `[rag]` extra, in 4.0, when semantic search moves to a separate tool (see [COMPATIBILITY.md](../COMPATIBILITY.md) and issue #414). This tutorial documents what exists today.
+
 This document formalizes the **ARCH_MGMT Council's** strategy for using RAG to synthesize a Systematic Literature Review (SLR) narrative.
 
 ## 🏛️ Strategic Overview

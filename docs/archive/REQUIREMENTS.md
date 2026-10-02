@@ -1,3 +1,5 @@
+> **Archived.** Written for the v2.x design phase and not maintained since: it describes intended behaviour, not the current commands. For what zotero-cli does today see the [README](../../README.md), [docs/commands/](../commands/) and [COMPATIBILITY.md](../COMPATIBILITY.md).
+
 # Functional Requirements
 
 ## 1. System Initialization

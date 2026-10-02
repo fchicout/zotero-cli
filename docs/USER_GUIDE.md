@@ -5,9 +5,9 @@ This guide describes the current release; run `zotero-cli --version` to see whic
 ## Table of Contents
 1.  [Getting Started](#getting-started)
 2.  [Setup & Configuration](#setup--configuration)
-3.  [Workflow (Screening & Reporting)](#workflow)
-4.  [Ingestion (Import)](#ingestion)
-5.  [Management (Collections, Tags, Items)](#management)
+3.  [Ingestion (Import)](#ingestion)
+4.  [Management (Collections, Tags, Items)](#management)
+5.  [Workflow (Screening & Reporting), optional](#workflow)
 6.  [Analysis & System](#analysis)
 
 ## Getting Started
@@ -40,32 +40,6 @@ For CI/CD or ephemeral sessions, use these variables:
 - `ZOTERO_LIBRARY_TYPE`: Either `user` or `group`. If it isn't set, zotero-cli uses `user` when `ZOTERO_LIBRARY_ID` is the API key's own user ID, and `group` otherwise. `zotero-cli system info` shows the resulting endpoint.
 - `ZOTERO_USER_ID`: Your personal Zotero User ID.
 - `ZOTERO_TARGET_GROUP`: Full URL to derive ID.
-
-## Workflow
-
-### 1. Screening
-**Interactive (TUI):**
-The core feature. Launch the "Tinder-for-Papers" interface.
-```bash
-zotero-cli slr screen --source "raw_arXiv" --include "screened" --exclude "excluded"
-```
-*   **[I]**: Include
-*   **[E]**: Exclude (Select reason code)
-*   **[S]**: Skip
-
-**Single Decision (CLI):**
-Record a decision directly from the terminal.
-```bash
-zotero-cli slr decide --key "ITEM_KEY" --vote INCLUDE
-```
-
-### 2. Reporting (PRISMA)
-Generate a PRISMA 2020 statistics report.
-```bash
-zotero-cli slr report prisma --collection "screened"
-```
-
----
 
 ## Ingestion
 
@@ -109,6 +83,34 @@ zotero-cli tag purge --collection "Junk" --execute
 zotero-cli item list --collection "MyCol"
 zotero-cli item inspect --key BQPLL87F
 zotero-cli item move --key "KEY" --target "Read"
+```
+
+---
+
+## Workflow
+
+*Optional: the systematic-literature-review toolkit. Everything above works without it.*
+
+### 1. Screening
+**Interactive (TUI):**
+The core feature. Launch the "Tinder-for-Papers" interface.
+```bash
+zotero-cli slr screen --source "raw_arXiv" --include "screened" --exclude "excluded"
+```
+*   **[I]**: Include
+*   **[E]**: Exclude (Select reason code)
+*   **[S]**: Skip
+
+**Single Decision (CLI):**
+Record a decision directly from the terminal.
+```bash
+zotero-cli slr decide --key "ITEM_KEY" --vote INCLUDE
+```
+
+### 2. Reporting (PRISMA)
+Generate a PRISMA 2020 statistics report.
+```bash
+zotero-cli slr report prisma --collection "screened"
 ```
 
 ---
