@@ -1,10 +1,11 @@
 import re
+from typing import Any
 
 import pytest
 
 
 @pytest.mark.e2e
-def test_audit_for_leaked_collections(run_cli):
+def test_audit_for_leaked_collections(run_cli: Any) -> None:
     """
     QA_FORCE Audit: Scans the Zotero library for any collections starting with 'E2E_'
     that might have been leaked by previous test runs.
@@ -25,7 +26,7 @@ def test_audit_for_leaked_collections(run_cli):
 
 
 @pytest.mark.e2e
-def test_resource_tracker_proposal_verification(run_cli, timestamp):
+def test_resource_tracker_proposal_verification(run_cli: Any, timestamp: Any) -> None:
     """
     Verification artifact for a proposed 'ResourceTracker' pattern.
     Simulates a test that 'forgets' to cleanup, to prove we need a robust tracker.

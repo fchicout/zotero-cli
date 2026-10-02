@@ -1,9 +1,10 @@
 import csv
+from pathlib import Path
 
 from zotero_cli.core.strategies import CanonicalCsvImportStrategy
 
 
-def test_canonical_csv_parsing(tmp_path):
+def test_canonical_csv_parsing(tmp_path: Path) -> None:
     # Setup: Create a canonical CSV file
     csv_file = tmp_path / "canonical.csv"
     headers = ["title", "doi", "arxiv_id", "abstract", "authors", "year", "publication", "url"]

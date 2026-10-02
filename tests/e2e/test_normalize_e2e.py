@@ -1,7 +1,9 @@
 import csv
+from pathlib import Path
+from typing import Any
 
 
-def test_system_normalize_e2e(run_cli, tmp_path):
+def test_system_normalize_e2e(run_cli: Any, tmp_path: Path) -> None:
     """
     E2E Test: Verify the 'system normalize' CLI command.
     """

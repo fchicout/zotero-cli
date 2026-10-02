@@ -1,11 +1,12 @@
 import re
 import time
+from typing import Any
 
 import pytest
 
 
 @pytest.mark.e2e
-def test_item_hydrate_dry_run(run_cli, temp_collection):
+def test_item_hydrate_dry_run(run_cli: Any, temp_collection: Any) -> None:
     """
     Verifies the 'item hydrate' command integration and reporting.
     """
@@ -45,7 +46,7 @@ def test_item_hydrate_dry_run(run_cli, temp_collection):
 
 
 @pytest.mark.e2e
-def test_item_hydrate_help(run_cli):
+def test_item_hydrate_help(run_cli: Any) -> None:
     """Verifies help output."""
     res = run_cli(["item", "hydrate", "--help"])
     assert res.returncode == 0

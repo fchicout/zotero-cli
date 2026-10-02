@@ -1,8 +1,11 @@
+from pathlib import Path
+from typing import Any
+
 import pytest
 
 
 @pytest.mark.e2e
-def test_import_with_pdf_simple(run_cli, temp_collection):
+def test_import_with_pdf_simple(run_cli: Any, temp_collection: Any) -> None:
     """
     Simpler version of import to verify PDF handling without full storage checkout.
     """
@@ -23,7 +26,9 @@ def test_import_with_pdf_simple(run_cli, temp_collection):
 
 
 @pytest.mark.e2e
-def test_storage_checkout_mocked(run_cli, tmp_path, monkeypatch):
+def test_storage_checkout_mocked(
+    run_cli: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """
     Test storage checkout using a controlled environment.
     We mock the search to return only one specific item to avoid global scan slowness.

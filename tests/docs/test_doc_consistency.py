@@ -1,6 +1,7 @@
 import argparse
 import re
 from pathlib import Path
+from typing import Any, Iterator
 
 import pytest
 
@@ -20,7 +21,7 @@ from zotero_cli.cli.base import CommandRegistry
 # empty-registry bug visible instead of silent (Issue #147).
 
 
-def get_registered_commands():
+def get_registered_commands() -> Any:
     """Extracts all registered command names and their subcommands via argparse introspection."""
     commands_map = {}
     for cmd in CommandRegistry.get_commands():
@@ -38,7 +39,7 @@ def get_registered_commands():
     return commands_map
 
 
-def get_markdown_content(filepath):
+def get_markdown_content(filepath: Any) -> Any:
     """Reads content from a markdown file."""
     try:
         with open(filepath, "r", encoding="utf-8") as f:
@@ -48,7 +49,7 @@ def get_markdown_content(filepath):
 
 
 @pytest.mark.docs
-def test_documentation_structure():
+def test_documentation_structure() -> None:
     """Ensures every registered noun has a corresponding file in docs/commands/."""
     # Find project root relative to this file (tests/docs/test_doc_consistency.py)
     project_root = Path(__file__).parent.parent.parent
@@ -67,7 +68,7 @@ def test_documentation_structure():
 
 
 @pytest.mark.docs
-def test_documentation_no_orphans():
+def test_documentation_no_orphans() -> None:
     """Ensures every file in docs/commands/ corresponds to a currently registered noun.
 
     Prevents stale docs for removed/renamed top-level commands (e.g. a doc left
@@ -86,7 +87,7 @@ def test_documentation_no_orphans():
 
 
 @pytest.mark.docs
-def test_verb_coverage():
+def test_verb_coverage() -> None:
     """Ensures every verb for a noun is documented in its markdown file."""
     project_root = Path(__file__).parent.parent.parent
     docs_dir = project_root / "docs/commands"
@@ -112,7 +113,7 @@ def test_verb_coverage():
 
 
 @pytest.mark.docs
-def test_readme_index_coverage():
+def test_readme_index_coverage() -> None:
     """Ensures the README.md index contains all registered nouns."""
     project_root = Path(__file__).parent.parent.parent
     readme_path = project_root / "README.md"
@@ -135,7 +136,7 @@ def test_readme_index_coverage():
         )
 
 
-def find_parser_paths(parser, current_path=[]):
+def find_parser_paths(parser: Any, current_path: Any = []) -> Iterator[Any]:
     """Recursively walks subparsers and yields the path and the subparser."""
     subparsers_found = False
     for action in parser._actions:
@@ -147,7 +148,7 @@ def find_parser_paths(parser, current_path=[]):
         yield current_path, parser
 
 
-def get_all_cli_command_paths():
+def get_all_cli_command_paths() -> Any:
     """Returns a dict mapping command paths to their subparser."""
     command_paths = {}
     for cmd in CommandRegistry.get_commands():
@@ -230,7 +231,7 @@ def extract_md_parameters(content: str) -> set[str]:
 
 
 @pytest.mark.docs
-def test_help_specs_presence():
+def test_help_specs_presence() -> None:
     """Ensures every registered CLI command endpoint has a help spec file."""
     project_root = Path(__file__).parent.parent.parent
     specs_dir = project_root / "docs/help_specs"
@@ -249,7 +250,7 @@ def test_help_specs_presence():
 
 
 @pytest.mark.docs
-def test_help_specs_no_orphans():
+def test_help_specs_no_orphans() -> None:
     """Ensures every help spec file corresponds to a currently registered CLI command.
 
     Prevents stale docs for renamed/removed commands (e.g. a doc left behind
@@ -277,7 +278,7 @@ def test_help_specs_no_orphans():
 
 
 @pytest.mark.docs
-def test_help_specs_compliance():
+def test_help_specs_compliance() -> None:
     """Ensures help specs strictly adhere to the 7-section layout specification."""
     project_root = Path(__file__).parent.parent.parent
     specs_dir = project_root / "docs/help_specs"
@@ -323,7 +324,7 @@ def test_help_specs_compliance():
 
 
 @pytest.mark.docs
-def test_help_specs_drift():
+def test_help_specs_drift() -> None:
     """Detects drift between Python command options and Markdown parameter matrices."""
     project_root = Path(__file__).parent.parent.parent
     specs_dir = project_root / "docs/help_specs"

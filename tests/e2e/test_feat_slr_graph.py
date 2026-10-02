@@ -1,10 +1,11 @@
 import time
+from typing import Any
 
 import pytest
 
 
 @pytest.mark.e2e
-def test_slr_graph_execution(run_cli, temp_collection):
+def test_slr_graph_execution(run_cli: Any, temp_collection: Any) -> None:
     """
     Verifies that 'zotero-cli slr graph' generates a valid DOT file.
     """

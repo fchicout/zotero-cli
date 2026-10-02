@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from zotero_cli.core.services.purge_service import PurgeService
@@ -5,14 +7,14 @@ from zotero_cli.infra.factory import GatewayFactory
 
 
 @pytest.fixture
-def purge_service():
+def purge_service() -> Any:
     # Uses real gateway but we'll use a specific test collection
     gateway = GatewayFactory.get_zotero_gateway()
     return PurgeService(gateway)
 
 
 @pytest.mark.e2e
-def test_purge_logic_integration_e2e(purge_service):
+def test_purge_logic_integration_e2e(purge_service: Any) -> None:
     """
     High-fidelity verification of PurgeService logic against real gateway structure.
     We test dry_run=True to avoid unintended side effects in the real library
@@ -52,7 +54,7 @@ def test_purge_logic_integration_e2e(purge_service):
 
 
 @pytest.mark.e2e
-def test_purge_offline_veto_e2e(purge_service):
+def test_purge_offline_veto_e2e(purge_service: Any) -> None:
     """Verify that the Offline Veto is enforced even in E2E context."""
     # Force an offline gateway
     offline_gateway = GatewayFactory.get_zotero_gateway()

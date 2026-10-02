@@ -5,6 +5,7 @@ rationale. This exercises the route end-to-end via TestClient, confirming
 behavior is unchanged now that the call goes through run_in_threadpool.
 """
 
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,7 +17,7 @@ from zotero_cli.api.main import create_app
 mock_gateway = MagicMock()
 
 
-def override_get_gateway():
+def override_get_gateway() -> Any:
     return mock_gateway
 
 
@@ -26,11 +27,11 @@ client = TestClient(app, base_url="http://localhost")
 
 
 @pytest.fixture(autouse=True)
-def reset_mocks():
+def reset_mocks() -> None:
     mock_gateway.reset_mock()
 
 
-def test_list_collections():
+def test_list_collections() -> None:
     mock_gateway.get_all_collections.return_value = [
         {"key": "C1", "data": {"name": "Root", "parentCollection": False}},
         {"key": "C2", "data": {"name": "Child", "parentCollection": "C1"}},

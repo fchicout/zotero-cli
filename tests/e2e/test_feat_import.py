@@ -1,10 +1,11 @@
 import time
+from typing import Any
 
 import pytest
 
 
 @pytest.mark.e2e
-def test_import_arxiv_basic(run_cli, temp_collection):
+def test_import_arxiv_basic(run_cli: Any, temp_collection: Any) -> None:
     """
     Verifies that importing from arXiv correctly populates a collection.
     """
@@ -41,7 +42,7 @@ def test_import_arxiv_basic(run_cli, temp_collection):
 
 
 @pytest.mark.e2e
-def test_import_arxiv_invalid_query(run_cli, temp_collection):
+def test_import_arxiv_invalid_query(run_cli: Any, temp_collection: Any) -> None:
     """
     Verifies that invalid queries are handled gracefully.
     """

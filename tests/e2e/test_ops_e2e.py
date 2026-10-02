@@ -1,11 +1,13 @@
 import re
 import time
+from pathlib import Path
+from typing import Any
 
 import pytest
 
 
 @pytest.mark.e2e
-def test_backup_restore_e2e(run_cli, sentinel, timestamp, tmp_path):
+def test_backup_restore_e2e(run_cli: Any, sentinel: Any, timestamp: Any, tmp_path: Path) -> None:
     """
     Real E2E: Verify that we can backup a collection.
     Uses 'sentinel' for robust cleanup.
@@ -38,7 +40,7 @@ def test_backup_restore_e2e(run_cli, sentinel, timestamp, tmp_path):
 
 
 @pytest.mark.e2e
-def test_shift_e2e(run_cli, sentinel, timestamp, tmp_path):
+def test_shift_e2e(run_cli: Any, sentinel: Any, timestamp: Any, tmp_path: Path) -> None:
     """
     Real E2E: Verify shift detection.
     Uses 'sentinel' for robust cleanup.

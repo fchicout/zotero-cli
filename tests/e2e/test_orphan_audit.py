@@ -1,8 +1,10 @@
+from typing import Any
+
 import pytest
 
 
 @pytest.mark.e2e
-def test_orphan_prevention_audit(run_cli, timestamp):
+def test_orphan_prevention_audit(run_cli: Any, timestamp: Any) -> None:
     """
     AUDIT: Verifies that deleting a collection doesn't leave orphaned items
     behind if they were imported specifically for that collection.
