@@ -29,7 +29,7 @@ The output is presented as a formatted table that includes:
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--table` | Boolean | Display results as a flat table instead of a tree | Optional. Same as `--format table`. |
-| `--format` | String | Output format: `tree` (default), `table`, `json`, `csv` or `ndjson` (key, name, parent, num_items; ndjson is one JSON object per line) | Optional. Default: tree. |
+| `--format` | String | Output format: `tree` (default), `table`, `json`, `csv`, `ndjson` (key, name, parent, num_items; ndjson is one JSON object per line) or `keys` (one collection key per line) | Optional. Default: tree. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Finding a collection key for a new task

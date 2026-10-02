@@ -65,9 +65,9 @@ Result:  A JSON list of {key, name, parent, num_items} on stdout.
         )
         add_format_flag(
             list_p,
-            choices=("tree", "table", "json", "csv", "ndjson"),
+            choices=("tree", "table", "json", "csv", "ndjson", "keys"),
             default="tree",
-            help="Output format: tree (default), table, or json/csv/ndjson (key, name, parent, num_items) for scripts",
+            help="Output format: tree (default), table, or json/csv/ndjson (key, name, parent, num_items) for scripts; keys prints the collection keys",
         )
 
         # Create
@@ -371,7 +371,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         cols = gateway.get_all_collections()
 
         fmt = "table" if args.table else getattr(args, "format", "tree")
-        if fmt in ("json", "csv", "ndjson"):
+        if fmt in ("json", "csv", "ndjson", "keys"):
             records.render_data(
                 [
                     {

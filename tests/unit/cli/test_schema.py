@@ -127,7 +127,7 @@ def test_arguments_carry_type_default_choices_and_repeatability(schema: Dict[str
     assert (limit["type"], limit["default"], limit["required"]) == ("integer", 50, False)
     tag = _argument(search, "tag")
     assert (tag["type"], tag["repeatable"], tag["flags"]) == ("string", True, ["--tag"])
-    assert _argument(search, "format")["choices"] == ["table", "json", "csv", "ndjson"]
+    assert _argument(search, "format")["choices"] == ["table", "json", "csv", "ndjson", "keys"]
     query = _argument(search, "query")
     assert (query["kind"], query["required"]) == ("positional", False)
     assert _argument(_command(schema, "item", "list"), "trash")["type"] == "boolean"

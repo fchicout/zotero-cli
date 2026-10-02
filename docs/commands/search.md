@@ -7,7 +7,7 @@ Search for items in your Zotero library using keywords, titles, or exact DOIs.
 zotero-cli search [query] [--doi DOI] [--title TITLE] [--limit N] [--start N]
                    [--tag TAG]... [--type TYPE] [--collection NAME|KEY]
                    [--year YEAR|FROM-TO] [--added-since DATE] [--added-until DATE]
-                   [--sort FIELD] [--direction asc|desc] [--format table|json|csv|ndjson]
+                   [--sort FIELD] [--direction asc|desc] [--format table|json|csv|ndjson|keys]
 ```
 
 ---
@@ -51,6 +51,14 @@ zotero-cli search "transformer" --limit 20 --start 20     # the second page
 To exclude a tag write `--tag=-name` with the `=`: without it the shell hands `-name` to the parser as if it were an option.
 
 `--year` and `--added-since`/`--added-until` are applied as results arrive (the Web API has no date range), so an item without a publication year never matches `--year`. `--doi` names one item and can't be combined with filters.
+
+For piping, `--format keys` prints one item key per line, written as each result arrives:
+```bash
+zotero-cli search --tag to-read --format keys > keys.txt
+xargs -n1 zotero-cli item inspect --key < keys.txt
+```
+or in one pipeline: `search --tag to-read --format keys | xargs -n1 zotero-cli item inspect --key`.
+Other list-style commands print their identifying column: `tag list --format keys` the tag names, `system jobs list --format keys` the job ids. A value with a line break in it is written with the break replaced by a space, so one line is always one value.
 
 Saved searches can't be run: the Web API exposes their definitions but not their results.
 

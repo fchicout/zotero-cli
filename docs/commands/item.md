@@ -52,7 +52,7 @@ zotero-cli item list --collection "My Papers" --fields key,title,creators,year,v
 *   `--top-only`: Only show top-level items.
 *   `--fields`: Comma-separated fields to show (e.g. `key,title,creators,year,venue,doi`). Also accepts raw Zotero field names such as `publicationTitle` or `volume`.
 *   `-w`, `--wide`: Preset showing key, title, first author, year, venue and DOI. Can't be combined with `--fields`.
-*   `-f`, `--format`: `table` (default), `json`, `csv`, `ndjson` (one JSON object per line) or `markdown`. Non-table formats print only the data, so they can be piped (e.g. into `jq`) or redirected to a file.
+*   `-f`, `--format`: `table` (default), `json`, `csv`, `ndjson` (one JSON object per line), `keys` (one item key per line) or `markdown`. Non-table formats print only the data, so they can be piped (e.g. into `jq`) or redirected to a file.
 
 ---
 
