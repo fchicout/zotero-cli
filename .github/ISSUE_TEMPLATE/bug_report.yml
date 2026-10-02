@@ -1,0 +1,63 @@
+name: Bug report
+description: Something zotero-cli did, or failed to do, that it shouldn't have
+labels: ["type: bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. If this is a security problem, **don't** use this form: see [SECURITY.md](https://github.com/fchicout/zotero-cli/blob/main/SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: zotero-cli version
+      description: Output of `zotero-cli --version`
+      placeholder: "3.1.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: channel
+    attributes:
+      label: How did you install it?
+      options:
+        - pip / uv tool (PyPI)
+        - Release binary (install.sh / install.ps1)
+        - .deb / .rpm package
+        - Windows installer (.msi)
+        - Docker image
+        - From source
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Fedora 44, Windows 11, macOS 15, ..."
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: The command you ran
+      description: The exact command line. Add `--offline` if you used it.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output with `-v`
+      description: Run the command again with `-v` and paste the output. Logs are also in `~/.config/zotero-cli/logs/` (Linux/macOS) or `%APPDATA%\zotero-cli\logs\` (Windows).
+      render: text
+  - type: checkboxes
+    id: keys
+    attributes:
+      label: Before you submit
+      options:
+        - label: I removed every API key, token and password from the text above.
+          required: true

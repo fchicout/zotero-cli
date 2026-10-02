@@ -47,3 +47,7 @@ with the actual repository state.
 This repo's separate, unrelated `~/wks/gem-ctx` project (a shared cross-project
 memory/vault used by the Gemini persona system) was left untouched — it may
 still be load-bearing for other projects and is out of scope here.
+
+## Added later
+
+- `PROCESS.md` ("The Golden Path"): the persona workflow itself. Replaced by `CONTRIBUTING.md` in v3.1.2; the destructive-commands policy it held now lives there.

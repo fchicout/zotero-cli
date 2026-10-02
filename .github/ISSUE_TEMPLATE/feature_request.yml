@@ -1,0 +1,20 @@
+name: Feature request
+description: Suggest something zotero-cli should be able to do
+labels: ["type: feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The task or workflow, and why the current commands don't cover it.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like zotero-cli to do?
+      description: A command or flag you'd expect, with an example of how you'd use it and what it would print.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What do you do today instead?

@@ -1,3 +1,5 @@
+> **Archived.** This is the persona-driven process ("The Golden Path", "Council of Six") that ran the project until 2026-10. It is kept for the record and is **not** how contributions work today: see [CONTRIBUTING.md](../../CONTRIBUTING.md) and [COMPATIBILITY.md](../COMPATIBILITY.md). Its destructive-commands policy moved into CONTRIBUTING.md.
+
 # The Golden Path v2.1: Development Protocol
 
 > **"The Machine That Builds The Machine"**

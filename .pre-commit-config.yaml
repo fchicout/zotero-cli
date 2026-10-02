@@ -1,4 +1,4 @@
-# Mechanical enforcement of docs/PROCESS.md's "Hexa-Gate" (Phase C), so passing
+# Mechanical enforcement of the checks listed in CONTRIBUTING.md, so passing
 # it is no longer something a human (or an agent) has to remember and claim —
 # it either ran and passed, or the commit/push didn't happen. See CLAUDE.md's
 # "Status and roadmap: source of truth" section for why this exists.

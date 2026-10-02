@@ -24,7 +24,7 @@ Checks, cheapest to most expensive:
 2. **Reachability** (not automated): actually run or argparse-dry-validate every documented example command. Presence-checking doesn't execute anything — this is what caught `collection purge`.
 3. **Semantic/prose accuracy** (not automated): does the description match current behavior, not just current flag names? A stale description can point at the wrong replacement command even when every flag it mentions still exists.
 
-**Step 3 — Record findings before fixing.** One row per leaf command (path / help_specs status / commands status / README status / notes), so the sweep is auditable and fixes land as a reviewable PR per `docs/PROCESS.md`, not one undifferentiated diff.
+**Step 3 — Record findings before fixing.** One row per leaf command (path / help_specs status / commands status / README status / notes), so the sweep is auditable and fixes land as a reviewable PR per `CONTRIBUTING.md`, not one undifferentiated diff.
 
 **Step 4 — Fix, then close the loop.** Re-run `pytest tests/docs` and regenerate the tree to confirm zero structural drift remains. Steps 2 and 3's reachability/prose checks have no automated regression coverage yet (see Future Work) — re-run them by hand for anything touched.
 
@@ -34,7 +34,7 @@ Checks, cheapest to most expensive:
 - Whenever a `docs/commands/*.md` or `docs/help_specs/*.md` file is touched by hand outside a normal single-issue PR (e.g. a batch cleanup).
 - As a periodic full sweep — no fixed cadence mandated; use judgment based on how much CLI surface has moved since the last one.
 
-Per-issue PRs that touch CLI args are expected to keep their own slice of the tree in sync as part of normal `docs/PROCESS.md` Phase D ("Documentation Sync") — this protocol is for the deliberate, whole-tree sweep, not a substitute for keeping docs current PR-by-PR.
+Per-issue PRs that touch CLI args are expected to keep their own slice of the tree in sync as part of the documentation rule in `CONTRIBUTING.md` ("Changes that touch the command line") — this protocol is for the deliberate, whole-tree sweep, not a substitute for keeping docs current PR-by-PR.
 
 ## Future work (not yet built)
 

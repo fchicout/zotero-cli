@@ -240,7 +240,12 @@ uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 uv run pytest tests/unit
 ```
 
-`uv sync` creates `.venv/`, using the Python version pinned in `.python-version`, and installs the project in editable mode from `uv.lock`. Commit `uv.lock` alongside any dependency change so everyone, CI included, gets exactly the same versions. `pre-commit install` sets up the checks from `docs/PROCESS.md`: ruff, mypy and bandit run on every `git commit`, and `pytest tests/unit` runs on `git push`. See `.pre-commit-config.yaml`.
+`uv sync` creates `.venv/`, using the Python version pinned in `.python-version`, and installs the project in editable mode from `uv.lock`. Commit `uv.lock` alongside any dependency change so everyone, CI included, gets exactly the same versions. `pre-commit install` sets up the checks: ruff (lint and format), mypy and bandit run on every `git commit`, and `pytest tests/unit` runs on `git push`. See `.pre-commit-config.yaml`.
+
+Read [CONTRIBUTING.md](https://github.com/fchicout/zotero-cli/blob/main/CONTRIBUTING.md) before opening a pull request: it lists the checks, the test layout, the rule for commands that delete, and how releases work. Everyone taking part follows the [Code of Conduct](https://github.com/fchicout/zotero-cli/blob/main/CODE_OF_CONDUCT.md).
+
+### Getting help
+Questions about using zotero-cli: [open an issue](https://github.com/fchicout/zotero-cli/issues/new/choose) with the **Question** form. Bugs and feature ideas use their own forms there too. This is a volunteer-run project, so replies can take a few days. Security problems go through [SECURITY.md](https://github.com/fchicout/zotero-cli/blob/main/SECURITY.md), never a public issue.
 
 ## Data Sources
 Besides your Zotero library, zotero-cli queries public scholarly services (Crossref, Semantic Scholar, OpenAlex, Unpaywall, arXiv, PubMed and others) and identifies itself honestly when it does. [docs/DATA_SOURCES.md](https://github.com/fchicout/zotero-cli/blob/main/docs/DATA_SOURCES.md) lists them, links their terms, and explains attribution: if you publish results from `slr snowball`, credit Semantic Scholar. zotero-cli is an independent project, not affiliated with or endorsed by Zotero, the Corporation for Digital Scholarship, arXiv or any of these providers.
