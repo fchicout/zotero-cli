@@ -6,6 +6,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.commands import item_annotations
 from zotero_cli.cli.flags import (
     add_bibliography_flags,
     add_details_flag,
@@ -596,6 +597,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             "--force", action="store_true", help="Skip the interactive confirmation prompt"
         )
 
+        # Annotations
+        annotations_p = sub.add_parser(
+            "annotations",
+            help="Show the PDF highlights and notes of an item",
+            description="Lists the annotations (highlights, notes, underlines, images, ink, text) you made in an item's PDF attachments, in reading order, with the highlighted text, your comment, colour, page and tags. Read-only; works with the Web API and with --offline.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog=item_annotations.EPILOG,
+        )
+        item_annotations.register_args(annotations_p)
+
         # Restore
         restore_p = sub.add_parser(
             "restore",
@@ -706,6 +717,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         add_bibliography_flags(export_p)
         export_p.add_argument("--output", help="Output file path or directory (for md)")
+        export_p.add_argument(
+            "--annotations",
+            action="store_true",
+            help="With --as md: end the file with the item's PDF annotations (highlights, notes)",
+        )
 
         # Add
         add_p = sub.add_parser(
@@ -805,6 +821,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         if args.verb == "inspect":
             InspectCommand().execute(args)
+        elif args.verb == "annotations":
+            item_annotations.run(gateway, args)
         elif args.verb == "move":
             self._handle_move(args)
         elif args.verb == "list":
@@ -1484,13 +1502,18 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if not item:
             raise NotFound(f"Item '{args.key}' not found.")
 
+        include_annotations = bool(getattr(args, "annotations", False))
+        if include_annotations and args.export_format != "md":
+            raise UsageError("--annotations only applies to --as md.")
         if args.export_format == "md":
             attach_service = GatewayFactory.get_attachment_service(force_user=force_user)
             output_dir = Path(args.output) if args.output else Path("./export_md")
             output_dir.mkdir(parents=True, exist_ok=True)
 
             console.print(f"Exporting full-text for: [cyan]{escape(item.title or '')}[/cyan]...")
-            stats = attach_service.bulk_export_markdown([item], output_dir)
+            stats = attach_service.bulk_export_markdown(
+                [item], output_dir, include_annotations=include_annotations
+            )
 
             if stats["success"] > 0:
                 console.print(

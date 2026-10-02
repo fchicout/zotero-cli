@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, TypeVar, cast
 
 import requests
 
+from zotero_cli.core import annotations as annotation_records
 from zotero_cli.core.exceptions import AuthError, NotFound
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import KeyIdentity, ResearchPaper, ZoteroQuery
@@ -257,6 +258,28 @@ class ZoteroAPIClient(ZoteroGateway):
             [],
             lambda: list(self._paginate(f"items/{item_key}/children")),
         )
+
+    def get_annotations(self, item_key: str) -> List[Dict[str, Any]]:
+        """Annotations are children of a PDF attachment: of the attachment itself if
+        `item_key` is one, else of each attachment child of the item (Issue #558)."""
+        item = self.get_item(item_key)
+        if item is None:
+            return []
+        if item.item_type == "attachment":
+            parents = [item_key]
+        else:
+            parents = [
+                str(child.get("key") or child.get("data", {}).get("key"))
+                for child in self.get_item_children(item_key)
+                if child.get("data", {}).get("itemType") == "attachment"
+            ]
+        found: List[Dict[str, Any]] = []
+        for parent in parents:
+            for raw in self._paginate(f"items/{parent}/children"):
+                record = annotation_records.from_api(raw)
+                if record is not None:
+                    found.append(record)
+        return annotation_records.in_reading_order(found)
 
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
         """Resolves a collection key or name to one key (None if no match).

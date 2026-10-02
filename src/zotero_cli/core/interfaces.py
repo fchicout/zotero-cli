@@ -164,6 +164,13 @@ class AttachmentRepository(ABC):
     def update_attachment_link(self, item_key: str, version: int, new_path: str) -> bool:
         pass
 
+    @abstractmethod
+    def get_annotations(self, item_key: str) -> List[Dict[str, Any]]:
+        """The PDF annotations (highlights, notes, ...) of an item's PDF attachments, or of
+        the attachment itself if `item_key` names one, in reading order, as the dicts
+        `zotero_cli.core.annotations.build` makes. Empty when there are none."""
+        pass
+
 
 class JobRepository(ABC):
     @abstractmethod

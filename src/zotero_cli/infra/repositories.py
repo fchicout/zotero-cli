@@ -153,3 +153,6 @@ class ZoteroAttachmentRepository(AttachmentRepository):
 
     def update_attachment_link(self, item_key: str, version: int, new_path: str) -> bool:
         return self.gateway.update_attachment_link(item_key, version, new_path)
+
+    def get_annotations(self, item_key: str) -> List[Dict[str, Any]]:
+        return self.gateway.get_annotations(item_key)
