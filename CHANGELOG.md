@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-10-01
+
+A minor release: formatted bibliographies, a data-loss fix in `item merge`, and a large cleanup under the hood. Nothing is removed or changed incompatibly: every command and flag that works in 3.1 still works. It adds one runtime dependency, [`bxc`](https://pypi.org/project/bxc/) (with its `citeproc-py`), which formats bibliographies and converts LaTeX in imported BibTeX; `pip`/`uv` install it for you, and the release binaries bundle it. If you merge duplicates with `item merge` or `slr dedupe`, upgrade: before this release, a failure while moving a duplicate's notes or attachments still deleted the duplicate (Issue #549).
+
 ### ✨ Added
 - **Formatted bibliographies (Issue #534):** `--as bibliography` on `item export`, `collection export` and `item inspect` writes the items as a reference list in any CSL citation style, through [`bxc`](https://pypi.org/project/bxc/): `zotero-cli collection export --collection FIN_01 --as bibliography --style ieee --render markdown`. `--style` is a CSL style id (default `apa`; an unknown one lists close matches) and `--render` is `plain` (default), `markdown` or `html`. Without `--output` the bibliography is printed, so it can be piped. The common styles are bundled and work offline; nothing is written to your cache directory. `system selftest` checks that a build can resolve its styles.
 

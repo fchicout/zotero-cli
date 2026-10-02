@@ -11,7 +11,7 @@ body:
     attributes:
       label: zotero-cli version
       description: Output of `zotero-cli --version`
-      placeholder: "3.1.1"
+      placeholder: "3.2.0"
     validations:
       required: true
   - type: dropdown
