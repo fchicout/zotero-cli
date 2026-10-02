@@ -44,7 +44,7 @@ def test_every_delete_path_has_been_reviewed():
     assert not unreviewed, (
         f"New code calls a delete method: {sorted(unreviewed)}. Give it a preview "
         "(--dry-run or preview-until---execute) and, for bulk deletes, a confirmation "
-        "(see docs/PROCESS.md, destructive commands), then add it to REVIEWED."
+        "(see CONTRIBUTING.md, destructive commands), then add it to REVIEWED."
     )
 
 

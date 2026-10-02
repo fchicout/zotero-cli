@@ -80,7 +80,7 @@ Screening decisions are written back into Zotero as immutable JSON notes (SDB v1
 
 ## Development Process
 
-Documented in full in `docs/PROCESS.md` ("The Golden Path"). Key points relevant to code changes:
+Documented in full in `CONTRIBUTING.md` (the checks, tests, destructive-commands policy, pull requests) and `docs/COMPATIBILITY.md` (SemVer, deprecation, release trains). Key points relevant to code changes:
 
 - Branch naming: `feat/<issue-id>-<slug>`, `fix/...`, `chore/...`.
 - Before committing, code must pass the full gate: `ruff check .`, `ruff format --check .`, `mypy .`, `bandit -r src/`, the `pip-audit` dependency audit, `pytest tests/unit`, and any relevant integration/e2e tests.
@@ -102,7 +102,7 @@ Never hand-narrate project status, quality-gate results, or roadmap state — th
 
 - **Pass/fail, coverage, lint/type status** → run `ruff check .`, `mypy .`, `pytest tests/unit` (with `--cov` if coverage is asked for) and report what actually happened. Never assert a quality-gate verdict without having just run it.
 - **Backlog, roadmap, "what's next"** → `gh issue list --state open --repo fchicout/zotero-cli` (label taxonomy: `type:{feature,bug,chore,docs,architecture}`, `prio:{critical,high,medium,low}`, `comp:{cli,core,infra,slr}`). GitHub Issues is the roadmap; there is no separate hand-maintained roadmap file.
-- **Architecture/process guidance** → this file and `docs/ARCHITECTURE.md` / `docs/PROCESS.md`.
+- **Architecture/process guidance** → this file, `CONTRIBUTING.md` and `docs/ARCHITECTURE.md`.
 - `docs/archive/` holds retired status/audit/roadmap documents from a prior persona-driven workflow, kept for historical record only — never treat anything in there as current.
 
 ## Repository notes

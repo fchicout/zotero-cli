@@ -1,0 +1,16 @@
+name: Question
+description: Ask how to do something with zotero-cli
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: What would you like to know?
+      description: Say what you're trying to achieve, and what you've tried. `zotero-cli <command> --help` and the docs in `docs/` often answer it.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: zotero-cli version
+      description: Output of `zotero-cli --version`
