@@ -107,8 +107,9 @@ def test_the_list_style_commands_accept_ndjson(argv: List[str]) -> None:
 
 
 def test_a_command_whose_json_is_one_object_does_not_offer_ndjson() -> None:
+    parser = build_parser()
     with pytest.raises(SystemExit) as exit_info:
-        build_parser().parse_args(["report", "stats", "--format", "ndjson"])
+        parser.parse_args(["report", "stats", "--format", "ndjson"])
     assert exit_info.value.code == 2
 
 
