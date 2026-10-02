@@ -77,7 +77,7 @@
     *   Update `src/zotero_cli/__init__.py`.
 13. **Changelog:**
     *   Update `CHANGELOG.md`.
-    *   Once a month, and before a minor or major release: open each provider's terms and limits page linked from [DATA_SOURCES.md](DATA_SOURCES.md) and check that keyless access, quotas and `Retry-After` behaviour still match what the clients assume (OpenAlex changed its model in August 2026, #420). By hand - never an automated or e2e run against the live services.
+    *   Once a month, and before a minor or major release: open each provider's terms and limits page linked from [DATA_SOURCES.md](../DATA_SOURCES.md) and check that keyless access, quotas and `Retry-After` behaviour still match what the clients assume (OpenAlex changed its model in August 2026, #420). By hand - never an automated or e2e run against the live services.
 14. **Tag & Publish:**
     *   Merge the version-bump PR, then `git tag -a vX.Y.Z -m "Release vX.Y.Z"` on `main` and push the tag.
     *   The tag triggers `.github/workflows/release.yml`: it builds the Linux/Windows binaries, creates the GitHub Release, then publishes the sdist/wheel to PyPI as `zotero-command-line`. The PyPI step refuses a tag that doesn't match `pyproject.toml`'s version.
@@ -90,7 +90,7 @@
 
 Every command that deletes, or changes many items at once, follows one policy (Issue #378):
 
-1. **Preview by default.** It shows what it would do and changes nothing until `--execute`. Commands that predate 3.0 and still apply by default (`storage checkout`, `system restore`) get `--dry-run`/`--execute` and a deprecation warning in 3.1, and switch to preview-by-default in 4.0 ([COMPATIBILITY.md](COMPATIBILITY.md), #462). `item delete` names one item, like `rm FILE`: it deletes without `--execute`.
+1. **Preview by default.** It shows what it would do and changes nothing until `--execute`. Commands that predate 3.0 and still apply by default (`storage checkout`, `system restore`) get `--dry-run`/`--execute` and a deprecation warning in 3.1, and switch to preview-by-default in 4.0 ([COMPATIBILITY.md](../COMPATIBILITY.md), #462). `item delete` names one item, like `rm FILE`: it deletes without `--execute`.
 2. **Confirm bulk permanent deletes.** With `--execute`, a bulk delete asks for confirmation. `--yes` skips the question. Without a terminal and without `--yes`, it refuses with exit status 2 instead of guessing (`cli/safety.py`).
 3. **`--force` only ever skips a prompt.** It never means "apply".
 4. **Resolve targets unambiguously first.** A collection name that matches several collections is refused (#381).
