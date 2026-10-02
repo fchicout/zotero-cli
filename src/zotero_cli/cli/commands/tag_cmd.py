@@ -1,7 +1,7 @@
 import argparse
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import add_format_flag, add_renamed_flag
+from zotero_cli.cli.flags import LIST_FORMATS, add_format_flag, add_renamed_flag
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 
 console = Console()
@@ -43,7 +43,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         add_format_flag(
             tag_list_p,
-            help="Output format: table (default, one tag per line), or json/csv for scripts",
+            choices=LIST_FORMATS,
+            help="Output format: table (default, one tag per line), or json/csv/ndjson for scripts",
         )
 
         # Add

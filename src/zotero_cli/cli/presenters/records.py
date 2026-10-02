@@ -11,7 +11,7 @@ import csv
 import json
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Sequence, TextIO
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, TextIO
 
 from rich.table import Table
 from rich.text import Text
@@ -21,6 +21,8 @@ from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup, strip_controls
 
 FORMATS = ["table", "json", "csv"]
+# List-style commands also offer ndjson: one JSON object per line, written as it is produced.
+LIST_FORMATS = ["table", "json", "csv", "ndjson"]
 
 Record = Mapping[str, Any]  # values: str/int/float, or a list of them
 
@@ -70,6 +72,16 @@ def render_json(records: Sequence[Record], columns: Sequence[Column], out: TextI
     out.write(json.dumps(rows, indent=2, ensure_ascii=False) + "\n")
 
 
+def render_ndjson(records: Iterable[Record], columns: Sequence[Column], out: TextIO) -> None:
+    """One JSON object per line, flushed per line so a consumer can start on the first
+    record before the last one exists (`records` may be a generator). Same keys as
+    `json`; JSON escapes control characters, so nothing reaches the terminal raw."""
+    for record in records:
+        row = {c.key: record.get(c.key, "") for c in columns}
+        out.write(json.dumps(row, ensure_ascii=False) + "\n")
+        out.flush()
+
+
 def render_csv(records: Sequence[Record], columns: Sequence[Column], out: TextIO) -> None:
     writer = csv.writer(out)
     writer.writerow([c.key for c in columns])
@@ -90,14 +102,17 @@ def render_markdown(records: Sequence[Record], columns: Sequence[Column], out: T
 
 
 def render_data(
-    records: Sequence[Record],
+    records: Iterable[Record],
     columns: Sequence[Column],
     fmt: str,
     out: Optional[TextIO] = None,
 ) -> None:
-    """json, csv or markdown to `out` (stdout by default). `table` is the
+    """json, ndjson, csv or markdown to `out` (stdout by default). `table` is the
     caller's to draw, since each command has its own title and footer."""
     stream = out or sys.stdout
+    if fmt == "ndjson":
+        render_ndjson(records, columns, stream)
+        return
     {"json": render_json, "csv": render_csv, "markdown": render_markdown}[fmt](
-        records, columns, stream
+        list(records), columns, stream
     )

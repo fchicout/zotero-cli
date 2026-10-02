@@ -3,7 +3,7 @@ from typing import List, Sequence
 
 from rich.table import Table
 
-from zotero_cli.cli.flags import add_format_flag
+from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag
 from zotero_cli.cli.presenters import records
 from zotero_cli.core.services.slr.status_service import (
     DecidedItem,
@@ -59,7 +59,7 @@ $ zotero-cli slr list pending --tree raw_acm --format json
         pending_p.add_argument(
             "--tree", help="Filter by root collection name or key (e.g. raw_acm)"
         )
-        add_format_flag(pending_p)
+        add_format_flag(pending_p, choices=LIST_FORMATS, help=LIST_FORMAT_HELP)
 
         # Included
         included_p = sub.add_parser(
@@ -73,7 +73,7 @@ $ zotero-cli slr list included --tree raw_acm --ta
 """,
         )
         included_p.add_argument("--tree", help=FILTER_TREE_HELP)
-        add_format_flag(included_p)
+        add_format_flag(included_p, choices=LIST_FORMATS, help=LIST_FORMAT_HELP)
         included_p.add_argument(
             "--ta", action="store_true", help="Filter for Title & Abstract phase"
         )
@@ -100,7 +100,7 @@ $ zotero-cli slr list excluded --tree raw_acm --ta
 """,
         )
         excluded_p.add_argument("--tree", help=FILTER_TREE_HELP)
-        add_format_flag(excluded_p)
+        add_format_flag(excluded_p, choices=LIST_FORMATS, help=LIST_FORMAT_HELP)
         excluded_p.add_argument(
             "--ta", action="store_true", help="Filter for Title & Abstract phase"
         )
@@ -127,7 +127,7 @@ $ zotero-cli slr list qa-approved --tree raw_acm
 """,
         )
         qa_p.add_argument("--tree", help=FILTER_TREE_HELP)
-        add_format_flag(qa_p)
+        add_format_flag(qa_p, choices=LIST_FORMATS, help=LIST_FORMAT_HELP)
         qa_p.add_argument("--csv", help="Export to CSV file")
         qa_p.add_argument("--json", help="Export to JSON file")
         qa_p.add_argument("--xlsx", help="Export to XLSX file")

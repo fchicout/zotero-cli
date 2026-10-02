@@ -122,6 +122,14 @@ def resolve_key(args: argparse.Namespace) -> None:
         raise UsageError("An item key is required: pass KEY or --key KEY.")
 
 
+# `--format` choices of the list-style commands: ndjson is one JSON object per line.
+LIST_FORMATS = ("table", "json", "csv", "ndjson")
+LIST_FORMAT_HELP = (
+    "Output format: a table for people; json, csv or ndjson (one JSON object per line) "
+    "for scripts (stdout carries only the data)"
+)
+
+
 def add_format_flag(
     parser: argparse.ArgumentParser,
     choices: Sequence[str] = ("table", "json", "csv"),

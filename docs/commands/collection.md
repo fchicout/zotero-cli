@@ -9,7 +9,7 @@ List all collections in the library.
 
 **Usage:**
 ```bash
-zotero-cli collection list [--table | --format tree|table|json|csv]
+zotero-cli collection list [--table | --format tree|table|json|csv|ndjson]
 ```
 
 ---

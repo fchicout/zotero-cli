@@ -8,7 +8,7 @@ from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import add_format_flag
+from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag
 from zotero_cli.cli.safety import warn_default_apply
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.services.backup_service import BackupService
@@ -399,7 +399,7 @@ Result:  A JSON list of jobs (id, type, item_key, status, attempts, next_retry, 
         )
         list_p.add_argument("--type", help="Filter by task type")
         list_p.add_argument("--limit", type=int, default=50, help="Max jobs to show")
-        add_format_flag(list_p)
+        add_format_flag(list_p, choices=LIST_FORMATS, help=LIST_FORMAT_HELP)
 
         # jobs retry
         retry_p = jobs_sub.add_parser(

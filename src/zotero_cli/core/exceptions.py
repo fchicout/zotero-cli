@@ -1,3 +1,18 @@
+# What each exit status means; the help epilog, `schema` and docs/EXIT_CODES.md all
+# follow this (a test keeps the document in step).
+EXIT_CODES = {
+    0: "success",
+    1: "error",
+    2: "usage error",
+    3: "not found",
+    4: "authentication",
+    5: "unavailable",
+    6: "conflict",
+    7: "partial failure",
+    130: "interrupted",
+}
+
+
 class ZoteroCliError(Exception):
     """
     Base exception for zotero-cli. `main()` prints its message as one line

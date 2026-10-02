@@ -6,7 +6,7 @@ from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import add_format_flag
+from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag
 from zotero_cli.cli.presenters import records
 from zotero_cli.core.exceptions import NotFound, UsageError
 from zotero_cli.core.models import ZoteroQuery
@@ -82,7 +82,25 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         parser.add_argument(
             "--direction", choices=["asc", "desc"], help="Sort direction (default: desc)"
         )
-        add_format_flag(parser)
+        add_format_flag(parser, choices=LIST_FORMATS, help=LIST_FORMAT_HELP)
+
+    _COLUMNS = [
+        records.Column("key", "Key"),
+        records.Column("title", "Title"),
+        records.Column("authors", "Authors"),
+        records.Column("year", "Year"),
+        records.Column("doi", "DOI"),
+    ]
+
+    @staticmethod
+    def _record(item: ZoteroItem) -> dict:
+        return {
+            "key": item.key,
+            "title": item.title or "",
+            "authors": list(item.authors),
+            "year": item.date[:4] if item.date else "",
+            "doi": item.doi or "",
+        }
 
     @staticmethod
     def _build_query(
@@ -178,29 +196,17 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         # Stop reading once --limit hits are in: results arrive a page at a
         # time, and every page used to be fetched first (Issue #438).
         stop = args.start + args.limit if args.limit and args.limit > 0 else None
-        results = list(islice(hits, args.start, stop))
+        selected = islice(hits, args.start, stop)
+
+        if fmt == "ndjson":
+            # Written as each result arrives, not after the last page (Issue #556).
+            records.render_data(map(self._record, selected), self._COLUMNS, fmt)
+            return
+
+        results = list(selected)
 
         if fmt != "table":
-            records.render_data(
-                [
-                    {
-                        "key": item.key,
-                        "title": item.title or "",
-                        "authors": list(item.authors),
-                        "year": item.date[:4] if item.date else "",
-                        "doi": item.doi or "",
-                    }
-                    for item in results
-                ],
-                [
-                    records.Column("key", "Key"),
-                    records.Column("title", "Title"),
-                    records.Column("authors", "Authors"),
-                    records.Column("year", "Year"),
-                    records.Column("doi", "DOI"),
-                ],
-                fmt,
-            )
+            records.render_data([self._record(item) for item in results], self._COLUMNS, fmt)
             return
 
         if not results:

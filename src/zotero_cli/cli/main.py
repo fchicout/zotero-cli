@@ -37,7 +37,7 @@ from zotero_cli.cli import commands  # noqa: F401, E402 (Trigger registration)
 from zotero_cli.cli.base import CommandRegistry  # noqa: E402
 from zotero_cli.cli.notify import stderr_notify  # noqa: E402
 from zotero_cli.core.config import get_config  # noqa: E402
-from zotero_cli.core.exceptions import ZoteroCliError  # noqa: E402
+from zotero_cli.core.exceptions import EXIT_CODES, ZoteroCliError  # noqa: E402
 from zotero_cli.core.logging_config import setup_logging  # noqa: E402
 from zotero_cli.core.runtime import set_offline_mode  # noqa: E402
 from zotero_cli.core.utils.notify import set_default_notify  # noqa: E402
@@ -80,9 +80,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = _LeafErrorParser(
         description="zotero-cli - manage your Zotero library from the command line",
         epilog=(
-            "Exit status: 0 success, 1 error, 2 usage error, 3 not found, 4 authentication, "
-            "5 unavailable, 6 conflict, 7 partial failure, 130 interrupted. Errors go to "
-            "stderr; -v adds the traceback. See docs/EXIT_CODES.md."
+            "Exit status: "
+            + ", ".join(f"{code} {meaning}" for code, meaning in EXIT_CODES.items())
+            + ". Errors go to stderr; -v adds the traceback. See docs/EXIT_CODES.md."
         ),
     )
     parser.add_argument("-V", "--version", action="version", version=f"zotero-cli {__version__}")
