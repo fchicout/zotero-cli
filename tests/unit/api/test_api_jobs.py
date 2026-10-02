@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -11,7 +12,7 @@ mock_job_queue = MagicMock()
 mock_job_queue.library_id = "lib-A"
 
 
-def override_get_job_queue_service():
+def override_get_job_queue_service() -> Any:
     return mock_job_queue
 
 
@@ -21,12 +22,12 @@ client = TestClient(app, base_url="http://localhost")
 
 
 @pytest.fixture(autouse=True)
-def reset_mocks():
+def reset_mocks() -> None:
     mock_job_queue.reset_mock()
     mock_job_queue.library_id = "lib-A"
 
 
-def test_list_jobs():
+def test_list_jobs() -> None:
     job = Job(
         id=1,
         item_key="K1",
@@ -49,7 +50,7 @@ def test_list_jobs():
     mock_job_queue.list_jobs.assert_called_with(task_type=None, limit=100)
 
 
-def test_list_jobs_filters_by_task_type():
+def test_list_jobs_filters_by_task_type() -> None:
     mock_job_queue.list_jobs.return_value = []
 
     response = client.get("/jobs", params={"task_type": "fetch_pdf", "limit": 10})
@@ -58,7 +59,7 @@ def test_list_jobs_filters_by_task_type():
     mock_job_queue.list_jobs.assert_called_with(task_type="fetch_pdf", limit=10)
 
 
-def test_get_job_detail():
+def test_get_job_detail() -> None:
     job = Job(
         id=1,
         item_key="K1",
@@ -75,7 +76,7 @@ def test_get_job_detail():
     assert response.json()["status"] == "COMPLETED"
 
 
-def test_get_job_not_found():
+def test_get_job_not_found() -> None:
     mock_job_queue.repo.get_job.return_value = None
 
     response = client.get("/jobs/999")
@@ -83,7 +84,7 @@ def test_get_job_not_found():
     assert response.status_code == 404
 
 
-def test_get_job_from_another_library_is_not_found():
+def test_get_job_from_another_library_is_not_found() -> None:
     other_library_job = Job(
         id=2,
         item_key="K2",

@@ -1,4 +1,6 @@
 import csv
+from pathlib import Path
+from typing import Any
 
 RIS_CONTENT = """TY  - JOUR
 TI  - RIS Paper Title
@@ -21,7 +23,7 @@ CSV_MISSING_ID = """title,abstract,authors,year
 """
 
 
-def test_normalize_ris(run_cli, tmp_path):
+def test_normalize_ris(run_cli: Any, tmp_path: Path) -> None:
     input_file = tmp_path / "input.ris"
     output_file = tmp_path / "output_ris.csv"
     input_file.write_text(RIS_CONTENT, encoding="utf-8")
@@ -36,7 +38,7 @@ def test_normalize_ris(run_cli, tmp_path):
         assert row["doi"] == "10.ris/test"
 
 
-def test_normalize_bib(run_cli, tmp_path):
+def test_normalize_bib(run_cli: Any, tmp_path: Path) -> None:
     input_file = tmp_path / "input.bib"
     output_file = tmp_path / "output_bib.csv"
     input_file.write_text(BIB_CONTENT, encoding="utf-8")
@@ -51,7 +53,7 @@ def test_normalize_bib(run_cli, tmp_path):
         assert row["doi"] == "10.bib/test"
 
 
-def test_normalize_csv_missing_ids(run_cli, tmp_path):
+def test_normalize_csv_missing_ids(run_cli: Any, tmp_path: Path) -> None:
     """
     Test robust handling of canonical CSVs that lack ID columns (or have empty ones).
     We treat the input as a "Canonical" CSV (title exists), even if partial.

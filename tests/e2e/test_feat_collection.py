@@ -1,11 +1,12 @@
 import json
 import time
+from typing import Any
 
 import pytest
 
 
 @pytest.mark.e2e
-def test_collection_lifecycle(run_cli, sentinel, timestamp):
+def test_collection_lifecycle(run_cli: Any, sentinel: Any, timestamp: Any) -> None:
     """
     Verifies the full lifecycle of a collection:
     Create -> List -> Rename -> Delete.
@@ -40,7 +41,7 @@ def test_collection_lifecycle(run_cli, sentinel, timestamp):
 
 
 @pytest.mark.e2e
-def test_collection_clean(run_cli, temp_collection):
+def test_collection_clean(run_cli: Any, temp_collection: Any) -> None:
     """
     Verifies that 'collection clean' previews by default, then takes the
     items out of the collection without deleting them (Issue #364), and

@@ -20,7 +20,7 @@ import re
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, List, Optional
+from typing import Any, Iterator, List, Optional
 
 import pytest
 
@@ -213,13 +213,13 @@ def broken_examples() -> List[str]:
 
 
 @pytest.mark.docs
-def test_examples_are_found():
+def test_examples_are_found() -> None:
     """Guards the extractor itself: an empty result would pass vacuously."""
     assert len(all_examples()) > 250
 
 
 @pytest.mark.docs
-def test_every_documented_example_parses():
+def test_every_documented_example_parses() -> None:
     broken = broken_examples()
     assert not broken, f"{len(broken)} documented examples don't parse:\n" + "\n".join(broken)
 
@@ -233,7 +233,7 @@ def test_every_documented_example_parses():
         'zotero-cli slr decide --key K --vote "include"',  # choices are upper-case
     ],
 )
-def test_checker_rejects_broken_concrete_examples(command):
+def test_checker_rejects_broken_concrete_examples(command: Any) -> None:
     argv = to_argv(command)
     assert argv is not None and parse_error(argv)
 
@@ -247,12 +247,12 @@ def test_checker_rejects_broken_concrete_examples(command):
         "zotero-cli slr frobnicate [options]",
     ],
 )
-def test_checker_rejects_broken_synopses(command):
+def test_checker_rejects_broken_synopses(command: Any) -> None:
     assert synopsis_error(command)
 
 
 @pytest.mark.docs
-def test_checker_accepts_valid_forms():
+def test_checker_accepts_valid_forms() -> None:
     assert parse_error(to_argv('zotero-cli item inspect --key "K" | jq .') or ["x"]) is None
     assert synopsis_error("zotero-cli item hydrate (--key KEY | --all) [--execute]") is None
     assert to_argv("zotero-cli system verify --file <archive.zaf>") == [

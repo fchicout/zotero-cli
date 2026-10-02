@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -8,7 +9,7 @@ from zotero_cli.core.zotero_item import ZoteroItem
 
 
 @pytest.fixture
-def mock_service():
+def mock_service() -> Any:
     service = MagicMock()
     service.validator.load_schema.return_value = {
         "version": "1.0",
@@ -21,12 +22,12 @@ def mock_service():
 
 
 @pytest.fixture
-def mock_opener():
+def mock_opener() -> Any:
     return MagicMock()
 
 
 @pytest.fixture
-def tui(mock_service, mock_opener):
+def tui(mock_service: Any, mock_opener: Any) -> Any:
     return ExtractionTUI(mock_service, mock_opener)
 
 
@@ -34,8 +35,13 @@ def tui(mock_service, mock_opener):
 @patch("zotero_cli.cli.tui.extraction_tui.Prompt.ask")
 @patch("zotero_cli.cli.tui.extraction_tui.Confirm.ask")
 def test_run_extraction_single_item(
-    mock_confirm, mock_prompt, mock_console, tui, mock_service, mock_opener
-):
+    mock_confirm: Any,
+    mock_prompt: Any,
+    mock_console: Any,
+    tui: Any,
+    mock_service: Any,
+    mock_opener: Any,
+) -> None:
     # Setup Item
     item = ZoteroItem(
         key="ITEM1",
@@ -80,7 +86,7 @@ def test_run_extraction_single_item(
 
 
 @patch("zotero_cli.cli.tui.extraction_tui.console")
-def test_run_extraction_no_schema(mock_console, tui, mock_service):
+def test_run_extraction_no_schema(mock_console: Any, tui: Any, mock_service: Any) -> None:
     mock_service.validator.load_schema.side_effect = Exception("Missing file")
 
     with pytest.raises(ZoteroCliError, match="Error loading schema: Missing file"):
@@ -90,7 +96,9 @@ def test_run_extraction_no_schema(mock_console, tui, mock_service):
 @patch("zotero_cli.cli.tui.extraction_tui.console")
 @patch("zotero_cli.cli.tui.extraction_tui.Prompt.ask")
 @patch("zotero_cli.cli.tui.extraction_tui.Confirm.ask")
-def test_run_extraction_skip_save(mock_confirm, mock_prompt, mock_console, tui, mock_service):
+def test_run_extraction_skip_save(
+    mock_confirm: Any, mock_prompt: Any, mock_console: Any, tui: Any, mock_service: Any
+) -> None:
     item = ZoteroItem(key="ITEM1", version=1, item_type="journalArticle")
 
     # Mock Interactions
@@ -124,8 +132,8 @@ def test_run_extraction_skip_save(mock_confirm, mock_prompt, mock_console, tui, 
 @patch("zotero_cli.cli.tui.extraction_tui.Prompt.ask")
 @patch("zotero_cli.cli.tui.extraction_tui.Confirm.ask")
 def test_non_web_item_url_is_never_offered_or_opened(
-    mock_confirm, mock_prompt, mock_console, url, tui, mock_opener
-):
+    mock_confirm: Any, mock_prompt: Any, mock_console: Any, url: Any, tui: Any, mock_opener: Any
+) -> None:
     """item.url is editable by any collaborator on a shared library: only
     http(s) URLs are offered, and only through the browser."""
     item = ZoteroItem(key="ITEM1", version=1, item_type="journalArticle", title="T", url=url)

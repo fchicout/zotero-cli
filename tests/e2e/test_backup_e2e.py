@@ -1,10 +1,11 @@
 import subprocess
 import zipfile
+from pathlib import Path
 
 import pytest
 
 
-def test_collection_backup_e2e(tmp_path):
+def test_collection_backup_e2e(tmp_path: Path) -> None:
     """
     E2E Test: Verify the 'collection backup' command produces a valid .zaf file.
     Note: Requires ZOTERO_API_KEY and ZOTERO_LIBRARY_ID to be set in environment
@@ -46,7 +47,7 @@ def test_collection_backup_e2e(tmp_path):
         pytest.skip("zotero-cli not installed in path")
 
 
-def test_backup_logic_flow_with_real_zip(tmp_path):
+def test_backup_logic_flow_with_real_zip(tmp_path: Path) -> None:
     """
     Integration Test: Verify BackupService with real file I/O and LZMA.
     """

@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -11,7 +12,7 @@ from zotero_cli.core.zotero_item import ZoteroItem
 mock_gateway = MagicMock()
 
 
-def override_get_gateway():
+def override_get_gateway() -> Any:
     return mock_gateway
 
 
@@ -21,17 +22,17 @@ client = TestClient(app, base_url="http://localhost")
 
 
 @pytest.fixture(autouse=True)
-def reset_mocks():
+def reset_mocks() -> None:
     mock_gateway.reset_mock()
 
 
-def test_health_check():
+def test_health_check() -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
 
 
-def test_list_items():
+def test_list_items() -> None:
     # Setup Mock
     item1 = ZoteroItem(key="ABC12345", version=1, item_type="journalArticle", raw_data={})
     item2 = ZoteroItem(key="DEF67890", version=1, item_type="report", raw_data={})
@@ -47,7 +48,7 @@ def test_list_items():
     assert data[0]["key"] == "ABC12345"
 
 
-def test_get_item_detail():
+def test_get_item_detail() -> None:
     # Setup Mock
     item = ZoteroItem(
         key="ABC12345", version=1, item_type="journalArticle", raw_data={"title": "Test Paper"}
@@ -64,13 +65,13 @@ def test_get_item_detail():
     mock_gateway.get_item.assert_called_with("ABC12345")
 
 
-def test_get_item_not_found():
+def test_get_item_not_found() -> None:
     mock_gateway.get_item.return_value = None
     response = client.get("/items/MISSING")
     assert response.status_code == 404
 
 
-def test_list_collections():
+def test_list_collections() -> None:
     mock_gateway.get_all_collections.return_value = [
         {"key": "C1", "name": "Collection A"},
         {"key": "C2", "name": "Collection B"},

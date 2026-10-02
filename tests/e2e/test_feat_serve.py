@@ -3,6 +3,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 import httpx
 import pytest
@@ -10,7 +11,7 @@ import pytest
 
 @pytest.mark.e2e
 @pytest.mark.skip(reason="Environmental flake: Async bind timeout in CI/container environment")
-def test_serve_command_lifecycle(run_cli, timestamp):
+def test_serve_command_lifecycle(run_cli: Any, timestamp: Any) -> None:
     """
     Verifies that 'zotero-cli serve' starts a server and responds to health check.
     """

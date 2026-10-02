@@ -7,6 +7,7 @@ TestClient (which itself runs on a real event loop), confirming behavior
 is unchanged now that the calls go through run_in_threadpool.
 """
 
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -18,7 +19,7 @@ from zotero_cli.api.main import create_app
 mock_gateway = MagicMock()
 
 
-def override_get_gateway():
+def override_get_gateway() -> Any:
     return mock_gateway
 
 
@@ -28,11 +29,11 @@ client = TestClient(app, base_url="http://localhost")
 
 
 @pytest.fixture(autouse=True)
-def reset_mocks():
+def reset_mocks() -> None:
     mock_gateway.reset_mock()
 
 
-def _make_item(key: str, title: str):
+def _make_item(key: str, title: str) -> Any:
     item = MagicMock()
     item.key = key
     item.title = title
@@ -47,7 +48,7 @@ def _make_item(key: str, title: str):
     return item
 
 
-def test_list_items():
+def test_list_items() -> None:
     items = [_make_item("K1", "Paper One"), _make_item("K2", "Paper Two")]
     mock_gateway.search_items.return_value = iter(items)
 
@@ -60,7 +61,7 @@ def test_list_items():
     assert data[0]["title"] == "Paper One"
 
 
-def test_list_items_respects_limit():
+def test_list_items_respects_limit() -> None:
     items = [_make_item(f"K{i}", f"Paper {i}") for i in range(5)]
     mock_gateway.search_items.return_value = iter(items)
 
@@ -70,7 +71,7 @@ def test_list_items_respects_limit():
     assert len(response.json()) == 2
 
 
-def test_get_item_found():
+def test_get_item_found() -> None:
     mock_gateway.get_item.return_value = _make_item("K1", "Paper One")
 
     response = client.get("/items/K1")
@@ -82,7 +83,7 @@ def test_get_item_found():
     mock_gateway.get_item.assert_called_once_with("K1")
 
 
-def test_get_item_not_found():
+def test_get_item_not_found() -> None:
     mock_gateway.get_item.return_value = None
 
     response = client.get("/items/MISSING")

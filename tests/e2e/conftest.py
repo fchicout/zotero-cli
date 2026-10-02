@@ -4,6 +4,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any, Iterator
 
 import pytest
 
@@ -44,7 +45,7 @@ def e2e_skip_reason() -> str | None:
     return None
 
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(config: Any, items: Any) -> None:
     reason = e2e_skip_reason()
     if reason is None:
         return
@@ -60,11 +61,11 @@ class ResourceTracker:
     Ensures 'Zero-Leak' state even on test failures.
     """
 
-    def __init__(self, run_cli):
+    def __init__(self, run_cli: Any) -> None:
         self.run_cli = run_cli
-        self.created_collections = []
+        self.created_collections: list[str] = []
 
-    def create_collection(self, name):
+    def create_collection(self, name: Any) -> Any:
         """Creates a collection and registers it for tracking."""
         res = self.run_cli(["collection", "create", "--name", name])
         if res.returncode == 0:
@@ -72,12 +73,12 @@ class ResourceTracker:
             self.created_collections.append(name)
         return res
 
-    def track(self, key_or_name):
+    def track(self, key_or_name: Any) -> None:
         """Manually registers an existing resource for tracking."""
         if key_or_name not in self.created_collections:
             self.created_collections.append(key_or_name)
 
-    def teardown(self):
+    def teardown(self) -> None:
         """Recursive cleanup of all tracked collections."""
         for col in reversed(self.created_collections):
             print(f"[QA_FORCE] Sentinel purging: {col}")
@@ -92,7 +93,7 @@ class ResourceTracker:
         self.created_collections = []
 
 
-def _run_cli_raw(args):
+def _run_cli_raw(args: Any) -> Any:
     """Internal helper to run CLI without fixture context."""
     cwd = Path.cwd()
     src_path = str(cwd / "src")
@@ -106,7 +107,7 @@ def _run_cli_raw(args):
     )
 
 
-def pytest_sessionstart(session):
+def pytest_sessionstart(session: Any) -> None:
     """
     The Great Purge: Identifies and removes orphaned 'E2E_' collections.
     Ensures a defect-free starting state.
@@ -127,17 +128,17 @@ def pytest_sessionstart(session):
 
 
 @pytest.fixture
-def run_cli():
+def run_cli() -> Any:
     """Fixture to run zotero-cli with correct PYTHONPATH."""
 
-    def _run(args):
+    def _run(args: Any) -> Any:
         return _run_cli_raw(args)
 
     return _run
 
 
 @pytest.fixture
-def sentinel(run_cli):
+def sentinel(run_cli: Any) -> Iterator[Any]:
     """
     The Sentinel fixture: Manages resource lifecycle automatically.
     """
@@ -147,23 +148,23 @@ def sentinel(run_cli):
 
 
 @pytest.fixture
-def extract_keys():
+def extract_keys() -> Any:
     """Fixture to extract Zotero keys from text."""
 
-    def _extract(text):
+    def _extract(text: Any) -> Any:
         return re.findall(r"\b([A-Z0-9]{8})\b", text)
 
     return _extract
 
 
 @pytest.fixture
-def timestamp():
+def timestamp() -> Any:
     """Return a unique timestamp for collection naming."""
     return int(time.time())
 
 
 @pytest.fixture
-def temp_collection(sentinel, timestamp):
+def temp_collection(sentinel: Any, timestamp: Any) -> Any:
     """
     Legacy-compatible fixture using the Sentinel for safety.
     """

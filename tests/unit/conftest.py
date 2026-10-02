@@ -1,4 +1,5 @@
-from unittest.mock import MagicMock
+from typing import Any, Iterator
+from unittest.mock import MagicMock, create_autospec
 
 from tests.home_isolation import isolate_home
 from tests.network_guard import ExternalConnectionGuard, offline_env
@@ -12,10 +13,18 @@ offline_env()
 import pytest  # noqa: E402
 
 from zotero_cli.core.config import ZoteroConfig  # noqa: E402
+from zotero_cli.core.interfaces import (  # noqa: E402
+    AttachmentRepository,
+    CollectionRepository,
+    ItemRepository,
+    NoteRepository,
+    TagRepository,
+    ZoteroGateway,
+)
 
 
 @pytest.fixture(autouse=True)
-def _no_external_network(monkeypatch):
+def _no_external_network(monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
     """tests/unit never leaves this machine (Issue #389). A refused connection
     is also recorded, because code under test often catches Exception and
     would hide it: the test fails at teardown if any was attempted."""
@@ -26,7 +35,7 @@ def _no_external_network(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _no_leaked_notify_sink():
+def _no_leaked_notify_sink() -> Iterator[Any]:
     """`cli.main.main()` installs the stderr sink for domain services (Issue #393);
     clear it around every test so one test driving `main()` can't turn the next
     test's logging into terminal output."""
@@ -38,7 +47,7 @@ def _no_leaked_notify_sink():
 
 
 @pytest.fixture(autouse=True)
-def _no_real_logging_setup(monkeypatch):
+def _no_real_logging_setup(monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
     """
     tests/unit must stay fully offline/file-write-free (CLAUDE.md) -
     `cli.main.main()` unconditionally calls `setup_logging()` at startup
@@ -82,3 +91,40 @@ def mock_config() -> ZoteroConfig:
         library_type="user",
         database_path="test.sqlite",
     )
+
+
+# --- Shared repository fakes (Issue #389) ---------------------------------------------
+#
+# `create_autospec(..., instance=True)`: an attribute or call the real interface does
+# not have fails the test, where a bare MagicMock() would accept it and let protocol
+# drift (a renamed or re-signed method) go unnoticed. Prefer these over MagicMock().
+
+
+@pytest.fixture
+def mock_gateway() -> Any:
+    return create_autospec(ZoteroGateway, instance=True)
+
+
+@pytest.fixture
+def mock_item_repo() -> Any:
+    return create_autospec(ItemRepository, instance=True)
+
+
+@pytest.fixture
+def mock_collection_repo() -> Any:
+    return create_autospec(CollectionRepository, instance=True)
+
+
+@pytest.fixture
+def mock_note_repo() -> Any:
+    return create_autospec(NoteRepository, instance=True)
+
+
+@pytest.fixture
+def mock_tag_repo() -> Any:
+    return create_autospec(TagRepository, instance=True)
+
+
+@pytest.fixture
+def mock_attachment_repo() -> Any:
+    return create_autospec(AttachmentRepository, instance=True)

@@ -4,6 +4,7 @@ hostname is re-pointed at 127.0.0.1 - and, in remote mode, requests without
 the bearer token."""
 
 import os
+from typing import Any, Iterator
 from unittest.mock import patch
 
 import pytest
@@ -19,7 +20,7 @@ from zotero_cli.api.main import (
 
 
 @pytest.fixture(autouse=True)
-def clean_env():
+def clean_env() -> Iterator[Any]:
     # patch.dict restores os.environ afterwards, including keys that
     # `serve` sets itself.
     with patch.dict(os.environ):
@@ -31,7 +32,7 @@ def clean_env():
 @pytest.mark.parametrize(
     "host", ["localhost", "localhost:1969", "127.0.0.1:1969", "[::1]:1969", "LOCALHOST"]
 )
-def test_loopback_host_headers_are_accepted(host):
+def test_loopback_host_headers_are_accepted(host: Any) -> None:
     client = TestClient(create_app())
     assert client.get("/health", headers={"host": host}).status_code == 200
 
@@ -39,13 +40,13 @@ def test_loopback_host_headers_are_accepted(host):
 @pytest.mark.parametrize(
     "host", ["attacker.example:1969", "attacker.example", "192.168.1.5:1969", "", "testserver"]
 )
-def test_other_host_headers_are_rejected(host):
+def test_other_host_headers_are_rejected(host: Any) -> None:
     client = TestClient(create_app())
     response = client.get("/health", headers={"host": host})
     assert response.status_code == 400
 
 
-def test_rebinding_style_request_to_library_route_is_rejected():
+def test_rebinding_style_request_to_library_route_is_rejected() -> None:
     client = TestClient(create_app())
     response = client.get(
         "/items", headers={"host": "attacker.example:1969", "origin": "http://attacker.example"}
@@ -53,14 +54,14 @@ def test_rebinding_style_request_to_library_route_is_rejected():
     assert response.status_code == 400
 
 
-def test_extra_allowed_host_from_environment(monkeypatch):
+def test_extra_allowed_host_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(ENV_ALLOWED_HOSTS, "127.0.0.1,localhost,::1,zotero.lan")
     client = TestClient(create_app())
     assert client.get("/health", headers={"host": "zotero.lan:1969"}).status_code == 200
     assert client.get("/health", headers={"host": "other.lan"}).status_code == 400
 
 
-def test_token_is_required_when_set():
+def test_token_is_required_when_set() -> None:
     client = TestClient(create_app(allowed_hosts=["*"], token="t0ken-value"))
     assert client.get("/health", headers={"host": "192.168.1.5"}).status_code == 401
     wrong = {"host": "192.168.1.5", "authorization": "Bearer nope"}
@@ -69,7 +70,7 @@ def test_token_is_required_when_set():
     assert client.get("/health", headers=right).status_code == 200
 
 
-def test_token_read_from_environment(monkeypatch):
+def test_token_read_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(ENV_ALLOWED_HOSTS, "*")
     monkeypatch.setenv(ENV_TOKEN, "env-token")
     client = TestClient(create_app())
@@ -88,7 +89,7 @@ def test_token_read_from_environment(monkeypatch):
         ("Example.COM:80", "example.com"),
     ],
 )
-def test_host_without_port(header, expected):
+def test_host_without_port(header: Any, expected: Any) -> None:
     assert _host_without_port(header) == expected
 
 
@@ -105,5 +106,5 @@ def test_host_without_port(header, expected):
         ("example.com", False),
     ],
 )
-def test_is_loopback_host(host, loopback):
+def test_is_loopback_host(host: Any, loopback: Any) -> None:
     assert is_loopback_host(host) is loopback

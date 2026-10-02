@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🛡️ Quality & Infrastructure
+- **Test hygiene, second part (Issue #389):** shared, typed autospec fakes for the repository interfaces in `tests/unit/conftest.py` (`mock_gateway`, `mock_item_repo`, `mock_collection_repo`, ...), which fail on a method the real interface lacks; a ceiling test on bare `MagicMock()`/`Mock()` (685 today, may only go down) so new tests use them; `disallow_untyped_defs` is now on for `tests/docs`, `tests/e2e`, `tests/unit/api`, `tests/unit/tui` and the unit `conftest.py` (the other ~2,000 test functions move in directory by directory); and `SyncService` is fully covered (it was 76%), including the batched-lookup fallback, legacy note fields, a bad item not stopping the rest, and an unwritable destination.
+
 ## [3.2.0] - 2026-10-01
 
 A minor release: formatted bibliographies, a data-loss fix in `item merge`, and a large cleanup under the hood. Nothing is removed or changed incompatibly: every command and flag that works in 3.1 still works. It adds one runtime dependency, [`bxc`](https://pypi.org/project/bxc/) (with its `citeproc-py`), which formats bibliographies and converts LaTeX in imported BibTeX; `pip`/`uv` install it for you, and the release binaries bundle it. If you merge duplicates with `item merge` or `slr dedupe`, upgrade: before this release, a failure while moving a duplicate's notes or attachments still deleted the duplicate (Issue #549).

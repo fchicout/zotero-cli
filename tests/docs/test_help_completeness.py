@@ -56,7 +56,7 @@ def _options_without_help() -> list:
 
 
 @pytest.mark.docs
-def test_every_leaf_command_has_a_worked_example():
+def test_every_leaf_command_has_a_worked_example() -> None:
     missing = _commands_without_an_example()
     assert not missing, (
         f"{len(missing)} leaf command(s) have no `zotero-cli ...` example in their --help "
@@ -65,6 +65,6 @@ def test_every_leaf_command_has_a_worked_example():
 
 
 @pytest.mark.docs
-def test_every_option_has_help_text():
+def test_every_option_has_help_text() -> None:
     missing = _options_without_help()
     assert not missing, f"{len(missing)} option(s) have no help text: {missing}"
