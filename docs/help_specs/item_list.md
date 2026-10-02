@@ -34,7 +34,7 @@ For filtering by screening decision (accepted/rejected), exclusion criteria, pha
 | :--- | :--- | :--- | :--- |
 | `--collection` | String | Collection name or key | Optional. |
 | `--fields` | String | Comma-separated fields to show: `key`, `title`, `type`, `creators`, `first_author`, `date`, `year`, `venue`, `doi`, `url`, `abstract`, `extra`, `tags`, `collections`, `parent`, `date_added`, `date_modified`, or any raw Zotero field name (e.g. `publicationTitle`, `volume`) | Optional. Mutually exclusive with `--wide`. |
-| `-f`, `--format` | Choice | Output format: `table`, `json`, `csv`, `ndjson` (one JSON object per line) or `markdown` | Optional. Default: table. |
+| `-f`, `--format` | Choice | Output format: `table`, `json`, `csv`, `ndjson` (one JSON object per line), `keys` (one item key per line) or `markdown` | Optional. Default: table. |
 | `--root` | Boolean | List top-level items not in any collection | Optional. Default: False. |
 | `--top-only` | Boolean | Only show top-level items | Optional. Default: False. |
 | `--trash` | Boolean | List items in the trash | Optional. Default: False. |

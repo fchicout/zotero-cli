@@ -44,7 +44,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         add_format_flag(
             tag_list_p,
             choices=LIST_FORMATS,
-            help="Output format: table (default, one tag per line), or json/csv/ndjson for scripts",
+            help="Output format: table (default), or json/csv/ndjson for scripts; keys prints the tag names, one per line",
         )
 
         # Add

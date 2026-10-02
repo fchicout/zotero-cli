@@ -9,7 +9,7 @@ from zotero_cli.core.zotero_item import ZoteroItem
 
 DEFAULT_FIELDS = ["key", "title", "type"]
 WIDE_FIELDS = ["key", "title", "first_author", "year", "venue", "doi"]
-FORMATS = ["table", "json", "csv", "ndjson", "markdown"]  # item list also offers markdown
+FORMATS = ["table", "json", "csv", "ndjson", "keys", "markdown"]  # item list also offers markdown
 
 # Zotero stores a work's venue under a different field per item type.
 VENUE_FIELDS = ("publicationTitle", "proceedingsTitle", "conferenceName", "bookTitle")

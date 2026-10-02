@@ -123,10 +123,10 @@ def resolve_key(args: argparse.Namespace) -> None:
 
 
 # `--format` choices of the list-style commands: ndjson is one JSON object per line.
-LIST_FORMATS = ("table", "json", "csv", "ndjson")
+LIST_FORMATS = ("table", "json", "csv", "ndjson", "keys")
 LIST_FORMAT_HELP = (
-    "Output format: a table for people; json, csv or ndjson (one JSON object per line) "
-    "for scripts (stdout carries only the data)"
+    "Output format: a table for people; json, csv, ndjson (one JSON object per line) or keys "
+    "(one identifier per line) for scripts (stdout carries only the data)"
 )
 
 

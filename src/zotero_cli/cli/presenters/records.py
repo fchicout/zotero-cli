@@ -21,8 +21,9 @@ from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup, strip_controls
 
 FORMATS = ["table", "json", "csv"]
-# List-style commands also offer ndjson: one JSON object per line, written as it is produced.
-LIST_FORMATS = ["table", "json", "csv", "ndjson"]
+# List-style commands also offer ndjson (one JSON object per line, written as it is produced)
+# and keys (one identifier per line, for piping into xargs or `while read`).
+LIST_FORMATS = ["table", "json", "csv", "ndjson", "keys"]
 
 Record = Mapping[str, Any]  # values: str/int/float, or a list of them
 
@@ -82,6 +83,21 @@ def render_ndjson(records: Iterable[Record], columns: Sequence[Column], out: Tex
         out.flush()
 
 
+def render_keys(records: Iterable[Record], columns: Sequence[Column], out: TextIO) -> None:
+    """One identifier per line: the `key` column, or the first column when there is none
+    (tag names for `tag list`, job ids for `system jobs list`). Written and flushed per
+    line like ndjson. Line breaks inside a value become spaces so that one line stays
+    one value, and control characters are removed."""
+    column = next((c for c in columns if c.key == "key"), columns[0] if columns else None)
+    if column is None:
+        return
+    for record in records:
+        value = " ".join(flat(record.get(column.key, "")).split())
+        if value:
+            out.write(value + "\n")
+            out.flush()
+
+
 def render_csv(records: Sequence[Record], columns: Sequence[Column], out: TextIO) -> None:
     writer = csv.writer(out)
     writer.writerow([c.key for c in columns])
@@ -107,11 +123,14 @@ def render_data(
     fmt: str,
     out: Optional[TextIO] = None,
 ) -> None:
-    """json, ndjson, csv or markdown to `out` (stdout by default). `table` is the
+    """json, ndjson, keys, csv or markdown to `out` (stdout by default). `table` is the
     caller's to draw, since each command has its own title and footer."""
     stream = out or sys.stdout
     if fmt == "ndjson":
         render_ndjson(records, columns, stream)
+        return
+    if fmt == "keys":
+        render_keys(records, columns, stream)
         return
     {"json": render_json, "csv": render_csv, "markdown": render_markdown}[fmt](
         list(records), columns, stream

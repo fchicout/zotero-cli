@@ -198,7 +198,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         stop = args.start + args.limit if args.limit and args.limit > 0 else None
         selected = islice(hits, args.start, stop)
 
-        if fmt == "ndjson":
+        if fmt in ("ndjson", "keys"):
             # Written as each result arrives, not after the last page (Issue #556).
             records.render_data(map(self._record, selected), self._COLUMNS, fmt)
             return
