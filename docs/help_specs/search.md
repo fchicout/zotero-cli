@@ -34,7 +34,7 @@ You can perform a generic "Keyword" search which matches against the item's titl
 | :--- | :--- | :--- | :--- |
 | `--doi` | String | Search by exact DOI | Optional. |
 | `--limit` | Integer | Limit results (default: 50) | Optional. Default: 50. |
-| `--format` | String | Output format: `table`, `json` or `csv` (key, title, authors, year, doi; untruncated, stdout carries only the data) | Optional. Default: table. |
+| `--format` | String | Output format: `table`, `json`, `csv` or `ndjson` (key, title, authors, year, doi; untruncated, stdout carries only the data). `ndjson` is one JSON object per line, written as each result arrives | Optional. Default: table. |
 | `--title` | String | Search by title substring | Optional. |
 | `--start` | Integer | Skip this many results first (paging) | Optional. Default: 0. Combine with `--limit` to page. |
 | `--tag` | String | Only items with this tag. Repeat to require several; `a \|\| b` means either, a leading `-` excludes (write `--tag=-name`) | Optional, repeatable. |

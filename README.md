@@ -110,6 +110,7 @@ zotero-cli system demo-sandbox --clean
 | **[`storage`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/storage.md)** | Attachments | `checkout` |
 | **[`system`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/system.md)** | Operations | `info`, `check`, `selftest`, `groups`, `switch`, `backup`, `verify`, `restore`, `normalize`, `demo-sandbox`, `jobs` |
 | **[`serve`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/serve.md)** | Local HTTP API | `(default)` |
+| **[`schema`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/schema.md)** | The command line as JSON, for scripts and agents | `(default)` |
 | **[`slr`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/slr.md)** | Literature review | `source`, `screen`, `decide`, `load`, `list`, `reconcile`, `promote`, `dedupe`, `prune`, `extract`, `snowball`, `sdb`, `report` |
 | **[`rag`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/rag.md)** | Semantic search (optional `rag` extra; **deprecated**, moving to a separate tool and removed in 4.0) | `ingest`, `query`, `context`, `purge`, `model` |
 

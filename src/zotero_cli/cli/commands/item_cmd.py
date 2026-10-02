@@ -299,7 +299,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         list_p.add_argument(
             "-f",
             "--format",
-            choices=["table", "json", "csv", "markdown"],
+            choices=["table", "json", "csv", "ndjson", "markdown"],
             default="table",
             help="Output format (Default: table)",
         )

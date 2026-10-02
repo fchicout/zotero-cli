@@ -7,7 +7,7 @@ Search for items in your Zotero library using keywords, titles, or exact DOIs.
 zotero-cli search [query] [--doi DOI] [--title TITLE] [--limit N] [--start N]
                    [--tag TAG]... [--type TYPE] [--collection NAME|KEY]
                    [--year YEAR|FROM-TO] [--added-since DATE] [--added-until DATE]
-                   [--sort FIELD] [--direction asc|desc] [--format table|json|csv]
+                   [--sort FIELD] [--direction asc|desc] [--format table|json|csv|ndjson]
 ```
 
 ---

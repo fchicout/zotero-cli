@@ -34,7 +34,7 @@ The `slr list` subcommands inventory papers during the screening process:
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--csv` | String | Export to CSV file | Optional. |
-| `--format` | String | Output format on stdout: `table`, `json` or `csv` (key, phase, source, reason, title; untruncated). Not the same as `--csv`/`--json FILE`, which write files | Optional. Default: table. |
+| `--format` | String | Output format on stdout: `table`, `json`, `csv` or `ndjson` (one JSON object per line; key, phase, source, reason, title; untruncated). Not the same as `--csv`/`--json FILE`, which write files | Optional. Default: table. |
 | `--fullscreen, --ft` | Boolean | Filter for Full Text phase | Optional. Default: False. |
 | `--json` | String | Export to JSON file | Optional. |
 | `--ods` | String | Export to ODS file | Optional. |

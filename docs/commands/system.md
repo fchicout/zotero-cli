@@ -135,7 +135,7 @@ Centralized management for background workers and persistent tasks (Operation PD
 #### `jobs list`
 List recent jobs and their current status.
 ```bash
-zotero-cli system jobs list [--limit 50] [--type fetch_pdf|discover_citations] [--format table|json|csv]
+zotero-cli system jobs list [--limit 50] [--type fetch_pdf|discover_citations] [--format table|json|csv|ndjson]
 ```
 
 #### `jobs retry`

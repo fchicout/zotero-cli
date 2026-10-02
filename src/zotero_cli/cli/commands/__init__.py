@@ -4,6 +4,7 @@ from .init_cmd import InitCommand
 from .item_cmd import ItemCommand
 from .rag_cmd import RAGCommand
 from .report_cmd import ReportCommand
+from .schema_cmd import SchemaCommand
 from .search_cmd import SearchCommand
 from .serve_cmd import ServeCommand
 from .slr_cmd import SLRCommand
@@ -24,4 +25,5 @@ __all__ = [
     "SLRCommand",
     "SearchCommand",
     "RAGCommand",
+    "SchemaCommand",
 ]

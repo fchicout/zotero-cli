@@ -142,7 +142,7 @@ Identifies papers physically in a phase's queue folder but missing an SDB note f
 
 **Usage:**
 ```bash
-zotero-cli slr list pending [--tree <source>] [--format table|json|csv]
+zotero-cli slr list pending [--tree <source>] [--format table|json|csv|ndjson]
 ```
 
 #### `list included`
@@ -150,7 +150,7 @@ Lists papers that have "Accepted/Included" SDB notes across the entire tree of a
 
 **Usage:**
 ```bash
-zotero-cli slr list included [--tree <source>] [--ta] [--ft|--fullscreen] [--qa <threshold>] [--format table|json|csv]
+zotero-cli slr list included [--tree <source>] [--ta] [--ft|--fullscreen] [--qa <threshold>] [--format table|json|csv|ndjson]
 ```
 
 #### `list excluded`
@@ -158,7 +158,7 @@ Lists papers that have "Rejected/Excluded" SDB notes across the entire tree of a
 
 **Usage:**
 ```bash
-zotero-cli slr list excluded [--tree <source>] [--ta] [--ft|--fullscreen] [--qa <threshold>] [--format table|json|csv]
+zotero-cli slr list excluded [--tree <source>] [--ta] [--ft|--fullscreen] [--qa <threshold>] [--format table|json|csv|ndjson]
 ```
 
 **Key Features:**
