@@ -9,7 +9,7 @@ import threading
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from zotero_cli.core import annotations as annotation_records
-from zotero_cli.core.exceptions import ConfigurationError, OfflineReadOnly
+from zotero_cli.core.exceptions import ConfigurationError, OfflineReadOnly, UsageError
 from zotero_cli.core.interfaces import JobRepository, ZoteroGateway
 from zotero_cli.core.models import Job, ResearchPaper, ZoteroQuery
 from zotero_cli.core.utils.collection_resolver import resolve_collection_key
@@ -495,6 +495,78 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
             params.append(query.since)
 
         return "".join(f" AND {c}" for c in clauses), params
+
+    # Zotero keeps its full-text index (FTS5) in a file next to zotero.sqlite.
+    FULLTEXT_FILE = "fulltext.sqlite"
+
+    @staticmethod
+    def _fts_match(text: str) -> str:
+        """Every word as a quoted FTS5 string, so a word like OR, NEAR or a stray quote is
+        searched for, never read as query syntax. Quoted words are ANDed."""
+        words = text.split()
+        if not words:
+            raise UsageError("Full-text search needs at least one word to look for.")
+        return " ".join('"' + word.replace('"', '""') + '"' for word in words)
+
+    def search_fulltext(
+        self, text: str, query: Optional[ZoteroQuery] = None
+    ) -> List[Tuple[ZoteroItem, float]]:
+        """Ranked search of Zotero's own full-text index (Issue #560): items with a PDF
+        containing every word, best first, scored by FTS5's bm25 (reported so that higher
+        is better). Annotations and notes are not part of this index. A PDF counts for
+        its parent item; a stand-alone PDF counts for itself."""
+        index_path = os.path.join(os.path.dirname(self.original_db_path), self.FULLTEXT_FILE)
+        if not os.path.exists(index_path):
+            raise ConfigurationError(
+                f"No {self.FULLTEXT_FILE} next to {os.path.basename(self.original_db_path)}. "
+                "Full-text search reads the index newer Zotero versions keep in that file."
+            )
+        match = self._fts_match(text)
+        index = _shadow_connection(index_path)[0]
+        try:
+            hits = index.execute(
+                "SELECT rowid, bm25(fulltextContent) FROM fulltextContent "
+                "WHERE fulltextContent MATCH ?",
+                (match,),
+            ).fetchall()
+        except sqlite3.OperationalError as e:
+            raise ConfigurationError(
+                f"{self.FULLTEXT_FILE} has no usable full-text index ({e}). Full-text search "
+                "needs a Zotero version that stores its index there."
+            ) from e
+        if not hits:
+            return []
+
+        conn = self._get_connection()
+        targets = conn.execute(
+            """
+            SELECT att.itemID AS attachmentID, COALESCE(par.key, att.key) AS target
+            FROM items att
+            LEFT JOIN itemAttachments ia ON ia.itemID = att.itemID
+            LEFT JOIN items par ON par.itemID = ia.parentItemID
+            WHERE att.itemID IN (SELECT value FROM json_each(?))
+              AND att.itemID NOT IN (SELECT itemID FROM deletedItems)
+            """,
+            (json.dumps([row[0] for row in hits]),),
+        ).fetchall()
+        target_of = {row["attachmentID"]: row["target"] for row in targets}
+        best: Dict[str, float] = {}
+        for item_id, rank in hits:
+            target = target_of.get(item_id)
+            if target is not None:
+                best[target] = max(best.get(target, float("-inf")), -rank)
+
+        filter_sql, params = self._search_filter(query or ZoteroQuery())
+        # filter_sql is a fixed fragment with "?" placeholders from _search_filter; the
+        # keys and every filter value are bound as parameters (nothing user-typed is
+        # interpolated into the SQL).
+        items = self._fetch_items_with_filter(
+            filter_sql + " AND i.key IN (SELECT value FROM json_each(?))",  # nosec B608
+            tuple(params) + (json.dumps(list(best)),),
+        )
+        ranked = [(item, best[item.key]) for item in items]
+        ranked.sort(key=lambda pair: (-pair[1], pair[0].key))
+        return ranked
 
     # Sort fields the offline search understands (a subset of the Web API's).
     SORT_FIELDS = ("date", "dateAdded", "dateModified", "title", "creator", "itemType")

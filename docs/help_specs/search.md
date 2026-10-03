@@ -43,6 +43,7 @@ You can perform a generic "Keyword" search which matches against the item's titl
 | `--year` | String | Publication year or range: `2020`, `2018-2022`, `2018-` or `-2022` | Optional. Items with no year are left out. |
 | `--added-since` | String | Only items added on or after `YYYY-MM-DD` | Optional. |
 | `--added-until` | String | Only items added on or before `YYYY-MM-DD` | Optional. |
+| `--fulltext` | Boolean | Search inside the PDFs' text for every word of the query, best match first, with a relevance `Score` | Optional. Needs `--offline` and a Zotero that keeps its full-text index in `fulltext.sqlite`. Can't be combined with `--doi`, `--title`, `--sort` or `--direction`. |
 | `--sort` | String | `date`, `dateAdded`, `dateModified`, `title`, `creator` or `itemType` | Optional. Default: date. Items without the field come last. |
 | `--direction` | String | `asc` or `desc` | Optional. Default: desc. |
 | `query` | String | Keyword search (matches title, creator, or year) | Optional. |
@@ -60,5 +61,6 @@ You can perform a generic "Keyword" search which matches against the item's titl
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Attempting to search for common terms (e.g., "AI") without a `--limit` in a very large library, which may result in excessive API requests or long processing times. 
+- **Full-text search:** `--fulltext` reads Zotero's own index offline: every word must appear in a PDF of the item, results are ranked by relevance, and a PDF counts for its parent item. The `Score` only orders results within one search (it is small for words found in most PDFs); don't compare it across searches. It needs a Zotero version that keeps the index in `fulltext.sqlite`; otherwise the command says so. Annotations and notes are not in this index.
 - **Not supported:** running a saved search. The Zotero Web API exposes the definitions of saved searches but not their results, so `search` can't run one; use the filters above instead.
 - **Safety Tips:** Use quotes for multi-word queries to ensure the shell handles the string correctly. Search is case-insensitive.

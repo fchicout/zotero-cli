@@ -823,3 +823,172 @@ def test_an_attachment_with_no_annotations_has_none(mock_db):
 def test_annotations_are_still_not_listed_as_library_items(annotation_db):
     keys = {i.key for i in SqliteZoteroGateway(annotation_db).search_items(ZoteroQuery())}
     assert not keys & {"ANNOTKEY1", "ANNOTKEY2", "ANNOTKEY4"}
+
+
+# --- Issue #560: ranked full-text search over Zotero's own index (fulltext.sqlite) -----------
+
+
+def _fts5_available() -> bool:
+    try:
+        sqlite3.connect(":memory:").execute("CREATE VIRTUAL TABLE t USING fts5(x)")
+        return True
+    except sqlite3.OperationalError:
+        return False
+
+
+needs_fts5 = pytest.mark.skipif(not _fts5_available(), reason="this SQLite has no FTS5")
+
+
+@pytest.fixture
+def fulltext_db(mock_db, tmp_path):
+    """A copy of mock_db with PDFs and a contentless FTS5 index beside it, as newer Zotero
+    versions keep it: ITEMKEY3 is a PDF of ITEMKEY2, ATTONE a PDF of ITEMKEY1, STANDALONE a
+    PDF with no parent, ATTGONE a trashed PDF of ITEMKEY2."""
+    import shutil
+
+    database = tmp_path / "zotero.sqlite"
+    shutil.copy(mock_db, database)
+    conn = sqlite3.connect(database)
+    conn.executescript("""
+        INSERT INTO items (itemID, key, version, libraryID, itemTypeID) VALUES
+            (9, 'STANDALONE', 1, 0, 2), (10, 'ATTONE', 1, 0, 2), (11, 'ATTGONE', 1, 0, 2);
+        INSERT INTO itemAttachments (itemID, parentItemID) VALUES (9, NULL), (10, 1), (11, 2);
+        INSERT INTO deletedItems (itemID) VALUES (11);
+        INSERT INTO tags VALUES (1, 'reviewed');
+        INSERT INTO itemTags VALUES (1, 1);
+    """)
+    conn.commit()
+    conn.close()
+
+    index = sqlite3.connect(tmp_path / "fulltext.sqlite")
+    index.execute(
+        "CREATE VIRTUAL TABLE fulltextContent USING fts5(text, tokenize='unicode61', content='')"
+    )
+    documents = {
+        3: "transformer attention transformer attention model",
+        9: "transformer standalone paper attention",
+        10: "a long document about many other things " * 20 + " transformer once",
+        11: "transformer attention gone",
+    }
+    for rowid, text in documents.items():
+        index.execute("INSERT INTO fulltextContent(rowid, text) VALUES (?, ?)", (rowid, text))
+    for filler in range(100, 112):  # documents without the words, so their weight is positive
+        index.execute(
+            "INSERT INTO fulltextContent(rowid, text) VALUES (?, ?)",
+            (filler, f"unrelated words number {filler} about something else entirely"),
+        )
+    index.commit()
+    index.close()
+    return str(database)
+
+
+def _hits(database, text, **query):
+    gateway = SqliteZoteroGateway(database)
+    return [
+        (item.key, score)
+        for item, score in gateway.search_fulltext(text, ZoteroQuery(**query) if query else None)
+    ]
+
+
+@needs_fts5
+def test_fulltext_ranks_by_relevance_and_maps_pdfs_to_their_parents(fulltext_db):
+    hits = _hits(fulltext_db, "transformer")
+
+    # the dense short PDF, the short stand-alone PDF, then the long PDF with one mention
+    assert [key for key, _ in hits] == ["ITEMKEY2", "STANDALONE", "ITEMKEY1"]
+    scores = [score for _, score in hits]
+    assert all(score > 0 for score in scores)
+    assert scores == sorted(scores, reverse=True)
+
+
+@needs_fts5
+def test_a_standalone_pdf_counts_for_itself(fulltext_db):
+    found = SqliteZoteroGateway(fulltext_db).search_fulltext("standalone")
+    assert [(item.key, item.item_type) for item, _ in found] == [("STANDALONE", "attachment")]
+
+
+@needs_fts5
+def test_a_trashed_pdf_is_not_a_hit(fulltext_db):
+    # only ATTGONE contains "gone"; ITEMKEY2 must not match through the trashed PDF
+    assert _hits(fulltext_db, "gone") == []
+    assert "ITEMKEY2" in [key for key, _ in _hits(fulltext_db, "transformer")]
+
+
+@needs_fts5
+def test_every_word_must_appear(fulltext_db):
+    assert [k for k, _ in _hits(fulltext_db, "transformer attention")] == ["ITEMKEY2", "STANDALONE"]
+    assert [k for k, _ in _hits(fulltext_db, "attention transformer")] == ["ITEMKEY2", "STANDALONE"]
+    assert _hits(fulltext_db, "transformer nonexistentword") == []
+
+
+@needs_fts5
+def test_nothing_matching_is_an_empty_list(fulltext_db):
+    assert _hits(fulltext_db, "zzzznotaword") == []
+
+
+@needs_fts5
+@pytest.mark.parametrize(
+    "text",
+    [
+        "transformer OR attention",
+        "transformer NEAR(attention)",
+        'transformer "attention',
+        "transformer*",
+    ],
+)
+def test_words_are_searched_literally_not_as_query_syntax(fulltext_db, text):
+    """OR, NEAR, quotes and * are plain words: no FTS5 syntax error, and no operator effect."""
+    assert isinstance(_hits(fulltext_db, text), list)
+    assert _hits(fulltext_db, "transformer OR attention") == []  # needs the word "or"
+
+
+@needs_fts5
+def test_the_usual_filters_narrow_the_ranked_results(fulltext_db):
+    assert [k for k, _ in _hits(fulltext_db, "transformer", tag="reviewed")] == ["ITEMKEY1"]
+    assert [k for k, _ in _hits(fulltext_db, "transformer", item_type="attachment")] == [
+        "STANDALONE"
+    ]
+    assert _hits(fulltext_db, "transformer", collection="COLKEY1") == [
+        ("ITEMKEY1", _hits(fulltext_db, "transformer")[2][1])
+    ]
+
+
+@needs_fts5
+def test_fulltext_needs_at_least_one_word(fulltext_db):
+    from zotero_cli.core.exceptions import UsageError
+
+    gateway = SqliteZoteroGateway(fulltext_db)
+    with pytest.raises(UsageError, match="at least one word"):
+        gateway.search_fulltext("   ")
+
+
+def test_a_missing_index_file_is_explained(mock_db):
+    from zotero_cli.core.exceptions import ConfigurationError
+
+    gateway = SqliteZoteroGateway(mock_db)
+    with pytest.raises(ConfigurationError, match="No fulltext.sqlite next to"):
+        gateway.search_fulltext("anything")
+
+
+def test_an_index_in_the_older_layout_is_explained(mock_db, tmp_path):
+    import shutil
+
+    from zotero_cli.core.exceptions import ConfigurationError
+
+    shutil.copy(mock_db, tmp_path / "zotero.sqlite")
+    sqlite3.connect(tmp_path / "fulltext.sqlite").execute(
+        "CREATE TABLE other (x)"
+    ).connection.commit()
+    gateway = SqliteZoteroGateway(str(tmp_path / "zotero.sqlite"))
+
+    with pytest.raises(ConfigurationError, match="no usable full-text index"):
+        gateway.search_fulltext("anything")
+
+
+def test_the_web_api_client_says_fulltext_needs_offline():
+    from zotero_cli.core.exceptions import UsageError
+    from zotero_cli.infra.zotero_api import ZoteroAPIClient
+
+    client = ZoteroAPIClient("key", "123", "user")
+    with pytest.raises(UsageError, match="--offline"):
+        client.search_fulltext("anything")

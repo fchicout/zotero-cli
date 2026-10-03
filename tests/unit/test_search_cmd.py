@@ -8,6 +8,7 @@ import pytest
 from zotero_cli.cli.commands.search_cmd import SearchCommand
 from zotero_cli.cli.main import build_parser
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
+from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.collection_service import CollectionService
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -317,3 +318,148 @@ def test_bad_values_are_usage_errors_before_any_request(
 def test_nothing_to_search_for_says_what_would_do(mock_gateway: Any) -> None:
     with pytest.raises(UsageError, match="--tag"):
         _run(mock_gateway)
+
+
+# ---- Issue #560: --fulltext ---------------------------------------------------------------
+
+
+def _ranked(*pairs: tuple) -> List[tuple]:
+    return [(_paper(key, date), score) for key, date, score in pairs]
+
+
+def _run_fulltext(
+    capsys: pytest.CaptureFixture[str],
+    *argv: str,
+    ranked: Optional[List[tuple]] = None,
+    error: Optional[Exception] = None,
+) -> tuple:
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    if error is not None:
+        gateway.search_fulltext.side_effect = error
+    else:
+        gateway.search_fulltext.return_value = ranked or []
+    service = create_autospec(CollectionService, instance=True)
+    service.resolve_collection.return_value = "COL1"
+    args = build_parser().parse_args(["search", *argv])
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_collection_service", return_value=service
+        ),
+    ):
+        SearchCommand().execute(args)
+    return gateway, capsys.readouterr().out
+
+
+RANKED = _ranked(("K1", "2021", 4.2), ("K2", "2019", 2.5), ("K3", "2023", 0.00031))
+
+
+def test_fulltext_keeps_the_relevance_order_and_reports_scores(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    gateway, out = _run_fulltext(
+        capsys, "--fulltext", "retrieval augmented", "--format", "json", ranked=RANKED
+    )
+
+    rows = json.loads(out)
+    assert [r["key"] for r in rows] == ["K1", "K2", "K3"]
+    assert [r["score"] for r in rows] == [4.2, 2.5, 0.00031]
+    assert gateway.search_fulltext.call_args.args[0] == "retrieval augmented"
+
+
+def test_fulltext_table_has_a_score_column(capsys: pytest.CaptureFixture[str]) -> None:
+    _, out = _run_fulltext(capsys, "--fulltext", "words", ranked=RANKED)
+    assert "Score" in out
+    assert "4.2" in out
+    assert "0.00031" in out
+    assert out.index("K1") < out.index("K2") < out.index("K3")
+
+
+def test_without_fulltext_there_is_no_score(capsys: pytest.CaptureFixture[str]) -> None:
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.search_items.return_value = [_paper("K1")]
+    args = build_parser().parse_args(["search", "x", "--format", "json"])
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway):
+        SearchCommand().execute(args)
+    assert "score" not in json.loads(capsys.readouterr().out)[0]
+
+
+def test_fulltext_ndjson_and_keys_stay_in_ranked_order(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _, out = _run_fulltext(capsys, "--fulltext", "w", "--format", "ndjson", ranked=RANKED)
+    assert [json.loads(line)["key"] for line in out.splitlines()] == ["K1", "K2", "K3"]
+    _, out = _run_fulltext(capsys, "--fulltext", "w", "--format", "keys", ranked=RANKED)
+    assert out == "K1\nK2\nK3\n"
+
+
+def test_filters_reach_the_ranked_search(capsys: pytest.CaptureFixture[str]) -> None:
+    gateway, _ = _run_fulltext(
+        capsys,
+        "--fulltext", "words", "--tag", "ml", "--type", "book", "--collection", "Inbox",
+        "--format", "json", ranked=RANKED,
+    )  # fmt: skip
+    query = gateway.search_fulltext.call_args.args[1]
+    assert (query.q, query.tag, query.item_type, query.collection) == (None, ["ml"], "book", "COL1")
+
+
+def test_the_year_filter_applies_on_top_of_the_ranking(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _, out = _run_fulltext(
+        capsys, "--fulltext", "w", "--year", "2020-", "--format", "keys", ranked=RANKED
+    )
+    assert out == "K1\nK3\n"
+
+
+def test_paging_counts_in_ranked_order(capsys: pytest.CaptureFixture[str]) -> None:
+    _, out = _run_fulltext(
+        capsys, "--fulltext", "w", "--start", "1", "--limit", "1", "--format", "keys", ranked=RANKED
+    )
+    assert out == "K2\n"
+
+
+@pytest.mark.parametrize(
+    ("argv", "message"),
+    [
+        (["--fulltext", "x", "--doi", "10.1/x"], "can't be combined with --doi or --title"),
+        (["--fulltext", "x", "--title", "T"], "can't be combined with --doi or --title"),
+        (["--fulltext", "x", "--sort", "title"], "ranks by relevance"),
+        (["--fulltext", "x", "--direction", "asc"], "ranks by relevance"),
+        (["--fulltext"], "needs words to look for"),
+    ],
+)
+def test_fulltext_conflicts_are_usage_errors_before_any_search(
+    capsys: pytest.CaptureFixture[str], argv: List[str], message: str
+) -> None:
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    args = build_parser().parse_args(["search", *argv])
+    command = SearchCommand()
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway):
+        with pytest.raises(UsageError, match=message):
+            command.execute(args)
+    gateway.search_fulltext.assert_not_called()
+
+
+def test_a_gateway_that_cannot_do_fulltext_says_why(capsys: pytest.CaptureFixture[str]) -> None:
+    refusal = UsageError("Full-text search ... run it with --offline.")
+    with pytest.raises(UsageError, match="--offline"):
+        _run_fulltext(capsys, "--fulltext", "words", error=refusal)
+
+
+def test_an_unknown_collection_is_still_an_error_with_fulltext(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    service = create_autospec(CollectionService, instance=True)
+    service.resolve_collection.return_value = None
+    args = build_parser().parse_args(["search", "--fulltext", "w", "--collection", "Nope"])
+    command = SearchCommand()
+    with (
+        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway),
+        patch(
+            "zotero_cli.infra.factory.GatewayFactory.get_collection_service", return_value=service
+        ),
+    ):
+        with pytest.raises(NotFound, match="Collection 'Nope' not found"):
+            command.execute(args)

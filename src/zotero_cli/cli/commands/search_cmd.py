@@ -1,6 +1,6 @@
 import argparse
 from itertools import islice
-from typing import Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 
 from rich.markup import escape
 from rich.table import Table
@@ -75,6 +75,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         parser.add_argument("--added-since", help="Only items added on or after YYYY-MM-DD")
         parser.add_argument("--added-until", help="Only items added on or before YYYY-MM-DD")
         parser.add_argument(
+            "--fulltext",
+            action="store_true",
+            help="Search inside the PDFs' text for every word of the query, best match first "
+            "(needs --offline and a Zotero that keeps its full-text index in fulltext.sqlite)",
+        )
+        parser.add_argument(
             "--sort",
             choices=["date", "dateAdded", "dateModified", "title", "creator", "itemType"],
             help="Sort results by this field (default: date)",
@@ -92,15 +98,20 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         records.Column("doi", "DOI"),
     ]
 
+    _SCORE_COLUMN = records.Column("score", "Score", justify="right")
+
     @staticmethod
-    def _record(item: ZoteroItem) -> dict:
-        return {
+    def _record(item: ZoteroItem, score: Optional[float] = None) -> dict:
+        row: Dict[str, Any] = {
             "key": item.key,
             "title": item.title or "",
             "authors": list(item.authors),
             "year": item.date[:4] if item.date else "",
             "doi": item.doi or "",
         }
+        if score is not None:
+            row["score"] = score
+        return row
 
     @staticmethod
     def _build_query(
@@ -140,6 +151,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         "added_until": None,
         "sort": None,
         "direction": None,
+        "fulltext": False,
     }
 
     def execute(self, args: argparse.Namespace) -> None:
@@ -168,11 +180,31 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             [args.tag, args.item_type, args.collection, years, added_since, added_until]
         )
 
-        if args.doi:
+        scores: Dict[str, float] = {}
+        if args.fulltext:
+            if args.doi or args.title:
+                raise UsageError(
+                    "--fulltext looks for the query's words in the PDFs' text; "
+                    "it can't be combined with --doi or --title."
+                )
+            if args.sort or args.direction:
+                raise UsageError(
+                    "--fulltext ranks by relevance; --sort and --direction don't apply."
+                )
+            if not args.query:
+                raise UsageError('--fulltext needs words to look for: search --fulltext "words".')
+            console.print(f"Searching the full text for: [cyan]{escape(args.query)}[/cyan]...")
+            collection_key = self._resolve_collection(args, args.collection)
+            ranked = gateway.search_fulltext(
+                args.query, self._build_query(None, args, collection_key)
+            )
+            scores = {item.key: score for item, score in ranked}
+            hits: Iterable[ZoteroItem] = (item for item, _ in ranked)
+        elif args.doi:
             if has_filter:
                 raise UsageError("--doi names one item and can't be combined with filters.")
             console.print(f"Searching for DOI: [cyan]{escape(args.doi)}[/cyan]...")
-            hits: Iterable[ZoteroItem] = gateway.get_items_by_doi(args.doi)
+            hits = gateway.get_items_by_doi(args.doi)
         elif args.title or args.query or has_filter:
             text = args.title or args.query
             if args.title:
@@ -198,15 +230,20 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         stop = args.start + args.limit if args.limit and args.limit > 0 else None
         selected = islice(hits, args.start, stop)
 
+        columns = self._COLUMNS + [self._SCORE_COLUMN] if args.fulltext else self._COLUMNS
+
+        def record(item: ZoteroItem) -> dict:
+            return self._record(item, scores.get(item.key) if args.fulltext else None)
+
         if fmt in ("ndjson", "keys"):
             # Written as each result arrives, not after the last page (Issue #556).
-            records.render_data(map(self._record, selected), self._COLUMNS, fmt)
+            records.render_data(map(record, selected), columns, fmt)
             return
 
         results = list(selected)
 
         if fmt != "table":
-            records.render_data([self._record(item) for item in results], self._COLUMNS, fmt)
+            records.render_data([record(item) for item in results], columns, fmt)
             return
 
         if not results:
@@ -219,6 +256,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         table.add_column("Authors")
         table.add_column("Year", justify="right")
         table.add_column("DOI")
+        if args.fulltext:
+            table.add_column("Score", justify="right")
 
         for item in results:
             authors = ", ".join(item.authors)
@@ -234,6 +273,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 safe_markup(authors),
                 item.date[:4] if item.date else "N/A",
                 item.doi or "",
+                *([f"{scores.get(item.key, 0.0):.3g}"] if args.fulltext else []),
             )
 
         console.print(table)
