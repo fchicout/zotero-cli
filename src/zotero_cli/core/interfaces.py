@@ -313,13 +313,8 @@ class CanonicalCsvGateway(ABC):
         pass
 
 
-class ZoteroGateway(
-    ItemRepository, CollectionRepository, TagRepository, NoteRepository, AttachmentRepository
-):
-    """
-    Unified Gateway interface for Zotero API.
-    Inherits from specific repositories to enforce contract.
-    """
+class ItemSearch(ABC):
+    """Searching items: by keyword and filters, and (offline) by PDF text."""
 
     @abstractmethod
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
@@ -336,6 +331,20 @@ class ZoteroGateway(
 
         del text, query  # the signature is the contract; only the offline gateway uses them
         raise UsageError("Full-text search reads Zotero's local index: run it with --offline.")
+
+
+class ZoteroGateway(
+    ItemRepository,
+    CollectionRepository,
+    TagRepository,
+    NoteRepository,
+    AttachmentRepository,
+    ItemSearch,
+):
+    """
+    Unified Gateway interface for Zotero API.
+    Inherits from specific repositories to enforce contract.
+    """
 
     @abstractmethod
     def verify_credentials(self) -> bool:

@@ -2,6 +2,7 @@ from .collection_cmd import CollectionCommand
 from .import_cmd import ImportCommand
 from .init_cmd import InitCommand
 from .item_cmd import ItemCommand
+from .mcp_cmd import McpCommand
 from .rag_cmd import RAGCommand
 from .report_cmd import ReportCommand
 from .schema_cmd import SchemaCommand
@@ -26,4 +27,5 @@ __all__ = [
     "SearchCommand",
     "RAGCommand",
     "SchemaCommand",
+    "McpCommand",
 ]
