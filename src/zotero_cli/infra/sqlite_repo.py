@@ -158,6 +158,10 @@ def _cleanup_shadows() -> None:
 atexit.register(_cleanup_shadows)
 
 
+# How Zotero writes the path of a file it keeps in its own storage folder.
+STORAGE_PREFIX = "storage:"
+
+
 class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
     """
     Read-only implementation of ZoteroGateway using local zotero.sqlite.
@@ -786,8 +790,8 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
             "contentType": row["contentType"] or "",
         }
         path = row["path"] or ""
-        if path.startswith("storage:"):
-            fields["filename"] = path[len("storage:") :]
+        if path.startswith(STORAGE_PREFIX):
+            fields["filename"] = path[len(STORAGE_PREFIX) :]
         elif path:
             fields["path"] = path
         if row["url"]:
@@ -869,11 +873,11 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
         if not path:
             self._say(f"No file recorded for attachment {item_key}.", logging.WARNING)
             return None
-        if path.startswith("storage:"):
+        if path.startswith(STORAGE_PREFIX):
             folder = os.path.realpath(
                 os.path.join(os.path.dirname(self.original_db_path), "storage", item_key)
             )
-            source = os.path.realpath(os.path.join(folder, path[len("storage:") :]))
+            source = os.path.realpath(os.path.join(folder, path[len(STORAGE_PREFIX) :]))
             if os.path.commonpath([folder, source]) != folder:
                 self._say(
                     f"Attachment {item_key} points outside its storage folder.", logging.WARNING

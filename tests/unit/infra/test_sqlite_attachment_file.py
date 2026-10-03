@@ -7,6 +7,8 @@ from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
 
 @pytest.fixture
 def library(tmp_path):
+    (tmp_path / "library").mkdir()
+    tmp_path = tmp_path / "library"
     database = tmp_path / "zotero.sqlite"
     conn = sqlite3.connect(database)
     conn.executescript(
@@ -53,8 +55,8 @@ def test_copies_a_stored_file_from_the_storage_folder(library):
     assert target.read_bytes() == b"%PDF-bytes"
 
 
-def test_copies_a_linked_file_by_its_absolute_path(library, tmp_path_factory):
-    elsewhere = tmp_path_factory.mktemp("elsewhere") / "linked.pdf"
+def test_copies_a_linked_file_by_its_absolute_path(library):
+    elsewhere = library.parent / "linked.pdf"
     elsewhere.write_bytes(b"linked")
     add(library, "LINKKEY1", str(elsewhere), link_mode=2)
 
