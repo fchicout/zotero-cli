@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🐛 Fixed
+- **Formatted bibliographies print editors once (bxc 1.3.0):** a reference with editors but no authors (an edited book) listed the editors twice, the second time in parentheses after the title. Fixed in bxc 1.3.0, which also sanitizes the HTML it produces more strictly and reports network problems as their own error class; zotero-cli now requires `bxc>=1.3.0`.
+
 ## [3.4.0] - 2026-10-03
 
 A minor release that prepares the 4.0 default change for deletes: `--permanent` is added, and a delete that gets neither `--trash` nor `--permanent` warns that 4.0 moves items to Zotero's trash by default. Nothing changes behaviour in 3.x.
