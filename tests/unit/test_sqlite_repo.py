@@ -729,3 +729,97 @@ def test_search_command_filters_a_real_offline_database_end_to_end(sorted_db, ca
     assert run("--tag", "todo", "--sort", "title", "--direction", "desc", "--start", "1") == [
         "ITEMKEY2"
     ]
+
+
+# --- Issue #558: PDF annotations offline ------------------------------------------------------
+
+
+@pytest.fixture
+def annotation_db(mock_db):
+    """mock_db plus Zotero 7's itemAnnotations: ITEMKEY3 is a PDF attachment of ITEMKEY2 and
+    carries a highlight, a note, an annotation in the trash and one of an unknown type."""
+    conn = sqlite3.connect(mock_db)
+    conn.executescript("""
+        CREATE TABLE itemAnnotations (itemID INTEGER PRIMARY KEY, parentItemID INTEGER NOT NULL,
+            type INTEGER NOT NULL, authorName TEXT, text TEXT, comment TEXT, color TEXT,
+            pageLabel TEXT, sortIndex TEXT NOT NULL, position TEXT NOT NULL, isExternal INT NOT NULL);
+        INSERT INTO itemTypes VALUES (4, 'annotation');
+        INSERT INTO items (itemID, key, version, libraryID, itemTypeID, dateAdded)
+            VALUES (5, 'ANNOTKEY1', 1, 0, 4, '2026-02-01 10:00:00'),
+                   (6, 'ANNOTKEY2', 1, 0, 4, '2026-02-02 10:00:00'),
+                   (7, 'ANNOTKEY3', 1, 0, 4, '2026-02-03 10:00:00'),
+                   (8, 'ANNOTKEY4', 1, 0, 4, '2026-02-04 10:00:00');
+        INSERT INTO itemAnnotations VALUES
+            (5, 3, 1, 'me', 'the claim', 'check this', '#ffd400', '12', '00011|000200|00040', '{}', 0),
+            (6, 3, 2, 'me', NULL, 'a loose note', '#ff6666', '3', '00002|000100|00010', '{}', 0),
+            (7, 3, 5, 'me', 'gone', NULL, '#ffd400', '4', '00003|000100|00010', '{}', 0),
+            (8, 3, 99, 'me', 'odd', NULL, '#ffd400', '9', '00020|000100|00010', '{}', 0);
+        INSERT INTO deletedItems (itemID) VALUES (7);
+        INSERT INTO tags VALUES (10, 'important'), (11, 'later');
+        INSERT INTO itemTags VALUES (5, 10), (5, 11), (6, 11);
+    """)
+    conn.commit()
+    conn.close()
+    return mock_db
+
+
+def test_annotations_of_an_items_pdf_in_reading_order(annotation_db):
+    found = SqliteZoteroGateway(annotation_db).get_annotations("ITEMKEY2")
+
+    assert [a["key"] for a in found] == ["ANNOTKEY2", "ANNOTKEY1", "ANNOTKEY4"]
+    note, highlight, odd = found
+    assert (note["type"], note["text"], note["comment"], note["page"]) == (
+        "note",
+        "",
+        "a loose note",
+        "3",
+    )
+    assert note["tags"] == ["later"]
+    assert highlight == {
+        "key": "ANNOTKEY1",
+        "attachment": "ITEMKEY3",
+        "type": "highlight",
+        "text": "the claim",
+        "comment": "check this",
+        "color": "#ffd400",
+        "page": "12",
+        "tags": ["important", "later"],
+        "date_added": "2026-02-01 10:00:00",
+        "sort_index": "00011|000200|00040",
+    }
+    assert odd["type"] == "99"  # an unknown code is kept, not dropped
+
+
+def test_annotations_of_the_attachment_itself(annotation_db):
+    gateway = SqliteZoteroGateway(annotation_db)
+    assert [a["key"] for a in gateway.get_annotations("ITEMKEY3")] == [
+        a["key"] for a in gateway.get_annotations("ITEMKEY2")
+    ]
+
+
+def test_annotations_in_the_trash_are_left_out(annotation_db):
+    keys = [a["key"] for a in SqliteZoteroGateway(annotation_db).get_annotations("ITEMKEY2")]
+    assert "ANNOTKEY3" not in keys
+
+
+def test_an_item_without_pdf_attachments_or_an_unknown_key_has_none(annotation_db):
+    gateway = SqliteZoteroGateway(annotation_db)
+    assert gateway.get_annotations("ITEMKEY1") == []  # no attachments
+    assert gateway.get_annotations("NOSUCHKEY") == []
+
+
+def test_an_attachment_with_no_annotations_has_none(mock_db):
+    conn = sqlite3.connect(mock_db)
+    conn.execute(
+        "CREATE TABLE itemAnnotations (itemID INTEGER PRIMARY KEY, parentItemID INTEGER NOT NULL,"
+        " type INTEGER NOT NULL, authorName TEXT, text TEXT, comment TEXT, color TEXT,"
+        " pageLabel TEXT, sortIndex TEXT NOT NULL, position TEXT NOT NULL, isExternal INT NOT NULL)"
+    )
+    conn.commit()
+    conn.close()
+    assert SqliteZoteroGateway(mock_db).get_annotations("ITEMKEY2") == []
+
+
+def test_annotations_are_still_not_listed_as_library_items(annotation_db):
+    keys = {i.key for i in SqliteZoteroGateway(annotation_db).search_items(ZoteroQuery())}
+    assert not keys & {"ANNOTKEY1", "ANNOTKEY2", "ANNOTKEY4"}

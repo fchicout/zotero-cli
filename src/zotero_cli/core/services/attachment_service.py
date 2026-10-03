@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from zotero_cli.core import annotations as annotation_records
 from zotero_cli.core.interfaces import (
     AttachmentRepository,
     CollectionRepository,
@@ -102,10 +103,15 @@ class AttachmentService(FullTextProvider, NotifyMixin):
         return None
 
     def bulk_export_markdown(
-        self, items: List[ZoteroItem], output_dir: Path, max_workers: int = 5
+        self,
+        items: List[ZoteroItem],
+        output_dir: Path,
+        max_workers: int = 5,
+        include_annotations: bool = False,
     ) -> Dict[str, Any]:
         """
-        Bulk converts PDF attachments of given items to Markdown.
+        Bulk converts PDF attachments of given items to Markdown; with
+        `include_annotations`, each file ends with the item's PDF annotations.
         """
         output_dir.mkdir(parents=True, exist_ok=True)
         stats = {"total": len(items), "success": 0, "failed": 0, "skipped": 0}
@@ -118,6 +124,7 @@ class AttachmentService(FullTextProvider, NotifyMixin):
                     item,
                     output_dir,
                     pdf_keys.get(item.key),
+                    include_annotations,
                 ): item
                 for item in items
             }
@@ -139,8 +146,24 @@ class AttachmentService(FullTextProvider, NotifyMixin):
 
         return stats
 
+    def _with_annotations(self, item: ZoteroItem, text: str) -> str:
+        """`text` followed by the item's annotations; unchanged if there are none or they
+        can't be read (the export itself still succeeds)."""
+        try:
+            section = annotation_records.to_markdown(self.attachment_repo.get_annotations(item.key))
+        except Exception as e:
+            self._say(
+                f"Warning: could not read the annotations of {item.key}: {e}", logging.WARNING
+            )
+            return text
+        return f"{text.rstrip()}\n\n{section}" if section else text
+
     def _export_item_markdown(
-        self, item: ZoteroItem, output_dir: Path, pdf_key: Optional[str] = _UNKNOWN
+        self,
+        item: ZoteroItem,
+        output_dir: Path,
+        pdf_key: Optional[str] = _UNKNOWN,
+        include_annotations: bool = False,
     ) -> str:
         """Helper for bulk export."""
         # 1. Check for PDF
@@ -153,6 +176,9 @@ class AttachmentService(FullTextProvider, NotifyMixin):
         text = self.get_fulltext(item.key, pdf_key)
         if not text:
             return "failed"
+
+        if include_annotations:
+            text = self._with_annotations(item, text)
 
         # 3. Save to file
         title_slug = slugify(item.title or "Untitled")

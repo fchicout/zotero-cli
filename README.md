@@ -101,7 +101,7 @@ zotero-cli system demo-sandbox --clean
 | Noun | Description | Key Verbs |
 | :--- | :--- | :--- |
 | **[`init`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/init.md)** | Config wizard | `(default)` |
-| **[`item`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/item.md)** | Items | `list`, `inspect`, `add`, `update`, `move`, `merge`, `export`, `pdf`, `hydrate`, `purge`, `delete`, `trash`, `restore`, `transfer` |
+| **[`item`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/item.md)** | Items | `list`, `inspect`, `annotations`, `add`, `update`, `move`, `merge`, `export`, `pdf`, `hydrate`, `purge`, `delete`, `trash`, `restore`, `transfer` |
 | **[`collection`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/collection.md)** | Folders | `list`, `create`, `rename`, `delete`, `clean`, `export`, `backup`, `purge` |
 | **[`tag`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/tag.md)** | Tags | `list`, `add`, `purge` |
 | **[`search`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/search.md)** | Finder | `--doi`, `--title` |

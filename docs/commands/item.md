@@ -19,6 +19,23 @@ zotero-cli item inspect --key "ITEMKEY"
 
 ---
 
+### `annotations`
+Show the PDF highlights and notes of an item, in reading order.
+
+**Usage:**
+```bash
+zotero-cli item annotations ABCD1234 [--type highlight|note|image|ink|underline|text] [--format table|json|csv|ndjson|keys]
+```
+
+**Parameters:**
+*   `--key` / `KEY`: (Required) A regular item (its PDF attachments are read) or a PDF attachment.
+*   `--type`: Only this kind of annotation; repeat for several.
+*   `--format`: `table` (default), `json`, `csv`, `ndjson` or `keys`. Data formats carry `key`, `attachment`, `type`, `text`, `comment`, `color`, `page`, `tags`, `date_added`.
+
+Works with the Web API and with `--offline`; annotations in the trash are left out.
+
+---
+
 ### `move`
 Move an item from one collection to another.
 
@@ -181,6 +198,7 @@ zotero-cli item export --key "ITEMKEY" --as bibliography --style ieee [--render 
 *   `--as`: Export type. Supported: `bibtex`, `ris`, `md`, `bibliography` (`--format` is the deprecated alias).
 *   `--style`: With `--as bibliography`, the CSL citation style (default `apa`; e.g. `ieee`, `chicago-author-date`). An unknown style lists close matches. Styles bundled with `bxc` work offline.
 *   `--render`: With `--as bibliography`: `plain` (default), `markdown` or `html`.
+*   `--annotations`: With `--as md`, end the file with the item's PDF annotations (see `item annotations`).
 *   `--output`: Destination directory or file path. With `--as bibliography` it is optional: without it the bibliography is printed.
 
 ---

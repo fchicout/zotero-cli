@@ -8,6 +8,7 @@ import tempfile
 import threading
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
+from zotero_cli.core import annotations as annotation_records
 from zotero_cli.core.exceptions import ConfigurationError, OfflineReadOnly
 from zotero_cli.core.interfaces import JobRepository, ZoteroGateway
 from zotero_cli.core.models import Job, ResearchPaper, ZoteroQuery
@@ -571,6 +572,65 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
 
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
         return self.get_children_by_parent([item_key]).get(item_key, [])
+
+    def get_annotations(self, item_key: str) -> List[Dict[str, Any]]:
+        """PDF annotations from `itemAnnotations`: of the attachment itself if `item_key`
+        is one, else of each of the item's attachments (Issue #558). Trashed ones are
+        left out, like the Web API's."""
+        conn = self._get_connection()
+        row = conn.execute(
+            "SELECT i.itemID, it.typeName FROM items i "
+            "JOIN itemTypes it ON i.itemTypeID = it.itemTypeID WHERE i.key = ?",
+            (item_key,),
+        ).fetchone()
+        if row is None:
+            return []
+        if row["typeName"] == "attachment":
+            parent_ids = [row["itemID"]]
+        else:
+            parent_ids = [
+                r["itemID"]
+                for r in conn.execute(
+                    "SELECT itemID FROM itemAttachments WHERE parentItemID = ?", (row["itemID"],)
+                )
+            ]
+        if not parent_ids:
+            return []
+        rows = conn.execute(
+            """
+            SELECT a.itemID, i.key, p.key AS attachment, a.type, a.text, a.comment, a.color,
+                   a.pageLabel, a.sortIndex, i.dateAdded
+            FROM itemAnnotations a
+            JOIN items i ON i.itemID = a.itemID
+            JOIN items p ON p.itemID = a.parentItemID
+            WHERE a.parentItemID IN (SELECT value FROM json_each(?))
+              AND a.itemID NOT IN (SELECT itemID FROM deletedItems)
+            """,
+            (json.dumps(parent_ids),),
+        ).fetchall()
+        tags_by_item: Dict[int, List[str]] = {}
+        for tag_row in conn.execute(
+            "SELECT itg.itemID, t.name FROM itemTags itg JOIN tags t ON itg.tagID = t.tagID "
+            "WHERE itg.itemID IN (SELECT value FROM json_each(?))",
+            (json.dumps([r["itemID"] for r in rows]),),
+        ):
+            tags_by_item.setdefault(tag_row["itemID"], []).append(tag_row["name"])
+        found = [
+            annotation_records.build(
+                key=r["key"],
+                attachment=r["attachment"],
+                kind=annotation_records.SQLITE_TYPES.get(r["type"], str(r["type"])),
+                text=r["text"],
+                comment=r["comment"],
+                color=r["color"],
+                page=r["pageLabel"],
+                tags=sorted(tags_by_item.get(r["itemID"], [])),
+                date_added=r["dateAdded"],
+                sort_index=r["sortIndex"],
+            )
+            for r in rows
+        ]
+        return annotation_records.in_reading_order(found)
 
     def get_children_by_parent(self, parent_keys: List[str]) -> Dict[str, List[Dict[str, Any]]]:
         """

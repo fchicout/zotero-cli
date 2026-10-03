@@ -23,6 +23,7 @@ COMMAND_EFFECTS: Dict[str, str] = {
     **dict.fromkeys(
         [
             "collection list",
+            "item annotations",
             "item inspect",
             "item list",
             "rag context",
