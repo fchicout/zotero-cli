@@ -10,9 +10,12 @@ Commands that only remove items from a collection (the items stay in the
 library) need `--execute` but no confirmation.
 """
 
+import argparse
 import sys
 
 from rich.prompt import Confirm
+
+from zotero_cli.core.exceptions import UsageError
 
 
 def confirm_destructive(question: str, assume_yes: bool) -> bool:
@@ -48,3 +51,35 @@ def warn_default_apply(command: str) -> None:
         "in 4.0.",
         file=sys.stderr,
     )
+
+
+def add_permanent_flag(parser: argparse.ArgumentParser, what: str) -> None:
+    """`--permanent`, the explicit spelling of what a delete does today: remove
+    `what` for good instead of moving it to Zotero's trash (Issue #402). Trashing
+    becomes the default in 4.0 (Issue #462); passing `--permanent` now keeps
+    permanent deletion then, and silences the warning."""
+    parser.add_argument(
+        "--permanent",
+        action="store_true",
+        help=f"Delete {what} permanently (what happens today without --trash). Moving to the "
+        "trash becomes the default in 4.0, so pass this to keep deleting for good",
+    )
+
+
+def resolve_trash(args: argparse.Namespace, command: str, *, applying: bool) -> bool:
+    """Whether a delete goes to the trash. In 3.x that is `--trash`; with neither
+    `--trash` nor `--permanent`, a delete that is really applied warns once that
+    4.0 trashes by default (Issue #402), then stays permanent so scripts keep
+    working. Both flags together are a usage error."""
+    trash = getattr(args, "trash", False) is True
+    permanent = getattr(args, "permanent", False) is True
+    if trash and permanent:
+        raise UsageError("--trash and --permanent contradict each other: pass one.")
+    if applying and not trash and not permanent:
+        print(
+            f"Warning: `{command}` currently deletes permanently by default; pass --trash to "
+            "move to Zotero's trash (recoverable), or --permanent to keep deleting for good. "
+            "In 4.0 it will move to the trash by default.",
+            file=sys.stderr,
+        )
+    return trash

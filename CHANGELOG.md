@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### ✨ Added
+- **`--permanent` on every delete that defaults to permanent (Issue #402):** `item delete`, `item merge` (and `--plan`), `item transfer --delete-source`, `collection delete --recursive` and `slr dedupe` take `--permanent`, the explicit spelling of deleting for good. `--trash` and `--permanent` together are a usage error.
+
+### Deprecated
+- **Permanent deletion as the default (Issue #402, tracked in #462):** an applied delete that gets neither `--trash` nor `--permanent` still deletes for good in 3.x, but prints a warning to stderr: in 4.0 these commands move items to Zotero's trash by default and permanent deletion needs `--permanent`. Pass `--permanent` now to keep today's behaviour without the warning, or `--trash` to get the 4.0 behaviour now.
+
 ## [3.3.1] - 2026-10-03
 
 A patch release: PDF text now works with `--offline`.

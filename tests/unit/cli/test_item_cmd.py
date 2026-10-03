@@ -526,6 +526,31 @@ def test_item_delete_trash_moves_to_trash_without_the_legacy_warning(
     assert "item restore" in captured.out
 
 
+def test_item_delete_without_trash_or_permanent_warns_that_4_0_trashes_by_default(
+    mock_clients, env_vars, capsys
+):
+    """Issue #402: still permanent in 3.x, but told what changes in 4.0."""
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5)
+    gateway.delete_item.return_value = True
+
+    ItemCommand().execute(_delete_args(execute=True, trash=False, permanent=False))
+
+    gateway.delete_item.assert_called_once()
+    assert "currently deletes permanently by default" in capsys.readouterr().err
+
+
+def test_item_delete_permanent_stays_permanent_and_silent(mock_clients, env_vars, capsys):
+    gateway = mock_clients["gateway"]
+    gateway.get_item.return_value = MagicMock(version=5)
+    gateway.delete_item.return_value = True
+
+    ItemCommand().execute(_delete_args(execute=True, trash=False, permanent=True))
+
+    gateway.delete_item.assert_called_once()
+    assert "deletes permanently by default" not in capsys.readouterr().err
+
+
 def test_item_delete_trash_honours_the_given_version(mock_clients, env_vars):
     gateway = mock_clients["gateway"]
     gateway.get_item.return_value = MagicMock(version=9)

@@ -15,7 +15,7 @@ from zotero_cli.cli.flags import (
     resolve_key,
 )
 from zotero_cli.cli.presenters import item_list_presenter
-from zotero_cli.cli.safety import warn_default_apply
+from zotero_cli.cli.safety import add_permanent_flag, resolve_trash, warn_default_apply
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.sdb_parser import decode_json_note
@@ -549,6 +549,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             action="store_true",
             help="Move the item to Zotero's trash (recoverable) instead of deleting it permanently",
         )
+        add_permanent_flag(delete_p, "the item")
         delete_mode = delete_p.add_mutually_exclusive_group()
         delete_mode.add_argument(
             "--execute",
@@ -681,6 +682,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             action="store_true",
             help="With --delete-source: move the source item to Zotero's trash (recoverable) instead of deleting it permanently",
         )
+        add_permanent_flag(transfer_p, "the source item (with --delete-source)")
 
         # Export
         export_p = sub.add_parser(
@@ -814,6 +816,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             action="store_true",
             help="Move the emptied duplicates to Zotero's trash (recoverable) instead of deleting them permanently",
         )
+        add_permanent_flag(merge_p, "the emptied duplicates")
 
     def execute(self, args: argparse.Namespace) -> None:
         force_user = getattr(args, "user", False)
@@ -908,7 +911,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             table.add_row("Field resolutions", str(preview.field_resolutions_applied))
         console.print(table)
 
-        trash = getattr(args, "trash", False) is True
+        trash = resolve_trash(args, "item merge", applying=bool(args.execute))
         if not args.execute:
             console.print(
                 "[yellow]Preview only - nothing was written. "
@@ -1002,7 +1005,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 console.print(f"  [red]{escape(error)}[/red]")
             return
 
-        trash = getattr(args, "trash", False) is True
+        trash = resolve_trash(args, "item merge --plan", applying=bool(args.execute))
         if not args.execute:
             console.print(
                 "[yellow]Preview only - nothing was written. "
@@ -1086,9 +1089,13 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         service = GatewayFactory.get_transfer_service()
 
-        trash = getattr(args, "trash", False) is True
-        if trash and not args.delete_source:
-            raise UsageError("--trash applies to the source item, so it needs --delete-source.")
+        trash = resolve_trash(
+            args, "item transfer --delete-source", applying=bool(args.delete_source)
+        )
+        if (trash or getattr(args, "permanent", False)) and not args.delete_source:
+            raise UsageError(
+                "--trash and --permanent apply to the source item, so they need --delete-source."
+            )
 
         print(f"Transferring item {args.key} to group {args.target_group}...")
         result = service.transfer_item(
@@ -1333,12 +1340,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         # silently keeping the old behaviour forever.
         execute = bool(getattr(args, "execute", False))
         dry_run = bool(getattr(args, "dry_run", False))
-        trash = getattr(args, "trash", False) is True
         if not execute and not dry_run:
             # --trash is recoverable and new: no legacy behaviour to warn about.
-            if not trash:
+            if getattr(args, "trash", False) is not True:
                 warn_default_apply("item delete")
             execute = True
+        trash = resolve_trash(args, "item delete", applying=execute)
 
         if not execute:
             children = gateway.get_item_children(args.key)

@@ -4,6 +4,7 @@ from typing import List, Optional
 from rich.prompt import Confirm
 from rich.table import Table
 
+from zotero_cli.cli.safety import add_permanent_flag, resolve_trash
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.merge_service import MergePlan
 from zotero_cli.core.services.sdb.sdb_service import SDB_STATUS_CONFLICTING
@@ -87,6 +88,7 @@ Result:  A CSV is written with one row per occurrence; MATCHING/UNSCREENED rows 
             action="store_true",
             help="Move the merged duplicates to Zotero's trash (recoverable) instead of deleting them permanently.",
         )
+        add_permanent_flag(parser, "the merged duplicates")
 
     @staticmethod
     def execute(gateway: ZoteroGateway, args: argparse.Namespace) -> None:
@@ -147,7 +149,7 @@ Result:  A CSV is written with one row per occurrence; MATCHING/UNSCREENED rows 
             return
 
         resolved_plan = MergePlan(entries=resolved_entries)
-        trash = getattr(args, "trash", False) is True
+        trash = resolve_trash(args, "slr dedupe", applying=True)
         preview = service.execute_reconciliation(resolved_plan, dry_run=True)
         merge_count = sum(len(r.merged_keys) for r in preview.group_results)
         console.print(
