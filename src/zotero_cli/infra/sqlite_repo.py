@@ -846,7 +846,55 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
         raise OfflineReadOnly()
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:
-        raise OfflineReadOnly()
+        """Copy an attachment's file from Zotero's own `storage/<KEY>/` folder (or a
+        linked file's absolute path) to `save_path`. A read, so allowed offline; False,
+        with a reason, when the file isn't on this machine."""
+        source = self._attachment_file(item_key)
+        if source is None:
+            return False
+        shutil.copyfile(source, save_path)
+        return True
+
+    def _attachment_file(self, item_key: str) -> Optional[str]:
+        row = (
+            self._get_connection()
+            .execute(
+                "SELECT a.linkMode, a.path FROM itemAttachments a "
+                "JOIN items i ON i.itemID = a.itemID WHERE i.key = ?",
+                (item_key,),
+            )
+            .fetchone()
+        )
+        path = (row["path"] or "") if row else ""
+        if not path:
+            self._say(f"No file recorded for attachment {item_key}.", logging.WARNING)
+            return None
+        if path.startswith("storage:"):
+            folder = os.path.realpath(
+                os.path.join(os.path.dirname(self.original_db_path), "storage", item_key)
+            )
+            source = os.path.realpath(os.path.join(folder, path[len("storage:") :]))
+            if os.path.commonpath([folder, source]) != folder:
+                self._say(
+                    f"Attachment {item_key} points outside its storage folder.", logging.WARNING
+                )
+                return None
+        elif os.path.isabs(path):
+            source = path
+        else:
+            self._say(
+                f"Attachment {item_key} is stored relative to a base directory ({path}); "
+                "its location isn't known offline.",
+                logging.WARNING,
+            )
+            return None
+        if not os.path.isfile(source):
+            self._say(
+                f"The file for attachment {item_key} is not on this machine: {source}",
+                logging.WARNING,
+            )
+            return None
+        return source
 
     def update_attachment_link(self, item_key: str, version: int, new_path: str) -> bool:
         raise OfflineReadOnly()

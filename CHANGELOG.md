@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🐛 Fixed
+- **PDF text offline:** with `--offline`, anything that needs an attachment's file (the MCP `get_item_text` tool, `item export --format markdown`) got nothing, because the local database reader refused every download and the failure was swallowed as "no readable PDF". It now copies the file from Zotero's own `storage/<KEY>/` folder (or a linked file's absolute path) and, when the file isn't on this machine, says why. Reading only: offline mode still writes nothing.
+
 ## [3.3.0] - 2026-10-03
 
 A minor release about finding things and handing them to scripts and AI agents. `search` gains filters, sorting, paging and ranked full-text search over your PDFs; lists can be printed as `ndjson` or as bare `keys`; `item annotations` reads the highlights and notes you made in your PDFs; `zotero-cli schema` describes the whole command line as JSON; and `zotero-cli mcp serve` offers your library to AI clients through a read-only MCP server. Nothing is removed or changed incompatibly, and the base install has no new dependency: the MCP server is an optional extra (`pip install 'zotero-command-line[mcp]'`). One behaviour to know about: `--offline` search results are now sorted like the Web API's (newest publication date first by default); before, they came in whatever order the database returned.

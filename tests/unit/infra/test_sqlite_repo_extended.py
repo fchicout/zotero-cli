@@ -91,8 +91,6 @@ def test_gateway_forbidden_writes(sample_zotero_db):
     with pytest.raises(ConfigurationError):
         gateway.upload_attachment("K1", "path")
     with pytest.raises(ConfigurationError):
-        gateway.download_attachment("K1", "path")
-    with pytest.raises(ConfigurationError):
         gateway.update_attachment_link("K1", 1, "path")
 
 
