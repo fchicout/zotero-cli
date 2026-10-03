@@ -92,8 +92,14 @@ rag = [
     "google-generativeai>=0.3.0",
     "accelerate>=0.26.0",
 ]
+# MCP server (Issue #557): `zotero-cli mcp serve` for AI clients. SDK imports are
+# lazy and confined to infra/mcp_server.py, so the base install doesn't pay for it.
+mcp = [
+    "mcp>=2.3,<3",
+]
 dev = [
     "zotero-command-line[rag]",
+    "zotero-command-line[mcp]",
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
     "mypy>=1.5.0",

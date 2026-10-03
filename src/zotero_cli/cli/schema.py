@@ -26,6 +26,7 @@ COMMAND_EFFECTS: Dict[str, str] = {
             "item annotations",
             "item inspect",
             "item list",
+            "mcp serve",
             "rag context",
             "rag query",
             "report attachments",

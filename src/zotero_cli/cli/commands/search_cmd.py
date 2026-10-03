@@ -1,6 +1,5 @@
 import argparse
-from itertools import islice
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterator, Optional
 
 from rich.markup import escape
 from rich.table import Table
@@ -9,7 +8,7 @@ from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag
 from zotero_cli.cli.presenters import records
 from zotero_cli.core.exceptions import NotFound, UsageError
-from zotero_cli.core.models import ZoteroQuery
+from zotero_cli.core.services.search_service import Hit, SearchRequest, SearchService
 from zotero_cli.core.utils import search_filters
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
@@ -114,23 +113,6 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         return row
 
     @staticmethod
-    def _build_query(
-        text: Optional[str], args: argparse.Namespace, collection_key: Optional[str]
-    ) -> ZoteroQuery:
-        query = ZoteroQuery(
-            q=text,
-            qmode="titleCreatorYear",
-            item_type=args.item_type,
-            tag=args.tag or None,
-            collection=collection_key,
-        )
-        if args.sort:
-            query.sort = args.sort
-        if args.direction:
-            query.direction = args.direction
-        return query
-
-    @staticmethod
     def _resolve_collection(args: argparse.Namespace, name_or_key: Optional[str]) -> Optional[str]:
         if not name_or_key:
             return None
@@ -180,7 +162,6 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             [args.tag, args.item_type, args.collection, years, added_since, added_until]
         )
 
-        scores: Dict[str, float] = {}
         if args.fulltext:
             if args.doi or args.title:
                 raise UsageError(
@@ -194,17 +175,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             if not args.query:
                 raise UsageError('--fulltext needs words to look for: search --fulltext "words".')
             console.print(f"Searching the full text for: [cyan]{escape(args.query)}[/cyan]...")
-            collection_key = self._resolve_collection(args, args.collection)
-            ranked = gateway.search_fulltext(
-                args.query, self._build_query(None, args, collection_key)
-            )
-            scores = {item.key: score for item, score in ranked}
-            hits: Iterable[ZoteroItem] = (item for item, _ in ranked)
+            text: Optional[str] = args.query
         elif args.doi:
             if has_filter:
                 raise UsageError("--doi names one item and can't be combined with filters.")
             console.print(f"Searching for DOI: [cyan]{escape(args.doi)}[/cyan]...")
-            hits = gateway.get_items_by_doi(args.doi)
+            text = None
         elif args.title or args.query or has_filter:
             text = args.title or args.query
             if args.title:
@@ -213,38 +189,48 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 console.print(f"Searching for: [cyan]{escape(text)}[/cyan]...")
             else:
                 console.print("Searching with filters...")
-            collection_key = self._resolve_collection(args, args.collection)
-            hits = gateway.search_items(self._build_query(text, args, collection_key))
         else:
             raise UsageError("Provide a query, --doi, --title or a filter such as --tag.")
 
-        if years is not None or added_since is not None or added_until is not None:
-            hits = (
-                item
-                for item in hits
-                if search_filters.matches(item, years, added_since, added_until)
+        hits: Iterator[Hit]
+        if args.doi and not args.fulltext:
+            exact = gateway.get_items_by_doi(args.doi)
+            hits = ((item, None) for item in SearchService.window(exact, args.start, args.limit))
+        else:
+            request = SearchRequest(
+                text=text,
+                tags=args.tag or (),
+                item_type=args.item_type,
+                collection_key=self._resolve_collection(args, args.collection),
+                years=years,
+                added_since=added_since,
+                added_until=added_until,
+                sort=args.sort,
+                direction=args.direction,
+                fulltext=args.fulltext,
+                start=args.start,
+                limit=args.limit,
             )
-
-        # Stop reading once --limit hits are in: results arrive a page at a
-        # time, and every page used to be fetched first (Issue #438).
-        stop = args.start + args.limit if args.limit and args.limit > 0 else None
-        selected = islice(hits, args.start, stop)
+            hits = SearchService(gateway).search(request)
 
         columns = self._COLUMNS + [self._SCORE_COLUMN] if args.fulltext else self._COLUMNS
 
-        def record(item: ZoteroItem) -> dict:
-            return self._record(item, scores.get(item.key) if args.fulltext else None)
+        def record(hit: Hit) -> dict:
+            return self._record(hit[0], hit[1])
 
         if fmt in ("ndjson", "keys"):
             # Written as each result arrives, not after the last page (Issue #556).
-            records.render_data(map(record, selected), columns, fmt)
+            records.render_data(map(record, hits), columns, fmt)
             return
 
-        results = list(selected)
+        found = list(hits)
 
         if fmt != "table":
-            records.render_data([record(item) for item in results], columns, fmt)
+            records.render_data([record(hit) for hit in found], columns, fmt)
             return
+
+        results = [item for item, _ in found]
+        scores = {item.key: score for item, score in found if score is not None}
 
         if not results:
             console.print("[yellow]No items found.[/yellow]")
