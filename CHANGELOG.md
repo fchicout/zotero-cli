@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.4.1] - 2026-10-03
+
+A patch release: formatted bibliographies print editors once.
+
 ### 🐛 Fixed
 - **Formatted bibliographies print editors once (bxc 1.3.0):** a reference with editors but no authors (an edited book) listed the editors twice, the second time in parentheses after the title. Fixed in bxc 1.3.0, which also sanitizes the HTML it produces more strictly and reports network problems as their own error class; zotero-cli now requires `bxc>=1.3.0`.
 
