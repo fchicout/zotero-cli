@@ -33,7 +33,7 @@ zotero-cli --offline mcp serve      # read the local zotero.sqlite; adds full-te
 | `list_items` | The items of a collection, or of the library, paged. |
 | `list_collections`, `list_tags` | The collections and the tags. |
 | `get_annotations` | The highlights and notes made in an item's PDFs (as `item annotations`). |
-| `get_item_text` | The text extracted from an item's PDF, capped (20,000 characters by default). |
+| `get_item_text` | The text extracted from an item's PDF, capped (20,000 characters by default). Offline it reads the PDF from Zotero's `storage` folder. |
 | `get_bibliography` | Formatted references for item keys in a CSL style (as `--as bibliography`). |
 | `describe_cli` | The `zotero-cli schema` document. |
 
