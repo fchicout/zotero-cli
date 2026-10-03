@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 from .models import (
     Job,
@@ -324,6 +324,18 @@ class ZoteroGateway(
     @abstractmethod
     def search_items(self, query: ZoteroQuery) -> Iterator[ZoteroItem]:
         pass
+
+    def search_fulltext(
+        self, text: str, query: Optional[ZoteroQuery] = None
+    ) -> List[Tuple[ZoteroItem, float]]:
+        """Items whose PDF text contains every word of `text`, best match first, with a
+        relevance score (higher is better); `query` adds the usual filters (tag, type,
+        collection, ...). Only the offline gateway has Zotero's index to read, so the
+        default says so (Issue #560)."""
+        from zotero_cli.core.exceptions import UsageError
+
+        del text, query  # the signature is the contract; only the offline gateway uses them
+        raise UsageError("Full-text search reads Zotero's local index: run it with --offline.")
 
     @abstractmethod
     def verify_credentials(self) -> bool:

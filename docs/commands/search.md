@@ -7,7 +7,7 @@ Search for items in your Zotero library using keywords, titles, or exact DOIs.
 zotero-cli search [query] [--doi DOI] [--title TITLE] [--limit N] [--start N]
                    [--tag TAG]... [--type TYPE] [--collection NAME|KEY]
                    [--year YEAR|FROM-TO] [--added-since DATE] [--added-until DATE]
-                   [--sort FIELD] [--direction asc|desc] [--format table|json|csv|ndjson|keys]
+                   [--sort FIELD] [--direction asc|desc] [--fulltext] [--format table|json|csv|ndjson|keys]
 ```
 
 ---
@@ -37,6 +37,14 @@ Limit the number of results displayed (default: 50).
 ```bash
 zotero-cli search "transformer" --limit 10
 ```
+
+### `--fulltext`
+Search inside the PDFs' text instead of title, creator and year. Offline only: it reads the full-text index Zotero keeps in `fulltext.sqlite` next to `zotero.sqlite`.
+```bash
+zotero-cli --offline search --fulltext "retrieval augmented"
+zotero-cli --offline search --fulltext "buffer overflow" --tag to-read --year 2020- --limit 10
+```
+Every word must appear in the text of one of the item's PDFs; results are ranked best first and show a relevance `Score` (`--format json|csv|ndjson` carry it as `score`). The score only orders results within one search; it is tiny for words found in most PDFs. Filters (`--tag`, `--type`, `--collection`, `--year`, ...) and `--limit`/`--start` apply as usual; `--doi`, `--title`, `--sort` and `--direction` do not. Words are searched literally: `OR`, `NEAR` and quotes are not query syntax. Annotations and notes are not in this index. Without `--offline`, or with a Zotero that doesn't keep its index in `fulltext.sqlite`, the command says what is missing.
 
 ### Filters
 Filters work with or without a keyword, with the Web API and with `--offline`, and combine freely.
