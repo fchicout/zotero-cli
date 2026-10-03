@@ -44,6 +44,7 @@ Deletions through the Zotero Web API are permanent: they don't go through Zotero
 | `--yes` | Boolean | Don't ask for confirmation (for scripts) | Optional. Default: False. |
 | `--include-shared` | Boolean | With `--recursive`: also delete items that are filed in other collections | Optional. Default: False. |
 | `--trash` | Boolean | With `--recursive`: move the items to Zotero's trash (recoverable with `item restore`) instead of deleting them permanently | Optional. Default: False. The collections themselves are still deleted for good, so restored items come back without them. Needs `--recursive`. |
+| `--permanent` | Boolean | With `--recursive`: delete the items for good (what happens without `--trash`) | Optional. Default: False. Without either flag a recursive delete warns that 4.0 moves the items to the trash by default; pass `--permanent` to keep deleting for good, or `--trash` to start now. Can't be combined with `--trash`. Needs `--recursive`. |
 | `--version` | Integer | Collection version (optional if recursive) | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)

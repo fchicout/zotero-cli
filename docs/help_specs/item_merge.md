@@ -51,6 +51,7 @@ In the **`--from-plan` bulk form**, a CSV or JSON file (produced by `report dupl
 | `--execute` | Boolean | Actually perform the merge | Optional. Default: False (preview only). |
 | `--force` | Boolean | Skip the interactive confirmation prompt | Optional. Default: False. Still requires `--execute`. |
 | `--trash` | Boolean | Move the emptied duplicates to Zotero's trash (recoverable with `item restore`) instead of deleting them permanently | Optional. Default: False. |
+| `--permanent` | Boolean | Delete the emptied duplicates for good (what happens without `--trash`) | Optional. Default: False. Without either flag an applied merge warns that 4.0 trashes the duplicates by default; pass `--permanent` to keep deleting them for good. Can't be combined with `--trash`. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Consolidating a paper imported twice from different search databases

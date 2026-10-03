@@ -25,7 +25,7 @@ Permanently deletes a single item from the Zotero library by key.
 ## 4. Description (Instructional Architecture)
 `item delete` calls the Zotero Web API's item `DELETE` endpoint directly. This is a hard, permanent removal, not Zotero's recoverable trash. Once deleted, the item's key is gone; any external document (e.g. a citation manager) referencing that key will break.
 
-With `--trash` it does what Zotero Desktop's delete does instead: it sets the item's `deleted` flag through the Web API (Issue #402), so the item goes to Zotero's trash, keeps its collections, and `item restore` (or Desktop) brings it back. `--trash` is the same operation as `item trash`. Trash becomes the default, with `--permanent` for a hard delete, in 4.0 (Issue #462).
+With `--trash` it does what Zotero Desktop's delete does instead: it sets the item's `deleted` flag through the Web API (Issue #402), so the item goes to Zotero's trash, keeps its collections, and `item restore` (or Desktop) brings it back. `--trash` is the same operation as `item trash`. Trash becomes the default in 4.0 (Issue #462), with `--permanent` for a hard delete: `--permanent` already exists, so pass it now to keep permanent deletion, and an applied delete without `--trash` or `--permanent` warns about the change.
 
 If `--version` is omitted, the command first fetches the item to resolve its current version (needed for Zotero's optimistic-locking write), then deletes it. If the item can't be found, nothing is deleted.
 
@@ -39,6 +39,7 @@ This command discards the item outright. If the goal is instead to consolidate a
 | `--execute` | Flag | Delete the item | Mutually exclusive with `--dry-run`. Currently the default for now (see Cognitive Safeguards) - kept for scripts that already pass it and for future-proofing once 4.0 flips the default (Issue #378, #462). |
 | `--dry-run` | Flag | Preview the item and its children without deleting | Mutually exclusive with `--execute`. |
 | `--trash` | Flag | Move the item to Zotero's trash (recoverable) instead of deleting it permanently | Optional. Recoverable and new, so it applies without the deprecation warning; combine with `--dry-run` to preview. |
+| `--permanent` | Boolean | Delete the item permanently (what happens without `--trash`) | Optional. Default: False. Without `--trash` or `--permanent` an applied delete warns that 4.0 moves the item to the trash by default; `--permanent` keeps deleting for good and silences the warning. Can't be combined with `--trash`. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Removing a mistakenly-added test/junk record

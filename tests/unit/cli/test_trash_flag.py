@@ -119,7 +119,7 @@ def test_trash_needs_recursive_on_collection_delete():
     with patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as gateway:
         gateway.return_value.get_collection_id_by_name.return_value = "COL_KEY"
         gateway.return_value.get_collection.return_value = {"version": 1}
-        with pytest.raises(UsageError, match="needs --recursive"):
+        with pytest.raises(UsageError, match="need --recursive"):
             command.execute(args)
 
 
@@ -259,7 +259,7 @@ def test_item_transfer_trash_needs_delete_source():
         patch("dataclasses.replace", return_value=MagicMock()),
         patch("zotero_cli.infra.factory.GatewayFactory.get_transfer_service"),
     ):
-        with pytest.raises(UsageError, match="needs --delete-source"):
+        with pytest.raises(UsageError, match="need --delete-source"):
             command.execute(args)
 
 

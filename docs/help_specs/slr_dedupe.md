@@ -50,6 +50,7 @@ Without `--execute`, only a preview is shown (and `--export-plan`, if given, sti
 | `--execute` | Boolean | Merge the auto-resolved (MATCHING/UNSCREENED) groups | Optional. Default: False (preview only). CONFLICTING groups are never auto-merged. |
 | `--force` | Boolean | Skip the interactive confirmation prompt | Optional. Default: False. Still requires `--execute`. |
 | `--trash` | Boolean | Move the merged duplicates to Zotero's trash (recoverable with `item restore`) instead of deleting them permanently | Optional. Default: False. |
+| `--permanent` | Boolean | Delete the merged duplicates for good (what happens without `--trash`) | Optional. Default: False. Without either flag an applied merge warns that 4.0 trashes the duplicates by default; pass `--permanent` to keep deleting them for good. Can't be combined with `--trash`. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Reviewing SLR-wide duplicates before merging anything

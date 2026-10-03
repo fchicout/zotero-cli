@@ -31,6 +31,7 @@ The command performs a "Deep Copy" of the item: it fetches the complete JSON met
 | :--- | :--- | :--- | :--- |
 | `--delete-source` | Boolean | Delete item from source library after transfer | Optional. Default: False. |
 | `--trash` | Boolean | With `--delete-source`: move the source item to Zotero's trash (recoverable with `item restore`) instead of deleting it permanently | Optional. Default: False. Needs `--delete-source`. |
+| `--permanent` | Boolean | With `--delete-source`: delete the source item for good (what happens without `--trash`) | Optional. Default: False. Without either flag, `--delete-source` warns that 4.0 trashes the source by default; pass `--permanent` to keep deleting it for good. Can't be combined with `--trash`. Needs `--delete-source`. |
 | `--key` | String | Zotero Item Key | Required. |
 | `--target-group` | String | Target Group ID | Required. |
 

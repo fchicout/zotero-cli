@@ -14,7 +14,12 @@ from zotero_cli.cli.flags import (
     add_renamed_flag,
 )
 from zotero_cli.cli.presenters import records
-from zotero_cli.cli.safety import confirm_destructive, preview_notice
+from zotero_cli.cli.safety import (
+    add_permanent_flag,
+    confirm_destructive,
+    preview_notice,
+    resolve_trash,
+)
 from zotero_cli.core.exceptions import NotFound, UsageError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.backup_service import BackupService
@@ -152,6 +157,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             help="With --recursive: move the items to Zotero's trash (recoverable) instead of "
             "deleting them permanently. The collections themselves are still deleted",
         )
+        add_permanent_flag(delete_p, "the items (with --recursive)")
 
         # Rename
         rename_p = sub.add_parser(
@@ -336,10 +342,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 version = col.get("version")
 
             if args.verb == "delete":
-                if getattr(args, "trash", False) is True and not args.recursive:
+                wants_trash_choice = getattr(args, "trash", False) or getattr(
+                    args, "permanent", False
+                )
+                if wants_trash_choice is True and not args.recursive:
                     raise UsageError(
-                        "--trash moves the deleted items to Zotero's trash, so it needs --recursive "
-                        "(without it the collection's items stay in your library anyway)."
+                        "--trash and --permanent apply to the deleted items, so they need "
+                        "--recursive (without it the collection's items stay in your library "
+                        "anyway)."
                     )
                 if args.recursive:
                     self._handle_recursive_delete(args, col_id, version)
@@ -515,7 +525,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         include_shared = getattr(args, "include_shared", False)
         to_delete = plan.items_to_delete + (plan.shared_items if include_shared else [])
 
-        trash = getattr(args, "trash", False) is True
+        trash = resolve_trash(args, "collection delete --recursive", applying=bool(args.execute))
         console.print(
             f"Deleting '{safe_markup(args.key)}' ({safe_markup(col_id)}) recursively would "
             + (
