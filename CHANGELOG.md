@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-10-03
+
+A minor release that prepares the 4.0 default change for deletes: `--permanent` is added, and a delete that gets neither `--trash` nor `--permanent` warns that 4.0 moves items to Zotero's trash by default. Nothing changes behaviour in 3.x.
+
 ### ✨ Added
 - **`--permanent` on every delete that defaults to permanent (Issue #402):** `item delete`, `item merge` (and `--plan`), `item transfer --delete-source`, `collection delete --recursive` and `slr dedupe` take `--permanent`, the explicit spelling of deleting for good. `--trash` and `--permanent` together are a usage error.
 
