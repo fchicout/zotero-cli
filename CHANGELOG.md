@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.3.1] - 2026-10-03
+
+A patch release: PDF text now works with `--offline`.
+
 ### 🐛 Fixed
 - **PDF text offline:** with `--offline`, anything that needs an attachment's file (the MCP `get_item_text` tool, `item export --format markdown`) got nothing, because the local database reader refused every download and the failure was swallowed as "no readable PDF". It now copies the file from Zotero's own `storage/<KEY>/` folder (or a linked file's absolute path) and, when the file isn't on this machine, says why. Reading only: offline mode still writes nothing.
 
