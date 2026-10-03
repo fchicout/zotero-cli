@@ -178,16 +178,16 @@ wheels = [
 
 [[package]]
 name = "bxc"
-version = "1.2.0"
+version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bibtexparser" },
     { name = "citeproc-py" },
     { name = "platformdirs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6b/94/7e4f5e3e869b6209fcd7758fe6a93d2bca223427bda9c8385e424021ab97/bxc-1.2.0.tar.gz", hash = "sha256:e11c2062382a41b86d1fbdc1e276324ee6794b71c8fe698f40c2612d4f6f712c", size = 2424694, upload-time = "2026-10-01T00:27:01.105Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/00/19/c9d6f3cdb06babf07fec0e18bf688de51d8bd627843f24c8624e83ac1efe/bxc-1.3.0.tar.gz", hash = "sha256:e1c50910bec17adc14eb788e05d5eac33bee17c241a66abadadb6df338efc72d", size = 2428817, upload-time = "2026-10-02T17:19:42.683Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c7/58/a0440e40000063ff08a4caea27254160dd617eeee9f4a85e82fdb1609406/bxc-1.2.0-py3-none-any.whl", hash = "sha256:cc74cecaf9ba97eb0d5434cd25cb4f4433a4beb94377c1bce6acb382ddfb98c4", size = 2364869, upload-time = "2026-10-01T00:26:59.754Z" },
+    { url = "https://files.pythonhosted.org/packages/b8/72/efbdf0a0b75a3c392a14cd9e24cb1c481901d44ad629daa19f61ad27681f/bxc-1.3.0-py3-none-any.whl", hash = "sha256:13b6708a1437481bf1d0267f704d5b1eac06026d381c76153ef083e1b7a354eb", size = 2367377, upload-time = "2026-10-02T17:19:41.228Z" },
 ]
 
 [[package]]
@@ -3519,7 +3519,7 @@ requires-dist = [
     { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7.5" },
     { name = "beautifulsoup4", specifier = ">=4.12.0" },
     { name = "bibtexparser", specifier = ">=2.0.1,<3" },
-    { name = "bxc", specifier = ">=1.2.0,<2" },
+    { name = "bxc", specifier = ">=1.3.0,<2" },
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "einops", marker = "extra == 'rag'", specifier = ">=0.7.0" },
     { name = "fastapi", specifier = ">=0.109.0" },

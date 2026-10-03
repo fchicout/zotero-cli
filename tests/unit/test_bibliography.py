@@ -290,3 +290,13 @@ def test_item_inspect_prints_the_bibliography(capsys):
     out = capsys.readouterr().out
     assert "REF" in out
     assert "\x1b" not in out
+
+
+def test_editors_standing_in_for_authors_are_printed_once():
+    """bxc 1.3.0: a book with only editors listed them twice, the second time in
+    parentheses after the title."""
+    book = "@book{b,editor={Doe, J. and Roe, R.},title={The Book},year={2020},publisher={Pub}}"
+
+    text = BxcBibliographyFormatter(offline=True).format(book, "apa")
+
+    assert text.strip() == "Doe, J., & Roe, R. (eds.). (2020). The Book. Pub."
