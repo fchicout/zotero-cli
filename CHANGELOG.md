@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-10-05
+
+A minor release for programs built on zotero-cli: note writes now say whether the note was stored, and a concurrent edit to a note is no longer overwritten. The new Python names are covered by the compatibility policy (docs/COMPATIBILITY.md, "Python API for consumers").
+
 ### ✨ Added
 - **Note writes say whether the note was stored (Issue #577):** `create_note_result` and `update_note_result` (on `NoteRepository` and the Web API client) return a `WriteOutcome` with a `WriteStatus`: `APPLIED` (with the stored key and version), `NOT_APPLIED` (Zotero refused it), `CONFLICT` (the note changed since the version you read; nothing was written) or `UNKNOWN` (a timeout, dropped connection or 5xx: the write may have landed). Transport errors are no longer swallowed into a bare `False`. `update_note_result(..., retry_on_conflict=True)` opts in to re-reading the note's version and writing once more, and reports that second write honestly. The new names are listed in docs/COMPATIBILITY.md under "Python API for consumers", so programs built on zotero-cli can rely on them.
 
