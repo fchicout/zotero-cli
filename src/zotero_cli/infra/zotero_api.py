@@ -8,7 +8,14 @@ import requests
 from zotero_cli.core import annotations as annotation_records
 from zotero_cli.core.exceptions import AuthError, NotFound
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.models import KeyIdentity, ResearchPaper, ZoteroQuery
+from zotero_cli.core.logging_config import redact
+from zotero_cli.core.models import (
+    KeyIdentity,
+    ResearchPaper,
+    WriteOutcome,
+    WriteStatus,
+    ZoteroQuery,
+)
 from zotero_cli.core.utils.collection_resolver import resolve_collection_key
 from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.utils.url_safety import (
@@ -591,30 +598,162 @@ class ZoteroAPIClient(ZoteroGateway):
             return False
 
     def create_note(self, parent_item_key: str, note_content: str) -> bool:
-        payload = [{"itemType": "note", "parentItem": parent_item_key, "note": note_content}]
-        try:
-            response = self.http.post("items", json_data=payload)
-            return bool(self._parse_write_response(response))
-        except Exception:
-            logger.exception(f"ZoteroAPIClient: Error creating note for {parent_item_key}")
-            return False
+        return self.create_note_result(parent_item_key, note_content).applied
 
     def update_note(
         self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None
     ) -> bool:
-        payload = {"note": note_content, "version": version}
+        return self.update_note_result(note_key, version, note_content, parent_item_key).applied
+
+    def create_note_result(self, parent_item_key: str, note_content: str) -> WriteOutcome:
+        payload = [{"itemType": "note", "parentItem": parent_item_key, "note": note_content}]
+        try:
+            response = self.http.post("items", json_data=payload)
+        except Exception as exc:
+            return self._failed_write(exc, f"creating a note for {parent_item_key}")
+        if is_duplicate_write(response):
+            # An earlier attempt of this same request was stored; Zotero doesn't
+            # repeat its key, so look for the note (best effort).
+            return WriteOutcome(
+                WriteStatus.APPLIED,
+                412,
+                key=self._find_note(parent_item_key, note_content),
+                detail="Zotero had already stored this note (an earlier attempt succeeded).",
+            )
+        try:
+            data = cast(Dict[str, Any], response.json())
+        except ValueError:
+            return WriteOutcome(
+                WriteStatus.UNKNOWN,
+                response.status_code,
+                detail="Zotero answered, but not with JSON: the note may or may not be stored.",
+            )
+        successful = data.get("successful")
+        if successful:
+            stored = successful[next(iter(successful))]
+            return WriteOutcome(
+                WriteStatus.APPLIED,
+                response.status_code,
+                key=str(stored["key"]),
+                version=self._written_version(response, stored),
+            )
+        failed = data.get("failed")
+        if failed:
+            first = failed[next(iter(failed))]
+            code = first.get("code") if isinstance(first, dict) else None
+            logger.warning(f"ZoteroAPIClient: note write failed: {failed}")
+            return WriteOutcome(
+                WriteStatus.NOT_APPLIED,
+                code if isinstance(code, int) else response.status_code,
+                detail=redact(str(first))[:300],
+            )
+        return WriteOutcome(
+            WriteStatus.UNKNOWN,
+            response.status_code,
+            detail="Zotero's answer listed neither a stored nor a failed note.",
+        )
+
+    def update_note_result(
+        self,
+        note_key: str,
+        version: int,
+        note_content: str,
+        parent_item_key: Optional[str] = None,
+        retry_on_conflict: bool = False,
+    ) -> WriteOutcome:
+        payload: Dict[str, Any] = {"note": note_content}
         if parent_item_key:
             payload["parentItem"] = parent_item_key
+        if not version:
+            # The caller doesn't know the note's version (some callers pass 0): use
+            # the current one, as delete_item does. The write is then unguarded.
+            try:
+                current = self.get_item(note_key)
+            except Exception as exc:
+                return self._failed_write(exc, f"reading note {note_key}")
+            if current is None:
+                return WriteOutcome(
+                    WriteStatus.NOT_APPLIED, 404, detail=f"Note {note_key} does not exist."
+                )
+            version = current.version
+        outcome = self._patch_note(note_key, version, payload)
+        if outcome.status is WriteStatus.CONFLICT and retry_on_conflict:
+            # Opt-in last-writer-wins: write once more against the note's current
+            # version, and report what that second write did.
+            try:
+                current = self.get_item(note_key)
+            except Exception as exc:
+                return self._failed_write(exc, f"re-reading note {note_key}")
+            if current is None:
+                return WriteOutcome(
+                    WriteStatus.NOT_APPLIED, 404, detail=f"Note {note_key} no longer exists."
+                )
+            outcome = self._patch_note(note_key, current.version, payload)
+        return outcome
+
+    def _patch_note(self, note_key: str, version: int, payload: Dict[str, Any]) -> WriteOutcome:
+        """One PATCH of a note, guarded by the note's own version (a 412 is a
+        conflict: someone else changed it since `version`)."""
         try:
-            response = self.http.patch(f"items/{note_key}", json_data=payload, version_check=False)
-            if response.status_code == 412:
-                new_version = self.http.last_library_version
-                payload["version"] = new_version
-                self.http.patch(f"items/{note_key}", json_data=payload, version_check=False)
-            return True
+            response = self.http.patch(f"items/{note_key}", json_data=payload, version=version)
+        except Exception as exc:
+            return self._failed_write(exc, f"updating note {note_key}")
+        if response.status_code == 412:
+            return WriteOutcome(
+                WriteStatus.CONFLICT,
+                412,
+                key=note_key,
+                detail=f"Note {note_key} changed since version {version}; nothing was written.",
+            )
+        return WriteOutcome(
+            WriteStatus.APPLIED,
+            response.status_code,
+            key=note_key,
+            version=self._written_version(response, {}),
+        )
+
+    def _written_version(
+        self, response: requests.Response, stored: Dict[str, Any]
+    ) -> Optional[int]:
+        """The version Zotero gave the object it just wrote: the object's own, else the
+        library version after the write."""
+        for candidate in (
+            stored.get("version"),
+            response.headers.get("Last-Modified-Version"),
+            self.http.last_library_version,
+        ):
+            try:
+                if candidate:
+                    return int(candidate)
+            except (TypeError, ValueError):
+                continue
+        return None
+
+    def _find_note(self, parent_item_key: str, note_content: str) -> Optional[str]:
+        try:
+            for child in self.get_item_children(parent_item_key):
+                data = child.get("data", child)
+                if data.get("itemType") == "note" and data.get("note") == note_content:
+                    return str(child.get("key") or data.get("key"))
         except Exception:
-            logger.exception(f"ZoteroAPIClient: Error updating note {note_key}")
-            return False
+            logger.debug("Could not look up the note that was already created", exc_info=True)
+        return None
+
+    @staticmethod
+    def _failed_write(exc: Exception, what: str) -> WriteOutcome:
+        """Turn a failed write into an outcome instead of swallowing it. A rejection
+        (4xx) left Zotero unchanged; a 5xx, a timeout or a dropped connection may not
+        have; a 412 is a version conflict."""
+        cause = getattr(exc, "__cause__", None)
+        response = getattr(cause, "response", None)
+        status = getattr(response, "status_code", None)
+        detail = redact(str(exc))[:300]
+        logger.warning(f"ZoteroAPIClient: error {what}: {detail}")
+        if status == 412:
+            return WriteOutcome(WriteStatus.CONFLICT, status, detail=detail)
+        if isinstance(status, int) and 400 <= status < 500:
+            return WriteOutcome(WriteStatus.NOT_APPLIED, status, detail=detail)
+        return WriteOutcome(WriteStatus.UNKNOWN, status, detail=detail)
 
     def delete_item(self, item_key: str, version: int) -> bool:
         """Deletes the item only if it's still at `version` (Issue #384: it

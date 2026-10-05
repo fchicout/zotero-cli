@@ -8,7 +8,7 @@ from zotero_cli.core.interfaces import (
     TagRepository,
     ZoteroGateway,
 )
-from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.models import ResearchPaper, WriteOutcome
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -134,6 +134,21 @@ class ZoteroNoteRepository(NoteRepository):
         self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None
     ) -> bool:
         return self.gateway.update_note(note_key, version, note_content, parent_item_key)
+
+    def create_note_result(self, parent_item_key: str, note_content: str) -> WriteOutcome:
+        return self.gateway.create_note_result(parent_item_key, note_content)
+
+    def update_note_result(
+        self,
+        note_key: str,
+        version: int,
+        note_content: str,
+        parent_item_key: Optional[str] = None,
+        retry_on_conflict: bool = False,
+    ) -> WriteOutcome:
+        return self.gateway.update_note_result(
+            note_key, version, note_content, parent_item_key, retry_on_conflict
+        )
 
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
         return self.gateway.get_item_children(item_key)

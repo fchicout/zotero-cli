@@ -5,6 +5,32 @@ from typing import Any, Dict, List, Optional, Sequence
 from .zotero_item import ZoteroItem
 
 
+class WriteStatus(str, Enum):
+    """What is known about a write after it was attempted (Issue #577)."""
+
+    APPLIED = "applied"  # Zotero stored it
+    NOT_APPLIED = "not_applied"  # Zotero refused it, or it was never sent: nothing changed
+    CONFLICT = "conflict"  # not applied: the object changed since the version the caller read
+    UNKNOWN = "unknown"  # the request may have landed (timeout, dropped connection, 5xx)
+
+
+@dataclass(frozen=True)
+class WriteOutcome:
+    """The result of one write to Zotero, so a caller can tell a rejected write
+    from one that may have landed. `key` and `version` are the stored object's,
+    when known. `detail` is redacted text for a person to read."""
+
+    status: WriteStatus
+    http_status: Optional[int] = None
+    key: Optional[str] = None
+    version: Optional[int] = None
+    detail: str = ""
+
+    @property
+    def applied(self) -> bool:
+        return self.status is WriteStatus.APPLIED
+
+
 class ScreeningStatus(str, Enum):
     ACCEPTED = "accepted"
     REJECTED = "rejected"

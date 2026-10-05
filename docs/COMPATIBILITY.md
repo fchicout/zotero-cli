@@ -31,7 +31,7 @@ These can change in any release:
 - Table layouts, colours, progress bars and other human-oriented output (use `--format json` or `csv` in scripts).
 - The wording of messages, warnings and errors.
 - The log file's format and location.
-- Importing `zotero_cli` modules from Python. Only the command line is a public interface.
+- Importing `zotero_cli` modules from Python, except the names listed under [Python API for consumers](#python-api-for-consumers). Otherwise only the command line is a public interface.
 - **Exit codes**, until [#368](https://github.com/fchicout/zotero-cli/issues/368) makes them consistent. Today some failures still exit with status 0. Once #368 is fixed, exit codes join the public surface in a minor release.
 - **The `rag` commands** (the optional `rag` extra), which are experimental and **deprecated**: they warn on every run and are removed, with the `[rag]` extra, in 4.0, when RAG moves to a separate tool ([#414](https://github.com/fchicout/zotero-cli/issues/414), tracked in [#462](https://github.com/fchicout/zotero-cli/issues/462)).
 
@@ -57,7 +57,16 @@ Work ships in trains, one version class at a time:
 
 A security fix may restrict behaviour, or add the opt-in setting it needs, in a **patch** release, when waiting for the next minor would leave users exposed. The CHANGELOG marks such entries as a security exception and says what to change. Everything else about the fix follows the rules above.
 
-## Python and platforms
+## Python API for consumers
+
+Programs that use zotero-cli as a library (for example a service built on top of it) can rely on these names, and they follow the rules above: they change incompatibly only in a major release, after a deprecation warning. Everything else you can import from `zotero_cli` stays internal and may change in any release.
+
+| Name | Where | What it promises |
+| :--- | :--- | :--- |
+| `WriteStatus` | `zotero_cli.core.models` | `APPLIED`, `NOT_APPLIED`, `CONFLICT`, `UNKNOWN`. New members only in a major release. |
+| `WriteOutcome` | `zotero_cli.core.models` | `status`, `http_status`, `key`, `version`, `detail`, and `applied`. New optional fields may appear in a minor release. |
+| `create_note_result`, `update_note_result` | `NoteRepository` and the Web API client (`ZoteroAPIClient`) | Say whether a note was stored. `UNKNOWN` means the request may have landed (a timeout, a dropped connection, a 5xx): check before writing again. `update_note_result` is guarded by the note's own version; a newer note gives `CONFLICT` and nothing is written, unless `retry_on_conflict=True`. |
+
 
 - **Minimum Python version:** raised only in a **minor** release, and announced one minor release ahead. zotero-cli currently supports Python 3.11 to 3.14.
 - **Supported platforms:** listed in the [README](../README.md#supported-platforms). Dropping one is announced like a deprecation.

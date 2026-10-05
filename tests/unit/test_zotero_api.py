@@ -582,21 +582,21 @@ def test_update_items_failure(client):
     assert success is False
 
 
-def test_update_note_412(client):
+def test_update_note_412_is_not_applied_and_not_retried(client):
+    """Issue #577: a 412 means someone else changed the note. It used to be re-sent under
+    the library version, overwriting their edit, and reported as a success."""
     res412 = Mock()
     res412.status_code = 412
     res412.headers = {}
-
-    res200 = Mock()
-    res200.status_code = 200
-    res200.headers = {}
-
-    client.http.session.patch.side_effect = [res412, res200]
+    client.http.session.patch.return_value = res412
     client.http.last_library_version = 150
 
     success = client.update_note("N1", 100, "New content")
-    assert success is True
-    assert client.http.session.patch.call_count == 2
+
+    assert success is False
+    assert client.http.session.patch.call_count == 1
+    sent = client.http.session.patch.call_args.kwargs
+    assert sent["headers"]["If-Unmodified-Since-Version"] == "100"
 
 
 def test_update_item_metadata(client):

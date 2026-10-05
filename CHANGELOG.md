@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### ✨ Added
+- **Note writes say whether the note was stored (Issue #577):** `create_note_result` and `update_note_result` (on `NoteRepository` and the Web API client) return a `WriteOutcome` with a `WriteStatus`: `APPLIED` (with the stored key and version), `NOT_APPLIED` (Zotero refused it), `CONFLICT` (the note changed since the version you read; nothing was written) or `UNKNOWN` (a timeout, dropped connection or 5xx: the write may have landed). Transport errors are no longer swallowed into a bare `False`. `update_note_result(..., retry_on_conflict=True)` opts in to re-reading the note's version and writing once more, and reports that second write honestly. The new names are listed in docs/COMPATIBILITY.md under "Python API for consumers", so programs built on zotero-cli can rely on them.
+
+### 🐛 Fixed
+- **A concurrent edit to a note is no longer overwritten (Issue #577):** `update_note` used to answer a 412 by sending the write again under the library's version, which always passes, and report success without checking the second response. It now sends the note's own version, treats a 412 as "not applied" and returns `False`. This protects SDB decision notes (`slr` decisions, `sdb update`, CSV import). A caller that passes version 0 gets the current version looked up first.
+- **A duplicate note create reports success (Issue #577):** when Zotero says it already stored the note (a retry after a dropped connection), `create_note` returns `True` instead of `False`; the note exists.
+
 ## [3.4.1] - 2026-10-03
 
 A patch release: formatted bibliographies print editors once.
