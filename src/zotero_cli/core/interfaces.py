@@ -8,6 +8,8 @@ from .models import (
     SearchResult,
     VectorChunk,
     VerifiedSearchResult,
+    WriteOutcome,
+    WriteStatus,
     ZoteroQuery,
 )
 from .zotero_item import ZoteroItem
@@ -143,6 +145,26 @@ class NoteRepository(ABC):
         self, note_key: str, version: int, note_content: str, parent_item_key: Optional[str] = None
     ) -> bool:
         pass
+
+    def create_note_result(self, parent_item_key: str, note_content: str) -> WriteOutcome:
+        """`create_note`, but saying whether the note was stored (Issue #577). The default
+        only knows the boolean; the Web API client overrides it with the real outcome."""
+        stored = self.create_note(parent_item_key, note_content)
+        return WriteOutcome(WriteStatus.APPLIED if stored else WriteStatus.NOT_APPLIED)
+
+    def update_note_result(
+        self,
+        note_key: str,
+        version: int,
+        note_content: str,
+        parent_item_key: Optional[str] = None,
+        retry_on_conflict: bool = False,
+    ) -> WriteOutcome:
+        """`update_note` with the real outcome. `version` is the note's own version: a
+        write against a newer note is a `CONFLICT`, never an overwrite, unless
+        `retry_on_conflict` opts in to re-reading the version and writing once more."""
+        stored = self.update_note(note_key, version, note_content, parent_item_key)
+        return WriteOutcome(WriteStatus.APPLIED if stored else WriteStatus.NOT_APPLIED)
 
     @abstractmethod
     def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:

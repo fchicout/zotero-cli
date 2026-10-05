@@ -62,7 +62,7 @@ def test_retry_after_a_committed_write_creates_nothing_twice(failure):
     tokens = {c["token"] for c in session.calls}
     assert len(tokens) == 1 and None not in tokens and len(tokens.pop()) == 32
     assert all(c["timeout"] for c in session.calls)
-    assert result is False  # created, but its key isn't known: reported, not duplicated
+    assert result is True  # created once; the note exists even though its key isn't repeated (#577)
 
 
 def test_each_logical_post_gets_its_own_token():
