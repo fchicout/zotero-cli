@@ -151,7 +151,8 @@ def test_update_sends_the_notes_own_version_and_reports_the_new_one(client):
 
     assert outcome == WriteOutcome(WriteStatus.APPLIED, 204, key="N1", version=77)
     method, url, sent = session.calls[0]
-    assert method == "patch" and url.endswith("/items/N1")
+    assert method == "patch"
+    assert url.endswith("/items/N1")
     assert sent["headers"]["If-Unmodified-Since-Version"] == "70"
     assert sent["json"] == {"note": "<p>new</p>"}
 
