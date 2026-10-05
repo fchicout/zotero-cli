@@ -25,7 +25,7 @@ console = Console()
 @CommandRegistry.register
 class SLRCommand(BaseCommand):
     name = "slr"
-    help = "Systematic Literature Review (SLR) workflow tools"
+    help = "Systematic Literature Review (SLR) workflow tools (deprecated: removed in 4.0.0)"
 
     def register_args(self, parser: argparse.ArgumentParser) -> None:
         sub = parser.add_subparsers(dest="verb", required=True)

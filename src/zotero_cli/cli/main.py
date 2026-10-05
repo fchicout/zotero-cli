@@ -35,6 +35,7 @@ from typing import Any  # noqa: E402
 from zotero_cli import __version__  # noqa: E402
 from zotero_cli.cli import commands  # noqa: F401, E402 (Trigger registration)
 from zotero_cli.cli.base import CommandRegistry  # noqa: E402
+from zotero_cli.cli.deprecation import warn_deprecated_command  # noqa: E402
 from zotero_cli.cli.notify import stderr_notify  # noqa: E402
 from zotero_cli.core.config import get_config  # noqa: E402
 from zotero_cli.core.exceptions import EXIT_CODES, ZoteroCliError  # noqa: E402
@@ -149,6 +150,7 @@ def main() -> None:
             get_config(args.config)
 
         if hasattr(args, "func"):
+            warn_deprecated_command(args)
             args.func(args)
         else:
             parser.print_help()
