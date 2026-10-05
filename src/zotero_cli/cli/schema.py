@@ -9,6 +9,7 @@ import argparse
 from typing import Any, Dict, List, Optional, Sequence
 
 from zotero_cli import __version__
+from zotero_cli.cli.deprecation import schema_marker
 from zotero_cli.core.exceptions import EXIT_CODES
 
 SCHEMA_VERSION = 1
@@ -220,6 +221,7 @@ def _describe_command(
         "description": " ".join((parser.description or "").split()) or None,
         "arguments": [_describe_argument(a) for a in _visible_arguments(parser)],
     }
+    node["deprecated"] = schema_marker(path)
     children = _subparsers(parser)
     if children is None:
         key = " ".join(path)

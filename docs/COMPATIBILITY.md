@@ -57,6 +57,14 @@ Work ships in trains, one version class at a time:
 
 A security fix may restrict behaviour, or add the opt-in setting it needs, in a **patch** release, when waiting for the next minor would leave users exposed. The CHANGELOG marks such entries as a security exception and says what to change. Everything else about the fix follows the rules above.
 
+## Scheduled for removal
+
+Deprecated in 3.6.0 and removed in 4.0.0 ([#541](https://github.com/fchicout/zotero-cli/issues/541)):
+
+- **The systematic-review commands:** every `slr` command, and `report verify-latex`. The workflow moves out of zotero-cli into applications built on it. Until 4.0.0 each run prints one warning on stderr, `zotero-cli schema` marks them `deprecated`, and notes they wrote in your library are left alone.
+- **SDB columns and notes in library commands:** `report duplicates` (the SDB decision columns, and the SDB history in `--export-plan`) and the SDB decision notes that exports add to BibTeX/RIS references. Both print a notice when SDB notes are present.
+- **`rag`** and **`item delete`, `storage checkout`, `system restore` applying without `--execute`:** see the changelog entries for 3.1.0 and 3.4.0.
+
 ## Python API for consumers
 
 Programs that use zotero-cli as a library (for example a service built on top of it) can rely on these names, and they follow the rules above: they change incompatibly only in a major release, after a deprecation warning. Everything else you can import from `zotero_cli` stays internal and may change in any release.

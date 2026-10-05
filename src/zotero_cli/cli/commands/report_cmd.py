@@ -9,6 +9,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.deprecation import REMOVAL_VERSION
 from zotero_cli.cli.flags import add_details_flag, add_format_flag
 from zotero_cli.cli.presenters import records
 from zotero_cli.core.interfaces import ZoteroGateway
@@ -104,7 +105,7 @@ Result:  A completeness report table is printed, and missing items are detailed.
         # report verify-latex
         latex_p = sub.add_parser(
             "verify-latex",
-            help="Verify citations in a LaTeX manuscript",
+            help="Verify citations in a LaTeX manuscript (deprecated: removed in 4.0.0)",
             description="Scans a LaTeX document for citations and verifies whether they exist in your active Zotero library and are screened.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
@@ -238,6 +239,13 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
         entries = sdb_service.inspect_items_sdb(
             [occ.key for group in dupes for occ in group.occurrences]
         )
+        if any(entries.values()):
+            print(
+                "Note: the SDB decision columns of `report duplicates` (and the SDB history in "
+                f"--export-plan) are deprecated and removed in {REMOVAL_VERSION}; the "
+                "duplicate groups themselves are not affected.",
+                file=sys.stderr,
+            )
         for group in dupes:
             sdb_status = sdb_service.classify_decision_agreement(
                 [occ.key for occ in group.occurrences], entries

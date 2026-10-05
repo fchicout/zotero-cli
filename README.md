@@ -43,7 +43,7 @@ It talks to the Zotero Web API (personal and group libraries). It can also read 
 - **Local HTTP API** (`serve`): read-only endpoints for items, collections and background jobs, for local scripts and dashboards.
 
 ### Optional: literature review toolkit
-- **Systematic literature review (`slr`):** screening decisions recorded as auditable Zotero notes, PRISMA statistics, citation snowballing and data extraction. See [docs/commands/slr.md](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/slr.md).
+- **Systematic literature review (`slr`), deprecated and removed in 4.0:** screening decisions recorded as auditable Zotero notes, PRISMA statistics, citation snowballing and data extraction. See [docs/commands/slr.md](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/slr.md).
 
 ## 🍳 Cookbook
 
@@ -112,7 +112,7 @@ zotero-cli system demo-sandbox --clean
 | **[`serve`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/serve.md)** | Local HTTP API | `(default)` |
 | **[`schema`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/schema.md)** | The command line as JSON, for scripts and agents | `(default)` |
 | **[`mcp`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/mcp.md)** | Read-only MCP server for AI clients (optional `mcp` extra) | `serve` |
-| **[`slr`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/slr.md)** | Literature review | `source`, `screen`, `decide`, `load`, `list`, `reconcile`, `promote`, `dedupe`, `prune`, `extract`, `snowball`, `sdb`, `report` |
+| **[`slr`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/slr.md)** | Literature review (**deprecated**, removed in 4.0) | `source`, `screen`, `decide`, `load`, `list`, `reconcile`, `promote`, `dedupe`, `prune`, `extract`, `snowball`, `sdb`, `report` |
 | **[`rag`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/rag.md)** | Semantic search (optional `rag` extra; **deprecated**, moving to a separate tool and removed in 4.0) | `ingest`, `query`, `context`, `purge`, `model` |
 
 Every command has built-in help: `zotero-cli <noun> <verb> --help`. Every example in these docs is checked against the real command-line parser in CI.

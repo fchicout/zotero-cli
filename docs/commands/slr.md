@@ -1,5 +1,7 @@
 # Command: `slr`
 
+> **Deprecated:** this command is removed in zotero-cli 4.0.0. The systematic-review workflow is moving out of zotero-cli into applications built on it; it keeps working, with a warning, throughout 3.x, and notes it wrote in your library are not changed. See [#541](https://github.com/fchicout/zotero-cli/issues/541).
+
 Systematic Literature Review (SLR) lifecycle management. This command provides a semantic namespace for managing screening, data loading, validation, and advanced research aids.
 
 ## Structure

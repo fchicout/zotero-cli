@@ -22,7 +22,8 @@ The document is generated from the real argument parser, so it can't drift from 
     *   `path` (for example `["item", "list"]`), `help`, `description`;
     *   `arguments`: each with `name`, `kind` (`option` or `positional`), `flags`, `type` (`string`, `integer`, `number`, `boolean`), `required`, `repeatable`, `default`, `choices` and `help`. Deprecated aliases kept hidden in `--help` are left out;
     *   `effect`: what running it can change: `read` (nothing), `local` (only this machine's own files and state: exports and backups it writes, the job queue, config) or `write` (your Zotero library, or the local `zotero.sqlite`);
-    *   `preview_by_default`: true for a `write` command that only shows what it would do until `--execute`.
+    *   `preview_by_default`: true for a `write` command that only shows what it would do until `--execute`;
+    *   `deprecated`: `null`, or `{"removed_in": "4.0.0", "see": <issue URL>}` for a command that is scheduled for removal (every command under `slr`, and `report verify-latex`). It is on every node, so a group is marked as well as its leaves.
 
 ## Example
 ```bash
