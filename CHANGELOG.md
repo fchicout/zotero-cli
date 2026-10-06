@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-10-06
+
+A minor release that announces what 4.0.0 removes: the systematic-review commands (`slr`, and `report verify-latex`) leave zotero-cli, which stays a Zotero library manager. Nothing is removed or changed in 3.x; the commands keep working and now warn.
+
 ### Deprecated
 - **The systematic-review commands leave zotero-cli in 4.0.0 (Issue #541):** every `slr` command (34 of them: `source`, `screen`, `decide`, `load`, `list`, `reconcile`, `promote`, `dedupe`, `prune`, `extract`, `snowball`, `sdb`, `report`) and `report verify-latex` now print one warning per run on stderr (stdout is unchanged) and say "deprecated" in `--help`. `zotero-cli schema` adds a `deprecated` field (`null`, or `{"removed_in": "4.0.0", "see": ...}`) to every command node. The workflow moves out of zotero-cli into applications built on it; zotero-cli stays a Zotero library manager. Nothing is removed or changed in 3.x, and decision notes already in your library are not touched. If you rely on these commands, keep using 3.x until your tooling has moved; the removal list and the commands that stay are in docs/COMPATIBILITY.md ("Scheduled for removal").
 - **SDB data in library commands (Issue #541):** `report duplicates` (its SDB decision columns, and the SDB history in `--export-plan`) and the SDB decision notes that `item export` / `collection export` add to BibTeX and RIS references are deprecated and stop in 4.0.0. Both print a notice when SDB notes are found; the duplicate groups and the exports themselves are unaffected.
