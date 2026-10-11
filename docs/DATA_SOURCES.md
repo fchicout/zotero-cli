@@ -1,6 +1,6 @@
 # Data Sources
 
-zotero-cli reads from your Zotero library and, for metadata lookups, PDF discovery and citation snowballing, from the public scholarly services below. **zotero-cli is an independent project. It is not affiliated with, sponsored by or endorsed by Zotero or the Corporation for Digital Scholarship, arXiv, or any provider listed here.**
+zotero-cli reads from your Zotero library and, for metadata lookups, and PDF discovery, from the public scholarly services below. **zotero-cli is an independent project. It is not affiliated with, sponsored by or endorsed by Zotero or the Corporation for Digital Scholarship, arXiv, or any provider listed here.**
 
 Your use of each service is subject to that provider's terms. Read them before bulk or automated use; the links below are where each provider documents its API and usage terms.
 
@@ -22,7 +22,7 @@ When a provider answers `429 Too Many Requests`, the metadata clients wait what 
 | :--- | :--- | :--- | :--- |
 | Zotero Web API | Your library (every online command) | `api.zotero.org` | <https://www.zotero.org/support/dev/web_api/v3/start> |
 | Crossref | DOI metadata, references | `api.crossref.org` | <https://www.crossref.org/documentation/retrieve-metadata/rest-api/> |
-| Semantic Scholar | Citations and references (snowballing), PDFs | `api.semanticscholar.org` | <https://www.semanticscholar.org/product/api/license> |
+| Semantic Scholar | Metadata, PDFs | `api.semanticscholar.org` | <https://www.semanticscholar.org/product/api/license> |
 | OpenAlex | Metadata, open-access PDFs (optional API key: `openalex_api_key`) | `api.openalex.org` | <https://docs.openalex.org/> |
 | Unpaywall | Open-access PDF locations | `api.unpaywall.org` | <https://unpaywall.org/products/api> |
 | arXiv | Metadata, PDFs | `export.arxiv.org`, `arxiv.org` | <https://info.arxiv.org/help/api/tou.html> |
@@ -38,5 +38,5 @@ When a provider answers `429 Too Many Requests`, the metadata clients wait what 
 
 ## Attribution
 
-- **Semantic Scholar:** citation data used by `slr snowball` comes from the Semantic Scholar API. The Semantic Scholar API License Agreement asks that published materials using the data attribute it to Semantic Scholar. If you publish results produced with `slr snowball`, credit Semantic Scholar.
+- **Semantic Scholar:** metadata and PDF links used by `import` and `item hydrate` come from the Semantic Scholar API. Its API License Agreement asks that published materials using the data attribute it to Semantic Scholar.
 - **Other providers:** follow the attribution and licence terms in each provider's documentation above.

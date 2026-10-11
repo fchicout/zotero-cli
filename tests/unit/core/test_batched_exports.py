@@ -5,10 +5,8 @@ import argparse
 from unittest.mock import MagicMock, patch
 
 from zotero_cli.core.services.attachment_service import AttachmentService
-from zotero_cli.core.services.export_service import ExportService
-from zotero_cli.core.services.sdb.sdb_service import SDBService
 from zotero_cli.core.zotero_item import ZoteroItem
-from zotero_cli.infra.repositories import ZoteroCollectionRepository, ZoteroNoteRepository
+from zotero_cli.infra.repositories import ZoteroNoteRepository
 
 
 class _SmallLibrary(MagicMock):
@@ -21,26 +19,6 @@ def _item(key, item_type="journalArticle", parent=None, **data):
     if parent:
         raw["data"]["parentItem"] = parent
     return ZoteroItem.from_raw_zotero_item(raw)
-
-
-def test_bibtex_export_reads_sdb_data_in_one_scan():
-    """12,340 requests for a 12.3k-item collection."""
-    gateway = _SmallLibrary()
-    papers = [_item(f"P{n}") for n in range(20)]
-    gateway.get_collection_id_by_name.return_value = "COL"
-    gateway.get_items_in_collection.return_value = iter(papers)
-    gateway.search_items.return_value = iter([])
-    bibtex = MagicMock()
-    bibtex.write_file.return_value = True
-
-    service = ExportService(
-        ZoteroCollectionRepository(gateway), bibtex, MagicMock(), SDBService(gateway)
-    )
-    assert service.export_collection("COL", "out.bib") is True
-
-    gateway.get_item_children.assert_not_called()
-    assert gateway.search_items.call_count == 1
-    assert len(bibtex.write_file.call_args.args[1]) == 20
 
 
 def test_markdown_export_finds_every_pdf_in_one_scan_and_downloads_by_key(tmp_path):

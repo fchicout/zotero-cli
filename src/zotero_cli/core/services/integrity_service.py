@@ -15,7 +15,6 @@ class AuditReport:
     items_missing_title: List[ZoteroItem] = field(default_factory=list)
     items_missing_abstract: List[ZoteroItem] = field(default_factory=list)
     items_missing_pdf: List[ZoteroItem] = field(default_factory=list)
-    items_missing_note: List[ZoteroItem] = field(default_factory=list)
 
 
 class IntegrityService(NotifyMixin):
@@ -53,7 +52,7 @@ class IntegrityService(NotifyMixin):
 
             items_to_check_children.append(item)
 
-        # 2. Check for children (PDFs and Notes) in parallel
+        # 2. Check for PDF attachments in parallel
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             future_to_item = {
                 executor.submit(self._audit_children, item.key): item
@@ -63,39 +62,21 @@ class IntegrityService(NotifyMixin):
             for future in concurrent.futures.as_completed(future_to_item):
                 item = future_to_item[future]
                 try:
-                    has_pdf, has_note = future.result()
-                    if not has_pdf:
+                    if not future.result():
                         report.items_missing_pdf.append(item)
-                    if not has_note:
-                        report.items_missing_note.append(item)
                 except Exception as exc:
                     self._say(f"Error checking children for item {item.key}: {exc}", logging.ERROR)
 
         return report
 
-    def _audit_children(self, item_key: str) -> tuple[bool, bool]:
-        """Returns (has_pdf, has_screening_note)"""
-        children = self.gateway.get_item_children(item_key)
-        has_pdf = False
-        has_note = False
-
-        from zotero_cli.core.utils.sdb_parser import parse_sdb_note
-
-        for child in children:
+    def _audit_children(self, item_key: str) -> bool:
+        """Whether the item has a PDF attachment."""
+        for child in self.gateway.get_item_children(item_key):
             data = child.get("data", {})
-            item_type = data.get("itemType")
-
-            # Check PDF: look for imported_file OR linked_url with PDF contentType
+            # A PDF is an attachment with a .pdf filename or a PDF content type,
+            # whether imported or linked.
             is_pdf_ext = data.get("filename", "").lower().endswith(".pdf")
             is_pdf_mime = data.get("contentType") == "application/pdf"
-
-            if item_type == "attachment" and (is_pdf_ext or is_pdf_mime):
-                has_pdf = True
-
-            # Check Screening Note: use robust parser instead of string match
-            if item_type == "note":
-                note_text = data.get("note", "")
-                if parse_sdb_note(note_text):
-                    has_note = True
-
-        return has_pdf, has_note
+            if data.get("itemType") == "attachment" and (is_pdf_ext or is_pdf_mime):
+                return True
+        return False

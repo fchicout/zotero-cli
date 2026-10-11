@@ -73,35 +73,6 @@ def test_get_pdf_finder_service_force_user_scopes_job_queue(mock_config):
     assert personal_service.job_queue.library_id == "PERSONAL_ID"
 
 
-def test_get_rag_service(mock_config):
-    with (
-        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"),
-        patch("zotero_cli.infra.ai_provider_factory.AIProviderFactory.get_vector_repository"),
-        patch("zotero_cli.infra.ai_provider_factory.AIProviderFactory.get_embedding_provider"),
-        patch("zotero_cli.infra.service_factory.ServiceFactory.get_attachment_service"),
-    ):
-        service = GatewayFactory.get_rag_service(mock_config)
-        from zotero_cli.core.services.rag_service import RAGServiceBase
-
-        assert isinstance(service, RAGServiceBase)
-
-
-def test_get_embedding_provider_gemini(mock_config):
-    mock_config = dataclasses.replace(mock_config, gemini_api_key="gemini_key")
-    provider = GatewayFactory.get_embedding_provider(mock_config)
-    from zotero_cli.core.services.embedding_provider import GeminiEmbeddingProvider
-
-    assert isinstance(provider, GeminiEmbeddingProvider)
-
-
-def test_get_embedding_provider_openai(mock_config):
-    mock_config = dataclasses.replace(mock_config, openai_api_key="openai_key")
-    provider = GatewayFactory.get_embedding_provider(mock_config)
-    from zotero_cli.core.services.embedding_provider import OpenAIEmbeddingProvider
-
-    assert isinstance(provider, OpenAIEmbeddingProvider)
-
-
 def test_get_item_repository(mock_config):
     with patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"):
         repo = GatewayFactory.get_item_repository(mock_config)
@@ -176,37 +147,6 @@ def test_get_enrichment_service(mock_config):
         from zotero_cli.core.services.enrichment_service import EnrichmentService
 
         assert isinstance(service, EnrichmentService)
-
-
-def test_get_screening_service(mock_config):
-    with (
-        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_item_repository"),
-        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_collection_repository"),
-        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_note_repository"),
-        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_tag_repository"),
-        patch("zotero_cli.infra.service_factory.ServiceFactory.get_collection_service"),
-    ):
-        service = GatewayFactory.get_screening_service(mock_config)
-        from zotero_cli.core.services.screening_service import ScreeningService
-
-        assert isinstance(service, ScreeningService)
-
-
-def test_get_snowball_worker(mock_config):
-    with (
-        patch("zotero_cli.infra.resolver_factory.ResolverFactory.get_network_gateway"),
-        patch(
-            "zotero_cli.infra.resolver_factory.ResolverFactory.get_snowball_graph_service"
-        ) as mock_graph,
-        patch("zotero_cli.infra.service_factory.ServiceFactory.get_job_queue_service"),
-    ):
-        service = GatewayFactory.get_snowball_worker(mock_config)
-        from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
-
-        assert isinstance(service, SnowballDiscoveryWorker)
-        # Issue #228: the worker's graph service must be scoped to the
-        # same config it resolved for itself, not the unscoped default.
-        mock_graph.assert_called_once_with(mock_config, False)
 
 
 def test_get_metadata_aggregator(mock_config):
@@ -320,41 +260,6 @@ def test_get_generic_resolvers_with_file(tmp_path):
         mock_path.return_value = config_dir / "config.toml"
         resolvers = GatewayFactory.get_generic_resolvers()
         assert isinstance(resolvers, list)
-
-
-def test_get_snowball_graph_service():
-    from zotero_cli.core.services.snowball_graph import SnowballGraphService
-
-    assert isinstance(GatewayFactory.get_snowball_graph_service(), SnowballGraphService)
-
-
-def test_get_snowball_ingestion_service(mock_config):
-    with (
-        patch(
-            "zotero_cli.infra.resolver_factory.ResolverFactory.get_snowball_graph_service"
-        ) as mock_graph,
-        patch(
-            "zotero_cli.infra.metadata_client_factory.MetadataClientFactory.get_metadata_aggregator"
-        ),
-        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_item_repository"),
-        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_collection_repository"),
-        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"),
-    ):
-        from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
-
-        assert isinstance(
-            GatewayFactory.get_snowball_ingestion_service(mock_config), SnowballIngestionService
-        )
-        # Issue #228: the ingestion service's graph service must be scoped
-        # to the same config, not the unscoped default. Issue #265: also
-        # threads force_user through (default False here).
-        mock_graph.assert_called_once_with(mock_config, False)
-
-
-def test_get_vector_repository(mock_config):
-    from zotero_cli.infra.sqlite_vector_repo import SQLiteVectorRepository
-
-    assert isinstance(GatewayFactory.get_vector_repository(mock_config), SQLiteVectorRepository)
 
 
 def test_get_purge_service(mock_config):

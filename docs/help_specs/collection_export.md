@@ -47,5 +47,5 @@ Supported formats include:
 **Result:** The file `references.bib` is created/updated with the metadata from that folder.
 
 ## 7. Cognitive Safeguards
-- **Common Failure Modes:** Attempting to export to a restricted directory or choosing a format that doesn't support specific metadata fields (like custom SLR audit notes).
+- **Common Failure Modes:** Attempting to export to a restricted directory or choosing a format that doesn't support specific metadata fields (for example, notes).
 - **Safety Tips:** Use the `md` format to generate a searchable "Digital Library" in Markdown. This enables you to link papers and notes locally without requiring the Zotero desktop client.

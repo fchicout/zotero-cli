@@ -2,7 +2,7 @@
 
 ## 1. Classification
 - **Level:** 🟡 MODIFICATION (Library Structure Update)
-- **Target Audience:** Researcher / SLR Lead
+- **Target Audience:** Researcher / Library Manager
 
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid

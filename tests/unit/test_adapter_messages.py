@@ -27,22 +27,8 @@ def _silent(capsys):
     assert captured.err == ""
 
 
-def test_audit_reports_an_unreadable_latex_file(said, capsys, tmp_path):
-    from zotero_cli.core.services.audit_service import AuditService
-
-    service = AuditService(MagicMock())
-    directory = tmp_path / "paper.tex"
-    directory.mkdir()  # exists, but cannot be read as a file
-
-    assert service._get_citations_recursive(directory) == set()
-
-    assert len(said) == 1
-    assert said[0].startswith(f"Warning: Failed to read {directory}:")
-    _silent(capsys)
-
-
 def test_integrity_reports_an_item_whose_children_cannot_be_checked(said, capsys):
-    from zotero_cli.core.services.slr.integrity import IntegrityService
+    from zotero_cli.core.services.integrity_service import IntegrityService
     from zotero_cli.core.zotero_item import ZoteroItem
 
     gateway = MagicMock()
@@ -57,25 +43,6 @@ def test_integrity_reports_an_item_whose_children_cannot_be_checked(said, capsys
 
     assert report is not None
     assert said == ["Error checking children for item K1: boom"]
-    _silent(capsys)
-
-
-def test_csv_enrichment_lists_matches_in_a_dry_run(said, capsys, tmp_path):
-    from zotero_cli.core.services.slr.csv_inbound import CSVInboundService
-    from zotero_cli.core.zotero_item import ZoteroItem
-
-    csv_file = tmp_path / "votes.csv"
-    csv_file.write_text("Key,Vote,Reason,Code,Title\nK1,INCLUDE,,,Some paper\n", encoding="utf-8")
-    gateway = MagicMock()
-    gateway.search_items.return_value = iter(
-        [ZoteroItem(key="K1", version=1, item_type="journalArticle", title="Some paper")]
-    )
-    service = CSVInboundService(gateway)
-
-    results = service.enrich_from_csv(str(csv_file), reviewer="R", dry_run=True)
-
-    assert results["skipped"] == 1
-    assert said == ["[DRY RUN] Match: K1 | Some paper..."]
     _silent(capsys)
 
 

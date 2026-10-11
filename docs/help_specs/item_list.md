@@ -2,7 +2,7 @@
 
 ## 1. Classification
 - **Level:** 🟢 READ-ONLY (Collection Inventory)
-- **Target Audience:** Researcher / SLR Lead
+- **Target Audience:** Researcher / Library Manager
 
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
@@ -27,7 +27,7 @@ Displays a table of research items within a collection, the trash, or unfiled at
 ## 4. Description (Instructional Architecture)
 The `item list` command is the "Inventory View" of your research data. It provides a structured summary of the items in a folder, the trash, or unfiled at the root of your library — useful for a raw browse of what physically lives where.
 
-For filtering by screening decision (accepted/rejected), exclusion criteria, phase, or reviewer persona, use `slr list` instead — that command scans SDB audit notes rather than plain collection membership, and is the correct tool for questions like "which papers did Dr. Silas reject."
+To filter by tag, item type, year or date added instead of folder membership, use `search` (for example `search --collection "FIN_01" --tag accepted`).
 
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
@@ -46,10 +46,10 @@ For filtering by screening decision (accepted/rejected), exclusion criteria, pha
 **Action:** `zotero-cli item list --collection "FIN_01"`
 **Result:** The table displays every item in that collection, showing their titles and unique keys.
 
-### Scenario: Filtering by screening decision instead
-**Problem:** I want only the items that were accepted, not everything in the folder.
-**Action:** `zotero-cli slr list included --tree "FIN_01"`
-**Result:** Only items with an 'Accepted' SDB audit note are shown.
+### Scenario: Filtering by tag instead
+**Problem:** I want only the items I tagged "accepted", not everything in the folder.
+**Action:** `zotero-cli search --collection "FIN_01" --tag accepted`
+**Result:** Only the items in that collection carrying the tag are shown.
 
 ### Scenario: Exporting bibliographic metadata for a report
 **Problem:** I need authors, year, venue and DOI for every paper in a collection, in a spreadsheet, without inspecting each item one by one.

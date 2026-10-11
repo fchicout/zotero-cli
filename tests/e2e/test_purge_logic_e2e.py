@@ -40,8 +40,8 @@ def test_purge_logic_integration_e2e(purge_service: Any) -> None:
     assert stats["deleted"] == 0, "SAFETY VETO: E2E test attempted a real deletion!"
     assert stats["errors"] == 0
 
-    # 2. Test Note Discovery with SDB filter (Dry Run)
-    stats_notes = purge_service.purge_notes(keys, sdb_only=True, dry_run=True)
+    # 2. Test Note Discovery (Dry Run)
+    stats_notes = purge_service.purge_notes(keys, dry_run=True)
     assert "skipped" in stats_notes
     assert stats_notes["deleted"] == 0, "SAFETY VETO: E2E test attempted a real deletion!"
     assert stats_notes["errors"] == 0

@@ -8,29 +8,18 @@ from zotero_cli.infra.resolver_factory import ResolverFactory
 if TYPE_CHECKING:
     from zotero_cli.core.interfaces import ZoteroGateway
     from zotero_cli.core.services.attachment_service import AttachmentService
-    from zotero_cli.core.services.audit_service import AuditService
     from zotero_cli.core.services.collection_service import CollectionService
     from zotero_cli.core.services.diagnostics_service import DiagnosticsService
     from zotero_cli.core.services.enrichment_service import EnrichmentService
     from zotero_cli.core.services.export_service import ExportService
-    from zotero_cli.core.services.extraction_service import ExtractionService
     from zotero_cli.core.services.import_service import ImportService
+    from zotero_cli.core.services.integrity_service import IntegrityService
     from zotero_cli.core.services.job_queue_service import JobQueueService
     from zotero_cli.core.services.merge_service import MergeService
     from zotero_cli.core.services.pdf_finder_service import PDFFinderService
     from zotero_cli.core.services.purge_service import PurgeService
     from zotero_cli.core.services.restore_service import RestoreService
     from zotero_cli.core.services.sandbox_service import SandboxService
-    from zotero_cli.core.services.screening_service import ScreeningService
-    from zotero_cli.core.services.sdb.sdb_service import SDBService
-    from zotero_cli.core.services.slr.citation_service import CitationService
-    from zotero_cli.core.services.slr.csv_inbound import CSVInboundService
-    from zotero_cli.core.services.slr.dedupe_service import SLRDedupeService
-    from zotero_cli.core.services.slr.integrity import IntegrityService
-    from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
-    from zotero_cli.core.services.slr.snapshot import SnapshotDiffService
-    from zotero_cli.core.services.slr.status_service import SLRStatusService
-    from zotero_cli.core.services.snapshot_service import SnapshotWriter
     from zotero_cli.core.services.tag_service import TagService
     from zotero_cli.core.services.transfer_service import TransferService
     from zotero_cli.core.services.verify_service import VerifyService
@@ -95,14 +84,13 @@ class ServiceFactory:
         )
         bibtex_gateway = MetadataClientFactory.get_bibtex_gateway()
         ris_gateway = MetadataClientFactory.get_ris_gateway()
-        sdb_service = ServiceFactory.get_sdb_service(config, force_user, offline=offline)
         from zotero_cli.core.runtime import is_offline_mode
         from zotero_cli.infra.bxc_formatter import BxcBibliographyFormatter
 
         formatter = BxcBibliographyFormatter(
             offline=is_offline_mode() if offline is None else offline
         )
-        return ExportService(collection_repo, bibtex_gateway, ris_gateway, sdb_service, formatter)
+        return ExportService(collection_repo, bibtex_gateway, ris_gateway, formatter)
 
     @staticmethod
     def get_transfer_service() -> "TransferService":
@@ -133,38 +121,15 @@ class ServiceFactory:
         return EnrichmentService(item_repo, col_repo, arxiv_gateway, aggregator, title_searcher)
 
     @staticmethod
-    def get_sdb_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "SDBService":
-        gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
-        from zotero_cli.core.services.sdb.sdb_service import SDBService
-
-        return SDBService(gateway)
-
-    @staticmethod
-    def get_audit_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "AuditService":
-        item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
-        from zotero_cli.core.services.audit_service import AuditService
-
-        return AuditService(item_repo)
-
-    @staticmethod
     def get_restore_service(
         config: Optional[ZoteroConfig] = None,
         force_user: bool = False,
         offline: Optional[bool] = None,
     ) -> "RestoreService":
         gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
-        orchestrator = ServiceFactory.get_slr_orchestrator(config, force_user, offline=offline)
         from zotero_cli.core.services.restore_service import RestoreService
 
-        return RestoreService(gateway, orchestrator)
+        return RestoreService(gateway)
 
     @staticmethod
     def get_integrity_service(
@@ -173,72 +138,9 @@ class ServiceFactory:
         offline: Optional[bool] = None,
     ) -> "IntegrityService":
         gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
-        from zotero_cli.core.services.slr.integrity import IntegrityService
+        from zotero_cli.core.services.integrity_service import IntegrityService
 
         return IntegrityService(gateway)
-
-    @staticmethod
-    def get_snapshot_diff_service() -> "SnapshotDiffService":
-        from zotero_cli.core.services.slr.snapshot import SnapshotDiffService
-
-        return SnapshotDiffService()
-
-    @staticmethod
-    def get_snapshot_writer_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "SnapshotWriter":
-        collection_repo = RepositoryFactory.get_collection_repository(
-            config, force_user, offline=offline
-        )
-        item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
-        from zotero_cli.core.services.snapshot_service import SnapshotWriter
-
-        return SnapshotWriter(collection_repo, item_repo)
-
-    @staticmethod
-    def get_csv_inbound_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "CSVInboundService":
-        gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
-        from zotero_cli.core.services.slr.csv_inbound import CSVInboundService
-
-        return CSVInboundService(gateway)
-
-    @staticmethod
-    def get_screening_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "ScreeningService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
-
-        item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
-        col_repo = RepositoryFactory.get_collection_repository(config, force_user, offline=offline)
-        note_repo = RepositoryFactory.get_note_repository(config, force_user, offline=offline)
-        tag_repo = RepositoryFactory.get_tag_repository(config, force_user, offline=offline)
-        col_service = ServiceFactory.get_collection_service(config, force_user, offline=offline)
-
-        from zotero_cli.core.services.screening_service import ScreeningService
-
-        return ScreeningService(item_repo, col_repo, note_repo, tag_repo, col_service)
-
-    @staticmethod
-    def get_extraction_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "ExtractionService":
-        note_repo = RepositoryFactory.get_note_repository(config, force_user, offline=offline)
-        from zotero_cli.core.services.extraction_service import ExtractionService
-
-        return ExtractionService(note_repo)
 
     @staticmethod
     def get_import_service(
@@ -396,9 +298,7 @@ class ServiceFactory:
 
         from zotero_cli.core.services.diagnostics_service import DiagnosticsService
 
-        # No LLM/embedding providers are built: `system check` reports their
-        # configuration without loading anything (Issues #382, #408).
-        return DiagnosticsService(gateway, aggregator, None, None, config, gateway_error)
+        return DiagnosticsService(gateway, aggregator, config, gateway_error)
 
     @staticmethod
     def get_sandbox_service(
@@ -410,54 +310,7 @@ class ServiceFactory:
             config, force_user, offline=offline
         )
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
-        note_repo = RepositoryFactory.get_note_repository(config, force_user, offline=offline)
 
         from zotero_cli.core.services.sandbox_service import SandboxService
 
-        return SandboxService(collection_repo, item_repo, note_repo)
-
-    @staticmethod
-    def get_slr_orchestrator(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "SLROrchestrator":
-        gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
-        from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
-
-        return SLROrchestrator(gateway)
-
-    @staticmethod
-    def get_slr_dedupe_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "SLRDedupeService":
-        gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
-        merge_service = ServiceFactory.get_merge_service(config, force_user, offline=offline)
-        sdb_service = ServiceFactory.get_sdb_service(config, force_user, offline=offline)
-        orchestrator = ServiceFactory.get_slr_orchestrator(config, force_user, offline=offline)
-
-        from zotero_cli.core.services.duplicate_service import DuplicateFinder
-        from zotero_cli.core.services.slr.dedupe_service import SLRDedupeService
-
-        duplicate_finder = DuplicateFinder(gateway)
-        return SLRDedupeService(gateway, duplicate_finder, merge_service, sdb_service, orchestrator)
-
-    @staticmethod
-    def get_slr_status_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "SLRStatusService":
-        gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
-        orchestrator = ServiceFactory.get_slr_orchestrator(config, force_user, offline=offline)
-        from zotero_cli.core.services.slr.status_service import SLRStatusService
-
-        return SLRStatusService(gateway, orchestrator)
-
-    @staticmethod
-    def get_citation_service() -> "CitationService":
-        from zotero_cli.core.services.slr.citation_service import CitationService
-
-        return CitationService()
+        return SandboxService(collection_repo, item_repo)

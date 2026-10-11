@@ -22,8 +22,8 @@ def secure_config_open(path: Path) -> Any:
     """
     Opens `path` for writing with 0600 permissions set at creation time,
     and creates its parent directory with 0700 (Issue #236) - config.toml
-    holds live API keys/tokens (Zotero, OpenAI, Gemini, Hugging Face,
-    Semantic Scholar, CORE, NCBI), and a plain `open(path, "w")` inherits
+    holds live API keys/tokens (Zotero, Semantic Scholar, CORE, NCBI,
+    OpenAlex), and a plain `open(path, "w")` inherits
     the process's default umask, typically leaving the file world-
     readable (0644) on any shared multi-user machine. `os.open` with an
     explicit mode set at creation avoids the race window a chmod-after
@@ -57,16 +57,6 @@ class ZoteroConfig:
     openalex_api_key: Optional[str] = None
     storage_path: Optional[str] = None
     database_path: Optional[str] = None
-    openai_api_key: Optional[str] = None
-    gemini_api_key: Optional[str] = None
-    embedding_provider: str = "auto"
-    embedding_model: Optional[str] = None
-    generative_provider: str = "auto"
-    generative_model: Optional[str] = None
-    huggingface_token: Optional[str] = None
-    # Allow Hugging Face models to run code from their repository (rag only;
-    # GHSA-wv6f-cg7x-pg85). Off unless explicitly enabled.
-    trust_remote_code: bool = False
 
     def is_valid(self) -> bool:
         return bool(self.api_key and self.library_id)
@@ -114,7 +104,7 @@ class ZoteroConfig:
     def resolve_scoping_id(self, force_user: bool = False) -> str:
         """
         Resolves the id used to scope purely-local, per-library storage
-        (job queue, snowball discovery graph) to the active library
+        (job queue) to the active library
         (Issue #150/#228) - honoring `--user`/force_user the same way
         `resolve_library_target` does for the online gateway (Issue
         #257: these storage-scoping call sites previously read
@@ -199,23 +189,6 @@ class ConfigLoader:
         core_key = os.environ.get("CORE_API_KEY") or file_config.get("core_api_key")
         openalex_key = os.environ.get("OPENALEX_API_KEY") or file_config.get("openalex_api_key")
         up_email = os.environ.get("UNPAYWALL_EMAIL") or file_config.get("unpaywall_email")
-        openai_key = os.environ.get("OPENAI_API_KEY") or file_config.get("openai_api_key")
-        gemini_key = os.environ.get("GEMINI_API_KEY") or file_config.get("gemini_api_key")
-        emb_provider = os.environ.get("EMBEDDING_PROVIDER") or file_config.get(
-            "embedding_provider", "auto"
-        )
-        emb_model = os.environ.get("EMBEDDING_MODEL") or file_config.get("embedding_model")
-        gen_provider = os.environ.get("GENERATIVE_PROVIDER") or file_config.get(
-            "generative_provider", "auto"
-        )
-        gen_model = os.environ.get("GENERATIVE_MODEL") or file_config.get("generative_model")
-        hf_token = os.environ.get("HUGGINGFACE_TOKEN") or file_config.get("huggingface_token")
-        trust_env = os.environ.get("ZOTERO_TRUST_REMOTE_CODE")
-        trust_remote_code = (
-            trust_env.strip().lower() in ("1", "true", "yes")
-            if trust_env is not None
-            else file_config.get("trust_remote_code") is True
-        )
 
         storage_path = os.environ.get("ZOTERO_STORAGE_PATH") or file_config.get("storage_path")
         database_path = os.environ.get("ZOTERO_DATABASE_PATH") or file_config.get("database_path")
@@ -228,9 +201,6 @@ class ConfigLoader:
             ncbi_key,
             core_key,
             openalex_key,
-            openai_key,
-            gemini_key,
-            hf_token,
             up_email,
         )
 
@@ -248,14 +218,6 @@ class ConfigLoader:
             openalex_api_key=openalex_key,
             storage_path=storage_path,
             database_path=database_path,
-            openai_api_key=openai_key,
-            gemini_api_key=gemini_key,
-            embedding_provider=emb_provider,
-            embedding_model=emb_model,
-            generative_provider=gen_provider,
-            generative_model=gen_model,
-            huggingface_token=hf_token,
-            trust_remote_code=trust_remote_code,
         )
 
     def _load_from_file(self) -> Dict[str, Any]:
@@ -427,9 +389,9 @@ def make_private_dir(path: Path) -> None:
         os.chmod(path, 0o700)
 
 
-# State zotero-cli writes (job queue, vector stores, discovery graphs), used
+# State zotero-cli writes (job queue), used
 # to find files a pre-3.1 version left next to a --config file.
-_STATE_FILE_GLOBS = ("jobs.sqlite*", "vector_store_*.sqlite*", "discovery_graph*.json")
+_STATE_FILE_GLOBS = ("jobs.sqlite*",)
 
 
 def _profile_config_dir() -> Optional[Path]:
@@ -446,7 +408,7 @@ def _profile_config_dir() -> Optional[Path]:
 
 def get_storage_dir() -> Path:
     """
-    Where zotero-cli keeps its state: the job queue, vector stores and
+    Where zotero-cli keeps its state: the job queue and
     discovery graphs.
 
     With the default config that is the private per-user directory. With a

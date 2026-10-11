@@ -1,6 +1,6 @@
 # Guided Tour 01: The First Search
 
-Welcome to your first research cycle with **zotero-cli**. In this tour, we will simulate the start of a Systematic Literature Review (SLR) by searching for papers on ArXiv and importing them into Zotero.
+Welcome to your first research cycle with **zotero-cli**. In this tour, we will search for papers on ArXiv and import them into Zotero.
 
 ## The Scenario
 You are investigating **"LLM Security"**. You want to find recent papers on ArXiv and store them in a clean collection.
@@ -53,4 +53,4 @@ sequenceDiagram
 ```
 
 ---
-**Next Step:** [Guided Tour 02: The Title/Abstract Sprint](02-screening-sprint.md)
+**Next Step:** [`item list` and `search`](../help_specs/search.md) to browse what you imported.

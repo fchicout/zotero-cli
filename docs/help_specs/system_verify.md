@@ -2,7 +2,7 @@
 
 ## 1. Classification
 - **Level:** 🟢 READ-ONLY (Archive Audit)
-- **Target Audience:** SysAdmin / SLR Lead
+- **Target Audience:** SysAdmin / Library Manager
 
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid

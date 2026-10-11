@@ -39,16 +39,3 @@ def test_storage_checkout_honours_user():
         StorageCommand()._handle_checkout(args)
 
     assert get_gateway.call_args.kwargs["force_user"] is True
-
-
-def test_slr_report_status_honours_user():
-    from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-    args = argparse.Namespace(report_verb="status", collection="C", all_sources=False, user=True)
-    with patch(
-        "zotero_cli.cli.commands.slr.report_cmd.GatewayFactory.get_slr_status_service"
-    ) as get_service:
-        get_service.return_value.get_slr_status.return_value = [MagicMock()]
-        SLRReportCommand._handle_status(MagicMock(), args)
-
-    assert get_service.call_args.kwargs["force_user"] is True

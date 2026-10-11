@@ -99,12 +99,11 @@ def test_csv_parse_with_incomplete_role_coverage_is_caught_by_execute_plan_valid
     assert any("D1" in e and "no role" in e for e in result.errors)
 
 
-def test_json_round_trip_preserves_decision_and_includes_sdb_history():
+def test_json_round_trip_preserves_the_decision():
     plan = make_plan_with_decision()
-    sdb_history = {"M1": [{"decision": "INCLUDE", "persona": "reviewer-a"}], "D1": []}
 
-    json_text = serialize_plan_to_json(plan, sdb_history=sdb_history)
-    assert "reviewer-a" in json_text
+    json_text = serialize_plan_to_json(plan)
+    assert "sdb_history" not in json_text
 
     parsed = parse_plan_from_json(json_text)
     assert len(parsed.entries) == 1

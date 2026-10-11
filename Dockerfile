@@ -33,7 +33,6 @@ RUN pip install --no-cache-dir "uv==0.12.18" && \
 # /tmp on every `docker run`; `COPY`ing the unpacked tree below avoids that
 # entirely.
 RUN .venv/bin/pyinstaller --onedir --strip --name zotero-cli \
-    --add-data "src/zotero_cli/templates/extraction_schema.yaml:zotero_cli/templates" \
     --add-data "src/zotero_cli/templates/demo_sandbox.yaml:zotero_cli/templates" \
     --exclude-module torch \
     --exclude-module nvidia \

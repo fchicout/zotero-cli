@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
 
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
 from zotero_cli.core.utils.archive_safety import (
     MAX_ATTACHMENT_BYTES,
     check_entry_count,
@@ -44,9 +43,8 @@ class RestoreService:
     Implements idempotency, hierarchy reconstruction, and asset re-linking.
     """
 
-    def __init__(self, gateway: ZoteroGateway, orchestrator: SLROrchestrator):
+    def __init__(self, gateway: ZoteroGateway):
         self.gateway = gateway
-        self.orchestrator = orchestrator
         self.item_map: Dict[str, str] = {}  # old_key -> new_key
         self.coll_map: Dict[str, str] = {}  # old_key -> new_key
         # new parent key -> the note texts it has, fetched once per parent
@@ -163,14 +161,6 @@ class RestoreService:
         if existing_item:
             self.item_map[old_key] = existing_item.key
             report.items_skipped_existing += 1
-
-            # Record audit trail for duplicate prevention [SPEC-ZAF-002]
-            if not report.is_dry_run:
-                self.orchestrator.record_duplicate_resolution(
-                    item_key=existing_item.key,
-                    duplicate_key=old_key,
-                    reason="Skipped duplicate during system restore",
-                )
             return
 
         # 2. Prepare new item data

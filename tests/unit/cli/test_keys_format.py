@@ -92,9 +92,6 @@ def test_render_data_dispatches_keys() -> None:
         ["item", "list"],
         ["tag", "list"],
         ["collection", "list"],
-        ["slr", "list", "pending"],
-        ["slr", "list", "included"],
-        ["slr", "list", "excluded"],
         ["system", "jobs", "list"],
     ],
 )

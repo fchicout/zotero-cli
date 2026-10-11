@@ -5,7 +5,6 @@ import sqlite3
 
 import pytest
 
-from zotero_cli.core.services.sdb.sdb_service import SDBService
 from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
 
 SCHEMA = """
@@ -94,13 +93,6 @@ def test_attachment_children_carry_web_api_fields(db):
 def test_trashed_children_are_left_out(db):
     keys = [c["key"] for c in SqliteZoteroGateway(db).get_item_children("PAPER002")]
     assert keys == ["NOTE0002"]
-
-
-def test_sdb_decisions_are_read_offline(db):
-    """They were all empty offline: `slr report status` showed 0/0."""
-    service = SDBService(SqliteZoteroGateway(db))
-    assert [e["decision"] for e in service.inspect_item_sdb("PAPER001")] == ["accepted"]
-    assert [e["decision"] for e in service.inspect_item_sdb("PAPER002")] == ["rejected"]
 
 
 def test_children_of_many_parents_in_one_query(db):

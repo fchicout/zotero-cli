@@ -2,7 +2,7 @@
 
 ## 1. Classification
 - **Level:** 🟢 READ-ONLY (Export/Archive)
-- **Target Audience:** Researcher / SLR Lead
+- **Target Audience:** Researcher / Library Manager
 
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
@@ -31,8 +31,8 @@ It traverses the entire collection hierarchy, fetches the JSON metadata for ever
 | `--output` | String | Output file path | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
-### Scenario: Archiving a completed SLR project
-**Problem:** I have finished my SLR (Key: `SLR_PROJ_2025`) and I want to save a permanent, offline version of the final included items and their PDFs.
+### Scenario: Archiving a finished project
+**Problem:** I have finished a research project (Key: `SLR_PROJ_2025`) and I want to save a permanent, offline version of the final included items and their PDFs.
 **Action:** `zotero-cli collection backup --collection "SLR_PROJ_2025" --output "Final_SLR_Archive.zaf"`
 **Result:** A single portable file is created that contains everything needed to reconstruct the project state later.
 

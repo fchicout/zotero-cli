@@ -119,11 +119,10 @@ def test_resolve_collection_accepts_a_key_and_returns_none_for_unknown(
     assert service.resolve_collection("nothing") is None
 
 
-def test_clean_and_prune_plans_need_collections_that_exist(service, mock_collection_repo):
+def test_clean_plan_needs_a_collection_that_exists(service, mock_collection_repo):
     mock_collection_repo.get_collection_id_by_name.return_value = None
     mock_collection_repo.get_collection.return_value = None
     assert service.plan_clean("Missing") is None
-    assert service.plan_prune("Missing", "AlsoMissing") is None
 
 
 # ---- deleting collections ----------------------------------------------------------------------

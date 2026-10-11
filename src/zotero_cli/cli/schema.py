@@ -9,7 +9,6 @@ import argparse
 from typing import Any, Dict, List, Optional, Sequence
 
 from zotero_cli import __version__
-from zotero_cli.cli.deprecation import schema_marker
 from zotero_cli.core.exceptions import EXIT_CODES
 
 SCHEMA_VERSION = 1
@@ -17,7 +16,7 @@ SCHEMA_VERSION = 1
 # What running a command can change:
 #   read   - nothing: it only reads (the library, local state, or files you name)
 #   local  - only this machine's own files and state: exports and backups it writes,
-#            the job queue, the discovery graph, the config, the vector store
+#            the job queue, the config
 #   write  - your Zotero library (or the local zotero.sqlite), including deletes
 # Commands that write and take --execute are preview-by-default.
 COMMAND_EFFECTS: Dict[str, str] = {
@@ -28,29 +27,12 @@ COMMAND_EFFECTS: Dict[str, str] = {
             "item inspect",
             "item list",
             "mcp serve",
-            "rag context",
-            "rag query",
             "report attachments",
             "report audit",
             "report duplicates",
             "report stats",
-            "report verify-latex",
             "search",
             "serve",
-            "slr list excluded",
-            "slr list included",
-            "slr list pending",
-            "slr list qa-approved",
-            "slr report consensus",
-            "slr report exclusion-summary",
-            "slr report graph",
-            "slr report prisma",
-            "slr report screening",
-            "slr report shift",
-            "slr report status",
-            "slr sdb inspect",
-            "slr snowball status",
-            "slr source list",
             "system check",
             "system groups",
             "system info",
@@ -68,16 +50,6 @@ COMMAND_EFFECTS: Dict[str, str] = {
             "init",
             "item export",
             "item pdf fetch",
-            "rag ingest",
-            "rag model clean",
-            "rag model set",
-            "rag purge",
-            "slr report snapshot",
-            "slr sdb export",
-            "slr snowball discovery",
-            "slr snowball export",
-            "slr snowball review",
-            "slr snowball seed",
             "system backup",
             "system jobs retry",
             "system normalize",
@@ -109,20 +81,6 @@ COMMAND_EFFECTS: Dict[str, str] = {
             "item transfer",
             "item trash",
             "item update",
-            "slr decide",
-            "slr dedupe",
-            "slr extract",
-            "slr load",
-            "slr promote",
-            "slr prune",
-            "slr reconcile",
-            "slr screen",
-            "slr sdb edit",
-            "slr sdb reset",
-            "slr sdb upgrade",
-            "slr snowball import",
-            "slr source add",
-            "slr source init",
             "storage checkout",
             "system demo-sandbox",
             "system jobs run",
@@ -221,7 +179,6 @@ def _describe_command(
         "description": " ".join((parser.description or "").split()) or None,
         "arguments": [_describe_argument(a) for a in _visible_arguments(parser)],
     }
-    node["deprecated"] = schema_marker(path)
     children = _subparsers(parser)
     if children is None:
         key = " ".join(path)

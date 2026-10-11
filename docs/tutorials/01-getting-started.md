@@ -12,8 +12,6 @@
 *   **Clean up** your metadata and find duplicates.
 *   **Export** data as JSON, CSV or Markdown for other tools, including LLM assistants.
 
-For systematic literature reviews it also has optional screening and PRISMA reporting tools (see [Tutorial 2](02-slr-workflow.md)).
-
 It runs in a window called the **Terminal**, but don't worry—we'll guide you through every step.
 
 ## 2. Prerequisites
@@ -104,4 +102,4 @@ zotero-cli collection list
 ```
 
 ### Next Step
-Ready to start a Systematic Review? Go to **[Tutorial 2: SLR Workflow](./02-slr-workflow.md)**.
+Try the guided tour: **[Tour 1: The First Search](../tours/01-first-search.md)**.

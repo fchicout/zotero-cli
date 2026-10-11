@@ -2,7 +2,7 @@
 
 ## 1. Classification
 - **Level:** 🔴 DESTRUCTIVE with `--recursive` (previews by default; needs `--execute` and a confirmation or `--yes`).
-- **Target Audience:** Researcher / SLR Lead
+- **Target Audience:** Researcher / Library Manager
 
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid

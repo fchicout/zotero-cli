@@ -62,10 +62,6 @@ PARSES = [
     ["collection", "list", "--format", "csv"],
     ["tag", "list", "--format", "json"],
     ["report", "stats", "--format", "csv"],
-    ["slr", "list", "pending", "--format", "json"],
-    ["slr", "list", "included", "--format", "csv"],
-    ["slr", "list", "excluded", "--format", "json"],
-    ["slr", "list", "qa-approved", "--format", "csv"],
     ["system", "jobs", "list", "--format", "json"],
 ]
 
@@ -258,65 +254,6 @@ def test_report_stats_csv_is_long_form(capsys):
 def test_report_stats_table_is_unchanged(capsys):
     _stats("table")
     assert "Library Global Metrics" in capsys.readouterr().out
-
-
-# ---- slr list ----------------------------------------------------------------
-
-
-def _decided(key, phase="title_abstract", title="A paper"):
-    item = MagicMock()
-    item.item_key = key
-    item.phase = phase
-    item.source_collection = "raw_acm"
-    item.reason = "IC1"
-    item.title = title
-    return item
-
-
-def _slr_list(verb, fmt, items):
-    from zotero_cli.cli.commands.slr.list_cmd import ListCommand
-
-    args = argparse.Namespace(
-        list_verb=verb,
-        tree="raw_acm",
-        format=fmt,
-        user=False,
-        ta=False,
-        fullscreen=False,
-        qa=None,
-        csv=None,
-        json=None,
-        xlsx=None,
-        ods=None,
-    )
-    with patch("zotero_cli.infra.factory.GatewayFactory.get_slr_status_service") as get:
-        service = get.return_value
-        service.get_pending_items.return_value = items
-        service.get_decided_items.return_value = items
-        ListCommand.execute(args)
-
-
-@pytest.mark.parametrize("verb", ["pending", "included", "excluded", "qa-approved"])
-def test_slr_list_json(verb, capsys):
-    _slr_list(verb, "json", [_decided("K2", title="B" * 120), _decided("K1")])
-    data = json.loads(capsys.readouterr().out)
-    assert [d["key"] for d in data] == ["K1", "K2"]
-    assert len(data[1]["title"]) == 120
-    assert set(data[0]) == {"key", "phase", "source", "reason", "title"}
-
-
-@pytest.mark.parametrize("verb", ["pending", "included"])
-def test_slr_list_json_with_nothing_found_is_an_empty_list(verb, capsys):
-    _slr_list(verb, "json", [])
-    assert json.loads(capsys.readouterr().out) == []
-
-
-def test_slr_list_table_is_unchanged(capsys):
-    _slr_list("pending", "table", [_decided("K1")])
-    assert "Pending SLR Items" in capsys.readouterr().out
-
-
-# ---- system jobs list --------------------------------------------------------
 
 
 def test_jobs_list_json(capsys):

@@ -10,9 +10,7 @@ from zotero_cli.core.exceptions import DataFileError
 
 # The highest major version of each format this release reads.
 SUPPORTED_MAJOR = {
-    "SDB note": 1,  # sdb_version / audit_version, currently 1.2
     "backup archive": 1,  # .zaf manifest "version", currently 1.1
-    "snapshot": 1,  # slr report snapshot "schema_version", currently 1.0
 }
 
 

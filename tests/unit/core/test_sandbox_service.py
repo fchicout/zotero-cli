@@ -18,13 +18,8 @@ def mock_item_repo():
 
 
 @pytest.fixture
-def mock_note_repo():
-    return MagicMock()
-
-
-@pytest.fixture
-def service(mock_collection_repo, mock_item_repo, mock_note_repo):
-    return SandboxService(mock_collection_repo, mock_item_repo, mock_note_repo)
+def service(mock_collection_repo, mock_item_repo):
+    return SandboxService(mock_collection_repo, mock_item_repo)
 
 
 def test_create_sandbox_creates_collection_and_items(service, mock_collection_repo, mock_item_repo):
@@ -43,19 +38,6 @@ def test_create_sandbox_creates_collection_and_items(service, mock_collection_re
         item_data = call[0][0]
         assert item_data["collections"] == ["COL123"]
         assert item_data["title"]
-
-
-def test_create_sandbox_seeds_at_least_one_sdb_note(service, mock_collection_repo, mock_item_repo):
-    mock_collection_repo.create_collection.return_value = "COL123"
-    mock_item_repo.create_generic_item.side_effect = [f"KEY{i}" for i in range(20)]
-
-    service.create_sandbox()
-
-    mock_note_repo = service.note_repo
-    assert mock_note_repo.create_note.call_count >= 1
-    note_content = mock_note_repo.create_note.call_args_list[0][0][1]
-    assert "screening_decision" in note_content
-    assert "audit_version" in note_content
 
 
 def test_create_sandbox_failure_raises(service, mock_collection_repo):

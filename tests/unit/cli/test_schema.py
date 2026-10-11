@@ -79,7 +79,7 @@ def test_effects_are_one_of_the_documented_three(schema: Dict[str, Any]) -> None
         (("item", "add"), "write", False),
         (("item", "trash"), "write", True),
         (("item", "delete"), "write", True),
-        (("slr", "dedupe"), "write", True),
+        (("item", "merge"), "write", True),
         (("system", "restore"), "write", True),
         (("collection", "delete"), "write", True),
     ],
@@ -151,9 +151,9 @@ def test_the_schema_is_plain_deterministic_json() -> None:
 
 
 def test_find_command_walks_groups_and_returns_none_for_unknown(schema: Dict[str, Any]) -> None:
-    group = _command(schema, "slr", "list")
-    assert {c["name"] for c in group["commands"]} >= {"pending", "included", "excluded"}
-    assert find_command(schema, ["slr", "nonsense"]) is None
+    group = _command(schema, "system", "jobs")
+    assert {c["name"] for c in group["commands"]} >= {"list", "retry", "run"}
+    assert find_command(schema, ["system", "nonsense"]) is None
     assert find_command(schema, ["nonsense"]) is None
 
 

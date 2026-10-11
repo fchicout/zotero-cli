@@ -135,35 +135,6 @@ class BibtexLibGateway(BibtexGateway, NotifyMixin):
             fields.append(Field(key="eprint", value=paper.arxiv_id))
             fields.append(Field(key="archivePrefix", value="arXiv"))
 
-        # SDB Metadata Enrichment
-        if paper.sdb_metadata:
-            # 1. Standard 'note' field for human readability
-            sdb_summaries = []
-            for sdb in paper.sdb_metadata:
-                decision = sdb.get("decision", "N/A").upper()
-                persona = sdb.get("persona", "Unknown")
-                phase = sdb.get("phase", "Unknown")
-                criteria = ", ".join(sdb.get("reason_code", []))
-                sdb_summaries.append(f"[{persona}/{phase}] {decision}: {criteria}")
-
-            fields.append(Field(key="note", value=" | ".join(sdb_summaries)))
-
-            # 2. Custom x-sdb-* fields (taking the latest/first for simplicity in flat BibTeX)
-            # If multiple exist, we suffix with index for full traceability
-            for i, sdb in enumerate(paper.sdb_metadata):
-                suffix = "" if i == 0 else f"_{i + 1}"
-                fields.append(Field(key=f"x-sdb-decision{suffix}", value=sdb.get("decision", "")))
-                fields.append(Field(key=f"x-sdb-reviewer{suffix}", value=sdb.get("persona", "")))
-                fields.append(Field(key=f"x-sdb-reason{suffix}", value=sdb.get("reason_text", "")))
-                fields.append(
-                    Field(
-                        key=f"x-sdb-criteria{suffix}",
-                        value=", ".join(sdb.get("reason_code", [])),
-                    )
-                )
-                fields.append(Field(key=f"x-sdb-evidence{suffix}", value=sdb.get("evidence", "")))
-                fields.append(Field(key=f"x-sdb-phase{suffix}", value=sdb.get("phase", "")))
-
         return Entry(
             entry_type="article",  # Default to article
             key=paper.key or f"item_{id(paper)}",

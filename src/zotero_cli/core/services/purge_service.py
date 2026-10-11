@@ -2,7 +2,6 @@ from typing import Any, Dict, List, Optional
 
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.children_index import children_by_parent
-from zotero_cli.core.utils.sdb_parser import parse_sdb_note
 
 OFFLINE_ERROR_MSG = "Offline Veto: PurgeService cannot execute in offline mode."
 
@@ -70,18 +69,8 @@ class PurgeService:
                 stats["errors"] += 1
         return stats
 
-    def purge_notes(
-        self,
-        item_keys: List[str],
-        sdb_only: bool = False,
-        phase: Optional[str] = None,
-        persona: Optional[str] = None,
-        dry_run: bool = True,
-    ) -> Dict[str, int]:
-        """
-        Deletes notes for the given parent item keys.
-        Supports filtering for SDB notes, specific screening phases, and personas.
-        """
+    def purge_notes(self, item_keys: List[str], dry_run: bool = True) -> Dict[str, int]:
+        """Deletes the notes of the given parent items."""
         if self._is_offline():
             raise RuntimeError(OFFLINE_ERROR_MSG)
 
@@ -96,16 +85,6 @@ class PurgeService:
             try:
                 for child in children:
                     data = child.get("data", child)
-                    note_content = data.get("note", "")
-
-                    if sdb_only or phase or persona:
-                        is_sdb, note_phase, note_persona = self._parse_sdb_info(note_content)
-                        if sdb_only and not is_sdb:
-                            continue
-                        if phase and note_phase != phase:
-                            continue
-                        if persona and note_persona != persona:
-                            continue
 
                     key = child.get("key") or data.get("key")
                     version = int(data.get("version", 0))
@@ -199,9 +178,6 @@ class PurgeService:
         types: List[str] = ["files", "notes", "tags"],
         recursive: bool = False,
         dry_run: bool = True,
-        sdb_only: bool = False,
-        phase: Optional[str] = None,
-        persona: Optional[str] = None,
     ) -> Dict[str, int]:
         """
         Purges assets from all items in a collection.
@@ -230,9 +206,7 @@ class PurgeService:
             self._merge_stats(combined_stats, s)
 
         if "notes" in types:
-            s = self.purge_notes(
-                item_keys, dry_run=dry_run, sdb_only=sdb_only, phase=phase, persona=persona
-            )
+            s = self.purge_notes(item_keys, dry_run=dry_run)
             self._merge_stats(combined_stats, s)
 
         if "tags" in types:
@@ -245,10 +219,3 @@ class PurgeService:
         """Helper to merge stats dictionaries."""
         for k in target:
             target[k] += source.get(k, 0)
-
-    def _parse_sdb_info(self, content: str) -> tuple[bool, Optional[str], Optional[str]]:
-        """Parses note content for SDB markers and returns (is_sdb, phase, persona)."""
-        data = parse_sdb_note(content)
-        if not data:
-            return False, None, None
-        return True, data.get("phase"), data.get("persona")

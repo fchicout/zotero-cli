@@ -1,14 +1,8 @@
-import importlib.util
 from dataclasses import dataclass
 from typing import List, Optional
 
 from zotero_cli.core.config import ZoteroConfig
-from zotero_cli.core.interfaces import (
-    EmbeddingProvider,
-    LLMProvider,
-    MetadataProvider,
-    ZoteroGateway,
-)
+from zotero_cli.core.interfaces import MetadataProvider, ZoteroGateway
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
 # A stable, long-lived DOI used purely as a lightweight connectivity/credential
@@ -24,12 +18,9 @@ STATUS_CONFIGURED = "CONFIGURED"  # set up, deliberately not exercised
 _CHECK_ZOTERO = "Zotero API"
 _CHECK_LOCAL_DB = "Local database"
 _KEYS_URL = "https://www.zotero.org/settings/keys"
-_RAG_INSTALL = "the rag extra isn't installed: pip install 'zotero-command-line[rag]'"
 _CHECK_SEMANTIC_SCHOLAR = "Semantic Scholar"
 _CHECK_UNPAYWALL = "Unpaywall"
 _CHECK_PUBMED = "PubMed/NCBI"
-_CHECK_LLM_PROVIDER = "LLM Provider"
-_CHECK_EMBEDDING_PROVIDER = "Embedding Provider"
 
 
 @dataclass
@@ -51,8 +42,6 @@ class DiagnosticsService:
         self,
         gateway: Optional[ZoteroGateway],
         metadata_aggregator: MetadataAggregatorService,
-        llm_provider: Optional[LLMProvider],
-        embedding_provider: Optional[EmbeddingProvider],
         config: ZoteroConfig,
         gateway_error: Optional[str] = None,
     ):
@@ -61,8 +50,6 @@ class DiagnosticsService:
         self.gateway = gateway
         self.gateway_error = gateway_error
         self.metadata_aggregator = metadata_aggregator
-        self.llm_provider = llm_provider
-        self.embedding_provider = embedding_provider
         self.config = config
 
     def run_checks(self) -> List[CheckResult]:
@@ -72,9 +59,6 @@ class DiagnosticsService:
             self._check_unpaywall(),
             self._check_pubmed(),
         ]
-        # RAG is an optional extra: its rows appear only when it's configured,
-        # and nothing is loaded or called (Issues #408, #382).
-        results += self._check_rag_configuration()
         return results
 
     def _check_zotero(self) -> CheckResult:
@@ -146,51 +130,3 @@ class DiagnosticsService:
                 name, STATUS_FAILED, "No response (check network/API key/rate limit)"
             )
         return CheckResult(name, STATUS_CONNECTED, "Reachable")
-
-    def _check_rag_configuration(self) -> List[CheckResult]:
-        """The configured RAG providers, reported without loading a model,
-        downloading weights or calling an API: `system check` used to do
-        all three (Issue #382) and showed a FAILED row on every install
-        without the optional extra (Issue #408)."""
-        c = self.config
-        rows: List[CheckResult] = []
-        embedding = (c.embedding_provider or "auto").lower()
-        if embedding != "auto" or c.embedding_model:
-            rows.append(
-                self._rag_row(
-                    _CHECK_EMBEDDING_PROVIDER,
-                    embedding,
-                    c.embedding_model,
-                    {
-                        "local": "sentence_transformers",
-                        "openai": "openai",
-                        "gemini": "google.generativeai",
-                    },
-                )
-            )
-        generative = (c.generative_provider or "auto").lower()
-        if generative != "auto" or c.generative_model:
-            rows.append(
-                self._rag_row(
-                    _CHECK_LLM_PROVIDER,
-                    generative,
-                    c.generative_model,
-                    {"local": "transformers", "openai": "openai", "gemini": "google.generativeai"},
-                )
-            )
-        return rows
-
-    @staticmethod
-    def _rag_row(name: str, provider: str, model: Optional[str], modules: dict) -> CheckResult:
-        module = modules.get(provider)
-        if module and not _importable(module):
-            return CheckResult(name, STATUS_FAILED, _RAG_INSTALL)
-        label = f"{provider}" + (f": {model}" if model else "")
-        return CheckResult(name, STATUS_CONFIGURED, f"{label} (not loaded; `rag query` uses it)")
-
-
-def _importable(module: str) -> bool:
-    try:
-        return importlib.util.find_spec(module) is not None
-    except (ImportError, ValueError):
-        return False

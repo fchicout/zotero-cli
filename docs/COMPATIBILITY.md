@@ -14,12 +14,11 @@ A change to any of these is a breaking change and waits for the next major relea
 | Safety defaults | Whether a command writes or only previews by default. A command that previews until `--execute` keeps doing so. |
 | Machine-readable output | Field names and value types in `--format json` and `--format csv` output, and in JSON reports. New fields may appear in a minor release; consumers should ignore fields they don't know. |
 | Configuration | `config.toml` keys, and the `ZOTERO_*` and provider environment variables. |
-| Data written to your library | SDB decision notes (`sdb_version`, currently 1.2). |
-| Files written to disk | `.zaf` backup archives (manifest `format: zaf`, `version` 1.1), `slr report snapshot` JSON (`schema_version` 1.0), `slr snowball` discovery graphs (`format_version` 1), and the background job database (`jobs.sqlite`). |
+| Files written to disk | `.zaf` backup archives (manifest `format: zaf`, `version` 1.1) and the background job database (`jobs.sqlite`). |
 
 ### Formats that carry a version
 
-- **Readers keep accepting every older version.** A 3.x release reads SDB notes, `.zaf` archives and snapshots written by any earlier version, forever.
+- **Readers keep accepting every older version.** A 4.x release reads `.zaf` archives written by any earlier version, forever.
 - **A new minor format version only adds fields.** Readers ignore fields they don't know.
 - **An unknown major format version is refused** with a clear error, never silently misread. The command stops with a message asking you to upgrade, and the file is left unchanged (#455).
 - `jobs.sqlite` only migrates forward, with additive changes.
@@ -33,13 +32,12 @@ These can change in any release:
 - The log file's format and location.
 - Importing `zotero_cli` modules from Python, except the names listed under [Python API for consumers](#python-api-for-consumers). Otherwise only the command line is a public interface.
 - **Exit codes**, until [#368](https://github.com/fchicout/zotero-cli/issues/368) makes them consistent. Today some failures still exit with status 0. Once #368 is fixed, exit codes join the public surface in a minor release.
-- **The `rag` commands** (the optional `rag` extra), which are experimental and **deprecated**: they warn on every run and are removed, with the `[rag]` extra, in 4.0, when RAG moves to a separate tool ([#414](https://github.com/fchicout/zotero-cli/issues/414), tracked in [#462](https://github.com/fchicout/zotero-cli/issues/462)).
 
 ## Deprecation
 
 Before something public is removed or changed incompatibly:
 
-1. It keeps working for **at least one minor release** and prints a deprecation warning to stderr naming the replacement (for example, `slr load --force` now warns and points to `--execute`).
+1. It keeps working for **at least one minor release** and prints a deprecation warning to stderr naming the replacement (for example, `item delete` without `--execute` warns and points to `--execute`).
 2. The CHANGELOG lists it under **Deprecated** in the release that starts the warning.
 3. It is removed or changed only in the **next major release**, listed under **Removed** or **Changed** with a one-line migration.
 
@@ -56,14 +54,6 @@ Work ships in trains, one version class at a time:
 ## Security fixes
 
 A security fix may restrict behaviour, or add the opt-in setting it needs, in a **patch** release, when waiting for the next minor would leave users exposed. The CHANGELOG marks such entries as a security exception and says what to change. Everything else about the fix follows the rules above.
-
-## Scheduled for removal
-
-Deprecated in 3.6.0 and removed in 4.0.0 ([#541](https://github.com/fchicout/zotero-cli/issues/541)):
-
-- **The systematic-review commands:** every `slr` command, and `report verify-latex`. The workflow moves out of zotero-cli into applications built on it. Until 4.0.0 each run prints one warning on stderr, `zotero-cli schema` marks them `deprecated`, and notes they wrote in your library are left alone.
-- **SDB columns and notes in library commands:** `report duplicates` (the SDB decision columns, and the SDB history in `--export-plan`) and the SDB decision notes that exports add to BibTeX/RIS references. Both print a notice when SDB notes are present.
-- **`rag`** and **`item delete`, `storage checkout`, `system restore` applying without `--execute`:** see the changelog entries for 3.1.0 and 3.4.0.
 
 ## Python API for consumers
 
