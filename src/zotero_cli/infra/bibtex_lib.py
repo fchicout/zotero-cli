@@ -115,7 +115,8 @@ class BibtexLibGateway(BibtexGateway, NotifyMixin):
         return _LATEX.safe_latex_to_unicode(value) if value else value
 
     def _map_paper_to_entry(self, paper: ResearchPaper) -> Entry:
-        """Convert ResearchPaper to a bibtexparser 2.x Entry."""
+        """Convert ResearchPaper to a bibtexparser 2.x Entry (control characters removed)."""
+        paper = paper.without_controls()
         fields: List[Field] = [
             Field(key="title", value=f"{{{paper.title}}}"),
             Field(key="author", value=" and ".join(paper.authors)),
