@@ -157,7 +157,7 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
     def _handle_duplicates(
         self, gateway: ZoteroGateway, args: argparse.Namespace, force_user: bool = False
     ) -> None:
-        service = DuplicateFinder(gateway)
+        service = DuplicateFinder(gateway, gateway)
         col_names_by_id: Dict[str, str] = {"UNFILED": "Unfiled"}
 
         col_ids: Optional[List[str]] = None

@@ -5,7 +5,7 @@ from typing import Optional
 
 from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.exceptions import ConfigurationError, UsageError
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import AttachmentRepository, ItemSearch
 from zotero_cli.core.models import ZoteroQuery
 from zotero_cli.core.utils.notify import Notify, NotifyMixin
 from zotero_cli.core.utils.terminal_safety import strip_controls
@@ -18,11 +18,13 @@ class StorageService(NotifyMixin):
     def __init__(
         self,
         config: ZoteroConfig,
-        gateway: ZoteroGateway,
+        attachments: AttachmentRepository,
+        search: ItemSearch,
         notify: Optional[Notify] = None,
     ):
         self.config = config
-        self.gateway = gateway
+        self.attachments = attachments
+        self.search = search
         self.notify = notify
 
     def _is_group_library(self) -> bool:
@@ -75,7 +77,7 @@ class StorageService(NotifyMixin):
             sort="date",  # No direct size sort in the API; date is used as a proxy.
             direction="desc",
         )
-        items_iter = self.gateway.search_items(query)
+        items_iter = self.search.search_items(query)
 
         processed = 0
         for item in items_iter:
@@ -127,7 +129,7 @@ class StorageService(NotifyMixin):
 
         # 1. Download
         try:
-            if not self.gateway.download_attachment(item.key, str(target_path)):
+            if not self.attachments.download_attachment(item.key, str(target_path)):
                 self._say("  Failed to download.", logging.WARNING)
                 if target_path.exists():
                     target_path.unlink()
@@ -141,7 +143,9 @@ class StorageService(NotifyMixin):
 
         # 2. Update Zotero
         try:
-            if not self.gateway.update_attachment_link(item.key, item.version, str(target_path)):
+            if not self.attachments.update_attachment_link(
+                item.key, item.version, str(target_path)
+            ):
                 self._say("  Failed to update Zotero item. Rolling back...", logging.WARNING)
                 target_path.unlink()
                 return False

@@ -26,21 +26,14 @@ PRINT_BASELINE = {
 
 
 # Services that still take the whole `ZoteroGateway` instead of the narrow repository
-# interfaces (ItemRepository, CollectionRepository, NoteRepository, ...). A ratchet like
-# PRINT_BASELINE: no new service may join, and narrowing one means deleting its line.
-# Most need two or more repositories or a gateway-only method (search_items,
-# verify_credentials, count_items), so narrowing them changes constructors; do it as
-# each is touched.
+# interfaces (ItemRepository, CollectionRepository, NoteRepository, ...), each with the
+# reason. A ratchet like PRINT_BASELINE: no new service may join, and narrowing one means
+# deleting its line.
 GATEWAY_BASELINE = {
-    "core/services/backup_service.py",
-    "core/services/children_index.py",
-    "core/services/diagnostics_service.py",
-    "core/services/duplicate_service.py",
-    "core/services/integrity_service.py",
-    "core/services/purge_service.py",
-    "core/services/restore_service.py",
-    "core/services/storage_service.py",
-    "core/services/transfer_service.py",
+    "core/services/children_index.py": "batches children through gateway-only count_search_results",
+    "core/services/diagnostics_service.py": "calls gateway-only verify_credentials and count_items",
+    "core/services/purge_service.py": "tells the offline gateway apart by class to refuse writes",
+    "core/services/transfer_service.py": "moves one item between two libraries, so takes two gateways",
 }
 
 # core may use rich only in the terminal-safety helpers every layer shares.
@@ -125,10 +118,10 @@ def _services_using_the_full_gateway() -> set:
 
 
 def test_no_new_service_takes_the_full_gateway():
-    new = _services_using_the_full_gateway() - GATEWAY_BASELINE
+    new = _services_using_the_full_gateway() - set(GATEWAY_BASELINE)
     assert new == set(), "take the narrow repository interfaces from core/interfaces.py instead"
 
 
 def test_gateway_baseline_is_lowered_as_services_are_narrowed():
-    stale = GATEWAY_BASELINE - _services_using_the_full_gateway()
+    stale = set(GATEWAY_BASELINE) - _services_using_the_full_gateway()
     assert stale == set(), "delete these from GATEWAY_BASELINE (it only shrinks)"

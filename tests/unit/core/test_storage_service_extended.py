@@ -24,7 +24,7 @@ def mock_config(tmp_path):
 def test_checkout_items_no_path(mock_gateway):
     config = MagicMock(spec=ZoteroConfig)
     config.storage_path = None
-    service = StorageService(config, mock_gateway)
+    service = StorageService(config, mock_gateway, mock_gateway)
     with pytest.raises(ConfigurationError):
         service.checkout_items()
 
@@ -36,12 +36,12 @@ def test_mkdir_failure(mock_gateway, tmp_path):
     file_path.write_text("content")
     config.storage_path = str(file_path / "subdir")
 
-    service = StorageService(config, mock_gateway)
+    service = StorageService(config, mock_gateway, mock_gateway)
     assert service.checkout_items() == 0
 
 
 def test_checkout_limit(mock_config, mock_gateway):
-    service = StorageService(mock_config, mock_gateway)
+    service = StorageService(mock_config, mock_gateway, mock_gateway)
 
     item = ZoteroItem(key="K1", version=1, item_type="attachment")
     item.raw_data = {"data": {"linkMode": "imported_file", "filename": "f1.pdf"}}
@@ -56,7 +56,7 @@ def test_checkout_limit(mock_config, mock_gateway):
 
 
 def test_checkout_single_item_not_attachment(mock_config, mock_gateway):
-    service = StorageService(mock_config, mock_gateway)
+    service = StorageService(mock_config, mock_gateway, mock_gateway)
     item = ZoteroItem(key="K1", version=1, item_type="journalArticle")
     assert service.checkout_single_item(item, Path(mock_config.storage_path)) is False
 
@@ -64,7 +64,7 @@ def test_checkout_single_item_not_attachment(mock_config, mock_gateway):
 def test_checkout_single_item_no_filename_sanitization(mock_config, mock_gateway):
     storage_root = Path(mock_config.storage_path)
     storage_root.mkdir()
-    service = StorageService(mock_config, mock_gateway)
+    service = StorageService(mock_config, mock_gateway, mock_gateway)
 
     item = ZoteroItem(key="K1", version=1, item_type="attachment")
     item.title = "A Great Paper: Title/Sub"
@@ -86,7 +86,7 @@ def test_checkout_single_item_no_filename_sanitization(mock_config, mock_gateway
 def test_checkout_filename_conflict(mock_config, mock_gateway):
     storage_root = Path(mock_config.storage_path)
     storage_root.mkdir()
-    service = StorageService(mock_config, mock_gateway)
+    service = StorageService(mock_config, mock_gateway, mock_gateway)
 
     filename = "test.pdf"
     (storage_root / filename).write_text("existing")
@@ -110,7 +110,7 @@ def test_download_failure_cleanup(mock_config, mock_gateway):
     """Verifies that the service cleans up on False return."""
     storage_root = Path(mock_config.storage_path)
     storage_root.mkdir()
-    service = StorageService(mock_config, mock_gateway)
+    service = StorageService(mock_config, mock_gateway, mock_gateway)
 
     item = ZoteroItem(key="K1", version=1, item_type="attachment")
     item.raw_data = {"data": {"linkMode": "imported_file", "filename": "fail.pdf"}}
@@ -128,7 +128,7 @@ def test_download_failure_cleanup(mock_config, mock_gateway):
 def test_download_exception_cleanup(mock_config, mock_gateway, caplog):
     storage_root = Path(mock_config.storage_path)
     storage_root.mkdir()
-    service = StorageService(mock_config, mock_gateway)
+    service = StorageService(mock_config, mock_gateway, mock_gateway)
 
     item = ZoteroItem(key="K1", version=1, item_type="attachment")
     item.raw_data = {"data": {"linkMode": "imported_file", "filename": "exc.pdf"}}
@@ -146,7 +146,7 @@ def test_download_exception_cleanup(mock_config, mock_gateway, caplog):
 def test_update_failure_rollback(mock_config, mock_gateway):
     storage_root = Path(mock_config.storage_path)
     storage_root.mkdir()
-    service = StorageService(mock_config, mock_gateway)
+    service = StorageService(mock_config, mock_gateway, mock_gateway)
 
     item = ZoteroItem(key="K1", version=1, item_type="attachment")
     item.raw_data = {"data": {"linkMode": "imported_file", "filename": "rollback.pdf"}}
@@ -168,7 +168,7 @@ def test_update_failure_rollback(mock_config, mock_gateway):
 def test_update_exception_rollback(mock_config, mock_gateway):
     storage_root = Path(mock_config.storage_path)
     storage_root.mkdir()
-    service = StorageService(mock_config, mock_gateway)
+    service = StorageService(mock_config, mock_gateway, mock_gateway)
 
     item = ZoteroItem(key="K1", version=1, item_type="attachment")
     item.raw_data = {"data": {"linkMode": "imported_file", "filename": "exc_rollback.pdf"}}

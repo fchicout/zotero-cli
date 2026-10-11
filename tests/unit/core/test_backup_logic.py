@@ -22,7 +22,7 @@ def mock_gateway():
 
 @pytest.fixture
 def service(mock_gateway):
-    return BackupService(mock_gateway)
+    return BackupService(mock_gateway, mock_gateway, mock_gateway)
 
 
 def test_backup_collection_recursive_attachments(service, mock_gateway):

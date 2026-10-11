@@ -597,7 +597,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         total_items = col.get("meta", {}).get("numItems")
 
-        service = BackupService(gateway)
+        service = BackupService(gateway, gateway, gateway)
         console.print(
             f"Starting Backup for Collection '[cyan]{safe_markup(args.collection)}[/cyan]' ({safe_markup(col_id)}) to [green]{safe_markup(args.output)}[/green]..."
         )

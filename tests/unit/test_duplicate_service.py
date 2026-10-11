@@ -14,7 +14,7 @@ def mock_gateway():
 
 @pytest.fixture
 def finder(mock_gateway):
-    return DuplicateFinder(mock_gateway)
+    return DuplicateFinder(mock_gateway, mock_gateway)
 
 
 def create_zotero_item(

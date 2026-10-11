@@ -51,14 +51,21 @@ def test_restore_service_takes_the_gateway(repositories):
     service = ServiceFactory.get_restore_service(CONFIG)
 
     assert isinstance(service, RestoreService)
-    assert service.gateway is repositories["gateway"]
+    gateway = repositories["gateway"]
+    assert (service.items, service.collections, service.notes, service.attachments) == (
+        gateway,
+        gateway,
+        gateway,
+        gateway,
+    )
 
 
 def test_integrity_service_takes_the_gateway(repositories):
     service = ServiceFactory.get_integrity_service(CONFIG)
 
     assert isinstance(service, IntegrityService)
-    assert service.gateway is repositories["gateway"]
+    assert service.collections is repositories["gateway"]
+    assert service.notes is repositories["gateway"]
 
 
 def test_sandbox_service_takes_collections_and_items(repositories):

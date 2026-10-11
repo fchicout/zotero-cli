@@ -113,6 +113,10 @@ def test_verify_service_missing_files(tmp_path):
     assert "Missing manifest.json" in report.errors
 
 
+def _restore_service(gateway):
+    return RestoreService(gateway, gateway, gateway, gateway)
+
+
 def test_restore_service_dry_run(dummy_zaf, tmp_path):
     zaf_path = tmp_path / "restore.zaf"
     zaf_path.write_bytes(dummy_zaf.getvalue())
@@ -121,7 +125,7 @@ def test_restore_service_dry_run(dummy_zaf, tmp_path):
     mock_gw.get_all_collections.return_value = []
     mock_gw.get_all_items.return_value = []
 
-    service = RestoreService(mock_gw)
+    service = _restore_service(mock_gw)
     report = service.restore_archive(str(zaf_path), dry_run=True)
 
     assert report.is_dry_run is True
@@ -130,7 +134,7 @@ def test_restore_service_dry_run(dummy_zaf, tmp_path):
 
 
 def test_restore_collections_hierarchy(mock_gateway):
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
 
     colls = [
         {"key": "C1", "data": {"name": "Root", "parentCollection": None}},
@@ -149,7 +153,7 @@ def test_restore_collections_hierarchy(mock_gateway):
 
 
 def test_restore_child_parent_not_found(mock_gateway):
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
     # Child with parent that is not in map
     child_raw = {"key": "ATT1", "data": {"itemType": "attachment", "parentItem": "MISSING"}}
 
@@ -162,7 +166,7 @@ def test_restore_child_parent_not_found(mock_gateway):
 
 
 def test_restore_service_idempotency_none(mock_gateway):
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
     # Data with no DOI or Title
     data = {"itemType": "journalArticle"}
     result = service._find_existing_item(data, {}, {})
@@ -172,7 +176,7 @@ def test_restore_service_idempotency_none(mock_gateway):
 def test_restore_attachment_mode_mismatch(dummy_zaf, tmp_path, mock_gateway):
     zaf_path = tmp_path / "mode.zaf"
     zaf_path.write_bytes(dummy_zaf.getvalue())
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
     # web_page or similar mode that we don't upload
     child_raw = {"key": "ATT1", "data": {"itemType": "attachment", "linkMode": "linked_url"}}
 
@@ -187,7 +191,7 @@ def test_restore_attachment_mode_mismatch(dummy_zaf, tmp_path, mock_gateway):
 def test_restore_item_creation_failure(mock_gateway):
     from zotero_cli.core.services.restore_service import RestoreReport
 
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
     item_raw = {"key": "K1", "data": {"itemType": "journalArticle", "title": "Fail"}}
     mock_gateway.create_generic_item.return_value = None
 
@@ -211,7 +215,7 @@ def test_verify_service_calculate_checksum_error(tmp_path):
 
 
 def test_restore_collections_match_existing(mock_gateway):
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
     colls = [{"key": "C1", "data": {"name": "Existing", "parentCollection": None}}]
     # Mock existing match
     mock_gateway.get_all_collections.return_value = [
@@ -228,7 +232,7 @@ def test_restore_collections_match_existing(mock_gateway):
 
 
 def test_restore_note_creation(mock_gateway):
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
     item_key = "K1"
     note_data = {"note": "New note"}
     # Mock no existing notes
@@ -278,7 +282,7 @@ def test_verify_service_library_scope_missing_collections_file(tmp_path):
 
 
 def test_restore_service_idempotency_doi_none(mock_gateway):
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
 
     data = {"DOI": "10.1/none", "title": "No Match"}
     result = service._find_existing_item(data, {}, {})
@@ -304,7 +308,7 @@ def test_verify_service_missing_path_in_manifest(tmp_path):
 
 
 def test_restore_collections_failure(mock_gateway):
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
     colls = [{"key": "C1", "data": {"name": "Fail", "parentCollection": None}}]
     mock_gateway.get_all_collections.return_value = []
     # Mock creation failure
@@ -323,7 +327,7 @@ def test_restore_collections_fetches_existing_once_for_many_collections(mock_gat
     """Regression test for Issue #277: _restore_collections must call
     get_all_collections() once for the whole batch, not once per
     collection being restored."""
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
     colls = [
         {"key": "C1", "data": {"name": "One", "parentCollection": None}},
         {"key": "C2", "data": {"name": "Two", "parentCollection": None}},
@@ -353,7 +357,7 @@ def test_build_existing_item_indexes_single_scan(mock_gateway):
     item2 = ZoteroItem(key="P2", version=1, item_type="journalArticle", title="Paper Two")
     mock_gateway.get_all_items.return_value = [item1, item2]
 
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
     doi_index, title_index = service._build_existing_item_indexes()
 
     mock_gateway.get_all_items.assert_called_once()
@@ -395,7 +399,7 @@ def test_restore_archive_builds_indexes_once_for_multiple_items(dummy_zaf, tmp_p
     mock_gw.get_all_items.return_value = []
     mock_gw.create_generic_item.side_effect = ["N1", "N2", "N3"]
 
-    service = RestoreService(mock_gw)
+    service = _restore_service(mock_gw)
     report = service.restore_archive(str(zaf_path), dry_run=False)
 
     mock_gw.get_all_items.assert_called_once()
@@ -431,7 +435,7 @@ def test_restore_attachment_over_the_size_limit_is_refused_and_leaves_no_temp_fi
     monkeypatch.setattr(tempfile_mod, "NamedTemporaryFile", tracking_ntf)
 
     gateway = MagicMock()
-    service = RestoreService(gateway)
+    service = _restore_service(gateway)
     report = rs.RestoreReport()
     zf = _zaf_with_attachment(tmp_path, b"%PDF-1.7" + b"\0" * 100_000)
     manifest = {"file_map": {"ATT1": {"path": "files/ATT1/paper.pdf"}}}
@@ -454,13 +458,13 @@ def test_restore_refuses_oversized_data_json(tmp_path, monkeypatch):
         zf.writestr("manifest.json", "{}")
         zf.writestr("data.json", "[" + " " * 100_000 + "]")
 
-    report = RestoreService(MagicMock()).restore_archive(str(path))
+    report = _restore_service(MagicMock()).restore_archive(str(path))
     assert report.errors and "limit" in report.errors[0]
 
 
 def test_restore_notes_ask_for_each_parent_s_children_once(mock_gateway):
     """Issue #440: one children request per restored note."""
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
     report = RestoreReport()
     mock_gateway.get_item_children.return_value = [
         {"key": "N0", "data": {"itemType": "note", "note": "already there"}}
@@ -476,7 +480,7 @@ def test_restore_notes_ask_for_each_parent_s_children_once(mock_gateway):
 
 
 def test_restore_notes_on_a_new_parent_make_no_children_request(mock_gateway):
-    service = RestoreService(mock_gateway)
+    service = _restore_service(mock_gateway)
     report = RestoreReport()
     mock_gateway.create_generic_item.return_value = "NEWKEY"
     mock_gateway.create_note.return_value = True

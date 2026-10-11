@@ -36,7 +36,7 @@ def test_integrity_reports_an_item_whose_children_cannot_be_checked(said, capsys
     gateway.get_items_in_collection.return_value = iter(
         [ZoteroItem(key="K1", version=1, item_type="journalArticle", title="T")]
     )
-    service = IntegrityService(gateway)
+    service = IntegrityService(gateway, gateway)
     service._audit_children = MagicMock(side_effect=RuntimeError("boom"))  # type: ignore[method-assign]
 
     report = service.audit_collection("Col")

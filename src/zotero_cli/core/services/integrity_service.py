@@ -3,7 +3,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import CollectionRepository, NoteRepository
 from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -22,15 +22,16 @@ class IntegrityService(NotifyMixin):
     Handles metadata completeness and asset integrity audits for collections.
     """
 
-    def __init__(self, gateway: ZoteroGateway):
-        self.gateway = gateway
+    def __init__(self, collections: CollectionRepository, notes: NoteRepository):
+        self.collections = collections
+        self.notes = notes
 
     def audit_collection(self, collection_name: str) -> Optional[AuditReport]:
-        collection_id = self.gateway.get_collection_id_by_name(collection_name)
+        collection_id = self.collections.get_collection_id_by_name(collection_name)
         if not collection_id:
             # Maybe it's already a key
             collection_id = (
-                collection_name if self.gateway.get_collection(collection_name) else None
+                collection_name if self.collections.get_collection(collection_name) else None
             )
 
         if not collection_id:
@@ -40,7 +41,7 @@ class IntegrityService(NotifyMixin):
         items_to_check_children = []
 
         # 1. Fetch items and perform local checks (Top-level only)
-        for item in self.gateway.get_items_in_collection(collection_id, top_only=True):
+        for item in self.collections.get_items_in_collection(collection_id, top_only=True):
             report.total_items += 1
 
             if not item.has_identifier():
@@ -71,7 +72,7 @@ class IntegrityService(NotifyMixin):
 
     def _audit_children(self, item_key: str) -> bool:
         """Whether the item has a PDF attachment."""
-        for child in self.gateway.get_item_children(item_key):
+        for child in self.notes.get_item_children(item_key):
             data = child.get("data", {})
             # A PDF is an attachment with a .pdf filename or a PDF content type,
             # whether imported or linked.

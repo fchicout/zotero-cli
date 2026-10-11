@@ -897,7 +897,7 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
 
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
-        service = BackupService(gateway)
+        service = BackupService(gateway, gateway, gateway)
 
         console.print(f"Starting System Backup to [green]{safe_markup(args.output)}[/green]...")
 
