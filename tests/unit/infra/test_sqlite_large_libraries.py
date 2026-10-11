@@ -5,7 +5,6 @@ pushed ordinary libraries past it."""
 
 import sqlite3
 from pathlib import Path
-from typing import Iterator
 
 import pytest
 
@@ -100,7 +99,7 @@ def _build(path: Path, analyze: bool) -> None:
 
 
 @pytest.fixture(params=[False, True], ids=["no-stats", "analyzed"])
-def gateway(request, tmp_path, monkeypatch) -> Iterator[SqliteZoteroGateway]:
+def gateway(request, tmp_path, monkeypatch) -> SqliteZoteroGateway:
     db = tmp_path / "zotero.sqlite"
     _build(db, analyze=request.param)
 
@@ -112,7 +111,7 @@ def gateway(request, tmp_path, monkeypatch) -> Iterator[SqliteZoteroGateway]:
         return conn
 
     monkeypatch.setattr(sqlite_repo.sqlite3, "connect", limited_connect)
-    yield SqliteZoteroGateway(str(db))
+    return SqliteZoteroGateway(str(db))
 
 
 def test_get_all_items_past_the_variable_limit(gateway):

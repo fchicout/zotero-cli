@@ -27,7 +27,7 @@ def reset_mocks() -> None:
     mock_job_queue.library_id = "lib-A"
 
 
-def test_list_jobs() -> None:
+def test_list_jobs(monkeypatch: pytest.MonkeyPatch) -> None:
     job = Job(
         id=1,
         item_key="K1",
@@ -37,7 +37,7 @@ def test_list_jobs() -> None:
         attempts=0,
         library_id="lib-A",
     )
-    mock_job_queue.list_jobs.return_value = [job]
+    monkeypatch.setattr(mock_job_queue.list_jobs, "return_value", [job])
 
     response = client.get("/jobs")
 
@@ -50,8 +50,8 @@ def test_list_jobs() -> None:
     mock_job_queue.list_jobs.assert_called_with(task_type=None, limit=100)
 
 
-def test_list_jobs_filters_by_task_type() -> None:
-    mock_job_queue.list_jobs.return_value = []
+def test_list_jobs_filters_by_task_type(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(mock_job_queue.list_jobs, "return_value", [])
 
     response = client.get("/jobs", params={"task_type": "fetch_pdf", "limit": 10})
 
@@ -59,7 +59,7 @@ def test_list_jobs_filters_by_task_type() -> None:
     mock_job_queue.list_jobs.assert_called_with(task_type="fetch_pdf", limit=10)
 
 
-def test_get_job_detail() -> None:
+def test_get_job_detail(monkeypatch: pytest.MonkeyPatch) -> None:
     job = Job(
         id=1,
         item_key="K1",
@@ -68,7 +68,7 @@ def test_get_job_detail() -> None:
         status="COMPLETED",
         library_id="lib-A",
     )
-    mock_job_queue.repo.get_job.return_value = job
+    monkeypatch.setattr(mock_job_queue.repo.get_job, "return_value", job)
 
     response = client.get("/jobs/1")
 
@@ -76,15 +76,15 @@ def test_get_job_detail() -> None:
     assert response.json()["status"] == "COMPLETED"
 
 
-def test_get_job_not_found() -> None:
-    mock_job_queue.repo.get_job.return_value = None
+def test_get_job_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(mock_job_queue.repo.get_job, "return_value", None)
 
     response = client.get("/jobs/999")
 
     assert response.status_code == 404
 
 
-def test_get_job_from_another_library_is_not_found() -> None:
+def test_get_job_from_another_library_is_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
     other_library_job = Job(
         id=2,
         item_key="K2",
@@ -93,7 +93,7 @@ def test_get_job_from_another_library_is_not_found() -> None:
         status="PENDING",
         library_id="lib-B",
     )
-    mock_job_queue.repo.get_job.return_value = other_library_job
+    monkeypatch.setattr(mock_job_queue.repo.get_job, "return_value", other_library_job)
 
     response = client.get("/jobs/2")
 

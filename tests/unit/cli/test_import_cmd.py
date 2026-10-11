@@ -128,8 +128,9 @@ def test_import_file_unknown_csv(mock_file, mock_splitext, mock_import_service, 
         user=False,
     )
 
+    command = ImportCommand()
     with pytest.raises(ZoteroCliError) as raised:
-        ImportCommand().execute(args)
+        command.execute(args)
     out = str(raised.value)
     assert "Unknown CSV format" in out
 
@@ -251,8 +252,9 @@ def test_import_bdtd_requires_exactly_one_of_identifier_or_query(mock_import_ser
         user=False,
     )
 
+    command = ImportCommand()
     with pytest.raises(ZoteroCliError) as raised:
-        ImportCommand().execute(args)
+        command.execute(args)
 
     out = str(raised.value)
     assert "exactly one" in out.lower()
@@ -271,8 +273,9 @@ def test_import_bdtd_rejects_both_identifier_and_query(mock_import_service, caps
         user=False,
     )
 
+    command = ImportCommand()
     with pytest.raises(ZoteroCliError) as raised:
-        ImportCommand().execute(args)
+        command.execute(args)
 
     out = str(raised.value)
     assert "exactly one" in out.lower()

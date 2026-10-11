@@ -288,7 +288,8 @@ def test_doi_mismatch_candidates_never_reach_the_item(service, aggregator):
 def test_failures_are_reported_per_item_not_raised(service, aggregator, repo):
     aggregator.get_enriched_metadata.side_effect = RuntimeError("provider down")
     result = service.hydrate(_item(DOI="10.1234/x"))
-    assert result.status == "failed" and "provider down" in (result.message or "")
+    assert result.status == "failed"
+    assert "provider down" in (result.message or "")
 
     aggregator.get_enriched_metadata.side_effect = None
     aggregator.get_enriched_metadata.return_value = _paper(doi="10.1234/x")

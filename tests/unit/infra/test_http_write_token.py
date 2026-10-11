@@ -60,7 +60,9 @@ def test_retry_after_a_committed_write_creates_nothing_twice(failure):
     assert session.created == 1  # the retry was recognised, not re-applied
     assert len(session.calls) == 2
     tokens = {c["token"] for c in session.calls}
-    assert len(tokens) == 1 and None not in tokens and len(tokens.pop()) == 32
+    assert len(tokens) == 1
+    assert None not in tokens
+    assert len(tokens.pop()) == 32
     assert all(c["timeout"] for c in session.calls)
     assert result is True  # created once; the note exists even though its key isn't repeated (#577)
 
@@ -79,7 +81,9 @@ def test_each_logical_post_gets_its_own_token():
     http.post("items", json_data=[{"itemType": "note"}])
     http.post("items", json_data=[{"itemType": "note"}])
 
-    assert tokens[0] and tokens[1] and tokens[0] != tokens[1]
+    assert tokens[0]
+    assert tokens[1]
+    assert tokens[0] != tokens[1]
 
 
 def test_a_non_creating_post_has_no_write_token():

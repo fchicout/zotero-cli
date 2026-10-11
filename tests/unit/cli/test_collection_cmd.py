@@ -186,8 +186,10 @@ def test_collection_delete_recursive_previews_by_default(
     mock_collection_service.plan_recursive_delete.assert_called_with("COL_KEY", 42)
     mock_collection_service.execute_recursive_delete.assert_not_called()
     out = capsys.readouterr().out
-    assert "2 collection(s)" in out and "1 item(s) filed only inside" in out
-    assert "will be kept" in out and "--execute" in out
+    assert "2 collection(s)" in out
+    assert "1 item(s) filed only inside" in out
+    assert "will be kept" in out
+    assert "--execute" in out
 
 
 def test_collection_delete_recursive_refuses_without_a_terminal_or_yes(
@@ -198,8 +200,10 @@ def test_collection_delete_recursive_refuses_without_a_terminal_or_yes(
     mock_collection_service.plan_recursive_delete.return_value = _recursive_plan()
     monkeypatch.setattr("sys.stdin.isatty", lambda: False)
 
+    command = CollectionCommand()
+    args = _delete_args(recursive=True, execute=True)
     with pytest.raises(SystemExit) as exc:
-        CollectionCommand().execute(_delete_args(recursive=True, execute=True))
+        command.execute(args)
 
     assert exc.value.code == 2
     mock_collection_service.execute_recursive_delete.assert_not_called()
@@ -234,8 +238,9 @@ def test_collection_delete_not_found(mock_gateway, mock_collection_service, caps
     args = argparse.Namespace(
         verb="delete", key="INVALID_KEY", version=None, recursive=False, user=False
     )
+    command = CollectionCommand()
     with pytest.raises(ZoteroCliError) as raised:
-        CollectionCommand().execute(args)
+        command.execute(args)
 
     out = str(raised.value)
     assert "Collection 'INVALID_KEY' not found." in out
@@ -318,8 +323,9 @@ def test_collection_clean_unknown_collection_exits_non_zero(mock_collection_serv
     args = argparse.Namespace(
         verb="clean", collection="Nope", verbose=False, execute=True, user=False
     )
+    command = CollectionCommand()
     with pytest.raises(SystemExit) as exc:
-        CollectionCommand().execute(args)
+        command.execute(args)
     assert exc.value.code == 1
     assert "not found" in capsys.readouterr().err
 
@@ -345,8 +351,9 @@ def test_collection_backup_not_found(mock_gateway, capsys):
     mock_gateway.get_collection.return_value = None
 
     args = argparse.Namespace(verb="backup", collection="COL_KEY", output="backup.zaf", user=False)
+    command = CollectionCommand()
     with pytest.raises(ZoteroCliError) as raised:
-        CollectionCommand().execute(args)
+        command.execute(args)
 
     out = str(raised.value)
     assert "Collection 'COL_KEY' not found." in out
@@ -362,8 +369,9 @@ def test_collection_backup_not_found_bracketed_name_renders_literally(mock_gatew
     args = argparse.Namespace(
         verb="backup", collection="[Archived] Old Project", output="backup.zaf", user=False
     )
+    command = CollectionCommand()
     with pytest.raises(ZoteroCliError) as raised:
-        CollectionCommand().execute(args)
+        command.execute(args)
 
     out = str(raised.value)
     assert "Collection '[Archived] Old Project' not found." in out
@@ -402,8 +410,9 @@ def test_collection_export_metadata_fail(mock_export_service, capsys):
         style="apa",
         render="plain",
     )
+    command = CollectionCommand()
     with pytest.raises(SystemExit):
-        CollectionCommand().execute(args)
+        command.execute(args)
 
 
 def test_collection_export_markdown_success(mock_gateway, mock_attachment_service, capsys):
@@ -460,8 +469,9 @@ def test_collection_purge_no_asset_types_aborts(mock_purge_service, capsys):
         recursive=False,
         user=False,
     )
+    command = CollectionCommand()
     with pytest.raises(ZoteroCliError) as raised:
-        CollectionCommand().execute(args)
+        command.execute(args)
 
     mock_purge_service.purge_collection_assets.assert_not_called()
     assert "Specify what to purge" in str(raised.value)

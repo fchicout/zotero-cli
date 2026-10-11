@@ -42,8 +42,10 @@ def test_safe_console_strips_escapes_from_text_but_keeps_rich_styling():
     console = _console()
     console.print(Text(f"A {OSC52_CLIPBOARD}paper", style="bold red"))
     out = console.file.getvalue()
-    assert "\x1b]52" not in out and "\x07" not in out  # inert without ESC/BEL
-    assert "A " in out and "paper" in out
+    assert "\x1b]52" not in out
+    assert "\x07" not in out  # inert without ESC/BEL
+    assert "A " in out
+    assert "paper" in out
     assert "\x1b[1" in out  # Rich's own styling (bold) survives
 
 
@@ -55,7 +57,8 @@ def test_item_list_table_does_not_emit_osc52_from_a_title():
     )
     presenter.render_table([item], ["key", "title"], "Items", console)
     out = console.file.getvalue()
-    assert "\x1b]52" not in out and "\x07" not in out
+    assert "\x1b]52" not in out
+    assert "\x07" not in out
     assert "Paper" in out
 
 
@@ -67,7 +70,8 @@ def test_safe_markup_neutralises_markup_in_data():
     console = _plain_console()
     console.print(f"[bold]Title:[/bold] {safe_markup('[/bold] [link=https://evil.example]x')}")
     out = console.file.getvalue()
-    assert "[/bold]" in out and "[link=https://evil.example]" in out
+    assert "[/bold]" in out
+    assert "[link=https://evil.example]" in out
     assert "\x1b]8;" not in out  # no hyperlink emitted
 
 

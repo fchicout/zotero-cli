@@ -48,19 +48,22 @@ def test_missing_api_key_names_the_file_and_next_step(tmp_path):
     msg = str(raised.value)
     assert "No Zotero API key" in msg
     assert str(path) in msg
-    assert "zotero-cli init" in msg and "ZOTERO_API_KEY" in msg
+    assert "zotero-cli init" in msg
+    assert "ZOTERO_API_KEY" in msg
 
 
 def test_missing_library_names_the_settings():
     config = ZoteroConfig(api_key="k")
     with pytest.raises(ConfigurationError) as raised:
         RepositoryFactory.get_zotero_gateway(config, offline=False)
-    assert "library_id" in str(raised.value) and "ZOTERO_LIBRARY_ID" in str(raised.value)
+    assert "library_id" in str(raised.value)
+    assert "ZOTERO_LIBRARY_ID" in str(raised.value)
 
 
 def test_offline_without_database_path_says_where_it_usually_is():
+    zotero_config = ZoteroConfig(api_key="k")
     with pytest.raises(ConfigurationError) as raised:
-        RepositoryFactory.get_zotero_gateway(ZoteroConfig(api_key="k"), offline=True)
+        RepositoryFactory.get_zotero_gateway(zotero_config, offline=True)
     assert "database_path" in str(raised.value)
     assert "zotero.sqlite" in str(raised.value)
 

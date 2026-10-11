@@ -6,7 +6,7 @@ import requests
 from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
 
 
-def test_unpaywall_client_init():
+def test_unpaywall_client_init(monkeypatch):
     # 1. Custom email
     client = UnpaywallAPIClient(email="custom@test.com")
     assert client.email == "custom@test.com"
@@ -17,14 +17,12 @@ def test_unpaywall_client_init():
         assert client2.email == "env@test.com"
 
     # 3. Default fallback
-    with patch.dict(os.environ, {}):
-        if "UNPAYWALL_EMAIL" in os.environ:
-            del os.environ["UNPAYWALL_EMAIL"]
-        client3 = UnpaywallAPIClient()
-        # No made-up or built-in address: without one, Unpaywall is skipped
-        # (Issue #337).
-        assert client3.email is None
-        assert client3.get_paper_metadata("10.1000/abc") is None
+    monkeypatch.delenv("UNPAYWALL_EMAIL", raising=False)
+    client3 = UnpaywallAPIClient()
+    # No made-up or built-in address: without one, Unpaywall is skipped
+    # (Issue #337).
+    assert client3.email is None
+    assert client3.get_paper_metadata("10.1000/abc") is None
 
 
 def test_get_paper_metadata_invalid_doi():

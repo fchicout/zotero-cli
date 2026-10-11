@@ -112,7 +112,8 @@ def test_doi_is_resolved_with_esearch_not_sent_to_efetch_as_an_id(client):
     with patch.object(client, "_get", side_effect=[esearch, efetch]) as get:
         paper = client.get_paper_metadata("10.1038/nature14539")
 
-    assert paper is not None and paper.title == "Deep learning"
+    assert paper is not None
+    assert paper.title == "Deep learning"
     search_call, fetch_call = get.call_args_list
     assert search_call.kwargs["endpoint"] == "esearch.fcgi"
     assert search_call.kwargs["params"]["term"] == '"10.1038/nature14539"[doi]'

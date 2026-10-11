@@ -184,8 +184,9 @@ def test_item_inspect_missing_key(mock_clients, env_vars, capsys):
     args.full_notes = False
     args.user = False
 
+    command = ItemCommand()
     with pytest.raises(NotFound, match="MISSINGKEY"):
-        ItemCommand().execute(args)
+        command.execute(args)
 
 
 def test_item_inspect_no_keys(mock_clients, env_vars, capsys):
@@ -195,8 +196,9 @@ def test_item_inspect_no_keys(mock_clients, env_vars, capsys):
     args.file = None
     args.user = False
 
+    command = ItemCommand()
     with pytest.raises(ZoteroCliError) as raised:
-        ItemCommand().execute(args)
+        command.execute(args)
 
     out = str(raised.value)
     assert "You must specify --key or --file" in out
@@ -367,8 +369,9 @@ def test_item_list_no_collection_or_root(mock_clients, env_vars, capsys):
     args.wide = False
     args.format = "table"
 
+    command = ItemCommand()
     with pytest.raises(ZoteroCliError) as raised:
-        ItemCommand().execute(args)
+        command.execute(args)
 
     out = str(raised.value)
     assert "--collection or --root required for non-trash listings" in out
@@ -420,8 +423,9 @@ def test_item_delete_missing_item(mock_clients, env_vars, capsys):
     args.dry_run = False
     args.user = False
 
+    command = ItemCommand()
     with pytest.raises(SystemExit) as exc:
-        ItemCommand().execute(args)
+        command.execute(args)
 
     assert exc.value.code == 1
     gateway.delete_item.assert_not_called()
@@ -461,8 +465,10 @@ def test_item_delete_failure_exits_1(mock_clients, env_vars, capsys):
     gateway.get_item.return_value = MagicMock(version=5)
     gateway.delete_item.return_value = False
 
+    command = ItemCommand()
+    args = _delete_args(permanent=True)
     with pytest.raises(SystemExit) as exc:
-        ItemCommand().execute(_delete_args(permanent=True))
+        command.execute(args)
 
     assert exc.value.code == 1
     captured = capsys.readouterr()
@@ -782,8 +788,9 @@ def test_item_trash_missing_item(env_vars, capsys):
         args.force = True
         args.user = False
 
+        command = ItemCommand()
         with pytest.raises(ZoteroCliError) as raised:
-            ItemCommand().execute(args)
+            command.execute(args)
 
     gateway.trash_item.assert_not_called()
     assert "not found" in str(raised.value)
@@ -921,7 +928,9 @@ def test_item_list_default_output_unchanged(mock_clients, env_vars, capsys):
     ItemCommand().execute(_parse_list_args("--collection", "C1"))
 
     out = capsys.readouterr().out
-    assert "Key" in out and "Title" in out and "Type" in out
+    assert "Key" in out
+    assert "Title" in out
+    assert "Type" in out
     assert "journalArticle" in out
     assert "Showing 1 items." in out
 
@@ -983,7 +992,8 @@ def test_item_inspect_renders_markup_and_escapes_in_metadata_literally(
     out = capsys.readouterr().out
     assert "Broken [/bold] title" in out
     assert "[red]abstract[/red]" in out
-    assert "\x1b]52" not in out and "\x07" not in out
+    assert "\x1b]52" not in out
+    assert "\x07" not in out
 
 
 @pytest.mark.parametrize("fmt, method", [("bibtex", "serialize_bibtex"), ("ris", "serialize_ris")])

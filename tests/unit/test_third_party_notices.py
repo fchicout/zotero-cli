@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 _spec = importlib.util.spec_from_file_location(
     "gen_third_party_notices", ROOT / "scripts" / "gen_third_party_notices.py"
 )
-assert _spec and _spec.loader
+assert _spec
+assert _spec.loader
 gen = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gen)
 
@@ -49,9 +50,11 @@ def test_every_bundled_distribution_gets_its_licence_text(tmp_path):
     assert gen.main(["--build-dir", str(build), "--output", str(out)]) == 0
 
     text = out.read_text()
-    assert "rich " in text and "tenacity " in text
+    assert "rich " in text
+    assert "tenacity " in text
     assert "Permission is hereby granted" in text  # rich's MIT text
-    assert "Python " in text and "runtime (CPython)" in text
+    assert "Python " in text
+    assert "runtime (CPython)" in text
     assert "OpenSSL (linked into the Python runtime)" in text
     assert "GCC RUNTIME LIBRARY EXCEPTION" in text
 
@@ -108,4 +111,5 @@ def test_every_static_licence_file_exists_and_is_not_empty():
     files |= {"gcc-runtime-library-exception-3.1.txt", "msvc-runtime.txt"}
     for name in files:
         path = gen.STATIC_LICENSES / name
-        assert path.is_file() and path.stat().st_size > 100, name
+        assert path.is_file(), name
+        assert path.stat().st_size > 100, name

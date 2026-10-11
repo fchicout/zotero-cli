@@ -26,7 +26,9 @@ def test_csv_round_trip_preserves_decision():
     plan = make_plan_with_decision()
     csv_text = serialize_plan_to_csv(plan)
 
-    assert "MASTER" in csv_text and "MERGE" in csv_text and "Same DOI" in csv_text
+    assert "MASTER" in csv_text
+    assert "MERGE" in csv_text
+    assert "Same DOI" in csv_text
 
     parsed = parse_plan_from_csv(csv_text)
     assert len(parsed.entries) == 1

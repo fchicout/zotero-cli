@@ -235,7 +235,8 @@ def test_every_documented_example_parses() -> None:
 )
 def test_checker_rejects_broken_concrete_examples(command: Any) -> None:
     argv = to_argv(command)
-    assert argv is not None and parse_error(argv)
+    assert argv is not None
+    assert parse_error(argv)
 
 
 @pytest.mark.docs

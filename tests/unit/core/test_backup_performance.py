@@ -91,7 +91,8 @@ def test_data_json_is_compact_and_complete():
 
     with zipfile.ZipFile(out) as zf:
         text = zf.read("data.json").decode()
-    assert "\n" not in text and ", " not in text
+    assert "\n" not in text
+    assert ", " not in text
     assert len(json.loads(text)) == 5
 
 

@@ -120,8 +120,9 @@ def test_paginate_raises_on_a_non_list_page():
     response.headers = {}
     session.get = Mock(return_value=response)  # type: ignore[method-assign]
 
+    paginate = _client(session)._paginate("collections")
     with pytest.raises(ValueError):
-        list(_client(session)._paginate("collections"))
+        list(paginate)
 
 
 def test_items_are_paginated_with_the_same_paginator():

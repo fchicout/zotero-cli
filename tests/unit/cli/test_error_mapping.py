@@ -95,5 +95,6 @@ def test_offline_write_attempt_is_a_clean_error(capsys, tmp_path):
     sqlite3.connect(db).close()
     from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
 
+    sqlite_zotero_gateway = SqliteZoteroGateway(str(db))
     with pytest.raises(OfflineReadOnly, match="without --offline"):
-        SqliteZoteroGateway(str(db)).update_item("K", 1, {"title": "x"})
+        sqlite_zotero_gateway.update_item("K", 1, {"title": "x"})

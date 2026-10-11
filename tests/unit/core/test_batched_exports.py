@@ -68,7 +68,8 @@ def test_attachments_report_on_the_library_makes_no_children_requests(capsys):
     gateway.get_item_children.assert_not_called()
     out = " ".join(capsys.readouterr().out.split())
     assert "Total Attachments: 2" in out
-    assert "PDF Files: 1" in out and "Other Files: 1" in out
+    assert "PDF Files: 1" in out
+    assert "Other Files: 1" in out
     assert "Items Missing PDF: 1" in out
 
 

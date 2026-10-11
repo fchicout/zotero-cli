@@ -445,8 +445,10 @@ def test_restore_attachment_over_the_size_limit_is_refused_and_leaves_no_temp_fi
     )
 
     gateway.upload_attachment.assert_not_called()
-    assert report.errors and "limit" in report.errors[0]
-    assert created and not any(os.path.exists(p) for p in created)
+    assert report.errors
+    assert "limit" in report.errors[0]
+    assert created
+    assert not any(os.path.exists(p) for p in created)
 
 
 def test_restore_refuses_oversized_data_json(tmp_path, monkeypatch):
@@ -459,7 +461,8 @@ def test_restore_refuses_oversized_data_json(tmp_path, monkeypatch):
         zf.writestr("data.json", "[" + " " * 100_000 + "]")
 
     report = _restore_service(MagicMock()).restore_archive(str(path))
-    assert report.errors and "limit" in report.errors[0]
+    assert report.errors
+    assert "limit" in report.errors[0]
 
 
 def test_restore_notes_ask_for_each_parent_s_children_once(mock_gateway):

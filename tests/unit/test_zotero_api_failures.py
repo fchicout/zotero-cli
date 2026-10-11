@@ -39,8 +39,9 @@ def test_other_failures_are_not_reported_as_empty(client, method, args, default,
     """Issue #369: a rejected key or an outage used to look like "not found"
     or an empty library, with exit status 0."""
     client.http.get.side_effect = error
+    method_2 = getattr(client, method)
     with pytest.raises(type(error)):
-        getattr(client, method)(*args)
+        method_2(*args)
 
 
 @pytest.mark.parametrize("error", [AuthError("key rejected"), Unavailable("down")])

@@ -81,7 +81,8 @@ def test_collection_clean(run_cli: Any, temp_collection: Any) -> None:
     try:
         # Preview: nothing changes
         preview = run_cli(["collection", "clean", "--collection", temp_collection])
-        assert preview.returncode == 0 and "Preview only" in preview.stdout
+        assert preview.returncode == 0
+        assert "Preview only" in preview.stdout
         still = run_cli(["item", "list", "--collection", temp_collection])
         assert "Attention" in still.stdout
 
