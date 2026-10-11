@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-10-11
+
+A patch release: updating an item or renaming a collection no longer reports success when Zotero refused the write.
+
 ### 🐛 Fixed
 - **Updating an item or renaming a collection reported success when Zotero refused the write:** `update_item` and `rename_collection` sent the last library version they had seen instead of the object's own version, which is usually newer, so Zotero answered 412 "precondition failed" and nothing was written, but the command said it had worked. Found by the e2e suite: `collection clean --execute` printed "Removed 1 item(s)" and the item stayed in the collection. These writes now send the object's own version (looked up first if the caller doesn't know it) and a 412 is a failure. It affected everything built on them: `collection clean`, `collection rename`, `item update`, `item hydrate`, the master-item update of `item merge`, and tag changes (`tag add`, `tag purge`).
 
