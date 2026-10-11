@@ -212,7 +212,8 @@ class TestReportCommandDuplicates:
         mock_gateway.get_all_items.assert_called_once()
         mock_gateway.get_items_in_collection.assert_not_called()
         out = capsys.readouterr().out
-        assert "KEY_A" in out and "KEY_B" in out
+        assert "KEY_A" in out
+        assert "KEY_B" in out
 
     def test_duplicates_export_plan_csv(self, mock_gateway, capsys, tmp_path):
         from zotero_cli.cli.commands.report_cmd import ReportCommand
@@ -240,8 +241,11 @@ class TestReportCommandDuplicates:
             cmd.execute(args)
 
         content = Path(out_file).read_text()
-        assert "group_id" in content and "role" in content and "reason" in content
-        assert "KEY_A" in content and "KEY_B" in content
+        assert "group_id" in content
+        assert "role" in content
+        assert "reason" in content
+        assert "KEY_A" in content
+        assert "KEY_B" in content
         assert "Exported a merge plan" in capsys.readouterr().out
 
     def test_duplicates_export_plan_json_is_a_plain_nested_plan(

@@ -295,7 +295,8 @@ def test_system_check_all_ok_exits_zero(system_cmd, capsys):
         system_cmd.execute(argparse.Namespace(verb="check", user=False))
 
     out = capsys.readouterr().out
-    assert "FOUND" in out and "CONFIGURED" in out
+    assert "FOUND" in out
+    assert "CONFIGURED" in out
 
 
 def test_system_demo_sandbox_create(system_cmd, capsys):
@@ -539,8 +540,9 @@ def test_system_check_unconfigured_library_fails(system_cmd, capsys):
             CheckResult("Zotero API", "NOT_CONFIGURED", "No Zotero API key is set.", required=True),
             CheckResult("Semantic Scholar", "NOT_CONFIGURED", "No API key set"),
         ]
+        args = argparse.Namespace(verb="check", user=False)
         with pytest.raises(ZoteroCliError) as raised:
-            system_cmd.execute(argparse.Namespace(verb="check", user=False))
+            system_cmd.execute(args)
 
     assert "NOT CONFIGURED" in capsys.readouterr().out
     assert "Zotero API" in str(raised.value)

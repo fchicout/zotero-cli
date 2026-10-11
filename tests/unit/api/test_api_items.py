@@ -48,9 +48,9 @@ def _make_item(key: str, title: str) -> Any:
     return item
 
 
-def test_list_items() -> None:
+def test_list_items(monkeypatch: pytest.MonkeyPatch) -> None:
     items = [_make_item("K1", "Paper One"), _make_item("K2", "Paper Two")]
-    mock_gateway.search_items.return_value = iter(items)
+    monkeypatch.setattr(mock_gateway.search_items, "return_value", iter(items))
 
     response = client.get("/items")
 
@@ -61,9 +61,9 @@ def test_list_items() -> None:
     assert data[0]["title"] == "Paper One"
 
 
-def test_list_items_respects_limit() -> None:
+def test_list_items_respects_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     items = [_make_item(f"K{i}", f"Paper {i}") for i in range(5)]
-    mock_gateway.search_items.return_value = iter(items)
+    monkeypatch.setattr(mock_gateway.search_items, "return_value", iter(items))
 
     response = client.get("/items", params={"limit": 2})
 
@@ -71,8 +71,8 @@ def test_list_items_respects_limit() -> None:
     assert len(response.json()) == 2
 
 
-def test_get_item_found() -> None:
-    mock_gateway.get_item.return_value = _make_item("K1", "Paper One")
+def test_get_item_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(mock_gateway.get_item, "return_value", _make_item("K1", "Paper One"))
 
     response = client.get("/items/K1")
 
@@ -83,8 +83,8 @@ def test_get_item_found() -> None:
     mock_gateway.get_item.assert_called_once_with("K1")
 
 
-def test_get_item_not_found() -> None:
-    mock_gateway.get_item.return_value = None
+def test_get_item_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(mock_gateway.get_item, "return_value", None)
 
     response = client.get("/items/MISSING")
 

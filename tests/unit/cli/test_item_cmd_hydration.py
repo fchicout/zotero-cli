@@ -64,7 +64,8 @@ def test_previews_by_default(mock_factory, item_cmd, capsys):
         "K1", fields=DEFAULT_FIELDS, overwrite=False, by_title=False, execute=False
     )
     out = capsys.readouterr().out
-    assert "PREVIEW" in out and "--execute" in out
+    assert "PREVIEW" in out
+    assert "--execute" in out
 
 
 @patch("zotero_cli.infra.factory.GatewayFactory.get_enrichment_service")
@@ -97,8 +98,9 @@ def test_json_output_is_only_json_on_stdout(mock_factory, item_cmd, capsys):
 
 @patch("zotero_cli.infra.factory.GatewayFactory.get_enrichment_service")
 def test_unknown_field_is_a_usage_error(mock_factory, item_cmd, capsys):
+    args = _args(key="K1", fields="volume")
     with pytest.raises(SystemExit) as exc:
-        item_cmd.execute(_args(key="K1", fields="volume"))
+        item_cmd.execute(args)
     assert exc.value.code == 2
     assert "volume" in capsys.readouterr().err
     mock_factory.assert_not_called()
@@ -106,8 +108,9 @@ def test_unknown_field_is_a_usage_error(mock_factory, item_cmd, capsys):
 
 @patch("zotero_cli.infra.factory.GatewayFactory.get_enrichment_service")
 def test_execute_is_refused_offline(mock_factory, item_cmd, capsys):
+    args = _args(key="K1", execute=True, offline=True)
     with pytest.raises(SystemExit) as exc:
-        item_cmd.execute(_args(key="K1", execute=True, offline=True))
+        item_cmd.execute(args)
     assert exc.value.code == 2
     assert "read-only" in capsys.readouterr().err
     mock_factory.assert_not_called()

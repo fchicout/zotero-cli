@@ -121,7 +121,8 @@ def test_offline_reports_the_local_database(mock_gateway, mock_aggregator, base_
     assert "Zotero API" not in names
     row = result_for(results, "Local database")
     assert row.status == "FOUND"
-    assert "zotero.sqlite" in row.details and "42 items" in row.details
+    assert "zotero.sqlite" in row.details
+    assert "42 items" in row.details
     mock_gateway.verify_credentials.assert_not_called()
 
 

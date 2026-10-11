@@ -146,7 +146,7 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
         if args.report_type == "duplicates":
-            self._handle_duplicates(gateway, args, force_user)
+            self._handle_duplicates(gateway, args)
         elif args.report_type == "audit":
             self._handle_audit(gateway, args)
         elif args.report_type == "stats":
@@ -154,9 +154,7 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
         elif args.report_type == "attachments":
             self._handle_attachments(gateway, args)
 
-    def _handle_duplicates(
-        self, gateway: ZoteroGateway, args: argparse.Namespace, force_user: bool = False
-    ) -> None:
+    def _handle_duplicates(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         service = DuplicateFinder(gateway, gateway)
         col_names_by_id: Dict[str, str] = {"UNFILED": "Unfiled"}
 

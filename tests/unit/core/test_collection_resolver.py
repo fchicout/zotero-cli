@@ -39,7 +39,8 @@ def test_ambiguous_name_raises_with_every_candidate_and_its_path():
         ("FT1", "Source A / 2-full_text"),
         ("FT2", "Source B / 2-full_text"),
     ]
-    assert "FT1" in str(exc.value) and "FT2" in str(exc.value)
+    assert "FT1" in str(exc.value)
+    assert "FT2" in str(exc.value)
 
 
 def test_exact_name_wins_over_case_insensitive_duplicates():
@@ -77,4 +78,5 @@ def test_cli_reports_ambiguity_with_exit_2_and_no_traceback(capsys):
             main()
     assert exc.value.code == 2
     err = capsys.readouterr().err
-    assert "FT1" in err and "Traceback" not in err
+    assert "FT1" in err
+    assert "Traceback" not in err

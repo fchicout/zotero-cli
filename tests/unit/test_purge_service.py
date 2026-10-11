@@ -388,18 +388,19 @@ def test_purge_attachments_stays_per_item_at_or_below_threshold(purge_service, m
     mock_gateway.search_items.assert_not_called()
 
 
-def test_small_purge_in_a_large_library_looks_up_each_parent(scan_gateway):
+def test_small_purge_in_a_large_library_looks_up_each_parent(
+    scan_gateway, monkeypatch: pytest.MonkeyPatch
+):
     """Issue #441: purging 3 items paged through ~35k attachments (350
     pages) because the threshold was a fixed 2."""
-    _CountingGateway.total = 35_000
-    try:
-        scan_gateway.get_item_children.return_value = [
-            {"key": "A1", "data": {"itemType": "attachment", "version": 1}}
-        ]
-        scan_gateway.delete_item.return_value = True
-        stats = PurgeService(scan_gateway).purge_attachments(["P1", "P2", "P3"], dry_run=False)
-    finally:
-        _CountingGateway.total = 150
+    monkeypatch.setattr(_CountingGateway, "total", 35_000)
+    scan_gateway.get_item_children.return_value = [
+        {"key": "A1", "data": {"itemType": "attachment", "version": 1}}
+    ]
+    scan_gateway.delete_item.return_value = True
+    purge_service = PurgeService(scan_gateway)
+
+    stats = purge_service.purge_attachments(["P1", "P2", "P3"], dry_run=False)
 
     assert stats["deleted"] == 3
     scan_gateway.search_items.assert_not_called()

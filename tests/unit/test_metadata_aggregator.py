@@ -151,7 +151,9 @@ def test_require_doi_match_drops_candidates_without_the_queried_doi():
 
     strict = aggregator.get_enriched_metadata("10.1038/nature14539", require_doi_match=True)
     assert strict is not None
-    assert strict.title == "Deep learning" and strict.publication != "Some Workshop"
+    assert strict.title == "Deep learning"
+    assert strict.publication != "Some Workshop"
 
     lenient = aggregator.get_enriched_metadata("10.1038/nature14539")
-    assert lenient is not None and lenient.publication == "Some Workshop"
+    assert lenient is not None
+    assert lenient.publication == "Some Workshop"

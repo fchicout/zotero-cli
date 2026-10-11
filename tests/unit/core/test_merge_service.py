@@ -171,7 +171,8 @@ def test_merge_executes_full_flow(service, item_repo, note_repo):
     assert update_call[0][0] == "M1"
     assert update_call[0][1] == 1
     payload = update_call[0][2]
-    assert {"tag": "a"} in payload["tags"] and {"tag": "b"} in payload["tags"]
+    assert {"tag": "a"} in payload["tags"]
+    assert {"tag": "b"} in payload["tags"]
     assert set(payload["collections"]) == {"C1", "C2"}
 
     note_repo.update_note.assert_called_once_with("NOTE1", 2, "hello", parent_item_key="M1")

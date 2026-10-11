@@ -37,8 +37,10 @@ def test_default_bind_is_loopback_without_token(monkeypatch):
 
 def test_non_loopback_bind_is_refused_without_allow_remote(capsys):
     with patch("uvicorn.run") as run:
+        command = ServeCommand()
+        args = _args(host="0.0.0.0")
         with pytest.raises(SystemExit) as exc:
-            ServeCommand().execute(_args(host="0.0.0.0"))
+            command.execute(args)
     assert exc.value.code == 2
     run.assert_not_called()
     assert "--allow-remote" in capsys.readouterr().err

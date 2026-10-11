@@ -45,7 +45,7 @@ def test_get_paper_metadata_doi(client):
         paper = client.get_paper_metadata("10.1/1")
         assert paper.title == "DOI Paper"
         args, kwargs = client._get.call_args
-        assert "doi 10.1/1" == kwargs["params"]["q"]
+        assert kwargs["params"]["q"] == "doi 10.1/1"
 
 
 def test_get_paper_metadata_arxiv(client):
@@ -58,7 +58,7 @@ def test_get_paper_metadata_arxiv(client):
         paper = client.get_paper_metadata("1207.7214")
         assert paper.title == "arXiv Paper"
         args, kwargs = client._get.call_args
-        assert "eprint 1207.7214" == kwargs["params"]["q"]
+        assert kwargs["params"]["q"] == "eprint 1207.7214"
 
 
 def test_get_paper_metadata_recid(client):
@@ -71,7 +71,7 @@ def test_get_paper_metadata_recid(client):
         paper = client.get_paper_metadata("1124337")
         assert paper.title == "Recid Paper"
         args, kwargs = client._get.call_args
-        assert "recid 1124337" == kwargs["params"]["q"]
+        assert kwargs["params"]["q"] == "recid 1124337"
 
 
 def test_get_paper_metadata_not_found(client):

@@ -56,8 +56,9 @@ def test_network_failure_is_bounded_and_ends_as_unavailable(sleeps, capsys):
     _install_cli_sink()
     get = Mock(side_effect=requests.exceptions.ConnectionError("unreachable"))
 
+    client = _client(get)
     with pytest.raises(Unavailable, match="check your network"):
-        _client(get).get("tags")
+        client.get("tags")
 
     assert get.call_count == MAX_ATTEMPTS
     assert len(sleeps) == MAX_ATTEMPTS - 1
@@ -67,8 +68,9 @@ def test_network_failure_is_bounded_and_ends_as_unavailable(sleeps, capsys):
 
 def test_timeouts_are_retried_then_unavailable(sleeps):
     get = Mock(side_effect=requests.exceptions.ReadTimeout("slow"))
+    client = _client(get)
     with pytest.raises(Unavailable):
-        _client(get).get("tags")
+        client.get("tags")
     assert get.call_count == MAX_ATTEMPTS
 
 
@@ -89,7 +91,8 @@ def test_backoff_header_pauses_the_next_request(sleeps, monkeypatch):
     client.get("items")
     client.get("items")
 
-    assert len(paused) == 1 and 0 < paused[0] <= 3
+    assert len(paused) == 1
+    assert 0 < paused[0] <= 3
 
 
 @pytest.mark.parametrize(
@@ -107,15 +110,17 @@ def test_backoff_header_pauses_the_next_request(sleeps, monkeypatch):
 def test_http_status_maps_to_a_typed_error(sleeps, status, error, code):
     get = Mock(return_value=_response(status))
 
+    client = _client(get)
     with pytest.raises(error) as raised:
-        _client(get).get("items/K1")
+        client.get("items/K1")
 
     assert raised.value.exit_code == code
 
 
 def test_auth_error_says_what_to_do(sleeps):
+    client = _client(Mock(return_value=_response(403)))
     with pytest.raises(AuthError, match="zotero-cli init"):
-        _client(Mock(return_value=_response(403))).get("items")
+        client.get("items")
 
 
 def test_patch_and_delete_keep_returning_412_to_the_caller(sleeps):

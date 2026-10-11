@@ -304,8 +304,9 @@ def test_backup_attachment_filename_dot_only_falls_back_to_item_key(service, moc
 
 def test_backup_collection_not_found(service, mock_gateway):
     mock_gateway.get_collection.return_value = None
+    bytes_i_o = BytesIO()
     with pytest.raises(ValueError) as excinfo:
-        service.backup_collection("NON_EXISTENT", BytesIO())
+        service.backup_collection("NON_EXISTENT", bytes_i_o)
     assert "Collection NON_EXISTENT not found" in str(excinfo.value)
 
 

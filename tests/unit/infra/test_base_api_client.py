@@ -74,7 +74,8 @@ def test_default_user_agent_has_no_builtin_email_and_the_real_version():
     from zotero_cli.infra.base_api_client import user_agent
 
     anonymous = user_agent()
-    assert "mailto" not in anonymous and "@" not in anonymous
+    assert "mailto" not in anonymous
+    assert "@" not in anonymous
     assert f"zotero-cli/{__version__}" in anonymous
     assert user_agent("me@example.org").endswith("; mailto:me@example.org)")
 

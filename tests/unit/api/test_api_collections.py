@@ -31,11 +31,15 @@ def reset_mocks() -> None:
     mock_gateway.reset_mock()
 
 
-def test_list_collections() -> None:
-    mock_gateway.get_all_collections.return_value = [
-        {"key": "C1", "data": {"name": "Root", "parentCollection": False}},
-        {"key": "C2", "data": {"name": "Child", "parentCollection": "C1"}},
-    ]
+def test_list_collections(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        mock_gateway.get_all_collections,
+        "return_value",
+        [
+            {"key": "C1", "data": {"name": "Root", "parentCollection": False}},
+            {"key": "C2", "data": {"name": "Child", "parentCollection": "C1"}},
+        ],
+    )
 
     response = client.get("/collections")
 

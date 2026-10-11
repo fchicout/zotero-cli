@@ -25,7 +25,8 @@ def test_transfer_item_success(service):
 
     result = service.transfer_item("K1", source_gw, dest_gw)
 
-    assert result.new_key == "NEW_K1" and result.complete
+    assert result.new_key == "NEW_K1"
+    assert result.complete
     dest_gw.create_generic_item.assert_called_once()
     # Check that key/version/library were stripped
     args = dest_gw.create_generic_item.call_args[0][0]
@@ -57,7 +58,8 @@ def test_transfer_item_with_children(service):
     with patch("os.path.exists", return_value=True):
         result = service.transfer_item("K1", source_gw, dest_gw)
 
-    assert result.new_key == "NEW_K1" and result.copied_children == 2
+    assert result.new_key == "NEW_K1"
+    assert result.copied_children == 2
     dest_gw.create_note.assert_called_once_with("NEW_K1", "Hello")
     dest_gw.upload_attachment.assert_called_once()
 
@@ -163,7 +165,8 @@ def test_source_is_kept_when_any_child_was_not_copied(service, setup):
 
     source_gw.delete_item.assert_not_called()
     assert not result.source_deleted
-    assert len(result.failures) == 1 and not result.complete
+    assert len(result.failures) == 1
+    assert not result.complete
 
 
 def test_connector_saved_pdfs_are_transferred(service):
@@ -177,7 +180,8 @@ def test_connector_saved_pdfs_are_transferred(service):
 
     dest_gw.upload_attachment.assert_called_once()
     source_gw.delete_item.assert_called_once_with("K1", 4)
-    assert result.complete and result.source_deleted
+    assert result.complete
+    assert result.source_deleted
 
 
 def test_attachment_filename_cannot_escape_the_temp_directory(service):

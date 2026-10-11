@@ -145,7 +145,8 @@ def test_credentials_in_urls_are_masked_even_if_never_registered(tmp_path):
     content = _read_log(log_dir)
     for leaked in ("NCBIKEY123", "someone@example.org", "ZOTEROKEY123456"):
         assert leaked not in content
-    assert "db=pubmed" in content and "id=1" in content
+    assert "db=pubmed" in content
+    assert "id=1" in content
     assert "/keys/[REDACTED]" in content
     logging_config.reset_logging_for_tests()
 
