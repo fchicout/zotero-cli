@@ -4,10 +4,24 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
-Work towards 4.0.0 (tracked in #462). The first breaking change: zotero-cli is a Zotero library manager only.
+## [4.0.0] - 2026-10-11
+
+A major release. zotero-cli is now only a Zotero library manager: the systematic-review workflow and `rag` are gone, the 3.x deprecations are removed, and deletes are safe by default. Everything that was announced as "removed in 4.0" in 3.x is here, and nothing else was removed.
+
+### ⚠️ Upgrading to 4.0
+| If your scripts... | Do this |
+| :--- | :--- |
+| run `item delete`, `storage checkout` or `system restore` without a flag | add `--execute` (without it they only preview now) |
+| delete items and expect them to be gone for good (`item delete`, `item merge`, `item transfer --delete-source`, `collection delete --recursive`) | the items go to Zotero's trash now; add `--permanent` to delete for good, or use `item restore` to get one back. `--trash` still works and is the default |
+| use `--name`, `--item-id`, `--item`, per-command `--verbose` or `--format` as an export type | use `--collection`, `--key`, `--details` and `--as` |
+| use any `slr` command or `report verify-latex` | stay on 3.x until your tooling has moved; notes already in your library are not touched |
+| use `rag` or its extra or config keys | `rag` moved to a separate tool; delete `vector_store_*.sqlite` from your state directory; old config keys are ignored |
+| read `report duplicates --csv`, BibTeX/RIS exports or `schema` | the `sdb_status` column, the `x-sdb-*` fields and the `deprecated` field are gone |
+| construct `DuplicateFinder`, `IntegrityService`, `BackupService`, `StorageService` or `RestoreService` in Python | pass the repositories (a `ZoteroGateway` is each of them) |
 
 ### Changed
 - **Deletes preview by default and go to the trash (Issues #462, #378, #402):** `item delete`, `storage checkout` and `system restore` now show a preview until you pass `--execute` (they applied immediately in 3.x, with a warning). Deletes of items (`item delete`, `item merge` and `--plan`, `item transfer --delete-source`, `collection delete --recursive`) move them to Zotero's trash, recoverable with `item restore`; pass `--permanent` to delete for good. `--trash` is still accepted and means the default. Scripts that relied on the old defaults need `--execute` (and `--permanent` for a hard delete).
+- **Five services take narrow repositories instead of the whole gateway (Issue #572):** `DuplicateFinder(items, collections)`, `IntegrityService(collections, notes)`, `BackupService(items, collections, attachments)`, `StorageService(config, attachments, search)` and `RestoreService(items, collections, notes, attachments)`. The command line is unchanged. Python programs that construct these services directly must pass the repositories (a `ZoteroGateway` is all of them, so passing it for each argument works).
 
 ### Removed
 - **Deprecated spellings from 3.1 (Issues #374, #379, #380):** `--name` (now `--collection`) on `collection backup`, `collection export` and `collection purge`; `--item-id` (now `--key`) on `item move`; `--item` (now `--key`) on `tag add`; `--format` as the export type on `item export`, `item inspect` and `collection export` (now `--as`; `--format` means output rendering only); and the per-command `--verbose` (now `--details`) on `import file/arxiv/doi/bdtd`, `item pdf fetch/strip`, `collection clean` and `report audit`. They print `unrecognized arguments` now.
