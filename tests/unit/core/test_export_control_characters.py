@@ -26,7 +26,16 @@ from zotero_cli.infra.ris_lib import RisLibGateway
 
 ESC, BEL = chr(27), chr(7)
 # Everything below 0x20 except tab, newline and carriage return; DEL and the C1 range.
-FORBIDDEN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f‪-‮⁦-⁩]")
+_FORBIDDEN_CODES = [
+    *range(0x00, 0x09),  # C0 controls except tab (0x09) and newline (0x0A)
+    0x0B,
+    0x0C,
+    *range(0x0E, 0x20),
+    *range(0x7F, 0xA0),  # DEL and the C1 range
+    *range(0x202A, 0x202F),  # bidi embeddings and overrides
+    *range(0x2066, 0x206A),  # bidi isolates
+]
+FORBIDDEN = re.compile("[" + "".join(chr(c) for c in _FORBIDDEN_CODES) + "]")
 
 
 def _evil(text: str) -> str:
