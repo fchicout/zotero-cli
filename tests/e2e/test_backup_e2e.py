@@ -26,7 +26,7 @@ def test_collection_backup_e2e(tmp_path: Path) -> None:
                 "zotero-cli",
                 "collection",
                 "backup",
-                "--name",
+                "--collection",
                 "NonExistentCollection",
                 "--output",
                 str(output_file),

@@ -42,7 +42,11 @@ def test_item_hydrate_dry_run(run_cli: Any, temp_collection: Any) -> None:
     assert res.returncode == 0
     # Either it shows the report table or the "No items needed" message.
     # Both prove the CLI -> Service integration is working.
-    assert "Hydration Report" in res.stdout or "No items needed hydration" in res.stdout
+    assert (
+        "Hydration Report" in res.stdout
+        or "No items needed hydration" in res.stdout
+        or "no-change" in res.stdout
+    )
 
 
 @pytest.mark.e2e

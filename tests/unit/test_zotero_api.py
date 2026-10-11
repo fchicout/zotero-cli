@@ -477,16 +477,16 @@ def test_update_item(client):
     mock_response.status_code = 204
     mock_response.headers = {}
     client.http.session.patch.return_value = mock_response
-    client.http.last_library_version = 1  # Set version for header check
+    client.http.last_library_version = 900  # newer than the item: must not be what is sent
 
-    success = client.update_item("K1", 1, {"title": "New Title"})
+    success = client.update_item("K1", 7, {"title": "New Title"})
     assert success is True
     # Verify session call
     args, kwargs = client.http.session.patch.call_args
     # The URL will be full prefix + endpoint
     assert "items/K1" in args[0]
     assert kwargs["json"] == {"title": "New Title"}
-    assert kwargs["headers"]["If-Unmodified-Since-Version"] == "1"
+    assert kwargs["headers"]["If-Unmodified-Since-Version"] == "7"
 
 
 def test_get_collection_success(client):

@@ -272,3 +272,53 @@ def test_the_boolean_methods_are_true_only_when_applied(client):
     assert client.update_note("N1", 70, "x") is True
     assert client.update_note("N1", 70, "x") is False
     assert client.create_note("P", "x") is True
+
+
+# ---- item and collection updates are guarded by their own version -------------------------
+
+
+def test_update_item_sends_the_items_own_version_not_the_library_version(client):
+    client.http.last_library_version = 900
+    session = use(client, response(204))
+
+    assert client.update_item("K1", 7, {"title": "T"}) is True
+
+    assert session.calls[0][2]["headers"]["If-Unmodified-Since-Version"] == "7"
+
+
+def test_update_item_that_hits_a_412_is_a_failure(client):
+    """The write used to be refused (412) and still reported as done."""
+    use(client, response(412, text="changed"))
+
+    assert client.update_item("K1", 7, {"title": "T"}) is False
+
+
+def test_update_item_without_a_version_looks_up_the_current_one(client):
+    item = {"key": "K1", "version": 55, "data": {"key": "K1", "version": 55, "itemType": "book"}}
+    session = use(client, response(200, item), response(204))
+
+    assert client.update_item("K1", 0, {"title": "T"}) is True
+
+    assert [c[0] for c in session.calls] == ["get", "patch"]
+    assert session.calls[1][2]["headers"]["If-Unmodified-Since-Version"] == "55"
+
+
+def test_update_item_of_a_missing_item_is_a_failure(client):
+    use(client, response(404, text="gone"))
+
+    assert client.update_item("K1", 0, {"title": "T"}) is False
+
+
+def test_rename_collection_is_guarded_by_the_collections_own_version(client):
+    client.http.last_library_version = 900
+    session = use(client, response(204))
+
+    assert client.rename_collection("C1", 12, "New") is True
+
+    assert session.calls[0][2]["headers"]["If-Unmodified-Since-Version"] == "12"
+
+
+def test_rename_collection_that_hits_a_412_is_a_failure(client):
+    use(client, response(412, text="changed"))
+
+    assert client.rename_collection("C1", 12, "New") is False
