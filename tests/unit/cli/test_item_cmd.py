@@ -582,9 +582,10 @@ def test_item_delete_trash_and_permanent_together_are_refused(mock_clients, env_
 
     mock_clients["gateway"].get_item.return_value = MagicMock(version=5)
     args = _delete_args(execute=True, trash=True, permanent=True)
+    command = ItemCommand()
 
     with pytest.raises(UsageError, match="contradict"):
-        ItemCommand().execute(args)
+        command.execute(args)
 
 
 def test_item_delete_dry_run_and_execute_are_mutually_exclusive():
