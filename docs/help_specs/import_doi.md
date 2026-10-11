@@ -28,7 +28,6 @@ Before uploading to the Zotero API, the CLI checks if an item with the same DOI 
 | :--- | :--- | :--- | :--- |
 | `--collection` | String | N/A | Required. |
 | `--details` | Boolean | N/A | Optional. Default: False. |
-| `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 | `doi` | String | Digital Object Identifier | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)

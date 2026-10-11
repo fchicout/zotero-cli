@@ -222,9 +222,9 @@ def test_collection_delete_recursive_executes_with_yes(
     CollectionCommand().execute(_delete_args(recursive=True, execute=True, yes=True))
 
     mock_collection_service.execute_recursive_delete.assert_called_once_with(
-        plan, include_shared=False, trash=False
+        plan, include_shared=False, trash=True
     )
-    assert "Deleted 1 item(s) and 2 collection(s)" in capsys.readouterr().out
+    assert "Trashed 1 item(s) and deleted 2 collection(s)" in capsys.readouterr().out
 
 
 def test_collection_delete_not_found(mock_gateway, mock_collection_service, capsys):

@@ -32,19 +32,16 @@ def _checkout_args(**overrides):
     return args
 
 
-def test_checkout_warns_when_neither_flag_given(mock_service, capsys):
-    """Issue #378: `storage checkout` predates preview-by-default and still
-    checks out immediately without --dry-run/--execute, but must now warn."""
+def test_checkout_previews_when_neither_flag_given(mock_service, capsys):
+    """4.0 (Issue #462): `storage checkout` previews until --execute."""
     mock_service.checkout_items.return_value = 3
 
     StorageCommand().execute(_checkout_args())
 
     mock_service.checkout_items.assert_called_once_with(
-        limit=50, allow_group_library=False, dry_run=False
+        limit=50, allow_group_library=False, dry_run=True
     )
-    err = capsys.readouterr().err
-    assert "currently applies its changes by default" in err
-    assert "--execute" in err
+    assert capsys.readouterr().err == ""
 
 
 def test_checkout_execute_no_warning(mock_service, capsys):

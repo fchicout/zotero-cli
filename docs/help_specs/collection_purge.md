@@ -37,7 +37,6 @@ By default the command asks for interactive confirmation before deleting anythin
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--collection` | String | Collection Name or Key | Required. |
-| `--name` | String | Deprecated alias of `--collection`. | Hidden; prints a warning. Removed in 4.0 (Issue #379). |
 | `--files` | Boolean | Purge attachments/files from every item | Optional. Default: False. |
 | `--notes` | Boolean | Purge notes from every item | Optional. Default: False. |
 | `--tags` | Boolean | Purge tags from every item | Optional. Default: False. |

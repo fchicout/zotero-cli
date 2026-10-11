@@ -9,7 +9,6 @@ from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag
-from zotero_cli.cli.safety import warn_default_apply
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.services.backup_service import BackupService
 from zotero_cli.core.strategies import (
@@ -299,7 +298,7 @@ Notes
 -----
 • Common Failure Modes: Attempting to restore a .zaf file that is corrupted or from a different account context.
 • Safety Tips: ALWAYS run with --dry-run first to understand the impact.
-• Deprecation: omitting both --dry-run and --execute still restores immediately (for now) but prints a warning; pass --execute explicitly. This becomes preview-by-default in 4.0 (Issue #378).
+• Previews by default: nothing is written to your library until you pass --execute.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_restore.md
 """,
@@ -310,7 +309,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         restore_mode.add_argument(
             "--execute",
             action="store_true",
-            help="Apply the restore (default for now; see Deprecation note)",
+            help="Apply the restore (without it, only a preview is shown)",
         )
 
         # Normalize CSV
@@ -487,30 +486,27 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
     def _handle_restore(self, args: argparse.Namespace) -> None:
         from zotero_cli.infra.factory import GatewayFactory
 
-        # Issue #378: predates the preview-by-default policy, so it still
-        # applies immediately without either flag - just warns instead of
-        # silently keeping the old behaviour forever.
-        if not args.dry_run and not getattr(args, "execute", False):
-            warn_default_apply("system restore")
+        # Previews unless --execute (4.0, Issue #462); --dry-run is the explicit spelling.
+        dry_run = not getattr(args, "execute", False)
 
         restore_service = GatewayFactory.get_restore_service(
             force_user=getattr(args, "user", False)
         )
 
         msg = f"Restoring from archive: [green]{args.file}[/green]"
-        if args.dry_run:
+        if dry_run:
             msg += " [bold yellow](DRY RUN)[/bold yellow]"
         console.print(msg)
 
         with console.status("[bold blue]Processing ZAF archive and synchronizing state..."):
-            report = restore_service.restore_archive(args.file, dry_run=args.dry_run)
+            report = restore_service.restore_archive(args.file, dry_run=dry_run)
 
         if report.errors:
             console.print("\n[bold red]Restore encountered errors:[/bold red]")
             for err in report.errors:
                 console.print(f"  - [red]Error:[/red] {escape(err)}")
 
-        title = "Restore Plan Summary" if args.dry_run else "Restore Completion Summary"
+        title = "Restore Plan Summary" if dry_run else "Restore Completion Summary"
         table = Table(title=title)
         table.add_column("Metric", style="cyan")
         table.add_column("Count", justify="right")
@@ -524,7 +520,7 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
 
         if report.errors:
             sys.exit(1)
-        status = "SIMULATED" if args.dry_run else "COMPLETE"
+        status = "SIMULATED" if dry_run else "COMPLETE"
         console.print(f"\n[bold green]RESTORE {safe_markup(status)}[/bold green]")
 
     def _handle_groups(self, args: argparse.Namespace) -> None:

@@ -11,11 +11,10 @@ from zotero_cli.cli.flags import (
     add_bibliography_flags,
     add_details_flag,
     add_key_argument,
-    add_renamed_flag,
     resolve_key,
 )
 from zotero_cli.cli.presenters import item_list_presenter
-from zotero_cli.cli.safety import add_permanent_flag, resolve_trash, warn_default_apply
+from zotero_cli.cli.safety import add_permanent_flag, resolve_trash
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.json_note import decode_json_note
@@ -56,13 +55,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
         parser.add_argument("--file", help="Path to file containing keys (one key per line)")
         parser.add_argument("--raw", action="store_true", help="Show raw JSON")
-        add_renamed_flag(
-            parser,
+        parser.add_argument(
             "--as",
-            "--format",
             dest="export_format",
             choices=["bibtex", "ris", "bibliography"],
-            help="Export in a specific bibliographic format (--format is a deprecated alias)",
+            help="Export in a specific bibliographic format",
         )
         add_bibliography_flags(parser)
         parser.add_argument(
@@ -239,9 +236,7 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_move.md
 """,
         )
-        add_renamed_flag(
-            move_p, "--key", "--item-id", required=True, dest="key", help="Key of the item to move"
-        )
+        move_p.add_argument("--key", required=True, help="Key of the item to move")
         move_p.add_argument("--source", help="Source collection (optional if unambiguous)")
         move_p.add_argument("--target", required=True, help="Destination collection name or key")
 
@@ -508,21 +503,21 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         # Delete
         delete_p = sub.add_parser(
             "delete",
-            help="Permanently delete an item",
-            description="Permanently deletes a research item from the Zotero library, which cannot be undone - unless you pass --trash, which moves it to Zotero's trash instead (recoverable with `item restore`).",
+            help="Delete an item (to Zotero's trash; --permanent deletes for good)",
+            description="Moves a research item to Zotero's trash, exactly as deleting it in Zotero Desktop would (recoverable with `item restore`), or with --permanent deletes it for good, which cannot be undone. Previews by default; --execute applies.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples
 --------
-Scenario: Removing a genuine duplicate/junk record
-Problem: I manually added a test item (Key: JUNK_01) by mistake and want it gone entirely.
+Scenario: Removing a record I might want back
+Problem: I manually added a test item (Key: JUNK_01) by mistake and want it gone from my library view.
 Action:  zotero-cli item delete --key "JUNK_01" --execute
-Result:  The item is permanently removed from the library. This cannot be undone.
-
-Scenario: Deleting in a way I can undo
-Problem: I want the item gone from my library view but not lost for good.
-Action:  zotero-cli item delete --key "JUNK_01" --trash --execute
 Result:  The item is in Zotero's trash (and Desktop's); `item restore --key "JUNK_01" --execute` brings it back.
+
+Scenario: Removing a record for good
+Problem: I'm sure I want JUNK_01 gone entirely.
+Action:  zotero-cli item delete --key "JUNK_01" --permanent --execute
+Result:  The item is permanently removed from the library. This cannot be undone.
 
 Scenario: Checking what a delete would remove before committing to it
 Problem: I want to see the item and its attachments/notes before deleting it.
@@ -531,9 +526,9 @@ Result:  The item and its children are listed; nothing is deleted.
 
 Notes
 -----
-• Common Failure Modes: Assuming this moves the item to a recoverable trash - it does not unless you pass --trash (that, or `item trash`, is what to use when in doubt).
+• Common Failure Modes: Assuming --permanent is recoverable: it is not. Without it the item goes to Zotero's trash and `item restore` brings it back.
 • Safety Tips: ALWAYS verify the item key using item inspect before deleting. For consolidating duplicates instead of discarding one outright, use item merge.
-• Deprecation: omitting both --dry-run and --execute still deletes immediately (for now) but prints a warning; pass --execute explicitly. This becomes preview-by-default in 4.0 (Issue #378).
+• Previews by default: nothing is deleted until you pass --execute. The item goes to Zotero's trash unless you pass --permanent.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_delete.md
 """,
@@ -547,14 +542,14 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         delete_p.add_argument(
             "--trash",
             action="store_true",
-            help="Move the item to Zotero's trash (recoverable) instead of deleting it permanently",
+            help="Move the item to Zotero's trash (the default; accepted for scripts written for 3.x)",
         )
         add_permanent_flag(delete_p, "the item")
         delete_mode = delete_p.add_mutually_exclusive_group()
         delete_mode.add_argument(
             "--execute",
             action="store_true",
-            help="Delete the item (default for now; see Deprecation note)",
+            help="Delete the item (without it, only a preview is shown)",
         )
         delete_mode.add_argument(
             "--dry-run",
@@ -627,7 +622,7 @@ Action:  zotero-cli --offline item restore --key "ABCD1234" --execute
 
 Notes
 -----
-• Common Failure Modes: trying to restore an item that was permanently deleted (`item delete` without --trash, or Desktop's "Empty Trash") - restore only works before that point; the item changed on the server since it was read (the command fails and restores nothing - run it again).
+• Common Failure Modes: trying to restore an item that was permanently deleted (`item delete --permanent`, or Desktop's "Empty Trash") - restore only works before that point; the item changed on the server since it was read (the command fails and restores nothing - run it again).
 • Safety Tips: With --offline, close Desktop first to avoid a database lock.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_restore.md
@@ -680,7 +675,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         transfer_p.add_argument(
             "--trash",
             action="store_true",
-            help="With --delete-source: move the source item to Zotero's trash (recoverable) instead of deleting it permanently",
+            help="With --delete-source: move the source item to Zotero's trash (the default; accepted for scripts written for 3.x)",
         )
         add_permanent_flag(transfer_p, "the source item (with --delete-source)")
 
@@ -708,14 +703,12 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 """,
         )
         export_p.add_argument("--key", required=True, help=ITEM_KEY_HELP)
-        add_renamed_flag(
-            export_p,
+        export_p.add_argument(
             "--as",
-            "--format",
             dest="export_format",
             choices=["bibtex", "ris", "md", "bibliography"],
             default="bibtex",
-            help="Export type (--format is a deprecated alias: it means output rendering elsewhere)",
+            help="Export type",
         )
         add_bibliography_flags(export_p)
         export_p.add_argument("--output", help="Output file path or directory (for md)")
@@ -762,7 +755,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         merge_p = sub.add_parser(
             "merge",
             help="Merge duplicate items into one survivor",
-            description="Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates - or, with --trash, moves them to Zotero's trash so the merge can be undone. Use `report duplicates` first to find candidate keys, or `report duplicates --export-plan` for a bulk-editable plan file.",
+            description="Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then moves the (now emptied) duplicates to Zotero's trash so the merge can be undone - or, with --permanent, deletes them for good. Use `report duplicates` first to find candidate keys, or `report duplicates --export-plan` for a bulk-editable plan file.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples
@@ -770,12 +763,12 @@ Examples
 Scenario: Consolidating a paper imported twice from different search databases
 Problem: report duplicates found the same paper as items IEEE_KEY1 (master, more complete) and SPR_KEY2 (duplicate).
 Action:  zotero-cli item merge --master "IEEE_KEY1" --duplicates "SPR_KEY2" --execute
-Result:  SPR_KEY2's tags, collections, notes, and attachments move onto IEEE_KEY1; SPR_KEY2 is permanently deleted.
+Result:  SPR_KEY2's tags, collections, notes, and attachments move onto IEEE_KEY1; SPR_KEY2 goes to Zotero's trash and `item restore --key "SPR_KEY2" --execute` brings it back (its notes and attachments stay on the master).
 
-Scenario: Consolidating in a way I can undo
-Problem: I'm not sure the two records are really the same paper.
-Action:  zotero-cli item merge --master "IEEE_KEY1" --duplicates "SPR_KEY2" --trash --execute
-Result:  The same merge, but SPR_KEY2 goes to Zotero's trash; `item restore --key "SPR_KEY2" --execute` brings it back (its notes and attachments stay on the master).
+Scenario: Consolidating for good
+Problem: I'm sure the two records are the same paper and want no leftovers.
+Action:  zotero-cli item merge --master "IEEE_KEY1" --duplicates "SPR_KEY2" --permanent --execute
+Result:  The same merge, but SPR_KEY2 is deleted for good; there is no undo.
 
 Scenario: Previewing a merge before committing
 Problem: I want to see what a merge would do without touching my library yet.
@@ -790,7 +783,7 @@ Result:  Every fully-resolved group is merged in one pass; if any group is still
 Notes
 -----
 • Common Failure Modes: Master and duplicates must share the same item type - Zotero Desktop enforces the same rule. Conflicting scalar fields (title, date, DOI, ISBN, URL, abstract) must be resolved interactively (single-group form) before --execute can proceed; there is no silent "first wins" default. With --from-plan, an incomplete plan (any group missing a decision) blocks the entire batch, not just that group.
-• Safety Tips: Without --trash this is PERMANENT: the duplicates are deleted for good and there is no undo. With --trash they go to Zotero's trash and can be restored (their notes and attachments stay on the master). Run without --execute first to preview. Any citation-management document referencing a duplicate's key by that key will break.
+• Safety Tips: The duplicates go to Zotero's trash and can be restored (their notes and attachments stay on the master). With --permanent they are deleted for good and there is no undo. Run without --execute first to preview. Any citation-management document referencing a duplicate's key by that key will break.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/item_merge.md
 """,
@@ -814,7 +807,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         merge_p.add_argument(
             "--trash",
             action="store_true",
-            help="Move the emptied duplicates to Zotero's trash (recoverable) instead of deleting them permanently",
+            help="Move the emptied duplicates to Zotero's trash (the default; accepted for scripts written for 3.x)",
         )
         add_permanent_flag(merge_p, "the emptied duplicates")
 
@@ -911,7 +904,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             table.add_row("Field resolutions", str(preview.field_resolutions_applied))
         console.print(table)
 
-        trash = resolve_trash(args, "item merge", applying=bool(args.execute))
+        trash = resolve_trash(args)
         if not args.execute:
             console.print(
                 "[yellow]Preview only - nothing was written. "
@@ -1005,7 +998,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 console.print(f"  [red]{escape(error)}[/red]")
             return
 
-        trash = resolve_trash(args, "item merge --plan", applying=bool(args.execute))
+        trash = resolve_trash(args)
         if not args.execute:
             console.print(
                 "[yellow]Preview only - nothing was written. "
@@ -1089,10 +1082,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         service = GatewayFactory.get_transfer_service()
 
-        trash = resolve_trash(
-            args, "item transfer --delete-source", applying=bool(args.delete_source)
+        trash = resolve_trash(args)
+        chose_trash_or_permanent = (
+            getattr(args, "trash", False) is True or getattr(args, "permanent", False) is True
         )
-        if (trash or getattr(args, "permanent", False)) and not args.delete_source:
+        if chose_trash_or_permanent and not args.delete_source:
             raise UsageError(
                 "--trash and --permanent apply to the source item, so they need --delete-source."
             )
@@ -1335,17 +1329,9 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             print(f"Error: Item {args.key} not found.", file=sys.stderr)
             sys.exit(1)
 
-        # Issue #378: predates the preview-by-default policy, so it still
-        # applies immediately without either flag - just warns instead of
-        # silently keeping the old behaviour forever.
+        # Previews unless --execute (4.0, Issue #462); --dry-run is the explicit spelling.
         execute = bool(getattr(args, "execute", False))
-        dry_run = bool(getattr(args, "dry_run", False))
-        if not execute and not dry_run:
-            # --trash is recoverable and new: no legacy behaviour to warn about.
-            if getattr(args, "trash", False) is not True:
-                warn_default_apply("item delete")
-            execute = True
-        trash = resolve_trash(args, "item delete", applying=execute)
+        trash = resolve_trash(args)
 
         if not execute:
             children = gateway.get_item_children(args.key)

@@ -24,7 +24,7 @@ graph TD
 ```
 
 ## 3. Synopsis
-Deletes a collection. Without `--recursive` only the collection itself goes; its items stay in your library. With `--recursive`, its sub-collections and the items filed only inside the tree are permanently deleted too.
+Deletes a collection. Without `--recursive` only the collection itself goes; its items stay in your library. With `--recursive`, its sub-collections and the items filed only inside the tree go to Zotero's trash too (or are deleted for good with `--permanent`).
 
 ## 4. Description (Instructional Architecture)
 A plain `collection delete` removes one collection; the items that were in it stay in your library.
@@ -33,7 +33,7 @@ With `--recursive`, the command first shows what would be deleted: every sub-col
 
 Items filed in collections outside the tree are **kept** (they just leave the deleted collections) unless you pass `--include-shared`. Items are deleted before collections; if any item fails to delete, the collections are left in place so nothing ends up orphaned.
 
-Deletions through the Zotero Web API are permanent: they don't go through Zotero's trash. Back up first with `collection backup`. A collection name shared by several collections is refused; the error lists the candidate keys.
+The collections themselves are always deleted for good (Zotero's trash holds items, not collections), and with `--permanent` so are the items. Back up first with `collection backup`. A collection name shared by several collections is refused; the error lists the candidate keys.
 
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
@@ -43,8 +43,8 @@ Deletions through the Zotero Web API are permanent: they don't go through Zotero
 | `--execute` | Boolean | With `--recursive`: actually delete (default: preview only) | Optional. Default: False. |
 | `--yes` | Boolean | Don't ask for confirmation (for scripts) | Optional. Default: False. |
 | `--include-shared` | Boolean | With `--recursive`: also delete items that are filed in other collections | Optional. Default: False. |
-| `--trash` | Boolean | With `--recursive`: move the items to Zotero's trash (recoverable with `item restore`) instead of deleting them permanently | Optional. Default: False. The collections themselves are still deleted for good, so restored items come back without them. Needs `--recursive`. |
-| `--permanent` | Boolean | With `--recursive`: delete the items for good (what happens without `--trash`) | Optional. Default: False. Without either flag a recursive delete warns that 4.0 moves the items to the trash by default; pass `--permanent` to keep deleting for good, or `--trash` to start now. Can't be combined with `--trash`. Needs `--recursive`. |
+| `--trash` | Boolean | With `--recursive`: move the items to Zotero's trash (recoverable with `item restore`) | The default; accepted so scripts written for 3.x keep working. The collections themselves are still deleted for good, so restored items come back without them. Needs `--recursive`. |
+| `--permanent` | Boolean | With `--recursive`: delete the items for good instead of trashing them | Optional. Default: False. Not recoverable. Can't be combined with `--trash`. Needs `--recursive`. |
 | `--version` | Integer | Collection version (optional if recursive) | Optional. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
@@ -55,4 +55,4 @@ Deletions through the Zotero Web API are permanent: they don't go through Zotero
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Running `--recursive` in a script without `--yes`: it refuses (exit 2) rather than guess.
-- **Safety Tips:** Deletion is permanent. Run the preview, back up the collection, and only add `--include-shared` if you really want items that live elsewhere gone too.
+- **Safety Tips:** The collections are deleted for good (the items go to the trash unless you pass `--permanent`). Run the preview, back up the collection, and only add `--include-shared` if you really want items that live elsewhere gone too.

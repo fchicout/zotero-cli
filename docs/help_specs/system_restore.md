@@ -31,7 +31,7 @@ The command carefully parses the `.zaf` archive, identifies all bibliographic re
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--dry-run` | Boolean | Simulate restore | Mutually exclusive with `--execute`. |
-| `--execute` | Flag | Apply the restore | Mutually exclusive with `--dry-run`. Currently the default for now (see Cognitive Safeguards) - kept for scripts that already pass it and for future-proofing once 4.0 flips the default (Issue #378, #462). |
+| `--execute` | Flag | Apply the restore | Mutually exclusive with `--dry-run`. Without it only a preview is shown (Issue #462). |
 | `--file` | String | Input .zaf file | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
@@ -47,4 +47,4 @@ The command carefully parses the `.zaf` archive, identifies all bibliographic re
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Attempting to restore a `.zaf` file that is corrupted or from a different account context that lacks matching permissions. 
-- **Safety Tips:** Restore operations can be complex and destructive if the target library already contains data. ALWAYS run with `--dry-run` first to understand the impact of the restore. Passing neither `--dry-run` nor `--execute` still restores immediately today (unchanged 3.x behaviour), but prints a deprecation warning to stderr - pass `--execute` explicitly. This becomes preview-by-default in 4.0 (Issue #378, #462).
+- **Safety Tips:** Restore operations can be complex and destructive if the target library already contains data. ALWAYS run with `--dry-run` first to understand the impact of the restore. Without `--execute` nothing is written to your library: you get a preview (`--dry-run` is the explicit spelling).

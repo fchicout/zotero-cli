@@ -320,7 +320,7 @@ def test_item_move(mock_clients, env_vars, capsys):
             "zotero-cli",
             "item",
             "move",
-            "--item-id",
+            "--key",
             "I",
             "--source",
             "S",

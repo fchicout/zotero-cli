@@ -21,7 +21,7 @@ zotero-cli import file "citations.bib" --collection "New Collection"
 **Parameters:**
 *   `file`: (Positional, Required) Path to the file.
 *   `--collection`: (Required) Target collection name or key.
-*   `--details`: Show detailed import logs (`--verbose` still works but is deprecated).
+*   `--details`: Show detailed import logs.
 
 ---
 
@@ -80,6 +80,6 @@ zotero-cli import bdtd --query "aprendizado de maquina" --collection "Brazilian_
 *   `--query`: Free-text search query for bulk import. Required unless `identifier` is given.
 *   `--limit`: Max results to import for `--query`. Default: `20`.
 *   `--collection`: (Required) Target collection name or key.
-*   `--details`: Show detailed import logs (`--verbose` still works but is deprecated).
+*   `--details`: Show detailed import logs.
 
 > *Note: `--query` bulk imports skip PDF resolution (too slow to scrape per record) — run `item pdf fetch` afterward to attach PDFs.*

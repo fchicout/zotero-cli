@@ -2,7 +2,6 @@ import argparse
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.notify import stderr_notify
-from zotero_cli.cli.safety import warn_default_apply
 from zotero_cli.core.config import get_config
 from zotero_cli.core.services.storage_service import StorageService
 from zotero_cli.infra.factory import GatewayFactory
@@ -39,7 +38,7 @@ Notes
 -----
 • Common Failure Modes: Attempting a checkout without having a local storage path defined in your config.toml.
 • Safety Tips: Ensure that your local storage directory is backed up. Group libraries are refused by default: the linked file's local path (with your username) syncs to every member, and the files are missing for them; --allow-group-library overrides this.
-• Deprecation: omitting both --dry-run and --execute still checks out immediately (for now) but prints a warning; pass --execute explicitly. This becomes preview-by-default in 4.0 (Issue #378).
+• Previews by default: nothing is downloaded or relinked until you pass --execute.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/storage_checkout.md
 """,
@@ -54,7 +53,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         checkout_mode.add_argument(
             "--execute",
             action="store_true",
-            help="Check out the files (default for now; see Deprecation note)",
+            help="Check out the files (without it, only a preview is shown)",
         )
         checkout_mode.add_argument(
             "--dry-run",
@@ -81,16 +80,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         gateway = GatewayFactory.get_zotero_gateway(config, force_user=getattr(args, "user", False))
         service = StorageService(config, gateway, notify=stderr_notify)
 
-        # Issue #378: predates the preview-by-default policy, so it still
-        # applies immediately without either flag - just warns instead of
-        # silently keeping the old behaviour forever.
-        execute = bool(getattr(args, "execute", False))
-        dry_run = bool(getattr(args, "dry_run", False))
-        if not execute and not dry_run:
-            warn_default_apply("storage checkout")
-            dry_run = False
-        else:
-            dry_run = not execute
+        # Previews unless --execute (4.0, Issue #462); --dry-run is the explicit spelling.
+        dry_run = not bool(getattr(args, "execute", False))
 
         print(f"Starting storage checkout (Limit: {args.limit})...")
         count = service.checkout_items(

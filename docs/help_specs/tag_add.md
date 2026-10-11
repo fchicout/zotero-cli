@@ -27,7 +27,6 @@ In Zotero, tags are a powerful way to cross-reference items regardless of which 
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--key` | String | Item Key | Required. |
-| `--item` | String | Deprecated alias of `--key`. | Hidden; prints a warning. Removed in 4.0 (Issue #379). |
 | `--tags` | String | Comma-separated tags | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)

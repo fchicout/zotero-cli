@@ -27,7 +27,6 @@ If the item is only present in a single collection, the `source` parameter may b
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--key` | String | Key of the item to move | Required. |
-| `--item-id` | String | Deprecated alias of `--key`. | Hidden; prints a warning. Removed in 4.0 (Issue #379). |
 | `--source` | String | Source collection (optional if unambiguous) | Optional. |
 | `--target` | String | N/A | Required. |
 
