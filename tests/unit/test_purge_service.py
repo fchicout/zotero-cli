@@ -405,3 +405,23 @@ def test_small_purge_in_a_large_library_looks_up_each_parent(scan_gateway):
     scan_gateway.search_items.assert_not_called()
     assert scan_gateway.get_item_children.call_count == 3
     assert scan_gateway.counted == ["attachment"]
+
+
+def test_purge_collection_assets_deletes_the_notes_of_every_item(purge_service, mock_gateway):
+    mock_gateway.get_collection_id_by_name.return_value = "C1"
+    items = [
+        ZoteroItem(key="P1", version=1, item_type="journalArticle"),
+        ZoteroItem(key="P2", version=1, item_type="journalArticle"),
+    ]
+    mock_gateway.get_items_in_collection.return_value = items
+    mock_gateway.get_item_children.side_effect = lambda key: [
+        {"key": f"N-{key}", "data": {"itemType": "note", "note": "plain text", "version": 3}}
+    ]
+    mock_gateway.delete_item.return_value = True
+
+    stats = purge_service.purge_collection_assets("Col", types=["notes"], dry_run=False)
+
+    assert stats["deleted"] == 2
+    assert stats["errors"] == 0
+    deleted = {call.args[0] for call in mock_gateway.delete_item.call_args_list}
+    assert deleted == {"N-P1", "N-P2"}
