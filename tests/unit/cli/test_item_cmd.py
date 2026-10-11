@@ -581,9 +581,10 @@ def test_item_delete_trash_and_permanent_together_are_refused(mock_clients, env_
     from zotero_cli.core.exceptions import UsageError
 
     mock_clients["gateway"].get_item.return_value = MagicMock(version=5)
+    args = _delete_args(execute=True, trash=True, permanent=True)
 
     with pytest.raises(UsageError, match="contradict"):
-        ItemCommand().execute(_delete_args(execute=True, trash=True, permanent=True))
+        ItemCommand().execute(args)
 
 
 def test_item_delete_dry_run_and_execute_are_mutually_exclusive():

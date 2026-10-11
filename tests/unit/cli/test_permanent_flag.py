@@ -24,8 +24,10 @@ def test_an_explicit_choice_is_silent(capsys, flags, expected):
 
 
 def test_both_flags_are_a_usage_error():
+    args = _args(trash=True, permanent=True)
+
     with pytest.raises(UsageError, match="contradict"):
-        resolve_trash(_args(trash=True, permanent=True))
+        resolve_trash(args)
 
 
 def test_add_permanent_flag_defines_a_boolean_flag():

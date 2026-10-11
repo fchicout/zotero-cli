@@ -19,8 +19,9 @@ def test_details_flag_leaves_global_verbose_alone(argv):
 
 @pytest.mark.parametrize("argv", LEAVES)
 def test_the_old_per_command_verbose_flag_is_gone(argv, capsys):
+    parser = build_parser()
     with pytest.raises(SystemExit) as raised:
-        build_parser().parse_args([*argv, "--verbose"])
+        parser.parse_args([*argv, "--verbose"])
     assert raised.value.code == 2
     assert "unrecognized arguments: --verbose" in capsys.readouterr().err
 
