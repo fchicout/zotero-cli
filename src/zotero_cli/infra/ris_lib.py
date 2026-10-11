@@ -66,7 +66,8 @@ class RisLibGateway(RisGateway, NotifyMixin):
         )
 
     def _map_paper_to_entry(self, paper: ResearchPaper) -> dict:
-        """Convert ResearchPaper to RIS entry dict."""
+        """Convert ResearchPaper to RIS entry dict (control characters removed)."""
+        paper = paper.without_controls()
         entry = {
             "type_of_reference": "JOUR",  # Default to journal
             "title": paper.title,

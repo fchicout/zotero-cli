@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🐛 Fixed
+- **No terminal escape sequences in exported files (Issue #592, a gap in GHSA-3r38-p632-f79q):** the terminal output of `item inspect --as bibtex|ris|bibliography` was already clean, but the files written by `item export` and `collection export` (BibTeX, RIS, bibliography and Markdown) still carried raw control characters from library fields: a title set by a collaborator on a shared library with an `ESC]52` (clipboard) or `ESC]8` (link) sequence reached the file, and the terminal that later showed it (`cat`, `less -R`) would run it. Titles, abstracts, authors, DOIs, URLs, venues and extra now have control characters removed before any export is written, and so does the text of Markdown exports (PDF text and annotations; a form feed becomes a blank line). Normal Unicode is untouched.
+
 ## [4.0.1] - 2026-10-11
 
 A patch release: updating an item or renaming a collection no longer reports success when Zotero refused the write.

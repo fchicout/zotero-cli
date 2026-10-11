@@ -139,7 +139,7 @@ class ExportService(NotifyMixin):
 
         publication = item.raw_data.get("data", {}).get("publicationTitle")
 
-        return ResearchPaper(
+        paper = ResearchPaper(
             title=item.title or "No Title",
             abstract=item.abstract or "",
             key=item.key,
@@ -151,3 +151,4 @@ class ExportService(NotifyMixin):
             arxiv_id=item.arxiv_id,
             extra=item.raw_data.get("data", {}).get("extra"),
         )
+        return paper.without_controls()

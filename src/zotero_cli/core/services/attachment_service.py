@@ -17,6 +17,7 @@ from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.utils.slugify import slugify
+from zotero_cli.core.utils.terminal_safety import strip_controls
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -178,6 +179,9 @@ class AttachmentService(FullTextProvider, NotifyMixin):
 
         if include_annotations:
             text = self._with_annotations(item, text)
+        # PDF text and annotations are untrusted: no terminal escapes in the file. A form
+        # feed (a page break in extracted text) becomes a blank line instead of vanishing.
+        text = strip_controls(text.replace("\f", "\n\n"))
 
         # 3. Save to file
         title_slug = slugify(item.title or "Untitled")

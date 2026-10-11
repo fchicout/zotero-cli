@@ -1,6 +1,8 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence
+
+from .utils.terminal_safety import strip_controls
 
 
 class WriteStatus(str, Enum):
@@ -44,6 +46,35 @@ class ResearchPaper:
     references: List[str] = field(default_factory=list)
     citation_count: Optional[int] = None
     extra: Optional[str] = None
+
+    def without_controls(self) -> "ResearchPaper":
+        """A copy with terminal control characters removed from every text field.
+        Titles, abstracts and the rest come from a shared library or an upstream
+        source, and an escape sequence written into an exported file is executed by
+        whichever terminal later shows it (Issue #592, GHSA-3r38-p632-f79q)."""
+
+        def clean(value: Any) -> Any:
+            if isinstance(value, str):
+                return strip_controls(value)
+            if isinstance(value, list):
+                return [clean(v) for v in value]
+            return value
+
+        return replace(
+            self,
+            title=clean(self.title),
+            abstract=clean(self.abstract),
+            key=clean(self.key),
+            arxiv_id=clean(self.arxiv_id),
+            authors=clean(self.authors),
+            publication=clean(self.publication),
+            year=clean(self.year),
+            doi=clean(self.doi),
+            url=clean(self.url),
+            pdf_url=clean(self.pdf_url),
+            references=clean(self.references),
+            extra=clean(self.extra),
+        )
 
 
 @dataclass
