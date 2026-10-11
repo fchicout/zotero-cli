@@ -67,7 +67,7 @@ def test_fuzzy_groups_are_found_without_comparing_every_pair():
         (_item("DUP1", "Deep learning for screening", 2020, "smith"), "C"),
         (_item("DUP2", "Deep learning for the screening", 2021, "smith"), "C"),
     ]
-    finder = DuplicateFinder(MagicMock())
+    finder = DuplicateFinder(MagicMock(), MagicMock())
     with patch.object(
         DuplicateFinder, "_title_similarity", autospec=True, side_effect=_similarity
     ) as similarity:
@@ -98,4 +98,4 @@ def test_library_mode_ignores_attachments_and_notes():
     ]
     gateway.get_all_items.return_value = iter(pdfs + notes + [_item("P1", "A paper", 2020, "x")])
 
-    assert DuplicateFinder(gateway).compare_collections(None) == []
+    assert DuplicateFinder(gateway, gateway).compare_collections(None) == []

@@ -36,7 +36,7 @@ def test_storage_service_dry_run_lists_through_the_sink(tmp_path, capsys):
     config.resolve_library_target.return_value = ("1", "user")
     gateway.search_items.return_value = iter([])
     messages: list[str] = []
-    service = StorageService(config, gateway, notify=messages.append)
+    service = StorageService(config, gateway, gateway, notify=messages.append)
 
     service.checkout_items(limit=5, dry_run=True)
 

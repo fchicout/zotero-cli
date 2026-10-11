@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from typing import Dict, List, Optional, Set, Tuple
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.zotero_item import ZoteroItem
 
 # Item types that are never references, and so never duplicates.
@@ -64,11 +64,10 @@ class DuplicateFinder:
 
     _YEAR_RE = re.compile(r"(19|20)\d{2}")
 
-    def __init__(self, gateway: ZoteroGateway):
-        """
-        Initializes the DuplicateFinder with a Zotero gateway.
-        """
-        self.gateway = gateway
+    def __init__(self, items: ItemRepository, collections: CollectionRepository):
+        """Reads items from `items` and collections from `collections`."""
+        self.items = items
+        self.collections = collections
         self.warnings: List[str] = []
 
     def compare_collections(
@@ -131,7 +130,7 @@ class DuplicateFinder:
         if collection_ids is None:
             return [
                 (item, item.collections[0] if item.collections else "UNFILED")
-                for item in self.gateway.get_all_items()
+                for item in self.items.get_all_items()
                 if item.item_type not in _NOT_REFERENCES
             ]
         return [
@@ -149,8 +148,8 @@ class DuplicateFinder:
 
     def _fetch_collection_items(self, col_id: str) -> List[ZoteroItem]:
         # col_id is already expected to be a Zotero Key/ID
-        items = list(self.gateway.get_items_in_collection(col_id))
-        if not items and not self.gateway.get_collection(col_id):
+        items = list(self.collections.get_items_in_collection(col_id))
+        if not items and not self.collections.get_collection(col_id):
             self.warnings.append(f"Collection '{col_id}' not found or empty. Skipping.")
             return []
         return items

@@ -38,11 +38,13 @@ def _zaf(tmp_path, manifest) -> str:
 
 
 def _restore(path):
-    from unittest.mock import MagicMock
+    from unittest.mock import create_autospec
 
+    from zotero_cli.core.interfaces import ZoteroGateway
     from zotero_cli.core.services.restore_service import RestoreService
 
-    return RestoreService(MagicMock()).restore_archive(path, dry_run=True)
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    return RestoreService(gateway, gateway, gateway, gateway).restore_archive(path, dry_run=True)
 
 
 def test_restore_refuses_a_newer_archive(tmp_path):

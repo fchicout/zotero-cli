@@ -55,11 +55,15 @@ def _gateway(items):
     return gateway
 
 
+def _backup(gateway):
+    return BackupService(gateway, gateway, gateway)
+
+
 def test_library_backup_makes_no_children_or_item_requests():
     """~2.8 requests per item: children, then every child again."""
     gateway = _gateway(_library())
     out = BytesIO()
-    BackupService(gateway).backup_system(out)
+    _backup(gateway).backup_system(out)
 
     gateway.get_item_children.assert_not_called()
     gateway.get_item.assert_not_called()
@@ -70,7 +74,7 @@ def test_library_backup_makes_no_children_or_item_requests():
 
 def test_pdfs_are_stored_and_the_rest_is_deflated():
     out = BytesIO()
-    BackupService(_gateway(_library())).backup_system(out)
+    _backup(_gateway(_library())).backup_system(out)
 
     with zipfile.ZipFile(out) as zf:
         methods = {info.filename: info.compress_type for info in zf.infolist()}
@@ -83,7 +87,7 @@ def test_pdfs_are_stored_and_the_rest_is_deflated():
 
 def test_data_json_is_compact_and_complete():
     out = BytesIO()
-    BackupService(_gateway(_library())).backup_system(out)
+    _backup(_gateway(_library())).backup_system(out)
 
     with zipfile.ZipFile(out) as zf:
         text = zf.read("data.json").decode()
@@ -93,7 +97,7 @@ def test_data_json_is_compact_and_complete():
 
 def test_an_empty_library_writes_an_empty_array():
     out = BytesIO()
-    BackupService(_gateway([])).backup_system(out)
+    _backup(_gateway([])).backup_system(out)
     with zipfile.ZipFile(out) as zf:
         assert json.loads(zf.read("data.json")) == []
 
@@ -103,7 +107,7 @@ def test_new_archives_pass_verification(tmp_path):
     from zotero_cli.core.services.verify_service import VerifyService
 
     path = tmp_path / "library.zaf"
-    BackupService(_gateway(_library())).backup_system(str(path))
+    _backup(_gateway(_library())).backup_system(str(path))
 
     report = VerifyService().verify_archive(str(path))
     assert report.is_valid, report.errors

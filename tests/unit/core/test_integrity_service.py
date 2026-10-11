@@ -14,7 +14,7 @@ def mock_gateway():
 
 @pytest.fixture
 def service(mock_gateway):
-    return IntegrityService(mock_gateway)
+    return IntegrityService(mock_gateway, mock_gateway)
 
 
 @pytest.fixture

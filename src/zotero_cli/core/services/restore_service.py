@@ -3,7 +3,12 @@ import zipfile
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import (
+    AttachmentRepository,
+    CollectionRepository,
+    ItemRepository,
+    NoteRepository,
+)
 from zotero_cli.core.utils.archive_safety import (
     MAX_ATTACHMENT_BYTES,
     check_entry_count,
@@ -43,8 +48,17 @@ class RestoreService:
     Implements idempotency, hierarchy reconstruction, and asset re-linking.
     """
 
-    def __init__(self, gateway: ZoteroGateway):
-        self.gateway = gateway
+    def __init__(
+        self,
+        items: ItemRepository,
+        collections: CollectionRepository,
+        notes: NoteRepository,
+        attachments: AttachmentRepository,
+    ):
+        self.items = items
+        self.collections = collections
+        self.notes = notes
+        self.attachments = attachments
         self.item_map: Dict[str, str] = {}  # old_key -> new_key
         self.coll_map: Dict[str, str] = {}  # old_key -> new_key
         # new parent key -> the note texts it has, fetched once per parent
@@ -107,7 +121,7 @@ class RestoreService:
         # this reflects the destination library's pre-existing collections;
         # collections created earlier in this same loop are tracked via
         # self.coll_map instead, so they don't need to appear here too.
-        existing_cols = self.gateway.get_all_collections()
+        existing_cols = self.collections.get_all_collections()
 
         for c_raw in sorted_colls:
             old_key = c_raw["key"]
@@ -132,7 +146,7 @@ class RestoreService:
                     self.coll_map[old_key] = f"DRY_RUN_{old_key}"
                     report.collections_created += 1
                 else:
-                    new_key = self.gateway.create_collection(name, parent_key=new_parent)
+                    new_key = self.collections.create_collection(name, parent_key=new_parent)
                     if new_key:
                         self.coll_map[old_key] = new_key
                         report.collections_created += 1
@@ -177,7 +191,7 @@ class RestoreService:
             self.item_map[old_key] = f"DRY_RUN_{old_key}"
             report.items_created += 1
         else:
-            new_key = self.gateway.create_generic_item(new_data)
+            new_key = self.items.create_generic_item(new_data)
             if new_key:
                 self.item_map[old_key] = new_key
                 self._note_texts[new_key] = set()  # just created: no notes yet
@@ -210,14 +224,14 @@ class RestoreService:
         if existing is None:
             existing = {
                 child.get("data", {}).get("note")
-                for child in self.gateway.get_item_children(new_parent)
+                for child in self.items.get_item_children(new_parent)
                 if child.get("data", {}).get("itemType") == "note"
             }
             self._note_texts[new_parent] = existing
         if note_content in existing:
             return
 
-        if self.gateway.create_note(new_parent, note_content):
+        if self.notes.create_note(new_parent, note_content):
             existing.add(note_content)
 
     def _restore_attachment(
@@ -258,7 +272,7 @@ class RestoreService:
                 temp_path = tf.name
                 copy_member(zf, path_in_zip, tf, MAX_ATTACHMENT_BYTES)
 
-            if self.gateway.upload_attachment(new_parent, temp_path):
+            if self.attachments.upload_attachment(new_parent, temp_path):
                 report.attachments_uploaded += 1
             else:
                 report.errors.append(f"Failed to upload attachment: {path_in_zip}")
@@ -280,7 +294,7 @@ class RestoreService:
         """
         doi_index: Dict[str, ZoteroItem] = {}
         title_index: Dict[str, ZoteroItem] = {}
-        for item in self.gateway.get_all_items():
+        for item in self.items.get_all_items():
             if item.doi:
                 normalized = normalize_doi(item.doi)
                 if normalized and normalized not in doi_index:

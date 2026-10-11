@@ -19,12 +19,12 @@ def storage_service(tmp_path, mock_gateway, mock_config):
     config = dataclasses.replace(
         mock_config, storage_path=str(tmp_path / "zotero_storage"), database_path=None
     )
-    return StorageService(config, mock_gateway)
+    return StorageService(config, mock_gateway, mock_gateway)
 
 
 def test_checkout_items_no_path(mock_gateway, mock_config):
     config = dataclasses.replace(mock_config, storage_path=None, database_path=None)
-    service = StorageService(config, mock_gateway)
+    service = StorageService(config, mock_gateway, mock_gateway)
     with pytest.raises(ConfigurationError, match="storage_path"):
         service.checkout_items()
 
@@ -113,7 +113,7 @@ def test_checkout_refuses_group_library_by_default(tmp_path, mock_gateway, mock_
     config = dataclasses.replace(
         mock_config, library_type="group", storage_path=str(tmp_path / "s"), database_path=None
     )
-    service = StorageService(config, mock_gateway)
+    service = StorageService(config, mock_gateway, mock_gateway)
     with pytest.raises(UsageError, match="--allow-group-library"):
         service.checkout_items()
     mock_gateway.search_items.assert_not_called()
@@ -125,7 +125,7 @@ def test_checkout_group_library_with_explicit_opt_in(tmp_path, mock_gateway, moc
         mock_config, library_type="group", storage_path=str(tmp_path / "s"), database_path=None
     )
     mock_gateway.search_items.return_value = iter([])
-    service = StorageService(config, mock_gateway)
+    service = StorageService(config, mock_gateway, mock_gateway)
     assert service.checkout_items(allow_group_library=True) == 0
     mock_gateway.search_items.assert_called_once()
 

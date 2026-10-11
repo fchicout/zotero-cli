@@ -6,7 +6,7 @@ import zipfile
 from datetime import datetime, timezone
 from typing import IO, Any, Callable, Dict, List, Optional, Set
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import AttachmentRepository, CollectionRepository, ItemRepository
 from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -23,8 +23,15 @@ class BackupService:
     Supports recursive attachment hydration and system-wide coverage.
     """
 
-    def __init__(self, gateway: ZoteroGateway):
-        self.gateway = gateway
+    def __init__(
+        self,
+        items: ItemRepository,
+        collections: CollectionRepository,
+        attachments: AttachmentRepository,
+    ):
+        self.items = items
+        self.collections = collections
+        self.attachments = attachments
         self.version = "1.1"
 
     def backup_collection(
@@ -36,7 +43,7 @@ class BackupService:
         """
         Backs up a specific collection, its items, and their attachments to a .zaf file.
         """
-        col = self.gateway.get_collection(collection_key)
+        col = self.collections.get_collection(collection_key)
         if not col:
             raise ValueError(f"Collection {collection_key} not found")
 
@@ -54,9 +61,9 @@ class BackupService:
         }
 
         # Fetch items. Converting to list to allow length calculation for progress bars if needed.
-        items = list(self.gateway.get_items_in_collection(collection_key, top_only=True))
+        items = list(self.collections.get_items_in_collection(collection_key, top_only=True))
         # Their children, fetched together (Issue #426)
-        children = children_by_parent(self.gateway, [i.key for i in items if _has_children(i)])
+        children = children_by_parent(self.items, [i.key for i in items if _has_children(i)])
         self._write_zip(output, manifest, items, children, on_item_processed)
 
     def backup_system(
@@ -76,7 +83,7 @@ class BackupService:
             "file_map": {},
         }
 
-        items = list(self.gateway.get_all_items())
+        items = list(self.items.get_all_items())
         # The library listing already contains every child in full: group
         # them locally instead of asking for each item's children and then
         # re-fetching each child (Issue #426: ~2.8 requests per item).
@@ -142,7 +149,7 @@ class BackupService:
 
                 # Write collections structure for library backups
                 if manifest["scope_type"] == "library":
-                    collections = self.gateway.get_all_collections()
+                    collections = self.collections.get_all_collections()
                     zf.writestr("collections.json", json.dumps(collections, separators=(",", ":")))
 
                 # Write Errors if any
@@ -177,7 +184,7 @@ class BackupService:
                     with tempfile.NamedTemporaryFile(delete=False) as tf:
                         temp_path = tf.name
 
-                    if self.gateway.download_attachment(item.key, temp_path):
+                    if self.attachments.download_attachment(item.key, temp_path):
                         zf.write(temp_path, storage_path, compress_type=_compression_for(data))
 
                         # Calculate SHA-256 checksum [SPEC-ZAF-001]
@@ -230,7 +237,7 @@ class BackupService:
                 child: Optional[ZoteroItem] = ZoteroItem.from_raw_zotero_item(child_raw)
             else:
                 # Only a key came back: fetch the item itself.
-                child = self.gateway.get_item(child_key)
+                child = self.items.get_item(child_key)
             if not child:
                 errors.append(f"Could not fetch child item {child_key} for parent {item.key}")
                 continue
