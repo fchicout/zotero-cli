@@ -33,6 +33,6 @@ def test_backup_restore_e2e(run_cli: Any, sentinel: Any, timestamp: Any, tmp_pat
     time.sleep(5)
 
     # 1. Backup
-    res = run_cli(["collection", "backup", "--name", col_name, "--output", str(backup_file)])
+    res = run_cli(["collection", "backup", "--collection", col_name, "--output", str(backup_file)])
     assert res.returncode == 0
     assert backup_file.exists()

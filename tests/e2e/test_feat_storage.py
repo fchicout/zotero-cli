@@ -46,13 +46,12 @@ def test_storage_checkout_mocked(
     # For this test, we'll just run it with a very small limit and hope for the best,
     # or skip if it's too slow.
 
-    import os
-
-    env = os.environ.copy()
-    env["ZOTERO_STORAGE_PATH"] = str(test_storage_dir)
+    monkeypatch.setenv("ZOTERO_STORAGE_PATH", str(test_storage_dir))
 
     # Run checkout with a very small limit to ensure it finishes fast
-    res = run_cli(["storage", "checkout", "--limit", "1"])
+    # A preview (the default): the sandbox is a group library, which checkout refuses
+    # unless told otherwise, and nothing may be downloaded or relinked here.
+    res = run_cli(["storage", "checkout", "--limit", "1", "--allow-group-library"])
 
     # We don't strictly assert success of movement here because we might not
     # have any 'imported_file' attachments in the test account.

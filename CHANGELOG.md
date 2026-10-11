@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🐛 Fixed
+- **Updating an item or renaming a collection reported success when Zotero refused the write:** `update_item` and `rename_collection` sent the last library version they had seen instead of the object's own version, which is usually newer, so Zotero answered 412 "precondition failed" and nothing was written, but the command said it had worked. Found by the e2e suite: `collection clean --execute` printed "Removed 1 item(s)" and the item stayed in the collection. These writes now send the object's own version (looked up first if the caller doesn't know it) and a 412 is a failure. It affected everything built on them: `collection clean`, `collection rename`, `item update`, `item hydrate`, the master-item update of `item merge`, and tag changes (`tag add`, `tag purge`).
+
 ## [4.0.0] - 2026-10-11
 
 A major release. zotero-cli is now only a Zotero library manager: the systematic-review workflow and `rag` are gone, the 3.x deprecations are removed, and deletes are safe by default. Everything that was announced as "removed in 4.0" in 3.x is here, and nothing else was removed.

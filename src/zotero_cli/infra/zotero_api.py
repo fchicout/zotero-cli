@@ -331,13 +331,25 @@ class ZoteroAPIClient(ZoteroGateway):
 
     def rename_collection(self, collection_key: str, version: int, name: str) -> bool:
         try:
-            self.http.patch(
-                f"collections/{collection_key}", json_data={"name": name}, version_check=True
+            return self._patch_at_version(
+                f"collections/{collection_key}", {"name": name}, version, collection_key
             )
-            return True
         except Exception:
             logger.exception(f"ZoteroAPIClient: Error renaming collection {collection_key}")
             return False
+
+    def _patch_at_version(
+        self, endpoint: str, payload: Dict[str, Any], version: int, key: str
+    ) -> bool:
+        """PATCH one object guarded by the object's own version. A 412 means it changed since
+        `version` was read: nothing was written, so that is a failure, not a success. (The
+        write used to be guarded by the last library version instead, which is usually newer
+        than the object's, so Zotero refused it and the command still reported success.)"""
+        response = self.http.patch(endpoint, json_data=payload, version=version)
+        if response.status_code == 412:
+            logger.warning(f"{key} changed since version {version}; nothing was written.")
+            return False
+        return True
 
     def add_tags(self, item_key: str, tags: List[str]) -> bool:
         if not tags:
@@ -572,8 +584,13 @@ class ZoteroAPIClient(ZoteroGateway):
 
     def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool:
         try:
-            self.http.patch(f"items/{item_key}", json_data=item_data, version_check=True)
-            return True
+            if not version:
+                # The caller doesn't know the item's version: use the current one.
+                current = self.get_item(item_key)
+                if current is None:
+                    return False
+                version = current.version
+            return self._patch_at_version(f"items/{item_key}", item_data, version, item_key)
         except Exception:
             logger.exception(f"ZoteroAPIClient: Error updating item {item_key}")
             return False
