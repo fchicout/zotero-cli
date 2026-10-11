@@ -411,7 +411,7 @@ class ResolutionError(Exception):
 
 class FullTextProvider(ABC):
     """
-    Interface for providing full text content for research items [SPEC-RAG-003].
+    Interface for providing full text content for research items.
     """
 
     @abstractmethod

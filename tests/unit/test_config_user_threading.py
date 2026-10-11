@@ -9,7 +9,7 @@ from zotero_cli.core.config import ConfigManager, get_config, reset_config
 
 
 def test_config_manager_writes_the_loaded_config_not_the_default(tmp_path, monkeypatch):
-    """`system switch` / `rag model set` under --config edited the default file."""
+    """`system switch` under --config edited the default file."""
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     profile = tmp_path / "lab.toml"
     profile.write_text('[zotero]\napi_key = "k"\nlibrary_id = "1"\nlibrary_type = "group"\n')

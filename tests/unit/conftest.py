@@ -2,13 +2,11 @@ from typing import Any, Iterator
 from unittest.mock import MagicMock, create_autospec
 
 from tests.home_isolation import isolate_home
-from tests.network_guard import ExternalConnectionGuard, offline_env
+from tests.network_guard import ExternalConnectionGuard
 
 # Before any zotero_cli import: nothing in the unit suite may resolve the
-# developer's real ~/.config/zotero-cli (Issue #365), or reach Hugging Face
-# (Issue #389: huggingface_hub reads this variable once, at import).
+# developer's real ~/.config/zotero-cli (Issue #365).
 isolate_home()
-offline_env()
 
 import pytest  # noqa: E402
 

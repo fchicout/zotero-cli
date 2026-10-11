@@ -54,8 +54,7 @@ class AttachmentService(FullTextProvider, NotifyMixin):
     def get_fulltext(self, item_key: str, attachment_key: Optional[str] = None) -> Optional[str]:
         """
         Retrieves the text of an item's PDF attachment (plain text, saved as
-        .md by the exports). Ensures zero-persistence of temporary files
-        [SPEC-RAG-005]. A caller that already knows the attachment passes
+        .md by the exports). Ensures zero-persistence of temporary files. A caller that already knows the attachment passes
         its key, saving a children lookup (Issue #432).
         """
         # 1. Find PDF attachment

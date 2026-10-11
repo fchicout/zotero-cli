@@ -25,7 +25,7 @@ zotero-cli system groups
 ---
 
 ### `check`
-Runs lightweight, read-only connectivity/credential checks against Zotero, Semantic Scholar, Unpaywall, PubMed/NCBI, and the configured LLM/embedding providers.
+Runs lightweight, read-only connectivity/credential checks against Zotero, Semantic Scholar, Unpaywall, and PubMed/NCBI.
 
 **Usage:**
 ```bash

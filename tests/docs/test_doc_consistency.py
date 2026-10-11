@@ -59,9 +59,7 @@ def test_documentation_structure() -> None:
 
     registry = get_registered_commands()
     for noun in registry:
-        # `rag` is deliberately left out of the README: semantic search is
-        # moving to a separate, complementary tool.
-        if noun in ("maint", "rag"):
+        if noun == "maint":
             continue  # Skip deprecated
         doc_file = docs_dir / f"{noun}.md"
         assert doc_file.exists(), f"Missing documentation file for noun '{noun}': {doc_file}"
@@ -94,9 +92,7 @@ def test_verb_coverage() -> None:
     registry = get_registered_commands()
 
     for noun, info in registry.items():
-        # `rag` is deliberately left out of the README: semantic search is
-        # moving to a separate, complementary tool.
-        if noun in ("maint", "rag"):
+        if noun == "maint":
             continue
         doc_file = docs_dir / f"{noun}.md"
         content = get_markdown_content(doc_file)
@@ -121,9 +117,7 @@ def test_readme_index_coverage() -> None:
     readme_content = get_markdown_content(readme_path)
 
     for noun in registry:
-        # `rag` is deliberately left out of the README: semantic search is
-        # moving to a separate, complementary tool.
-        if noun in ("maint", "rag"):
+        if noun == "maint":
             continue
         # Flexible check for the link, allowing for styling like **[`noun`](...)**
         # Links may be absolute so they also resolve on the PyPI project page.

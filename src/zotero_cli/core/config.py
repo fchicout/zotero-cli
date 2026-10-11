@@ -4,16 +4,12 @@ import os
 import re
 import sys
 import threading
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 from zotero_cli.core.exceptions import ConfigurationError
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 logger = logging.getLogger(__name__)
 
@@ -258,7 +254,7 @@ class ConfigManager:
 
     def __init__(self, config_path: Optional[Path] = None):
         # The file this run loaded (--config included), not always the
-        # default one: `system switch` and `rag model set` used to edit
+        # default one: `system switch` used to edit
         # ~/.config/zotero-cli/config.toml under --config (Issue #383).
         self.config_path = config_path or get_config_path() or ConfigLoader().config_path
 

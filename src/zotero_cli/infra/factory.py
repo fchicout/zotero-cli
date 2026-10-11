@@ -58,9 +58,9 @@ if TYPE_CHECKING:
 class GatewayFactory:
     """
     Central facade for constructing Zotero gateways, repositories, external
-    metadata clients, PDF resolvers, AI/RAG providers, and domain services.
+    metadata clients, PDF resolvers, and domain services.
 
-    Internally delegates to 5 focused factories (see repository_factory.py,
+    Internally delegates to 4 focused factories (see repository_factory.py,
     metadata_client_factory.py, resolver_factory.py, ai_provider_factory.py,
     service_factory.py, all in this package); this class exists purely so
     existing call sites (CLI commands) keep a single, stable entry point.

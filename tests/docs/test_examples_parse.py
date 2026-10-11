@@ -242,9 +242,9 @@ def test_checker_rejects_broken_concrete_examples(command: Any) -> None:
 @pytest.mark.parametrize(
     "command",
     [
-        "zotero-cli rag ingest --collection NAME [--all]",  # unknown flag in a synopsis
+        "zotero-cli search --nonsense [--all]",  # unknown flag in a synopsis
         'zotero-cli item transfer "ITEMKEY" --target-group G [--delete-source]',
-        "zotero-cli slr frobnicate [options]",
+        "zotero-cli frobnicate [options]",
     ],
 )
 def test_checker_rejects_broken_synopses(command: Any) -> None:

@@ -154,7 +154,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         sub.add_parser(
             "check",
             help="Diagnose connectivity/credentials for all configured services",
-            description="Runs lightweight, read-only connectivity and credential checks against Zotero, Semantic Scholar, Unpaywall, PubMed/NCBI, and the configured LLM/embedding providers.",
+            description="Runs lightweight, read-only connectivity and credential checks against Zotero, Semantic Scholar, Unpaywall, and PubMed/NCBI.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples

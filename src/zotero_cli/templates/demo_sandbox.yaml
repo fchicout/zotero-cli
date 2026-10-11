@@ -23,7 +23,7 @@ papers:
   - title: "Retrieval-Augmented Generation for Grounded Question Answering over Research Corpora"
     abstract: "We evaluate retrieval-augmented generation pipelines for answering research questions grounded in a local corpus of screened papers, measuring citation faithfulness."
     creators: ["Grace Reviewer", "Ivan Embedder"]
-    tags: ["rag", "llm"]
+    tags: ["llm"]
     date: "2025"
 
   - title: "Inter-Rater Reliability in Double-Blind Title/Abstract Screening"
