@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+Work towards 4.0.0 (tracked in #462). The first breaking change: zotero-cli is a Zotero library manager only.
+
+### Removed
+- **The systematic-review commands (Issue #541, #581):** every `slr` command (`source`, `screen`, `decide`, `load`, `list`, `reconcile`, `promote`, `dedupe`, `prune`, `extract`, `snowball`, `sdb`, `report`) and `report verify-latex` are gone, with their TUIs, services and docs. They warned since 3.6.0. The workflow moves into applications built on zotero-cli, which also own the SDB decision-note format. Notes already in your library are not touched. If you rely on these commands, stay on 3.x until your tooling has moved.
+- **`rag` (Issue #414):** the `rag` commands, the `[rag]` extra and its dependencies (`torch`, `sentence-transformers`, `numpy`, `openai`, `google-generativeai`, ...), and the config keys `openai_api_key`, `gemini_api_key`, `embedding_provider`, `embedding_model`, `generative_provider`, `generative_model`, `huggingface_token` and `trust_remote_code` (with their environment variables). A `config.toml` that still has these keys loads fine; they are ignored. Vector stores written by `rag` are no longer read or cleaned up; delete `vector_store_*.sqlite` from your zotero-cli state directory.
+- **SDB data in library commands:** `report duplicates` no longer has the SDB status column (`--csv`, the table) or the SDB history in `--export-plan` JSON; BibTeX/RIS exports no longer add each item's SDB decision notes (`note` and `x-sdb-*` fields); `collection purge` no longer has SDB/phase/persona note filters internally; `system restore` no longer writes a duplicate-detected audit note for items it skips; `system demo-sandbox` no longer seeds a demo SDB note; `report audit` no longer checks for a screening note; `system jobs run` no longer accepts the `discover*` job types (only `fetch_pdf`); `system check` no longer reports LLM or embedding providers; `zotero-cli schema` no longer has the `deprecated` field added in 3.6.0.
+- **Dependencies:** `networkx` and `filelock` (used only by the snowball graph), and the leftovers of `rag`: the Hugging Face logging and offline settings, and the `torch`/`nvidia`/`mkl` PyInstaller excludes. The `tomli` fallback for Python before 3.11 is gone too (3.11 is the minimum).
+
 ## [3.6.0] - 2026-10-06
 
 A minor release that announces what 4.0.0 removes: the systematic-review commands (`slr`, and `report verify-latex`) leave zotero-cli, which stays a Zotero library manager. Nothing is removed or changed in 3.x; the commands keep working and now warn.

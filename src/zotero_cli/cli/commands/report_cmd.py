@@ -9,13 +9,11 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.deprecation import REMOVAL_VERSION
 from zotero_cli.cli.flags import add_details_flag, add_format_flag
 from zotero_cli.cli.presenters import records
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.services.duplicate_service import DuplicateFinder, DuplicateGroup
-from zotero_cli.core.services.sdb.sdb_service import SDBService
 from zotero_cli.core.utils.csv_safety import sanitize_csv_rows
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
@@ -49,7 +47,7 @@ Scenario: Identifying overlaps between search databases
 Problem: I've imported search results from IEEE (Key: IEEE_01) and Springer (Key: SPR_01) and want to see which papers are duplicates.
 Action:  zotero-cli report duplicates --collections "IEEE_01,SPR_01"
 Result:  The CLI displays a table showing papers found in both collections, which collection each
-         copy came from, and whether their SDB screening decisions agree.
+         copy came from.
 
 Scenario: Scanning the whole library for duplicates, not just specific collections
 Problem: I want Desktop-style duplicate detection across everything in my library, not just named collections.
@@ -57,7 +55,7 @@ Action:  zotero-cli report duplicates
 Result:  Every item in the library is scanned; duplicate groups are reported the same way.
 
 Scenario: Exporting a duplicate report for methodological audit records
-Problem: I need a CSV record of every duplicate found before pruning, for my SLR audit trail.
+Problem: I need a CSV record of every duplicate found before merging them.
 Action:  zotero-cli report duplicates --collections "IEEE_01,SPR_01" --csv duplicates.csv
 
 Scenario: Exporting a bulk-editable merge plan
@@ -65,7 +63,7 @@ Problem: I found dozens of duplicate groups and want to review/resolve them in a
 Action:  zotero-cli report duplicates --export-plan duplicates_plan.csv
 Result:  A CSV with one row per occurrence (role/reason columns blank) is written; fill those in, then run
          `zotero-cli item merge --from-plan duplicates_plan.csv --execute`. Use a `.json` extension instead
-         for a nested format that also carries each occurrence's full SDB screening history.
+         for a nested format.
 """,
         )
         dupe_p.add_argument(
@@ -101,22 +99,6 @@ Result:  A completeness report table is printed, and missing items are detailed.
         audit_p.add_argument(
             "--export-missing", help="Path to export keys of missing items to a file"
         )
-
-        # report verify-latex
-        latex_p = sub.add_parser(
-            "verify-latex",
-            help="Verify citations in a LaTeX manuscript (deprecated: removed in 4.0.0)",
-            description="Scans a LaTeX document for citations and verifies whether they exist in your active Zotero library and are screened.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
-Examples
---------
-Scenario: LaTeX citation verification
-Problem: I want to make sure I haven't cited any papers in my LaTeX file that are missing from Zotero.
-Action:  zotero-cli report verify-latex --latex "manuscript.tex"
-""",
-        )
-        latex_p.add_argument("--latex", required=True, help="Path to the main LaTeX file to audit")
 
         # report stats
         stats_p = sub.add_parser(
@@ -167,8 +149,6 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
             self._handle_duplicates(gateway, args, force_user)
         elif args.report_type == "audit":
             self._handle_audit(gateway, args)
-        elif args.report_type == "verify-latex":
-            self._handle_verify_latex(args)
         elif args.report_type == "stats":
             self._handle_stats(gateway, args)
         elif args.report_type == "attachments":
@@ -197,8 +177,7 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
             console.print("[green]No duplicates found.[/green]")
             return
 
-        sdb_service = GatewayFactory.get_sdb_service(force_user=force_user)
-        rows = self._build_duplicate_rows(dupes, col_names_by_id, sdb_service)
+        rows = self._build_duplicate_rows(dupes, col_names_by_id)
 
         if args.csv:
             self._export_duplicates_csv(rows, args.csv)
@@ -207,50 +186,30 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
             )
 
         if getattr(args, "export_plan", None):
-            self._export_merge_plan(dupes, args.export_plan, sdb_service)
+            self._export_merge_plan(dupes, args.export_plan)
             console.print(
                 f"[green]Exported a merge plan for {len(dupes)} group(s) to {safe_markup(args.export_plan)}[/green]"
             )
 
-        status_color = {"MATCHING": "green", "CONFLICTING": "red", "UNSCREENED": "yellow"}
         table = Table(title="Duplicate Items across Collections")
         table.add_column("Match Type")
         table.add_column("Title")
         table.add_column("Key")
         table.add_column("Collection")
-        table.add_column("SDB Status")
         for row in rows:
-            color = status_color.get(row["sdb_status"], "white")
             table.add_row(
                 row["match_type"],
                 safe_markup(row["title"]),
                 row["key"],
                 safe_markup(row["collection"]),
-                f"[{color}]{safe_markup(row['sdb_status'])}[/{color}]",
             )
         console.print(table)
 
     def _build_duplicate_rows(
-        self, dupes: List[DuplicateGroup], col_names_by_id: Dict[str, str], sdb_service: SDBService
+        self, dupes: List[DuplicateGroup], col_names_by_id: Dict[str, str]
     ) -> List[dict]:
         rows = []
-        # Every occurrence's SDB notes together, not one request per
-        # occurrence (Issue #430: 37k requests at 50k items)
-        entries = sdb_service.inspect_items_sdb(
-            [occ.key for group in dupes for occ in group.occurrences]
-        )
-        if any(entries.values()):
-            print(
-                "Note: the SDB decision columns of `report duplicates` (and the SDB history in "
-                f"--export-plan) are deprecated and removed in {REMOVAL_VERSION}; the "
-                "duplicate groups themselves are not affected.",
-                file=sys.stderr,
-            )
         for group in dupes:
-            sdb_status = sdb_service.classify_decision_agreement(
-                [occ.key for occ in group.occurrences], entries
-            )
-
             for occ in group.occurrences:
                 rows.append(
                     {
@@ -259,7 +218,6 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
                         "key": occ.key,
                         "title": occ.title or "No Title",
                         "collection": col_names_by_id.get(occ.collection_id, occ.collection_id),
-                        "sdb_status": sdb_status,
                     }
                 )
         return rows
@@ -268,7 +226,7 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
         with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(
                 f,
-                fieldnames=["match_type", "identifier", "key", "title", "collection", "sdb_status"],
+                fieldnames=["match_type", "identifier", "key", "title", "collection"],
             )
             writer.writeheader()
             # Issue #237: rows come from Zotero item titles, settable by
@@ -276,9 +234,7 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
             # against CSV/spreadsheet formula injection.
             writer.writerows(sanitize_csv_rows(rows))
 
-    def _export_merge_plan(
-        self, dupes: List[DuplicateGroup], path: str, sdb_service: SDBService
-    ) -> None:
+    def _export_merge_plan(self, dupes: List[DuplicateGroup], path: str) -> None:
         from zotero_cli.core.services.merge_plan_io import (
             serialize_plan_to_csv,
             serialize_plan_to_json,
@@ -287,10 +243,7 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
 
         plan = MergeService.build_plan(dupes)
         if path.lower().endswith(".json"):
-            sdb_history = sdb_service.inspect_items_sdb(
-                [occ.key for group in dupes for occ in group.occurrences]
-            )
-            content = serialize_plan_to_json(plan, sdb_history=sdb_history)
+            content = serialize_plan_to_json(plan)
         else:
             content = serialize_plan_to_csv(plan)
         with open(path, "w", newline="", encoding="utf-8") as f:
@@ -318,7 +271,6 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
         add_row("Title", report.items_missing_title)
         add_row("Abstract", report.items_missing_abstract)
         add_row("PDF Attachment", report.items_missing_pdf)
-        add_row("Screening Note", report.items_missing_note)
 
         console.print(table)
         console.print(f"Total items analyzed: {safe_markup(report.total_items)}")
@@ -327,7 +279,6 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
             [
                 report.items_missing_id,
                 report.items_missing_pdf,
-                report.items_missing_note,
                 report.items_missing_title,
                 report.items_missing_abstract,
             ]
@@ -342,10 +293,6 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
             if report.items_missing_pdf:
                 console.print(
                     f"Missing PDF: {safe_markup(', '.join([i.key for i in report.items_missing_pdf]))}"
-                )
-            if report.items_missing_note:
-                console.print(
-                    f"Missing Note: {safe_markup(', '.join([i.key for i in report.items_missing_note]))}"
                 )
 
         if args.export_missing:
@@ -373,64 +320,6 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
         else:
             console.print(
                 "\n[bold green]Verification PASSED.[/bold green] All items are submission-ready."
-            )
-
-    def _handle_verify_latex(self, args: argparse.Namespace) -> None:
-        service = GatewayFactory.get_audit_service(force_user=getattr(args, "user", False))
-        with console.status(
-            f"[bold green]Verifying LaTeX manuscript: {safe_markup(args.latex)}..."
-        ):
-            report = service.audit_manuscript(Path(args.latex))
-
-        console.print(
-            f"\n[bold]SLR LaTeX Verification for:[/bold] [cyan]{safe_markup(args.latex)}[/cyan]"
-        )
-        console.print(f"Total unique citations found: {safe_markup(report['total_citations'])}")
-
-        if not report["items"]:
-            console.print("[yellow]No citations found in the manuscript.[/yellow]")
-            return
-
-        table = Table(title="Citation Verification Results")
-        table.add_column("Key", style="dim")
-        table.add_column("Status")
-        table.add_column("Decision")
-        table.add_column("Title")
-
-        errors = 0
-        unscreened = 0
-
-        for key, data in report["items"].items():
-            status = "[green]OK[/green]"
-            decision = data.get("decision", "-")
-
-            if not data["exists"]:
-                status = "[red]MISSING[/red]"
-                errors += 1
-            elif not data["screened"]:
-                status = "[yellow]UNSCREENED[/yellow]"
-                unscreened += 1
-
-            table.add_row(
-                key,
-                status,
-                safe_markup(decision or "-"),
-                safe_markup(
-                    (data.get("title") or "")[:50]
-                    + ("..." if len(data.get("title", "")) > 50 else "")
-                ),
-            )
-
-        console.print(table)
-
-        if errors > 0 or unscreened > 0:
-            console.print(
-                f"\n[bold red]Verification Failed:[/bold red] {errors} missing from library, {safe_markup(unscreened)} unscreened in SLR."
-            )
-            sys.exit(1)
-        else:
-            console.print(
-                "\n[bold green]Verification Success:[/] All citations are verified and screened."
             )
 
     def _handle_stats(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:

@@ -30,7 +30,7 @@ You can provide either the numeric `Group ID` (discovered via `system groups`) o
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Moving from personal research to a team project
-**Problem:** I've finished my private search and now I want to run a screening TUI on our lab's shared collection.
+**Problem:** I've finished my private search and now I want to work with our lab's shared collection.
 **Action:** `zotero-cli system switch "AI Lab"`
 **Result:** The CLI context is updated to the "AI Lab" group library.
 

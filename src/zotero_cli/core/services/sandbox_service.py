@@ -1,11 +1,9 @@
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import yaml
 
-from zotero_cli.core.interfaces import CollectionRepository, ItemRepository, NoteRepository
-from zotero_cli.core.utils.sdb_parser import encode_json_note
+from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 
 DEFAULT_SANDBOX_NAME = "Zotero-CLI Sandbox"
 
@@ -13,7 +11,7 @@ DEFAULT_SANDBOX_NAME = "Zotero-CLI Sandbox"
 class SandboxService:
     """
     Provisions (or tears down) a temporary Zotero collection populated with
-    mock papers, so a new user can try screening/reporting/RAG commands
+    mock papers, so a new user can try the item/collection/report commands
     without touching their real library. See `system demo-sandbox`.
     """
 
@@ -21,11 +19,9 @@ class SandboxService:
         self,
         collection_repo: CollectionRepository,
         item_repo: ItemRepository,
-        note_repo: NoteRepository,
     ):
         self.collection_repo = collection_repo
         self.item_repo = item_repo
-        self.note_repo = note_repo
 
     def create_sandbox(self, name: str = DEFAULT_SANDBOX_NAME) -> Tuple[str, int]:
         """
@@ -54,9 +50,6 @@ class SandboxService:
             if not item_key:
                 continue
             created += 1
-
-            if paper.get("seed_sdb"):
-                self._seed_mock_sdb_note(item_key)
 
         return name, created
 
@@ -87,19 +80,3 @@ class SandboxService:
         parts = full_name.rsplit(" ", 1)
         first_name, last_name = (parts[0], parts[1]) if len(parts) == 2 else ("", full_name)
         return {"creatorType": "author", "firstName": first_name, "lastName": last_name}
-
-    def _seed_mock_sdb_note(self, item_key: str) -> None:
-        payload = {
-            "audit_version": "1.2",
-            "decision": "accepted",
-            "reason_code": [],
-            "reason_text": "Demonstrates a screened item for onboarding.",
-            "evidence": "",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "agent": "zotero-cli-demo-sandbox",
-            "persona": "demo",
-            "phase": "title_abstract",
-            "action": "screening_decision",
-        }
-        note_content = encode_json_note(payload)
-        self.note_repo.create_note(item_key, note_content)

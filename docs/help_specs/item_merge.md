@@ -34,7 +34,7 @@ graph TD
 Merges one or more duplicate items into a chosen master item: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates. Supports a single group (`--master`/`--duplicates`) or bulk execution of many groups at once from a plan file (`--from-plan`).
 
 ## 4. Description (Instructional Architecture)
-`item merge` is the generic, SLR-independent counterpart to Zotero Desktop's own duplicate-merge feature — use `report duplicates` first to find candidate master/duplicate keys (or `report duplicates --export-plan` to get a bulk-editable file), then run this command to actually consolidate them.
+`item merge` is the counterpart to Zotero Desktop's own duplicate-merge feature — use `report duplicates` first to find candidate master/duplicate keys (or `report duplicates --export-plan` to get a bulk-editable file), then run this command to actually consolidate them.
 
 Unlike Zotero Desktop, the Zotero Web API has no relations-based merge (the way Desktop's internal "equate item IDs" mechanism works), so the duplicates are retired another way. By default they are deleted with the Web API's hard, permanent `DELETE`: **permanent and non-reversible**, and any external document (e.g. a Word/LibreOffice manuscript) citing a duplicate's key by that key will break once the duplicate is deleted - Desktop's citation-plugin transparency on merge cannot be replicated here. With `--trash` (Issue #402) the duplicates go to Zotero's trash instead, through the item's `deleted` flag, and `item restore` brings one back - so a merge can be undone, although its notes and attachments stay on the master.
 

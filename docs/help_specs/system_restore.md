@@ -14,7 +14,7 @@ graph TD
     D -- "No" --> F[""Purge Current Library State (If required")"]
     F --> G["Reconstruct Collections and Items via API"]
     G --> H["Upload PDF Attachments to Cloud/Local Storage"]
-    H --> I["Restore Audit Metadata and SDB Notes"]
+    H --> I["Restore child notes and metadata"]
     E --> J["End: Restore Process Summary"]
     I --> J
 ```

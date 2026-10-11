@@ -452,24 +452,6 @@ def test_system_jobs_run_honors_user_flag(system_cmd, capsys):
         mock_pdf_factory.assert_called_once_with(force_user=True)
 
 
-def test_system_jobs_run_discover_honors_user_flag(system_cmd):
-    """Issue #257: the snowball-worker branch of `system jobs run` must
-    also thread --user, not just the PDF-finder branch."""
-    with (
-        patch("zotero_cli.infra.factory.GatewayFactory.get_job_queue_service"),
-        patch(
-            "zotero_cli.infra.factory.GatewayFactory.get_snowball_worker"
-        ) as mock_snowball_factory,
-        patch("asyncio.run"),
-    ):
-        args = argparse.Namespace(
-            verb="jobs", jobs_verb="run", type="discover_forward", count=10, watch=False, user=True
-        )
-        system_cmd.execute(args)
-
-        mock_snowball_factory.assert_called_once_with(force_user=True)
-
-
 def test_system_switch_ambiguous(system_cmd, capsys):
     mock_config = MagicMock()
     mock_config.user_id = "999"

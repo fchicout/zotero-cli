@@ -25,7 +25,7 @@ zotero-cli system groups
 ---
 
 ### `check`
-Runs lightweight, read-only connectivity/credential checks against Zotero, Semantic Scholar, Unpaywall, PubMed/NCBI, and the configured LLM/embedding providers.
+Runs lightweight, read-only connectivity/credential checks against Zotero, Semantic Scholar, Unpaywall, and PubMed/NCBI.
 
 **Usage:**
 ```bash
@@ -35,7 +35,7 @@ zotero-cli system check
 ---
 
 ### `selftest`
-Checks offline that this installation works: converts a small embedded PDF to text (the code path of `item export --as md` and `rag ingest`) opens a SQLite database (used by `--offline`), and translates a LaTeX accent with the bundled `bxc` library (used by BibTeX import), and formats a reference in a bundled citation style (used by `--as bibliography`). Needs no configuration or network; exits 1 if any check fails.
+Checks offline that this installation works: converts a small embedded PDF to text (the code path of `item export --as md`) opens a SQLite database (used by `--offline`), and translates a LaTeX accent with the bundled `bxc` library (used by BibTeX import), and formats a reference in a bundled citation style (used by `--as bibliography`). Needs no configuration or network; exits 1 if any check fails.
 
 **Usage:**
 ```bash
@@ -45,7 +45,7 @@ zotero-cli system selftest
 ---
 
 ### `demo-sandbox`
-Creates a temporary collection populated with mock papers so you can try screening, reporting, and RAG commands without touching your real library. Requires a live (non-`--offline`) Zotero connection.
+Creates a temporary collection populated with mock papers so you can try the item, collection and report commands without touching your real library. Requires a live (non-`--offline`) Zotero connection.
 
 **Usage:**
 ```bash

@@ -1,7 +1,6 @@
 # Lightweight runtime image: builds the same self-contained PyInstaller
-# binary as .github/workflows/release.yml (same --exclude-module flags, so
-# the image doesn't ship torch/numpy/etc.), then copies just the binary
-# into a slim base with no Python interpreter needed at runtime.
+# binary as .github/workflows/release.yml (same --exclude-module flags), then
+# copies just the binary into a slim base with no Python interpreter needed at runtime.
 #
 # --exclude-module readline (Issue #405): Debian's Python links the readline
 # module against GNU readline (GPL-3.0), which must not be bundled into
@@ -33,11 +32,7 @@ RUN pip install --no-cache-dir "uv==0.12.18" && \
 # /tmp on every `docker run`; `COPY`ing the unpacked tree below avoids that
 # entirely.
 RUN .venv/bin/pyinstaller --onedir --strip --name zotero-cli \
-    --add-data "src/zotero_cli/templates/extraction_schema.yaml:zotero_cli/templates" \
     --add-data "src/zotero_cli/templates/demo_sandbox.yaml:zotero_cli/templates" \
-    --exclude-module torch \
-    --exclude-module nvidia \
-    --exclude-module mkl \
     --exclude-module numpy \
     --exclude-module pandas \
     --exclude-module matplotlib \

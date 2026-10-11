@@ -1,10 +1,9 @@
-"""What ExportService, CollectionService and ScreeningService tell their caller (Issue #393).
+"""What ExportService and CollectionService tell their caller (Issue #393).
 
 They report through `notify` (or the logger), never print: each message is
 captured here by passing a sink, and nothing may reach stdout/stderr.
 """
 
-import logging
 from typing import List
 from unittest.mock import MagicMock
 
@@ -12,7 +11,6 @@ import pytest
 
 from zotero_cli.core.services.collection_service import CollectionService
 from zotero_cli.core.services.export_service import ExportService
-from zotero_cli.core.services.screening_service import ScreeningService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -42,7 +40,7 @@ def _silent(capsys):
 
 
 def _export(said):
-    service = ExportService(MagicMock(), MagicMock(), MagicMock(), MagicMock())
+    service = ExportService(MagicMock(), MagicMock(), MagicMock())
     service.notify = said.append
     return service
 
@@ -66,7 +64,6 @@ def test_export_empty_collection(said, capsys):
 
 def test_export_without_valid_papers(said, capsys):
     service = _export(said)
-    service.sdb_service.inspect_items_sdb.return_value = {}
     attachment = ZoteroItem(key="A", version=1, item_type="attachment", title="a")
     assert service.export_items([attachment], "o.bib") is False
     assert said == ["Warning: No valid papers to export."]
@@ -75,7 +72,6 @@ def test_export_without_valid_papers(said, capsys):
 
 def test_export_unsupported_format(said, capsys):
     service = _export(said)
-    service.sdb_service.inspect_items_sdb.return_value = {}
     assert service.export_items([_item()], "o.x", "docx") is False
     assert said == ["Error: Unsupported export format 'docx'."]
     _silent(capsys)
@@ -135,57 +131,6 @@ def test_move_item_not_in_the_named_source(said, capsys):
     _silent(capsys)
 
 
-# ---- ScreeningService ------------------------------------------------------------
-
-
-def _screening(said):
-    note_repo = MagicMock()
-    note_repo.get_item_children.return_value = []
-    service = ScreeningService(MagicMock(), MagicMock(), note_repo, MagicMock(), MagicMock())
-    service.notify = said.append
-    return service
-
-
-def test_record_note_rejects_an_invalid_decision(said, capsys):
-    service = _screening(said)
-    assert service.record_decision_note("K1", "MAYBE", "") is False
-    assert said == ["Error: Invalid decision 'MAYBE'. Must be INCLUDE or EXCLUDE."]
-    _silent(capsys)
-
-
-def test_record_note_reports_a_failed_write(said, capsys):
-    service = _screening(said)
-    service.note_repo.create_note.return_value = False
-    assert service.record_decision_note("K1", "INCLUDE", "") is False
-    assert said == ["Error: Failed to record audit note for item K1."]
-    _silent(capsys)
-
-
-def test_apply_outcome_rejects_an_invalid_decision(said, capsys):
-    service = _screening(said)
-    assert service.apply_decision_outcome("K1", "MAYBE", "") is False
-    assert said == ["Error: Invalid decision 'MAYBE'. Must be INCLUDE or EXCLUDE."]
-    _silent(capsys)
-
-
-def test_apply_outcome_warns_when_tags_or_the_move_fail(said, capsys):
-    service = _screening(said)
-    service.tag_repo.add_tags.return_value = False
-    service.collection_service.move_item.return_value = False
-    assert service.apply_decision_outcome("K1", "INCLUDE", "", "Src", "Dest") is True
-    assert said[0].startswith("Warning: Failed to apply tags")
-    assert said[1] == "Warning: Decision recorded but failed to move item K1."
-    _silent(capsys)
-
-
-def test_without_a_sink_the_same_messages_are_logged_at_their_level(caplog, capsys):
-    service = ScreeningService(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock())
-    with caplog.at_level(logging.DEBUG):
-        service.record_decision_note("K1", "MAYBE", "")
-    assert [r.levelno for r in caplog.records] == [logging.ERROR]
-    _silent(capsys)
-
-
 # ---- ImportService, CitationGraphService, AttachmentService ---------------------------
 
 
@@ -215,20 +160,6 @@ def test_import_is_quiet_unless_verbose(said, capsys):
     service.import_papers(iter([MagicMock(title="Bad", doi=None)]), "Col")
 
     assert said == []
-    _silent(capsys)
-
-
-def test_graph_skips_a_missing_collection_with_a_warning(said, capsys):
-    from zotero_cli.core.services.graph_service import CitationGraphService
-
-    repo = MagicMock()
-    repo.get_collection_id_by_name.return_value = None
-    service = CitationGraphService(repo, MagicMock())
-    service.notify = said.append
-
-    service.build_graph(["Nope"])
-
-    assert said == ["Warning: Collection 'Nope' not found. Skipping."]
     _silent(capsys)
 
 

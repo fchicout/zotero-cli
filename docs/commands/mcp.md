@@ -6,7 +6,7 @@ Lets AI clients read your Zotero library through the [Model Context Protocol](ht
 pip install 'zotero-command-line[mcp]'        # or: uv tool install 'zotero-command-line[mcp]'
 ```
 
-The standalone binaries don't include it (like `rag`); install from PyPI.
+The standalone binaries don't include it; install from PyPI.
 
 ## Verbs
 

@@ -3,8 +3,8 @@ a preview/confirmation gate. This fails when a new file starts calling a
 delete method, so the new path gets that review before it ships.
 
 Keyed on the delete calls themselves, not command names: a name-based check
-("delete", "purge", "clean", ...) would have missed `slr prune` and
-`item transfer --delete-source`, which both deleted items.
+("delete", "purge", "clean", ...) would have missed
+`item transfer --delete-source`, which deleted items.
 """
 
 import re
@@ -18,10 +18,9 @@ DELETE_CALL = re.compile(r"\.(delete_item|delete_collection|delete_tags|trash_it
 REVIEWED = {
     "cli/commands/collection_cmd.py": "collection delete: --recursive previews, needs --execute and --yes/confirmation",
     "cli/commands/item_cmd.py": "item delete: one named key, version-checked (#384)",
-    "cli/commands/rag_cmd.py": "rag purge: local vector store only, explicit --all/--key/--collection",
     "core/services/collection_service.py": "plan_recursive_delete/execute_recursive_delete (#378)",
-    "core/services/merge_service.py": "item merge / slr dedupe: preview until --execute",
-    "core/services/purge_service.py": "item/collection purge, slr sdb reset: dry_run flag + confirmation",
+    "core/services/merge_service.py": "item merge: preview until --execute",
+    "core/services/purge_service.py": "item/collection purge: dry_run flag + confirmation",
     "core/services/sandbox_service.py": "system demo-sandbox --clean: only the named sandbox collection",
     "core/services/transfer_service.py": "item transfer --delete-source: only after every child copied (#396)",
     "infra/repositories.py": "repository pass-through",

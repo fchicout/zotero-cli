@@ -33,7 +33,7 @@ def test_home_and_config_env_point_at_the_test_home():
 
 
 def test_config_manager_default_path_is_isolated():
-    """test_rag_model_set wrote the real config through this default."""
+    """a test of `system switch` wrote the real config through this default."""
     from zotero_cli.core.config import ConfigLoader
 
     assert ConfigLoader().config_path.resolve().is_relative_to(_test_home().resolve())

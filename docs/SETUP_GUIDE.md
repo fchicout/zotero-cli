@@ -41,9 +41,9 @@ The `library_id` tells the tool which library to target by default.
 database_path = "/home/me/Zotero/zotero.sqlite"
 ```
 
-> **⚠️ Offline Mode scope:** `--offline` reads directly from your local `zotero.sqlite` file and does **not** filter by `library_id`/`library_type` - it operates across the *entire* local database. If Zotero Desktop syncs more than one library on this machine (your personal library plus any groups), offline-mode commands will see and count items from all of them, not just the one configured in `config.toml`. This can produce item counts, PRISMA totals, or screening results that don't match what the same commands report in online mode. If you only ever sync one library locally, this doesn't affect you.
+> **⚠️ Offline Mode scope:** `--offline` reads directly from your local `zotero.sqlite` file and does **not** filter by `library_id`/`library_type` - it operates across the *entire* local database. If Zotero Desktop syncs more than one library on this machine (your personal library plus any groups), offline-mode commands will see and count items from all of them, not just the one configured in `config.toml`. This can produce item counts or reports that don't match what the same commands report in online mode. If you only ever sync one library locally, this doesn't affect you.
 >
-> `--offline` is also **read-only**: most write-oriented commands (`slr decide`, `slr screen`, `item update`, `slr snowball import`, etc.) aren't offline-compatible and will fail with "Offline mode is read-only" if you forget to drop the flag. `item trash`/`item restore` are the only write paths offline mode explicitly supports.
+> `--offline` is also **read-only**: most write-oriented commands (`item update`, `item add`, `tag add`, etc.) aren't offline-compatible and will fail with "Offline mode is read-only" if you forget to drop the flag. `item trash`/`item restore` are the only write paths offline mode explicitly supports.
 
 ## 4. Boost Your Research (Optional Services)
 Adding these parameters to `config.toml` unlocks powerful automation features:
@@ -85,8 +85,8 @@ Everything lives in one directory, which zotero-cli makes private to your user a
 - **Linux/macOS:** `~/.config/zotero-cli/` (or `$XDG_CONFIG_HOME/zotero-cli/`)
 - **Windows:** `%APPDATA%\zotero-cli\`
 
-It holds `config.toml` (your keys, mode `0600`), the background job queue (`jobs.sqlite`), snowball discovery graphs, `rag` vector stores, and the log files in `logs/`. `logs/zotero-cli.log` records INFO and above on every run, rotated at 5 MB with 3 old files kept. Log files are created `0600`.
+It holds `config.toml` (your keys, mode `0600`), the background job queue (`jobs.sqlite`), and the log files in `logs/`. `logs/zotero-cli.log` records INFO and above on every run, rotated at 5 MB with 3 old files kept. Log files are created `0600`.
 
-**With `--config PATH`:** the config file stays where you put it, but zotero-cli's state (job queue, graphs, vector stores) goes into a private profile inside the directory above, `profiles/<id>/`, one per config file, never next to the config file. Logs always go to `logs/` there. Versions before 3.1 wrote that state next to the `--config` file, world-readable; zotero-cli moves it into the profile the first time it runs and says so. `zotero-cli system info` shows the state and log directories in use. A `resolvers.yaml` with custom PDF resolvers is still read from the config file's directory.
+**With `--config PATH`:** the config file stays where you put it, but zotero-cli's state (job queue) goes into a private profile inside the directory above, `profiles/<id>/`, one per config file, never next to the config file. Logs always go to `logs/` there. Versions before 3.1 wrote that state next to the `--config` file, world-readable; zotero-cli moves it into the profile the first time it runs and says so. `zotero-cli system info` shows the state and log directories in use. A `resolvers.yaml` with custom PDF resolvers is still read from the config file's directory.
 
 zotero-cli masks API keys, tokens and credential URL parameters before writing any log line, in the file and on screen. Still, check a log for anything private before attaching it to an issue, and never post your `config.toml`.

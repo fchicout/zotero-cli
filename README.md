@@ -20,7 +20,7 @@ It talks to the Zotero Web API (personal and group libraries). It can also read 
 - **Scriptable:** items, collections, tags, notes and attachments are all reachable from a terminal, with no GUI steps in between.
 - **Machine-readable output:** `item list` prints `json`, `csv` or `markdown`, and `--fields` picks the columns. Data goes to stdout and messages to stderr, so you can pipe it into `jq`, a spreadsheet or a prompt.
 - **Suited to LLM agents:** an agent can run `--help` on any command to learn its options, and most commands' help includes worked examples. `item export --as md` extracts the text of an item's PDF into a `.md` file an LLM can read.
-- **Preview first:** `collection clean`, `collection delete --recursive`, `slr prune`, `slr load`, `tag purge`, `item merge`, `item hydrate`, `item pdf strip` and `slr dedupe` only show what they would do until you add `--execute`. A recursive delete also asks for confirmation (`--yes` in scripts), and a collection name that matches several collections is refused rather than guessed. `item purge` and `collection purge` ask for confirmation. `item delete`, `storage checkout` and `system restore` predate this policy and still apply immediately without a flag (a deprecation warning says so); pass their `--execute`, or `--dry-run` to preview first - this changes to preview-by-default in 4.0. `--offline` reads the local database and is read-only apart from trash/restore.
+- **Preview first:** `collection clean`, `collection delete --recursive`, `tag purge`, `item merge`, `item hydrate` and `item pdf strip` only show what they would do until you add `--execute`. A recursive delete also asks for confirmation (`--yes` in scripts), and a collection name that matches several collections is refused rather than guessed. `item purge` and `collection purge` ask for confirmation. `item delete`, `storage checkout` and `system restore` predate this policy and still apply immediately without a flag (a deprecation warning says so); pass their `--execute`, or `--dry-run` to preview first - this changes to preview-by-default in 4.0. `--offline` reads the local database and is read-only apart from trash/restore.
 - **Runs anywhere:** a single binary for Linux and Windows, no Python needed. Also available as a container or a Python package.
 
 ## What it can do
@@ -41,9 +41,6 @@ It talks to the Zotero Web API (personal and group libraries). It can also read 
 - **Backup and restore** the whole library, or one collection, as a compressed `.zaf` archive, attachments included.
 - **`system check`** tests the connection to every service you've configured (Zotero and the metadata providers) in one go.
 - **Local HTTP API** (`serve`): read-only endpoints for items, collections and background jobs, for local scripts and dashboards.
-
-### Optional: literature review toolkit
-- **Systematic literature review (`slr`), deprecated and removed in 4.0:** screening decisions recorded as auditable Zotero notes, PRISMA statistics, citation snowballing and data extraction. See [docs/commands/slr.md](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/slr.md).
 
 ## 🍳 Cookbook
 
@@ -112,8 +109,6 @@ zotero-cli system demo-sandbox --clean
 | **[`serve`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/serve.md)** | Local HTTP API | `(default)` |
 | **[`schema`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/schema.md)** | The command line as JSON, for scripts and agents | `(default)` |
 | **[`mcp`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/mcp.md)** | Read-only MCP server for AI clients (optional `mcp` extra) | `serve` |
-| **[`slr`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/slr.md)** | Literature review (**deprecated**, removed in 4.0) | `source`, `screen`, `decide`, `load`, `list`, `reconcile`, `promote`, `dedupe`, `prune`, `extract`, `snowball`, `sdb`, `report` |
-| **[`rag`](https://github.com/fchicout/zotero-cli/blob/main/docs/commands/rag.md)** | Semantic search (optional `rag` extra; **deprecated**, moving to a separate tool and removed in 4.0) | `ingest`, `query`, `context`, `purge`, `model` |
 
 Every command has built-in help: `zotero-cli <noun> <verb> --help`. Every example in these docs is checked against the real command-line parser in CI.
 
@@ -155,7 +150,7 @@ irm https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.ps1 | iex
 
 **Verifying a download yourself:** every release from v2.8.12 on includes a `SHA256SUMS` file and signed build provenance. With the [GitHub CLI](https://cli.github.com/), `gh attestation verify zotero-cli-linux-amd64.tar.gz -R fchicout/zotero-cli` confirms the file was built by this repository's release workflow.
 
-**Binaries don't bundle the `rag` extra** (local/HF embeddings, `torch`, `sentence-transformers`): that stack is large and most installs never touch it. `rag` commands print a clear error in the binary; install from PyPI with `pip install 'zotero-command-line[rag]'` (or `uv tool install 'zotero-command-line[rag]'`) for those. Everything else, including offline mode and Markdown/PDF text export, works the same in the binary and from PyPI.
+Offline mode and Markdown/PDF text export work the same in the binary and from PyPI. The read-only MCP server (`mcp serve`) is an optional extra (`pip install 'zotero-command-line[mcp]'`) and is not in the binaries.
 
 ### 🐍 Option 2: From PyPI (Python 3.11+) - recommended on macOS
 The package is called **`zotero-command-line`** on PyPI, because the `zotero-cli` name there belongs to an older, unrelated project. The command it installs is still `zotero-cli`. This is the way to install on macOS, Alpine, ARM Linux and older Linux systems, where there is no binary. [uv](https://docs.astral.sh/uv/) can install a suitable Python for you.

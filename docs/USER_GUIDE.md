@@ -7,8 +7,7 @@ This guide describes the current release; run `zotero-cli --version` to see whic
 2.  [Setup & Configuration](#setup--configuration)
 3.  [Ingestion (Import)](#ingestion)
 4.  [Management (Collections, Tags, Items)](#management)
-5.  [Workflow (Screening & Reporting), optional](#workflow)
-6.  [Analysis & System](#analysis)
+5.  [Analysis & System](#analysis)
 
 ## Getting Started
 
@@ -83,34 +82,6 @@ zotero-cli tag purge --collection "Junk" --execute
 zotero-cli item list --collection "MyCol"
 zotero-cli item inspect --key BQPLL87F
 zotero-cli item move --key "KEY" --target "Read"
-```
-
----
-
-## Workflow
-
-*Optional: the systematic-literature-review toolkit. Everything above works without it.*
-
-### 1. Screening
-**Interactive (TUI):**
-The core feature. Launch the "Tinder-for-Papers" interface.
-```bash
-zotero-cli slr screen --source "raw_arXiv" --include "screened" --exclude "excluded"
-```
-*   **[I]**: Include
-*   **[E]**: Exclude (Select reason code)
-*   **[S]**: Skip
-
-**Single Decision (CLI):**
-Record a decision directly from the terminal.
-```bash
-zotero-cli slr decide --key "ITEM_KEY" --vote INCLUDE
-```
-
-### 2. Reporting (PRISMA)
-Generate a PRISMA 2020 statistics report.
-```bash
-zotero-cli slr report prisma --collection "screened"
 ```
 
 ---

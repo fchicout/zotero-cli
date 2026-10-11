@@ -9,7 +9,7 @@ from zotero_cli.core.config import ConfigManager, get_config, reset_config
 
 
 def test_config_manager_writes_the_loaded_config_not_the_default(tmp_path, monkeypatch):
-    """`system switch` / `rag model set` under --config edited the default file."""
+    """`system switch` under --config edited the default file."""
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     profile = tmp_path / "lab.toml"
     profile.write_text('[zotero]\napi_key = "k"\nlibrary_id = "1"\nlibrary_type = "group"\n')
@@ -39,16 +39,3 @@ def test_storage_checkout_honours_user():
         StorageCommand()._handle_checkout(args)
 
     assert get_gateway.call_args.kwargs["force_user"] is True
-
-
-def test_slr_report_status_honours_user():
-    from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-    args = argparse.Namespace(report_verb="status", collection="C", all_sources=False, user=True)
-    with patch(
-        "zotero_cli.cli.commands.slr.report_cmd.GatewayFactory.get_slr_status_service"
-    ) as get_service:
-        get_service.return_value.get_slr_status.return_value = [MagicMock()]
-        SLRReportCommand._handle_status(MagicMock(), args)
-
-    assert get_service.call_args.kwargs["force_user"] is True

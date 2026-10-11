@@ -46,11 +46,9 @@ def test_formatter_never_writes_the_cache_and_honours_offline():
 
 
 def _service(formatter=None):
-    sdb = MagicMock()
-    sdb.inspect_items_sdb.return_value = {}
     bibtex = MagicMock()
     bibtex.serialize.return_value = BIB
-    return ExportService(MagicMock(), bibtex, MagicMock(), sdb, formatter)
+    return ExportService(MagicMock(), bibtex, MagicMock(), formatter)
 
 
 def _item():

@@ -1,7 +1,7 @@
 import csv
 import io
 import json
-from typing import Any, Dict, List, Optional
+from typing import Dict
 
 from zotero_cli.core.services.duplicate_service import DuplicateOccurrence
 from zotero_cli.core.services.merge_service import (
@@ -123,17 +123,7 @@ def parse_plan_from_csv(text: str) -> MergePlan:
     return MergePlan(entries=list(entries_by_group.values()))
 
 
-def serialize_plan_to_json(
-    plan: MergePlan, sdb_history: Optional[Dict[str, List[Dict[str, Any]]]] = None
-) -> str:
-    """
-    `sdb_history` (key -> full parsed SDB entries, e.g. from
-    `SDBService.inspect_item_sdb`) is informational only - it gives a
-    library consumer's review UI the full decision/provenance
-    history per occurrence to show a researcher, not a rollup label. It is
-    not read back by `parse_plan_from_json`.
-    """
-    sdb_history = sdb_history or {}
+def serialize_plan_to_json(plan: MergePlan) -> str:
     payload = {
         "version": plan.version,
         "entries": [
@@ -146,7 +136,6 @@ def serialize_plan_to_json(
                         "key": occ.key,
                         "collection_id": occ.collection_id,
                         "title": occ.title,
-                        "sdb_history": sdb_history.get(occ.key, []),
                     }
                     for occ in entry.occurrences
                 ],

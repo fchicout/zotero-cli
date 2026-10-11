@@ -2,7 +2,7 @@
 
 ## 1. Classification
 - **Level:** 🟢 READ-ONLY (Information Retrieval)
-- **Target Audience:** Researcher / SLR Lead
+- **Target Audience:** Researcher / Library Manager
 
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
@@ -17,7 +17,7 @@ graph TD
 Displays a structured list of all collections (folders) available in the active Zotero library, including their unique keys and hierarchical relationships.
 
 ## 4. Description (Instructional Architecture)
-The `collection list` command is the primary discovery tool for library structure. It provides a complete map of all folders, which is essential for identifying the `Collection Key` required by many other commands (like `import`, `slr prune`, or `rag ingest`). 
+The `collection list` command is the primary discovery tool for library structure. It provides a complete map of all folders, which is essential for identifying the `Collection Key` required by many other commands (like `import`, `collection export` or `item move`). 
 
 The output is presented as a formatted table that includes:
 - **Key:** The unique alphanumeric identifier (e.g., `ABCD1234`) used for programmatic access.
@@ -33,7 +33,7 @@ The output is presented as a formatted table that includes:
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Finding a collection key for a new task
-**Problem:** I need to run a RAG ingestion on a specific folder, but I only know its name is "Deep Learning."
+**Problem:** I need to export a specific folder, but I only know its name is "Deep Learning."
 **Action:** `zotero-cli collection list`
 **Result:** The table displays all collections. I locate "Deep Learning" and find its key is `G5H6J7K8`.
 

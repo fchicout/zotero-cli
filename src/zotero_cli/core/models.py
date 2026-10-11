@@ -2,8 +2,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence
 
-from .zotero_item import ZoteroItem
-
 
 class WriteStatus(str, Enum):
     """What is known about a write after it was attempted (Issue #577)."""
@@ -31,13 +29,6 @@ class WriteOutcome:
         return self.status is WriteStatus.APPLIED
 
 
-class ScreeningStatus(str, Enum):
-    ACCEPTED = "accepted"
-    REJECTED = "rejected"
-    PENDING = "pending"
-    UNKNOWN = "unknown"
-
-
 @dataclass
 class ResearchPaper:
     title: str
@@ -53,7 +44,6 @@ class ResearchPaper:
     references: List[str] = field(default_factory=list)
     citation_count: Optional[int] = None
     extra: Optional[str] = None
-    sdb_metadata: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -108,34 +98,8 @@ class Job:
 
 
 @dataclass
-class VectorChunk:
-    item_key: str
-    chunk_index: int
-    text: str
-    embedding: List[float]
-    citation_key: Optional[str] = None
-    qa_score: Optional[float] = None
-    phase_folder: Optional[str] = None
-    id: Optional[int] = None
-
-
 @dataclass
-class SearchResult:
-    item_key: str
-    text: str
-    score: float
-    metadata: Dict[str, Any]
-    item: Optional[ZoteroItem] = None
-
-
 @dataclass
-class VerifiedSearchResult(SearchResult):
-    is_verified: bool = False
-    verification_errors: List[str] = field(default_factory=list)
-    screening_status: ScreeningStatus = ScreeningStatus.UNKNOWN
-    citation_key: Optional[str] = None
-
-
 @dataclass
 class KeyIdentity:
     """

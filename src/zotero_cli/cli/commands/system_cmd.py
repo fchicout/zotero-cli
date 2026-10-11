@@ -65,10 +65,6 @@ class InfoCommand(BaseCommand):
         # The library requests actually go to (Issue #397).
         endpoint = self._endpoint(config, getattr(args, "user", False))
         print(f"Endpoint:    {endpoint}")
-        if config.openai_api_key:
-            print("OpenAI API Key: ********")
-        if config.gemini_api_key:
-            print("Gemini API Key: ********")
         # Derived from the active library_id/library_type above, not the
         # separately-stored config.target_group_url - that field is only
         # ever consulted as a fallback when library_id itself is unset
@@ -158,7 +154,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         sub.add_parser(
             "check",
             help="Diagnose connectivity/credentials for all configured services",
-            description="Runs lightweight, read-only connectivity and credential checks against Zotero, Semantic Scholar, Unpaywall, PubMed/NCBI, and the configured LLM/embedding providers.",
+            description="Runs lightweight, read-only connectivity and credential checks against Zotero, Semantic Scholar, Unpaywall, and PubMed/NCBI.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples
@@ -193,7 +189,7 @@ Result:  Each check prints OK or FAILED; the exit status is 1 if any failed.
 
 Notes
 -----
-• Common Failure Modes: A FAILED "PDF text extraction" means `item export --as md` and `rag ingest` can't read PDFs on this install; reinstall, or report the details line.
+• Common Failure Modes: A FAILED "PDF text extraction" means `item export --as md` can't read PDFs on this install; reinstall, or report the details line.
 • Safety Tips: Read-only and offline - safe to run anywhere, including CI.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_selftest.md
@@ -204,7 +200,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         sandbox_p = sub.add_parser(
             "demo-sandbox",
             help="Provision a temporary collection with mock papers",
-            description="Creates a temporary collection populated with mock papers so you can try screening, reporting, and RAG commands without touching your real library.",
+            description="Creates a temporary collection populated with mock papers so you can try the item, collection and report commands without touching your real library.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples
@@ -212,7 +208,7 @@ Examples
 Scenario: Trying zotero-cli for the first time
 Problem: I just installed zotero-cli and don't have a populated collection I'm comfortable experimenting on yet.
 Action:  zotero-cli system demo-sandbox
-Result:  A "Zotero-CLI Sandbox" collection is created with mock papers, ready for `slr screen --source "Zotero-CLI Sandbox"`.
+Result:  A "Zotero-CLI Sandbox" collection is created with mock papers, ready for `item list --collection "Zotero-CLI Sandbox"`.
 
 Scenario: Cleaning up after trying the tool
 Problem: I'm done exploring and want to remove the mock data from my library.
@@ -370,7 +366,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         jobs_p = sub.add_parser(
             "jobs",
             help="Manage background system jobs",
-            description="Manages long-running background tasks such as PDF fetching or SLR discovery, allowing you to monitor progress, retry failures, or trigger the worker.",
+            description="Manages long-running background tasks such as PDF fetching, allowing you to monitor progress, retry failures, or trigger the worker.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_jobs.md
@@ -387,8 +383,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             epilog="""
 Examples
 --------
-Scenario: Monitoring a large snowballing discovery
-Problem: I've queued 1000 DOIs for discovery and I want to see how many are finished.
+Scenario: Monitoring a large PDF fetch
+Problem: I've queued 1000 items for PDF fetching and I want to see how many are finished.
 Action:  zotero-cli system jobs list
 Result:  The CLI displays a table showing that 800 are completed and 200 are still pending.
 
@@ -639,8 +635,8 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
             Panel(
                 f"Created collection [bold]'{safe_markup(name)}'[/bold] with {created} mock papers.\n\n"
                 f"Try it out:\n"
-                f"  [cyan]zotero-cli slr screen --source '{safe_markup(name)}'[/cyan]\n"
-                f"  [cyan]zotero-cli report prisma[/cyan] (after screening a few items)\n\n"
+                f"  [cyan]zotero-cli item list --collection '{safe_markup(name)}'[/cyan]\n"
+                f"  [cyan]zotero-cli report stats --collection '{safe_markup(name)}'[/cyan]\n\n"
                 f"When you're done: [cyan]zotero-cli system demo-sandbox --clean[/cyan]",
                 title="Sandbox Ready",
                 border_style="green",
@@ -738,8 +734,6 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
             worker_service: Any = None
             if args.type == "fetch_pdf":
                 worker_service = GatewayFactory.get_pdf_finder_service(force_user=force_user)
-            elif args.type.startswith("discover"):
-                worker_service = GatewayFactory.get_snowball_worker(force_user=force_user)
             else:
                 raise UsageError(f"Unsupported task type '{args.type}' for direct worker.")
 
@@ -795,10 +789,7 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
 
                 # Run worker for 1 job
                 svc: Any = None
-                if task_type == "fetch_pdf":
-                    svc = GatewayFactory.get_pdf_finder_service(force_user=force_user)
-                else:
-                    svc = GatewayFactory.get_snowball_worker(force_user=force_user)
+                svc = GatewayFactory.get_pdf_finder_service(force_user=force_user)
 
                 import asyncio
 

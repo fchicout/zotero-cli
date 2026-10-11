@@ -1,20 +1,6 @@
-from unittest.mock import MagicMock
-
 import pytest
 
-from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
 from zotero_cli.infra.sqlite_repo import SqliteZoteroGateway
-
-
-@pytest.mark.unit
-def test_orchestrator_missing_methods():
-    """
-    VALERIUS-001: SLROrchestrator must implement get_promotion_path.
-    """
-    orchestrator = SLROrchestrator(MagicMock())
-    assert hasattr(orchestrator, "get_promotion_path"), (
-        "SLROrchestrator is missing get_promotion_path"
-    )
 
 
 @pytest.mark.unit

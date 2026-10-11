@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -25,14 +25,8 @@ def base_config():
     return ZoteroConfig(api_key="key", library_id="123")
 
 
-def make_service(mock_gateway, mock_aggregator, config, llm_provider=None, embedding_provider=None):
-    return DiagnosticsService(
-        mock_gateway,
-        mock_aggregator,
-        llm_provider,
-        embedding_provider or MagicMock(),
-        config,
-    )
+def make_service(mock_gateway, mock_aggregator, config):
+    return DiagnosticsService(mock_gateway, mock_aggregator, config)
 
 
 def result_for(results, name):
@@ -141,44 +135,6 @@ def test_offline_unreadable_database_is_failed(mock_gateway, mock_aggregator, ba
     assert "unable to open" in row.details
 
 
-def test_rag_rows_absent_when_not_configured(mock_gateway, mock_aggregator, base_config):
-    """Default config (provider 'auto', no model): no FAILED RAG rows on a plain install (#408)."""
-    names = {r.name for r in make_service(mock_gateway, mock_aggregator, base_config).run_checks()}
-    assert "LLM Provider" not in names
-    assert "Embedding Provider" not in names
-
-
-def test_rag_configured_is_reported_without_calling_providers(mock_gateway, mock_aggregator):
-    """No model load, download or API call (Issue #382)."""
-    config = ZoteroConfig(
-        api_key="k",
-        library_id="1",
-        embedding_provider="openai",
-        generative_provider="gemini",
-        generative_model="gemini-pro",
-    )
-    llm, embedder = MagicMock(), MagicMock()
-    with patch("zotero_cli.core.services.diagnostics_service._importable", return_value=True):
-        service = DiagnosticsService(mock_gateway, mock_aggregator, llm, embedder, config)
-        results = service.run_checks()
-    emb = result_for(results, "Embedding Provider")
-    gen = result_for(results, "LLM Provider")
-    assert emb.status == gen.status == "CONFIGURED"
-    assert "gemini-pro" in gen.details
-    llm.generate.assert_not_called()
-    embedder.embed_text.assert_not_called()
-
-
-def test_rag_configured_without_the_extra_says_how_to_install(mock_gateway, mock_aggregator):
-    config = ZoteroConfig(api_key="k", library_id="1", embedding_provider="local")
-    with patch("zotero_cli.core.services.diagnostics_service._importable", return_value=False):
-        row = result_for(
-            make_service(mock_gateway, mock_aggregator, config).run_checks(), "Embedding Provider"
-        )
-    assert row.status == "FAILED"
-    assert "zotero-command-line[rag]" in row.details
-
-
 def test_run_checks_default_rows(mock_gateway, mock_aggregator, base_config):
     service = make_service(mock_gateway, mock_aggregator, base_config)
     results = service.run_checks()
@@ -189,12 +145,7 @@ def test_run_checks_default_rows(mock_gateway, mock_aggregator, base_config):
 def test_unconfigured_library_is_a_required_not_configured_row(mock_aggregator, base_config):
     """Issue #376: `system check` runs before setup and says what's missing."""
     service = DiagnosticsService(
-        None,
-        mock_aggregator,
-        None,
-        None,
-        base_config,
-        "No Zotero API key is set. Run `zotero-cli init`",
+        None, mock_aggregator, base_config, "No Zotero API key is set. Run `zotero-cli init`"
     )
     row = result_for(service.run_checks(), "Zotero API")
     assert row.status == "NOT_CONFIGURED"

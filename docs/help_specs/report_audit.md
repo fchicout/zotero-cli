@@ -2,7 +2,7 @@
 
 ## 1. Classification
 - **Level:** 🟢 READ-ONLY (Metadata Completion Verification)
-- **Target Audience:** Researchers / SLR Leads
+- **Target Audience:** Researcher / Library Manager
 
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
@@ -23,7 +23,7 @@ graph TD
 Audits a specified collection to identify missing metadata (such as DOIs, abstracts, titles, or PDFs) and verify completeness.
 
 ## 4. Description (Instructional Architecture)
-The `report audit` command checks if your research items are submission-ready. It verifies whether items possess a DOI/arXiv ID, a title, an abstract, an attached PDF, and a screening audit trail note. If any required field is missing, it lists them.
+The `report audit` command checks if your research items are submission-ready. It verifies whether items possess a DOI/arXiv ID, a title, an abstract, and an attached PDF. If any required field is missing, it lists them.
 
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |

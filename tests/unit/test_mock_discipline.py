@@ -11,7 +11,7 @@ import ast
 from pathlib import Path
 
 UNIT = Path(__file__).resolve().parent
-BARE_MOCK_CEILING = 684
+BARE_MOCK_CEILING = 435
 THIS_FILE = Path(__file__).resolve()
 
 

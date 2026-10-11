@@ -19,7 +19,7 @@ graph TD
 Converts raw search result CSV files from academic databases (like IEEE, Springer, or Scopus) into a "Canonical" format that is optimized for import into Zotero.
 
 ## 4. Description (Instructional Architecture)
-The `system normalize` command is the "Data Pre-processor" for the SLR workflow. Different academic databases use wildly different column headers and data formats for their CSV exports. This inconsistency makes direct importing difficult and error-prone. 
+The `system normalize` command is the "Data Pre-processor" for imports. Different academic databases use wildly different column headers and data formats for their CSV exports. This inconsistency makes direct importing difficult and error-prone. 
 
 `system normalize` solves this by recognizing the specific schema of major providers and mapping their fields to a single, unified "Canonical" CSV format. It cleans up common issues like malformed author lists, encoded characters, and inconsistent date formats. The resulting CSV is perfectly formatted for use with the `import file` command, ensuring a high-fidelity ingestion into your Zotero library.
 

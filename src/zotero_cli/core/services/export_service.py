@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from zotero_cli.core.interfaces import (
     BibliographyFormatter,
@@ -8,7 +8,6 @@ from zotero_cli.core.interfaces import (
     RisGateway,
 )
 from zotero_cli.core.models import ResearchPaper
-from zotero_cli.core.services.sdb.sdb_service import SDBService
 from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -21,15 +20,12 @@ class ExportService(NotifyMixin):
         collection_repo: CollectionRepository,
         bibtex_gateway: BibtexGateway,
         ris_gateway: RisGateway,
-        sdb_service: SDBService,
         bibliography_formatter: Optional[BibliographyFormatter] = None,
     ):
         self.collection_repo = collection_repo
         self.bibtex_gateway = bibtex_gateway
         self.ris_gateway = ris_gateway
-        self.sdb_service = sdb_service
         self.bibliography_formatter = bibliography_formatter
-        self._sdb_warned = False
 
     def _collection_items(self, collection_name: str) -> Optional[List[ZoteroItem]]:
         col_id = self.collection_repo.get_collection_id_by_name(collection_name)
@@ -126,28 +122,12 @@ class ExportService(NotifyMixin):
         return self.ris_gateway.serialize(papers) if papers else ""
 
     def _map_items_to_papers(self, items: List[ZoteroItem]) -> List[ResearchPaper]:
-        """The exportable items as papers, with the SDB data of all of them
-        read together: one request per item made a 12.3k-item export
-        12,340 requests (Issue #431)."""
-        papers = [i for i in items if i.item_type not in ["attachment", "note"]]
-        sdb = self.sdb_service.inspect_items_sdb([i.key for i in papers])
-        self._warn_sdb_in_export(any(sdb.values()))
-        return [self._map_item_to_paper(i, sdb.get(i.key, [])) for i in papers]
+        """The exportable items (not attachments or notes) as papers."""
+        return [
+            self._map_item_to_paper(i) for i in items if i.item_type not in ["attachment", "note"]
+        ]
 
-    def _warn_sdb_in_export(self, found: bool) -> None:
-        """Exports add an item's SDB decision notes to the reference (a BibTeX/RIS note
-        field). That is part of the review toolkit, which leaves in 4.0.0 (Issue #541)."""
-        if found and not self._sdb_warned:
-            self._sdb_warned = True
-            self._say(
-                "Note: SDB decision notes were added to the exported references; that is "
-                "deprecated and stops in 4.0.0 (the exports themselves are not affected).",
-                logging.WARNING,
-            )
-
-    def _map_item_to_paper(
-        self, item: ZoteroItem, sdb_entries: Optional[List[Dict[str, Any]]] = None
-    ) -> ResearchPaper:
+    def _map_item_to_paper(self, item: ZoteroItem) -> ResearchPaper:
         """Convert ZoteroItem to ResearchPaper for export."""
         year = None
         if item.date:
@@ -158,9 +138,6 @@ class ExportService(NotifyMixin):
                 year = match.group(1)
 
         publication = item.raw_data.get("data", {}).get("publicationTitle")
-        if sdb_entries is None:
-            sdb_entries = self.sdb_service.inspect_item_sdb(item.key)
-            self._warn_sdb_in_export(bool(sdb_entries))
 
         return ResearchPaper(
             title=item.title or "No Title",
@@ -173,5 +150,4 @@ class ExportService(NotifyMixin):
             url=item.url,
             arxiv_id=item.arxiv_id,
             extra=item.raw_data.get("data", {}).get("extra"),
-            sdb_metadata=sdb_entries,
         )

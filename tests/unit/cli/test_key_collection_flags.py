@@ -19,8 +19,6 @@ def parse(*argv):
             "C",
         ),
         (["collection", "purge", "--collection", "C", "--files"], "collection", "C"),
-        (["slr", "sdb", "reset", "--collection", "C", "--phase", "p"], "collection", "C"),
-        (["slr", "source", "add", "--collection", "acm", "--file", "f.ris"], "collection", "acm"),
         (["item", "move", "--key", "K", "--target", "T"], "key", "K"),
         (["tag", "add", "--key", "K", "--tags", "a"], "key", "K"),
     ],
@@ -54,20 +52,6 @@ def test_standard_spelling(argv, dest, value, capsys):
             "collection",
             "C",
         ),
-        (
-            ["slr", "sdb", "reset", "--name", "C", "--phase", "p"],
-            "--name",
-            "--collection",
-            "collection",
-            "C",
-        ),
-        (
-            ["slr", "source", "add", "--name", "acm", "--file", "f.ris"],
-            "--name",
-            "--collection",
-            "collection",
-            "acm",
-        ),
         (["item", "move", "--item-id", "K", "--target", "T"], "--item-id", "--key", "key", "K"),
         (["tag", "add", "--item", "K", "--tags", "a"], "--item", "--key", "key", "K"),
     ],
@@ -100,10 +84,10 @@ def test_item_inspect_takes_a_positional_key():
     assert args.key == "ABCD1234"
 
 
-def test_sdb_inspect_takes_either_form():
+def test_item_inspect_takes_either_form():
     from zotero_cli.cli.flags import resolve_key
 
-    for argv in (["slr", "sdb", "inspect", "K1"], ["slr", "sdb", "inspect", "--key", "K1"]):
+    for argv in (["item", "inspect", "K1"], ["item", "inspect", "--key", "K1"]):
         args = parse(*argv)
         resolve_key(args)
         assert args.key == "K1"
@@ -113,16 +97,16 @@ def test_conflicting_keys_are_refused():
     from zotero_cli.cli.flags import resolve_key
     from zotero_cli.core.exceptions import UsageError
 
-    args = parse("slr", "sdb", "inspect", "K1", "--key", "K2")
+    args = parse("item", "inspect", "K1", "--key", "K2")
     with pytest.raises(UsageError):
         resolve_key(args)
 
 
-def test_sdb_key_is_required():
+def test_item_annotations_key_is_required():
     from zotero_cli.cli.flags import resolve_key
     from zotero_cli.core.exceptions import UsageError
 
-    args = parse("slr", "sdb", "inspect")
+    args = parse("item", "annotations")
     with pytest.raises(UsageError):
         resolve_key(args)
 

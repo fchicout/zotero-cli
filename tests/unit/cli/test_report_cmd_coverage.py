@@ -1,12 +1,9 @@
 """
 Coverage tests for:
-  - src/zotero_cli/cli/commands/report_cmd.py (stats, attachments, verify-latex)
-  - src/zotero_cli/cli/commands/slr/report_cmd.py (prisma, shift, snapshot, screening,
-    exclusion-summary, consensus)
+  - src/zotero_cli/cli/commands/report_cmd.py (duplicates, stats, attachments)
 """
 
 import argparse
-import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -97,16 +94,13 @@ class TestReportCommandDuplicates:
 
         return ZoteroItem.from_raw_zotero_item(raw_item)
 
-    def test_duplicates_reports_sdb_status_and_collection(self, mock_gateway, capsys):
+    def test_duplicates_lists_both_copies_and_their_collections(self, mock_gateway, capsys):
         from zotero_cli.cli.commands.report_cmd import ReportCommand
 
         item_a = self._make_dupe_item("KEY_A")
         item_b = self._make_dupe_item("KEY_B")
         mock_gateway.get_collection_id_by_name.side_effect = ["COL_A", "COL_B"]
         mock_gateway.get_items_in_collection.side_effect = [iter([item_a]), iter([item_b])]
-
-        mock_sdb_service = MagicMock()
-        mock_sdb_service.classify_decision_agreement.return_value = "MATCHING"
 
         args = argparse.Namespace(
             report_type="duplicates", collections="Source,Target", csv=None, user=False
@@ -117,16 +111,13 @@ class TestReportCommandDuplicates:
                 "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway",
                 return_value=mock_gateway,
             ),
-            patch(
-                "zotero_cli.infra.factory.GatewayFactory.get_sdb_service",
-                return_value=mock_sdb_service,
-            ),
         ):
             cmd.execute(args)
 
         out = capsys.readouterr().out
-        assert "MATCHING" in out
-        assert "KEY_A" in out and "KEY_B" in out
+        assert "KEY_A" in out
+        assert "KEY_B" in out
+        assert "SDB" not in out
 
     def test_duplicates_exports_csv(self, mock_gateway, capsys, tmp_path):
         from zotero_cli.cli.commands.report_cmd import ReportCommand
@@ -135,9 +126,6 @@ class TestReportCommandDuplicates:
         item_b = self._make_dupe_item("KEY_B")
         mock_gateway.get_collection_id_by_name.side_effect = ["COL_A", "COL_B"]
         mock_gateway.get_items_in_collection.side_effect = [iter([item_a]), iter([item_b])]
-
-        mock_sdb_service = MagicMock()
-        mock_sdb_service.classify_decision_agreement.return_value = "CONFLICTING"
 
         out_file = str(tmp_path / "dupes.csv")
         args = argparse.Namespace(
@@ -149,17 +137,14 @@ class TestReportCommandDuplicates:
                 "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway",
                 return_value=mock_gateway,
             ),
-            patch(
-                "zotero_cli.infra.factory.GatewayFactory.get_sdb_service",
-                return_value=mock_sdb_service,
-            ),
         ):
             cmd.execute(args)
 
         assert Path(out_file).exists()
         content = Path(out_file).read_text()
-        assert "CONFLICTING" in content
-        assert "KEY_A" in content and "KEY_B" in content
+        assert content.splitlines()[0] == "match_type,identifier,key,title,collection"
+        assert "KEY_A" in content
+        assert "KEY_B" in content
 
     def test_duplicates_exports_csv_sanitizes_formula_injection(
         self, mock_gateway, capsys, tmp_path
@@ -174,9 +159,6 @@ class TestReportCommandDuplicates:
         mock_gateway.get_collection_id_by_name.side_effect = ["COL_A", "COL_B"]
         mock_gateway.get_items_in_collection.side_effect = [iter([item_a]), iter([item_b])]
 
-        mock_sdb_service = MagicMock()
-        mock_sdb_service.classify_decision_agreement.return_value = "CONFLICTING"
-
         out_file = str(tmp_path / "dupes.csv")
         args = argparse.Namespace(
             report_type="duplicates", collections="Source,Target", csv=out_file, user=False
@@ -186,10 +168,6 @@ class TestReportCommandDuplicates:
             patch(
                 "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway",
                 return_value=mock_gateway,
-            ),
-            patch(
-                "zotero_cli.infra.factory.GatewayFactory.get_sdb_service",
-                return_value=mock_sdb_service,
             ),
         ):
             cmd.execute(args)
@@ -221,19 +199,12 @@ class TestReportCommandDuplicates:
         item_b = self._make_dupe_item("KEY_B")
         mock_gateway.get_all_items.return_value = iter([item_a, item_b])
 
-        mock_sdb_service = MagicMock()
-        mock_sdb_service.inspect_item_sdb.return_value = []
-
         args = argparse.Namespace(report_type="duplicates", collections=None, csv=None, user=False)
         cmd = ReportCommand()
         with (
             patch(
                 "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway",
                 return_value=mock_gateway,
-            ),
-            patch(
-                "zotero_cli.infra.factory.GatewayFactory.get_sdb_service",
-                return_value=mock_sdb_service,
             ),
         ):
             cmd.execute(args)
@@ -251,9 +222,6 @@ class TestReportCommandDuplicates:
         mock_gateway.get_collection_id_by_name.side_effect = ["COL_A", "COL_B"]
         mock_gateway.get_items_in_collection.side_effect = [iter([item_a]), iter([item_b])]
 
-        mock_sdb_service = MagicMock()
-        mock_sdb_service.inspect_item_sdb.return_value = []
-
         out_file = str(tmp_path / "plan.csv")
         args = argparse.Namespace(
             report_type="duplicates",
@@ -268,10 +236,6 @@ class TestReportCommandDuplicates:
                 "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway",
                 return_value=mock_gateway,
             ),
-            patch(
-                "zotero_cli.infra.factory.GatewayFactory.get_sdb_service",
-                return_value=mock_sdb_service,
-            ),
         ):
             cmd.execute(args)
 
@@ -280,18 +244,15 @@ class TestReportCommandDuplicates:
         assert "KEY_A" in content and "KEY_B" in content
         assert "Exported a merge plan" in capsys.readouterr().out
 
-    def test_duplicates_export_plan_json_includes_sdb_history(self, mock_gateway, capsys, tmp_path):
+    def test_duplicates_export_plan_json_is_a_plain_nested_plan(
+        self, mock_gateway, capsys, tmp_path
+    ):
         from zotero_cli.cli.commands.report_cmd import ReportCommand
 
         item_a = self._make_dupe_item("KEY_A")
         item_b = self._make_dupe_item("KEY_B")
         mock_gateway.get_collection_id_by_name.side_effect = ["COL_A", "COL_B"]
         mock_gateway.get_items_in_collection.side_effect = [iter([item_a]), iter([item_b])]
-
-        mock_sdb_service = MagicMock()
-        history = [{"decision": "INCLUDE", "persona": "reviewer-a"}]
-        # read for every occurrence at once (Issue #430)
-        mock_sdb_service.inspect_items_sdb.return_value = {"KEY_A": history, "KEY_B": history}
 
         out_file = str(tmp_path / "plan.json")
         args = argparse.Namespace(
@@ -307,16 +268,13 @@ class TestReportCommandDuplicates:
                 "zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway",
                 return_value=mock_gateway,
             ),
-            patch(
-                "zotero_cli.infra.factory.GatewayFactory.get_sdb_service",
-                return_value=mock_sdb_service,
-            ),
         ):
             cmd.execute(args)
 
         content = Path(out_file).read_text()
-        assert "reviewer-a" in content
         assert '"version"' in content
+        assert "KEY_A" in content
+        assert "sdb_history" not in content
 
 
 class TestReportCommandAttachments:
@@ -382,385 +340,3 @@ class TestReportCommandAttachments:
             cmd.execute(args)
 
         assert Path(out_file).exists()
-
-
-class TestReportCommandVerifyLatex:
-    def test_verify_latex_all_ok(self, mock_gateway, capsys):
-        from zotero_cli.cli.commands.report_cmd import ReportCommand
-
-        mock_report = {
-            "total_citations": 2,
-            "items": {
-                "K1": {
-                    "exists": True,
-                    "screened": True,
-                    "decision": "accepted",
-                    "title": "Paper A",
-                },
-                "K2": {
-                    "exists": True,
-                    "screened": True,
-                    "decision": "included",
-                    "title": "Paper B",
-                },
-            },
-        }
-
-        args = argparse.Namespace(report_type="verify-latex", latex="manuscript.tex", user=False)
-        cmd = ReportCommand()
-        with (
-            patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
-            patch("zotero_cli.infra.factory.GatewayFactory.get_audit_service") as mock_svc_get,
-        ):
-            mock_svc_get.return_value.audit_manuscript.return_value = mock_report
-            cmd.execute(args)
-
-        out = capsys.readouterr().out
-        assert "Verification Success" in out
-
-    def test_verify_latex_with_missing(self, mock_gateway, capsys):
-        from zotero_cli.cli.commands.report_cmd import ReportCommand
-
-        mock_report = {
-            "total_citations": 1,
-            "items": {
-                "MISSING1": {"exists": False, "screened": False, "decision": None, "title": ""},
-            },
-        }
-
-        args = argparse.Namespace(report_type="verify-latex", latex="manuscript.tex", user=False)
-        cmd = ReportCommand()
-        with (
-            patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
-            patch("zotero_cli.infra.factory.GatewayFactory.get_audit_service") as mock_svc_get,
-        ):
-            mock_svc_get.return_value.audit_manuscript.return_value = mock_report
-            with pytest.raises(SystemExit):
-                cmd.execute(args)
-
-        out = capsys.readouterr().out
-        assert "Verification Failed" in out
-
-    def test_verify_latex_no_citations(self, mock_gateway, capsys):
-        from zotero_cli.cli.commands.report_cmd import ReportCommand
-
-        mock_report = {"total_citations": 0, "items": {}}
-
-        args = argparse.Namespace(report_type="verify-latex", latex="empty.tex", user=False)
-        cmd = ReportCommand()
-        with (
-            patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
-            patch("zotero_cli.infra.factory.GatewayFactory.get_audit_service") as mock_svc_get,
-        ):
-            mock_svc_get.return_value.audit_manuscript.return_value = mock_report
-            cmd.execute(args)
-
-        out = capsys.readouterr().out
-        assert "No citations found" in out
-
-
-# ===========================================================================
-# slr/report_cmd.py — SLRReportCommand handlers
-# ===========================================================================
-
-
-@pytest.fixture
-def mock_prisma_report():
-    from zotero_cli.core.services.report_service import PrismaReport
-
-    return PrismaReport(
-        collection_name="TestCol",
-        total_items=50,
-        screened_items=40,
-        accepted_items=15,
-        rejected_items=25,
-        rejections_by_code={"EXC01": 10, "EXC02": 15},
-    )
-
-
-class TestSLRReportCommandPrisma:
-    def test_prisma_success(self, mock_gateway, mock_prisma_report, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        args = argparse.Namespace(
-            report_verb="prisma", collection="TestCol", output_chart=None, verbose=False
-        )
-        with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_svc_cls:
-            mock_svc_cls.return_value.generate_prisma_report.return_value = mock_prisma_report
-            SLRReportCommand.execute(mock_gateway, args)
-
-        out = capsys.readouterr().out
-        assert "PRISMA Screening Summary" in out
-        assert "TestCol" in out
-        assert "Rejection Reasons" in out
-
-    def test_prisma_not_found_exits(self, mock_gateway, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        args = argparse.Namespace(
-            report_verb="prisma", collection="NoExist", output_chart=None, verbose=False
-        )
-        with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_svc_cls:
-            mock_svc_cls.return_value.generate_prisma_report.return_value = None
-            with pytest.raises(SystemExit):
-                SLRReportCommand.execute(mock_gateway, args)
-
-    def test_prisma_with_chart_success(self, mock_gateway, mock_prisma_report, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        args = argparse.Namespace(
-            report_verb="prisma", collection="TestCol", output_chart="/tmp/chart.png", verbose=False
-        )
-        with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_svc_cls:
-            svc = mock_svc_cls.return_value
-            svc.generate_prisma_report.return_value = mock_prisma_report
-            svc.generate_mermaid_prisma.return_value = "graph TD;"
-            svc.render_diagram.return_value = True
-            SLRReportCommand.execute(mock_gateway, args)
-
-        out = capsys.readouterr().out
-        assert "Flowchart saved" in out
-
-    def test_prisma_with_chart_failure(self, mock_gateway, mock_prisma_report, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        args = argparse.Namespace(
-            report_verb="prisma", collection="TestCol", output_chart="/tmp/chart.png", verbose=False
-        )
-        with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_svc_cls:
-            svc = mock_svc_cls.return_value
-            svc.generate_prisma_report.return_value = mock_prisma_report
-            svc.generate_mermaid_prisma.return_value = "graph TD;"
-            svc.render_diagram.return_value = False
-            SLRReportCommand.execute(mock_gateway, args)
-
-        out = capsys.readouterr().out
-        assert "Failed to render" in out
-
-
-class TestSLRReportCommandShift:
-    def test_shift_no_shifts(self, mock_gateway, tmp_path, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        old_snap = tmp_path / "old.json"
-        new_snap = tmp_path / "new.json"
-        old_snap.write_text(json.dumps({"items": []}))
-        new_snap.write_text(json.dumps({"items": []}))
-
-        args = argparse.Namespace(report_verb="shift", old=str(old_snap), new=str(new_snap))
-        with patch(
-            "zotero_cli.infra.factory.GatewayFactory.get_snapshot_diff_service"
-        ) as mock_get_diff:
-            mock_get_diff.return_value.detect_shifts.return_value = []
-            SLRReportCommand.execute(mock_gateway, args)
-
-        out = capsys.readouterr().out
-        assert "No shifts detected" in out
-
-    def test_shift_with_shifts(self, mock_gateway, tmp_path, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        old_snap = tmp_path / "old.json"
-        new_snap = tmp_path / "new.json"
-        old_snap.write_text(json.dumps([]))
-        new_snap.write_text(json.dumps([]))
-
-        shifts = [
-            {"key": "K1", "title": "Paper A", "from": ["raw_ieee"], "to": ["1-title_abstract"]}
-        ]
-        args = argparse.Namespace(report_verb="shift", old=str(old_snap), new=str(new_snap))
-        with patch(
-            "zotero_cli.infra.factory.GatewayFactory.get_snapshot_diff_service"
-        ) as mock_get_diff:
-            mock_get_diff.return_value.detect_shifts.return_value = shifts
-            SLRReportCommand.execute(mock_gateway, args)
-
-        out = capsys.readouterr().out
-        assert "K1" in out
-
-
-class TestSLRReportCommandSnapshot:
-    def test_snapshot_success(self, mock_gateway, tmp_path, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        out_file = str(tmp_path / "snap.json")
-        args = argparse.Namespace(report_verb="snapshot", collection="TestCol", output=out_file)
-        with patch(
-            "zotero_cli.infra.factory.GatewayFactory.get_snapshot_writer_service"
-        ) as mock_get_writer:
-            mock_get_writer.return_value.freeze_collection.return_value = True
-            SLRReportCommand.execute(mock_gateway, args)
-
-        out = capsys.readouterr().out
-        assert "Snapshot saved" in out
-
-    def test_snapshot_failure_exits(self, mock_gateway, tmp_path, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        out_file = str(tmp_path / "snap.json")
-        args = argparse.Namespace(report_verb="snapshot", collection="TestCol", output=out_file)
-        with patch(
-            "zotero_cli.infra.factory.GatewayFactory.get_snapshot_writer_service"
-        ) as mock_get_writer:
-            mock_get_writer.return_value.freeze_collection.return_value = False
-            with pytest.raises(SystemExit):
-                SLRReportCommand.execute(mock_gateway, args)
-
-
-class TestSLRReportCommandScreening:
-    def test_screening_success(self, mock_gateway, tmp_path, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-        from zotero_cli.core.services.report_service import PrismaReport
-
-        report = PrismaReport("TestCol", 10, 8, 3, 5)
-        out_file = str(tmp_path / "screen.md")
-        args = argparse.Namespace(report_verb="screening", collection="TestCol", output=out_file)
-
-        with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_svc_cls:
-            svc = mock_svc_cls.return_value
-            svc.generate_prisma_report.return_value = report
-            svc.generate_screening_markdown.return_value = "# Screening Report\n"
-            SLRReportCommand.execute(mock_gateway, args)
-
-        out = capsys.readouterr().out
-        assert "Screening report saved" in out
-        assert Path(out_file).exists()
-
-    def test_screening_not_found_exits(self, mock_gateway, tmp_path, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        out_file = str(tmp_path / "screen.md")
-        args = argparse.Namespace(report_verb="screening", collection="NoExist", output=out_file)
-
-        with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_svc_cls:
-            mock_svc_cls.return_value.generate_prisma_report.return_value = None
-            with pytest.raises(SystemExit):
-                SLRReportCommand.execute(mock_gateway, args)
-
-
-class TestSLRReportCommandExclusionSummary:
-    def test_exclusion_summary_success(self, mock_gateway, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-        from zotero_cli.core.services.report_service import PrismaReport
-
-        report = PrismaReport("TestCol", 20, 15, 5, 10, rejections_by_code={"EXC01": 6, "EXC02": 4})
-        args = argparse.Namespace(report_verb="exclusion-summary", collection="TestCol")
-
-        with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_svc_cls:
-            mock_svc_cls.return_value.generate_prisma_report.return_value = report
-            SLRReportCommand.execute(mock_gateway, args)
-
-        out = capsys.readouterr().out
-        assert "Exclusion Summary Report" in out
-        assert "EXC01" in out
-
-    def test_exclusion_summary_no_codes(self, mock_gateway, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-        from zotero_cli.core.services.report_service import PrismaReport
-
-        report = PrismaReport("TestCol", 10, 10, 5, 5, rejections_by_code={})
-        args = argparse.Namespace(report_verb="exclusion-summary", collection="TestCol")
-
-        with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_svc_cls:
-            mock_svc_cls.return_value.generate_prisma_report.return_value = report
-            SLRReportCommand.execute(mock_gateway, args)
-
-        out = capsys.readouterr().out
-        assert "No exclusion decisions found" in out
-
-    def test_exclusion_summary_not_found_exits(self, mock_gateway, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        args = argparse.Namespace(report_verb="exclusion-summary", collection="NoExist")
-
-        with patch("zotero_cli.cli.commands.slr.report_cmd.ReportService") as mock_svc_cls:
-            mock_svc_cls.return_value.generate_prisma_report.return_value = None
-            with pytest.raises(SystemExit):
-                SLRReportCommand.execute(mock_gateway, args)
-
-
-class TestSLRReportCommandConsensus:
-    def _make_item_with_notes(self, key, notes_data):
-        """Create a gateway item with structured SDB notes."""
-        item = MagicMock()
-        item.key = key
-        item.title = f"Paper {key}"
-        item.item_type = "journalArticle"
-
-        children = []
-        for nd in notes_data:
-            children.append({"data": {"itemType": "note", "note": json.dumps(nd)}})
-        return item, children
-
-    def test_consensus_no_discrepancies(self, mock_gateway, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        item = MagicMock()
-        item.key = "K1"
-        item.title = "Paper K1"
-        # Two reviewers agree
-        children = [
-            {
-                "data": {
-                    "itemType": "note",
-                    "note": json.dumps({"decision": "accepted", "reviewer": "Alice"}),
-                }
-            },
-            {
-                "data": {
-                    "itemType": "note",
-                    "note": json.dumps({"decision": "accepted", "reviewer": "Bob"}),
-                }
-            },
-        ]
-        mock_gateway.get_items_in_collection.return_value = [item]
-        mock_gateway.get_item_children.return_value = children
-
-        args = argparse.Namespace(report_verb="consensus", collection="TestCol")
-        SLRReportCommand.execute(mock_gateway, args)
-
-        out = capsys.readouterr().out
-        assert "Perfect consensus" in out
-
-    def test_consensus_with_conflict(self, mock_gateway, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        item = MagicMock()
-        item.key = "K1"
-        item.title = "Paper K1"
-        # Two reviewers disagree
-        children = [
-            {
-                "data": {
-                    "itemType": "note",
-                    "note": json.dumps({"decision": "accepted", "reviewer": "Alice"}),
-                }
-            },
-            {
-                "data": {
-                    "itemType": "note",
-                    "note": json.dumps({"decision": "rejected", "reviewer": "Bob"}),
-                }
-            },
-        ]
-        mock_gateway.get_items_in_collection.return_value = [item]
-        mock_gateway.get_item_children.return_value = children
-
-        args = argparse.Namespace(report_verb="consensus", collection="TestCol")
-        SLRReportCommand.execute(mock_gateway, args)
-
-        out = capsys.readouterr().out
-        assert "Discrepanc" in out
-
-    def test_consensus_collection_not_found_exits(self, mock_gateway, capsys):
-        from zotero_cli.cli.commands.slr.report_cmd import SLRReportCommand
-
-        mock_gateway.get_collection_id_by_name.return_value = None
-        # simulate collection key lookup failing too
-        mock_gateway.get_items_in_collection.return_value = []
-
-        args = argparse.Namespace(report_verb="consensus", collection="NoExist")
-        # Should not crash, just show empty consensus
-        SLRReportCommand.execute(mock_gateway, args)
-        out = capsys.readouterr().out
-        assert "Perfect consensus" in out  # empty = no conflicts

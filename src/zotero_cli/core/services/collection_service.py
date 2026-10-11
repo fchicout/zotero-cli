@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.utils.notify import NotifyMixin
@@ -242,37 +242,6 @@ class CollectionService(NotifyMixin):
             i for i in self.collection_repo.get_items_in_collection(key) if key in i.collections
         ]
         return CollectionRemovalPlan(key, items)
-
-    def plan_prune(self, included: str, excluded: str) -> Optional[CollectionRemovalPlan]:
-        """What `slr prune` would do: take out of `excluded` every item that is
-        also in `included`, the same item or a duplicate import matched by
-        DOI/arXiv ID. Nothing is deleted (Issue #395); merging duplicate
-        imports is `item merge` / `slr dedupe`'s job."""
-        included_key = self.resolve_collection(included)
-        excluded_key = self.resolve_collection(excluded)
-        if not included_key or not excluded_key:
-            return None
-
-        included_keys: Set[str] = set()
-        included_ids: Set[str] = set()
-        for item in self.collection_repo.get_items_in_collection(included_key):
-            included_keys.add(item.key)
-            for identifier in (item.doi, item.arxiv_id):
-                if identifier:
-                    included_ids.add(self._normalize_id(identifier))
-
-        def in_included(item: ZoteroItem) -> bool:
-            return item.key in included_keys or any(
-                identifier and self._normalize_id(identifier) in included_ids
-                for identifier in (item.doi, item.arxiv_id)
-            )
-
-        matches = [
-            i
-            for i in self.collection_repo.get_items_in_collection(excluded_key)
-            if excluded_key in i.collections and in_included(i)
-        ]
-        return CollectionRemovalPlan(excluded_key, matches)
 
     def remove_from_collection(self, plan: CollectionRemovalPlan) -> Tuple[int, List[str]]:
         """Removes the plan's items from its collection, one item at a time

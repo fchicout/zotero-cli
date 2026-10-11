@@ -10,7 +10,7 @@ graph TD
     A["Start System Backup"] --> B["Read config.toml"]
     B --> C["Retrieve All Collections and Items from API"]
     C --> D["Identify All Local and Cloud PDF Attachments"]
-    D --> E["Collect Audit Metadata and SDB Notes"]
+    D --> E["Collect child notes and metadata"]
     E --> F["Generate Integrated Local Database Snapshot"]
     F --> G["Package All Data and Files into Compressed .zaf Archive"]
     G --> H["End: Full Backup Success"]
@@ -22,7 +22,7 @@ Creates a complete, self-contained backup archive (`.zaf`) of your entire Zotero
 ## 4. Description (Instructional Architecture)
 The `system backup` command is the "Ultimate Safety Net" for your research ecosystem. While `collection backup` targets a specific folder, this command performs a full-scale export of the active library context. 
 
-The resulting Zotero Archive Format (`.zaf`) file contains everything needed to reconstruct your entire library state on another machine or at a later date. This includes not just the bibliographic metadata, but also the physical PDF files, the hierarchical collection structure, and the critical Systematic Literature Review (SLR) audit data stored in child notes. This command is essential for long-term project preservation and disaster recovery planning.
+The resulting Zotero Archive Format (`.zaf`) file contains everything needed to reconstruct your entire library state on another machine or at a later date. This includes not just the bibliographic metadata, but also the physical PDF files, the hierarchical collection structure, and the notes stored under each item. This command is essential for long-term project preservation and disaster recovery planning.
 
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |

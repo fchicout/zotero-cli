@@ -2,7 +2,7 @@
 
 ## 1. Classification
 - **Level:** 🟢 READ-ONLY (Overlap Diagnostics)
-- **Target Audience:** Researchers / SLR Leads
+- **Target Audience:** Researcher / Library Manager
 
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid
@@ -19,23 +19,23 @@ graph TD
 ```
 
 ## 3. Synopsis
-Identifies duplicate papers across specified collections, or the entire library if `--collections` is omitted, reporting which collection each copy came from and whether their SDB screening decisions agree.
+Identifies duplicate papers across specified collections, or the entire library if `--collections` is omitted, reporting which collection each copy came from and .
 
 ## 4. Description (Instructional Architecture)
-The `report duplicates` command helps you find overlaps between search databases or folders, or scan your whole library the way Zotero Desktop's own duplicate detection does. During an SLR, you might import search results from IEEE, ACM, and Springer into separate collections. This command first matches records by exact DOI, ISBN, ArXiv ID, or normalized title. Anything left unmatched is then run through a fuzzy fallback tier — similar (but not identical) title, publication year within 1 year, and at least one shared author last-name/first-initial — the same corroborating-signal approach Zotero Desktop uses when primary fields don't cleanly resolve. A fallback match between a `preprint` and a `journalArticle`/`conferencePaper` is labeled `preprint-published-pair` rather than plain `fuzzy`, since that's a common, distinct SLR case (a preprint and its later published version). For each duplicate group, existing SDB screening notes are looked up to flag whether the copies were screened consistently (`MATCHING`), inconsistently (`CONFLICTING`), or not yet screened (`UNSCREENED`).
+The `report duplicates` command helps you find overlaps between search databases or folders, or scan your whole library the way Zotero Desktop's own duplicate detection does. You might, for example, import search results from IEEE, ACM, and Springer into separate collections. This command first matches records by exact DOI, ISBN, ArXiv ID, or normalized title. Anything left unmatched is then run through a fuzzy fallback tier — similar (but not identical) title, publication year within 1 year, and at least one shared author last-name/first-initial — the same corroborating-signal approach Zotero Desktop uses when primary fields don't cleanly resolve. A fallback match between a `preprint` and a `journalArticle`/`conferencePaper` is labeled `preprint-published-pair` rather than plain `fuzzy`, since that's a common, distinct SLR case (a preprint and its later published version). For each duplicate group, existing SDB screening notes are looked up to flag whether the copies were screened consistently (`MATCHING`), inconsistently (`CONFLICTING`), or not yet screened (`UNSCREENED`).
 
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--collections` | String | Comma-separated list of collection names or keys | Optional — omit to scan the whole library instead. |
-| `--csv` | String | Optional path to export the duplicate report as CSV | Includes match type, identifier, key, collection, and SDB status columns. |
-| `--export-plan` | String | Optional path to export a bulk-editable merge plan (`.csv` or `.json`) | Consumed by `item merge --from-plan`. `.json` also embeds each occurrence's full SDB screening history; `.csv` opens cleanly in a spreadsheet with blank `role`/`reason` columns to fill in. |
+| `--csv` | String | Optional path to export the duplicate report as CSV | Includes match type, identifier, key, collection and collection columns. |
+| `--export-plan` | String | Optional path to export a bulk-editable merge plan (`.csv` or `.json`) | Consumed by `item merge --from-plan`. `.json` is a nested format; `.csv` opens cleanly in a spreadsheet with blank `role`/`reason` columns to fill in. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Finding overlaps between IEEE and Springer search results
 **Problem:** I want to check which papers appeared in both databases.
 **Action:** `zotero-cli report duplicates --collections "IEEE_01,SPR_01"`
-**Result:** A table listing the duplicate titles, keys, source collection, and SDB screening status is displayed.
+**Result:** A table listing the duplicate titles, keys, and source collection is displayed.
 
 ### Scenario: Scanning the whole library, Desktop-style
 **Problem:** I want duplicate detection across everything in my library, not just named collections.
@@ -43,7 +43,7 @@ The `report duplicates` command helps you find overlaps between search databases
 **Result:** Every item in the library is scanned; duplicate groups (exact and fuzzy) are reported the same way.
 
 ### Scenario: Exporting a duplicate report for methodological audit records
-**Problem:** I need a CSV record of every duplicate found before pruning, for my SLR audit trail.
+**Problem:** I need a CSV record of every duplicate found before merging them.
 **Action:** `zotero-cli report duplicates --collections "IEEE_01,SPR_01" --csv duplicates.csv`
 
 ### Scenario: Exporting a bulk-editable merge plan
@@ -53,4 +53,4 @@ The `report duplicates` command helps you find overlaps between search databases
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Providing misspelled collection names; expecting the fuzzy tier to catch title changes with no year/author corroboration (it deliberately won't, to avoid false positives).
-- **Safety Tips:** Ensure collection names are spelt exactly right or use their unique 8-character keys. `preprint-published-pair` results still need a human decision — this command only reports, it never merges (see `item merge` / `item merge --from-plan`, or `slr dedupe` in a later release for SLR-specific reconciliation rigor).
+- **Safety Tips:** Ensure collection names are spelt exactly right or use their unique 8-character keys. `preprint-published-pair` results still need a human decision — this command only reports, it never merges (see `item merge` / `item merge --from-plan`).

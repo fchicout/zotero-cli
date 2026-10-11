@@ -1,17 +1,13 @@
 import logging
 from typing import TYPE_CHECKING, List, Optional
 
-from zotero_cli.core.config import ZoteroConfig, get_state_dir
+from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.utils.notify import notify_or_log
 from zotero_cli.infra.metadata_client_factory import MetadataClientFactory
-from zotero_cli.infra.repository_factory import RepositoryFactory
 
 if TYPE_CHECKING:
     from zotero_cli.core.interfaces import PDFResolver
     from zotero_cli.core.services.network_gateway import NetworkGateway
-    from zotero_cli.core.services.snowball_graph import SnowballGraphService
-    from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
-    from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
 
 logger = logging.getLogger(__name__)
 
@@ -113,105 +109,3 @@ class ResolverFactory:
             )
             logger.warning("Failed to load generic resolvers from %s: %s", yaml_path, e)
             return []
-
-    @staticmethod
-    def get_snowball_graph_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-    ) -> "SnowballGraphService":
-        """
-        Storage is scoped per-library when a config is supplied (Issue
-        #228): without this, two callers targeting different Zotero
-        libraries - a multi-tenant caller running one discovery graph per
-        research project, or even a single CLI user who `system switch`ed
-        between groups - would silently share one discovery_graph.json,
-        corrupting each other's candidate graphs. `config=None` keeps the
-        pre-#228 global-singleton path, for backward compatibility with
-        any caller that genuinely has no library context. `force_user`
-        (Issue #257) makes the global `--user` flag apply to this
-        scoping too, not just the online gateway.
-        """
-        db_dir = get_state_dir()
-        legacy_path = db_dir / "discovery_graph.json"
-
-        if config is None:
-            storage_path = legacy_path
-        else:
-            library_id = config.resolve_scoping_id(force_user)
-            storage_path = db_dir / f"discovery_graph_{library_id}.json"
-            # One-time graceful migration: the first library to be scoped
-            # after upgrading inherits any pre-#228 unscoped graph rather
-            # than appearing to have silently lost it - the legacy file is
-            # renamed (not copied), so it's gone afterwards and can't be
-            # "claimed" again by a second, unrelated library.
-            #
-            # TOCTOU-safe (Issue #288): two processes scoping different
-            # libraries can both pass the `not storage_path.exists() and
-            # legacy_path.exists()` check before either renames. Whichever
-            # loses the race hits FileNotFoundError (legacy_path.rename)
-            # or FileExistsError (on some platforms, if storage_path
-            # appears between the check and the rename) - both simply mean
-            # another process already completed the migration, so the
-            # loser can safely proceed with whatever storage_path now
-            # holds instead of crashing.
-            if not storage_path.exists() and legacy_path.exists():
-                try:
-                    legacy_path.rename(storage_path)
-                except (FileNotFoundError, FileExistsError):
-                    pass
-
-        from zotero_cli.core.services.snowball_graph import SnowballGraphService
-
-        return SnowballGraphService(storage_path)
-
-    @staticmethod
-    def get_snowball_worker(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False
-    ) -> "SnowballDiscoveryWorker":
-        if not config:
-            from zotero_cli.core.config import get_config
-
-            config = get_config()
-
-        gateway = ResolverFactory.get_network_gateway(config)
-        graph_service = ResolverFactory.get_snowball_graph_service(config, force_user)
-
-        # Lazy import: ServiceFactory imports ResolverFactory (for PDF-finder
-        # resolvers), so this back-reference must stay function-local to avoid
-        # a circular module import.
-        from zotero_cli.infra.service_factory import ServiceFactory
-
-        job_queue = ServiceFactory.get_job_queue_service(config, force_user)
-
-        from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
-
-        return SnowballDiscoveryWorker(
-            gateway, graph_service, job_queue, s2_api_key=config.semantic_scholar_api_key
-        )
-
-    @staticmethod
-    def get_snowball_ingestion_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "SnowballIngestionService":
-        if not config:
-            from zotero_cli.core.config import get_config
-
-            config = get_config()
-
-        graph_service = ResolverFactory.get_snowball_graph_service(config, force_user)
-        metadata_service = MetadataClientFactory.get_metadata_aggregator(config)
-        item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
-        col_repo = RepositoryFactory.get_collection_repository(config, force_user, offline=offline)
-
-        from zotero_cli.core.services.duplicate_service import DuplicateFinder
-
-        gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
-        duplicate_finder = DuplicateFinder(gateway)
-
-        from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
-
-        return SnowballIngestionService(
-            graph_service, metadata_service, item_repo, col_repo, duplicate_finder
-        )

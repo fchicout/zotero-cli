@@ -2,7 +2,7 @@
 
 ## 1. Classification
 - **Level:** [🔴 DESTRUCTIVE | 🟡 MODIFICATION | 🟢 READ-ONLY]
-- **Target Audience:** [e.g., Researcher, SLR Lead, SysAdmin]
+- **Target Audience:** [e.g., Researcher, Library Manager, SysAdmin]
 
 ## 2. Logic Flow (Visual Synthesis)
 ```mermaid

@@ -57,18 +57,15 @@ def test_state_left_next_to_the_config_moves_into_the_profile(tmp_path, capsys):
     project.mkdir()
     (project / "zc.toml").write_text("[zotero]\n")
     (project / "jobs.sqlite").write_text("jobs")
-    (project / "vector_store_123.sqlite").write_text("vectors")
-    (project / "discovery_graph_123.json").write_text("{}")
     (project / "notes.txt").write_text("not ours")
     cfg.get_config(str(project / "zc.toml"))
 
     state = cfg.get_state_dir()
 
-    for name in ("jobs.sqlite", "vector_store_123.sqlite", "discovery_graph_123.json"):
-        assert not (project / name).exists()
-        assert (state / name).exists()
-        if os.name != "nt":
-            assert _mode(state / name) == 0o600
+    assert not (project / "jobs.sqlite").exists()
+    assert (state / "jobs.sqlite").exists()
+    if os.name != "nt":
+        assert _mode(state / "jobs.sqlite") == 0o600
     assert (project / "notes.txt").exists()
     assert "moved" in capsys.readouterr().err
 

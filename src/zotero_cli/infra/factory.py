@@ -8,7 +8,6 @@ from zotero_cli.core.interfaces import (
     NoteRepository,
     TagRepository,
 )
-from zotero_cli.infra.ai_provider_factory import AIProviderFactory
 from zotero_cli.infra.metadata_client_factory import MetadataClientFactory
 from zotero_cli.infra.repository_factory import RepositoryFactory
 from zotero_cli.infra.resolver_factory import ResolverFactory
@@ -16,21 +15,16 @@ from zotero_cli.infra.service_factory import ServiceFactory
 
 if TYPE_CHECKING:
     from zotero_cli.core.interfaces import (
-        EmbeddingProvider,
-        LLMProvider,
         PDFResolver,
-        RAGService,
-        VectorRepository,
         ZoteroGateway,
     )
     from zotero_cli.core.services.attachment_service import AttachmentService
-    from zotero_cli.core.services.audit_service import AuditService
     from zotero_cli.core.services.collection_service import CollectionService
     from zotero_cli.core.services.diagnostics_service import DiagnosticsService
     from zotero_cli.core.services.enrichment_service import EnrichmentService
     from zotero_cli.core.services.export_service import ExportService
-    from zotero_cli.core.services.extraction_service import ExtractionService
     from zotero_cli.core.services.import_service import ImportService
+    from zotero_cli.core.services.integrity_service import IntegrityService
     from zotero_cli.core.services.job_queue_service import JobQueueService
     from zotero_cli.core.services.merge_service import MergeService
     from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
@@ -39,19 +33,6 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.purge_service import PurgeService
     from zotero_cli.core.services.restore_service import RestoreService
     from zotero_cli.core.services.sandbox_service import SandboxService
-    from zotero_cli.core.services.screening_service import ScreeningService
-    from zotero_cli.core.services.sdb.sdb_service import SDBService
-    from zotero_cli.core.services.slr.citation_service import CitationService
-    from zotero_cli.core.services.slr.csv_inbound import CSVInboundService
-    from zotero_cli.core.services.slr.dedupe_service import SLRDedupeService
-    from zotero_cli.core.services.slr.integrity import IntegrityService
-    from zotero_cli.core.services.slr.orchestrator import SLROrchestrator
-    from zotero_cli.core.services.slr.snapshot import SnapshotDiffService
-    from zotero_cli.core.services.slr.status_service import SLRStatusService
-    from zotero_cli.core.services.snapshot_service import SnapshotWriter
-    from zotero_cli.core.services.snowball_graph import SnowballGraphService
-    from zotero_cli.core.services.snowball_ingestion import SnowballIngestionService
-    from zotero_cli.core.services.snowball_worker import SnowballDiscoveryWorker
     from zotero_cli.core.services.tag_service import TagService
     from zotero_cli.core.services.transfer_service import TransferService
     from zotero_cli.core.services.verify_service import VerifyService
@@ -77,9 +58,9 @@ if TYPE_CHECKING:
 class GatewayFactory:
     """
     Central facade for constructing Zotero gateways, repositories, external
-    metadata clients, PDF resolvers, AI/RAG providers, and domain services.
+    metadata clients, PDF resolvers, and domain services.
 
-    Internally delegates to 5 focused factories (see repository_factory.py,
+    Internally delegates to 4 focused factories (see repository_factory.py,
     metadata_client_factory.py, resolver_factory.py, ai_provider_factory.py,
     service_factory.py, all in this package); this class exists purely so
     existing call sites (CLI commands) keep a single, stable entry point.
@@ -223,22 +204,6 @@ class GatewayFactory:
         return ServiceFactory.get_enrichment_service(config, force_user, offline)
 
     @staticmethod
-    def get_sdb_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "SDBService":
-        return ServiceFactory.get_sdb_service(config, force_user, offline)
-
-    @staticmethod
-    def get_audit_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "AuditService":
-        return ServiceFactory.get_audit_service(config, force_user, offline)
-
-    @staticmethod
     def get_restore_service(
         config: Optional[ZoteroConfig] = None,
         force_user: bool = False,
@@ -253,42 +218,6 @@ class GatewayFactory:
         offline: Optional[bool] = None,
     ) -> "IntegrityService":
         return ServiceFactory.get_integrity_service(config, force_user, offline)
-
-    @staticmethod
-    def get_snapshot_diff_service() -> "SnapshotDiffService":
-        return ServiceFactory.get_snapshot_diff_service()
-
-    @staticmethod
-    def get_snapshot_writer_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "SnapshotWriter":
-        return ServiceFactory.get_snapshot_writer_service(config, force_user, offline)
-
-    @staticmethod
-    def get_csv_inbound_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "CSVInboundService":
-        return ServiceFactory.get_csv_inbound_service(config, force_user, offline)
-
-    @staticmethod
-    def get_screening_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "ScreeningService":
-        return ServiceFactory.get_screening_service(config, force_user, offline)
-
-    @staticmethod
-    def get_extraction_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "ExtractionService":
-        return ServiceFactory.get_extraction_service(config, force_user, offline)
 
     @staticmethod
     def get_import_service(
@@ -389,27 +318,6 @@ class GatewayFactory:
         return ResolverFactory.get_generic_resolvers()
 
     @staticmethod
-    def get_snowball_graph_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-    ) -> "SnowballGraphService":
-        return ResolverFactory.get_snowball_graph_service(config, force_user)
-
-    @staticmethod
-    def get_snowball_worker(
-        config: Optional[ZoteroConfig] = None, force_user: bool = False
-    ) -> "SnowballDiscoveryWorker":
-        return ResolverFactory.get_snowball_worker(config, force_user)
-
-    @staticmethod
-    def get_snowball_ingestion_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "SnowballIngestionService":
-        return ResolverFactory.get_snowball_ingestion_service(config, force_user, offline)
-
-    @staticmethod
     def get_verify_service() -> "VerifyService":
         return ServiceFactory.get_verify_service()
 
@@ -428,51 +336,3 @@ class GatewayFactory:
         offline: Optional[bool] = None,
     ) -> "SandboxService":
         return ServiceFactory.get_sandbox_service(config, force_user, offline)
-
-    @staticmethod
-    def get_vector_repository(config: Optional[ZoteroConfig] = None) -> "VectorRepository":
-        return AIProviderFactory.get_vector_repository(config)
-
-    @staticmethod
-    def get_embedding_provider(config: Optional[ZoteroConfig] = None) -> "EmbeddingProvider":
-        return AIProviderFactory.get_embedding_provider(config)
-
-    @staticmethod
-    def get_slr_orchestrator(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "SLROrchestrator":
-        return ServiceFactory.get_slr_orchestrator(config, force_user, offline)
-
-    @staticmethod
-    def get_slr_dedupe_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "SLRDedupeService":
-        return ServiceFactory.get_slr_dedupe_service(config, force_user, offline)
-
-    @staticmethod
-    def get_slr_status_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "SLRStatusService":
-        return ServiceFactory.get_slr_status_service(config, force_user, offline)
-
-    @staticmethod
-    def get_citation_service() -> "CitationService":
-        return ServiceFactory.get_citation_service()
-
-    @staticmethod
-    def get_llm_provider(config: Optional[ZoteroConfig] = None) -> Optional["LLMProvider"]:
-        return AIProviderFactory.get_llm_provider(config)
-
-    @staticmethod
-    def get_rag_service(
-        config: Optional[ZoteroConfig] = None,
-        force_user: bool = False,
-        offline: Optional[bool] = None,
-    ) -> "RAGService":
-        return AIProviderFactory.get_rag_service(config, force_user, offline)

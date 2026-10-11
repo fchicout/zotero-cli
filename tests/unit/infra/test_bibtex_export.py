@@ -49,8 +49,7 @@ def test_export_service_logic():
     mock_gateway = MagicMock()
     mock_bibtex = MagicMock()
     mock_ris = MagicMock()
-    mock_sdb = MagicMock()
-    service = ExportService(mock_gateway, mock_bibtex, mock_ris, mock_sdb)
+    service = ExportService(mock_gateway, mock_bibtex, mock_ris)
     # Setup mocks
     mock_gateway.get_collection_id_by_name.return_value = "COL1"
     item = ZoteroItem(
@@ -64,7 +63,6 @@ def test_export_service_logic():
     item.raw_data = {"data": {"publicationTitle": "Journal X"}}
     mock_gateway.get_items_in_collection.return_value = iter([item])
     mock_bibtex.write_file.return_value = True
-    mock_sdb.inspect_items_sdb.return_value = {"K1": []}
 
     # Execute
     success = service.export_collection("MyCol", "out.bib")
@@ -72,8 +70,6 @@ def test_export_service_logic():
     # Verify
     assert success is True
     mock_gateway.get_collection_id_by_name.assert_called_once_with("MyCol")
-    # one batched lookup for the whole export (Issue #431)
-    mock_sdb.inspect_items_sdb.assert_called_once_with(["K1"])
     mock_bibtex.write_file.assert_called_once()
     papers = mock_bibtex.write_file.call_args[0][1]
     assert len(papers) == 1

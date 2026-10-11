@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.services.slr.integrity import IntegrityService
+from zotero_cli.core.services.integrity_service import IntegrityService
 from zotero_cli.core.zotero_item import ZoteroItem
 
 
@@ -106,23 +106,21 @@ def test_audit_collection_not_found(service, mock_gateway):
     assert report is None
 
 
-def test_audit_children_logic(service, mock_gateway):
+def test_audit_children_counts_a_pdf_attachment_only(service, mock_gateway):
+    attachment = {"data": {"itemType": "attachment", "filename": "paper.pdf"}}
+    note = {"data": {"itemType": "note", "note": "a note"}}
+    web_link = {"data": {"itemType": "attachment", "filename": "page.html"}}
+
+    mock_gateway.get_item_children.return_value = [note, web_link, attachment]
+    assert service._audit_children("KEY1") is True
+
+    mock_gateway.get_item_children.return_value = [note, web_link]
+    assert service._audit_children("KEY1") is False
+
+
+def test_audit_children_counts_a_pdf_by_content_type(service, mock_gateway):
     mock_gateway.get_item_children.return_value = [
-        {
-            "data": {
-                "itemType": "attachment",
-                "linkMode": "imported_file",
-                "filename": "paper.pdf",
-            }
-        },
-        {
-            "data": {
-                "itemType": "note",
-                "note": '{"decision": "accepted", "audit_version": "1.2"}',
-            }
-        },
+        {"data": {"itemType": "attachment", "contentType": "application/pdf"}}
     ]
 
-    has_pdf, has_note = service._audit_children("KEY1")
-    assert has_pdf is True
-    assert has_note is True
+    assert service._audit_children("KEY1") is True

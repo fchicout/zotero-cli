@@ -18,7 +18,7 @@ from zotero_cli.cli.presenters import item_list_presenter
 from zotero_cli.cli.safety import add_permanent_flag, resolve_trash, warn_default_apply
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.utils.sdb_parser import decode_json_note
+from zotero_cli.core.utils.json_note import decode_json_note
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup, strip_controls
 from zotero_cli.infra.factory import GatewayFactory
@@ -166,7 +166,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                         date_added = cdata.get("dateAdded", "N/A")
                         date_modified = cdata.get("dateModified", "N/A")
 
-                        # JSON notes (SDB, extraction) are HTML-escaped JSON in a <div>.
+                        # JSON notes are HTML-escaped JSON in a <div>.
                         parsed_data = decode_json_note(note_full)
                         is_json = parsed_data is not None
                         raw_json = json.dumps(parsed_data) if is_json else note_full
@@ -259,10 +259,10 @@ Problem: I want to see all items currently in my "Final Selection" folder (Key: 
 Action:  zotero-cli item list --collection "FIN_01"
 Result:  The table displays every item in that collection, showing their titles and unique keys.
 
-Scenario: Filtering by screening decision instead
-Problem: I want only the items that were accepted, not everything in the folder.
-Action:  zotero-cli slr list included --tree "FIN_01"
-Result:  Only items with an 'Accepted' SDB audit note are shown.
+Scenario: Filtering by tag instead
+Problem: I want only the items I tagged "accepted", not everything in the folder.
+Action:  zotero-cli search --collection "FIN_01" --tag accepted
+Result:  Only the items in that collection carrying the tag are shown.
 
 Scenario: Exporting bibliographic metadata for a report
 Problem: I need authors, year, venue and DOI for every paper in a collection, in a spreadsheet.

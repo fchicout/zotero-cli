@@ -92,10 +92,3 @@ def test_a_swallowed_refusal_is_still_caught_by_the_recorder(fresh_guard):
         sock.close()
 
     assert fresh_guard.attempts == ["('192.0.2.1', 80)"]
-
-
-def test_the_huggingface_libraries_are_told_to_stay_offline():
-    import os
-
-    assert os.environ["HF_HUB_OFFLINE"] == "1"
-    assert os.environ["TRANSFORMERS_OFFLINE"] == "1"

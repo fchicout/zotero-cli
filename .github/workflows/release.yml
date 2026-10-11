@@ -94,11 +94,7 @@ jobs:
       - name: Build onedir binary with PyInstaller
         run: |
           pyinstaller --onedir --strip --name zotero-cli \
-            --add-data "src/zotero_cli/templates/extraction_schema.yaml:zotero_cli/templates" \
             --add-data "src/zotero_cli/templates/demo_sandbox.yaml:zotero_cli/templates" \
-            --exclude-module torch \
-            --exclude-module nvidia \
-            --exclude-module mkl \
             --exclude-module numpy \
             --exclude-module pandas \
             --exclude-module matplotlib \
@@ -133,11 +129,7 @@ jobs:
         run: |
           pyinstaller --onefile --strip --name zotero-cli \
             --distpath dist-onefile --workpath build-onefile \
-            --add-data "src/zotero_cli/templates/extraction_schema.yaml:zotero_cli/templates" \
             --add-data "src/zotero_cli/templates/demo_sandbox.yaml:zotero_cli/templates" \
-            --exclude-module torch \
-            --exclude-module nvidia \
-            --exclude-module mkl \
             --exclude-module numpy \
             --exclude-module pandas \
             --exclude-module matplotlib \
@@ -344,11 +336,7 @@ jobs:
       - name: Build onedir binary with PyInstaller
         run: |
           pyinstaller --onedir --name zotero-cli `
-            --add-data "src/zotero_cli/templates/extraction_schema.yaml;zotero_cli/templates" `
             --add-data "src/zotero_cli/templates/demo_sandbox.yaml;zotero_cli/templates" `
-            --exclude-module torch `
-            --exclude-module nvidia `
-            --exclude-module mkl `
             --exclude-module numpy `
             --exclude-module pandas `
             --exclude-module matplotlib `
@@ -381,11 +369,7 @@ jobs:
         run: |
           pyinstaller --onefile --name zotero-cli `
             --distpath dist-onefile --workpath build-onefile `
-            --add-data "src/zotero_cli/templates/extraction_schema.yaml;zotero_cli/templates" `
             --add-data "src/zotero_cli/templates/demo_sandbox.yaml;zotero_cli/templates" `
-            --exclude-module torch `
-            --exclude-module nvidia `
-            --exclude-module mkl `
             --exclude-module numpy `
             --exclude-module pandas `
             --exclude-module matplotlib `

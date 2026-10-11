@@ -7,7 +7,6 @@ import pytest
 
 from zotero_cli.cli.commands.collection_cmd import CollectionCommand
 from zotero_cli.cli.commands.item_cmd import ItemCommand
-from zotero_cli.cli.commands.slr.dedupe_cmd import DedupeCommand
 from zotero_cli.cli.main import build_parser
 from zotero_cli.core.exceptions import UsageError
 from zotero_cli.core.services.collection_service import RecursiveDeletePlan, RecursiveDeleteResult
@@ -30,7 +29,6 @@ TRASH_FLAGS = [
     ["collection", "delete", "--key", "C", "--recursive", "--trash"],
     ["item", "merge", "--master", "M", "--duplicates", "D", "--trash"],
     ["item", "transfer", "--key", "K", "--target-group", "1", "--delete-source", "--trash"],
-    ["slr", "dedupe", "--trash"],
 ]
 
 
@@ -261,52 +259,3 @@ def test_item_transfer_trash_needs_delete_source():
     ):
         with pytest.raises(UsageError, match="need --delete-source"):
             command.execute(args)
-
-
-# ---- slr dedupe --trash --------------------------------------------------------------
-
-
-def test_slr_dedupe_trash_reaches_the_reconciliation(capsys):
-    from zotero_cli.core.services.slr.dedupe_service import (
-        ClassifiedDuplicateGroup,
-        OccurrenceScreening,
-    )
-
-    group = ClassifiedDuplicateGroup(
-        match_type="doi",
-        identifier="10.1/x",
-        sdb_status="MATCHING",
-        occurrences=[
-            OccurrenceScreening(key="A", collection_id="C1", title="T", decisions=["accepted"]),
-            OccurrenceScreening(key="B", collection_id="C2", title="T", decisions=["accepted"]),
-        ],
-    )
-    service = MagicMock()
-    service.warnings = []
-    service.find_and_classify.return_value = [group]
-    service.build_reconciliation_plan.return_value = MergePlan(
-        entries=[
-            MergePlanEntry(
-                group_id="g1",
-                match_type="doi",
-                identifier="10.1/x",
-                occurrences=[],
-                decision=MergeDecision(master_key="A", merge_keys=["B"], reason="auto"),
-            )
-        ]
-    )
-    merged = MergeResult(success=True, dry_run=False, master_key="A", merged_keys=["B"])
-    service.execute_reconciliation.side_effect = [
-        PlanExecutionResult(success=True, dry_run=True, group_results=[merged]),
-        PlanExecutionResult(success=True, dry_run=False, group_results=[merged]),
-    ]
-    args = argparse.Namespace(
-        sources=None, export_plan=None, execute=True, force=True, trash=True, user=False
-    )
-    with patch(
-        "zotero_cli.infra.factory.GatewayFactory.get_slr_dedupe_service", return_value=service
-    ):
-        DedupeCommand.execute(MagicMock(), args)
-
-    assert service.execute_reconciliation.call_args_list[-1].kwargs["trash"] is True
-    assert "to the trash" in _flat(capsys.readouterr().out)

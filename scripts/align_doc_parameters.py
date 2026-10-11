@@ -91,13 +91,8 @@ def main() -> None:
             if isinstance(action, argparse._HelpAction):
                 continue
             if action.dest == "verb" or action.dest in [
-                "source_verb",
-                "report_verb",
-                "model_verb",
-                "list_verb",
-                "snowball_verb",
-                "sdb_verb",
-                "job_verb",
+                "jobs_verb",
+                "pdf_verb",
                 "import_type",
                 "report_type",
             ]:
