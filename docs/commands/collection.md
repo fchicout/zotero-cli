@@ -44,14 +44,14 @@ zotero-cli collection rename --key "ABCD1234" --name "New Name"
 ---
 
 ### `delete`
-Delete a collection. Without `--recursive`, only the collection goes and its items stay in your library. With `--recursive`, its sub-collections and the items filed only inside the tree are permanently deleted too; this previews first and needs `--execute` plus a confirmation (or `--yes`).
+Delete a collection. Without `--recursive`, only the collection goes and its items stay in your library. With `--recursive`, its sub-collections are deleted for good and the items filed only inside the tree go to Zotero's trash (or are deleted for good with `--permanent`); this previews first and needs `--execute` plus a confirmation (or `--yes`).
 
 **Usage:**
 ```bash
 zotero-cli collection delete --key "Target Name"                                  # collection only
 zotero-cli collection delete --key "OLD_123" --recursive                          # preview
 zotero-cli collection delete --key "OLD_123" --recursive --execute                # delete, after confirming
-zotero-cli collection delete --key "OLD_123" --recursive --trash --execute        # items to the trash (recoverable)
+zotero-cli collection delete --key "OLD_123" --recursive --execute                 # items to the trash (recoverable)
 ```
 
 **Parameters:**
@@ -60,9 +60,10 @@ zotero-cli collection delete --key "OLD_123" --recursive --trash --execute      
 *   `--execute`: With `--recursive`, actually delete (default: preview only).
 *   `--yes`: Skip the confirmation (required when there's no terminal, e.g. in scripts).
 *   `--include-shared`: Also delete items that are filed in collections outside the tree (kept by default).
-*   `--trash`: With `--recursive`, move the items to Zotero's trash (recoverable with `item restore`) instead of deleting them permanently. The collections themselves are still deleted for good, so restored items come back without them (Issue #402).
+*   `--permanent`: With `--recursive`, delete the items for good instead of moving them to Zotero's trash (not recoverable). The collections themselves are always deleted for good, so restored items come back without them (Issue #402).
+*   `--trash`: The default, accepted so scripts written for 3.x keep working.
 
-Without `--trash`, deletion through the Web API is permanent: it doesn't go through Zotero's trash.
+With `--permanent`, deletion through the Web API is final: it doesn't go through Zotero's trash.
 
 ---
 
@@ -103,7 +104,6 @@ zotero-cli collection backup --collection "My Review" --output "review_backup.za
 
 **Parameters:**
 *   `--collection`: (Required) Collection name or key.
-*   `--name`: Deprecated alias of `--collection` (removed in 4.0, Issue #379).
 *   `--output`: (Required) Output .zaf file path.
 
 ---
@@ -119,8 +119,7 @@ zotero-cli collection export --collection "COLLECTION_NAME" --as bibliography --
 
 **Parameters:**
 *   `--collection`: (Required) The collection Name or Key.
-*   `--name`: Deprecated alias of `--collection` (removed in 4.0, Issue #379).
-*   `--as`: Export type. Supported: `bibtex`, `ris`, `md`, `bibliography` (`--format` is the deprecated alias).
+*   `--as`: Export type. Supported: `bibtex`, `ris`, `md`, `bibliography`.
 *   `--style` / `--render`: With `--as bibliography`, the CSL citation style (default `apa`) and `plain`/`markdown`/`html` rendering. Without `--output` the bibliography is printed.
 *   `--output`: Destination directory or file path.
 
@@ -136,7 +135,6 @@ zotero-cli collection purge --collection "COLLECTION_NAME" --files --notes --tag
 
 **Parameters:**
 *   `--collection`: (Required) The collection Name or Key.
-*   `--name`: Deprecated alias of `--collection` (removed in 4.0, Issue #379).
 *   `--files`: Purge attachments/files from all items in the collection.
 *   `--notes`: Purge notes from all items in the collection.
 *   `--tags`: Purge tags from all items in the collection.

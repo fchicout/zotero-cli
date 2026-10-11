@@ -82,7 +82,7 @@ def _run_collection_delete(args, result=None):
     return service
 
 
-def test_recursive_delete_trash_passes_trash_and_says_what_is_permanent(capsys):
+def test_recursive_delete_goes_to_the_trash_by_default_and_says_what_is_permanent(capsys):
     service = _run_collection_delete(_delete_args())
 
     service.execute_recursive_delete.assert_called_once_with(
@@ -102,8 +102,8 @@ def test_recursive_delete_trash_preview_changes_nothing(capsys):
     assert "Preview only" in capsys.readouterr().out
 
 
-def test_recursive_delete_without_trash_is_still_permanent(capsys):
-    service = _run_collection_delete(_delete_args(trash=False))
+def test_recursive_delete_permanent_bypasses_the_trash(capsys):
+    service = _run_collection_delete(_delete_args(trash=False, permanent=True))
 
     assert service.execute_recursive_delete.call_args.kwargs["trash"] is False
     out = _flat(capsys.readouterr().out)
@@ -241,8 +241,8 @@ def test_item_transfer_trash_trashes_the_source(capsys):
     assert "to the trash" in _flat(capsys.readouterr().out)
 
 
-def test_item_transfer_delete_source_without_trash_still_deletes(capsys):
-    service = _run_transfer(_transfer_args(trash=False))
+def test_item_transfer_delete_source_permanent_deletes_for_good(capsys):
+    service = _run_transfer(_transfer_args(trash=False, permanent=True))
 
     assert service.transfer_item.call_args.kwargs["trash_source"] is False
     assert "Deleted the source item K1." in capsys.readouterr().out

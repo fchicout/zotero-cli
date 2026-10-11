@@ -1,7 +1,7 @@
 import argparse
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import LIST_FORMATS, add_format_flag, add_renamed_flag
+from zotero_cli.cli.flags import LIST_FORMATS, add_format_flag
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 
 console = Console()
@@ -69,7 +69,7 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/tag_add.md
 """,
         )
-        add_renamed_flag(add_p, "--key", "--item", required=True, dest="key", help="Item Key")
+        add_p.add_argument("--key", required=True, help="Item Key")
         add_p.add_argument("--tags", required=True, help="Comma-separated tags")
 
         # Purge

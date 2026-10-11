@@ -46,7 +46,6 @@ zotero-cli item move --key "ITEMKEY" --target "Target Collection"
 
 **Parameters:**
 *   `--key`: (Required) The Zotero Item Key.
-*   `--item-id`: Deprecated alias of `--key` (removed in 4.0, Issue #379).
 *   `--target`: (Required) Name or Key of the destination collection.
 *   `--source`: Optional source collection. If omitted, the tool attempts to infer the source.
 
@@ -110,7 +109,7 @@ zotero-cli item update --key "ITEMKEY" --doi "10.1101/new-doi" --title "Correcte
 ---
 
 ### `delete`
-Permanently deletes an item from the Zotero library, which **cannot be undone** - unless you pass `--trash`, which moves it to Zotero's trash instead (the same as `item trash`). To consolidate a genuine duplicate into another item instead of discarding it outright, use `item merge`.
+Moves an item to Zotero's trash (the same as `item trash`; `item restore` brings it back), or with `--permanent` deletes it for good, which **cannot be undone**. Previews until `--execute`. To consolidate a genuine duplicate into another item instead of discarding it outright, use `item merge`.
 
 **Usage:**
 ```bash
@@ -120,9 +119,10 @@ zotero-cli item delete --key "ITEMKEY" --execute
 **Parameters:**
 *   `--key`: (Required) The Zotero Item Key.
 *   `--version`: Optional item version (auto-resolved if omitted).
-*   `--execute`: Delete the item. Mutually exclusive with `--dry-run`. Currently the default when neither flag is given (with a deprecation warning) - pass it explicitly; this changes to preview-by-default in 4.0 (Issue #378).
+*   `--execute`: Delete the item. Mutually exclusive with `--dry-run`. Without it only a preview is shown (Issue #462).
 *   `--dry-run`: Preview the item and its children without deleting. Mutually exclusive with `--execute`.
-*   `--trash`: Move the item to Zotero's trash (recoverable with `item restore`) instead of deleting it permanently. No deprecation warning, since it is recoverable. Trash becomes the default in 4.0, with `--permanent` for a hard delete (Issue #402, #462).
+*   `--permanent`: Delete the item for good instead of moving it to Zotero's trash (not recoverable) (Issue #402).
+*   `--trash`: The default, accepted so scripts written for 3.x keep working.
 
 ---
 
@@ -195,7 +195,7 @@ zotero-cli item export --key "ITEMKEY" --as bibliography --style ieee [--render 
 
 **Parameters:**
 *   `--key`: (Required) The Zotero Item Key.
-*   `--as`: Export type. Supported: `bibtex`, `ris`, `md`, `bibliography` (`--format` is the deprecated alias).
+*   `--as`: Export type. Supported: `bibtex`, `ris`, `md`, `bibliography`.
 *   `--style`: With `--as bibliography`, the CSL citation style (default `apa`; e.g. `ieee`, `chicago-author-date`). An unknown style lists close matches. Styles bundled with `bxc` work offline.
 *   `--render`: With `--as bibliography`: `plain` (default), `markdown` or `html`.
 *   `--annotations`: With `--as md`, end the file with the item's PDF annotations (see `item annotations`).
@@ -225,19 +225,20 @@ Transfer an item (metadata, notes, and attachments) between different Zotero lib
 
 **Usage:**
 ```bash
-zotero-cli item transfer --key "ITEMKEY" --target-group "123456" [--delete-source [--trash]]
+zotero-cli item transfer --key "ITEMKEY" --target-group "123456" [--delete-source [--permanent]]
 ```
 
 **Parameters:**
 *   `--key`: (Required) The Zotero Item Key to transfer.
 *   `--target-group`: (Required) The ID of the destination Zotero Group.
 *   `--delete-source`: If specified, delete the item from the source library after a successful transfer.
-*   `--trash`: With `--delete-source`, move the source item to Zotero's trash (recoverable with `item restore`) instead of deleting it permanently.
+*   `--permanent`: With `--delete-source`, delete the source item for good instead of moving it to Zotero's trash.
+*   `--trash`: The default, accepted so scripts written for 3.x keep working.
 
 ---
 
 ### `merge`
-Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates - or, with `--trash`, moves them to Zotero's trash so the merge can be undone. Use `report duplicates` first to find candidate keys, or `report duplicates --export-plan` for a bulk-editable plan file. This is **permanent** — the Zotero Web API only supports hard delete, there is no undo the way Zotero Desktop's internal merge has.
+Merges one or more duplicate items into a chosen master: unions tags and collection membership, moves notes/attachments onto the master, then moves the (now emptied) duplicates to Zotero's trash so the merge can be undone - or, with `--permanent`, deletes them for good. Use `report duplicates` first to find candidate keys, or `report duplicates --export-plan` for a bulk-editable plan file.
 
 **Usage:**
 ```bash
@@ -252,7 +253,8 @@ zotero-cli item merge --from-plan duplicates_plan.csv --execute
 *   `--from-plan`: Path to a merge plan file (`.csv` or `.json`, from `report duplicates --export-plan`) for bulk execution of many groups at once, instead of a single `--master`/`--duplicates` group.
 *   `--execute`: Actually perform the merge. Without it, only a preview is shown and nothing is written.
 *   `--force`: Skip the interactive confirmation prompt (still requires `--execute`).
-*   `--trash`: Move the emptied duplicates to Zotero's trash (recoverable with `item restore`) instead of deleting them permanently (Issue #402).
+*   `--permanent`: Delete the emptied duplicates for good instead of moving them to Zotero's trash (Issue #402).
+*   `--trash`: The default, accepted so scripts written for 3.x keep working.
 
 If master and duplicates disagree on a scalar field (title, date, DOI, ISBN, URL, abstract), the single-group form prompts you to pick which value to keep for each — there is no silent "first wins" default. Master and duplicates must share the same item type, matching the rule Zotero Desktop enforces for its own merge.
 

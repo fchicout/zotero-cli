@@ -28,7 +28,6 @@ The command parses the metadata from the input file, maps the fields to the Zote
 | :--- | :--- | :--- | :--- |
 | `--collection` | String | N/A | Required. |
 | `--details` | Boolean | N/A | Optional. Default: False. |
-| `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 | `file` | String | Path to input file | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)

@@ -32,7 +32,6 @@ A collection name shared by several collections (for example a "to-read" folder 
 | `--collection` | String | Collection name or key | Required. Names must match exactly one collection. |
 | `--execute` | Boolean | Apply the change (default: preview only) | Optional. Default: False. |
 | `--details` | Boolean | List every item affected | Optional. Default: False. |
-| `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Starting a folder over

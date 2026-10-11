@@ -29,48 +29,27 @@ def test_standard_spelling(argv, dest, value, capsys):
 
 
 @pytest.mark.parametrize(
-    "argv, old, new, dest, value",
+    "argv, old",
     [
-        (
-            ["collection", "backup", "--name", "C", "--output", "o.zaf"],
-            "--name",
-            "--collection",
-            "collection",
-            "C",
-        ),
-        (
-            ["collection", "export", "--name", "C", "--as", "bibtex", "--output", "o"],
-            "--name",
-            "--collection",
-            "collection",
-            "C",
-        ),
-        (
-            ["collection", "purge", "--name", "C", "--files"],
-            "--name",
-            "--collection",
-            "collection",
-            "C",
-        ),
-        (["item", "move", "--item-id", "K", "--target", "T"], "--item-id", "--key", "key", "K"),
-        (["tag", "add", "--item", "K", "--tags", "a"], "--item", "--key", "key", "K"),
+        (["collection", "backup", "--name", "C", "--output", "o.zaf"], "--name"),
+        (["collection", "export", "--name", "C", "--as", "bibtex", "--output", "o"], "--name"),
+        (["collection", "purge", "--name", "C", "--files"], "--name"),
+        (["item", "move", "--item-id", "K", "--target", "T"], "--item-id"),
+        (["tag", "add", "--item", "K", "--tags", "a"], "--item"),
     ],
 )
-def test_old_spelling_still_works_and_warns(argv, old, new, dest, value, capsys):
-    assert getattr(parse(*argv), dest) == value
-    err = capsys.readouterr().err
-    assert f"`{old}` is deprecated; use `{new}`" in err
+def test_the_old_spellings_are_gone(argv, old, capsys):
+    assert old in argv
+    with pytest.raises(SystemExit) as raised:
+        parse(*argv)
+    assert raised.value.code == 2
+    assert "error" in capsys.readouterr().err
 
 
 def test_required_flag_is_still_required(capsys):
     with pytest.raises(SystemExit):
         parse("collection", "backup", "--output", "o.zaf")
-    assert "one of the arguments --collection is required" in capsys.readouterr().err
-
-
-def test_both_spellings_together_are_refused():
-    with pytest.raises(SystemExit):
-        parse("collection", "purge", "--collection", "A", "--name", "B", "--files")
+    assert "--collection" in capsys.readouterr().err
 
 
 def test_item_inspect_takes_a_positional_key():

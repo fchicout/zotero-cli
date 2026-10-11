@@ -29,7 +29,6 @@ It retrieves information about the item's authors, identifiers (DOI, ISBN), publ
 | :--- | :--- | :--- | :--- |
 | `--file` | String | Path to file containing keys (one key per line) | Optional. |
 | `--as` | String | Export in a specific bibliographic format: `bibtex`, `ris` or `bibliography` | Optional. |
-| `--format` | String | Deprecated alias of `--as`. | Hidden-style: prints a warning; `--format` means output rendering elsewhere. Removed in 4.0 (Issue #380). |
 | `--style` | String | CSL citation style for `--as bibliography`, e.g. `apa`, `ieee`, `chicago-author-date` | Optional. Default: apa. An unknown style lists close matches. |
 | `--render` | String | Rendering for `--as bibliography`: `plain`, `markdown` or `html` | Optional. Default: plain. |
 | `--full-notes` | Boolean | Show full content of child notes | Optional. Default: False. |

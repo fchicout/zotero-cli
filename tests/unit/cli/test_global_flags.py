@@ -49,7 +49,7 @@ def test_global_verbose_survives_the_subcommand(argv):
     assert args.verbose is True
 
 
-def test_subcommand_verbose_sets_details_not_debug_logging():
-    args = build_parser().parse_args(["import", "file", "x.bib", "--collection", "C", "--verbose"])
+def test_subcommand_details_does_not_set_debug_logging():
+    args = build_parser().parse_args(["import", "file", "x.bib", "--collection", "C", "--details"])
     assert args.details is True
     assert args.verbose is False

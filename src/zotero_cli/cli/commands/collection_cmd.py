@@ -11,7 +11,6 @@ from zotero_cli.cli.flags import (
     add_bibliography_flags,
     add_details_flag,
     add_format_flag,
-    add_renamed_flag,
 )
 from zotero_cli.cli.presenters import records
 from zotero_cli.cli.safety import (
@@ -104,7 +103,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         delete_p = sub.add_parser(
             "delete",
             help="Delete a collection (with --recursive, also its sub-collections and items)",
-            description="Deletes a collection. Without --recursive only the collection itself goes; its items stay in your library. With --recursive, its sub-collections and the items filed only inside the tree are permanently deleted too: this previews by default and needs --execute and a confirmation (or --yes).",
+            description="Deletes a collection. Without --recursive only the collection itself goes; its items stay in your library. With --recursive, its sub-collections are deleted for good and the items filed only inside the tree go to Zotero's trash (or are deleted for good with --permanent): this previews by default and needs --execute and a confirmation (or --yes).",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples
@@ -113,17 +112,17 @@ Scenario: Cleaning up an old project
 Problem: I have a folder "Obsolete_SLR_2023" (Key: OLD_123) that I no longer need, contents included.
 Action:  zotero-cli collection delete --key "OLD_123" --recursive
          zotero-cli collection delete --key "OLD_123" --recursive --execute
-Result:  The first run lists the sub-collections and items that would be deleted; the second deletes them after you confirm.
+Result:  The first run lists the sub-collections and items that would go; the second deletes the collections and moves the items to Zotero's trash after you confirm (`item restore` brings one back, without the deleted collections).
 
-Scenario: Cleaning up, but keeping the items recoverable
-Problem: I'm not sure I won't need some of those papers again.
-Action:  zotero-cli collection delete --key "OLD_123" --recursive --trash --execute
-Result:  The items go to Zotero's trash (`item restore` brings one back, without the deleted collections); the collections are deleted.
+Scenario: Cleaning up for good
+Problem: I'm sure I won't need any of those papers again.
+Action:  zotero-cli collection delete --key "OLD_123" --recursive --permanent --execute
+Result:  The collections and their items are deleted for good; there is no undo.
 
 Notes
 -----
 • Items that are also filed in a collection outside the tree are kept (they only leave the deleted collections) unless you pass --include-shared.
-• Without --trash, deletion through the Web API is permanent: it doesn't go through Zotero's trash. Back up first (collection backup). Even with --trash the collections themselves are deleted for good.
+• With --permanent, deletion through the Web API is final: it doesn't go through Zotero's trash. Back up first (collection backup). Even without it the collections themselves are deleted for good; only their items go to the trash.
 • A name shared by several collections is refused: pass the key shown in the error.
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_delete.md
@@ -154,8 +153,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         delete_p.add_argument(
             "--trash",
             action="store_true",
-            help="With --recursive: move the items to Zotero's trash (recoverable) instead of "
-            "deleting them permanently. The collections themselves are still deleted",
+            help="With --recursive: move the items to Zotero's trash (the default; accepted for "
+            "scripts written for 3.x). The collections themselves are still deleted for good",
         )
         add_permanent_flag(delete_p, "the items (with --recursive)")
 
@@ -237,9 +236,7 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_backup.md
 """,
         )
-        add_renamed_flag(
-            backup_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP
-        )
+        backup_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         backup_p.add_argument("--output", required=True, help="Output file path")
 
         # Export
@@ -264,17 +261,13 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_export.md
 """,
         )
-        add_renamed_flag(
-            export_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP
-        )
-        add_renamed_flag(
-            export_p,
+        export_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+        export_p.add_argument(
             "--as",
-            "--format",
             dest="export_format",
             choices=["bibtex", "ris", "md", "bibliography"],
             default="bibtex",
-            help="Export type (--format is a deprecated alias: it means output rendering elsewhere)",
+            help="Export type",
         )
         add_bibliography_flags(export_p)
         export_p.add_argument("--output", help="Output file path or directory (for md)")
@@ -301,9 +294,7 @@ Notes
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_purge.md
 """,
         )
-        add_renamed_flag(
-            purge_p, "--collection", "--name", required=True, help=COLLECTION_NAME_OR_KEY_HELP
-        )
+        purge_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
         purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
         purge_p.add_argument("--notes", action="store_true", help="Purge notes")
         purge_p.add_argument("--tags", action="store_true", help="Purge tags")
@@ -525,7 +516,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         include_shared = getattr(args, "include_shared", False)
         to_delete = plan.items_to_delete + (plan.shared_items if include_shared else [])
 
-        trash = resolve_trash(args, "collection delete --recursive", applying=bool(args.execute))
+        trash = resolve_trash(args)
         console.print(
             f"Deleting '{safe_markup(args.key)}' ({safe_markup(col_id)}) recursively would "
             + (

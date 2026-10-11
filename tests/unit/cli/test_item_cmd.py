@@ -399,6 +399,8 @@ def test_item_delete_success(mock_clients, env_vars, capsys):
     args.key = "ABCD1234"
     args.version = None
     args.dry_run = False
+    args.execute = True
+    args.permanent = True
     args.user = False
 
     ItemCommand().execute(args)
@@ -432,6 +434,9 @@ def _delete_args(**overrides):
     args.key = "ABCD1234"
     args.version = None
     args.dry_run = False
+    args.execute = True
+    args.trash = False
+    args.permanent = False
     args.user = False
     for name, value in overrides.items():
         setattr(args, name, value)
@@ -444,7 +449,7 @@ def test_item_delete_sends_the_given_version(mock_clients, env_vars):
     gateway.get_item.return_value = MagicMock(version=9)
     gateway.delete_item.return_value = True
 
-    ItemCommand().execute(_delete_args(version=5))
+    ItemCommand().execute(_delete_args(version=5, permanent=True))
 
     gateway.delete_item.assert_called_once_with("ABCD1234", 5)
 
@@ -457,7 +462,7 @@ def test_item_delete_failure_exits_1(mock_clients, env_vars, capsys):
     gateway.delete_item.return_value = False
 
     with pytest.raises(SystemExit) as exc:
-        ItemCommand().execute(_delete_args())
+        ItemCommand().execute(_delete_args(permanent=True))
 
     assert exc.value.code == 1
     captured = capsys.readouterr()
@@ -465,30 +470,31 @@ def test_item_delete_failure_exits_1(mock_clients, env_vars, capsys):
     assert "Failed to delete item ABCD1234" in captured.err
 
 
-def test_item_delete_warns_when_neither_flag_given(mock_clients, env_vars, capsys):
-    """Issue #378: `item delete` predates preview-by-default and still
-    deletes immediately without --dry-run/--execute, but must now warn."""
+def test_item_delete_previews_when_neither_flag_is_given(mock_clients, env_vars, capsys):
+    """4.0 (Issue #462): `item delete` previews until --execute, like the other deletes."""
     gateway = mock_clients["gateway"]
-    gateway.get_item.return_value = MagicMock(version=5)
-    gateway.delete_item.return_value = True
+    gateway.get_item.return_value = MagicMock(version=5, title="Junk")
+    gateway.get_item_children.return_value = []
 
     ItemCommand().execute(_delete_args(execute=False, dry_run=False))
 
-    gateway.delete_item.assert_called_once_with("ABCD1234", 5)
-    err = capsys.readouterr().err
-    assert "currently applies its changes by default" in err
-    assert "--execute" in err
+    gateway.delete_item.assert_not_called()
+    gateway.trash_item.assert_not_called()
+    captured = capsys.readouterr()
+    assert "Preview only" in captured.out
+    assert captured.err == ""
 
 
-def test_item_delete_execute_no_warning(mock_clients, env_vars, capsys):
+def test_item_delete_execute_permanent_deletes_for_good(mock_clients, env_vars, capsys):
     gateway = mock_clients["gateway"]
     gateway.get_item.return_value = MagicMock(version=5)
     gateway.delete_item.return_value = True
 
-    ItemCommand().execute(_delete_args(execute=True, dry_run=False))
+    ItemCommand().execute(_delete_args(execute=True, dry_run=False, permanent=True))
 
     gateway.delete_item.assert_called_once_with("ABCD1234", 5)
-    assert "currently applies its changes by default" not in capsys.readouterr().err
+    gateway.trash_item.assert_not_called()
+    assert capsys.readouterr().err == ""
 
 
 def test_item_delete_dry_run_previews_without_deleting(mock_clients, env_vars, capsys):
@@ -498,7 +504,7 @@ def test_item_delete_dry_run_previews_without_deleting(mock_clients, env_vars, c
         {"key": "CHILD1", "data": {"itemType": "attachment"}},
     ]
 
-    ItemCommand().execute(_delete_args(execute=False, dry_run=True))
+    ItemCommand().execute(_delete_args(execute=False, dry_run=True, permanent=True))
 
     gateway.delete_item.assert_not_called()
     out = capsys.readouterr().out
@@ -507,48 +513,30 @@ def test_item_delete_dry_run_previews_without_deleting(mock_clients, env_vars, c
     assert "Preview only" in out
 
 
-def test_item_delete_trash_moves_to_trash_without_the_legacy_warning(
-    mock_clients, env_vars, capsys
-):
-    """Issue #402: --trash is the recoverable, opt-in form; nothing permanent
-    happens and there's no old behaviour to warn about."""
+def test_item_delete_moves_to_the_trash_by_default(mock_clients, env_vars, capsys):
+    """Issue #402, 4.0: recoverable unless --permanent."""
     gateway = mock_clients["gateway"]
     gateway.get_item.return_value = MagicMock(version=5)
     gateway.trash_item.return_value = True
 
-    ItemCommand().execute(_delete_args(execute=False, dry_run=False, trash=True))
+    ItemCommand().execute(_delete_args(execute=True, dry_run=False))
 
     gateway.trash_item.assert_called_once_with("ABCD1234", 5)
     gateway.delete_item.assert_not_called()
     captured = capsys.readouterr()
-    assert "currently applies its changes by default" not in captured.err
+    assert captured.err == ""
     assert "to the trash" in captured.out
     assert "item restore" in captured.out
 
 
-def test_item_delete_without_trash_or_permanent_warns_that_4_0_trashes_by_default(
-    mock_clients, env_vars, capsys
-):
-    """Issue #402: still permanent in 3.x, but told what changes in 4.0."""
+def test_item_delete_still_accepts_the_trash_flag_of_3_x(mock_clients, env_vars):
     gateway = mock_clients["gateway"]
     gateway.get_item.return_value = MagicMock(version=5)
-    gateway.delete_item.return_value = True
+    gateway.trash_item.return_value = True
 
-    ItemCommand().execute(_delete_args(execute=True, trash=False, permanent=False))
+    ItemCommand().execute(_delete_args(execute=True, trash=True))
 
-    gateway.delete_item.assert_called_once()
-    assert "currently deletes permanently by default" in capsys.readouterr().err
-
-
-def test_item_delete_permanent_stays_permanent_and_silent(mock_clients, env_vars, capsys):
-    gateway = mock_clients["gateway"]
-    gateway.get_item.return_value = MagicMock(version=5)
-    gateway.delete_item.return_value = True
-
-    ItemCommand().execute(_delete_args(execute=True, trash=False, permanent=True))
-
-    gateway.delete_item.assert_called_once()
-    assert "deletes permanently by default" not in capsys.readouterr().err
+    gateway.trash_item.assert_called_once_with("ABCD1234", 5)
 
 
 def test_item_delete_trash_honours_the_given_version(mock_clients, env_vars):
@@ -589,15 +577,13 @@ def test_item_delete_trash_failure_exits_1(mock_clients, env_vars, capsys):
     assert "Failed to trash item ABCD1234" in capsys.readouterr().err
 
 
-def test_item_delete_without_trash_is_still_permanent(mock_clients, env_vars):
-    gateway = mock_clients["gateway"]
-    gateway.get_item.return_value = MagicMock(version=5)
-    gateway.delete_item.return_value = True
+def test_item_delete_trash_and_permanent_together_are_refused(mock_clients, env_vars):
+    from zotero_cli.core.exceptions import UsageError
 
-    ItemCommand().execute(_delete_args(execute=True, dry_run=False, trash=False))
+    mock_clients["gateway"].get_item.return_value = MagicMock(version=5)
 
-    gateway.delete_item.assert_called_once_with("ABCD1234", 5)
-    gateway.trash_item.assert_not_called()
+    with pytest.raises(UsageError, match="contradict"):
+        ItemCommand().execute(_delete_args(execute=True, trash=True, permanent=True))
 
 
 def test_item_delete_dry_run_and_execute_are_mutually_exclusive():

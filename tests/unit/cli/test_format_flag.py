@@ -297,31 +297,20 @@ def test_export_type_defaults_and_as_is_silent(argv, default, capsys):
 
 
 @pytest.mark.parametrize("argv, default", EXPORTS)
-def test_old_format_spelling_on_exports_warns_and_still_works(argv, default, capsys):
-    args = build_parser().parse_args([*argv, "--format", "md"])
-    assert args.export_format == "md"
-    assert "`--format` is deprecated; use `--as`" in capsys.readouterr().err
+def test_the_old_format_spelling_on_exports_is_gone(argv, default, capsys):
+    with pytest.raises(SystemExit) as raised:
+        build_parser().parse_args([*argv, "--format", "md"])
+    assert raised.value.code == 2
+    assert "unrecognized arguments: --format" in capsys.readouterr().err
 
 
-def test_item_inspect_as_and_deprecated_format(capsys):
+def test_item_inspect_takes_as_only(capsys):
     assert build_parser().parse_args(["item", "inspect", "K", "--as", "ris"]).export_format == "ris"
-    assert capsys.readouterr().err == ""
-    assert (
-        build_parser().parse_args(["item", "inspect", "K", "--format", "bibtex"]).export_format
-        == "bibtex"
-    )
-    assert "deprecated; use `--as`" in capsys.readouterr().err
+    with pytest.raises(SystemExit):
+        build_parser().parse_args(["item", "inspect", "K", "--format", "bibtex"])
 
 
 def test_export_type_rejects_output_renderings():
     parser = build_parser()
     with pytest.raises(SystemExit):
         parser.parse_args(["item", "export", "--key", "K", "--output", "o", "--as", "json"])
-
-
-def test_as_and_format_together_are_refused():
-    parser = build_parser()
-    with pytest.raises(SystemExit):
-        parser.parse_args(
-            ["item", "export", "--key", "K", "--output", "o", "--as", "ris", "--format", "ris"]
-        )

@@ -191,9 +191,8 @@ def test_system_restore_dry_run(system_cmd, capsys):
         assert "RESTORE SIMULATED" in out
 
 
-def test_system_restore_warns_when_neither_flag_given(system_cmd, capsys):
-    """Issue #378: `system restore` predates preview-by-default and still
-    applies immediately without --dry-run/--execute, but must now warn."""
+def test_system_restore_previews_when_neither_flag_given(system_cmd, capsys):
+    """4.0 (Issue #462): `system restore` previews until --execute."""
     with patch("zotero_cli.infra.factory.GatewayFactory.get_restore_service") as mock_get_service:
         mock_service = mock_get_service.return_value
         mock_report = MagicMock()
@@ -205,10 +204,8 @@ def test_system_restore_warns_when_neither_flag_given(system_cmd, capsys):
         )
         system_cmd.execute(args)
 
-        err = capsys.readouterr().err
-        assert "currently applies its changes by default" in err
-        assert "--execute" in err
-        mock_service.restore_archive.assert_called_once_with("test.zaf", dry_run=False)
+        assert capsys.readouterr().err == ""
+        mock_service.restore_archive.assert_called_once_with("test.zaf", dry_run=True)
 
 
 def test_system_restore_execute_no_warning(system_cmd, capsys):

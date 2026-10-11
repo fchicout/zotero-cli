@@ -37,7 +37,6 @@ The `item pdf` command is a versatile tool for handling individual file attachme
 | `--file` | String | Path to local file | Required. |
 | `--key` | String | Item Key | Required. |
 | `--details` | Boolean | N/A | Optional. Default: False. |
-| `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Manually attaching a downloaded paper

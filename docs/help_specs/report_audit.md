@@ -31,7 +31,6 @@ The `report audit` command checks if your research items are submission-ready. I
 | `--collection` | String | Collection Name or Key to validate | Required. |
 | `--export-missing` | String | Path to export keys of missing items to a file | Optional. |
 | `--details` | Boolean | Show detailed failure logs | Optional. Default: False. |
-| `--verbose` | Boolean | Deprecated alias of `--details` | Hidden; prints a warning. Removed in 4.0 (Issue #374). |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Verifying metadata completeness of selected items

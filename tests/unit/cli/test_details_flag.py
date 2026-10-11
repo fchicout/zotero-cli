@@ -18,11 +18,11 @@ def test_details_flag_leaves_global_verbose_alone(argv):
 
 
 @pytest.mark.parametrize("argv", LEAVES)
-def test_deprecated_verbose_alias_maps_to_details_and_warns(argv, capsys):
-    args = build_parser().parse_args([*argv, "--verbose"])
-    assert args.details is True
-    assert args.verbose is False
-    assert "--verbose` on this command is deprecated; use --details" in capsys.readouterr().err
+def test_the_old_per_command_verbose_flag_is_gone(argv, capsys):
+    with pytest.raises(SystemExit) as raised:
+        build_parser().parse_args([*argv, "--verbose"])
+    assert raised.value.code == 2
+    assert "unrecognized arguments: --verbose" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("argv", LEAVES)

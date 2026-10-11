@@ -27,7 +27,6 @@ It traverses the entire collection hierarchy, fetches the JSON metadata for ever
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--collection` | String | Collection name or key | Required. |
-| `--name` | String | Deprecated alias of `--collection`. | Hidden; prints a warning. Removed in 4.0 (Issue #379). |
 | `--output` | String | Output file path | Required. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)

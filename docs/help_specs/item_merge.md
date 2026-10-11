@@ -1,7 +1,7 @@
 # DOC-SPEC: item merge
 
 ## 1. Classification
-- **Level:** 🔴 DESTRUCTIVE (Permanent Consolidation)
+- **Level:** 🔴 DESTRUCTIVE (Recoverable by default; `--permanent` is final)
 - **Target Audience:** Researcher / Library Manager
 
 ## 2. Logic Flow (Visual Synthesis)
@@ -26,12 +26,12 @@ graph TD
     K -- "No" --> L["Abort: no writes made"]
     K -- "Yes" --> M["Union tags/collections onto master(s)"]
     M --> N["Re-parent notes/attachments onto master(s)"]
-    N --> O["Permanently delete duplicates"]
+    N --> O["Move duplicates to the trash (or delete, with --permanent)"]
     O --> S["End: Merge Complete"]
 ```
 
 ## 3. Synopsis
-Merges one or more duplicate items into a chosen master item: unions tags and collection membership, moves notes/attachments onto the master, then permanently deletes the (now emptied) duplicates. Supports a single group (`--master`/`--duplicates`) or bulk execution of many groups at once from a plan file (`--from-plan`).
+Merges one or more duplicate items into a chosen master item: unions tags and collection membership, moves notes/attachments onto the master, then moves the (now emptied) duplicates to Zotero's trash, or with `--permanent` deletes them for good. Supports a single group (`--master`/`--duplicates`) or bulk execution of many groups at once from a plan file (`--from-plan`).
 
 ## 4. Description (Instructional Architecture)
 `item merge` is the counterpart to Zotero Desktop's own duplicate-merge feature — use `report duplicates` first to find candidate master/duplicate keys (or `report duplicates --export-plan` to get a bulk-editable file), then run this command to actually consolidate them.
@@ -50,14 +50,14 @@ In the **`--from-plan` bulk form**, a CSV or JSON file (produced by `report dupl
 | `--from-plan` | String | Path to a merge plan file (`.csv` or `.json`) for bulk execution | Optional. Mutually exclusive in practice with `--master`/`--duplicates`. |
 | `--execute` | Boolean | Actually perform the merge | Optional. Default: False (preview only). |
 | `--force` | Boolean | Skip the interactive confirmation prompt | Optional. Default: False. Still requires `--execute`. |
-| `--trash` | Boolean | Move the emptied duplicates to Zotero's trash (recoverable with `item restore`) instead of deleting them permanently | Optional. Default: False. |
-| `--permanent` | Boolean | Delete the emptied duplicates for good (what happens without `--trash`) | Optional. Default: False. Without either flag an applied merge warns that 4.0 trashes the duplicates by default; pass `--permanent` to keep deleting them for good. Can't be combined with `--trash`. |
+| `--trash` | Boolean | Move the emptied duplicates to Zotero's trash (recoverable with `item restore`) | The default; accepted so scripts written for 3.x keep working. |
+| `--permanent` | Boolean | Delete the emptied duplicates for good instead of trashing them | Optional. Default: False. Not recoverable. Can't be combined with `--trash`. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Consolidating a paper imported twice from different search databases
 **Problem:** `report duplicates` found the same paper as items `IEEE_KEY1` (master, more complete) and `SPR_KEY2` (duplicate).
 **Action:** `zotero-cli item merge --master "IEEE_KEY1" --duplicates "SPR_KEY2" --execute`
-**Result:** `SPR_KEY2`'s tags, collections, notes, and attachments move onto `IEEE_KEY1`; `SPR_KEY2` is permanently deleted.
+**Result:** `SPR_KEY2`'s tags, collections, notes, and attachments move onto `IEEE_KEY1`; `SPR_KEY2` goes to Zotero's trash and `item restore` brings it back (its notes and attachments stay on the master).
 
 ### Scenario: Previewing a merge before committing
 **Problem:** I want to see what a merge would do without touching my library yet.
@@ -71,4 +71,4 @@ In the **`--from-plan` bulk form**, a CSV or JSON file (produced by `report dupl
 
 ## 7. Cognitive Safeguards
 - **Common Failure Modes:** Master and duplicates must share the same item type — mismatched types abort the merge with no writes. Conflicting scalar fields left unresolved in the single-group form also abort with no writes; there is no default resolution there. With `--from-plan`, a single incomplete group blocks the *entire* batch, not just that group.
-- **Safety Tips:** This is PERMANENT — the Zotero Web API only supports hard delete, there is no undo the way Zotero Desktop's internal merge has. Always run without `--execute` first to preview. Any citation-management document referencing a duplicate's key by that key will break once merged.
+- **Safety Tips:** The duplicates go to Zotero's trash, so a merge can be undone by restoring them (their notes and attachments stay on the master); with `--permanent` there is no undo. Always run without `--execute` first to preview. Any citation-management document referencing a duplicate's key by that key will break once merged.
