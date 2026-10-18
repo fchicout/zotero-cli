@@ -172,9 +172,7 @@ class CollectionService(NotifyMixin):
         children_data = self.item_repo.get_item_children(item.key)
 
         # 3. Build the list of all objects to update (Parent + Children)
-        all_to_update = [item.raw_data]
-        for child in children_data:
-            all_to_update.append(child)
+        all_to_update = [item.raw_data, *children_data]
 
         update_payload = []
         for obj in all_to_update:
