@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🔧 Internal
+- **HTTP egress cleanups (part of #609):** removed `BaseAPIClient._get`'s unused `url_override` parameter, which would have let a caller point a fixed-host client at any URL, and documented why the S3 upload is made without the Zotero session. The remaining egress steps change retry or pacing behaviour and are tracked in #611.
 - **Error-handling ratchets (#610):** new tests pin the 101 broad `except Exception` handlers and the 25 `sys.exit` calls in commands per file, so they can only go down. No product code changes.
 - **Metadata aggregator registration is data-driven (#608):** `get_metadata_aggregator` lists the eleven providers once, in fan-out order, and sets the named attributes from that list instead of eleven locals plus eleven assignments (and one `setattr` for `bdtd`). Same providers, same order, same attributes; a test pins them.
 - **`sqlite_repo.py` split, first step (#608):** the persistent job queue (`SqliteJobRepository`) moved to `infra/sqlite_job_repo.py`; `infra.sqlite_repo` still exports it, so imports keep working.

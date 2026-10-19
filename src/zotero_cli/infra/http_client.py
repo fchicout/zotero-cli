@@ -324,6 +324,8 @@ class ZoteroHttpClient:
     def upload_file(self, url: str, data: Dict, files: Dict) -> requests.Response:
         """
         Direct upload bypasses the Zotero Prefix, usually going to S3 or a specific upload URL.
+        Deliberately not on `self.session`: that session carries the Zotero API key, which
+        must never be sent to the storage host.
         """
         response = requests.post(url, data=data, files=files, timeout=(5, 120))
         response.raise_for_status()

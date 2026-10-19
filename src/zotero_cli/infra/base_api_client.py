@@ -105,7 +105,6 @@ class BaseAPIClient(ABC):
         self,
         endpoint: str = "",
         params: Optional[Dict[str, Any]] = None,
-        url_override: Optional[str] = None,
     ) -> requests.Response:
         """
         Execute a GET request with built-in retry logic.
@@ -113,7 +112,6 @@ class BaseAPIClient(ABC):
         Args:
             endpoint: The API endpoint (e.g., "works/10.1234/5678").
             params: Query parameters.
-            url_override: If provided, ignores self.base_url and uses this full URL.
 
         Returns:
             requests.Response object.
@@ -121,10 +119,7 @@ class BaseAPIClient(ABC):
         Raises:
             requests.exceptions.HTTPError: If the status code is 4xx/5xx (except 404 which might be handled by caller).
         """
-        if url_override:
-            url = url_override
-        else:
-            url = f"{self.base_url}/{endpoint.lstrip('/')}" if endpoint else self.base_url
+        url = f"{self.base_url}/{endpoint.lstrip('/')}" if endpoint else self.base_url
 
         provider = type(self).__name__
         for attempt in range(MAX_RATE_LIMIT_RETRIES + 1):
