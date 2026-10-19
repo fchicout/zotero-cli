@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from zotero_cli.core.interfaces import ItemRepository, NoteRepository
 from zotero_cli.core.services.duplicate_service import DuplicateGroup, DuplicateOccurrence
@@ -299,41 +299,10 @@ class MergeService:
         field_resolutions = field_resolutions or {}
         result = MergeResult(success=False, dry_run=dry_run, master_key=master_key)
 
-        items = self._fetch_items(master_key, duplicate_keys)
-        master = items.get(master_key)
-        if master is None:
-            result.errors.append(f"Master item '{master_key}' not found.")
+        plan = self._preflight(master_key, duplicate_keys, field_resolutions, result)
+        if plan is None:
             return result
-
-        missing = [k for k in duplicate_keys if items.get(k) is None]
-        if missing:
-            result.errors.append(f"Duplicate item(s) not found: {', '.join(missing)}")
-            return result
-
-        duplicates: List[ZoteroItem] = [
-            item for item in (items[k] for k in duplicate_keys) if item is not None
-        ]
-
-        mismatched_types = sorted(
-            {d.item_type for d in duplicates if d.item_type != master.item_type}
-        )
-        if mismatched_types:
-            result.errors.append(
-                f"Item type mismatch: master '{master_key}' is '{master.item_type}', "
-                f"found {mismatched_types} among duplicates. Merge requires matching "
-                "item types (same rule Zotero Desktop enforces)."
-            )
-            return result
-
-        conflicts = self.detect_conflicts(master_key, duplicate_keys)
-        unresolved = [c for c in conflicts if c.field_name not in field_resolutions]
-        if unresolved:
-            result.unresolved_conflicts = unresolved
-            result.errors.append(
-                f"{len(unresolved)} field conflict(s) require an explicit resolution "
-                "before this merge can proceed."
-            )
-            return result
+        master, duplicates = plan
 
         merged_tags = set(master.tags)
         merged_collections = set(master.collections)
@@ -343,20 +312,7 @@ class MergeService:
         new_tags = merged_tags - set(master.tags)
         new_collections = merged_collections - set(master.collections)
 
-        notes_to_move: List[Dict[str, Any]] = []
-        attachments_to_move: List[Dict[str, Any]] = []
-        for d in duplicates:
-            for child in self.item_repo.get_item_children(d.key):
-                data = child.get("data", child)
-                child_type = data.get("itemType")
-                child_key = child.get("key") or data.get("key")
-                child_version = int(data.get("version") or child.get("version") or 0)
-                if child_type == "note":
-                    notes_to_move.append(
-                        {"key": child_key, "version": child_version, "note": data.get("note", "")}
-                    )
-                elif child_type == "attachment":
-                    attachments_to_move.append({"key": child_key, "version": child_version})
+        notes_to_move, attachments_to_move = self._collect_children(duplicates)
 
         result.field_resolutions_applied = dict(field_resolutions)
         result.tags_added = len(new_tags)
@@ -384,6 +340,104 @@ class MergeService:
                 result.errors.append(f"Failed to update master item '{master.key}'.")
                 return result
 
+        moved_notes, moved_attachments = self._move_children(
+            master_key, notes_to_move, attachments_to_move, result
+        )
+
+        if result.errors:
+            # A note or file that did not move would be deleted with its duplicate
+            # (Zotero removes a parent's children with it): keep every duplicate and
+            # let the caller retry, as TransferService does for a failed child (#396).
+            result.notes_moved = moved_notes
+            result.attachments_moved = moved_attachments
+            kept = ", ".join(f"'{d.key}'" for d in duplicates)
+            result.errors.append(
+                f"Duplicate item(s) {kept} left in place because their children did not all "
+                "move; nothing was deleted."
+            )
+            result.success = False
+            return result
+
+        result.merged_keys = self._remove_duplicates(duplicates, trash, result)
+        result.notes_moved = moved_notes
+        result.attachments_moved = moved_attachments
+        result.success = not result.errors
+        return result
+
+    def _preflight(
+        self,
+        master_key: str,
+        duplicate_keys: List[str],
+        field_resolutions: Dict[str, str],
+        result: MergeResult,
+    ) -> Optional[Tuple[ZoteroItem, List[ZoteroItem]]]:
+        """The master and its duplicates, or None (with the reason in `result.errors`)
+        when the merge cannot proceed."""
+        items = self._fetch_items(master_key, duplicate_keys)
+        master = items.get(master_key)
+        if master is None:
+            result.errors.append(f"Master item '{master_key}' not found.")
+            return None
+
+        missing = [k for k in duplicate_keys if items.get(k) is None]
+        if missing:
+            result.errors.append(f"Duplicate item(s) not found: {', '.join(missing)}")
+            return None
+
+        duplicates: List[ZoteroItem] = [
+            item for item in (items[k] for k in duplicate_keys) if item is not None
+        ]
+
+        mismatched_types = sorted(
+            {d.item_type for d in duplicates if d.item_type != master.item_type}
+        )
+        if mismatched_types:
+            result.errors.append(
+                f"Item type mismatch: master '{master_key}' is '{master.item_type}', "
+                f"found {mismatched_types} among duplicates. Merge requires matching "
+                "item types (same rule Zotero Desktop enforces)."
+            )
+            return None
+
+        conflicts = self.detect_conflicts(master_key, duplicate_keys)
+        unresolved = [c for c in conflicts if c.field_name not in field_resolutions]
+        if unresolved:
+            result.unresolved_conflicts = unresolved
+            result.errors.append(
+                f"{len(unresolved)} field conflict(s) require an explicit resolution "
+                "before this merge can proceed."
+            )
+            return None
+        return master, duplicates
+
+    def _collect_children(
+        self, duplicates: List[ZoteroItem]
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """The notes and attachments of the duplicates, as (notes, attachments)."""
+        notes_to_move: List[Dict[str, Any]] = []
+        attachments_to_move: List[Dict[str, Any]] = []
+        for d in duplicates:
+            for child in self.item_repo.get_item_children(d.key):
+                data = child.get("data", child)
+                child_type = data.get("itemType")
+                child_key = child.get("key") or data.get("key")
+                child_version = int(data.get("version") or child.get("version") or 0)
+                if child_type == "note":
+                    notes_to_move.append(
+                        {"key": child_key, "version": child_version, "note": data.get("note", "")}
+                    )
+                elif child_type == "attachment":
+                    attachments_to_move.append({"key": child_key, "version": child_version})
+        return notes_to_move, attachments_to_move
+
+    def _move_children(
+        self,
+        master_key: str,
+        notes_to_move: List[Dict[str, Any]],
+        attachments_to_move: List[Dict[str, Any]],
+        result: MergeResult,
+    ) -> Tuple[int, int]:
+        """Re-parent the notes and attachments onto the master; (notes, attachments) moved."""
         moved_notes = 0
         for note in notes_to_move:
             if self.note_repo.update_note(
@@ -403,21 +457,12 @@ class MergeService:
                 moved_attachments = len(attachments_to_move)
             else:
                 result.errors.append("Failed to move one or more attachments to master.")
+        return moved_notes, moved_attachments
 
-        if result.errors:
-            # A note or file that did not move would be deleted with its duplicate
-            # (Zotero removes a parent's children with it): keep every duplicate and
-            # let the caller retry, as TransferService does for a failed child (#396).
-            result.notes_moved = moved_notes
-            result.attachments_moved = moved_attachments
-            kept = ", ".join(f"'{d.key}'" for d in duplicates)
-            result.errors.append(
-                f"Duplicate item(s) {kept} left in place because their children did not all "
-                "move; nothing was deleted."
-            )
-            result.success = False
-            return result
-
+    def _remove_duplicates(
+        self, duplicates: List[ZoteroItem], trash: bool, result: MergeResult
+    ) -> List[str]:
+        """Trash or delete the emptied duplicates; the keys that went."""
         deleted_keys = []
         for d in duplicates:
             # Moving children above may have changed the duplicate's version;
@@ -433,12 +478,7 @@ class MergeService:
             else:
                 verb = "trash" if trash else "delete"
                 result.errors.append(f"Failed to {verb} duplicate item '{d.key}' after merge.")
-
-        result.merged_keys = deleted_keys
-        result.notes_moved = moved_notes
-        result.attachments_moved = moved_attachments
-        result.success = not result.errors
-        return result
+        return deleted_keys
 
     def _fetch_items(
         self, master_key: str, duplicate_keys: List[str]

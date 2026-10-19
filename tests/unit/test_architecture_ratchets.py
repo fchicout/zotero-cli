@@ -38,7 +38,6 @@ FUNCTION_SIZE_BASELINE = {
     "cli/commands/system_cmd.py::register_args": 328,
     "cli/commands/system_cmd.py::_handle_jobs": 102,
     "core/services/arxiv_query_parser.py::parse": 119,
-    "core/services/merge_service.py::merge": 154,
     "core/services/resolvers/bdtd.py::resolve": 106,
     "infra/bdtd_api.py::_map_to_research_paper": 115,
     "infra/sqlite_repo.py::_fetch_items_with_filter": 111,
