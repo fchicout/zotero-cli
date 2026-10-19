@@ -1,6 +1,6 @@
 import logging
 import urllib.parse
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Iterator, Optional, cast
 
 from bs4 import BeautifulSoup
 from rapidfuzz.distance import Levenshtein
@@ -136,16 +136,60 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider)
     def _map_to_research_paper(
         self, item: Dict[str, Any], resolve_pdf: bool = True
     ) -> ResearchPaper:
-        # Title
+        # Fields are read in the order the record lists them, so a malformed record fails
+        # on the same field it always did.
         title = (item.get("title") or "").strip()
+        abstract = self._abstract_of(item)
+        authors = self._authors_of(item)
+        year = self._first_listed(item.get("publicationDates"))
+        publication = self._first_listed(item.get("institutions"))  # the institution
+        urls_data = item.get("urls", [])
+        url = self._first_url(urls_data)
+        extra = self._extra_of(item)
 
-        # Abstract (from summary field list)
-        abstract = ""
+        # Resolve PDF URL (synchronously in BDTDAPIClient). Skipped for bulk
+        # search() results (Issue #182): scraping+HEAD-probing every
+        # landing page for up to max_results records is too slow/expensive
+        # for a search preview - PDF resolution there is deferred to the
+        # existing async BDTDResolver, run later via the normal PDF-fetch
+        # job pipeline once an item is actually imported.
+        pdf_url = None
+        if url and resolve_pdf:
+            try:
+                pdf_url = self._resolve_pdf_url_sync(url)
+            except Exception as e:
+                logger.warning(f"BDTDAPIClient: Failed to resolve PDF URL for {url}: {e}")
+
+        return ResearchPaper(
+            title=title,
+            abstract=abstract,
+            authors=authors,
+            publication=publication,
+            year=year,
+            doi=self._doi_of(url, urls_data),
+            url=url,
+            pdf_url=pdf_url,
+            extra=extra,
+        )
+
+    @staticmethod
+    def _abstract_of(item: Dict[str, Any]) -> str:
         summaries = item.get("summary")
         if summaries and isinstance(summaries, list):
-            abstract = "\n\n".join(str(s) for s in summaries if s).strip()
+            return "\n\n".join(str(s) for s in summaries if s).strip()
+        return ""
 
-        # Authors
+    @staticmethod
+    def _authors_of(item: Dict[str, Any]) -> list[str]:
+        def names(entries: Any) -> list[str]:
+            found: list[str] = []
+            for a in entries:
+                if isinstance(a, str):
+                    found.append(a)
+                elif isinstance(a, dict):
+                    found.extend(a.keys())
+            return found
+
         authors: list[str] = []
         authors_data = item.get("authors", {})
         if isinstance(authors_data, dict):
@@ -154,41 +198,30 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider)
                 if isinstance(section_data, dict):
                     authors.extend(section_data.keys())
                 elif isinstance(section_data, list):
-                    for a in section_data:
-                        if isinstance(a, str):
-                            authors.append(a)
-                        elif isinstance(a, dict):
-                            authors.extend(a.keys())
+                    authors.extend(names(section_data))
         elif isinstance(authors_data, list):
-            for a in authors_data:
-                if isinstance(a, str):
-                    authors.append(a)
-                elif isinstance(a, dict):
-                    authors.extend(a.keys())
+            authors.extend(names(authors_data))
+        return authors
 
-        # Year
-        year = None
-        pub_dates = item.get("publicationDates")
-        if pub_dates and isinstance(pub_dates, list) and pub_dates[0]:
-            year = str(pub_dates[0])
+    @staticmethod
+    def _first_listed(value: Any) -> Optional[str]:
+        """The first entry of a list field as text, when there is one."""
+        if value and isinstance(value, list) and value[0]:
+            return str(value[0])
+        return None
 
-        # Institution (mapped to publication)
-        publication = None
-        insts = item.get("institutions")
-        if insts and isinstance(insts, list) and insts[0]:
-            publication = str(insts[0])
+    @staticmethod
+    def _first_url(urls_data: Any) -> Optional[str]:
+        if not urls_data:
+            return None
+        first_url = urls_data[0]
+        if isinstance(first_url, dict):
+            return cast(Optional[str], first_url.get("url"))
+        return str(first_url)
 
-        # URL
-        url = None
-        urls_data = item.get("urls", [])
-        if urls_data:
-            first_url = urls_data[0]
-            if isinstance(first_url, dict):
-                url = first_url.get("url")
-            else:
-                url = str(first_url)
-
-        # Packed extra BDTD-specific fields
+    @staticmethod
+    def _extra_of(item: Dict[str, Any]) -> Optional[str]:
+        """The BDTD-specific fields (degree level, languages, subjects), packed as text."""
         extra_parts = []
         formats = item.get("formats")
         if formats and isinstance(formats, list) and formats[0]:
@@ -209,45 +242,18 @@ class BDTDAPIClient(BaseAPIClient, MetadataProvider, SearchableMetadataProvider)
         if subjects_list:
             extra_parts.append(f"Subjects: {', '.join(subjects_list)}")
 
-        extra = "\n".join(extra_parts) if extra_parts else None
+        return "\n".join(extra_parts) if extra_parts else None
 
-        # Resolve PDF URL (synchronously in BDTDAPIClient). Skipped for bulk
-        # search() results (Issue #182): scraping+HEAD-probing every
-        # landing page for up to max_results records is too slow/expensive
-        # for a search preview - PDF resolution there is deferred to the
-        # existing async BDTDResolver, run later via the normal PDF-fetch
-        # job pipeline once an item is actually imported.
-        pdf_url = None
-        if url and resolve_pdf:
-            try:
-                pdf_url = self._resolve_pdf_url_sync(url)
-            except Exception as e:
-                logger.warning(f"BDTDAPIClient: Failed to resolve PDF URL for {url}: {e}")
-
-        # Check for DOI inside urls_data or url string
-        doi = None
+    @staticmethod
+    def _doi_of(url: Optional[str], urls_data: Any) -> Optional[str]:
+        """The DOI in the main URL, else in any of the listed URLs."""
         if url and DOI_ORG in url:
-            doi = url.split(DOI_ORG, 1)[1].strip()
-        else:
-            for url_entry in urls_data:
-                entry_url = (
-                    url_entry.get("url", "") if isinstance(url_entry, dict) else str(url_entry)
-                )
-                if DOI_ORG in entry_url:
-                    doi = entry_url.split(DOI_ORG, 1)[1].strip()
-                    break
-
-        return ResearchPaper(
-            title=title,
-            abstract=abstract,
-            authors=authors,
-            publication=publication,
-            year=year,
-            doi=doi,
-            url=url,
-            pdf_url=pdf_url,
-            extra=extra,
-        )
+            return url.split(DOI_ORG, 1)[1].strip()
+        for url_entry in urls_data:
+            entry_url = url_entry.get("url", "") if isinstance(url_entry, dict) else str(url_entry)
+            if DOI_ORG in entry_url:
+                return entry_url.split(DOI_ORG, 1)[1].strip()
+        return None
 
     def _resolve_pdf_url_sync(self, repo_url: str) -> Optional[str]:
         if repo_url.lower().endswith(".pdf"):
