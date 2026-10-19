@@ -97,6 +97,66 @@ _HTTP_CALLS = {
     },
 }
 
+# Broad `except Exception:` / bare `except:` handlers per file. They swallow programming
+# errors along with the failures they mean to survive; a new one needs a deliberate edit.
+BROAD_EXCEPT_BASELINE = {
+    "api/dependencies.py": 2,
+    "cli/commands/collection_cmd.py": 1,
+    "cli/commands/init_cmd.py": 3,
+    "cli/commands/system_cmd.py": 2,
+    "cli/main.py": 1,
+    "core/config.py": 2,
+    "core/services/attachment_service.py": 4,
+    "core/services/backup_service.py": 1,
+    "core/services/diagnostics_service.py": 3,
+    "core/services/enrichment_service.py": 2,
+    "core/services/integrity_service.py": 1,
+    "core/services/metadata_aggregator.py": 1,
+    "core/services/pdf_finder_service.py": 1,
+    "core/services/purge_service.py": 4,
+    "core/services/resolvers/arxiv.py": 1,
+    "core/services/resolvers/bdtd.py": 3,
+    "core/services/resolvers/generic_scraper.py": 1,
+    "core/services/resolvers/openalex.py": 1,
+    "core/services/resolvers/semantic_scholar.py": 1,
+    "core/services/resolvers/unpaywall.py": 1,
+    "core/services/restore_service.py": 2,
+    "core/services/selftest.py": 4,
+    "core/services/storage_service.py": 3,
+    "core/services/verify_service.py": 4,
+    "infra/bdtd_api.py": 5,
+    "infra/bibtex_lib.py": 2,
+    "infra/core_api.py": 3,
+    "infra/crossref_api.py": 1,
+    "infra/dblp_api.py": 1,
+    "infra/doaj_api.py": 3,
+    "infra/eric_api.py": 1,
+    "infra/hal_api.py": 1,
+    "infra/ieee_csv_lib.py": 1,
+    "infra/inspire_hep_api.py": 1,
+    "infra/openalex_api.py": 2,
+    "infra/pubmed_api.py": 3,
+    "infra/repository_factory.py": 1,
+    "infra/resolver_factory.py": 1,
+    "infra/ris_lib.py": 2,
+    "infra/semantic_scholar_api.py": 3,
+    "infra/springer_csv_lib.py": 1,
+    "infra/unpaywall_api.py": 1,
+    "infra/zbmath_api.py": 1,
+    "infra/zotero_api.py": 18,
+}
+
+# `sys.exit(...)` calls in commands, per file. Commands raise ZoteroCliError (see
+# core/exceptions.py) and main() turns it into the exit code.
+SYS_EXIT_BASELINE = {
+    "cli/commands/collection_cmd.py": 8,
+    "cli/commands/init_cmd.py": 1,
+    "cli/commands/item_cmd.py": 11,
+    "cli/commands/report_cmd.py": 2,
+    "cli/commands/serve_cmd.py": 1,
+    "cli/commands/system_cmd.py": 2,
+}
+
 # Import cycles that exist today (module sets).
 CYCLE_BASELINE = [
     {"zotero_cli.core.config", "zotero_cli.core.logging_config"},
@@ -318,6 +378,58 @@ def test_every_metadata_client_builds_on_the_shared_base():
                 if "BaseAPIClient" not in bases:
                     outside.append(f"{_rel(path)}: {node.name}")
     assert outside == [], "subclass BaseAPIClient (infra/base_api_client.py) for pacing and retries"
+
+
+def _count(rel_prefix: str, matches) -> Dict[str, int]:
+    counts: Counter = Counter()
+    for path in _files():
+        if _rel(path).startswith(rel_prefix):
+            counts[_rel(path)] += sum(1 for node in ast.walk(_tree(path)) if matches(node))
+    return {f: n for f, n in counts.items() if n}
+
+
+def _is_broad_except(node: ast.AST) -> bool:
+    return isinstance(node, ast.ExceptHandler) and (
+        node.type is None or (isinstance(node.type, ast.Name) and node.type.id == "Exception")
+    )
+
+
+def _is_sys_exit(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "exit"
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "sys"
+    )
+
+
+def test_no_new_broad_except_handlers():
+    grew = {
+        f: n for f, n in _count("", _is_broad_except).items() if n > BROAD_EXCEPT_BASELINE.get(f, 0)
+    }
+    assert grew == {}, "catch the specific errors you expect (it only goes down)"
+
+
+def test_broad_except_baseline_is_lowered_as_handlers_are_narrowed():
+    counts = _count("", _is_broad_except)
+    stale = {f: n for f, n in BROAD_EXCEPT_BASELINE.items() if counts.get(f, 0) < n}
+    assert stale == {}, "lower or delete these in BROAD_EXCEPT_BASELINE (it only shrinks)"
+
+
+def test_no_new_sys_exit_in_commands():
+    grew = {
+        f: n
+        for f, n in _count("cli/commands/", _is_sys_exit).items()
+        if n > SYS_EXIT_BASELINE.get(f, 0)
+    }
+    assert grew == {}, "raise a ZoteroCliError subclass; main() maps it to the exit code"
+
+
+def test_sys_exit_baseline_is_lowered_as_commands_raise_errors():
+    counts = _count("cli/commands/", _is_sys_exit)
+    stale = {f: n for f, n in SYS_EXIT_BASELINE.items() if counts.get(f, 0) < n}
+    assert stale == {}, "lower or delete these in SYS_EXIT_BASELINE (it only shrinks)"
 
 
 # ---- imports ---------------------------------------------------------------------------
