@@ -118,3 +118,9 @@ def test_update_job_failure(mock_db_path):
 
         with pytest.raises(sqlite3.OperationalError, match="DB Locked"):
             repo.update_job(job)
+
+
+def test_the_job_repository_is_still_importable_from_sqlite_repo() -> None:
+    from zotero_cli.infra import sqlite_job_repo, sqlite_repo
+
+    assert sqlite_repo.SqliteJobRepository is sqlite_job_repo.SqliteJobRepository

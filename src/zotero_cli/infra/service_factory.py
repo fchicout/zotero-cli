@@ -270,7 +270,7 @@ class ServiceFactory:
         db_dir = get_state_dir()
         db_path = str(db_dir / "jobs.sqlite")
 
-        from zotero_cli.infra.sqlite_repo import SqliteJobRepository
+        from zotero_cli.infra.sqlite_job_repo import SqliteJobRepository
 
         repo = SqliteJobRepository(db_path)
 
