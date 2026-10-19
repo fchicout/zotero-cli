@@ -101,7 +101,8 @@ class CollectionService(NotifyMixin):
             self._say(
                 f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'..."
             )
-            for candidate in list(self.collection_repo.get_items_in_collection(lookup_source_id)):
+            found_items = list(self.collection_repo.get_items_in_collection(lookup_source_id))
+            for candidate in found_items:
                 if self._is_match(candidate, identifier):
                     return candidate
         self._say(f"Item '{identifier}' not found.", logging.WARNING)
