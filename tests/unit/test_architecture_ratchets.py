@@ -35,7 +35,6 @@ FUNCTION_SIZE_BASELINE = {
     "core/services/resolvers/bdtd.py::resolve": 106,
     "infra/bdtd_api.py::_map_to_research_paper": 115,
     "infra/sqlite_repo.py::_fetch_items_with_filter": 111,
-    "infra/zotero_api.py::create_item": 121,
 }
 
 # Commands that import a concrete infra adapter instead of asking GatewayFactory for it.

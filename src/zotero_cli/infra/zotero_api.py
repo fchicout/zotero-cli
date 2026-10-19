@@ -381,7 +381,32 @@ class ZoteroAPIClient(ZoteroGateway):
         return success
 
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
-        creators = []
+        creators = self._creators_payload(paper)
+
+        # Detect thesis items (from BDTD or other academic repositories)
+        is_thesis = self._is_thesis_paper(paper)
+
+        if is_thesis:
+            item_payload = self._build_thesis_payload(paper, creators, collection_id)
+        else:
+            item_payload = self._build_article_payload(paper, creators, collection_id)
+
+        try:
+            response = self.http.post("items", json_data=[item_payload])
+            item_key = self._parse_write_response(response)
+
+            # Download and attach PDF for thesis items if available
+            if item_key and is_thesis and paper.pdf_url:
+                self._attach_thesis_pdf(item_key, paper.pdf_url)
+
+            return bool(item_key)
+        except Exception:
+            logger.exception("ZoteroAPIClient: Error creating item")
+            return False
+
+    @staticmethod
+    def _creators_payload(paper: ResearchPaper) -> List[Dict[str, str]]:
+        creators: List[Dict[str, str]] = []
         for author in paper.authors:
             parts = author.rsplit(" ", 1)
             if len(parts) == 2:
@@ -390,117 +415,110 @@ class ZoteroAPIClient(ZoteroGateway):
                 )
             else:
                 creators.append({"creatorType": "author", "name": author})
+        return creators
 
-        # Detect thesis items (from BDTD or other academic repositories)
-        is_thesis = self._is_thesis_paper(paper)
+    @staticmethod
+    def _build_article_payload(
+        paper: ResearchPaper, creators: List[Dict[str, str]], collection_id: str
+    ) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {
+            "itemType": "journalArticle",
+            "title": paper.title,
+            "abstractNote": paper.abstract,
+            "creators": creators,
+            "collections": [collection_id],
+        }
 
-        if is_thesis:
-            item_payload = self._build_thesis_payload(paper, creators, collection_id)
-        else:
-            item_payload = {
-                "itemType": "journalArticle",
-                "title": paper.title,
-                "abstractNote": paper.abstract,
-                "creators": creators,
-                "collections": [collection_id],
-            }
+        if paper.url:
+            payload["url"] = paper.url
+        elif paper.arxiv_id:
+            payload["url"] = f"https://arxiv.org/abs/{paper.arxiv_id}"
 
-            if paper.url:
-                item_payload["url"] = paper.url
-            elif paper.arxiv_id:
-                item_payload["url"] = f"https://arxiv.org/abs/{paper.arxiv_id}"
+        if paper.arxiv_id:
+            payload["libraryCatalog"] = "arXiv"
+            extra_lines = [f"arXiv: {paper.arxiv_id}"]
+            if paper.extra:
+                extra_lines.append(paper.extra)
+            payload["extra"] = "\n".join(extra_lines)
+        elif paper.extra:
+            payload["extra"] = paper.extra
 
-            if paper.arxiv_id:
-                item_payload["libraryCatalog"] = "arXiv"
-                extra_lines = [f"arXiv: {paper.arxiv_id}"]
-                if paper.extra:
-                    extra_lines.append(paper.extra)
-                item_payload["extra"] = "\n".join(extra_lines)
-            elif paper.extra:
-                item_payload["extra"] = paper.extra
+        if paper.doi:
+            payload["DOI"] = paper.doi
+        if paper.publication:
+            payload["publicationTitle"] = paper.publication
+        if paper.year:
+            payload["date"] = paper.year
 
-            if paper.doi:
-                item_payload["DOI"] = paper.doi
-            if paper.publication:
-                item_payload["publicationTitle"] = paper.publication
-            if paper.year:
-                item_payload["date"] = paper.year
+        return payload
 
+    def _attach_thesis_pdf(self, item_key: str, pdf_url: str) -> None:
+        """Download a thesis' PDF from the provider and attach it; a failure is logged
+        and never fails the item creation."""
+        dest = None
         try:
-            response = self.http.post("items", json_data=[item_payload])
-            item_key = self._parse_write_response(response)
+            import tempfile
+            from pathlib import Path
 
-            # Download and attach PDF for thesis items if available
-            if item_key and is_thesis and paper.pdf_url:
-                dest = None
-                try:
-                    import tempfile
-                    from pathlib import Path
+            # pdf_url originates from a third-party metadata
+            # provider (untrusted input) - fetched via safe_get,
+            # which validates the URL and every redirect hop
+            # against a public-address allowlist before fetching
+            # (Issue #235), instead of trusting requests' default
+            # redirect-following.
+            resp = safe_get(pdf_url, stream=True, timeout=30)
 
-                    # paper.pdf_url originates from a third-party metadata
-                    # provider (untrusted input) - fetched via safe_get,
-                    # which validates the URL and every redirect hop
-                    # against a public-address allowlist before fetching
-                    # (Issue #235), instead of trusting requests' default
-                    # redirect-following.
-                    resp = safe_get(paper.pdf_url, stream=True, timeout=30)
+            if resp.status_code == 200:
+                # Non-predictable temp path (Issue #240) - a
+                # manually joined
+                # tempfile.gettempdir()/f"thesis_{item_key}.pdf"
+                # path is fully deterministic, letting a local
+                # attacker on a shared host pre-plant a symlink
+                # there. tempfile.mkstemp creates the file itself
+                # (O_CREAT|O_EXCL, mode 0600), so there's nothing
+                # for an attacker to have pre-planted.
+                fd, dest_str = tempfile.mkstemp(prefix="thesis_", suffix=".pdf")
+                dest = Path(dest_str)
+                is_pdf = True
+                first_chunk = True
+                with os.fdopen(fd, "wb") as f:
+                    # iter_capped_content enforces a hard size cap
+                    # (Issue #239) - a malicious/compromised
+                    # metadata source could otherwise exhaust disk
+                    # via an arbitrarily large or slow-drip body.
+                    for chunk in iter_capped_content(resp, chunk_size=8192):
+                        if first_chunk:
+                            # Verify the %PDF magic bytes before
+                            # ever uploading this into the library
+                            # (Issue #235).
+                            is_pdf = chunk.startswith(b"%PDF")
+                            first_chunk = False
+                        f.write(chunk)
 
-                    if resp.status_code == 200:
-                        # Non-predictable temp path (Issue #240) - a
-                        # manually joined
-                        # tempfile.gettempdir()/f"thesis_{item_key}.pdf"
-                        # path is fully deterministic, letting a local
-                        # attacker on a shared host pre-plant a symlink
-                        # there. tempfile.mkstemp creates the file itself
-                        # (O_CREAT|O_EXCL, mode 0600), so there's nothing
-                        # for an attacker to have pre-planted.
-                        fd, dest_str = tempfile.mkstemp(prefix="thesis_", suffix=".pdf")
-                        dest = Path(dest_str)
-                        is_pdf = True
-                        first_chunk = True
-                        with os.fdopen(fd, "wb") as f:
-                            # iter_capped_content enforces a hard size cap
-                            # (Issue #239) - a malicious/compromised
-                            # metadata source could otherwise exhaust disk
-                            # via an arbitrarily large or slow-drip body.
-                            for chunk in iter_capped_content(resp, chunk_size=8192):
-                                if first_chunk:
-                                    # Verify the %PDF magic bytes before
-                                    # ever uploading this into the library
-                                    # (Issue #235).
-                                    is_pdf = chunk.startswith(b"%PDF")
-                                    first_chunk = False
-                                f.write(chunk)
-
-                        if is_pdf:
-                            self.upload_attachment(item_key, str(dest))
-                        else:
-                            logger.warning(
-                                f"ZoteroAPIClient: {paper.pdf_url!r} did not return a valid "
-                                "PDF signature; skipping upload."
-                            )
-                        dest.unlink(missing_ok=True)
-                except UnsafeURLError as attach_err:
+                if is_pdf:
+                    self.upload_attachment(item_key, str(dest))
+                else:
                     logger.warning(
-                        f"ZoteroAPIClient: refusing unsafe PDF URL for thesis {item_key}: {attach_err}"
+                        f"ZoteroAPIClient: {pdf_url!r} did not return a valid "
+                        "PDF signature; skipping upload."
                     )
-                except ResponseTooLargeError as attach_err:
-                    logger.warning(
-                        f"ZoteroAPIClient: PDF response too large for thesis {item_key}: {attach_err}"
-                    )
-                    if dest is not None:
-                        dest.unlink(missing_ok=True)
-                except Exception:
-                    logger.exception(
-                        f"ZoteroAPIClient: Failed to download and attach PDF for thesis {item_key}"
-                    )
-                    if dest is not None:
-                        dest.unlink(missing_ok=True)
-
-            return bool(item_key)
+                dest.unlink(missing_ok=True)
+        except UnsafeURLError as attach_err:
+            logger.warning(
+                f"ZoteroAPIClient: refusing unsafe PDF URL for thesis {item_key}: {attach_err}"
+            )
+        except ResponseTooLargeError as attach_err:
+            logger.warning(
+                f"ZoteroAPIClient: PDF response too large for thesis {item_key}: {attach_err}"
+            )
+            if dest is not None:
+                dest.unlink(missing_ok=True)
         except Exception:
-            logger.exception("ZoteroAPIClient: Error creating item")
-            return False
+            logger.exception(
+                f"ZoteroAPIClient: Failed to download and attach PDF for thesis {item_key}"
+            )
+            if dest is not None:
+                dest.unlink(missing_ok=True)
 
     def _is_thesis_paper(self, paper: ResearchPaper) -> bool:
         """Detects if a ResearchPaper represents a thesis/dissertation."""
