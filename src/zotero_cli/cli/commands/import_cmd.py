@@ -14,29 +14,15 @@ COLLECTION_HELP = "Target collection name or key"
 VERBOSE_HELP = "Print each imported item"
 
 
-@CommandRegistry.register
-class ImportCommand(BaseCommand):
-    """
-    CLI Command handler for importing research papers from various sources.
-    Supports importing from local files (RIS, BibTeX, CSV), arXiv queries, BDTD Brazil database, DOIs, and manual entry.
-    """
+def _add_file_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
 
-    name = "import"
-    help = "Import papers from various sources"
-
-    def register_args(self, parser: argparse.ArgumentParser) -> None:
-        """
-        Registers argument subparsers for files, arXiv, DOI, BDTD, and manual imports.
-        """
-        sub = parser.add_subparsers(dest="import_type", required=True)
-
-        # File
-        file_p = sub.add_parser(
-            "file",
-            help="Import .bib, .ris, .csv",
-            description="Bulk-imports research items from external bibliographic files (.bib, .ris, .csv) directly into a specified Zotero collection.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+    # File
+    file_p = sub.add_parser(
+        "file",
+        help="Import .bib, .ris, .csv",
+        description="Bulk-imports research items from external bibliographic files (.bib, .ris, .csv) directly into a specified Zotero collection.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Importing search results from IEEE Xplore
@@ -51,18 +37,21 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/import_file.md
 """,
-        )
-        file_p.add_argument("file", help="Path to input file")
-        file_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
-        add_details_flag(file_p, VERBOSE_HELP)
+    )
+    file_p.add_argument("file", help="Path to input file")
+    file_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
+    add_details_flag(file_p, VERBOSE_HELP)
 
-        # ArXiv
-        arxiv_p = sub.add_parser(
-            "arxiv",
-            help="Import from ArXiv",
-            description="Directly imports research papers from the arXiv repository into a Zotero collection using a powerful Domain Specific Language (DSL) query.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_arxiv_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # ArXiv
+    arxiv_p = sub.add_parser(
+        "arxiv",
+        help="Import from ArXiv",
+        description="Directly imports research papers from the arXiv repository into a Zotero collection using a powerful Domain Specific Language (DSL) query.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Automated tracking of new papers on a topic
@@ -77,20 +66,23 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/import_arxiv.md
 """,
-        )
-        arxiv_p.add_argument("--query", required=True, help="DSL Search Query")
-        arxiv_p.add_argument("--file", help="Path to file containing DSL query")
-        arxiv_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
-        arxiv_p.add_argument("--limit", type=int, default=100, help="Max results to import")
-        add_details_flag(arxiv_p, VERBOSE_HELP)
+    )
+    arxiv_p.add_argument("--query", required=True, help="DSL Search Query")
+    arxiv_p.add_argument("--file", help="Path to file containing DSL query")
+    arxiv_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
+    arxiv_p.add_argument("--limit", type=int, default=100, help="Max results to import")
+    add_details_flag(arxiv_p, VERBOSE_HELP)
 
-        # DOI
-        doi_p = sub.add_parser(
-            "doi",
-            help="Import via DOI",
-            description="Imports a single research item directly into a Zotero collection using its unique Digital Object Identifier (DOI).",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_doi_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # DOI
+    doi_p = sub.add_parser(
+        "doi",
+        help="Import via DOI",
+        description="Imports a single research item directly into a Zotero collection using its unique Digital Object Identifier (DOI).",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Adding a specific paper from a journal website
@@ -105,18 +97,21 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/import_doi.md
 """,
-        )
-        doi_p.add_argument("doi", help="Digital Object Identifier")
-        doi_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
-        add_details_flag(doi_p, VERBOSE_HELP)
+    )
+    doi_p.add_argument("doi", help="Digital Object Identifier")
+    doi_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
+    add_details_flag(doi_p, VERBOSE_HELP)
 
-        # BDTD
-        bdtd_p = sub.add_parser(
-            "bdtd",
-            help="Import thesis/dissertation from Brazilian BDTD",
-            description="Imports thesis/dissertation metadata from the Brazilian Biblioteca Digital de Teses e Dissertações (BDTD) into a Zotero collection. Accepts a single BDTD record ID, institutional repository handle URL, or DOI, or a free-text --query to bulk-import multiple matching theses/dissertations.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_bdtd_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # BDTD
+    bdtd_p = sub.add_parser(
+        "bdtd",
+        help="Import thesis/dissertation from Brazilian BDTD",
+        description="Imports thesis/dissertation metadata from the Brazilian Biblioteca Digital de Teses e Dissertações (BDTD) into a Zotero collection. Accepts a single BDTD record ID, institutional repository handle URL, or DOI, or a free-text --query to bulk-import multiple matching theses/dissertations.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario 1: Importing a UFPE doctoral thesis by handle URL
@@ -140,24 +135,25 @@ Notes
 • The thesis PDF is automatically resolved from the institutional repository when importing a single identifier; --query bulk imports skip PDF resolution (run `item pdf fetch` afterward).
 • Items are created as Zotero "thesis" type with university and degree level fields.
 """,
-        )
-        bdtd_p.add_argument(
-            "identifier", nargs="?", help="BDTD record ID, repository handle URL, or DOI"
-        )
-        bdtd_p.add_argument("--query", help="Free-text search query (bulk import)")
-        bdtd_p.add_argument(
-            "--limit", type=int, default=20, help="Max results to import for --query"
-        )
-        bdtd_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
-        add_details_flag(bdtd_p, VERBOSE_HELP)
+    )
+    bdtd_p.add_argument(
+        "identifier", nargs="?", help="BDTD record ID, repository handle URL, or DOI"
+    )
+    bdtd_p.add_argument("--query", help="Free-text search query (bulk import)")
+    bdtd_p.add_argument("--limit", type=int, default=20, help="Max results to import for --query")
+    bdtd_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
+    add_details_flag(bdtd_p, VERBOSE_HELP)
 
-        # Manual
-        man_p = sub.add_parser(
-            "manual",
-            help="Manual metadata entry",
-            description="Allows for manual creation of a research item in Zotero by providing key metadata fields like Title, ArXiv ID, and Abstract from the terminal.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_man_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Manual
+    man_p = sub.add_parser(
+        "manual",
+        help="Manual metadata entry",
+        description="Allows for manual creation of a research item in Zotero by providing key metadata fields like Title, ArXiv ID, and Abstract from the terminal.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Adding a pre-print discovered on social media
@@ -172,11 +168,33 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/import_manual.md
 """,
-        )
-        man_p.add_argument("--arxiv-id", required=True, help="The arXiv ID, e.g. 2401.01234")
-        man_p.add_argument("--title", required=True, help="Paper title")
-        man_p.add_argument("--abstract", default="", help="Paper abstract (optional)")
-        man_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
+    )
+    man_p.add_argument("--arxiv-id", required=True, help="The arXiv ID, e.g. 2401.01234")
+    man_p.add_argument("--title", required=True, help="Paper title")
+    man_p.add_argument("--abstract", default="", help="Paper abstract (optional)")
+    man_p.add_argument("--collection", required=True, help=COLLECTION_HELP)
+
+
+@CommandRegistry.register
+class ImportCommand(BaseCommand):
+    """
+    CLI Command handler for importing research papers from various sources.
+    Supports importing from local files (RIS, BibTeX, CSV), arXiv queries, BDTD Brazil database, DOIs, and manual entry.
+    """
+
+    name = "import"
+    help = "Import papers from various sources"
+
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
+        """
+        Registers argument subparsers for files, arXiv, DOI, BDTD, and manual imports.
+        """
+        sub = parser.add_subparsers(dest="import_type", required=True)
+        _add_file_verb(sub)
+        _add_arxiv_verb(sub)
+        _add_doi_verb(sub)
+        _add_bdtd_verb(sub)
+        _add_man_verb(sub)
 
     def execute(self, args: argparse.Namespace) -> None:
         """
