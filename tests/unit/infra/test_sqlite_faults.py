@@ -124,3 +124,10 @@ def test_the_job_repository_is_still_importable_from_sqlite_repo() -> None:
     from zotero_cli.infra import sqlite_job_repo, sqlite_repo
 
     assert sqlite_repo.SqliteJobRepository is sqlite_job_repo.SqliteJobRepository
+
+
+def test_the_shadow_state_is_still_reachable_from_sqlite_repo_as_the_same_objects() -> None:
+    from zotero_cli.infra import sqlite_repo, sqlite_shadow
+
+    for name in ("_shadows", "_all_connections", "_thread_state", "_cleanup_shadows"):
+        assert getattr(sqlite_repo, name) is getattr(sqlite_shadow, name)
