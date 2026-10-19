@@ -17,7 +17,7 @@ import logging
 import math
 from typing import Any, Dict, Iterable, List, Optional
 
-from zotero_cli.core.interfaces import ZoteroGateway
+from zotero_cli.core.interfaces import ItemSearch
 from zotero_cli.core.models import ZoteroQuery
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ def _unwrap(source: Any) -> Any:
     return inner if inner is not None else source
 
 
-def _count(gateway: ZoteroGateway, item_type: Optional[str]) -> Optional[int]:
+def _count(gateway: ItemSearch, item_type: Optional[str]) -> Optional[int]:
     # Looked up on the class, so a test double without the method (or a
     # MagicMock, which would invent one) takes the per-parent path.
     count = getattr(type(gateway), "count_search_results", None)
@@ -56,7 +56,7 @@ def _count(gateway: ZoteroGateway, item_type: Optional[str]) -> Optional[int]:
     return total if isinstance(total, int) else None
 
 
-def should_scan(gateway: ZoteroGateway, parents: int, item_type: Optional[str]) -> bool:
+def should_scan(gateway: ItemSearch, parents: int, item_type: Optional[str]) -> bool:
     """True when one scan of `item_type` needs fewer requests than one
     children request per parent."""
     total = _count(gateway, item_type)

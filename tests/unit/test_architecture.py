@@ -30,8 +30,6 @@ PRINT_BASELINE = {
 # reason. A ratchet like PRINT_BASELINE: no new service may join, and narrowing one means
 # deleting its line.
 GATEWAY_BASELINE = {
-    "core/services/children_index.py": "batches children through gateway-only count_search_results",
-    "core/services/diagnostics_service.py": "calls gateway-only verify_credentials and count_items",
     "core/services/purge_service.py": "batches children through gateway-only count_search_results and reads trash/orphans",
     "core/services/transfer_service.py": "moves one item between two libraries, so takes two gateways",
 }
