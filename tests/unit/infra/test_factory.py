@@ -156,6 +156,38 @@ def test_get_metadata_aggregator(mock_config):
     assert isinstance(service, MetadataAggregatorService)
 
 
+def test_the_aggregator_keeps_its_provider_order_and_named_clients(mock_config):
+    service = GatewayFactory.get_metadata_aggregator(mock_config)
+
+    assert [type(p).__name__ for p in service.providers] == [
+        "SemanticScholarAPIClient",
+        "CrossRefAPIClient",
+        "UnpaywallAPIClient",
+        "OpenAlexAPIClient",
+        "PubMedAPIClient",
+        "ZBMathAPIClient",
+        "ERICAPIClient",
+        "HALAPIClient",
+        "InspireHEPAPIClient",
+        "DBLPAPIClient",
+        "BDTDAPIClient",
+    ]
+    named = [
+        "semantic_scholar",
+        "crossref",
+        "unpaywall",
+        "openalex",
+        "pubmed",
+        "zbmath",
+        "eric",
+        "hal",
+        "inspire_hep",
+        "dblp",
+        "bdtd",
+    ]
+    assert [getattr(service, name) for name in named] == service.providers
+
+
 def test_get_semantic_scholar_client(mock_config):
     from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient
 

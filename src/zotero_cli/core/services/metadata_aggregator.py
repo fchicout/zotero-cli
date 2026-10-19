@@ -22,6 +22,7 @@ class MetadataAggregatorService(NotifyMixin):
         self.hal: Optional[MetadataProvider] = None
         self.inspire_hep: Optional[MetadataProvider] = None
         self.dblp: Optional[MetadataProvider] = None
+        self.bdtd: Optional[MetadataProvider] = None
 
     def get_enriched_metadata(
         self, identifier: str, require_doi_match: bool = False

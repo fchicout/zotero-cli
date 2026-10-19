@@ -1,8 +1,9 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from zotero_cli.core.config import ZoteroConfig
 
 if TYPE_CHECKING:
+    from zotero_cli.core.interfaces import MetadataProvider
     from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
     from zotero_cli.core.strategies import ImportStrategy
     from zotero_cli.infra.arxiv_lib import ArxivLibGateway
@@ -142,48 +143,27 @@ class MetadataClientFactory:
         from zotero_cli.infra.crossref_api import CrossRefAPIClient
         from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
 
-        ss_client = MetadataClientFactory.get_semantic_scholar_client(config)
-        cr_client = CrossRefAPIClient(contact_email=config.unpaywall_email)
-        up_client = UnpaywallAPIClient(config.unpaywall_email)
-        oa_client = MetadataClientFactory.get_openalex_client(config)
-        pm_client = MetadataClientFactory.get_pubmed_client(config)
-        zm_client = MetadataClientFactory.get_zbmath_client()
-        eric_client = MetadataClientFactory.get_eric_client()
-        hal_client = MetadataClientFactory.get_hal_client()
-        ih_client = MetadataClientFactory.get_inspire_hep_client()
-        dblp_client = MetadataClientFactory.get_dblp_client()
-        bdtd_client = MetadataClientFactory.get_bdtd_client()
+        # Registration order is the fan-out order, which decides merge priority; the name
+        # is the aggregator attribute the importers and diagnostics read the client from.
+        registered: List[Tuple[str, MetadataProvider]] = [
+            ("semantic_scholar", MetadataClientFactory.get_semantic_scholar_client(config)),
+            ("crossref", CrossRefAPIClient(contact_email=config.unpaywall_email)),
+            ("unpaywall", UnpaywallAPIClient(config.unpaywall_email)),
+            ("openalex", MetadataClientFactory.get_openalex_client(config)),
+            ("pubmed", MetadataClientFactory.get_pubmed_client(config)),
+            ("zbmath", MetadataClientFactory.get_zbmath_client()),
+            ("eric", MetadataClientFactory.get_eric_client()),
+            ("hal", MetadataClientFactory.get_hal_client()),
+            ("inspire_hep", MetadataClientFactory.get_inspire_hep_client()),
+            ("dblp", MetadataClientFactory.get_dblp_client()),
+            ("bdtd", MetadataClientFactory.get_bdtd_client()),
+        ]
 
         from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
-        aggregator = MetadataAggregatorService(
-            [
-                ss_client,
-                cr_client,
-                up_client,
-                oa_client,
-                pm_client,
-                zm_client,
-                eric_client,
-                hal_client,
-                ih_client,
-                dblp_client,
-                bdtd_client,
-            ]
-        )
-
-        # Assign attributes for compatibility with PaperImporterClient
-        aggregator.semantic_scholar = ss_client
-        aggregator.crossref = cr_client
-        aggregator.unpaywall = up_client
-        aggregator.openalex = oa_client
-        aggregator.pubmed = pm_client
-        aggregator.zbmath = zm_client
-        aggregator.eric = eric_client
-        aggregator.hal = hal_client
-        aggregator.inspire_hep = ih_client
-        aggregator.dblp = dblp_client
-        setattr(aggregator, "bdtd", bdtd_client)
+        aggregator = MetadataAggregatorService([client for _, client in registered])
+        for attribute, client in registered:
+            setattr(aggregator, attribute, client)
 
         return aggregator
 
