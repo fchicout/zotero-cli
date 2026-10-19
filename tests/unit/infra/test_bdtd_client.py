@@ -316,3 +316,46 @@ def test_pdf_resolution_uses_the_ssrf_guard_and_exact_host_match():
     probed = [c.args[0] for c in safe_head.call_args_list]
     assert probed == ["https://repo.example.br/bitstream/1/thesis.pdf"]
     assert result == "https://repo.example.br/bitstream/1/thesis.pdf"
+
+
+def test_a_full_record_maps_to_every_paper_field() -> None:
+    from zotero_cli.infra.bdtd_api import BDTDAPIClient
+
+    record = {
+        "title": "  Tese de teste ",
+        "summary": ["Primeiro.", "", "Segundo."],
+        "authors": {"primary": {"Ana Silva": 1}, "secondary": ["Bia Souza", {"Caio Lima": 2}]},
+        "publicationDates": ["2021"],
+        "institutions": ["USP"],
+        "urls": [{"url": "http://repo.example/x"}, "https://doi.org/10.1/abc "],
+        "formats": ["Doutorado"],
+        "languages": ["pt", "en"],
+        "subjects": [["Física", "x"], "Química", []],
+    }
+
+    paper = BDTDAPIClient()._map_to_research_paper(record, resolve_pdf=False)
+
+    assert paper.title == "Tese de teste"
+    assert paper.abstract == "Primeiro.\n\nSegundo."
+    assert paper.authors == ["Ana Silva", "Bia Souza", "Caio Lima"]
+    assert paper.year == "2021"
+    assert paper.publication == "USP"
+    assert paper.url == "http://repo.example/x"
+    assert paper.doi == "10.1/abc"
+    assert paper.pdf_url is None
+    assert paper.extra == "Degree Level: Doutorado\nLanguages: pt, en\nSubjects: Física, Química"
+
+
+def test_an_empty_record_maps_to_an_empty_paper() -> None:
+    from zotero_cli.infra.bdtd_api import BDTDAPIClient
+
+    paper = BDTDAPIClient()._map_to_research_paper({}, resolve_pdf=False)
+
+    assert paper.title == ""
+    assert paper.abstract == ""
+    assert paper.authors == []
+    assert paper.year is None
+    assert paper.publication is None
+    assert paper.url is None
+    assert paper.doi is None
+    assert paper.extra is None
