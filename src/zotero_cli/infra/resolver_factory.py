@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.utils.notify import notify_or_log
+from zotero_cli.infra.config_resolution import resolve_config
 from zotero_cli.infra.metadata_client_factory import MetadataClientFactory
 
 if TYPE_CHECKING:
@@ -24,19 +25,13 @@ class ResolverFactory:
         from zotero_cli.core.services.network_gateway import NetworkGateway
         from zotero_cli.core.utils.user_agent import user_agent
 
-        if not config:
-            from zotero_cli.core.config import get_config
-
-            config = get_config()
+        config = resolve_config(config)
         # The user's own contact address, for the polite pools (Issue #407).
         return NetworkGateway(user_agent(config.unpaywall_email))
 
     @staticmethod
     def get_unpaywall_resolver(config: Optional[ZoteroConfig] = None) -> "PDFResolver":
-        if not config:
-            from zotero_cli.core.config import get_config
-
-            config = get_config()
+        config = resolve_config(config)
 
         from zotero_cli.core.services.resolvers.unpaywall import UnpaywallResolver
 
@@ -59,10 +54,7 @@ class ResolverFactory:
 
     @staticmethod
     def get_semantic_scholar_resolver(config: Optional[ZoteroConfig] = None) -> "PDFResolver":
-        if not config:
-            from zotero_cli.core.config import get_config
-
-            config = get_config()
+        config = resolve_config(config)
 
         from zotero_cli.core.services.resolvers.semantic_scholar import SemanticScholarResolver
 

@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🔧 Internal
+- **One config fallback for the factories (part of #608):** 18 copies of "use the given config, else load it" in the service, repository, metadata-client and resolver factories became one `resolve_config` helper that still looks `get_config` up at call time.
 - **One lookup error policy for metadata clients (part of #608):** `BaseAPIClient._lookup` owns the "404 is no result, other HTTP errors and unreadable responses are logged and are no result" handling that ERIC, HAL, DBLP, zbMATH and INSPIRE-HEP each copied. Same results and log messages; the remaining clients (CrossRef, OpenAlex, Semantic Scholar, DOAJ, CORE, BDTD, PubMed) have variations and are unchanged.
 - **`CollectionService.move_item` split (part of #607):** the 97-line method delegates to `_resolve_dest_id`, `_find_item` and `_resolve_source`; the order of repository calls, the messages and the results are unchanged.
 - **`sqlite_repo.py` under the size cap (#608):** the shadow-copy helpers (one private copy of `zotero.sqlite` per process and its per-thread connections) moved to `infra/sqlite_shadow.py`; `infra.sqlite_repo` re-exports the same objects, so patches and imports keep working. The file went from 1,301 to 996 lines.

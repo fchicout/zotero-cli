@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from zotero_cli.core.config import ZoteroConfig, get_config, get_state_dir
+from zotero_cli.infra.config_resolution import resolve_config
 from zotero_cli.infra.metadata_client_factory import MetadataClientFactory
 from zotero_cli.infra.repository_factory import RepositoryFactory
 from zotero_cli.infra.resolver_factory import ResolverFactory
@@ -43,10 +44,7 @@ class ServiceFactory:
         force_user: bool = False,
         offline: Optional[bool] = None,
     ) -> "AttachmentService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
+        config = resolve_config(config)
 
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
         col_repo = RepositoryFactory.get_collection_repository(config, force_user, offline=offline)
@@ -63,10 +61,7 @@ class ServiceFactory:
         force_user: bool = False,
         offline: Optional[bool] = None,
     ) -> "CollectionService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
+        config = resolve_config(config)
 
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
         col_repo = RepositoryFactory.get_collection_repository(config, force_user, offline=offline)
@@ -108,10 +103,7 @@ class ServiceFactory:
         force_user: bool = False,
         offline: Optional[bool] = None,
     ) -> "EnrichmentService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
+        config = resolve_config(config)
 
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
         col_repo = RepositoryFactory.get_collection_repository(config, force_user, offline=offline)
@@ -152,10 +144,7 @@ class ServiceFactory:
         force_user: bool = False,
         offline: Optional[bool] = None,
     ) -> "ImportService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
+        config = resolve_config(config)
 
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
         col_service = ServiceFactory.get_collection_service(config, force_user, offline=offline)
@@ -214,10 +203,7 @@ class ServiceFactory:
         force_user: bool = False,
         offline: Optional[bool] = None,
     ) -> "PurgeService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
+        config = resolve_config(config)
 
         gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
 
@@ -231,10 +217,7 @@ class ServiceFactory:
         force_user: bool = False,
         offline: Optional[bool] = None,
     ) -> "MergeService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
+        config = resolve_config(config)
 
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
         note_repo = RepositoryFactory.get_note_repository(config, force_user, offline=offline)
@@ -249,10 +232,7 @@ class ServiceFactory:
         force_user: bool = False,
         offline: Optional[bool] = None,
     ) -> "TagService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
+        config = resolve_config(config)
 
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
         tag_repo = RepositoryFactory.get_tag_repository(config, force_user, offline=offline)
@@ -291,10 +271,7 @@ class ServiceFactory:
         force_user: bool = False,
         offline: Optional[bool] = None,
     ) -> "PDFFinderService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
+        config = resolve_config(config)
 
         job_queue = ServiceFactory.get_job_queue_service(config, force_user)
         item_repo = RepositoryFactory.get_item_repository(config, force_user, offline=offline)
@@ -327,10 +304,7 @@ class ServiceFactory:
         force_user: bool = False,
         offline: Optional[bool] = None,
     ) -> "DiagnosticsService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
+        config = resolve_config(config)
 
         from zotero_cli.core.exceptions import ConfigurationError
 

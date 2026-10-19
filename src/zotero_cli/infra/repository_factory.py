@@ -10,6 +10,7 @@ from zotero_cli.core.interfaces import (
     TagRepository,
     ZoteroGateway,
 )
+from zotero_cli.infra.config_resolution import resolve_config
 
 logger = logging.getLogger(__name__)
 
@@ -83,10 +84,7 @@ class RepositoryFactory:
         require_group: bool = True,
         offline: Optional[bool] = None,
     ) -> "ZoteroGateway":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
+        config = resolve_config(config)
 
         if offline is None:
             from zotero_cli.core.runtime import is_offline_mode
