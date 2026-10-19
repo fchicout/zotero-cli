@@ -352,6 +352,14 @@ class ItemSearch(ABC):
         raise UsageError("Full-text search reads Zotero's local index: run it with --offline.")
 
 
+class CredentialCheck(ABC):
+    """Whether the configured credentials work (what `system check` asks of a library)."""
+
+    @abstractmethod
+    def verify_credentials(self) -> bool:
+        pass
+
+
 class ZoteroGateway(
     ItemRepository,
     CollectionRepository,
@@ -359,6 +367,7 @@ class ZoteroGateway(
     NoteRepository,
     AttachmentRepository,
     ItemSearch,
+    CredentialCheck,
 ):
     """
     Unified Gateway interface for Zotero API.
@@ -367,10 +376,6 @@ class ZoteroGateway(
 
     # True for a gateway that reads a local database and cannot write (offline mode).
     is_offline: bool = False
-
-    @abstractmethod
-    def verify_credentials(self) -> bool:
-        pass
 
     @abstractmethod
     def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:

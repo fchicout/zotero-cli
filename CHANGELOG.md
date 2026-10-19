@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🔧 Internal
+- **Narrower gateway types (part of #607):** `DiagnosticsService` asks only for a new `CredentialCheck` interface (`ZoteroGateway` inherits it) and the children batching helpers only for `ItemSearch`, so two of the four services still typed against the whole gateway no longer are. Annotation changes only.
 - **One config fallback for the factories (part of #608):** 18 copies of "use the given config, else load it" in the service, repository, metadata-client and resolver factories became one `resolve_config` helper that still looks `get_config` up at call time.
 - **One lookup error policy for metadata clients (part of #608):** `BaseAPIClient._lookup` owns the "404 is no result, other HTTP errors and unreadable responses are logged and are no result" handling that ERIC, HAL, DBLP, zbMATH and INSPIRE-HEP each copied. Same results and log messages; the remaining clients (CrossRef, OpenAlex, Semantic Scholar, DOAJ, CORE, BDTD, PubMed) have variations and are unchanged.
 - **`CollectionService.move_item` split (part of #607):** the 97-line method delegates to `_resolve_dest_id`, `_find_item` and `_resolve_source`; the order of repository calls, the messages and the results are unchanged.

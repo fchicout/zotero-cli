@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from zotero_cli.core.config import ZoteroConfig
-from zotero_cli.core.interfaces import MetadataProvider, ZoteroGateway
+from zotero_cli.core.interfaces import CredentialCheck, MetadataProvider
 from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
 
 # A stable, long-lived DOI used purely as a lightweight connectivity/credential
@@ -40,7 +40,7 @@ class DiagnosticsService:
 
     def __init__(
         self,
-        gateway: Optional[ZoteroGateway],
+        gateway: Optional[CredentialCheck],
         metadata_aggregator: MetadataAggregatorService,
         config: ZoteroConfig,
         gateway_error: Optional[str] = None,
