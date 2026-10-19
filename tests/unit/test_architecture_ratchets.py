@@ -21,21 +21,17 @@ MAX_FUNCTION_LINES = 100
 
 # Files over MAX_FILE_LINES, with their current length.
 FILE_SIZE_BASELINE = {
-    "cli/commands/item_cmd.py": 1595,
     "infra/sqlite_repo.py": 1108,
 }
 
 # Functions over MAX_FUNCTION_LINES ("file::name"), with their current length.
 FUNCTION_SIZE_BASELINE = {
-    "cli/commands/collection_cmd.py::register_args": 265,
     "cli/commands/import_cmd.py::register_args": 153,
     "cli/commands/init_cmd.py::execute": 150,
-    "cli/commands/item_cmd.py::execute": 132,
-    "cli/commands/item_cmd.py::register_args": 603,
+    "cli/commands/item_inspect.py::execute": 132,
     "cli/commands/report_cmd.py::register_args": 109,
     "cli/commands/report_cmd.py::_handle_attachments": 101,
     "cli/commands/search_cmd.py::execute": 127,
-    "cli/commands/system_cmd.py::register_args": 328,
     "cli/commands/system_cmd.py::_handle_jobs": 102,
     "core/services/arxiv_query_parser.py::parse": 119,
     "core/services/resolvers/bdtd.py::resolve": 106,
