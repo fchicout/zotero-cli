@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🔧 Internal
+- **Architecture guard rails (#604):** new ratchets in the unit suite that only allow the codebase to get tidier: file and function size caps with baselines for today's offenders, a layer rule for `api`, a baseline for commands importing infra adapters, HTTP-library and `arxiv` import rules, a per-file count of direct HTTP calls (aliases included), a check that every metadata client builds on `BaseAPIClient`, an import-cycle check, a no-side-effects-on-import check, and parity tests for the sort and hydrate field lists. The mock-discipline ceiling now counts spec-less mocks that carry a `return_value`/`side_effect` too. No product code changes.
+
 ## [4.0.3] - 2026-10-19
 
 A patch release: arXiv requests fail fast when the service rate limits.
