@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🔧 Internal
+- **arXiv query DSL parser split (part of #605):** `ArxivQueryParser.parse` (119 lines) now calls one small function per DSL section. The old and new implementations produced identical parameters for 20,000 generated queries, and a table of representative queries is now a permanent test.
 - **More CLI argument builders split (part of #605):** `import` and `report` build their parsers one function per verb too. The `--help` output of all 67 commands and verbs is byte-identical.
 - **`ZoteroAPIClient.create_item` split (part of #608):** the 121-line method now builds the creators, the article payload and the thesis-PDF attachment in `_creators_payload`, `_build_article_payload` and `_attach_thesis_pdf`. Same payloads and the same failure handling (a PDF that cannot be attached is logged and never fails the item).
 - **Narrower gateway types (part of #607):** `DiagnosticsService` asks only for a new `CredentialCheck` interface (`ZoteroGateway` inherits it) and the children batching helpers only for `ItemSearch`, so two of the four services still typed against the whole gateway no longer are. Annotation changes only.
