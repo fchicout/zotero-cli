@@ -1,8 +1,6 @@
 import logging
 from typing import Any, Dict, Optional
 
-import requests
-
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
@@ -20,7 +18,8 @@ class InspireHEPAPIClient(BaseAPIClient, MetadataProvider):
         """
         Retrieves paper metadata for the given identifier (DOI, arXiv ID, or INSPIRE ID).
         """
-        try:
+
+        def fetch() -> Optional[ResearchPaper]:
             # Determine prefix based on identifier format
             query = identifier
             if "/" in identifier and "." in identifier:  # DOI
@@ -45,14 +44,7 @@ class InspireHEPAPIClient(BaseAPIClient, MetadataProvider):
             # Map the first hit (metadata is inside 'metadata' key of the hit)
             return self._map_to_research_paper(hits[0].get("metadata", {}))
 
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
-                return None
-            logger.exception(f"InspireHEPAPIClient: Error fetching metadata for {identifier}")
-            return None
-        except Exception:
-            logger.exception(f"InspireHEPAPIClient: Error parsing response for {identifier}")
-            return None
+        return self._lookup(identifier, fetch)
 
     def _map_to_research_paper(self, metadata: Dict[str, Any]) -> ResearchPaper:
         # Title
