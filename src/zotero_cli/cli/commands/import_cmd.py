@@ -2,7 +2,7 @@ import argparse
 import os
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import add_details_flag
+from zotero_cli.cli.flags import add_details_flag, user_flag
 from zotero_cli.core.exceptions import UsageError, ZoteroCliError
 from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
 from zotero_cli.core.services.import_service import ImportService
@@ -182,7 +182,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         """
         Routes and executes the import logic based on the user-selected import source type.
         """
-        import_service = GatewayFactory.get_import_service(force_user=getattr(args, "user", False))
+        import_service = GatewayFactory.get_import_service(force_user=user_flag(args))
 
         if args.import_type == "file":
             self._handle_file(import_service, args)

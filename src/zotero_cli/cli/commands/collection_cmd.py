@@ -11,6 +11,7 @@ from zotero_cli.cli.flags import (
     add_bibliography_flags,
     add_details_flag,
     add_format_flag,
+    user_flag,
 )
 from zotero_cli.cli.presenters import records
 from zotero_cli.cli.safety import (
@@ -303,7 +304,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         purge_p.add_argument("--force", action="store_true", help="Skip interactive confirmation")
 
     def execute(self, args: argparse.Namespace) -> None:
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
         if args.verb == "list":
@@ -468,7 +469,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 console.print("[yellow]Aborted.[/]")
                 return
 
-        service = GatewayFactory.get_purge_service(force_user=getattr(args, "user", False))
+        service = GatewayFactory.get_purge_service(force_user=user_flag(args))
         stats = service.purge_collection_assets(
             args.collection, types=types, recursive=args.recursive, dry_run=False
         )
@@ -478,7 +479,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         )
 
     def _handle_clean(self, args: argparse.Namespace) -> None:
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         service = GatewayFactory.get_collection_service(force_user=force_user)
         plan = service.plan_clean(args.collection)
         if plan is None:
@@ -509,7 +510,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
     def _handle_recursive_delete(
         self, args: argparse.Namespace, col_id: str, version: Optional[int]
     ) -> None:
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         service = GatewayFactory.get_collection_service(force_user=force_user)
         plan = service.plan_recursive_delete(col_id, version)
         include_shared = getattr(args, "include_shared", False)
@@ -628,7 +629,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             self._handle_export_metadata(args)
 
     def _handle_export_metadata(self, args: argparse.Namespace) -> None:
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         service = GatewayFactory.get_export_service(force_user=force_user)
 
         if args.export_format == "bibliography" and not args.output:
@@ -663,7 +664,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             TimeRemainingColumn,
         )
 
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
         attach_service = GatewayFactory.get_attachment_service(force_user=force_user)
 

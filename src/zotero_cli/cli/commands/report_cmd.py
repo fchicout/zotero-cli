@@ -9,7 +9,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import add_details_flag, add_format_flag
+from zotero_cli.cli.flags import add_details_flag, add_format_flag, user_flag
 from zotero_cli.cli.presenters import records
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.children_index import children_by_parent
@@ -142,7 +142,7 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
         )
 
     def execute(self, args: argparse.Namespace) -> None:
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
         if args.report_type == "duplicates":
@@ -248,7 +248,7 @@ $ zotero-cli report attachments --collection "To Read" --output attachments.md
             f.write(content)
 
     def _handle_audit(self, _gateway: ZoteroGateway, args: argparse.Namespace) -> None:
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         service = GatewayFactory.get_integrity_service(force_user=force_user)
         console.print(f"[bold green]Auditing collection: {escape(args.collection)}...[/bold green]")
         report = service.audit_collection(args.collection)

@@ -1,7 +1,7 @@
 import argparse
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import LIST_FORMATS, add_format_flag
+from zotero_cli.cli.flags import LIST_FORMATS, add_format_flag, user_flag
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 
 console = Console()
@@ -100,8 +100,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
     def execute(self, args: argparse.Namespace) -> None:
         from zotero_cli.infra.factory import GatewayFactory
 
-        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
-        service = GatewayFactory.get_tag_service(force_user=getattr(args, "user", False))
+        gateway = GatewayFactory.get_zotero_gateway(force_user=user_flag(args))
+        service = GatewayFactory.get_tag_service(force_user=user_flag(args))
 
         if args.verb == "list":
             tags = gateway.get_tags()
@@ -123,9 +123,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             else:
                 print(f"Failed to add tags to {args.key}")
         elif args.verb == "purge":
-            purge_service = GatewayFactory.get_purge_service(
-                force_user=getattr(args, "user", False)
-            )
+            purge_service = GatewayFactory.get_purge_service(force_user=user_flag(args))
             dry_run = not args.execute
             stats = purge_service.purge_tags_from_collection(args.collection, dry_run=dry_run)
             count = stats["deleted"] if not dry_run else stats["skipped"]

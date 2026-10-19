@@ -12,6 +12,7 @@ from zotero_cli.cli.flags import (
     add_details_flag,
     add_key_argument,
     resolve_key,
+    user_flag,
 )
 from zotero_cli.cli.presenters import item_list_presenter
 from zotero_cli.cli.safety import add_permanent_flag, resolve_trash
@@ -69,7 +70,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
     def execute(self, args: argparse.Namespace) -> None:
         import json
 
-        gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
+        gateway = GatewayFactory.get_zotero_gateway(force_user=user_flag(args))
 
         resolve_key(args)
         keys = []
@@ -99,9 +100,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 continue
 
             if args.export_format:
-                export_service = GatewayFactory.get_export_service(
-                    force_user=getattr(args, "user", False)
-                )
+                export_service = GatewayFactory.get_export_service(force_user=user_flag(args))
                 # Library fields go to the terminal as-is in these formats:
                 # remove control characters (GHSA-3r38-p632-f79q).
                 if args.export_format == "bibtex":
@@ -812,7 +811,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         add_permanent_flag(merge_p, "the emptied duplicates")
 
     def execute(self, args: argparse.Namespace) -> None:
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
         if args.verb == "inspect":
@@ -856,7 +855,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         from rich.prompt import Confirm, Prompt
 
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         service = GatewayFactory.get_merge_service(force_user=force_user)
 
         master_key = args.master
@@ -963,7 +962,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         else:
             plan = parse_plan_from_csv(text)
 
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         service = GatewayFactory.get_merge_service(force_user=force_user)
 
         # Always preview first, regardless of --execute: surfaces incomplete
@@ -1073,7 +1072,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         from zotero_cli.core.config import get_config
 
-        source_gateway = GatewayFactory.get_zotero_gateway(force_user=getattr(args, "user", False))
+        source_gateway = GatewayFactory.get_zotero_gateway(force_user=user_flag(args))
 
         config = get_config()
         # Create a modified config for the destination (Target is always a group in this command)
@@ -1144,7 +1143,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 console.print("[yellow]Aborted.[/]")
                 return
 
-        service = GatewayFactory.get_purge_service(force_user=getattr(args, "user", False))
+        service = GatewayFactory.get_purge_service(force_user=user_flag(args))
         stats = service.purge_item_assets(args.key, types=types, dry_run=False)
 
         console.print(
@@ -1169,7 +1168,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             print("Error: --offline is read-only; drop --execute to preview.", file=sys.stderr)
             sys.exit(2)
 
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         service = GatewayFactory.get_enrichment_service(force_user=force_user)
         options = {
             "fields": fields,
@@ -1239,7 +1238,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             )
 
     def _handle_pdf_ops(self, args: argparse.Namespace) -> None:
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         if args.pdf_verb == "fetch":
             gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
             pdf_finder = GatewayFactory.get_pdf_finder_service(force_user=force_user)
@@ -1471,7 +1470,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             print(f"Failed to update item {args.key}.")
 
     def _handle_move(self, args: argparse.Namespace) -> None:
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         service = GatewayFactory.get_collection_service(force_user=force_user)
         if service.move_item(args.source, args.target, args.key):
             source_display = args.source or "auto"
@@ -1488,7 +1487,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
     def _handle_export(self, args: argparse.Namespace) -> None:
         from pathlib import Path
 
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
         item = gateway.get_item(args.key)

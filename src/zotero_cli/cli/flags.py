@@ -35,6 +35,11 @@ def resolve_key(args: argparse.Namespace) -> None:
         raise UsageError("An item key is required: pass KEY or --key KEY.")
 
 
+def user_flag(args: argparse.Namespace) -> bool:
+    """Whether the global `--user` flag asks for the personal library (Issue #383)."""
+    return bool(getattr(args, "user", False))
+
+
 # `--format` choices of the list-style commands: ndjson is one JSON object per line.
 LIST_FORMATS = ("table", "json", "csv", "ndjson", "keys")
 LIST_FORMAT_HELP = (

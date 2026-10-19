@@ -39,6 +39,15 @@ class CommandRegistry:
     def register(cls, command_cls: Type[BaseCommand]) -> Type[BaseCommand]:
         """Decorator to register a command class."""
         command = command_cls()
+        existing = cls._commands.get(command.name)
+        if existing is not None and (
+            type(existing).__module__,
+            type(existing).__qualname__,
+        ) != (command_cls.__module__, command_cls.__qualname__):
+            raise ValueError(
+                f"Command name '{command.name}' is already registered by "
+                f"{type(existing).__qualname__}"
+            )
         cls._commands[command.name] = command
         return command_cls
 

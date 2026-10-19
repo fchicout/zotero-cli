@@ -5,7 +5,7 @@ from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag
+from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag, user_flag
 from zotero_cli.cli.presenters import records
 from zotero_cli.core.exceptions import NotFound, UsageError
 from zotero_cli.core.services.search_service import Hit, SearchRequest, SearchService
@@ -116,7 +116,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
     def _resolve_collection(args: argparse.Namespace, name_or_key: Optional[str]) -> Optional[str]:
         if not name_or_key:
             return None
-        service = GatewayFactory.get_collection_service(force_user=getattr(args, "user", False))
+        service = GatewayFactory.get_collection_service(force_user=user_flag(args))
         key = service.resolve_collection(name_or_key)
         if not key:
             raise NotFound(f"Collection '{name_or_key}' not found.")
@@ -138,7 +138,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
     def execute(self, args: argparse.Namespace) -> None:
         args = argparse.Namespace(**{**self._OPTION_DEFAULTS, **vars(args)})
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
         fmt = getattr(args, "format", "table")

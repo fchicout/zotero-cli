@@ -1,6 +1,7 @@
 import argparse
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.flags import user_flag
 from zotero_cli.cli.notify import stderr_notify
 from zotero_cli.core.config import get_config
 from zotero_cli.infra.factory import GatewayFactory
@@ -76,7 +77,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             return
 
         # --user applies here too (Issue #383).
-        gateway = GatewayFactory.get_zotero_gateway(config, force_user=getattr(args, "user", False))
+        gateway = GatewayFactory.get_zotero_gateway(config, force_user=user_flag(args))
         service = GatewayFactory.get_storage_service(config, gateway, stderr_notify)
 
         # Previews unless --execute (4.0, Issue #462); --dry-run is the explicit spelling.

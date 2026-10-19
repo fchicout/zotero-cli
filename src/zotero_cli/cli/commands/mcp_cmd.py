@@ -2,6 +2,7 @@ import argparse
 from typing import Any, Dict, List, Optional
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
+from zotero_cli.cli.flags import user_flag
 from zotero_cli.core.exceptions import UsageError
 
 
@@ -65,5 +66,5 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         from zotero_cli.infra.factory import GatewayFactory
         from zotero_cli.infra.mcp_server import build_server, run_stdio
 
-        tools = GatewayFactory.get_agent_tools(describe_cli, getattr(args, "user", False))
+        tools = GatewayFactory.get_agent_tools(describe_cli, user_flag(args))
         run_stdio(build_server(tools))
