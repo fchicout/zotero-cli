@@ -50,12 +50,16 @@ CLI_INFRA_BASELINE = {
     "cli/commands/init_cmd.py: zotero_cli.infra.zotero_api": "checks credentials before any config exists",
     "cli/commands/item_cmd.py: zotero_cli.infra.sqlite_repo": "offline gateway for item inspect",
     "cli/commands/mcp_cmd.py: zotero_cli.infra.mcp_server": "lazy: the mcp extra is optional",
-    "cli/commands/system_cmd.py: zotero_cli.infra.bibtex_lib": "builds import strategies inline",
-    "cli/commands/system_cmd.py: zotero_cli.infra.canonical_csv_lib": "builds import strategies inline",
-    "cli/commands/system_cmd.py: zotero_cli.infra.ieee_csv_lib": "builds import strategies inline",
-    "cli/commands/system_cmd.py: zotero_cli.infra.ris_lib": "builds import strategies inline",
-    "cli/commands/system_cmd.py: zotero_cli.infra.springer_csv_lib": "builds import strategies inline",
 }
+
+# Services, tools, strategies and gateways a command still builds itself instead of asking
+# GatewayFactory ("file: class"). A ratchet: it only shrinks.
+CLI_CONSTRUCTION_BASELINE = {
+    "cli/commands/import_cmd.py: ArxivImportStrategy": "wraps the arXiv gateway for one call",
+    "cli/commands/import_cmd.py: DoiImportStrategy": "wraps the metadata aggregator for one call",
+    "cli/commands/import_cmd.py: SearchableProviderImportStrategy": "wraps the BDTD client",
+}
+_CONSTRUCTED_SUFFIXES = ("Service", "Tools", "Strategy", "Gateway")
 
 # Modules in core that may use an HTTP library: the SSRF guard and the two clients that
 # pin their address through it.
@@ -194,6 +198,32 @@ def test_cli_gets_infra_adapters_from_the_factory():
 def test_cli_infra_baseline_is_lowered_as_commands_move_to_the_factory():
     stale = set(CLI_INFRA_BASELINE) - _cli_infra_imports()
     assert stale == set(), "delete these from CLI_INFRA_BASELINE (it only shrinks)"
+
+
+def _cli_constructions() -> Set[str]:
+    found = set()
+    for path in _files("cli"):
+        for node in ast.walk(_tree(path)):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id[:1].isupper()
+                and node.func.id.endswith(_CONSTRUCTED_SUFFIXES)
+            ):
+                found.add(f"{_rel(path)}: {node.func.id}")
+    return found
+
+
+def test_cli_does_not_construct_services_itself():
+    new = _cli_constructions() - set(CLI_CONSTRUCTION_BASELINE)
+    assert new == set(), (
+        "add a getter to ServiceFactory/MetadataClientFactory and use GatewayFactory"
+    )
+
+
+def test_cli_construction_baseline_is_lowered_as_commands_move_to_the_factory():
+    stale = set(CLI_CONSTRUCTION_BASELINE) - _cli_constructions()
+    assert stale == set(), "delete these from CLI_CONSTRUCTION_BASELINE (it only shrinks)"
 
 
 # ---- HTTP ------------------------------------------------------------------------------

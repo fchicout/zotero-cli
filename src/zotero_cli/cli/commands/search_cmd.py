@@ -211,7 +211,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
                 start=args.start,
                 limit=args.limit,
             )
-            hits = SearchService(gateway).search(request)
+            hits = GatewayFactory.get_search_service(gateway).search(request)
 
         columns = self._COLUMNS + [self._SCORE_COLUMN] if args.fulltext else self._COLUMNS
 

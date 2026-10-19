@@ -11,7 +11,7 @@ def mock_service():
     with (
         patch("zotero_cli.cli.commands.storage_cmd.get_config") as mock_get_config,
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
-        patch("zotero_cli.cli.commands.storage_cmd.StorageService") as mock_service_cls,
+        patch("zotero_cli.infra.factory.GatewayFactory.get_storage_service") as mock_service_cls,
     ):
         mock_get_config.return_value = MagicMock()
         service = mock_service_cls.return_value

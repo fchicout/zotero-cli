@@ -21,7 +21,6 @@ from zotero_cli.cli.safety import (
 )
 from zotero_cli.core.exceptions import NotFound, UsageError
 from zotero_cli.core.interfaces import ZoteroGateway
-from zotero_cli.core.services.backup_service import BackupService
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup, strip_controls
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -597,7 +596,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 
         total_items = col.get("meta", {}).get("numItems")
 
-        service = BackupService(gateway, gateway, gateway)
+        service = GatewayFactory.get_backup_service(gateway)
         console.print(
             f"Starting Backup for Collection '[cyan]{safe_markup(args.collection)}[/cyan]' ({safe_markup(col_id)}) to [green]{safe_markup(args.output)}[/green]..."
         )
