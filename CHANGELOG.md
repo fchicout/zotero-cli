@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🔧 Internal
+- **`sqlite_repo.py` split, first step (#608):** the persistent job queue (`SqliteJobRepository`) moved to `infra/sqlite_job_repo.py`; `infra.sqlite_repo` still exports it, so imports keep working.
 - **CLI helpers (#606):** one `user_flag(args)` helper replaces 34 copies of `getattr(args, "user", False)`; the unused second `LIST_FORMATS` is gone; registering two different commands under one name now fails loudly instead of silently overwriting the first.
 - **Commands ask the factory for services (#606):** `search`, `storage checkout`, `collection backup`, `system backup`, `mcp serve`, and the file import / `system normalize` format detection now get their service, tools or import strategy from `GatewayFactory` instead of building them in the command. `import` and `system normalize` share one file-format detection (`get_file_import_strategy`), with their own error messages unchanged. A new ratchet stops commands building services themselves.
 - **`MergeService.merge` split (part of #607):** the 154-line method now delegates to `_preflight`, `_collect_children`, `_move_children` and `_remove_duplicates`. Same repository calls in the same order, same errors, same results.

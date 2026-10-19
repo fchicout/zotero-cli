@@ -22,7 +22,7 @@ MAX_FUNCTION_LINES = 100
 # Files over MAX_FILE_LINES, with their current length.
 FILE_SIZE_BASELINE = {
     "cli/commands/item_cmd.py": 1595,
-    "infra/sqlite_repo.py": 1301,
+    "infra/sqlite_repo.py": 1108,
 }
 
 # Functions over MAX_FUNCTION_LINES ("file::name"), with their current length.
