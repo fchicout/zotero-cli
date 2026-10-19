@@ -20,9 +20,7 @@ MAX_FILE_LINES = 1000
 MAX_FUNCTION_LINES = 100
 
 # Files over MAX_FILE_LINES, with their current length.
-FILE_SIZE_BASELINE = {
-    "infra/sqlite_repo.py": 1108,
-}
+FILE_SIZE_BASELINE: Dict[str, int] = {}
 
 # Functions over MAX_FUNCTION_LINES ("file::name"), with their current length.
 FUNCTION_SIZE_BASELINE = {
