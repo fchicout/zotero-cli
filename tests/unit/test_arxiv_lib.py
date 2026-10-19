@@ -1,7 +1,9 @@
 from unittest.mock import MagicMock, Mock, patch
 
 import arxiv
+import pytest
 
+from zotero_cli.core.exceptions import Unavailable
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.arxiv_lib import ArxivLibGateway
 
@@ -151,3 +153,54 @@ def test_count_zero_results(MockSearch, MockClient):
 
     gateway = ArxivLibGateway()
     assert gateway.count("no such papers exist xyz123") == 0
+
+
+# ---- a service that rejects us fails fast and says why --------------------------------------
+
+
+def _http_error(status: int) -> arxiv.HTTPError:
+    return arxiv.HTTPError("https://export.arxiv.org/api/query", 0, status)
+
+
+@patch("zotero_cli.infra.arxiv_lib.arxiv.Client")
+def test_the_client_is_paced_and_retries_only_a_little(MockClient):
+    MockClient.return_value.results.return_value = iter([])
+
+    list(ArxivLibGateway().search("anything"))
+
+    MockClient.assert_called_once_with(num_retries=2, delay_seconds=3.0)
+
+
+@patch("zotero_cli.infra.arxiv_lib.arxiv.Client")
+def test_a_429_while_searching_is_a_clear_unavailable_error(MockClient):
+    def rejected():
+        raise _http_error(429)
+        yield  # pragma: no cover - makes this a generator like client.results()
+
+    MockClient.return_value.results.return_value = rejected()
+    papers = ArxivLibGateway().search("anything")
+
+    with pytest.raises(Unavailable, match="rate limiting.*HTTP 429.*3 seconds"):
+        list(papers)
+
+
+@patch("zotero_cli.infra.arxiv_lib.arxiv.Client")
+def test_a_server_error_while_searching_names_the_status(MockClient):
+    def broken():
+        raise _http_error(503)
+        yield  # pragma: no cover
+
+    MockClient.return_value.results.return_value = broken()
+    papers = ArxivLibGateway().search("anything")
+
+    with pytest.raises(Unavailable, match="HTTP 503"):
+        list(papers)
+
+
+@patch("zotero_cli.infra.arxiv_lib.arxiv.Client")
+def test_a_429_while_counting_is_a_clear_unavailable_error(MockClient):
+    MockClient.return_value._parse_feed.side_effect = _http_error(429)
+    gateway = ArxivLibGateway()
+
+    with pytest.raises(Unavailable, match="rate limiting"):
+        gateway.count("anything")

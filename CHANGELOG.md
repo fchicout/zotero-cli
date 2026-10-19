@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🐛 Fixed
+- **arXiv requests fail fast and say why:** when arXiv rejected requests with HTTP 429 (rate limiting), `import arxiv` and the arXiv lookups in `item hydrate` retried ten times, five seconds apart, so one command hung for about two minutes and kept hitting the service before failing with a traceback. The client now keeps arXiv's three-second pace, retries twice, and a 429 (or any HTTP error) ends the command with exit status 5 and a message that says what to do ("arXiv is rate limiting requests from this address ... wait a while and try again"). Nothing else about the arXiv import changes.
+
 ## [4.0.2] - 2026-10-11
 
 A patch release: exported files no longer carry terminal escape sequences, and the dependencies are refreshed (tenacity 9.2.1, bibtexparser 2.1.0, fastapi 0.143.0). The CI workflows now pin every action to a commit SHA.

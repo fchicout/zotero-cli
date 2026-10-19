@@ -3,10 +3,33 @@ from typing import Iterator
 
 import arxiv
 
+from zotero_cli.core.exceptions import Unavailable
 from zotero_cli.core.interfaces import ArxivGateway
 from zotero_cli.core.models import ResearchPaper
 
 DOI_REGEX = r"10\.\d{4,9}/[-._;()/:a-zA-Z0-9]+"
+
+# arXiv asks API clients for at most one request every three seconds. The library waits
+# `delay_seconds` between requests and retries a failed one `num_retries` times, so a
+# service that is rejecting us (HTTP 429) costs a few seconds, not minutes of hammering
+# it (it used to be ten retries five seconds apart).
+ARXIV_DELAY_SECONDS = 3.0
+ARXIV_RETRIES = 2
+
+
+def _client() -> arxiv.Client:
+    return arxiv.Client(num_retries=ARXIV_RETRIES, delay_seconds=ARXIV_DELAY_SECONDS)
+
+
+def _unavailable(error: arxiv.HTTPError) -> Unavailable:
+    """A failed arXiv request as the CLI's own error (exit 5) with a message that says what
+    to do, instead of the library's traceback."""
+    if error.status == 429:
+        return Unavailable(
+            "arXiv is rate limiting requests from this address (HTTP 429). Wait a while "
+            "(often an hour) and try again; the API allows one request every 3 seconds."
+        )
+    return Unavailable(f"arXiv could not be reached (HTTP {error.status}); try again later.")
 
 
 class ArxivLibGateway(ArxivGateway):
@@ -40,11 +63,15 @@ class ArxivLibGateway(ArxivGateway):
             query=query, max_results=max_results, sort_by=criterion, sort_order=order
         )
 
-        # Use the arxiv Client to execute the search with robust retries
-        client = arxiv.Client(num_retries=10, delay_seconds=5.0)
+        results = _client().results(search)
 
-        results = client.results(search)
+        try:
+            yield from self._map_results(results)
+        except arxiv.HTTPError as error:
+            raise _unavailable(error) from error
 
+    @staticmethod
+    def _map_results(results: Iterator[arxiv.Result]) -> Iterator[ResearchPaper]:
         for result in results:
             # Extract DOI with fallback
             doi = result.doi
@@ -86,7 +113,10 @@ class ArxivLibGateway(ArxivGateway):
         third-party-private state we're guessing at).
         """
         search = arxiv.Search(query=query, max_results=1)
-        client = arxiv.Client(num_retries=10, delay_seconds=5.0)
+        client = _client()
         url = client._format_url(search, 0, 1)
-        feed = client._parse_feed(url, first_page=True)
+        try:
+            feed = client._parse_feed(url, first_page=True)
+        except arxiv.HTTPError as error:
+            raise _unavailable(error) from error
         return int(feed.header.total_results)
