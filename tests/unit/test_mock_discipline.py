@@ -1,6 +1,6 @@
-"""A ceiling on bare `MagicMock()` / `Mock()` in tests/unit (Issue #389).
+"""A ceiling on spec-less `MagicMock()` / `Mock()` / `AsyncMock()` in tests/unit (Issues #389, #604).
 
-A bare mock accepts any attribute and any call, so a renamed or re-signed method in a
+A bare mock (even one given only a `return_value` or `side_effect`) accepts any attribute and any call, so a renamed or re-signed method in a
 real interface goes unnoticed. New tests should take the autospec fixtures from
 tests/unit/conftest.py (`mock_gateway`, `mock_item_repo`, ...), or `create_autospec` /
 `Mock(spec=...)`, or give the mock a `spec`. The count may only go down: when you
@@ -11,7 +11,7 @@ import ast
 from pathlib import Path
 
 UNIT = Path(__file__).resolve().parent
-BARE_MOCK_CEILING = 435
+BARE_MOCK_CEILING = 554
 THIS_FILE = Path(__file__).resolve()
 
 
@@ -21,11 +21,13 @@ def _bare_mocks() -> int:
         if path.resolve() == THIS_FILE:
             continue
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-            if not isinstance(node, ast.Call) or node.args or node.keywords:
+            if not isinstance(node, ast.Call) or node.args:
                 continue
             func = node.func
             name = func.id if isinstance(func, ast.Name) else getattr(func, "attr", "")
-            if name in ("MagicMock", "Mock"):
+            if name in ("MagicMock", "Mock", "AsyncMock") and not any(
+                keyword.arg in ("spec", "spec_set", "autospec") for keyword in node.keywords
+            ):
                 count += 1
     return count
 
