@@ -21,9 +21,6 @@ from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup, strip_controls
 
 FORMATS = ["table", "json", "csv"]
-# List-style commands also offer ndjson (one JSON object per line, written as it is produced)
-# and keys (one identifier per line, for piping into xargs or `while read`).
-LIST_FORMATS = ["table", "json", "csv", "ndjson", "keys"]
 
 Record = Mapping[str, Any]  # values: str/int/float, or a list of them
 

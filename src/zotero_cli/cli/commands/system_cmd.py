@@ -8,7 +8,7 @@ from rich.markup import escape
 from rich.table import Table
 
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
-from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag
+from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag, user_flag
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
@@ -54,7 +54,7 @@ class InfoCommand(BaseCommand):
         print(f"Library Type: {config.library_type}{type_note}")
         print(f"Zotero API Key: {'********' if config.api_key else 'NOT SET'}")
         # The library requests actually go to (Issue #397).
-        endpoint = self._endpoint(config, getattr(args, "user", False))
+        endpoint = self._endpoint(config, user_flag(args))
         print(f"Endpoint:    {endpoint}")
         # Derived from the active library_id/library_type above, not the
         # separately-stored config.target_group_url - that field is only
@@ -481,9 +481,7 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
         # Previews unless --execute (4.0, Issue #462); --dry-run is the explicit spelling.
         dry_run = not getattr(args, "execute", False)
 
-        restore_service = GatewayFactory.get_restore_service(
-            force_user=getattr(args, "user", False)
-        )
+        restore_service = GatewayFactory.get_restore_service(force_user=user_flag(args))
 
         msg = f"Restoring from archive: [green]{args.file}[/green]"
         if dry_run:
@@ -519,7 +517,7 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
         from zotero_cli.core.config import get_config
         from zotero_cli.infra.factory import GatewayFactory
 
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
 
         config = get_config()
@@ -550,7 +548,7 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
             STATUS_NOT_CONFIGURED,
         )
 
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         service = GatewayFactory.get_diagnostics_service(force_user=force_user)
         results = service.run_checks()
 
@@ -602,7 +600,7 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
 
         from zotero_cli.infra.factory import GatewayFactory
 
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         service = GatewayFactory.get_sandbox_service(force_user=force_user)
 
         if args.clean:
@@ -636,7 +634,7 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
 
         from zotero_cli.infra.factory import GatewayFactory
 
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         job_service = GatewayFactory.get_job_queue_service(force_user=force_user)
 
         if args.jobs_verb == "list":
@@ -862,7 +860,7 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
             TimeRemainingColumn,
         )
 
-        force_user = getattr(args, "user", False)
+        force_user = user_flag(args)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
         service = GatewayFactory.get_backup_service(gateway)
 
