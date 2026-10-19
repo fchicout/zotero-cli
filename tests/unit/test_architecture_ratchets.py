@@ -24,10 +24,8 @@ FILE_SIZE_BASELINE: Dict[str, int] = {}
 
 # Functions over MAX_FUNCTION_LINES ("file::name"), with their current length.
 FUNCTION_SIZE_BASELINE = {
-    "cli/commands/import_cmd.py::register_args": 153,
     "cli/commands/init_cmd.py::execute": 150,
     "cli/commands/item_inspect.py::execute": 132,
-    "cli/commands/report_cmd.py::register_args": 109,
     "cli/commands/report_cmd.py::_handle_attachments": 101,
     "cli/commands/search_cmd.py::execute": 127,
     "cli/commands/system_cmd.py::_handle_jobs": 102,

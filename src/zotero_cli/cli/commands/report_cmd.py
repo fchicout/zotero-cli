@@ -26,21 +26,15 @@ console = Console()
 _PAPER_TYPES = ("journalArticle", "thesis", "conferencePaper", "book", "report")
 
 
-@CommandRegistry.register
-class ReportCommand(BaseCommand):
-    name = "report"
-    help = "General library analytics and metadata reports"
+def _add_dupe_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
 
-    def register_args(self, parser: argparse.ArgumentParser) -> None:
-        sub = parser.add_subparsers(dest="report_type", required=True)
-
-        # report duplicates
-        dupe_p = sub.add_parser(
-            "duplicates",
-            help="Find duplicate items across collections or the whole library",
-            description="Identifies duplicate items across specified collections, or the entire library if --collections is omitted, facilitating library cleanup. Matches by DOI, ISBN, ArXiv ID, or normalized title (exact tier), plus a fuzzy year/author/title fallback tier for near-duplicates that don't exactly match.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+    # report duplicates
+    dupe_p = sub.add_parser(
+        "duplicates",
+        help="Find duplicate items across collections or the whole library",
+        description="Identifies duplicate items across specified collections, or the entire library if --collections is omitted, facilitating library cleanup. Matches by DOI, ISBN, ArXiv ID, or normalized title (exact tier), plus a fuzzy year/author/title fallback tier for near-duplicates that don't exactly match.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Identifying overlaps between search databases
@@ -65,25 +59,28 @@ Result:  A CSV with one row per occurrence (role/reason columns blank) is writte
          `zotero-cli item merge --from-plan duplicates_plan.csv --execute`. Use a `.json` extension instead
          for a nested format.
 """,
-        )
-        dupe_p.add_argument(
-            "--collections",
-            help="Comma-separated list of collection names or keys. Omit to scan the whole library.",
-        )
-        dupe_p.add_argument("--csv", help="Optional path to export the duplicate report as CSV")
-        dupe_p.add_argument(
-            "--export-plan",
-            help="Optional path to export a bulk-editable merge plan (.csv or .json) for "
-            "`item merge --from-plan`, instead of/in addition to the audit --csv report",
-        )
+    )
+    dupe_p.add_argument(
+        "--collections",
+        help="Comma-separated list of collection names or keys. Omit to scan the whole library.",
+    )
+    dupe_p.add_argument("--csv", help="Optional path to export the duplicate report as CSV")
+    dupe_p.add_argument(
+        "--export-plan",
+        help="Optional path to export a bulk-editable merge plan (.csv or .json) for "
+        "`item merge --from-plan`, instead of/in addition to the audit --csv report",
+    )
 
-        # report audit
-        audit_p = sub.add_parser(
-            "audit",
-            help="Audit collection metadata completeness",
-            description="Audits a specified collection to identify missing metadata (such as missing DOIs, abstracts, titles, or PDFs).",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_audit_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # report audit
+    audit_p = sub.add_parser(
+        "audit",
+        help="Audit collection metadata completeness",
+        description="Audits a specified collection to identify missing metadata (such as missing DOIs, abstracts, titles, or PDFs).",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Auditing collection metadata before paper submission
@@ -91,55 +88,68 @@ Problem: I want to verify that all my final selected papers have abstracts and D
 Action:  zotero-cli report audit --collection "Final Selection" --details
 Result:  A completeness report table is printed, and missing items are detailed.
 """,
-        )
-        audit_p.add_argument(
-            "--collection", required=True, help="Collection Name or Key to validate"
-        )
-        add_details_flag(audit_p, "Show detailed failure logs")
-        audit_p.add_argument(
-            "--export-missing", help="Path to export keys of missing items to a file"
-        )
+    )
+    audit_p.add_argument("--collection", required=True, help="Collection Name or Key to validate")
+    add_details_flag(audit_p, "Show detailed failure logs")
+    audit_p.add_argument("--export-missing", help="Path to export keys of missing items to a file")
 
-        # report stats
-        stats_p = sub.add_parser(
-            "stats",
-            help="Show global library metrics",
-            description="Gathers and displays global statistics about your Zotero library, including item types, total counts, and temporal distributions.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_stats_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # report stats
+    stats_p = sub.add_parser(
+        "stats",
+        help="Show global library metrics",
+        description="Gathers and displays global statistics about your Zotero library, including item types, total counts, and temporal distributions.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 $ zotero-cli report stats
 $ zotero-cli report stats --collection "Screening"
 $ zotero-cli report stats --format json
 """,
-        )
-        stats_p.add_argument(
-            "--collection",
-            help="Filter statistics to a specific collection instead of the entire library",
-        )
-        add_format_flag(
-            stats_p,
-            help="Output format: table (default), or json (one object) / csv (section,label,count,percent) for scripts",
-        )
+    )
+    stats_p.add_argument(
+        "--collection",
+        help="Filter statistics to a specific collection instead of the entire library",
+    )
+    add_format_flag(
+        stats_p,
+        help="Output format: table (default), or json (one object) / csv (section,label,count,percent) for scripts",
+    )
 
-        # report attachments
-        attach_p = sub.add_parser(
-            "attachments",
-            help="Analyze disk usage and missing files",
-            description="Performs an audit of PDF attachments and other files in your library or a collection, detailing disk usage and identifying items missing PDFs.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_attach_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # report attachments
+    attach_p = sub.add_parser(
+        "attachments",
+        help="Analyze disk usage and missing files",
+        description="Performs an audit of PDF attachments and other files in your library or a collection, detailing disk usage and identifying items missing PDFs.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 $ zotero-cli report attachments
 $ zotero-cli report attachments --collection "To Read" --output attachments.md
 """,
-        )
-        attach_p.add_argument("--collection", help="Filter analysis to a specific collection")
-        attach_p.add_argument(
-            "--output", help="Optional path to save the Markdown attachments report"
-        )
+    )
+    attach_p.add_argument("--collection", help="Filter analysis to a specific collection")
+    attach_p.add_argument("--output", help="Optional path to save the Markdown attachments report")
+
+
+@CommandRegistry.register
+class ReportCommand(BaseCommand):
+    name = "report"
+    help = "General library analytics and metadata reports"
+
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
+        sub = parser.add_subparsers(dest="report_type", required=True)
+        _add_dupe_verb(sub)
+        _add_audit_verb(sub)
+        _add_stats_verb(sub)
+        _add_attach_verb(sub)
 
     def execute(self, args: argparse.Namespace) -> None:
         force_user = user_flag(args)
