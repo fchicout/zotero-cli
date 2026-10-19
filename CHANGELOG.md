@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🔧 Internal
+- **`CollectionService.move_item` split (part of #607):** the 97-line method delegates to `_resolve_dest_id`, `_find_item` and `_resolve_source`; the order of repository calls, the messages and the results are unchanged.
 - **`sqlite_repo.py` under the size cap (#608):** the shadow-copy helpers (one private copy of `zotero.sqlite` per process and its per-thread connections) moved to `infra/sqlite_shadow.py`; `infra.sqlite_repo` re-exports the same objects, so patches and imports keep working. The file went from 1,301 to 996 lines.
 - **CLI argument builders split (#605):** the 600-line `register_args` of `item`, the 330-line one of `system` and the 265-line one of `collection` are now one small function per verb, composed in the same order; `item`'s moved to `item_args.py` and `item inspect` to `item_inspect.py`, taking `item_cmd.py` from 1,596 to 847 lines. The `--help` text of all 67 commands and verbs was compared before and after and is byte-identical.
 - **HTTP egress cleanups (part of #609):** removed `BaseAPIClient._get`'s unused `url_override` parameter, which would have let a caller point a fixed-host client at any URL, and documented why the S3 upload is made without the Zotero session. The remaining egress steps change retry or pacing behaviour and are tracked in #611.

@@ -146,3 +146,14 @@ def test_delete_collection_recursive(service, mock_gateway):
     assert result is True
     assert mock_gateway.delete_item.call_count == 2
     mock_gateway.delete_collection.assert_called_with("COLL_ID", 1)
+
+
+def test_move_item_already_only_in_the_destination_is_a_no_op_success(service, mock_gateway):
+    mock_gateway.get_collection_id_by_name.side_effect = lambda name: (
+        "ID_DEST" if name == "Dest" else None
+    )
+    raw_item = {"key": "KEY1", "data": {"key": "KEY1", "version": 1, "collections": ["ID_DEST"]}}
+    mock_gateway.get_item.return_value = ZoteroItem.from_raw_zotero_item(raw_item)
+
+    assert service.move_item(None, "Dest", "KEY1") is True
+    mock_gateway.update_items.assert_not_called()
