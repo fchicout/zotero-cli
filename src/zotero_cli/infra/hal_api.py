@@ -1,8 +1,6 @@
 import logging
 from typing import Any, Dict, Optional
 
-import requests
-
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
@@ -20,7 +18,8 @@ class HALAPIClient(BaseAPIClient, MetadataProvider):
         """
         Retrieves paper metadata for the given identifier (HAL ID or DOI).
         """
-        try:
+
+        def fetch() -> Optional[ResearchPaper]:
             # Determine if identifier is a DOI or HAL ID
             query_field = "identifiant_s"
             if "/" in identifier and "." in identifier:  # Likely a DOI
@@ -42,14 +41,7 @@ class HALAPIClient(BaseAPIClient, MetadataProvider):
 
             return self._map_to_research_paper(results[0])
 
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
-                return None
-            logger.exception(f"HALAPIClient: Error fetching metadata for {identifier}")
-            return None
-        except Exception:
-            logger.exception(f"HALAPIClient: Error parsing response for {identifier}")
-            return None
+        return self._lookup(identifier, fetch)
 
     def _map_to_research_paper(self, item: Dict[str, Any]) -> ResearchPaper:
         # Title (list, take first)

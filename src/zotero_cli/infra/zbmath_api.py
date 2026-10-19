@@ -1,8 +1,6 @@
 import logging
 from typing import Any, Dict, Optional
 
-import requests
-
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.infra.base_api_client import BaseAPIClient
@@ -20,7 +18,8 @@ class ZBMathAPIClient(BaseAPIClient, MetadataProvider):
         """
         Retrieves paper metadata for the given identifier (Zbl Number or DOI).
         """
-        try:
+
+        def fetch() -> Optional[ResearchPaper]:
             # zbMATH API works with queries.
             # DOI lookup: q=doi:10.1007/s00209-020-02612-w
             # Zbl lookup: q=an:1453.14001
@@ -50,14 +49,7 @@ class ZBMathAPIClient(BaseAPIClient, MetadataProvider):
             # zbMATH returns a list of results, we take the first one
             return self._map_to_research_paper(results[0])
 
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
-                return None
-            logger.exception(f"ZBMathAPIClient: Error fetching metadata for {identifier}")
-            return None
-        except Exception:
-            logger.exception(f"ZBMathAPIClient: Error parsing response for {identifier}")
-            return None
+        return self._lookup(identifier, fetch)
 
     def _map_to_research_paper(self, item: Dict[str, Any]) -> ResearchPaper:
         # Title

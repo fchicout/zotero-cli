@@ -3,7 +3,7 @@ import time
 from abc import ABC
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import requests
 from tenacity import (
@@ -14,6 +14,7 @@ from tenacity import (
     wait_exponential,
 )
 
+from zotero_cli.core.models import ResearchPaper
 from zotero_cli.core.utils.user_agent import user_agent
 
 # Configure logging
@@ -88,6 +89,24 @@ class BaseAPIClient(ABC):
         if elapsed < self.min_request_interval:
             time.sleep(self.min_request_interval - elapsed)
         self._last_request_time = time.time()
+
+    def _lookup(
+        self, identifier: str, fetch: Callable[[], Optional[ResearchPaper]]
+    ) -> Optional[ResearchPaper]:
+        """Run `fetch` (the request plus the parsing) and turn its failures into "no result":
+        a 404 quietly, any other HTTP error or a response that cannot be read with a logged
+        exception."""
+        name = type(self).__name__
+        try:
+            return fetch()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                return None
+            logger.exception(f"{name}: Error fetching metadata for {identifier}")
+            return None
+        except Exception:
+            logger.exception(f"{name}: Error parsing response for {identifier}")
+            return None
 
     @retry(
         stop=stop_after_attempt(3),
