@@ -367,3 +367,14 @@ def test_metadata_client_factory_import_does_not_pull_in_heavy_client_deps():
         check=True,
     )
     assert result.stdout.strip() == ""
+
+
+def test_resolve_config_prefers_the_given_config_and_otherwise_loads_one(mock_config):
+    from unittest.mock import patch
+
+    from zotero_cli.infra.config_resolution import resolve_config
+
+    assert resolve_config(mock_config) is mock_config
+    with patch("zotero_cli.core.config.get_config", return_value=mock_config) as load:
+        assert resolve_config(None) is mock_config
+    load.assert_called_once_with()

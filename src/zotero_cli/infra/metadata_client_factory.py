@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from zotero_cli.core.config import ZoteroConfig
+from zotero_cli.infra.config_resolution import resolve_config
 
 if TYPE_CHECKING:
     from zotero_cli.core.interfaces import MetadataProvider
@@ -41,10 +42,7 @@ class MetadataClientFactory:
 
     @staticmethod
     def get_openalex_client(config: Optional[ZoteroConfig] = None) -> "OpenAlexAPIClient":
-        if not config:
-            from zotero_cli.core.config import get_config
-
-            config = get_config()
+        config = resolve_config(config)
 
         from zotero_cli.infra.openalex_api import OpenAlexAPIClient
 
@@ -52,10 +50,7 @@ class MetadataClientFactory:
 
     @staticmethod
     def get_pubmed_client(config: Optional[ZoteroConfig] = None) -> "PubMedAPIClient":
-        if not config:
-            from zotero_cli.core.config import get_config
-
-            config = get_config()
+        config = resolve_config(config)
 
         from zotero_cli.infra.pubmed_api import PubMedAPIClient
 
@@ -95,10 +90,7 @@ class MetadataClientFactory:
     def get_semantic_scholar_client(
         config: Optional[ZoteroConfig] = None,
     ) -> "SemanticScholarAPIClient":
-        if not config:
-            from zotero_cli.core.config import get_config
-
-            config = get_config()
+        config = resolve_config(config)
 
         from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient
 
@@ -110,10 +102,7 @@ class MetadataClientFactory:
 
     @staticmethod
     def get_core_client(config: Optional[ZoteroConfig] = None) -> "CoreAPIClient":
-        if not config:
-            from zotero_cli.core.config import get_config
-
-            config = get_config()
+        config = resolve_config(config)
 
         from zotero_cli.infra.core_api import CoreAPIClient
 
@@ -135,10 +124,7 @@ class MetadataClientFactory:
     def get_metadata_aggregator(
         config: Optional[ZoteroConfig] = None,
     ) -> "MetadataAggregatorService":
-        if not config:
-            from zotero_cli.core.config import get_config as main_get_config
-
-            config = main_get_config()
+        config = resolve_config(config)
 
         from zotero_cli.infra.crossref_api import CrossRefAPIClient
         from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient
