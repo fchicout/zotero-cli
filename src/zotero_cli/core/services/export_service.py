@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional, Union
+from typing import List, Optional
 
 from zotero_cli.core.interfaces import (
     BibliographyFormatter,
@@ -78,7 +78,7 @@ class ExportService(NotifyMixin):
             self._say("Warning: No valid papers to export.", logging.WARNING)
             return False
 
-        writers: Dict[str, Union[BibtexGateway, RisGateway]] = {
+        writers: dict[str, BibtexGateway | RisGateway] = {
             "bibtex": self.bibtex_gateway,
             "ris": self.ris_gateway,
         }
