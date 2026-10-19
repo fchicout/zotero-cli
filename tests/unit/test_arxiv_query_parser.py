@@ -24,3 +24,52 @@ def test_parse_complex_query(parser):
     assert "all:(threat* OR anomal*)" in params.query
     assert "all:(detection OR identification)" in params.query
     assert "all:(LLM* OR language model* OR large language model*)" in params.query
+
+
+PINNED = [
+    ["", "", 100, "relevance", "descending"],
+    [
+        "order: -announced_date_first; size: 200; terms: ti=Attention",
+        "ti:Attention",
+        200,
+        "submittedDate",
+        "descending",
+    ],
+    [
+        "order: announced_date_last; size: abc; classification: Computer Science (cs); date_range: from 2020-01-01",
+        "cat:cs.* AND submittedDate:[202001010000 TO 209901010000]",
+        100,
+        "submittedDate",
+        "ascending",
+    ],
+    [
+        "terms: ti='attention is' OR abs=graph; AND au=Vaswani",
+        'ti:("attention is" OR abs=graph) AND au:Vaswani',
+        100,
+        "relevance",
+        "descending",
+    ],
+    [
+        "terms: free text 'quoted'; (ti=a b)",
+        '(free text "quoted") AND ((ti=a b))',
+        100,
+        "relevance",
+        "descending",
+    ],
+    ["size: 50;;; terms: all=a OR b", "all:(a OR b)", 50, "relevance", "descending"],
+    ["classification: physics; date_range: sometime", "", 100, "relevance", "descending"],
+]
+
+
+@pytest.mark.parametrize(("dsl", "query", "size", "sort_by", "sort_order"), PINNED)
+def test_the_dsl_keeps_translating_the_same_way(dsl, query, size, sort_by, sort_order):
+    from zotero_cli.core.services.arxiv_query_parser import ArxivQueryParser
+
+    params = ArxivQueryParser().parse(dsl)
+
+    assert (params.query, params.max_results, params.sort_by, params.sort_order) == (
+        query,
+        size,
+        sort_by,
+        sort_order,
+    )
