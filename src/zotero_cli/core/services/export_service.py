@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 from zotero_cli.core.interfaces import (
     BibliographyFormatter,
@@ -78,13 +78,15 @@ class ExportService(NotifyMixin):
             self._say("Warning: No valid papers to export.", logging.WARNING)
             return False
 
-        if format.lower() == "bibtex":
-            return self.bibtex_gateway.write_file(output_path, papers)
-        elif format.lower() == "ris":
-            return self.ris_gateway.write_file(output_path, papers)
-        else:
+        writers: Dict[str, Union[BibtexGateway, RisGateway]] = {
+            "bibtex": self.bibtex_gateway,
+            "ris": self.ris_gateway,
+        }
+        writer = writers.get(format.lower())
+        if writer is None:
             self._say(f"Error: Unsupported export format '{format}'.", logging.ERROR)
             return False
+        return writer.write_file(output_path, papers)
 
     def serialize_bibtex(self, items: List[ZoteroItem]) -> str:
         """Serialize items to BibTeX string."""

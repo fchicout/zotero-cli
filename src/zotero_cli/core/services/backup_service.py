@@ -8,6 +8,7 @@ from typing import IO, Any, Callable, Dict, List, Optional, Set
 
 from zotero_cli.core.interfaces import AttachmentRepository, CollectionRepository, ItemRepository
 from zotero_cli.core.services.children_index import children_by_parent
+from zotero_cli.core.utils.checksum import sha256_stream
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -188,13 +189,8 @@ class BackupService:
                         zf.write(temp_path, storage_path, compress_type=_compression_for(data))
 
                         # Calculate SHA-256 checksum [SPEC-ZAF-001]
-                        import hashlib
-
-                        sha256_hash = hashlib.sha256()
                         with open(temp_path, "rb") as f:
-                            for byte_block in iter(lambda: f.read(4096), b""):
-                                sha256_hash.update(byte_block)
-                        checksum = sha256_hash.hexdigest()
+                            checksum = sha256_stream(f)
 
                         manifest["file_map"][item.key] = {
                             "path": storage_path,
