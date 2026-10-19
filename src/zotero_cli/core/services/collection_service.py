@@ -6,6 +6,8 @@ from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
 from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.zotero_item import ZoteroItem
 
+_ROOT_KEYWORDS = ("/", "root", "unfiled")
+
 
 @dataclass
 class CollectionRemovalPlan:
@@ -50,77 +52,17 @@ class CollectionService(NotifyMixin):
         If source_col_name is None, attempts to infer it from the item's current collections.
         Returns True if successful, False if item not found, ambiguous source, or error.
         """
-        root_keywords = ["/", "root", "unfiled"]
-        is_dest_root = dest_col_name.lower() in root_keywords
+        dest_id = self._resolve_dest_id(dest_col_name)
 
-        dest_id: Optional[str] = None
-        if is_dest_root:
-            dest_id = None  # Root
-        else:
-            dest_id = self.collection_repo.get_collection_id_by_name(dest_col_name)
-            if not dest_id:
-                dest_id = dest_col_name
+        item = self._find_item(identifier, source_col_name)
+        if item is None:
+            return False
 
-        # Fetch item first
-        item = self.item_repo.get_item(identifier)
-        if not item:
-            # Try slow lookup if key failed (only if source is provided, otherwise we can't search in it)
-            if source_col_name:
-                is_source_root = source_col_name.lower() in root_keywords
-                if not is_source_root:
-                    lookup_source_id = (
-                        self.collection_repo.get_collection_id_by_name(source_col_name)
-                        or source_col_name
-                    )
-                    self._say(
-                        f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'..."
-                    )
-                    found_items = list(
-                        self.collection_repo.get_items_in_collection(lookup_source_id)
-                    )
-                    for i in found_items:
-                        if self._is_match(i, identifier):
-                            item = i
-                            break
-
-            if not item:
-                self._say(f"Item '{identifier}' not found.", logging.WARNING)
-                return False
-
-        # Resolve Source ID
-        source_id: Optional[str] = None
-        is_source_root = False
-
-        if source_col_name:
-            if source_col_name.lower() in root_keywords:
-                is_source_root = True
-                source_id = None
-            else:
-                source_id = self.collection_repo.get_collection_id_by_name(source_col_name)
-                if not source_id:
-                    source_id = source_col_name
-        else:
-            # Auto-inference
-            current_cols = set(item.collections)
-            # Remove dest_id if present to see what's left
-            candidates = current_cols - ({dest_id} if dest_id else set())
-
-            if len(candidates) == 0:
-                if not current_cols:
-                    # Item is in root
-                    is_source_root = True
-                    source_id = None
-                else:
-                    # Item is already only in dest
-                    return True
-            elif len(candidates) == 1:
-                source_id = next(iter(candidates))
-            else:
-                self._say(
-                    f"Error: Ambiguous source. Item '{identifier}' is in multiple collections ({candidates}). Please specify --source to ensure correct movement.",
-                    logging.ERROR,
-                )
-                return False
+        outcome, source_id, is_source_root = self._resolve_source(
+            item, source_col_name, dest_id, identifier
+        )
+        if outcome is not None:
+            return outcome
 
         # Verify membership
         if is_source_root:
@@ -139,6 +81,66 @@ class CollectionService(NotifyMixin):
                 logging.WARNING,
             )
             return False
+
+    def _resolve_dest_id(self, dest_col_name: str) -> Optional[str]:
+        """The destination collection's id, or None for the library root."""
+        if dest_col_name.lower() in _ROOT_KEYWORDS:
+            return None
+        return self.collection_repo.get_collection_id_by_name(dest_col_name) or dest_col_name
+
+    def _find_item(self, identifier: str, source_col_name: Optional[str]) -> Optional[ZoteroItem]:
+        """The item by key, else (given a source collection) by DOI/arXiv id inside it."""
+        item = self.item_repo.get_item(identifier)
+        if item:
+            return item
+        # Try slow lookup if key failed (only if source is provided, otherwise we can't search in it)
+        if source_col_name and source_col_name.lower() not in _ROOT_KEYWORDS:
+            lookup_source_id = (
+                self.collection_repo.get_collection_id_by_name(source_col_name) or source_col_name
+            )
+            self._say(
+                f"Item key '{identifier}' lookup failed. Searching by DOI/ArXiv in '{source_col_name}'..."
+            )
+            found_items = list(self.collection_repo.get_items_in_collection(lookup_source_id))
+            for candidate in found_items:
+                if self._is_match(candidate, identifier):
+                    return candidate
+        self._say(f"Item '{identifier}' not found.", logging.WARNING)
+        return None
+
+    def _resolve_source(
+        self,
+        item: ZoteroItem,
+        source_col_name: Optional[str],
+        dest_id: Optional[str],
+        identifier: str,
+    ) -> Tuple[Optional[bool], Optional[str], bool]:
+        """(final result or None to carry on, source collection id, source is the root).
+        Without an explicit source it is inferred from the item's collections."""
+        if source_col_name:
+            if source_col_name.lower() in _ROOT_KEYWORDS:
+                return None, None, True
+            source_id = self.collection_repo.get_collection_id_by_name(source_col_name)
+            return None, source_id or source_col_name, False
+
+        # Auto-inference
+        current_cols = set(item.collections)
+        # Remove dest_id if present to see what's left
+        candidates = current_cols - ({dest_id} if dest_id else set())
+
+        if len(candidates) == 0:
+            if not current_cols:
+                # Item is in root
+                return None, None, True
+            # Item is already only in dest
+            return True, None, False
+        if len(candidates) == 1:
+            return None, next(iter(candidates)), False
+        self._say(
+            f"Error: Ambiguous source. Item '{identifier}' is in multiple collections ({candidates}). Please specify --source to ensure correct movement.",
+            logging.ERROR,
+        )
+        return False, None, False
 
     def _is_match(self, item: ZoteroItem, identifier: str) -> bool:
         if item.doi:
