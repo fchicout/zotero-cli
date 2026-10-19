@@ -338,7 +338,8 @@ def test_a_full_record_maps_to_every_paper_field() -> None:
     assert paper.title == "Tese de teste"
     assert paper.abstract == "Primeiro.\n\nSegundo."
     assert paper.authors == ["Ana Silva", "Bia Souza", "Caio Lima"]
-    assert (paper.year, paper.publication) == ("2021", "USP")
+    assert paper.year == "2021"
+    assert paper.publication == "USP"
     assert paper.url == "http://repo.example/x"
     assert paper.doi == "10.1/abc"
     assert paper.pdf_url is None
@@ -350,5 +351,11 @@ def test_an_empty_record_maps_to_an_empty_paper() -> None:
 
     paper = BDTDAPIClient()._map_to_research_paper({}, resolve_pdf=False)
 
-    assert (paper.title, paper.abstract, paper.authors) == ("", "", [])
-    assert (paper.year, paper.publication, paper.url, paper.doi, paper.extra) == (None,) * 5
+    assert paper.title == ""
+    assert paper.abstract == ""
+    assert paper.authors == []
+    assert paper.year is None
+    assert paper.publication is None
+    assert paper.url is None
+    assert paper.doi is None
+    assert paper.extra is None
