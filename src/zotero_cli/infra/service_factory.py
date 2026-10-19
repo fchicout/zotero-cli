@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from zotero_cli.core.config import ZoteroConfig, get_config, get_state_dir
 from zotero_cli.infra.metadata_client_factory import MetadataClientFactory
@@ -7,7 +7,9 @@ from zotero_cli.infra.resolver_factory import ResolverFactory
 
 if TYPE_CHECKING:
     from zotero_cli.core.interfaces import ZoteroGateway
+    from zotero_cli.core.services.agent_tools import AgentTools
     from zotero_cli.core.services.attachment_service import AttachmentService
+    from zotero_cli.core.services.backup_service import BackupService
     from zotero_cli.core.services.collection_service import CollectionService
     from zotero_cli.core.services.diagnostics_service import DiagnosticsService
     from zotero_cli.core.services.enrichment_service import EnrichmentService
@@ -20,6 +22,8 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.purge_service import PurgeService
     from zotero_cli.core.services.restore_service import RestoreService
     from zotero_cli.core.services.sandbox_service import SandboxService
+    from zotero_cli.core.services.search_service import SearchService
+    from zotero_cli.core.services.storage_service import StorageService
     from zotero_cli.core.services.tag_service import TagService
     from zotero_cli.core.services.transfer_service import TransferService
     from zotero_cli.core.services.verify_service import VerifyService
@@ -159,6 +163,50 @@ class ServiceFactory:
         from zotero_cli.core.services.import_service import ImportService
 
         return ImportService(item_repo, col_service)
+
+    @staticmethod
+    def get_search_service(gateway: "ZoteroGateway") -> "SearchService":
+        from zotero_cli.core.services.search_service import SearchService
+
+        return SearchService(gateway)
+
+    @staticmethod
+    def get_backup_service(gateway: "ZoteroGateway") -> "BackupService":
+        from zotero_cli.core.services.backup_service import BackupService
+
+        return BackupService(gateway, gateway, gateway)
+
+    @staticmethod
+    def get_storage_service(
+        config: ZoteroConfig,
+        gateway: "ZoteroGateway",
+        notify: Optional[Callable[[str], None]] = None,
+    ) -> "StorageService":
+        from zotero_cli.core.services.storage_service import StorageService
+
+        return StorageService(config, gateway, gateway, notify=notify)
+
+    @staticmethod
+    def get_agent_tools(
+        describe_cli: Callable[[Optional[List[str]]], Dict[str, Any]], force_user: bool = False
+    ) -> "AgentTools":
+        """The tool surface behind `mcp serve` (read-only)."""
+        from zotero_cli.core.services.agent_tools import AgentTools
+
+        gateway = RepositoryFactory.get_zotero_gateway(force_user=force_user)
+        collections = ServiceFactory.get_collection_service(force_user=force_user)
+        export = ServiceFactory.get_export_service(force_user=force_user)
+        return AgentTools(
+            search=ServiceFactory.get_search_service(gateway),
+            items=gateway,
+            collections=gateway,
+            tags=gateway,
+            attachments=gateway,
+            text=ServiceFactory.get_attachment_service(force_user=force_user),
+            resolve_collection=collections.resolve_collection,
+            format_bibliography=export.serialize_bibliography,
+            describe_cli=describe_cli,
+        )
 
     @staticmethod
     def get_purge_service(

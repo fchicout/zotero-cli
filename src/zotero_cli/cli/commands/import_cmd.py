@@ -196,38 +196,16 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
             self._handle_manual(import_service, args)
 
     def _handle_file(self, service: ImportService, args: argparse.Namespace) -> None:
-        from zotero_cli.core.strategies import (
-            BibtexImportStrategy,
-            CanonicalCsvImportStrategy,
-            IeeeCsvImportStrategy,
-            ImportStrategy,
-            RisImportStrategy,
-            SpringerCsvImportStrategy,
-        )
-
         ext = os.path.splitext(args.file)[1].lower()
-        strategy: ImportStrategy | None = None
-
-        if ext == ".bib":
-            strategy = BibtexImportStrategy(GatewayFactory.get_bibtex_gateway())
-        elif ext == ".ris":
-            strategy = RisImportStrategy(GatewayFactory.get_ris_gateway())
-        elif ext == ".csv":
+        header = ""
+        if ext == ".csv":
             # Peek at header to determine source
             with open(args.file, "r", encoding="utf-8") as f:
                 header = f.readline().lower()
-                if "item title" in header:
-                    strategy = SpringerCsvImportStrategy(GatewayFactory.get_springer_csv_gateway())
-                elif "document title" in header:
-                    strategy = IeeeCsvImportStrategy(GatewayFactory.get_ieee_csv_gateway())
-                elif "title" in header and "doi" in header:
-                    # Assume Canonical if it has 'title' and 'doi' (Our standard)
-                    strategy = CanonicalCsvImportStrategy(
-                        GatewayFactory.get_canonical_csv_gateway()
-                    )
-                else:
-                    raise UsageError(f"Unknown CSV format. Headers: {header}")
-        else:
+        strategy = GatewayFactory.get_file_import_strategy(ext, header)
+        if strategy is None:
+            if ext == ".csv":
+                raise UsageError(f"Unknown CSV format. Headers: {header}")
             print(f"Unsupported: {ext}")
             return
 

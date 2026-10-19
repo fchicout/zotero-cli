@@ -335,9 +335,9 @@ def test_collection_backup_success(mock_gateway, capsys):
     mock_gateway.get_collection.return_value = {"meta": {"numItems": 3}}
 
     args = argparse.Namespace(verb="backup", collection="COL_KEY", output="backup.zaf", user=False)
-    with patch("zotero_cli.cli.commands.collection_cmd.BackupService") as mock_backup_srv:
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_backup_service") as get_backup:
         service_inst = MagicMock()
-        mock_backup_srv.return_value = service_inst
+        get_backup.return_value = service_inst
         CollectionCommand().execute(args)
         service_inst.backup_collection.assert_called_once()
 

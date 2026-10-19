@@ -4,6 +4,7 @@ from zotero_cli.core.config import ZoteroConfig
 
 if TYPE_CHECKING:
     from zotero_cli.core.services.metadata_aggregator import MetadataAggregatorService
+    from zotero_cli.core.strategies import ImportStrategy
     from zotero_cli.infra.arxiv_lib import ArxivLibGateway
     from zotero_cli.infra.bdtd_api import BDTDAPIClient
     from zotero_cli.infra.bibtex_lib import BibtexLibGateway
@@ -221,3 +222,30 @@ class MetadataClientFactory:
         from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
 
         return CanonicalCsvLibGateway()
+
+    @staticmethod
+    def get_file_import_strategy(ext: str, csv_header: str = "") -> Optional["ImportStrategy"]:
+        """The import strategy for a file extension (lower case, with the dot); for
+        `.csv` the first line, lower case, tells the publisher format apart. None when
+        the extension or the CSV format is not recognised."""
+        from zotero_cli.core import strategies
+
+        if ext == ".bib":
+            return strategies.BibtexImportStrategy(MetadataClientFactory.get_bibtex_gateway())
+        if ext == ".ris":
+            return strategies.RisImportStrategy(MetadataClientFactory.get_ris_gateway())
+        if ext == ".csv":
+            if "item title" in csv_header:
+                return strategies.SpringerCsvImportStrategy(
+                    MetadataClientFactory.get_springer_csv_gateway()
+                )
+            if "document title" in csv_header:
+                return strategies.IeeeCsvImportStrategy(
+                    MetadataClientFactory.get_ieee_csv_gateway()
+                )
+            if "title" in csv_header and "doi" in csv_header:
+                # Our own standard format
+                return strategies.CanonicalCsvImportStrategy(
+                    MetadataClientFactory.get_canonical_csv_gateway()
+                )
+        return None

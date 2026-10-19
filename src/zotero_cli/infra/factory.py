@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from zotero_cli.core.config import ZoteroConfig
 from zotero_cli.core.interfaces import (
@@ -18,7 +18,9 @@ if TYPE_CHECKING:
         PDFResolver,
         ZoteroGateway,
     )
+    from zotero_cli.core.services.agent_tools import AgentTools
     from zotero_cli.core.services.attachment_service import AttachmentService
+    from zotero_cli.core.services.backup_service import BackupService
     from zotero_cli.core.services.collection_service import CollectionService
     from zotero_cli.core.services.diagnostics_service import DiagnosticsService
     from zotero_cli.core.services.enrichment_service import EnrichmentService
@@ -33,9 +35,12 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.purge_service import PurgeService
     from zotero_cli.core.services.restore_service import RestoreService
     from zotero_cli.core.services.sandbox_service import SandboxService
+    from zotero_cli.core.services.search_service import SearchService
+    from zotero_cli.core.services.storage_service import StorageService
     from zotero_cli.core.services.tag_service import TagService
     from zotero_cli.core.services.transfer_service import TransferService
     from zotero_cli.core.services.verify_service import VerifyService
+    from zotero_cli.core.strategies import ImportStrategy
     from zotero_cli.infra.arxiv_lib import ArxivLibGateway
     from zotero_cli.infra.bdtd_api import BDTDAPIClient
     from zotero_cli.infra.bibtex_lib import BibtexLibGateway
@@ -226,6 +231,32 @@ class GatewayFactory:
         offline: Optional[bool] = None,
     ) -> "ImportService":
         return ServiceFactory.get_import_service(config, force_user, offline)
+
+    @staticmethod
+    def get_search_service(gateway: "ZoteroGateway") -> "SearchService":
+        return ServiceFactory.get_search_service(gateway)
+
+    @staticmethod
+    def get_backup_service(gateway: "ZoteroGateway") -> "BackupService":
+        return ServiceFactory.get_backup_service(gateway)
+
+    @staticmethod
+    def get_storage_service(
+        config: ZoteroConfig,
+        gateway: "ZoteroGateway",
+        notify: Optional[Callable[[str], None]] = None,
+    ) -> "StorageService":
+        return ServiceFactory.get_storage_service(config, gateway, notify)
+
+    @staticmethod
+    def get_agent_tools(
+        describe_cli: Callable[[Optional[List[str]]], Dict[str, Any]], force_user: bool = False
+    ) -> "AgentTools":
+        return ServiceFactory.get_agent_tools(describe_cli, force_user)
+
+    @staticmethod
+    def get_file_import_strategy(ext: str, csv_header: str = "") -> Optional["ImportStrategy"]:
+        return MetadataClientFactory.get_file_import_strategy(ext, csv_header)
 
     @staticmethod
     def get_purge_service(

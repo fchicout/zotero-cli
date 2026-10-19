@@ -33,7 +33,7 @@ def test_storage_checkout_honours_user():
         patch(
             "zotero_cli.cli.commands.storage_cmd.GatewayFactory.get_zotero_gateway"
         ) as get_gateway,
-        patch("zotero_cli.cli.commands.storage_cmd.StorageService") as service,
+        patch("zotero_cli.cli.commands.storage_cmd.GatewayFactory.get_storage_service") as service,
     ):
         service.return_value.checkout_items.return_value = 0
         StorageCommand()._handle_checkout(args)

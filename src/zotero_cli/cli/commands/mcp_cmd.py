@@ -62,24 +62,8 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         if getattr(args, "verb", None) != "serve":
             raise UsageError("Run `zotero-cli mcp serve`.")
         # Imported here: nothing below is needed unless the server really starts.
-        from zotero_cli.core.services.agent_tools import AgentTools
-        from zotero_cli.core.services.search_service import SearchService
         from zotero_cli.infra.factory import GatewayFactory
         from zotero_cli.infra.mcp_server import build_server, run_stdio
 
-        force_user = getattr(args, "user", False)
-        gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
-        collections = GatewayFactory.get_collection_service(force_user=force_user)
-        export = GatewayFactory.get_export_service(force_user=force_user)
-        tools = AgentTools(
-            search=SearchService(gateway),
-            items=gateway,
-            collections=gateway,
-            tags=gateway,
-            attachments=gateway,
-            text=GatewayFactory.get_attachment_service(force_user=force_user),
-            resolve_collection=collections.resolve_collection,
-            format_bibliography=export.serialize_bibliography,
-            describe_cli=describe_cli,
-        )
+        tools = GatewayFactory.get_agent_tools(describe_cli, getattr(args, "user", False))
         run_stdio(build_server(tools))

@@ -32,10 +32,10 @@ def test_serve_is_classified_as_read_only() -> None:
 
 def _factories() -> Any:
     return (
-        patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_collection_service"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_export_service"),
-        patch("zotero_cli.infra.factory.GatewayFactory.get_attachment_service"),
+        patch("zotero_cli.infra.repository_factory.RepositoryFactory.get_zotero_gateway"),
+        patch("zotero_cli.infra.service_factory.ServiceFactory.get_collection_service"),
+        patch("zotero_cli.infra.service_factory.ServiceFactory.get_export_service"),
+        patch("zotero_cli.infra.service_factory.ServiceFactory.get_attachment_service"),
     )
 
 

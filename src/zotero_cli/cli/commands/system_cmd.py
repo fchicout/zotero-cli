@@ -10,14 +10,6 @@ from rich.table import Table
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
-from zotero_cli.core.services.backup_service import BackupService
-from zotero_cli.core.strategies import (
-    BibtexImportStrategy,
-    CanonicalCsvImportStrategy,
-    IeeeCsvImportStrategy,
-    RisImportStrategy,
-    SpringerCsvImportStrategy,
-)
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -842,47 +834,22 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
                 raise ZoteroCliError(f"Failed to save configuration: {e}") from e
 
     def _handle_normalize(self, args: argparse.Namespace) -> None:
-        # The file-format libraries load only here (Issue #433: bibtexparser
-        # alone was ~18 ms on every command).
-        from zotero_cli.infra.bibtex_lib import BibtexLibGateway
-        from zotero_cli.infra.canonical_csv_lib import CanonicalCsvLibGateway
-        from zotero_cli.infra.ieee_csv_lib import IeeeCsvLibGateway
-        from zotero_cli.infra.ris_lib import RisLibGateway
-        from zotero_cli.infra.springer_csv_lib import SpringerCsvLibGateway
-
         ext = os.path.splitext(args.file)[1].lower()
-        strategy: Any = None
-        gateway: Any = None
-
-        if ext == ".bib":
-            gateway = BibtexLibGateway()
-            strategy = BibtexImportStrategy(gateway)
-        elif ext == ".ris":
-            gateway = RisLibGateway()
-            strategy = RisImportStrategy(gateway)
-        elif ext == ".csv":
-            # 1. Detect CSV Type
+        header = ""
+        if ext == ".csv":
             with open(args.file, "r", encoding="utf-8") as f:
                 header = f.readline().lower()
-                if "item title" in header:
-                    gateway = SpringerCsvLibGateway()
-                    strategy = SpringerCsvImportStrategy(gateway)
-                elif "document title" in header:
-                    gateway = IeeeCsvLibGateway()
-                    strategy = IeeeCsvImportStrategy(gateway)
-                elif "title" in header and "doi" in header:
-                    gateway = CanonicalCsvLibGateway()
-                    strategy = CanonicalCsvImportStrategy(gateway)
-                else:
-                    raise UsageError("Unknown CSV format for normalization.")
-        else:
+        strategy = GatewayFactory.get_file_import_strategy(ext, header)
+        if strategy is None:
+            if ext == ".csv":
+                raise UsageError("Unknown CSV format for normalization.")
             raise UsageError(f"Unsupported file extension {ext}")
 
         print(f"Parsing {args.file}...")
         papers = list(strategy.fetch_papers(args.file))
 
         # 2. Write to Canonical
-        canon_gw = CanonicalCsvLibGateway()
+        canon_gw = GatewayFactory.get_canonical_csv_gateway()
         canon_gw.write_file(iter(papers), args.output)
         print(f"Normalization complete. Saved {len(papers)} items to {args.output}")
 
@@ -897,7 +864,7 @@ $ zotero-cli system jobs run --type fetch_pdf --watch
 
         force_user = getattr(args, "user", False)
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
-        service = BackupService(gateway, gateway, gateway)
+        service = GatewayFactory.get_backup_service(gateway)
 
         console.print(f"Starting System Backup to [green]{safe_markup(args.output)}[/green]...")
 
