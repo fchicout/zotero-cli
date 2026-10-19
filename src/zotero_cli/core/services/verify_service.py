@@ -1,10 +1,10 @@
-import hashlib
 import logging
 import zipfile
 from dataclasses import dataclass, field
 from typing import List, Optional
 
 from zotero_cli.core.utils.archive_safety import check_entry_count, read_json_member
+from zotero_cli.core.utils.checksum import sha256_stream
 
 logger = logging.getLogger(__name__)
 
@@ -118,8 +118,5 @@ class VerifyService:
         return report
 
     def _calculate_checksum(self, zf: zipfile.ZipFile, path: str) -> str:
-        sha256_hash = hashlib.sha256()
         with zf.open(path) as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
-                sha256_hash.update(byte_block)
-        return sha256_hash.hexdigest()
+            return sha256_stream(f)

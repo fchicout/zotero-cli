@@ -32,7 +32,7 @@ PRINT_BASELINE = {
 GATEWAY_BASELINE = {
     "core/services/children_index.py": "batches children through gateway-only count_search_results",
     "core/services/diagnostics_service.py": "calls gateway-only verify_credentials and count_items",
-    "core/services/purge_service.py": "tells the offline gateway apart by class to refuse writes",
+    "core/services/purge_service.py": "batches children through gateway-only count_search_results and reads trash/orphans",
     "core/services/transfer_service.py": "moves one item between two libraries, so takes two gateways",
 }
 

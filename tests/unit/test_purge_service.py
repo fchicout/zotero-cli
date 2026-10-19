@@ -82,8 +82,8 @@ def test_purge_tags_specific(purge_service, mock_gateway):
 
 
 def test_offline_veto(purge_service, mock_gateway):
-    # Mocking the class name to trigger _is_offline
-    mock_gateway.__class__.__name__ = "SqliteZoteroGateway"
+    # An offline gateway trips the veto
+    mock_gateway.is_offline = True
 
     with pytest.raises(RuntimeError, match="Offline Veto"):
         purge_service.purge_attachments(["K1"])
@@ -184,14 +184,14 @@ def test_purge_tags_all_branch(purge_service, mock_gateway):
 
 def test_offline_veto_notes(purge_service, mock_gateway):
     # Test line 61
-    mock_gateway.__class__.__name__ = "SqliteZoteroGateway"
+    mock_gateway.is_offline = True
     with pytest.raises(RuntimeError, match="Offline Veto"):
         purge_service.purge_notes(["K1"])
 
 
 def test_offline_veto_tags(purge_service, mock_gateway):
     # Test line 101
-    mock_gateway.__class__.__name__ = "SqliteZoteroGateway"
+    mock_gateway.is_offline = True
     with pytest.raises(RuntimeError, match="Offline Veto"):
         purge_service.purge_tags(["K1"])
 

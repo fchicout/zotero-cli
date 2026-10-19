@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🔧 Internal
+- **Core services cleanups (part of #607):** the purge veto no longer recognises the offline gateway by its class name; `ZoteroGateway` carries an `is_offline` flag (`SqliteZoteroGateway` sets it). Backup and verify share one `sha256_stream` helper instead of two copies of the chunked hash loop. `ExportService.export_items` picks its writer from a mapping instead of an if/elif ladder. Same checksums, same export results, same messages.
 - **Architecture guard rails (#604):** new ratchets in the unit suite that only allow the codebase to get tidier: file and function size caps with baselines for today's offenders, a layer rule for `api`, a baseline for commands importing infra adapters, HTTP-library and `arxiv` import rules, a per-file count of direct HTTP calls (aliases included), a check that every metadata client builds on `BaseAPIClient`, an import-cycle check, a no-side-effects-on-import check, and parity tests for the sort and hydrate field lists. The mock-discipline ceiling now counts spec-less mocks that carry a `return_value`/`side_effect` too. No product code changes.
 
 ## [4.0.3] - 2026-10-19

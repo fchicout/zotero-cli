@@ -168,6 +168,8 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
     Uses a 'Shadow Copy' strategy to avoid locking the database.
     """
 
+    is_offline = True
+
     def __init__(
         self,
         database_path: str,
@@ -797,8 +799,6 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
         if row["url"]:
             fields["url"] = row["url"]
         return fields
-
-    # --- Write Operations (FORBIDDEN in Offline mode) ---
 
     def create_item(self, paper: ResearchPaper, collection_id: str) -> bool:
         raise OfflineReadOnly()

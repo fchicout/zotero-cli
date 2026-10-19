@@ -365,6 +365,9 @@ class ZoteroGateway(
     Inherits from specific repositories to enforce contract.
     """
 
+    # True for a gateway that reads a local database and cannot write (offline mode).
+    is_offline: bool = False
+
     @abstractmethod
     def verify_credentials(self) -> bool:
         pass

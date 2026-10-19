@@ -78,13 +78,15 @@ class ExportService(NotifyMixin):
             self._say("Warning: No valid papers to export.", logging.WARNING)
             return False
 
-        if format.lower() == "bibtex":
-            return self.bibtex_gateway.write_file(output_path, papers)
-        elif format.lower() == "ris":
-            return self.ris_gateway.write_file(output_path, papers)
-        else:
+        writers: dict[str, BibtexGateway | RisGateway] = {
+            "bibtex": self.bibtex_gateway,
+            "ris": self.ris_gateway,
+        }
+        writer = writers.get(format.lower())
+        if writer is None:
             self._say(f"Error: Unsupported export format '{format}'.", logging.ERROR)
             return False
+        return writer.write_file(output_path, papers)
 
     def serialize_bibtex(self, items: List[ZoteroItem]) -> str:
         """Serialize items to BibTeX string."""

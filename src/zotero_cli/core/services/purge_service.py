@@ -16,10 +16,7 @@ class PurgeService:
         self.gateway = gateway
 
     def _is_offline(self) -> bool:
-        # Check if gateway is an instance of SqliteZoteroGateway
-        # We use string check to avoid circular imports if any,
-        # or just check the class name.
-        return self.gateway.__class__.__name__ == "SqliteZoteroGateway"
+        return self.gateway.is_offline is True
 
     def _get_children_by_parent(
         self, item_keys: List[str], item_type: str
