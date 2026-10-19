@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 ## [Unreleased]
 
 ### 🔧 Internal
+- **CLI argument builders split (#605):** the 600-line `register_args` of `item`, the 330-line one of `system` and the 265-line one of `collection` are now one small function per verb, composed in the same order; `item`'s moved to `item_args.py` and `item inspect` to `item_inspect.py`, taking `item_cmd.py` from 1,596 to 847 lines. The `--help` text of all 67 commands and verbs was compared before and after and is byte-identical.
 - **HTTP egress cleanups (part of #609):** removed `BaseAPIClient._get`'s unused `url_override` parameter, which would have let a caller point a fixed-host client at any URL, and documented why the S3 upload is made without the Zotero session. The remaining egress steps change retry or pacing behaviour and are tracked in #611.
 - **Error-handling ratchets (#610):** new tests pin the 101 broad `except Exception` handlers and the 25 `sys.exit` calls in commands per file, so they can only go down. No product code changes.
 - **Metadata aggregator registration is data-driven (#608):** `get_metadata_aggregator` lists the eleven providers once, in fan-out order, and sets the named attributes from that list instead of eleven locals plus eleven assignments (and one `setattr` for `bdtd`). Same providers, same order, same attributes; a test pins them.

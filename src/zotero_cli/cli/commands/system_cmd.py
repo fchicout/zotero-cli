@@ -90,22 +90,16 @@ class InfoCommand(BaseCommand):
         return f"https://api.zotero.org/{prefix}/{library_id}"
 
 
-@CommandRegistry.register
-class SystemCommand(BaseCommand):
-    name = "system"
-    help = "System maintenance & information"
+def _add_info_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
 
-    def register_args(self, parser: argparse.ArgumentParser) -> None:
-        sub = parser.add_subparsers(dest="verb", required=True)
-
-        # Info
-        sub.add_parser(
-            "info",
-            help="Display environment and configuration",
-            description="Displays the version, Python/platform, config and state paths, and which library "
-            "requests actually go to. Doesn't check connectivity - use `system check` for that.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+    # Info
+    sub.add_parser(
+        "info",
+        help="Display environment and configuration",
+        description="Displays the version, Python/platform, config and state paths, and which library "
+        "requests actually go to. Doesn't check connectivity - use `system check` for that.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 $ zotero-cli system info
@@ -116,15 +110,18 @@ Notes
   actually target) - not "environment variables" or live connection status.
 • Run after `system switch`, or when unsure which library is active.
 """,
-        )
+    )
 
-        # Groups
-        sub.add_parser(
-            "groups",
-            help="List user groups and IDs",
-            description="Lists all Zotero groups that your account belongs to, displaying their names, unique numeric IDs, and your access permissions.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_groups_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Groups
+    sub.add_parser(
+        "groups",
+        help="List user groups and IDs",
+        description="Lists all Zotero groups that your account belongs to, displaying their names, unique numeric IDs, and your access permissions.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Finding a lab's Group ID for a new project
@@ -139,15 +136,18 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_groups.md
 """,
-        )
+    )
 
-        # Check
-        sub.add_parser(
-            "check",
-            help="Diagnose connectivity/credentials for all configured services",
-            description="Runs lightweight, read-only connectivity and credential checks against Zotero, Semantic Scholar, Unpaywall, and PubMed/NCBI.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_check_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Check
+    sub.add_parser(
+        "check",
+        help="Diagnose connectivity/credentials for all configured services",
+        description="Runs lightweight, read-only connectivity and credential checks against Zotero, Semantic Scholar, Unpaywall, and PubMed/NCBI.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: A command fails and you don't know why
@@ -162,15 +162,18 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_check.md
 """,
-        )
+    )
 
-        # Selftest
-        sub.add_parser(
-            "selftest",
-            help="Check offline that this installation's features work",
-            description="Runs offline checks of the features that depend on bundled libraries (PDF text extraction, SQLite). Needs no configuration or network. Exits 1 if any check fails.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_selftest_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Selftest
+    sub.add_parser(
+        "selftest",
+        help="Check offline that this installation's features work",
+        description="Runs offline checks of the features that depend on bundled libraries (PDF text extraction, SQLite). Needs no configuration or network. Exits 1 if any check fails.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Checking a fresh install
@@ -185,15 +188,18 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_selftest.md
 """,
-        )
+    )
 
-        # Demo Sandbox
-        sandbox_p = sub.add_parser(
-            "demo-sandbox",
-            help="Provision a temporary collection with mock papers",
-            description="Creates a temporary collection populated with mock papers so you can try the item, collection and report commands without touching your real library.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_sandbox_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Demo Sandbox
+    sandbox_p = sub.add_parser(
+        "demo-sandbox",
+        help="Provision a temporary collection with mock papers",
+        description="Creates a temporary collection populated with mock papers so you can try the item, collection and report commands without touching your real library.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Trying zotero-cli for the first time
@@ -212,23 +218,26 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_demo-sandbox.md
 """,
-        )
-        sandbox_p.add_argument(
-            "--name", default="Zotero-CLI Sandbox", help="Name for the sandbox collection"
-        )
-        sandbox_p.add_argument(
-            "--clean",
-            action="store_true",
-            help="Delete the sandbox collection instead of creating it",
-        )
+    )
+    sandbox_p.add_argument(
+        "--name", default="Zotero-CLI Sandbox", help="Name for the sandbox collection"
+    )
+    sandbox_p.add_argument(
+        "--clean",
+        action="store_true",
+        help="Delete the sandbox collection instead of creating it",
+    )
 
-        # Backup
-        backup_p = sub.add_parser(
-            "backup",
-            help="Create a full system backup (.zaf)",
-            description="Creates a complete, self-contained backup archive (.zaf) of your entire Zotero library, including all collections, metadata, and attachments.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_backup_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Backup
+    backup_p = sub.add_parser(
+        "backup",
+        help="Create a full system backup (.zaf)",
+        description="Creates a complete, self-contained backup archive (.zaf) of your entire Zotero library, including all collections, metadata, and attachments.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Migrating research data to a new workstation
@@ -243,16 +252,19 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_backup.md
 """,
-        )
-        backup_p.add_argument("--output", required=True, help="Output file path (e.g., backup.zaf)")
+    )
+    backup_p.add_argument("--output", required=True, help="Output file path (e.g., backup.zaf)")
 
-        # Verify
-        verify_p = sub.add_parser(
-            "verify",
-            help="Validate integrity of a .zaf archive",
-            description="Performs a deep integrity check on a Zotero Archive Format (.zaf) file, validating checksums of all attachments and ensuring JSON data structures are correct.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_verify_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Verify
+    verify_p = sub.add_parser(
+        "verify",
+        help="Validate integrity of a .zaf archive",
+        description="Performs a deep integrity check on a Zotero Archive Format (.zaf) file, validating checksums of all attachments and ensuring JSON data structures are correct.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Verifying a backup before cloud deletion
@@ -264,16 +276,19 @@ Notes
 -----
 • Common Failure Modes: Running verify on a non-.zaf file or an archive that is still being written.
 """,
-        )
-        verify_p.add_argument("--file", required=True, help="Input .zaf file")
+    )
+    verify_p.add_argument("--file", required=True, help="Input .zaf file")
 
-        # Restore
-        restore_p = sub.add_parser(
-            "restore",
-            help="Restore from a .zaf backup",
-            description="Reconstructs an entire Zotero library or specific collections from a previously created Zotero Archive Format (.zaf) file.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_restore_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Restore
+    restore_p = sub.add_parser(
+        "restore",
+        help="Restore from a .zaf backup",
+        description="Reconstructs an entire Zotero library or specific collections from a previously created Zotero Archive Format (.zaf) file.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Recovering from an accidental library deletion
@@ -294,23 +309,26 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_restore.md
 """,
-        )
-        restore_p.add_argument("--file", required=True, help="Input .zaf file")
-        restore_mode = restore_p.add_mutually_exclusive_group()
-        restore_mode.add_argument("--dry-run", action="store_true", help="Simulate restore")
-        restore_mode.add_argument(
-            "--execute",
-            action="store_true",
-            help="Apply the restore (without it, only a preview is shown)",
-        )
+    )
+    restore_p.add_argument("--file", required=True, help="Input .zaf file")
+    restore_mode = restore_p.add_mutually_exclusive_group()
+    restore_mode.add_argument("--dry-run", action="store_true", help="Simulate restore")
+    restore_mode.add_argument(
+        "--execute",
+        action="store_true",
+        help="Apply the restore (without it, only a preview is shown)",
+    )
 
-        # Normalize CSV
-        norm_p = sub.add_parser(
-            "normalize",
-            help="Convert external CSV (IEEE, Springer) to Canonical format",
-            description="Converts raw search result CSV files from academic databases into a 'Canonical' format optimized for import into Zotero.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_norm_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Normalize CSV
+    norm_p = sub.add_parser(
+        "normalize",
+        help="Convert external CSV (IEEE, Springer) to Canonical format",
+        description="Converts raw search result CSV files from academic databases into a 'Canonical' format optimized for import into Zotero.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Preparing search results from multiple databases
@@ -325,17 +343,20 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_normalize.md
 """,
-        )
-        norm_p.add_argument("file", help="Input CSV file")
-        norm_p.add_argument("--output", required=True, help="Output Canonical CSV path")
+    )
+    norm_p.add_argument("file", help="Input CSV file")
+    norm_p.add_argument("--output", required=True, help="Output Canonical CSV path")
 
-        # Switch Context
-        switch_p = sub.add_parser(
-            "switch",
-            help="Switch active group context",
-            description="Switches the active library context of the zotero-cli, allowing you to target different research groups or your personal library.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_switch_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Switch Context
+    switch_p = sub.add_parser(
+        "switch",
+        help="Switch active group context",
+        description="Switches the active library context of the zotero-cli, allowing you to target different research groups or your personal library.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Moving from personal research to a team project
@@ -350,28 +371,31 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_switch.md
 """,
-        )
-        switch_p.add_argument("query", help="Group ID or Name (partial match)")
+    )
+    switch_p.add_argument("query", help="Group ID or Name (partial match)")
 
-        # Jobs (Issue #76 consolidation)
-        jobs_p = sub.add_parser(
-            "jobs",
-            help="Manage background system jobs",
-            description="Manages long-running background tasks such as PDF fetching, allowing you to monitor progress, retry failures, or trigger the worker.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_jobs_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Jobs (Issue #76 consolidation)
+    jobs_p = sub.add_parser(
+        "jobs",
+        help="Manage background system jobs",
+        description="Manages long-running background tasks such as PDF fetching, allowing you to monitor progress, retry failures, or trigger the worker.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_jobs.md
 """,
-        )
-        jobs_sub = jobs_p.add_subparsers(dest="jobs_verb", required=True)
+    )
+    jobs_sub = jobs_p.add_subparsers(dest="jobs_verb", required=True)
 
-        # jobs list
-        list_p = jobs_sub.add_parser(
-            "list",
-            help="List all background jobs",
-            description="Shows the current queue, indicating which tasks are PENDING, COMPLETED, or FAILED.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+    # jobs list
+    list_p = jobs_sub.add_parser(
+        "list",
+        help="List all background jobs",
+        description="Shows the current queue, indicating which tasks are PENDING, COMPLETED, or FAILED.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Monitoring a large PDF fetch
@@ -383,18 +407,18 @@ Scenario: Checking job status from a script
 Action:  zotero-cli system jobs list --format json
 Result:  A JSON list of jobs (id, type, item_key, status, attempts, next_retry, error) on stdout.
 """,
-        )
-        list_p.add_argument("--type", help="Filter by task type")
-        list_p.add_argument("--limit", type=int, default=50, help="Max jobs to show")
-        add_format_flag(list_p, choices=LIST_FORMATS, help=LIST_FORMAT_HELP)
+    )
+    list_p.add_argument("--type", help="Filter by task type")
+    list_p.add_argument("--limit", type=int, default=50, help="Max jobs to show")
+    add_format_flag(list_p, choices=LIST_FORMATS, help=LIST_FORMAT_HELP)
 
-        # jobs retry
-        retry_p = jobs_sub.add_parser(
-            "retry",
-            help="Retry a failed job",
-            description="Allows you to re-attempt a specific job that failed due to network issues or API rate limits.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+    # jobs retry
+    retry_p = jobs_sub.add_parser(
+        "retry",
+        help="Retry a failed job",
+        description="Allows you to re-attempt a specific job that failed due to network issues or API rate limits.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 $ zotero-cli system jobs retry 42
@@ -403,26 +427,46 @@ Notes
 -----
 • Common Failure Modes: Attempting to retry a job that is already running.
 """,
-        )
-        retry_p.add_argument("id", type=int, help="Job ID")
+    )
+    retry_p.add_argument("id", type=int, help="Job ID")
 
-        # jobs run (Migration from find-pdf worker)
-        run_p = jobs_sub.add_parser(
-            "run",
-            help="Run background worker to process jobs",
-            description="Launches the background worker that actually performs the work in the queue.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+    # jobs run (Migration from find-pdf worker)
+    run_p = jobs_sub.add_parser(
+        "run",
+        help="Run background worker to process jobs",
+        description="Launches the background worker that actually performs the work in the queue.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 $ zotero-cli system jobs run --type fetch_pdf --watch
 """,
-        )
-        run_p.add_argument(
-            "--type", default="fetch_pdf", help="Filter by task type (Default: fetch_pdf)"
-        )
-        run_p.add_argument("--count", type=int, help="Number of jobs to process")
-        run_p.add_argument("--watch", action="store_true", help="Live progress monitor")
+    )
+    run_p.add_argument(
+        "--type", default="fetch_pdf", help="Filter by task type (Default: fetch_pdf)"
+    )
+    run_p.add_argument("--count", type=int, help="Number of jobs to process")
+    run_p.add_argument("--watch", action="store_true", help="Live progress monitor")
+
+
+@CommandRegistry.register
+class SystemCommand(BaseCommand):
+    name = "system"
+    help = "System maintenance & information"
+
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
+        sub = parser.add_subparsers(dest="verb", required=True)
+        _add_info_verb(sub)
+        _add_groups_verb(sub)
+        _add_check_verb(sub)
+        _add_selftest_verb(sub)
+        _add_sandbox_verb(sub)
+        _add_backup_verb(sub)
+        _add_verify_verb(sub)
+        _add_restore_verb(sub)
+        _add_norm_verb(sub)
+        _add_switch_verb(sub)
+        _add_jobs_verb(sub)
 
     def execute(self, args: argparse.Namespace) -> None:
         if args.verb == "info":

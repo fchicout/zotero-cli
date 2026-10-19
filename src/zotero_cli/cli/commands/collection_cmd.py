@@ -32,21 +32,15 @@ console = Console()
 COLLECTION_NAME_OR_KEY_HELP = "Collection name or key"
 
 
-@CommandRegistry.register
-class CollectionCommand(BaseCommand):
-    name = "collection"
-    help = "Collection/Folder management"
+def _add_list_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
 
-    def register_args(self, parser: argparse.ArgumentParser) -> None:
-        sub = parser.add_subparsers(dest="verb", required=True)
-
-        # List
-        list_p = sub.add_parser(
-            "list",
-            help="List all collections",
-            description="Displays a hierarchical tree of all collections available in the active Zotero library. Each node shows the collection name and its unique ZoteroID in parentheses.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+    # List
+    list_p = sub.add_parser(
+        "list",
+        help="List all collections",
+        description="Displays a hierarchical tree of all collections available in the active Zotero library. Each node shows the collection name and its unique ZoteroID in parentheses.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Visualizing the library structure
@@ -63,24 +57,27 @@ Scenario: Getting collections for a script
 Action:  zotero-cli collection list --format json
 Result:  A JSON list of {key, name, parent, num_items} on stdout.
 """,
-        )
-        list_p.add_argument(
-            "--table", action="store_true", help="Display results as a flat table instead of a tree"
-        )
-        add_format_flag(
-            list_p,
-            choices=("tree", "table", "json", "csv", "ndjson", "keys"),
-            default="tree",
-            help="Output format: tree (default), table, or json/csv/ndjson (key, name, parent, num_items) for scripts; keys prints the collection keys",
-        )
+    )
+    list_p.add_argument(
+        "--table", action="store_true", help="Display results as a flat table instead of a tree"
+    )
+    add_format_flag(
+        list_p,
+        choices=("tree", "table", "json", "csv", "ndjson", "keys"),
+        default="tree",
+        help="Output format: tree (default), table, or json/csv/ndjson (key, name, parent, num_items) for scripts; keys prints the collection keys",
+    )
 
-        # Create
-        create_p = sub.add_parser(
-            "create",
-            help="Create a new collection",
-            description="Creates a new collection (folder) in your library, either at the root level or nested within an existing collection.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_create_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Create
+    create_p = sub.add_parser(
+        "create",
+        help="Create a new collection",
+        description="Creates a new collection (folder) in your library, either at the root level or nested within an existing collection.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Organizing papers for a specific study
@@ -95,17 +92,20 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_create.md
 """,
-        )
-        create_p.add_argument("--name", required=True, help="Collection name")
-        create_p.add_argument("--parent", help="Parent collection name or key")
+    )
+    create_p.add_argument("--name", required=True, help="Collection name")
+    create_p.add_argument("--parent", help="Parent collection name or key")
 
-        # Delete
-        delete_p = sub.add_parser(
-            "delete",
-            help="Delete a collection (with --recursive, also its sub-collections and items)",
-            description="Deletes a collection. Without --recursive only the collection itself goes; its items stay in your library. With --recursive, its sub-collections are deleted for good and the items filed only inside the tree go to Zotero's trash (or are deleted for good with --permanent): this previews by default and needs --execute and a confirmation (or --yes).",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_delete_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Delete
+    delete_p = sub.add_parser(
+        "delete",
+        help="Delete a collection (with --recursive, also its sub-collections and items)",
+        description="Deletes a collection. Without --recursive only the collection itself goes; its items stay in your library. With --recursive, its sub-collections are deleted for good and the items filed only inside the tree go to Zotero's trash (or are deleted for good with --permanent): this previews by default and needs --execute and a confirmation (or --yes).",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Cleaning up an old project
@@ -127,44 +127,45 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_delete.md
 """,
-        )
-        delete_p.add_argument("--key", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
-        delete_p.add_argument(
-            "--version", type=int, help="Collection version (optional if recursive)"
-        )
-        delete_p.add_argument(
-            "--recursive",
-            action="store_true",
-            help="Also delete the sub-collections and the items filed only inside the tree",
-        )
-        delete_p.add_argument(
-            "--execute",
-            action="store_true",
-            help="With --recursive: actually delete (default: preview only)",
-        )
-        delete_p.add_argument(
-            "--yes", action="store_true", help="Don't ask for confirmation (for scripts)"
-        )
-        delete_p.add_argument(
-            "--include-shared",
-            action="store_true",
-            help="With --recursive: also delete items that are filed in other collections",
-        )
-        delete_p.add_argument(
-            "--trash",
-            action="store_true",
-            help="With --recursive: move the items to Zotero's trash (the default; accepted for "
-            "scripts written for 3.x). The collections themselves are still deleted for good",
-        )
-        add_permanent_flag(delete_p, "the items (with --recursive)")
+    )
+    delete_p.add_argument("--key", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+    delete_p.add_argument("--version", type=int, help="Collection version (optional if recursive)")
+    delete_p.add_argument(
+        "--recursive",
+        action="store_true",
+        help="Also delete the sub-collections and the items filed only inside the tree",
+    )
+    delete_p.add_argument(
+        "--execute",
+        action="store_true",
+        help="With --recursive: actually delete (default: preview only)",
+    )
+    delete_p.add_argument(
+        "--yes", action="store_true", help="Don't ask for confirmation (for scripts)"
+    )
+    delete_p.add_argument(
+        "--include-shared",
+        action="store_true",
+        help="With --recursive: also delete items that are filed in other collections",
+    )
+    delete_p.add_argument(
+        "--trash",
+        action="store_true",
+        help="With --recursive: move the items to Zotero's trash (the default; accepted for "
+        "scripts written for 3.x). The collections themselves are still deleted for good",
+    )
+    add_permanent_flag(delete_p, "the items (with --recursive)")
 
-        # Rename
-        rename_p = sub.add_parser(
-            "rename",
-            help="Rename a collection",
-            description="Changes the display name of an existing collection in your library without affecting its contents or hierarchical position.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_rename_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Rename
+    rename_p = sub.add_parser(
+        "rename",
+        help="Rename a collection",
+        description="Changes the display name of an existing collection in your library without affecting its contents or hierarchical position.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Evolving a research focus
@@ -179,18 +180,21 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_rename.md
 """,
-        )
-        rename_p.add_argument("--key", required=True, help="Current name or key")
-        rename_p.add_argument("--name", required=True, help="New name")
-        rename_p.add_argument("--version", type=int, help="Collection version")
+    )
+    rename_p.add_argument("--key", required=True, help="Current name or key")
+    rename_p.add_argument("--name", required=True, help="New name")
+    rename_p.add_argument("--version", type=int, help="Collection version")
 
-        # Clean
-        clean_p = sub.add_parser(
-            "clean",
-            help="Take every item out of a collection (items stay in the library)",
-            description="Empties a collection by removing its items from it. The items are NOT deleted: they stay in your library, and those filed nowhere else appear under Unfiled Items. Previews by default; pass --execute to apply.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_clean_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Clean
+    clean_p = sub.add_parser(
+        "clean",
+        help="Take every item out of a collection (items stay in the library)",
+        description="Empties a collection by removing its items from it. The items are NOT deleted: they stay in your library, and those filed nowhere else appear under Unfiled Items. Previews by default; pass --execute to apply.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Resetting a screening results folder
@@ -207,20 +211,23 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_clean.md
 """,
-        )
-        clean_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
-        clean_p.add_argument(
-            "--execute", action="store_true", help="Apply the change (default: preview only)"
-        )
-        add_details_flag(clean_p, "List every item affected")
+    )
+    clean_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+    clean_p.add_argument(
+        "--execute", action="store_true", help="Apply the change (default: preview only)"
+    )
+    add_details_flag(clean_p, "List every item affected")
 
-        # Backup
-        backup_p = sub.add_parser(
-            "backup",
-            help="Backup a collection to .zaf archive",
-            description="Creates a self-contained, portable backup archive (.zaf) of a specific collection, including all item metadata and PDF attachments.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_backup_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Backup
+    backup_p = sub.add_parser(
+        "backup",
+        help="Backup a collection to .zaf archive",
+        description="Creates a self-contained, portable backup archive (.zaf) of a specific collection, including all item metadata and PDF attachments.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Archiving a completed SLR project
@@ -235,17 +242,20 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_backup.md
 """,
-        )
-        backup_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
-        backup_p.add_argument("--output", required=True, help="Output file path")
+    )
+    backup_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+    backup_p.add_argument("--output", required=True, help="Output file path")
 
-        # Export
-        export_p = sub.add_parser(
-            "export",
-            help="Export collection metadata or content",
-            description="Exports the metadata and (optionally) content of a collection into various standard formats for use in citation managers, LaTeX documents, or research notes.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_export_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Export
+    export_p = sub.add_parser(
+        "export",
+        help="Export collection metadata or content",
+        description="Exports the metadata and (optionally) content of a collection into various standard formats for use in citation managers, LaTeX documents, or research notes.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Syncing literature with a LaTeX project
@@ -260,25 +270,28 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_export.md
 """,
-        )
-        export_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
-        export_p.add_argument(
-            "--as",
-            dest="export_format",
-            choices=["bibtex", "ris", "md", "bibliography"],
-            default="bibtex",
-            help="Export type",
-        )
-        add_bibliography_flags(export_p)
-        export_p.add_argument("--output", help="Output file path or directory (for md)")
+    )
+    export_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+    export_p.add_argument(
+        "--as",
+        dest="export_format",
+        choices=["bibtex", "ris", "md", "bibliography"],
+        default="bibtex",
+        help="Export type",
+    )
+    add_bibliography_flags(export_p)
+    export_p.add_argument("--output", help="Output file path or directory (for md)")
 
-        # Purge
-        purge_p = sub.add_parser(
-            "purge",
-            help="Purge assets (files, notes, tags) from every item in a collection",
-            description="Permanently removes specific types of child assets (PDFs, notes, or tags) from every item in a collection, without deleting the items or the collection itself.",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
+
+def _add_purge_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
+
+    # Purge
+    purge_p = sub.add_parser(
+        "purge",
+        help="Purge assets (files, notes, tags) from every item in a collection",
+        description="Permanently removes specific types of child assets (PDFs, notes, or tags) from every item in a collection, without deleting the items or the collection itself.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
 Examples
 --------
 Scenario: Clearing stale annotations before a re-screening pass
@@ -293,15 +306,32 @@ Notes
 
 Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/collection_purge.md
 """,
-        )
-        purge_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
-        purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
-        purge_p.add_argument("--notes", action="store_true", help="Purge notes")
-        purge_p.add_argument("--tags", action="store_true", help="Purge tags")
-        purge_p.add_argument(
-            "--recursive", action="store_true", help="Apply the purge to sub-collections as well"
-        )
-        purge_p.add_argument("--force", action="store_true", help="Skip interactive confirmation")
+    )
+    purge_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
+    purge_p.add_argument("--files", action="store_true", help="Purge attachments/files")
+    purge_p.add_argument("--notes", action="store_true", help="Purge notes")
+    purge_p.add_argument("--tags", action="store_true", help="Purge tags")
+    purge_p.add_argument(
+        "--recursive", action="store_true", help="Apply the purge to sub-collections as well"
+    )
+    purge_p.add_argument("--force", action="store_true", help="Skip interactive confirmation")
+
+
+@CommandRegistry.register
+class CollectionCommand(BaseCommand):
+    name = "collection"
+    help = "Collection/Folder management"
+
+    def register_args(self, parser: argparse.ArgumentParser) -> None:
+        sub = parser.add_subparsers(dest="verb", required=True)
+        _add_list_verb(sub)
+        _add_create_verb(sub)
+        _add_delete_verb(sub)
+        _add_rename_verb(sub)
+        _add_clean_verb(sub)
+        _add_backup_verb(sub)
+        _add_export_verb(sub)
+        _add_purge_verb(sub)
 
     def execute(self, args: argparse.Namespace) -> None:
         force_user = user_flag(args)
