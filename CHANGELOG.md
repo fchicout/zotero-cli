@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-10-20
+
+A maintainability release: no change to commands, output, exit codes or requests. The code was reviewed for SOLID and architecture problems and tidied in small steps, with guard tests that stop the problems coming back. The review's behavior-changing findings are tracked separately in #611 and are not part of this release.
+
 ### 🔧 Internal
 - **Contributor docs for the architecture ratchets:** CONTRIBUTING.md now lists what `test_architecture_ratchets.py` enforces and how its baselines work.
 - **BDTD record mapping split (part of #605):** `BDTDAPIClient._map_to_research_paper` (115 lines, the most branching function in the codebase) now calls one helper per field group, reading fields in the same order. The old and new versions gave identical results, or the same exception type, for 60,000 generated records.
