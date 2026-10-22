@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🐛 Fixed
+- **A metadata lookup no longer crashes on an HTTP error without a response (#636):** the CrossRef, CORE, Unpaywall, DOAJ, PubMed, Semantic Scholar, OpenAlex clients and the shared lookup read `e.response.status_code` without checking `e.response`, so an `HTTPError` raised without a response ended in an `AttributeError` instead of "no result" (which also skipped the other providers' answers). They now log it and return no result like any other failed request.
+
 ## [4.1.0] - 2026-10-20
 
 A maintainability release: no change to commands, output, exit codes or requests. The code was reviewed for SOLID and architecture problems and tidied in small steps, with guard tests that stop the problems coming back. The review's behavior-changing findings are tracked separately in #611 and are not part of this release.
