@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### 🐛 Fixed
+- **A failed export or backup now fails the command (#635):** `item export` to a file, `collection backup` and `system backup` printed a failure message and still exited 0, so scripts could not tell. They now exit 1 with `Error: Export failed.` / `Error: Backup failed: <reason>` on stderr, like `collection export` already did.
+
 ## [4.1.0] - 2026-10-20
 
 A maintainability release: no change to commands, output, exit codes or requests. The code was reviewed for SOLID and architecture problems and tidied in small steps, with guard tests that stop the problems coming back. The review's behavior-changing findings are tracked separately in #611 and are not part of this release.
