@@ -10,7 +10,7 @@ from zotero_cli.core.interfaces import (
     SearchableMetadataProvider,
 )
 from zotero_cli.core.models import ResearchPaper
-from zotero_cli.infra.base_api_client import BaseAPIClient
+from zotero_cli.infra.base_api_client import BaseAPIClient, is_not_found
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class DOAJAPIClient(
                 return None
             return self._map_to_research_paper(results[0])
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
+            if is_not_found(e):
                 return None
             logger.exception(f"DOAJAPIClient: Error fetching metadata for {identifier}")
             return None

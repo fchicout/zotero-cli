@@ -20,7 +20,7 @@ from zotero_cli.core.utils.user_agent import user_agent
 # Configure logging
 logger = logging.getLogger(__name__)
 
-__all__ = ["BaseAPIClient", "user_agent"]
+__all__ = ["BaseAPIClient", "is_not_found", "user_agent"]
 
 # Rate-limit policy (Issue #420): a 429 is retried at most this many times,
 # waiting what the provider's Retry-After asks, and never more than this long
@@ -49,6 +49,12 @@ def retry_after_seconds(response: requests.Response) -> Optional[float]:
     if when.tzinfo is None:
         when = when.replace(tzinfo=timezone.utc)
     return max(0.0, (when - datetime.now(timezone.utc)).total_seconds())
+
+
+def is_not_found(error: requests.exceptions.HTTPError) -> bool:
+    """Whether `error` is an HTTP 404. An `HTTPError` raised without a response (by hand, or
+    by a wrapper) is not one, so the caller treats it like any other failed request."""
+    return error.response is not None and error.response.status_code == 404
 
 
 class BaseAPIClient(ABC):
@@ -100,7 +106,7 @@ class BaseAPIClient(ABC):
         try:
             return fetch()
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
+            if is_not_found(e):
                 return None
             logger.exception(f"{name}: Error fetching metadata for {identifier}")
             return None
