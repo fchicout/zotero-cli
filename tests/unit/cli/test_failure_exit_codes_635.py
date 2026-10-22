@@ -25,6 +25,7 @@ def test_a_failed_item_metadata_export_is_an_error() -> None:
         render="plain",
         user=False,
     )
+    command = ItemCommand()
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway") as get_gateway,
         patch("zotero_cli.infra.factory.GatewayFactory.get_export_service") as get_export,
@@ -33,7 +34,7 @@ def test_a_failed_item_metadata_export_is_an_error() -> None:
         get_export.return_value.export_items.return_value = False
 
         with pytest.raises(ZoteroCliError, match="Export failed") as raised:
-            ItemCommand().execute(args)
+            command.execute(args)
 
     assert raised.value.exit_code == 1
 
@@ -43,6 +44,7 @@ def test_a_failed_collection_backup_is_an_error(mock_gateway: Any) -> None:
     gateway.get_collection_id_by_name.return_value = "COL"
     gateway.get_collection.return_value = {"meta": {"numItems": 1}}
     args = argparse.Namespace(verb="backup", collection="COL", output="b.zaf", user=False)
+    command = CollectionCommand()
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway", return_value=gateway),
         patch("zotero_cli.infra.factory.GatewayFactory.get_backup_service") as get_backup,
@@ -50,13 +52,14 @@ def test_a_failed_collection_backup_is_an_error(mock_gateway: Any) -> None:
         get_backup.return_value.backup_collection.side_effect = OSError("disk full")
 
         with pytest.raises(ZoteroCliError, match="Backup failed: disk full") as raised:
-            CollectionCommand().execute(args)
+            command.execute(args)
 
     assert raised.value.exit_code == 1
 
 
 def test_a_failed_system_backup_is_an_error() -> None:
     args = argparse.Namespace(verb="backup", output="b.zaf", user=False)
+    command = SystemCommand()
     with (
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
         patch("zotero_cli.infra.factory.GatewayFactory.get_backup_service") as get_backup,
@@ -64,6 +67,6 @@ def test_a_failed_system_backup_is_an_error() -> None:
         get_backup.return_value.backup_system.side_effect = OSError("disk full")
 
         with pytest.raises(ZoteroCliError, match="Backup failed: disk full") as raised:
-            SystemCommand().execute(args)
+            command.execute(args)
 
     assert raised.value.exit_code == 1
