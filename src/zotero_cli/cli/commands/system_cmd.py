@@ -939,4 +939,4 @@ class SystemCommand(BaseCommand):
 
             console.print(f"[bold green]Backup complete:[/bold green] {safe_markup(args.output)}")
         except Exception as e:
-            console.print(f"[bold red]Backup failed:[/bold red] {escape(str(e))}")
+            raise ZoteroCliError(f"Backup failed: {e}") from e
