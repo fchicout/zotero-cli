@@ -68,3 +68,38 @@ def test_an_unreadable_response_is_logged_and_no_result(
             assert client.get_paper_metadata(identifier) is None
 
     assert f"{client_cls.__name__}: Error parsing response for {identifier}" in caplog.text
+
+
+# An HTTPError raised without a response must be "no result", not an AttributeError (#636).
+from zotero_cli.infra.core_api import CoreAPIClient  # noqa: E402
+from zotero_cli.infra.crossref_api import CrossRefAPIClient  # noqa: E402
+from zotero_cli.infra.doaj_api import DOAJAPIClient  # noqa: E402
+from zotero_cli.infra.openalex_api import OpenAlexAPIClient  # noqa: E402
+from zotero_cli.infra.pubmed_api import PubMedAPIClient  # noqa: E402
+from zotero_cli.infra.semantic_scholar_api import SemanticScholarAPIClient  # noqa: E402
+from zotero_cli.infra.unpaywall_api import UnpaywallAPIClient  # noqa: E402
+
+ALL_CLIENTS = [
+    *CLIENTS,
+    (CoreAPIClient, "10.1000/x"),
+    (CrossRefAPIClient, "10.1000/x"),
+    (DOAJAPIClient, "10.1000/x"),
+    (OpenAlexAPIClient, "10.1000/x"),
+    (PubMedAPIClient, "12345678"),
+    (SemanticScholarAPIClient, "10.1000/x"),
+    (UnpaywallAPIClient, "10.1000/x"),  # needs an email, see below
+]
+
+
+@pytest.mark.parametrize(("client_cls", "identifier"), ALL_CLIENTS)
+def test_an_http_error_without_a_response_is_logged_and_no_result(
+    client_cls: Any, identifier: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    client = (
+        UnpaywallAPIClient("me@example.org") if client_cls is UnpaywallAPIClient else client_cls()
+    )
+    with patch.object(client, "_get", side_effect=requests.exceptions.HTTPError("no response")):
+        with caplog.at_level(logging.ERROR):
+            assert client.get_paper_metadata(identifier) is None
+
+    assert "Error fetching" in caplog.text

@@ -8,7 +8,7 @@ import requests
 from zotero_cli.core.interfaces import MetadataProvider
 from zotero_cli.core.models import ResearchPaper
 from zotero_cli.core.utils.normalization import is_valid_doi, normalize_doi
-from zotero_cli.infra.base_api_client import BaseAPIClient
+from zotero_cli.infra.base_api_client import BaseAPIClient, is_not_found
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
             return paper
 
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
+            if is_not_found(e):
                 return None
             logger.exception(f"PubMedAPIClient: Error fetching metadata for {pmid}")
             return None
