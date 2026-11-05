@@ -793,7 +793,7 @@ class ItemCommand(BaseCommand):
             if done:
                 console.print("[bold green]Export complete.[/bold green]")
             else:
-                console.print("[bold red]Export failed.[/bold red]")
+                raise ZoteroCliError("Export failed.")
 
     def _handle_add(self, gateway: ZoteroGateway, args: argparse.Namespace) -> None:
         # 1. Resolve Collection

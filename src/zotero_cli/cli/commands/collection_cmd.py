@@ -20,7 +20,7 @@ from zotero_cli.cli.safety import (
     preview_notice,
     resolve_trash,
 )
-from zotero_cli.core.exceptions import NotFound, UsageError
+from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup, strip_controls
@@ -650,7 +650,7 @@ class CollectionCommand(BaseCommand):
 
             console.print(f"[bold green]Backup complete:[/bold green] {safe_markup(args.output)}")
         except Exception as e:
-            console.print(f"[bold red]Backup failed:[/bold red] {escape(str(e))}")
+            raise ZoteroCliError(f"Backup failed: {e}") from e
 
     def _handle_export(self, args: argparse.Namespace) -> None:
         if args.export_format == "md":
