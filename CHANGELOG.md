@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ### 🐛 Fixed
 - **A failed export or backup now fails the command (#635):** `item export` to a file, `collection backup` and `system backup` printed a failure message and still exited 0, so scripts could not tell. They now exit 1 with `Error: Export failed.` / `Error: Backup failed: <reason>` on stderr, like `collection export` already did.
+- **A metadata lookup no longer crashes on an HTTP error without a response (#636):** the CrossRef, CORE, Unpaywall, DOAJ, PubMed, Semantic Scholar, OpenAlex clients and the shared lookup read `e.response.status_code` without checking `e.response`, so an `HTTPError` raised without a response ended in an `AttributeError` instead of "no result" (which also skipped the other providers' answers). They now log it and return no result like any other failed request.
 
 ## [4.1.0] - 2026-10-20
 
