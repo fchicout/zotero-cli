@@ -13,6 +13,7 @@ from tenacity import (
 from zotero_cli.core.exceptions import RetryableError
 from zotero_cli.core.utils.url_safety import (
     MAX_REDIRECTS,
+    SENSITIVE_HEADERS,
     UnsafeURLError,
     pin_public_ips,
     read_capped_async,
@@ -22,12 +23,7 @@ from zotero_cli.core.utils.user_agent import user_agent
 
 logger = logging.getLogger(__name__)
 
-# Issue #241: headers that must not survive a cross-origin redirect hop.
-# httpx's own built-in redirect handling only strips "Authorization" this
-# way - we manage redirects manually (Issue #235), so we're responsible
-# for the same protection, extended to non-standard auth headers this
-# codebase actually uses (e.g. Semantic Scholar's x-api-key).
-_SENSITIVE_HEADERS = {"authorization", "x-api-key"}
+_SENSITIVE_HEADERS = SENSITIVE_HEADERS  # Issue #241
 
 
 def _origin(url: str) -> tuple:

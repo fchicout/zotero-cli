@@ -43,6 +43,11 @@ _ALLOWED_SCHEMES = {"http", "https"}
 # legitimate PDF while capping the damage of a hostile one.
 MAX_RESPONSE_BYTES = 50 * 1024 * 1024
 
+# Headers that must not survive a cross-origin redirect hop. Redirects are
+# followed by hand (Issue #235), so stripping them is our job; requests only
+# strips Authorization, and not at all with allow_redirects=False.
+SENSITIVE_HEADERS = frozenset({"authorization", "x-api-key", "zotero-api-key", "cookie"})
+
 
 class UnsafeURLError(ValueError):
     """Raised when a URL is disallowed (bad scheme, or resolves to a
@@ -365,6 +370,23 @@ def _pinned(session: requests.Session) -> requests.Session:
     return public_only_session(session)
 
 
+def _origin(url: str) -> tuple:
+    parsed = urlparse(url)
+    default_port = 443 if parsed.scheme == "https" else 80
+    return (parsed.scheme, parsed.hostname, parsed.port or default_port)
+
+
+def _without_sensitive(headers: dict, session: requests.Session) -> dict:
+    """`headers` minus the sensitive ones, and a None for each sensitive
+    header the session itself carries (requests drops a header whose
+    per-request value is None)."""
+    kept = {k: v for k, v in headers.items() if k.lower() not in SENSITIVE_HEADERS}
+    for name in session.headers:
+        if name.lower() in SENSITIVE_HEADERS:
+            kept[name] = None  # type: ignore[assignment]
+    return kept
+
+
 def _safe_request(method: str, url: str, **kwargs: Any) -> requests.Response:
     given = kwargs.pop("session", None)
     session = _pinned(given) if given is not None else _shared_session()
@@ -378,7 +400,10 @@ def _safe_request(method: str, url: str, **kwargs: Any) -> requests.Response:
             if not location:
                 return response
             response.close()
+            previous_url = current_url
             current_url = str(httpx.URL(current_url).join(location))
+            if _origin(previous_url) != _origin(current_url):
+                kwargs["headers"] = _without_sensitive(kwargs["headers"], session)
             continue
         return response
     raise UnsafeURLError(f"Too many redirects while fetching {url!r}")

@@ -992,3 +992,26 @@ def test_the_web_api_client_says_fulltext_needs_offline():
     client = ZoteroAPIClient("key", "123", "user")
     with pytest.raises(UsageError, match="--offline"):
         client.search_fulltext("anything")
+
+
+@pytest.mark.parametrize("verb", ["trash_item", "restore_item"])
+def test_a_busy_database_is_unavailable_not_a_runtime_error(mock_db, verb):
+    """Issue #611: a write that hits a locked zotero.sqlite exits 5 like any
+    other unavailable service, instead of an untyped RuntimeError."""
+    from unittest.mock import MagicMock, patch
+
+    from zotero_cli.core.exceptions import Unavailable
+
+    gateway = SqliteZoteroGateway(mock_db)
+    conn = MagicMock(spec=sqlite3.Connection)
+    conn.execute.side_effect = sqlite3.OperationalError("database is locked")
+    with (
+        patch.object(gateway, "_get_write_connection", return_value=conn),
+        patch.object(gateway, "_find_item_for_write", return_value=1),
+        patch.object(gateway, "_backup_before_first_write"),
+    ):
+        write = getattr(gateway, verb)
+        with pytest.raises(Unavailable, match="busy"):
+            write("ITEMKEY1")
+    conn.rollback.assert_called_once()
+    conn.close.assert_called_once()

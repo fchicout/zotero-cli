@@ -898,3 +898,16 @@ def test_get_items_by_doi_scans_top_level_items_only(client):
 
     url = client.http.session.get.call_args.args[0]
     assert url.endswith("/items/top")
+
+
+@patch("builtins.open", new_callable=mock_open)
+def test_download_attachment_refuses_a_body_over_the_size_cap(mock_file, client):
+    """Issue #611: the S3 download is capped like every other download."""
+    mock_resp = Mock(
+        spec=requests.Response, status_code=200, is_redirect=False, is_permanent_redirect=False
+    )
+    mock_resp.headers = {"Content-Length": str(10**12)}
+    mock_resp.iter_content.return_value = [b"x"]
+    client.http.session.get.return_value = mock_resp
+
+    assert client.download_attachment("K1", "save.pdf") is False
