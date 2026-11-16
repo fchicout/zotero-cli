@@ -39,3 +39,25 @@ def test_system_info_shows_version_python_and_platform(capsys):
     assert f"Version:     {__version__}" in out
     assert "Python:" in out
     assert "Platform:" in out
+
+
+@pytest.mark.parametrize("version", [(3, 11, 0), (3, 11, 4)])
+def test_python_below_the_announced_floor_warns_on_stderr(version, capsys):
+    """4.2.0 announces the 3.11.5 minimum that 4.3.0 enforces."""
+    from zotero_cli.cli.main import warn_if_python_floor_ahead
+
+    warn_if_python_floor_ahead(version)
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "3.11.5" in captured.err
+    assert f"{version[0]}.{version[1]}.{version[2]}" in captured.err
+
+
+@pytest.mark.parametrize("version", [(3, 11, 5), (3, 11, 14), (3, 12, 0), (3, 14, 1)])
+def test_python_at_or_above_the_floor_is_silent(version, capsys):
+    from zotero_cli.cli.main import warn_if_python_floor_ahead
+
+    warn_if_python_floor_ahead(version)
+
+    assert capsys.readouterr() == ("", "")

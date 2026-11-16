@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### ⚠️ Deprecated
+- **Python 3.11.0 to 3.11.4 stop being supported in 4.2.0 (announced one minor ahead, in 4.1.1, as docs/COMPATIBILITY.md requires):** the minimum becomes Python 3.11.5. Every fixed release of `soupsieve` (a dependency of `beautifulsoup4`, with open security advisories CVE-2026-126190, -126191 and -126193) needs 3.11.5, so those interpreters can only be locked to the vulnerable 2.10. Until then, zotero-cli prints a one-line warning on stderr when it runs on 3.11.0 to 3.11.4. Python 3.11.5 and newer, and every newer minor, are unaffected; nothing else changes.
+
 ### 🐛 Fixed
 - **Three hardening fixes from #611:**
   - An attachment downloaded from Zotero's file storage is now capped at 50 MB like every other download, so a larger one fails instead of filling the disk.
