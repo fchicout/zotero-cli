@@ -6,7 +6,7 @@ import sqlite3
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from zotero_cli.core import annotations as annotation_records
-from zotero_cli.core.exceptions import ConfigurationError, OfflineReadOnly, UsageError
+from zotero_cli.core.exceptions import ConfigurationError, OfflineReadOnly, Unavailable, UsageError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.models import ResearchPaper, ZoteroQuery
 from zotero_cli.core.utils.collection_resolver import resolve_collection_key
@@ -940,7 +940,7 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
             return True
         except sqlite3.OperationalError as e:
             conn.rollback()
-            raise RuntimeError(
+            raise Unavailable(
                 f"Could not write to zotero.sqlite ({e}). If Zotero Desktop is open and "
                 "busy, wait a moment and retry, or close it first."
             ) from e
@@ -974,7 +974,7 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
             return True
         except sqlite3.OperationalError as e:
             conn.rollback()
-            raise RuntimeError(
+            raise Unavailable(
                 f"Could not write to zotero.sqlite ({e}). If Zotero Desktop is open and "
                 "busy, wait a moment and retry, or close it first."
             ) from e

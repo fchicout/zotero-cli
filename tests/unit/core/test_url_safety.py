@@ -462,3 +462,51 @@ def test_close_shared_sessions_closes_every_thread_session(monkeypatch):
     url_safety._close_shared_sessions()
     fake.close.assert_called_once()
     assert url_safety._sessions == []
+
+
+def _redirect_to(location: str) -> MagicMock:
+    resp = MagicMock(spec=requests.Response)
+    resp.is_redirect = True
+    resp.is_permanent_redirect = False
+    resp.headers = {"Location": location}
+    return resp
+
+
+def _final() -> MagicMock:
+    resp = MagicMock(spec=requests.Response)
+    resp.is_redirect = False
+    resp.is_permanent_redirect = False
+    return resp
+
+
+def test_safe_get_strips_credentials_on_a_cross_origin_redirect():
+    """Issue #611: the API key must not follow a redirect to another origin,
+    whether it was passed per request or carried by the session."""
+    session = requests.Session()
+    session.headers["Zotero-API-Key"] = "session-secret"
+    sent = []
+
+    def fake_request(method, url, headers=None, **kwargs):
+        sent.append((url, dict(headers or {})))
+        return _redirect_to("http://93.184.216.35/final") if len(sent) == 1 else _final()
+
+    session.request = fake_request  # type: ignore[assignment]
+    safe_get(
+        "http://93.184.216.34/start",
+        session=session,
+        headers={"x-api-key": "k", "Accept": "text/plain"},
+    )
+
+    first, second = sent[0][1], sent[1][1]
+    assert first["x-api-key"] == "k"
+    assert "x-api-key" not in second
+    assert second["Accept"] == "text/plain"
+    assert second["Zotero-API-Key"] is None  # None makes requests drop the session's value
+
+
+def test_safe_get_keeps_credentials_on_a_same_origin_redirect():
+    session = MagicMock(spec=requests.Session)
+    session.headers = {}
+    session.request.side_effect = [_redirect_to("/next"), _final()]
+    safe_get("http://93.184.216.34/start", session=session, headers={"x-api-key": "k"})
+    assert session.request.call_args_list[1].kwargs["headers"]["x-api-key"] == "k"
