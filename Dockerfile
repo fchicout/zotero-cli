@@ -9,7 +9,7 @@
 # Issue #338: the base image is pinned by digest in both stages (Dependabot
 # keeps it current), dependencies come from uv.lock, and the container runs as an
 # unprivileged user.
-FROM python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2 AS builder
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS builder
 
 WORKDIR /build
 COPY . .
@@ -42,7 +42,7 @@ RUN .venv/bin/pyinstaller --onedir --strip --name zotero-cli \
     && .venv/bin/python scripts/gen_third_party_notices.py --build-dir build/zotero-cli \
         --output dist/THIRD_PARTY_LICENSES.txt
 
-FROM python:3.14-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2 AS runtime
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS runtime
 
 # Reuses the same base as the builder stage rather than a separately-tagged
 # distro (e.g. debian:bookworm-slim) - a mismatched glibc between build and
