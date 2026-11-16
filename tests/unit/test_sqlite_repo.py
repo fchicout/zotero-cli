@@ -1010,7 +1010,8 @@ def test_a_busy_database_is_unavailable_not_a_runtime_error(mock_db, verb):
         patch.object(gateway, "_find_item_for_write", return_value=1),
         patch.object(gateway, "_backup_before_first_write"),
     ):
+        write = getattr(gateway, verb)
         with pytest.raises(Unavailable, match="busy"):
-            getattr(gateway, verb)("ITEMKEY1")
+            write("ITEMKEY1")
     conn.rollback.assert_called_once()
     conn.close.assert_called_once()
