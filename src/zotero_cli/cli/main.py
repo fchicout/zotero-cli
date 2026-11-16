@@ -24,6 +24,20 @@ def verify_environment() -> None:
         sys.exit(1)
 
 
+def warn_if_python_floor_ahead(version: tuple = tuple(sys.version_info[:3])) -> None:
+    """Announced in 4.1.1: from 4.2.0 the minimum is Python 3.11.5, because the
+    fixed releases of soupsieve (a dependency of beautifulsoup4, with open
+    advisories) need it. Warns on stderr only, so stdout and exit codes are
+    unchanged."""
+    if version < (3, 11, 5):
+        print(
+            "Warning: zotero-cli 4.2.0 will require Python 3.11.5 or newer "
+            f"(this is {version[0]}.{version[1]}.{version[2]}); "
+            "update Python to keep receiving fixes.",
+            file=sys.stderr,
+        )
+
+
 # Run pre-flight checks before importing internal modules
 verify_environment()
 
@@ -122,6 +136,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     # First, so even a usage error or --help is safe on a legacy console (#513).
     make_output_streams_tolerant()
+    warn_if_python_floor_ahead()
     # Domain services speak through this sink; without it they only log (Issue #393).
     set_default_notify(stderr_notify)
     parser = build_parser()
