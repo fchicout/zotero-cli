@@ -456,6 +456,46 @@ def test_upload_attachment_full_sequence(
     mock_req_post.assert_called_once()
 
 
+def _upload_and_first_payload(client, tmp_path, parent, item_data=None):
+    """Runs a real upload of a small file and returns the item the client created first."""
+    path = tmp_path / "paper.pdf"
+    path.write_bytes(b"%PDF-1.7 x")
+    created = Mock(spec=requests.Response, status_code=200, headers={})
+    created.json.return_value = {"successful": {"0": {"key": "ATTACH_KEY"}}}
+    authorised = Mock(spec=requests.Response, status_code=200, headers={})
+    authorised.json.return_value = {"exists": 1}  # nothing to send: the file is already there
+    client.http.session.post.side_effect = [created, authorised]
+
+    assert client.upload_attachment(parent, str(path), "application/pdf", item_data) is True
+
+    return client.http.session.post.call_args_list[0].kwargs["json"][0]
+
+
+def test_a_stand_alone_attachment_is_created_without_a_parent_and_in_its_collections(
+    client, tmp_path
+):
+    """Issue #681."""
+    item = _upload_and_first_payload(client, tmp_path, None, {"collections": ["COL1", "COL2"]})
+
+    assert "parentItem" not in item
+    assert item["collections"] == ["COL1", "COL2"]
+    assert item["itemType"] == "attachment"
+    assert item["title"] == "paper.pdf"
+
+
+def test_an_attachment_of_an_item_keeps_its_parent_and_has_no_collections(client, tmp_path):
+    item = _upload_and_first_payload(client, tmp_path, "PARENT_KEY")
+
+    assert item["parentItem"] == "PARENT_KEY"
+    assert "collections" not in item
+
+
+def test_item_data_cannot_replace_the_parent(client, tmp_path):
+    item = _upload_and_first_payload(client, tmp_path, "PARENT_KEY", {"parentItem": "OTHER"})
+
+    assert item["parentItem"] == "PARENT_KEY"
+
+
 # --- Generic CRUD Tests ---
 
 

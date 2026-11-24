@@ -183,8 +183,15 @@ class NoteRepository(ABC):
 class AttachmentRepository(ABC):
     @abstractmethod
     def upload_attachment(
-        self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
+        """Uploads `file_path` as a new attachment of `parent_item_key`, or, with no parent, as
+        a stand-alone one. `item_data` adds fields to the attachment item (for example its
+        `collections`); it never replaces the parent."""
         pass
 
     @abstractmethod

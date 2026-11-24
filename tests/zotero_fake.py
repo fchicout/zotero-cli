@@ -520,9 +520,16 @@ class FakeTarget:
         return True
 
     def upload_attachment(
-        self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
-        if parent_item_key not in self.lib.items:
+        if parent_item_key is not None and parent_item_key not in self.lib.items:
+            return False
+        collections = (item_data or {}).get("collections") or None
+        if any(key not in self.lib.collections for key in collections or []):
             return False
         name = os.path.basename(file_path)  # what the client names the item after
         with open(file_path, "rb") as stored:
@@ -531,6 +538,7 @@ class FakeTarget:
             self._new_key(),
             "attachment",
             parent=parent_item_key,
+            collections=collections,
             linkMode="imported_file",
             filename=name,
             title=name,

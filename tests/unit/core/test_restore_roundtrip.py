@@ -260,6 +260,37 @@ def test_stored_files_come_back_byte_identical_under_the_same_parent(trip: Trip)
 # =============================================================================================
 
 
+def test_a_child_whose_parent_was_not_restored_is_reported_not_dropped_silently(
+    trip: Trip,
+) -> None:
+    notes = [w for w in trip.report.warnings if "images embedded in notes" in w]
+
+    assert len(notes) == 1, "the note image is not restored yet, and the restore says so"
+    assert trip.report.errors  # the annotations (#685) still fail, as before
+
+
+def test_standalone_notes_and_files_are_not_duplicated_by_a_second_restore(trip: Trip) -> None:
+    expected = (standalone_notes(trip.target.lib), standalone_files(trip.target.lib))
+
+    again = trip.restore_again()
+
+    actual = (standalone_notes(trip.target.lib), standalone_files(trip.target.lib))
+    assert actual == expected
+    assert again.items_skipped_existing >= 1
+
+
+def test_a_dry_run_counts_the_standalone_note_as_an_item(trip: Trip, tmp_path: Path) -> None:
+    empty = FakeTarget("9999")
+    repository: Any = cast(Any, empty)
+
+    plan = RestoreService(repository, repository, repository, repository).restore_archive(
+        str(trip.archive), dry_run=True
+    )
+
+    assert plan.items_created >= len(standalone_notes(trip.source)) + 1
+    assert not empty.lib.items, "a dry run writes nothing"
+
+
 def test_a_second_restore_adds_nothing(trip: Trip) -> None:
     """Live items, collections and files; the trash has its own check (#683)."""
     before = (len(trip.target.lib.live_items()), len(trip.target.lib.collections))
@@ -307,7 +338,6 @@ def test_a_dry_run_of_a_second_restore_reports_the_same_nothing(trip: Trip) -> N
     assert plan.attachments_skipped_existing > 0
 
 
-@finding(681, "a note or file without a parent is dropped without a message")
 def test_standalone_notes_and_files_come_back_in_their_collections(trip: Trip) -> None:
     assert_same(standalone_notes, trip)
     assert_same(standalone_files, trip)

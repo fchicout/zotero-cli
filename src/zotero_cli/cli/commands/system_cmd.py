@@ -564,6 +564,11 @@ class SystemCommand(BaseCommand):
             for err in report.errors:
                 console.print(f"  - [red]Error:[/red] {escape(err)}")
 
+        if report.warnings:
+            console.print(f"\n[yellow]Not restored ({len(report.warnings)}):[/yellow]")
+            for note in report.warnings:
+                console.print(f"  - {escape(note)}")
+
         title = "Restore Plan Summary" if dry_run else "Restore Completion Summary"
         table = Table(title=title)
         table.add_column("Metric", style="cyan")

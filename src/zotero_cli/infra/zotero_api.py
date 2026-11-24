@@ -851,7 +851,11 @@ class ZoteroAPIClient(ZoteroGateway):
         return self.update_item(item_key, version, metadata)
 
     def upload_attachment(
-        self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
         attachment_key: Optional[str] = None
         try:
@@ -866,15 +870,16 @@ class ZoteroAPIClient(ZoteroGateway):
             md5 = md5_hash.hexdigest()
 
             # 1. Create Attachment Item placeholder
-            payload = [
-                {
-                    "itemType": "attachment",
-                    "linkMode": "imported_file",
-                    "parentItem": parent_item_key,
-                    "title": filename,
-                    "contentType": mime_type,
-                }
-            ]
+            item: Dict[str, Any] = {
+                "itemType": "attachment",
+                "linkMode": "imported_file",
+                "title": filename,
+                "contentType": mime_type,
+            }
+            item.update(item_data or {})
+            if parent_item_key:
+                item["parentItem"] = parent_item_key
+            payload = [item]
 
             res = self.http.post("items", json_data=payload)
             attachment_key = self._parse_write_response(res)
