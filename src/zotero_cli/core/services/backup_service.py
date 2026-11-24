@@ -1,9 +1,12 @@
 import json
 import logging
 import os
+import secrets
+import stat
 import tempfile
 import zipfile
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Optional, Set
 
 from zotero_cli.core.interfaces import AttachmentRepository, CollectionRepository, ItemRepository
@@ -95,6 +98,37 @@ class BackupService:
         self._write_zip(output, manifest, items, children, on_item_processed)
 
     def _write_zip(
+        self,
+        output: str | IO[bytes],
+        manifest: dict,
+        items: List[ZoteroItem],
+        children: Dict[str, List[Dict[str, Any]]],
+        on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
+    ) -> None:
+        if not isinstance(output, str):
+            self._write_archive(output, manifest, items, children, on_item_processed)
+            return
+        # Issue #653: a path is written to a temporary file next to it and moved over
+        # the target only once the archive is complete, so a failed run (a dropped
+        # connection, a full disk, Ctrl-C) leaves an earlier backup there untouched.
+        target = os.path.abspath(output)
+        part = os.path.join(
+            os.path.dirname(target), f".{os.path.basename(target)}.{secrets.token_hex(8)}.part"
+        )
+        # Created like any new file (the user's umask decides its permissions)
+        Path(part).touch(exist_ok=False)
+        committed = False
+        try:
+            self._write_archive(part, manifest, items, children, on_item_processed)
+            if os.path.exists(target):  # a replaced file keeps its permissions
+                os.chmod(part, stat.S_IMODE(os.stat(target).st_mode))
+            os.replace(part, target)
+            committed = True
+        finally:
+            if not committed and os.path.exists(part):
+                os.remove(part)
+
+    def _write_archive(
         self,
         output: str | IO[bytes],
         manifest: dict,
