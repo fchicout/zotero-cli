@@ -284,10 +284,9 @@ class RestoreService:
         trashed = bool(data.get("deleted"))
         if (text, tuple(sorted(collections)), trashed) in self._known_notes:
             report.items_skipped_existing += 1
-        elif report.is_dry_run:
-            report.items_created += 1
-            report.items_trashed += 1 if trashed else 0
-        elif self.items.create_generic_item(_note_payload(data, collections=collections)):
+        elif report.is_dry_run or self.items.create_generic_item(
+            _note_payload(data, collections=collections)
+        ):
             report.items_created += 1
             report.items_trashed += 1 if trashed else 0
         else:
