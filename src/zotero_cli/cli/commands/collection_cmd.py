@@ -6,7 +6,7 @@ from rich.markup import escape
 from rich.table import Table
 from rich.tree import Tree
 
-from zotero_cli.cli.backup_summary import finish_backup
+from zotero_cli.cli.backup_summary import finish_backup, library_note
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.flags import (
     add_bibliography_flags,
@@ -630,7 +630,7 @@ class CollectionCommand(BaseCommand):
 
         service = GatewayFactory.get_backup_service(gateway)
         console.print(
-            f"Starting Backup for Collection '[cyan]{safe_markup(args.collection)}[/cyan]' ({safe_markup(col_id)}) to [green]{safe_markup(args.output)}[/green]..."
+            f"Starting Backup for Collection '[cyan]{safe_markup(args.collection)}[/cyan]' ({safe_markup(col_id)}) to [green]{safe_markup(args.output)}[/green]{safe_markup(library_note(service))}..."
         )
 
         try:
@@ -648,6 +648,8 @@ class CollectionCommand(BaseCommand):
 
                 report = service.backup_collection(col_id, args.output, on_item_processed=on_item)
                 progress.update(task, description="Finalizing .zaf container...")
+        except ZoteroCliError:
+            raise  # typed: an unreadable group is exit 4, an outage exit 5 (Issue #661)
         except Exception as e:
             raise ZoteroCliError(f"Backup failed: {e}") from e
         finish_backup(report, args.output, console)

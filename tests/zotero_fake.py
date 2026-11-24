@@ -55,6 +55,8 @@ class FakeLibrary:
         # Endpoints (path suffix after the library prefix) that answer 500.
         self.failing: set = set()
         self.requests: List[str] = []
+        # A library the API key has no access to: every request is answered 403.
+        self.forbidden = False
 
     # --- building ---------------------------------------------------------
 
@@ -189,6 +191,8 @@ class FakeSession:
             raise AssertionError(f"request for an unregistered library: {url}")
         endpoint = "/".join(parts[2:])
         library.requests.append(endpoint)
+        if library.forbidden:
+            return _response(403, {"error": "forbidden"}, url)
         if endpoint in library.failing:
             return _response(500, {"error": "boom"}, url)
         return self._route(library, endpoint, dict(params or {}), url)

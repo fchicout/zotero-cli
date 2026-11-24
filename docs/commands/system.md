@@ -78,10 +78,13 @@ Creates a complete, self-contained backup archive (`.zaf`) of your entire Zotero
 **Usage:**
 ```bash
 zotero-cli system backup --output "full_backup_2026.zaf"
+# a group library, named on the call (a global option, so it goes before the command)
+zotero-cli --group 6629576 system backup --output "group_backup_2026.zaf"
 ```
 
 **Parameters:**
 *   `--output`: (Required) Path to save the backup file.
+*   `--group GROUP` (global option): back up this group library (id or URL) instead of the configured one; `--user` backs up your personal library. The command says which library it is reading when it starts.
 
 ---
 

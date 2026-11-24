@@ -26,6 +26,7 @@ This unique number is required for the tool to identify your account and discove
 The `library_id` tells the tool which library to target by default.
 
 *   **Switching groups via CLI:** Use `zotero-cli system switch 1234567` (a group ID, or part of the group's name) to change the active group without editing the file manually. `zotero-cli system groups` lists the groups your key can access.
+*   **The --group Flag:** The global `--group` flag (for example `zotero-cli --group 6629576 system backup --output group.zaf`) targets that group library, given as its numeric id or its URL (`https://www.zotero.org/groups/6629576/...`), for that command only, whatever library the configuration names. Like `--user`, it goes before the command, it doesn't change the configuration, and the two cannot be combined. An API key without access to the group fails with exit status 4.
 *   **The --user Flag:** Adding the global `--user` flag to a command (for example `zotero-cli --user item list`) targets your personal library for that command only. It doesn't change the configured library or enable offline mode; offline mode is the separate `--offline` flag.
 
 ### Offline mode: `database_path`

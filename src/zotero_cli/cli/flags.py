@@ -35,6 +35,16 @@ def resolve_key(args: argparse.Namespace) -> None:
         raise UsageError("An item key is required: pass KEY or --key KEY.")
 
 
+def group_id(value: str) -> str:
+    """argparse `type=` of the global `--group`: a group id or URL, as its numeric id."""
+    from zotero_cli.core.config import parse_group_id
+
+    try:
+        return parse_group_id(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
+
+
 def user_flag(args: argparse.Namespace) -> bool:
     """Whether the global `--user` flag asks for the personal library (Issue #383)."""
     return bool(getattr(args, "user", False))

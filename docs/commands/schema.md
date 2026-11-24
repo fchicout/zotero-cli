@@ -17,7 +17,7 @@ The document is generated from the real argument parser, so it can't drift from 
 
 *   `version`, `schema_version` (the layout of this document, currently 1) and `program`.
 *   `exit_codes`: every exit status and its meaning, the same table as [EXIT_CODES.md](../EXIT_CODES.md).
-*   `global_options`: `--user`, `--offline`, `--config`, `--verbose`.
+*   `global_options`: `--user`, `--group`, `--offline`, `--config`, `--verbose`.
 *   `commands`: the tree of commands. A group has `commands`; a runnable command has:
     *   `path` (for example `["item", "list"]`), `help`, `description`;
     *   `arguments`: each with `name`, `kind` (`option` or `positional`), `flags`, `type` (`string`, `integer`, `number`, `boolean`), `required`, `repeatable`, `default`, `choices` and `help`. Deprecated aliases kept hidden in `--help` are left out;
