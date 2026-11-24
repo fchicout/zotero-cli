@@ -57,6 +57,15 @@ def trip(tmp_path: Path) -> Trip:
         tags=[{"tag": "was-trashed"}],
         deleted=True,
     )
+    # Tags with both types, on a child note and on a stand-alone one
+    source.add_item(
+        "TAGNOTE1",
+        "note",
+        parent="BOOK0001",
+        note="<p>two kinds of tag</p>",
+        tags=[{"tag": "manual", "type": 0}, {"tag": "automatic", "type": 1}],
+    )
+    source.items["NOTE0001"]["data"]["tags"] = [{"tag": "stand-alone-tag"}]
     archive = tmp_path / "library.zaf"
     GatewayFactory.get_backup_service(client).backup_system(str(archive), include_trash=True)
     target = FakeTarget()
@@ -144,7 +153,7 @@ def stored_files(lib: FakeLibrary) -> List[Tuple[Optional[str], str]]:
 
 def standalone_notes(lib: FakeLibrary) -> List[str]:
     return sorted(
-        dump((r["data"]["note"], paths(lib, r["data"])))
+        dump((r["data"]["note"], r["data"].get("tags", []), paths(lib, r["data"])))
         for r in lib.items.values()
         if r["data"]["itemType"] == "note" and "parentItem" not in r["data"]
     )
@@ -343,9 +352,9 @@ def test_standalone_notes_and_files_come_back_in_their_collections(trip: Trip) -
     assert_same(standalone_files, trip)
 
 
-@finding(682, "create_note sends only the text: the note's tags are never sent")
 def test_note_tags_come_back(trip: Trip) -> None:
     assert_same(note_tags, trip)
+    assert any("automatic" in line for line in note_tags(trip.target.lib)), "with their types"
 
 
 @finding(683, "create_note cannot say `deleted`: trashed notes come back live")
