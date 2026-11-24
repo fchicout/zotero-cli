@@ -324,9 +324,12 @@ def test_the_whole_item_tree_is_kept(world: World) -> None:
     }
     for child, parent in parents.items():
         assert archive.by_key[child]["data"]["parentItem"] == parent, child
-    for item in archive.data:
-        parent = item["data"].get("parentItem")
-        assert parent is None or parent in archive.by_key, f"{item['key']} lost its parent"
+    orphans = [
+        item["key"]
+        for item in archive.data
+        if "parentItem" in item["data"] and item["data"]["parentItem"] not in archive.by_key
+    ]
+    assert orphans == [], "items whose parent is not in the archive"
     for top in ("NOTE0001", "STND0001", "UNFI0001"):
         assert "parentItem" not in archive.by_key[top]["data"], f"{top} must stay top-level"
 
@@ -484,7 +487,8 @@ def test_an_empty_library_gives_a_valid_archive(tmp_path: Path) -> None:
     GatewayFactory.get_backup_service(client).backup_system(str(path))
 
     archive = Archive(path)
-    assert archive.data == [] and archive.collections == []
+    assert archive.data == []
+    assert archive.collections == []
     assert VerifyService().verify_archive(str(path)).is_valid
 
 
@@ -536,7 +540,8 @@ def test_a_collection_backup_has_the_collection_items_and_their_sub_items(world:
     assert {"JRN00001", "STND0001"} <= set(archive.keys)
     assert {"PDF00001", "SNP00001", "LNK00001", "LFL00001", "NOT00001"} <= set(archive.keys)
     assert "TRSH0001" not in archive.keys
-    assert "UNFI0001" not in archive.keys and "COLB0001" not in archive.keys
+    assert "UNFI0001" not in archive.keys
+    assert "COLB0001" not in archive.keys
     assert archive.file_of("PDF00001") == PDF
     assert archive.file_of("STND0001") == PDF + b"loose"
 
@@ -588,15 +593,17 @@ def test_a_collection_backup_includes_pdf_annotations(world: World) -> None:
 def test_a_failing_listing_aborts_the_backup(world: World) -> None:
     world.lib.failing.add("items")
 
+    out = BytesIO()
     with pytest.raises(Unavailable):
-        world.service.backup_system(BytesIO())
+        world.service.backup_system(out)
 
 
 def test_a_failing_collection_listing_aborts_the_backup(world: World) -> None:
     world.lib.failing.add("collections")
 
+    out = BytesIO()
     with pytest.raises(Unavailable):
-        world.service.backup_system(BytesIO())
+        world.service.backup_system(out)
 
 
 def test_a_file_that_cannot_be_downloaded_is_listed_in_errors_log(world: World) -> None:
@@ -616,8 +623,9 @@ def test_a_failed_backup_leaves_the_previous_backup_untouched(world: World, tmp_
     previous = path.read_bytes()
     world.lib.failing.add("collections")
 
+    target = str(path)
     with pytest.raises(Unavailable):
-        world.service.backup_system(str(path))
+        world.service.backup_system(target)
 
     assert path.read_bytes() == previous
 
@@ -750,7 +758,8 @@ def test_cli_backs_up_the_group_library_set_in_the_configuration(cli: Cli, tmp_p
 
     result = cli.run("system", "backup", "--output", str(out))
 
-    assert result.code == 0 and "Backup complete" in result.out
+    assert result.code == 0
+    assert "Backup complete" in result.out
     assert _keys_in(out) == sorted(ALL_LIVE)
     assert Archive(out).by_key["JRN00001"]["library"]["type"] == "group"
     assert cli.server.libraries[USER].requests == []
@@ -773,7 +782,8 @@ def test_cli_collection_backup_by_name_in_a_group(cli: Cli, tmp_path: Path) -> N
 
     result = cli.run("collection", "backup", "--collection", "COLA0001", "--output", str(out))
 
-    assert result.code == 0 and "Backup complete" in result.out
+    assert result.code == 0
+    assert "Backup complete" in result.out
     assert "JRN00001" in _keys_in(out)
     assert cli.server.libraries[USER].requests == []
 
