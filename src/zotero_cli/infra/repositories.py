@@ -173,6 +173,15 @@ class ZoteroAttachmentRepository(AttachmentRepository):
     ) -> bool:
         return self.gateway.upload_attachment(parent_item_key, file_path, mime_type, item_data)
 
+    def upload_attachment_item(
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
+        return self.gateway.upload_attachment_item(parent_item_key, file_path, mime_type, item_data)
+
     def download_attachment(self, item_key: str, save_path: str) -> bool:
         return self.gateway.download_attachment(item_key, save_path)
 

@@ -857,6 +857,20 @@ class ZoteroAPIClient(ZoteroGateway):
         mime_type: str = "application/pdf",
         item_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
+        return (
+            self.upload_attachment_item(parent_item_key, file_path, mime_type, item_data)
+            is not None
+        )
+
+    def upload_attachment_item(
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
+        """`upload_attachment`, returning the key of the new attachment (None if it failed):
+        what a restore needs to hang the annotations of a PDF on it (Issue #685)."""
         attachment_key: Optional[str] = None
         try:
             filename = os.path.basename(file_path)
@@ -884,7 +898,7 @@ class ZoteroAPIClient(ZoteroGateway):
             res = self.http.post("items", json_data=payload)
             attachment_key = self._parse_write_response(res)
             if not attachment_key:
-                return False
+                return None
 
             # 2. Get Upload Authorization
             # `filename` of the item (restore passes the archived one), else the file's own name
@@ -911,7 +925,7 @@ class ZoteroAPIClient(ZoteroGateway):
             auth_resp_data = auth_res.json()
 
             if auth_resp_data.get("exists") == 1:
-                return True
+                return attachment_key
 
             upload_url = auth_resp_data["url"]
             upload_params = auth_resp_data.get("params", {})
@@ -931,7 +945,7 @@ class ZoteroAPIClient(ZoteroGateway):
             }
             self.http.post_form(f"items/{attachment_key}/file", data=reg_data, headers=reg_headers)
 
-            return True
+            return attachment_key
 
         except Exception:
             logger.exception("ZoteroAPIClient: Error uploading attachment")
@@ -940,7 +954,7 @@ class ZoteroAPIClient(ZoteroGateway):
                 # attachment placeholder item - clean it up rather than
                 # leaving an empty orphaned item behind (Issue #191).
                 self.delete_item(attachment_key, 0)
-            return False
+            return None
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:
         try:

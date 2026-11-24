@@ -490,6 +490,30 @@ def test_an_attachment_of_an_item_keeps_its_parent_and_has_no_collections(client
     assert "collections" not in item
 
 
+def test_upload_attachment_item_returns_the_key_of_the_new_attachment(client, tmp_path):
+    """Issue #685: a restore needs it to hang the annotations on the restored PDF."""
+    path = tmp_path / "paper.pdf"
+    path.write_bytes(b"%PDF-1.7 x")
+    created = Mock(spec=requests.Response, status_code=200, headers={})
+    created.json.return_value = {"successful": {"0": {"key": "ATTACH_KEY"}}}
+    authorised = Mock(spec=requests.Response, status_code=200, headers={})
+    authorised.json.return_value = {"exists": 1}
+    client.http.session.post.side_effect = [created, authorised]
+
+    assert client.upload_attachment_item("PARENT_KEY", str(path)) == "ATTACH_KEY"
+
+
+def test_upload_attachment_item_returns_none_when_the_item_cannot_be_created(client, tmp_path):
+    path = tmp_path / "paper.pdf"
+    path.write_bytes(b"%PDF-1.7 x")
+    refused = Mock(spec=requests.Response, status_code=200, headers={})
+    refused.json.return_value = {"successful": {}, "failed": {"0": {"code": 400, "message": "no"}}}
+    client.http.session.post.side_effect = [refused]
+
+    assert client.upload_attachment_item("PARENT_KEY", str(path)) is None
+    assert client.upload_attachment("PARENT_KEY", str(path)) is False
+
+
 def test_a_restored_attachment_keeps_its_title_and_is_uploaded_under_its_own_file_name(
     client, tmp_path
 ):

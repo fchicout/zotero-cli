@@ -2,6 +2,7 @@ import io
 import json
 import os
 import zipfile
+from typing import Any, Dict
 from unittest.mock import MagicMock
 
 import pytest
@@ -162,7 +163,7 @@ def test_restore_child_parent_not_found(mock_gateway):
     report = RestoreReport()
     # Should return early and not crash
     service._restore_child_item(child_raw, MagicMock(), {}, report)
-    assert not mock_gateway.upload_attachment.called
+    assert not mock_gateway.upload_attachment_item.called
 
 
 def test_restore_service_idempotency_none(mock_gateway):
@@ -185,7 +186,7 @@ def test_restore_attachment_mode_mismatch(dummy_zaf, tmp_path, mock_gateway):
     report = RestoreReport()
     with zipfile.ZipFile(zaf_path, "r") as zf:
         service._restore_attachment(child_raw, zf, {}, "PARENT", report)
-    assert not mock_gateway.upload_attachment.called
+    assert not mock_gateway.upload_attachment_item.called
 
 
 def test_restore_item_creation_failure(mock_gateway):
@@ -446,7 +447,7 @@ def test_restore_attachment_over_the_size_limit_is_refused_and_leaves_no_temp_fi
         {"key": "ATT1", "data": {"linkMode": "imported_file"}}, zf, manifest, "NEWPARENT", report
     )
 
-    gateway.upload_attachment.assert_not_called()
+    gateway.upload_attachment_item.assert_not_called()
     assert report.errors
     assert "limit" in report.errors[0]
     assert created
@@ -525,7 +526,7 @@ def test_restore_uploads_every_stored_attachment_with_its_own_content_type(
     from zotero_cli.core.services import restore_service as rs
 
     gateway = create_autospec(ZoteroGateway, instance=True)
-    gateway.upload_attachment.return_value = True
+    gateway.upload_attachment_item.return_value = "NEWATT"
     service = _restore_service(gateway)
     report = rs.RestoreReport()
     zf = _zaf_with_attachment(tmp_path, b"stored bytes")
@@ -536,9 +537,9 @@ def test_restore_uploads_every_stored_attachment_with_its_own_content_type(
 
     service._restore_attachment({"key": "ATT1", "data": data}, zf, manifest, "NEWPARENT", report)
 
-    gateway.upload_attachment.assert_called_once()
-    assert gateway.upload_attachment.call_args.args[0] == "NEWPARENT"
-    assert gateway.upload_attachment.call_args.kwargs["mime_type"] == expected_mime
+    gateway.upload_attachment_item.assert_called_once()
+    assert gateway.upload_attachment_item.call_args.args[0] == "NEWPARENT"
+    assert gateway.upload_attachment_item.call_args.kwargs["mime_type"] == expected_mime
     assert report.attachments_uploaded == 1
 
 
@@ -583,7 +584,7 @@ def test_an_attachment_of_an_existing_item_is_uploaded_unless_it_is_there(
     from zotero_cli.core.interfaces import ZoteroGateway
 
     gateway = create_autospec(ZoteroGateway, instance=True)
-    gateway.upload_attachment.return_value = True
+    gateway.upload_attachment_item.return_value = "NEWATT"
     gateway.get_item_children.return_value = [
         {"data": {"itemType": "attachment", **fields}} for fields in existing
     ]
@@ -595,7 +596,7 @@ def test_an_attachment_of_an_existing_item_is_uploaded_unless_it_is_there(
 
     service._restore_attachment(raw, zf, manifest, "EXISTING1", report)
 
-    assert gateway.upload_attachment.call_count == uploads
+    assert gateway.upload_attachment_item.call_count == uploads
     assert report.attachments_skipped_existing == 1 - uploads
 
 
@@ -629,7 +630,7 @@ def test_an_attachment_with_the_same_md5_is_not_uploaded_again(tmp_path):
         report,
     )
 
-    gateway.upload_attachment.assert_not_called()
+    gateway.upload_attachment_item.assert_not_called()
     assert report.attachments_skipped_existing == 1
     assert report.attachments_uploaded == 0
 
@@ -640,7 +641,7 @@ def test_an_item_created_by_this_run_is_not_asked_for_its_attachments(tmp_path):
     from zotero_cli.core.interfaces import ZoteroGateway
 
     gateway = create_autospec(ZoteroGateway, instance=True)
-    gateway.upload_attachment.return_value = True
+    gateway.upload_attachment_item.return_value = "NEWATT"
     service = _restore_service(gateway)
     service._created.add("NEWITEM1")
     zf = _zaf_with_attachment(tmp_path, b"%PDF-1.7 x")
@@ -655,7 +656,7 @@ def test_an_item_created_by_this_run_is_not_asked_for_its_attachments(tmp_path):
     )
 
     gateway.get_item_children.assert_not_called()
-    gateway.upload_attachment.assert_called_once()
+    gateway.upload_attachment_item.assert_called_once()
 
 
 def test_a_note_is_created_with_its_tags_and_their_types():
@@ -944,4 +945,182 @@ def test_a_stored_attachment_whose_file_is_not_in_the_archive_is_a_warning(tmp_p
     )
 
     assert any("its file is not in the archive" in w for w in report.warnings)
-    gateway.upload_attachment.assert_not_called()
+    gateway.upload_attachment_item.assert_not_called()
+
+
+ANNOTATION: Dict[str, Any] = {
+    "key": "OLDANN",
+    "data": {
+        "key": "OLDANN",
+        "version": 4,
+        "itemType": "annotation",
+        "parentItem": "OLDPDF",
+        "annotationType": "highlight",
+        "annotationText": "the text",
+        "annotationComment": "",
+        "annotationColor": "#ffd400",
+        "annotationPageLabel": "1",
+        "annotationSortIndex": "00000|002176|00328",
+        "annotationPosition": '{"pageIndex":0,"rects":[[1,2,3,4]]}',
+        "tags": [{"tag": "t"}],
+        "relations": {},
+        "dateAdded": "2026-08-31T01:38:56Z",
+        "dateModified": "2026-08-31T01:38:56Z",
+    },
+}
+
+
+def _annotation_service():
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.create_generic_item.return_value = "NEWANN"
+    return gateway, _restore_service(gateway)
+
+
+def test_an_annotation_is_created_under_the_restored_pdf_with_all_its_fields():
+    """Issue #685: the real API accepts all five kinds as they were archived."""
+    from zotero_cli.core.services.restore_service import _annotation_payload
+
+    payload = _annotation_payload(ANNOTATION["data"], "NEWPDF")
+
+    assert payload == {
+        "itemType": "annotation",
+        "parentItem": "NEWPDF",
+        "annotationType": "highlight",
+        "annotationText": "the text",
+        "annotationComment": "",
+        "annotationColor": "#ffd400",
+        "annotationPageLabel": "1",
+        "annotationSortIndex": "00000|002176|00328",
+        "annotationPosition": '{"pageIndex":0,"rects":[[1,2,3,4]]}',
+        "tags": [{"tag": "t"}],
+    }
+
+
+def test_an_annotation_goes_under_the_new_key_of_its_attachment():
+    gateway, service = _annotation_service()
+    service.item_map["OLDPDF"] = "NEWPDF"
+    service._created.add("NEWPDF")
+    report = RestoreReport()
+
+    service._restore_annotation(ANNOTATION, report)
+
+    assert gateway.create_generic_item.call_args.args[0]["parentItem"] == "NEWPDF"
+    assert report.items_created == 1
+    gateway.get_item_children.assert_not_called()  # a PDF this run made has nothing to match
+
+
+def test_an_annotation_whose_pdf_was_not_restored_is_a_warning_not_a_409():
+    gateway, service = _annotation_service()
+    report = RestoreReport()
+
+    service._restore_annotation(ANNOTATION, report)
+
+    assert any("its PDF was not restored" in w for w in report.warnings)
+    gateway.create_generic_item.assert_not_called()
+    assert report.errors == []
+
+
+def test_an_annotation_the_pdf_already_has_is_not_created_again():
+    gateway, service = _annotation_service()
+    service.item_map["OLDPDF"] = "EXISTINGPDF"
+    gateway.get_item_children.return_value = [
+        {"key": "HAVE", "data": {k: v for k, v in ANNOTATION["data"].items() if k != "key"}}
+    ]
+    report = RestoreReport()
+
+    service._restore_annotation(ANNOTATION, report)
+
+    gateway.create_generic_item.assert_not_called()
+    assert report.items_skipped_existing == 1
+
+
+def test_a_different_annotation_on_an_existing_pdf_is_created():
+    gateway, service = _annotation_service()
+    service.item_map["OLDPDF"] = "EXISTINGPDF"
+    other = {
+        **ANNOTATION["data"],
+        "annotationPosition": '{"pageIndex":3}',
+        "itemType": "annotation",
+    }
+    gateway.get_item_children.return_value = [{"key": "OTHER", "data": other}]
+
+    service._restore_annotation(ANNOTATION, RestoreReport())
+
+    gateway.create_generic_item.assert_called_once()
+
+
+def test_a_dry_run_counts_an_annotation_and_writes_nothing():
+    gateway, service = _annotation_service()
+    service.item_map["OLDPDF"] = "DRY_RUN_OLDPDF"
+    service._created.add("DRY_RUN_OLDPDF")
+    report = RestoreReport(is_dry_run=True)
+
+    service._restore_annotation(ANNOTATION, report)
+
+    assert report.items_created == 1
+    gateway.create_generic_item.assert_not_called()
+
+
+def test_annotations_are_restored_after_their_attachments():
+    _, service = _annotation_service()
+    items = [
+        {"key": "A", "data": {"itemType": "annotation"}},
+        {"key": "N", "data": {"itemType": "note"}},
+        {"key": "P", "data": {"itemType": "journalArticle"}},
+        {"key": "F", "data": {"itemType": "attachment"}},
+    ]
+
+    ordered = [i["key"] for i in service._sort_items_by_hierarchy(items)]
+
+    assert ordered == ["P", "N", "F", "A"]
+
+
+def test_a_restored_attachment_remembers_its_new_key(tmp_path):
+    gateway, service = _annotation_service()
+    gateway.upload_attachment_item.return_value = "NEWPDF"
+    zf = _zaf_with_attachment(tmp_path, b"%PDF-1.7 x")
+    manifest = {"file_map": {"OLDPDF": {"path": "files/ATT1/paper.pdf"}}}
+
+    service._restore_attachment(
+        {"key": "OLDPDF", "data": {"linkMode": "imported_file"}},
+        zf,
+        manifest,
+        "NEWPARENT",
+        RestoreReport(),
+    )
+
+    assert service.item_map["OLDPDF"] == "NEWPDF"
+    assert "NEWPDF" in service._created
+
+
+def test_an_attachment_that_already_exists_is_mapped_to_the_existing_key(tmp_path):
+    import hashlib
+
+    payload = b"%PDF-1.7 same"
+    gateway, service = _annotation_service()
+    gateway.get_item_children.return_value = [
+        {
+            "key": "EXISTINGPDF",
+            "data": {
+                "itemType": "attachment",
+                "md5": hashlib.md5(payload, usedforsecurity=False).hexdigest(),
+            },
+        }
+    ]
+    zf = _zaf_with_attachment(tmp_path, payload)
+    manifest = {"file_map": {"OLDPDF": {"path": "files/ATT1/paper.pdf"}}}
+
+    service._restore_attachment(
+        {"key": "OLDPDF", "data": {"linkMode": "imported_file"}},
+        zf,
+        manifest,
+        "EXISTING1",
+        RestoreReport(),
+    )
+
+    assert service.item_map["OLDPDF"] == "EXISTINGPDF"
+    gateway.upload_attachment_item.assert_not_called()
