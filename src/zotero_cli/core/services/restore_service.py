@@ -272,9 +272,7 @@ class RestoreService:
             report.items_skipped_existing += 1
         elif report.is_dry_run:
             report.items_created += 1
-        elif self.items.create_generic_item(
-            {"itemType": "note", "note": text, "collections": collections}
-        ):
+        elif self.items.create_generic_item(_note_payload(data, collections=collections)):
             report.items_created += 1
         else:
             report.errors.append(
@@ -297,7 +295,7 @@ class RestoreService:
         if note_content in existing:
             return
 
-        if self.notes.create_note(new_parent, note_content):
+        if self.items.create_generic_item(_note_payload(data, parent=new_parent)):
             existing.add(note_content)
 
     def _restore_attachment(
@@ -482,3 +480,17 @@ def _not_restored(raw: dict, why: str) -> str:
     text = data.get("title") or data.get("filename") or str(data.get("note", ""))[:40]
     label = f'{data.get("itemType", "item")} "{text}" ({raw.get("key", "?")})'
     return f"{label}: {why}" if why else label
+
+
+def _note_payload(
+    data: dict, parent: Optional[str] = None, collections: Optional[List[str]] = None
+) -> dict:
+    """A note created from what the archive holds about it (Issue #682): its text and its tags,
+    with their types, under the new parent or in the mapped collections. `create_note` only
+    ever sent the text."""
+    payload: dict = {"itemType": "note", "note": data.get("note", ""), "tags": data.get("tags", [])}
+    if parent:
+        payload["parentItem"] = parent
+    if collections is not None:
+        payload["collections"] = collections
+    return payload

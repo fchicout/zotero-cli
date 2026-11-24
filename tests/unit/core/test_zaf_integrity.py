@@ -237,14 +237,16 @@ def test_restore_note_creation(mock_gateway):
     note_data = {"note": "New note"}
     # Mock no existing notes
     mock_gateway.get_item_children.return_value = []
-    mock_gateway.create_note.return_value = True
+    mock_gateway.create_generic_item.return_value = "NEWNOTE"
 
     from zotero_cli.core.services.restore_service import RestoreReport
 
     report = RestoreReport(is_dry_run=False)
     service._restore_note(note_data, item_key, report)
 
-    mock_gateway.create_note.assert_called_once_with(item_key, "New note")
+    mock_gateway.create_generic_item.assert_called_once_with(
+        {"itemType": "note", "note": "New note", "tags": [], "parentItem": item_key}
+    )
 
 
 def test_verify_service_legacy_manifest(tmp_path):
@@ -472,13 +474,13 @@ def test_restore_notes_ask_for_each_parent_s_children_once(mock_gateway):
     mock_gateway.get_item_children.return_value = [
         {"key": "N0", "data": {"itemType": "note", "note": "already there"}}
     ]
-    mock_gateway.create_note.return_value = True
+    mock_gateway.create_generic_item.return_value = "NEWNOTE"
 
     for text in ("already there", "first", "second", "first"):
         service._restore_note({"note": text}, "PARENT", report)
 
     mock_gateway.get_item_children.assert_called_once_with("PARENT")
-    created = [c.args[1] for c in mock_gateway.create_note.call_args_list]
+    created = [c.args[0]["note"] for c in mock_gateway.create_generic_item.call_args_list]
     assert created == ["first", "second"]  # no duplicates, nothing twice
 
 
@@ -486,7 +488,6 @@ def test_restore_notes_on_a_new_parent_make_no_children_request(mock_gateway):
     service = _restore_service(mock_gateway)
     report = RestoreReport()
     mock_gateway.create_generic_item.return_value = "NEWKEY"
-    mock_gateway.create_note.return_value = True
     service._restore_single_item(
         {"key": "OLD", "data": {"itemType": "journalArticle", "title": "A new paper"}},
         MagicMock(),
@@ -499,7 +500,9 @@ def test_restore_notes_on_a_new_parent_make_no_children_request(mock_gateway):
     service._restore_note({"note": "hello"}, "NEWKEY", report)
 
     mock_gateway.get_item_children.assert_not_called()
-    mock_gateway.create_note.assert_called_once_with("NEWKEY", "hello")
+    mock_gateway.create_generic_item.assert_called_with(
+        {"itemType": "note", "note": "hello", "tags": [], "parentItem": "NEWKEY"}
+    )
 
 
 @pytest.mark.parametrize(
@@ -653,3 +656,27 @@ def test_an_item_created_by_this_run_is_not_asked_for_its_attachments(tmp_path):
 
     gateway.get_item_children.assert_not_called()
     gateway.upload_attachment.assert_called_once()
+
+
+def test_a_note_is_created_with_its_tags_and_their_types():
+    """Issue #682: the text was all that was sent."""
+    from zotero_cli.core.services.restore_service import _note_payload
+
+    data = {"note": "<p>x</p>", "tags": [{"tag": "a", "type": 0}, {"tag": "b", "type": 1}]}
+
+    payload = _note_payload(data, parent="NEWPARENT")
+
+    assert payload == {
+        "itemType": "note",
+        "note": "<p>x</p>",
+        "tags": [{"tag": "a", "type": 0}, {"tag": "b", "type": 1}],
+        "parentItem": "NEWPARENT",
+    }
+
+
+def test_a_note_without_tags_is_created_with_an_empty_tag_list():
+    from zotero_cli.core.services.restore_service import _note_payload
+
+    payload = _note_payload({"note": "<p>x</p>"}, collections=["COL1"])
+
+    assert payload == {"itemType": "note", "note": "<p>x</p>", "tags": [], "collections": ["COL1"]}
