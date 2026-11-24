@@ -93,6 +93,39 @@ def trip(tmp_path: Path) -> Trip:
         note="<p>stand-alone, trashed</p>",
         deleted=True,
     )
+    # The same paper filed twice, each copy in its own collection with its own files, notes and
+    # annotations (the live group had three such pairs, Issue #699)
+    for suffix, collection in (("A", "COLA0001"), ("B", "COLB0001")):
+        copy_key = f"DUP{suffix}0001"
+        source.add_item(
+            copy_key,
+            "journalArticle",
+            collections=[collection],
+            title="The same paper twice",
+            DOI="10.1/duplicated",
+            url="https://example.org/paper",
+        )
+        source.add_item(
+            f"DUP{suffix}PDF1",
+            "attachment",
+            parent=copy_key,
+            linkMode="imported_file",
+            filename=f"copy-{suffix}.pdf",
+            title="Full Text PDF",
+            contentType="application/pdf",
+            file=b"%PDF-1.7 copy " + suffix.encode(),
+        )
+        source.add_item(
+            f"DUP{suffix}NTE1", "note", parent=copy_key, note=f"<p>note of copy {suffix}</p>"
+        )
+        source.add_item(
+            f"DUP{suffix}ANN1",
+            "annotation",
+            parent=f"DUP{suffix}PDF1",
+            annotationType="highlight",
+            annotationText=f"text {suffix}",
+            annotationPosition=f'{{"pageIndex":{ord(suffix)}}}',
+        )
     archive = tmp_path / "library.zaf"
     GatewayFactory.get_backup_service(client).backup_system(str(archive), include_trash=True)
     target = FakeTarget()
@@ -384,6 +417,49 @@ def test_a_second_restore_adds_nothing(trip: Trip) -> None:
     created = (again.collections_created, again.attachments_uploaded)
     nothing = (0, 0)
     assert created == nothing
+
+
+def test_two_copies_of_one_paper_stay_two_copies_with_their_own_children(trip: Trip) -> None:
+    """Issue #699: same title and DOI, told apart by their collections."""
+    lib = trip.target.lib
+    copies = [r for r in lib.items.values() if r["data"].get("title") == "The same paper twice"]
+
+    assert len(copies) == 2
+    for copy in copies:
+        kids = [r["data"] for r in lib.items.values() if r["data"].get("parentItem") == copy["key"]]
+        where = col_path(lib, copy["data"]["collections"][0])
+        suffix = "A" if where == "Reviews" else "B"
+        assert sorted(k["itemType"] for k in kids) == ["attachment", "note"]
+        assert {k["filename"] for k in kids if k["itemType"] == "attachment"} == {
+            f"copy-{suffix}.pdf"
+        }
+        assert {k["note"] for k in kids if k["itemType"] == "note"} == {
+            f"<p>note of copy {suffix}</p>"
+        }
+
+
+def test_a_library_that_has_only_one_of_two_copies_gets_the_other(trip: Trip) -> None:
+    lib = trip.target.lib
+    gone = next(
+        k
+        for k, r in lib.items.items()
+        if r["data"].get("title") == "The same paper twice"
+        and col_path(lib, r["data"]["collections"][0]) == "Reading list"
+    )
+    removed = [k for k, r in lib.items.items() if r["data"].get("parentItem") == gone]
+    for key in removed:
+        for sub in [k for k, r in lib.items.items() if r["data"].get("parentItem") == key]:
+            del lib.items[sub]  # the annotations of the PDF go with it
+        del lib.items[key]
+    del lib.items[gone]
+    before = len(lib.items)
+
+    again = trip.restore_again()
+
+    copies = [r for r in lib.items.values() if r["data"].get("title") == "The same paper twice"]
+    assert len(copies) == 2
+    assert len(lib.items) > before
+    assert again.items_created >= 1
 
 
 def test_a_partly_restored_library_gets_only_what_is_missing(trip: Trip) -> None:
