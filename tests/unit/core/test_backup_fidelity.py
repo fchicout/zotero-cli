@@ -629,12 +629,129 @@ def test_a_collection_backup_lists_each_collection_once(world: World) -> None:
     ]
 
 
-@discrepancy("D4", "a collection archive has no collections.json: names and tree are lost")
 def test_a_collection_backup_records_the_collection_tree(world: World) -> None:
     archive = backup_collection(world, "COLA0001")
 
     assert archive.collections is not None
-    assert {"COLA0001", "COLA1001", "COLA1A01"} <= {c["key"] for c in archive.collections}
+    by_key = {c["key"]: c for c in archive.collections}
+    assert sorted(by_key) == ["COLA0001", "COLA1001", "COLA1A01"]
+    assert by_key["COLA0001"]["data"]["name"] == "Reviews"
+    assert by_key["COLA1001"]["data"]["parentCollection"] == "COLA0001"
+    assert by_key["COLA1A01"]["data"]["parentCollection"] == "COLA1001"
+    assert by_key["COLA1A01"]["data"]["name"] == "Drafts"
+
+
+def test_a_leaf_collection_archive_has_just_its_own_record(world: World) -> None:
+    archive = backup_collection(world, "COLA1A01")
+
+    assert archive.collections is not None
+    assert [c["key"] for c in archive.collections] == ["COLA1A01"]
+
+
+def test_a_middle_collection_keeps_its_record_as_the_api_gave_it(world: World) -> None:
+    """Its parent is not in the archive; the reference stays, a restore treats it as top level."""
+    archive = backup_collection(world, "COLA1001")
+
+    assert archive.collections is not None
+    by_key = {c["key"]: c for c in archive.collections}
+    assert sorted(by_key) == ["COLA1001", "COLA1A01"]
+    assert by_key["COLA1001"]["data"]["parentCollection"] == "COLA0001"
+
+
+def test_collections_outside_the_backup_are_not_added(world: World) -> None:
+    """An article filed in `Reviews` and in an unrelated `Reading list`: only the first is kept."""
+    archive = backup_collection(world, "COLA0001")
+
+    assert archive.collections is not None
+    assert "COLB0001" not in {c["key"] for c in archive.collections}
+    assert archive.by_key["JRN00001"]["data"]["collections"] == ["COLA0001", "COLB0001"]
+
+
+def test_a_collection_archive_counts_and_verifies_its_collections(
+    world: World, tmp_path: Path
+) -> None:
+    path = tmp_path / "collection.zaf"
+    world.service.backup_collection("COLA0001", str(path))
+
+    report = VerifyService().verify_archive(str(path))
+
+    assert report.is_valid, report.errors
+    assert report.collection_count == 3
+    assert (report.manifest or {})["counts"]["collections"] == 3
+
+
+def _drop_member(source: Path, target: Path, name: str) -> None:
+    with zipfile.ZipFile(source) as src, zipfile.ZipFile(target, "w") as dst:
+        for info in src.infolist():
+            if info.filename != name:
+                dst.writestr(info.filename, src.read(info.filename))
+
+
+def test_verification_catches_a_collection_archive_without_its_root(
+    world: World, tmp_path: Path
+) -> None:
+    path = tmp_path / "collection.zaf"
+    world.service.backup_collection("COLA1001", str(path))
+    changed = tmp_path / "changed.zaf"
+
+    def other_root(manifest: Dict[str, Any]) -> None:
+        manifest["root_collection_key"] = "COLA0001"
+
+    _rewrite_manifest(path, changed, other_root)
+
+    report = VerifyService().verify_archive(str(changed))
+
+    assert not report.is_valid
+    assert any("root collection COLA0001" in e for e in report.errors)
+
+
+def test_a_collection_archive_from_before_1_2_still_verifies(world: World, tmp_path: Path) -> None:
+    """Older collection backups have no collections.json."""
+    path = tmp_path / "collection.zaf"
+    world.service.backup_collection("COLA0001", str(path))
+    old = tmp_path / "old.zaf"
+    _drop_member(path, old, "collections.json")
+
+    report = VerifyService().verify_archive(str(old))
+
+    assert report.is_valid, report.errors
+
+
+def test_restoring_a_collection_archive_rebuilds_its_sub_tree(world: World, tmp_path: Path) -> None:
+    """A restore into an empty library creates the collections with their names and nesting
+    and files each item in the right one; collections the archive does not hold are dropped."""
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+    from zotero_cli.core.services.restore_service import RestoreService
+
+    path = tmp_path / "collection.zaf"
+    world.service.backup_collection("COLA0001", str(path))
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_all_items.return_value = iter([])
+    gateway.get_all_collections.return_value = []
+    created: List[Any] = []
+
+    def create_collection(name: str, parent_key: Optional[str] = None) -> str:
+        created.append((name, parent_key))
+        return f"NEW{len(created)}"
+
+    new_items: Dict[str, Dict[str, Any]] = {}
+
+    def create_item(data: Dict[str, Any]) -> str:
+        # annotations have no restore path yet (#652) and arrive here without a title
+        new_items[data.get("title", data["itemType"])] = data
+        return f"ITM{len(new_items)}"
+
+    gateway.create_collection.side_effect = create_collection
+    gateway.create_generic_item.side_effect = create_item
+
+    report = RestoreService(gateway, gateway, gateway, gateway).restore_archive(str(path))
+
+    assert report.errors == []
+    assert created == [("Reviews", None), ("2025", "NEW1"), ("Drafts", "NEW2")]
+    assert new_items["A study of backups"]["collections"] == ["NEW1"]
+    assert new_items["The book"]["collections"] == ["NEW3"]
 
 
 def test_a_collection_backup_includes_pdf_annotations(world: World) -> None:

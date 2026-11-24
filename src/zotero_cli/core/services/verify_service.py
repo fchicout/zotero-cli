@@ -77,18 +77,16 @@ class VerifyService:
                 if _ERRORS_FILE in file_list:
                     self._count_logged_problems(zf, report)
 
-                # 3. Verify Collections (Optional for collection scope, required for library scope)
-                if report.manifest and report.manifest.get("scope_type") == "library":
-                    if _COLLECTIONS_FILE not in file_list:
-                        report.is_valid = False
-                        report.errors.append("Missing collections.json for library-scoped backup")
-                    else:
-                        try:
-                            colls = read_json_member(zf, _COLLECTIONS_FILE)
-                            report.collection_count = len(colls)
-                        except Exception as e:
-                            report.is_valid = False
-                            report.errors.append(f"Invalid collections.json: {str(e)}")
+                # 3. Verify Collections: required for a library backup; a collection
+                # backup has them from format 1.2 on (Issue #660), older ones do not.
+                is_library = bool(
+                    report.manifest and report.manifest.get("scope_type") == "library"
+                )
+                if is_library and _COLLECTIONS_FILE not in file_list:
+                    report.is_valid = False
+                    report.errors.append("Missing collections.json for library-scoped backup")
+                elif _COLLECTIONS_FILE in file_list:
+                    self._read_collections(zf, report)
 
                 self._check_counts(report, file_list)
 
@@ -131,6 +129,20 @@ class VerifyService:
             report.errors.append(f"Critical error during verification: {str(e)}")
 
         return report
+
+    @staticmethod
+    def _read_collections(zf: zipfile.ZipFile, report: VerificationReport) -> None:
+        try:
+            collections = read_json_member(zf, _COLLECTIONS_FILE)
+        except Exception as e:
+            report.is_valid = False
+            report.errors.append(f"Invalid collections.json: {str(e)}")
+            return
+        report.collection_count = len(collections)
+        root = (report.manifest or {}).get("root_collection_key")
+        if root and root not in {c.get("key") for c in collections}:
+            report.is_valid = False
+            report.errors.append(f"collections.json does not contain the root collection {root}")
 
     @staticmethod
     def _check_counts(report: VerificationReport, file_list: List[str]) -> None:
