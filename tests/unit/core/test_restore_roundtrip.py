@@ -121,6 +121,11 @@ def dump(value: Any) -> str:
     return json.dumps(value, sort_keys=True, ensure_ascii=False)
 
 
+def visible(lib: FakeLibrary) -> List[Dict[str, Any]]:
+    """The items Zotero shows: not in the trash, directly or through their parent."""
+    return [r for r in lib.live_items() if not lib.is_trashed(r["key"])]
+
+
 def collection_tree(lib: FakeLibrary) -> List[str]:
     return sorted(col_path(lib, k) for k in lib.collections)
 
@@ -302,12 +307,12 @@ def test_a_dry_run_counts_the_standalone_note_as_an_item(trip: Trip, tmp_path: P
 
 def test_a_second_restore_adds_nothing(trip: Trip) -> None:
     """Live items, collections and files; the trash has its own check (#683)."""
-    before = (len(trip.target.lib.live_items()), len(trip.target.lib.collections))
+    before = (len(visible(trip.target.lib)), len(trip.target.lib.collections))
 
     again = trip.restore_again()
 
     expected = before
-    actual = (len(trip.target.lib.live_items()), len(trip.target.lib.collections))
+    actual = (len(visible(trip.target.lib)), len(trip.target.lib.collections))
     assert actual == expected
     created = (again.collections_created, again.attachments_uploaded)
     nothing = (0, 0)
@@ -325,13 +330,13 @@ def test_a_partly_restored_library_gets_only_what_is_missing(trip: Trip) -> None
         if r["data"]["itemType"] == "attachment" and r["data"].get("parentItem")
     )
     del lib.items[pdf]
-    items_before = len(lib.live_items())
+    items_before = len(visible(lib))
 
     again = trip.restore_again()
 
     assert again.collections_created == 1
     assert again.attachments_uploaded == 1
-    assert len(lib.live_items()) == items_before + 1
+    assert len(visible(lib)) == items_before + 1
     assert drafts not in lib.collections, "a new key, not the deleted one"
 
 

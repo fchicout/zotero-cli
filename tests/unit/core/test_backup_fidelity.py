@@ -851,6 +851,30 @@ def test_the_trash_is_left_out_by_default(world: World) -> None:
         assert archive.manifest["includes_trash"] is False
 
 
+def test_a_backup_without_the_trash_has_no_item_whose_parent_is_missing(world: World) -> None:
+    """The real API lists the children of a trashed item among the live ones (Issue #692)."""
+    world.lib.add_item(
+        "TRSHPDF9",
+        "attachment",
+        parent="TRSH0001",
+        linkMode="imported_file",
+        filename="d.pdf",
+        file=PDF,
+    )
+    world.lib.add_item("TRSHANN9", "annotation", parent="TRSHPDF9", annotationType="highlight")
+    assert "TRSHN001" in {r["key"] for r in world.lib.live_items()}, "the fake behaves like the API"
+
+    for archive in (backup_system(world), backup_collection(world, "COLA0001")):
+        missing = [
+            d["key"]
+            for d in archive.data
+            if d["data"].get("parentItem") and d["data"]["parentItem"] not in archive.by_key
+        ]
+        assert missing == []
+        assert archive.manifest["counts"]["items"] == len(archive.data)
+        assert not {"TRSHN001", "TRSHPDF9", "TRSHANN9"} & set(archive.keys)
+
+
 def test_the_trash_option_adds_trashed_items_with_their_children_and_flag(world: World) -> None:
     archive = backup_system(world, include_trash=True)
 
@@ -865,7 +889,7 @@ def test_the_trash_option_adds_trashed_items_with_their_children_and_flag(world:
 def test_the_children_of_a_trashed_parent_are_found_even_if_the_trash_does_not_list_them(
     world: World,
 ) -> None:
-    world.lib.trash_lists_children = False
+    assert "TRSHN001" not in {r["key"] for r in world.lib.trashed_items()}
 
     archive = backup_system(world, include_trash=True)
 
@@ -888,7 +912,6 @@ def _trash_an_annotated_pdf(world: World) -> None:
 @pytest.mark.parametrize("scope", ["library", "collection"])
 def test_a_trashed_item_keeps_its_pdf_and_annotations(world: World, scope: str) -> None:
     _trash_an_annotated_pdf(world)
-    world.lib.trash_lists_children = False
 
     archive = (
         backup_system(world, include_trash=True)
