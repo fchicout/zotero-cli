@@ -822,6 +822,8 @@ def test_an_attachment_is_created_from_what_the_archive_holds_about_it():
 
     assert payload == {
         "itemType": "attachment",
+        "dateAdded": "2026-01-01T00:00:00Z",
+        "dateModified": "2026-01-02T00:00:00Z",
         "title": "Full Text PDF",
         "filename": "paper.pdf",
         "linkMode": "imported_url",
@@ -988,6 +990,8 @@ def test_an_annotation_is_created_under_the_restored_pdf_with_all_its_fields():
 
     assert payload == {
         "itemType": "annotation",
+        "dateAdded": "2026-08-31T01:38:56Z",
+        "dateModified": "2026-08-31T01:38:56Z",
         "parentItem": "NEWPDF",
         "annotationType": "highlight",
         "annotationText": "the text",
@@ -1253,3 +1257,54 @@ def test_a_failed_update_of_the_links_is_an_error():
 
     assert report.relations_restored == 0
     assert any("related items" in e for e in report.errors)
+
+
+def test_a_note_keeps_its_dates_when_it_has_them_and_invents_none():
+    """Issue #687: the Web API keeps dateAdded and dateModified given on create."""
+    from zotero_cli.core.services.restore_service import _note_payload
+
+    dated = _note_payload(
+        {
+            "note": "<p>x</p>",
+            "dateAdded": "2019-05-06T07:08:09Z",
+            "dateModified": "2020-01-01T00:00:00Z",
+        }
+    )
+    undated = _note_payload({"note": "<p>x</p>"})
+
+    assert dated["dateAdded"] == "2019-05-06T07:08:09Z"
+    assert dated["dateModified"] == "2020-01-01T00:00:00Z"
+    assert "dateAdded" not in undated
+    assert "dateModified" not in undated
+
+
+def test_an_article_is_created_with_its_original_dates():
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_all_items.return_value = iter([])
+    gateway.create_generic_item.return_value = "NEWKEY"
+    service = _restore_service(gateway)
+    doi_index, title_index = service._build_existing_item_indexes()
+    raw = {
+        "key": "OLD",
+        "version": 9,
+        "data": {
+            "itemType": "journalArticle",
+            "title": "Paper",
+            "dateAdded": "2026-08-23T18:24:43Z",
+            "dateModified": "2026-09-01T10:00:00Z",
+        },
+    }
+
+    service._restore_single_item(
+        raw, zipfile.ZipFile(io.BytesIO(_empty_zip())), {}, RestoreReport(), doi_index, title_index
+    )
+
+    sent = gateway.create_generic_item.call_args.args[0]
+    assert sent["dateAdded"] == "2026-08-23T18:24:43Z"
+    assert sent["dateModified"] == "2026-09-01T10:00:00Z"
+    assert "version" not in sent
+    assert "key" not in sent
