@@ -238,6 +238,36 @@ def articles(lib: FakeLibrary) -> List[str]:
     return sorted(found)
 
 
+def note_text(lib: FakeLibrary, raw: Dict[str, Any]) -> str:
+    """A note's text with each embedded image's key replaced by what the image is (its hash), so
+    two libraries can be compared although their keys differ (Issue #704)."""
+    import hashlib
+
+    def image(match: "re.Match[str]") -> str:
+        key = match.group(1)
+        digest = hashlib.sha256(lib.files[key]).hexdigest()[:12] if key in lib.files else "MISSING"
+        return f'data-attachment-key="image:{digest}"'
+
+    return re.sub(r'data-attachment-key="([A-Z0-9]{8})"', image, raw["data"]["note"])
+
+
+def note_images(lib: FakeLibrary) -> List[str]:
+    """Each embedded image: the note it is under (by its text), its type and its hash."""
+    import hashlib
+
+    return sorted(
+        dump(
+            (
+                note_text(lib, lib.items[r["data"]["parentItem"]]),
+                r["data"].get("contentType"),
+                hashlib.sha256(lib.files[k]).hexdigest(),
+            )
+        )
+        for k, r in lib.items.items()
+        if r["data"].get("linkMode") == "embedded_image"
+    )
+
+
 def stored_files(lib: FakeLibrary) -> List[Tuple[Optional[str], str]]:
     """(parent, file hash) of every attachment whose file is stored in Zotero."""
     import hashlib
@@ -254,7 +284,7 @@ def stored_files(lib: FakeLibrary) -> List[Tuple[Optional[str], str]]:
 
 def standalone_notes(lib: FakeLibrary) -> List[str]:
     return sorted(
-        dump((r["data"]["note"], r["data"].get("tags", []), paths(lib, r["data"])))
+        dump((note_text(lib, r), r["data"].get("tags", []), paths(lib, r["data"])))
         for r in lib.items.values()
         if r["data"]["itemType"] == "note" and "parentItem" not in r["data"]
     )
@@ -275,7 +305,7 @@ def standalone_files(lib: FakeLibrary) -> List[str]:
 def note_tags(lib: FakeLibrary) -> List[str]:
     return sorted(
         dump(
-            (ident(lib, r["data"].get("parentItem")), r["data"]["note"], r["data"].get("tags", []))
+            (ident(lib, r["data"].get("parentItem")), note_text(lib, r), r["data"].get("tags", []))
         )
         for r in lib.items.values()
         if r["data"]["itemType"] == "note" and "parentItem" in r["data"]
@@ -413,13 +443,34 @@ def test_stored_files_come_back_byte_identical_under_the_same_parent(trip: Trip)
 # =============================================================================================
 
 
-def test_a_child_whose_parent_was_not_restored_is_reported_not_dropped_silently(
+def test_images_embedded_in_notes_come_back_under_their_note(trip: Trip) -> None:
+    """Issue #704."""
+    assert_same(note_images, trip)
+    assert len(note_images(trip.source)) == 1
+    assert not [w for w in trip.report.warnings if "embedded" in w]
+    assert trip.report.errors == []
+
+
+def test_a_restored_note_points_at_the_new_key_of_its_image(trip: Trip) -> None:
+    lib = trip.target.lib
+    note = next(r for r in lib.items.values() if "data-attachment-key" in r["data"].get("note", ""))
+    image = next(r for r in lib.items.values() if r["data"].get("linkMode") == "embedded_image")
+
+    assert f'data-attachment-key="{image["key"]}"' in note["data"]["note"]
+    assert image["key"] != "EMB00001"
+    assert image["data"]["parentItem"] == note["key"]
+
+
+def test_a_second_restore_does_not_duplicate_notes_with_images_or_their_images(
     trip: Trip,
 ) -> None:
-    notes = [w for w in trip.report.warnings if "images embedded in notes" in w]
+    before = (note_images(trip.target.lib), note_tags(trip.target.lib))
 
-    assert len(notes) == 1, "the note image is not restored yet, and the restore says so"
-    assert trip.report.errors == [], "a warning is not an error"
+    again = trip.restore_again()
+
+    assert (note_images(trip.target.lib), note_tags(trip.target.lib)) == before
+    assert again.attachments_uploaded == 0
+    assert again.errors == []
 
 
 def test_standalone_notes_and_files_are_not_duplicated_by_a_second_restore(trip: Trip) -> None:
