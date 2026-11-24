@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import stat
 import tempfile
 import zipfile
 from datetime import datetime, timezone
@@ -95,6 +96,35 @@ class BackupService:
         self._write_zip(output, manifest, items, children, on_item_processed)
 
     def _write_zip(
+        self,
+        output: str | IO[bytes],
+        manifest: dict,
+        items: List[ZoteroItem],
+        children: Dict[str, List[Dict[str, Any]]],
+        on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
+    ) -> None:
+        if not isinstance(output, str):
+            self._write_archive(output, manifest, items, children, on_item_processed)
+            return
+        # Issue #653: a path is written to a temporary file next to it and moved over
+        # the target only once the archive is complete, so a failed run (a dropped
+        # connection, a full disk, Ctrl-C) leaves an earlier backup there untouched.
+        target = os.path.abspath(output)
+        fd, part = tempfile.mkstemp(
+            dir=os.path.dirname(target), prefix=f".{os.path.basename(target)}.", suffix=".part"
+        )
+        os.close(fd)
+        committed = False
+        try:
+            self._write_archive(part, manifest, items, children, on_item_processed)
+            os.chmod(part, _final_mode(target))
+            os.replace(part, target)
+            committed = True
+        finally:
+            if not committed and os.path.exists(part):
+                os.remove(part)
+
+    def _write_archive(
         self,
         output: str | IO[bytes],
         manifest: dict,
@@ -242,6 +272,16 @@ class BackupService:
 
             # Download attachment file if the child is an attachment
             self._download_attachment_file(child, zf, manifest, errors, parent_key=item.key)
+
+
+def _final_mode(target: str) -> int:
+    """The permissions of the archive: those of the file it replaces, else what a plain
+    `open(target, "w")` would give (mkstemp creates its file 0600)."""
+    if os.path.exists(target):
+        return stat.S_IMODE(os.stat(target).st_mode)
+    umask = os.umask(0)
+    os.umask(umask)
+    return 0o666 & ~umask
 
 
 def _has_children(item: ZoteroItem) -> bool:

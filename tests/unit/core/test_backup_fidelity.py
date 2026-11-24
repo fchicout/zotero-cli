@@ -31,6 +31,7 @@ D11 a failed run overwrites an earlier good backup at the same path with a parti
 import hashlib
 import json
 import os
+import stat
 import sys
 import warnings
 import zipfile
@@ -616,7 +617,6 @@ def test_a_file_that_cannot_be_downloaded_is_listed_in_errors_log(world: World) 
     assert "PDF00001" in archive.by_key, "the item itself must still be backed up"
 
 
-@discrepancy("D11", "ZipFile(output, 'w') truncates the target before the new archive is complete")
 def test_a_failed_backup_leaves_the_previous_backup_untouched(world: World, tmp_path: Path) -> None:
     path = tmp_path / "library.zaf"
     world.service.backup_system(str(path))
@@ -628,6 +628,73 @@ def test_a_failed_backup_leaves_the_previous_backup_untouched(world: World, tmp_
         world.service.backup_system(target)
 
     assert path.read_bytes() == previous
+
+
+def test_a_failed_backup_leaves_no_partial_file_behind(world: World, tmp_path: Path) -> None:
+    """First run (nothing to protect) or not, the directory only ever holds finished archives."""
+    path = tmp_path / "library.zaf"
+    world.lib.failing.add("collections")
+
+    target = str(path)
+    with pytest.raises(Unavailable):
+        world.service.backup_system(target)
+
+    assert os.listdir(tmp_path) == []
+
+
+def test_an_interrupted_backup_cleans_up_and_keeps_the_previous_one(
+    world: World, tmp_path: Path
+) -> None:
+    path = tmp_path / "library.zaf"
+    world.service.backup_system(str(path))
+    previous = path.read_bytes()
+
+    def interrupt(_item: Any) -> None:
+        raise KeyboardInterrupt
+
+    target = str(path)
+    with pytest.raises(KeyboardInterrupt):
+        world.service.backup_system(target, on_item_processed=interrupt)
+
+    assert path.read_bytes() == previous
+    assert os.listdir(tmp_path) == ["library.zaf"]
+
+
+def test_a_successful_backup_replaces_the_file_in_one_piece(world: World, tmp_path: Path) -> None:
+    path = tmp_path / "library.zaf"
+    path.write_bytes(b"an old, unrelated file")
+
+    world.service.backup_system(str(path))
+
+    assert Archive(path).keys
+    assert os.listdir(tmp_path) == ["library.zaf"]
+
+
+def test_a_new_backup_file_has_the_permissions_of_an_ordinary_file(
+    world: World, tmp_path: Path
+) -> None:
+    """Not the 0600 of the temporary file it was built in."""
+    if os.name == "nt":
+        pytest.skip("POSIX permission bits")
+    path = tmp_path / "library.zaf"
+    umask = os.umask(0)
+    os.umask(umask)
+
+    world.service.backup_system(str(path))
+
+    assert stat.S_IMODE(path.stat().st_mode) == 0o666 & ~umask
+
+
+def test_a_backup_over_an_existing_file_keeps_its_permissions(world: World, tmp_path: Path) -> None:
+    if os.name == "nt":
+        pytest.skip("POSIX permission bits")
+    path = tmp_path / "library.zaf"
+    path.write_bytes(b"old")
+    path.chmod(0o640)
+
+    world.service.backup_system(str(path))
+
+    assert stat.S_IMODE(path.stat().st_mode) == 0o640
 
 
 # =============================================================================================
