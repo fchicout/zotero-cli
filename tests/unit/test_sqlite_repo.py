@@ -330,6 +330,29 @@ def test_offline_library_backup_holds_the_saved_searches(mock_db):
         assert json.loads(zf.read("manifest.json"))["counts"]["searches"] == 1
 
 
+def test_offline_backup_without_the_trash_leaves_out_the_children_of_a_trashed_item(mock_db):
+    """Issue #692: only the parent is in `deletedItems`; its children still look live."""
+    from io import BytesIO
+
+    from zotero_cli.core.services.backup_service import BackupService
+
+    conn = sqlite3.connect(mock_db)
+    conn.execute("INSERT INTO deletedItems (itemID) VALUES (2)")  # ITEMKEY2 and its children 3, 4
+    conn.commit()
+    conn.close()
+    gateway = SqliteZoteroGateway(mock_db)
+
+    def keys(**options):
+        out = BytesIO()
+        BackupService(gateway, gateway, gateway).backup_system(out, **options)
+        with zipfile.ZipFile(out) as zf:
+            return {item["key"] for item in json.loads(zf.read("data.json"))}
+
+    assert {"ITEMKEY2", "ITEMKEY3", "ITEMKEY4"}.isdisjoint(keys())
+    assert {"ITEMKEY2", "ITEMKEY3", "ITEMKEY4"} <= keys(include_trash=True)
+    assert "ITEMKEY1" in keys()
+
+
 def test_offline_backup_can_include_the_trash(mock_db):
     """Issue #662: the local database's deleted items, marked `deleted` like the Web API's."""
     from io import BytesIO

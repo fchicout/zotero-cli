@@ -151,6 +151,9 @@ class BackupService:
         }
 
         items = list(self.items.get_all_items())
+        if not include_trash:
+            # The listing also holds the children of items that are in the trash (Issue #692)
+            items = _without_orphans(items)
         # The library listing already contains every child in full: group
         # them locally instead of asking for each item's children and then
         # re-fetching each child (Issue #426: ~2.8 requests per item).
@@ -517,6 +520,19 @@ def _collection_and_descendants(collections: List[Dict[str, Any]], root: str) ->
                 found.append(child)
                 queue.append(child)
     return found
+
+
+def _without_orphans(items: List[ZoteroItem]) -> List[ZoteroItem]:
+    """The items whose parent is in the list too, repeated until none is left without one (an
+    annotation goes with the attachment that went). The Web API and the local database list
+    the children of a trashed item as ordinary items, with the trashed parent missing."""
+    kept = items
+    while True:
+        keys = {i.key for i in kept}
+        remaining = [i for i in kept if not i.parent_item or i.parent_item in keys]
+        if len(remaining) == len(kept):
+            return remaining
+        kept = remaining
 
 
 def _trashed_children(trashed: List[ZoteroItem], held: Set[str]) -> Set[str]:

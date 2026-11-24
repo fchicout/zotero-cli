@@ -391,7 +391,10 @@ def test_backup_downloader_exception_handling(service, mock_gateway):
             },
         }
     )
-    mock_gateway.get_all_items.return_value = iter([item])
+    parent = ZoteroItem.from_raw_zotero_item(
+        {"key": "P1", "data": {"itemType": "journalArticle", "title": "Parent"}}
+    )
+    mock_gateway.get_all_items.return_value = iter([parent, item])
     mock_gateway.get_all_collections.return_value = []
 
     # Mock download_attachment to raise an unexpected Exception
@@ -430,3 +433,24 @@ def test_backup_child_fetching_failure_logging(service, mock_gateway):
         assert "errors.log" in namelist
         errors = zf.read("errors.log").decode("utf-8")
         assert "Could not fetch child item CHILD_MISSING for parent P1" in errors
+
+
+def test_without_orphans_follows_a_chain_of_missing_parents():
+    """Issue #692: an annotation goes with the attachment that went with its trashed parent."""
+    from zotero_cli.core.services.backup_service import _without_orphans
+
+    def item(key, parent=None):
+        data = {"itemType": "note", "title": key}
+        if parent:
+            data["parentItem"] = parent
+        return ZoteroItem.from_raw_zotero_item({"key": key, "data": data})
+
+    items = [
+        item("TOP"),
+        item("KIDOK", "TOP"),
+        item("GONE-CHILD", "GONE"),
+        item("GRAND", "GONE-CHILD"),
+    ]
+
+    assert [i.key for i in _without_orphans(items)] == ["TOP", "KIDOK"]
+    assert _without_orphans([]) == []
