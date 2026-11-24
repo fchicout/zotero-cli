@@ -86,9 +86,10 @@ def test_distro_shared_libraries_map_to_their_licences(library, expected):
 
 
 def test_distro_shared_library_is_noticed_without_the_static_set(tmp_path):
-    build = _write_build(
-        tmp_path, binaries=[("libssl.so.3", "/usr/lib/x86_64-linux-gnu/libssl.so.3")], modules=[]
-    )
+    # Not under /usr: with a distro Python (ubuntu-26.04 CI) sys.base_prefix is /usr, and a file
+    # below it counts as part of the Python runtime, not as a separate shared library.
+    libssl = tmp_path / "distro" / "lib" / "libssl.so.3"
+    build = _write_build(tmp_path, binaries=[("libssl.so.3", str(libssl))], modules=[])
     out = tmp_path / "N.txt"
 
     assert gen.main(["--build-dir", str(build), "--output", str(out)]) == 0
