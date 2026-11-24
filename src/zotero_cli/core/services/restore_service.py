@@ -2,7 +2,7 @@ import hashlib
 import logging
 import zipfile
 from dataclasses import dataclass, field
-from typing import IO, Dict, List, Optional, Set, Tuple, cast
+from typing import IO, Any, Dict, List, Optional, Set, Tuple, cast
 
 from zotero_cli.core.interfaces import (
     AttachmentRepository,
@@ -52,6 +52,7 @@ class RestoreReport:
     items_skipped_existing: int = 0
     attachments_uploaded: int = 0
     attachments_skipped_existing: int = 0
+    items_trashed: int = 0  # of the items created, how many went into the trash (Issue #683)
     errors: List[str] = field(default_factory=list)
     # Things the archive holds that this restore does not bring back, and why: not failures
     # of the restore itself (those are `errors`), but the user should know.
@@ -85,11 +86,16 @@ class RestoreService:
         # their attachments against. Every other parent is an existing item, whose attachments
         # (md5, file name) are fetched once, so restoring twice does not upload twice (#680).
         self._created: Set[str] = set()
-        self._attachments_of: Dict[str, List[Tuple[Optional[str], Optional[str]]]] = {}
+        self._attachments_of: Dict[Tuple[str, bool], List[Tuple[Optional[str], Optional[str]]]] = {}
         # Stand-alone notes and files already in the library, as (text or md5, its collections),
         # taken from the one scan that also builds the DOI/title indexes (Issue #681).
-        self._known_notes: Set[Tuple[str, Tuple[str, ...]]] = set()
-        self._known_files: Set[Tuple[Optional[str], Tuple[str, ...]]] = set()
+        # The last part of each is "in the trash": the Web API hides trashed children from
+        # their parent's listing, so the trash is scanned too (Issue #683).
+        self._known_notes: Set[Tuple[str, Tuple[str, ...], bool]] = set()
+        self._known_files: Set[Tuple[Optional[str], Tuple[str, ...], bool]] = set()
+        self._trashed_children: Dict[str, List[ZoteroItem]] = {}
+        self._trash_indexes: Tuple[Dict[str, ZoteroItem], Dict[str, ZoteroItem]] = ({}, {})
+        self._trashed_note_texts: Dict[str, Set[str]] = {}
 
     def restore_archive(self, file_path: str, dry_run: bool = False) -> RestoreReport:
         report = RestoreReport(is_dry_run=dry_run)
@@ -98,6 +104,9 @@ class RestoreService:
         self._attachments_of = {}
         self._known_notes = set()
         self._known_files = set()
+        self._trashed_children = {}
+        self._trash_indexes = ({}, {})
+        self._trashed_note_texts = {}
 
         try:
             with zipfile.ZipFile(file_path, "r") as zf:
@@ -203,6 +212,8 @@ class RestoreService:
 
         # 1. Idempotency: Check by DOI, ArXiv ID, or Title
         existing_item = self._find_existing_item(data, doi_index, title_index)
+        if existing_item is None and data.get("deleted"):
+            existing_item = self._find_existing_item(data, *self._trash_indexes)
         if existing_item:
             self.item_map[old_key] = existing_item.key
             report.items_skipped_existing += 1
@@ -222,6 +233,7 @@ class RestoreService:
             self.item_map[old_key] = f"DRY_RUN_{old_key}"
             self._created.add(self.item_map[old_key])
             report.items_created += 1
+            report.items_trashed += 1 if data.get("deleted") else 0
         else:
             new_key = self.items.create_generic_item(new_data)
             if new_key:
@@ -229,6 +241,7 @@ class RestoreService:
                 self._created.add(new_key)
                 self._note_texts[new_key] = set()  # just created: no notes yet
                 report.items_created += 1
+                report.items_trashed += 1 if data.get("deleted") else 0
             else:
                 report.errors.append(f"Failed to create item: {data.get('title', 'Unknown')}")
 
@@ -268,12 +281,14 @@ class RestoreService:
             self._restore_attachment(child_raw, zf, manifest, None, report, collections)
             return
         text = data.get("note", "")
-        if (text, tuple(sorted(collections))) in self._known_notes:
+        trashed = bool(data.get("deleted"))
+        if (text, tuple(sorted(collections)), trashed) in self._known_notes:
             report.items_skipped_existing += 1
-        elif report.is_dry_run:
+        elif report.is_dry_run or self.items.create_generic_item(
+            _note_payload(data, collections=collections)
+        ):
             report.items_created += 1
-        elif self.items.create_generic_item(_note_payload(data, collections=collections)):
-            report.items_created += 1
+            report.items_trashed += 1 if trashed else 0
         else:
             report.errors.append(
                 f"Failed to create the stand-alone note: {_not_restored(child_raw, '')}"
@@ -284,19 +299,36 @@ class RestoreService:
         if report.is_dry_run:
             return
 
-        existing = self._note_texts.get(new_parent)
-        if existing is None:
-            existing = {
-                child.get("data", {}).get("note")
-                for child in self.items.get_item_children(new_parent)
-                if child.get("data", {}).get("itemType") == "note"
-            }
-            self._note_texts[new_parent] = existing
+        trashed = bool(data.get("deleted"))
+        existing = self._existing_note_texts(new_parent, trashed)
         if note_content in existing:
             return
 
         if self.items.create_generic_item(_note_payload(data, parent=new_parent)):
             existing.add(note_content)
+            report.items_trashed += 1 if trashed else 0
+
+    def _existing_note_texts(self, parent: str, trashed: bool) -> Set[str]:
+        """The texts of the notes `parent` has (Issue #440: asked once per parent), live ones
+        from its children, trashed ones from the trash scan: the Web API hides a trashed
+        child from its parent's listing (Issue #683)."""
+        if trashed:
+            if parent not in self._trashed_note_texts:
+                self._trashed_note_texts[parent] = {
+                    str(child.raw_data.get("data", {}).get("note"))
+                    for child in self._trashed_children.get(parent, [])
+                    if child.item_type == "note"
+                }
+            return self._trashed_note_texts[parent]
+        existing = self._note_texts.get(parent)
+        if existing is None:
+            existing = {
+                child.get("data", {}).get("note")
+                for child in self.items.get_item_children(parent)
+                if child.get("data", {}).get("itemType") == "note"
+            }
+            self._note_texts[parent] = existing
+        return existing
 
     def _restore_attachment(
         self,
@@ -332,11 +364,16 @@ class RestoreService:
                 copy_member(zf, path_in_zip, tf, MAX_ATTACHMENT_BYTES)
 
             mime_type = str(data.get("contentType") or "application/pdf")
-            item_data = {"collections": collections} if new_parent is None else None
+            item_data: Dict[str, Any] = {}
+            if new_parent is None:
+                item_data["collections"] = collections
+            if data.get("deleted"):
+                item_data["deleted"] = 1
             if self.attachments.upload_attachment(
-                new_parent, temp_path, mime_type=mime_type, item_data=item_data
+                new_parent, temp_path, mime_type=mime_type, item_data=item_data or None
             ):
                 report.attachments_uploaded += 1
+                report.items_trashed += 1 if data.get("deleted") else 0
             else:
                 report.errors.append(f"Failed to upload attachment: {path_in_zip}")
         except Exception as e:
@@ -373,13 +410,20 @@ class RestoreService:
                 digest = _member_md5(zf, path_in_zip)
             except (ArchiveLimitError, OSError, KeyError):
                 return False
-            return (digest, tuple(sorted(collections or []))) in self._known_files
+            where = tuple(sorted(collections or []))
+            return (digest, where, bool(data.get("deleted"))) in self._known_files
         if new_parent in self._created:
             return False
-        if new_parent not in self._attachments_of:
-            self._attachments_of[new_parent] = [
+        trashed = bool(data.get("deleted"))
+        if (new_parent, trashed) not in self._attachments_of:
+            children = (
+                [child.raw_data for child in self._trashed_children.get(new_parent, [])]
+                if trashed
+                else self.items.get_item_children(new_parent)
+            )
+            self._attachments_of[(new_parent, trashed)] = [
                 (child["data"].get("md5"), child["data"].get("filename"))
-                for child in self.items.get_item_children(new_parent)
+                for child in children
                 if child.get("data", {}).get("itemType") == "attachment"
             ]
         try:
@@ -389,7 +433,7 @@ class RestoreService:
         filename = data.get("filename")
         return any(
             md5 == digest or (md5 is None and name is not None and name == filename)
-            for md5, name in self._attachments_of[new_parent]
+            for md5, name in self._attachments_of[(new_parent, trashed)]
         )
 
     def _build_existing_item_indexes(
@@ -405,27 +449,29 @@ class RestoreService:
         doi_index: Dict[str, ZoteroItem] = {}
         title_index: Dict[str, ZoteroItem] = {}
         for item in self.items.get_all_items():
-            self._note_standalone(item)
-            if item.doi:
-                normalized = normalize_doi(item.doi)
-                if normalized and normalized not in doi_index:
-                    doi_index[normalized] = item
-            if item.title:
-                key = item.title.lower()
-                if key not in title_index:
-                    title_index[key] = item
+            self._note_standalone(item, False)
+            _index_item(item, doi_index, title_index)
+        trash_doi: Dict[str, ZoteroItem] = {}
+        trash_title: Dict[str, ZoteroItem] = {}
+        for item in self.items.get_trash_items():
+            self._note_standalone(item, True)
+            if item.parent_item:
+                self._trashed_children.setdefault(item.parent_item, []).append(item)
+            else:
+                _index_item(item, trash_doi, trash_title)
+        self._trash_indexes = (trash_doi, trash_title)
         return doi_index, title_index
 
-    def _note_standalone(self, item: ZoteroItem) -> None:
+    def _note_standalone(self, item: ZoteroItem, trashed: bool) -> None:
         """Remembers the stand-alone notes and files already in the library (Issue #681)."""
         if item.parent_item:
             return
         data = item.raw_data.get("data", {})
         where = tuple(sorted(item.collections))
         if item.item_type == "note":
-            self._known_notes.add((data.get("note", ""), where))
+            self._known_notes.add((data.get("note", ""), where, trashed))
         elif item.item_type == "attachment":
-            self._known_files.add((data.get("md5"), where))
+            self._known_files.add((data.get("md5"), where, trashed))
 
     def _find_existing_item(
         self,
@@ -493,4 +539,18 @@ def _note_payload(
         payload["parentItem"] = parent
     if collections is not None:
         payload["collections"] = collections
+    if data.get("deleted"):
+        payload["deleted"] = 1  # the Web API honours it on create (checked on a test library)
     return payload
+
+
+def _index_item(
+    item: ZoteroItem, doi_index: Dict[str, ZoteroItem], title_index: Dict[str, ZoteroItem]
+) -> None:
+    """Files `item` by its normalised DOI and its lower-cased title; the first one wins."""
+    if item.doi:
+        normalized = normalize_doi(item.doi)
+        if normalized and normalized not in doi_index:
+            doi_index[normalized] = item
+    if item.title:
+        title_index.setdefault(item.title.lower(), item)

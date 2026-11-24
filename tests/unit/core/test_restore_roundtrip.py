@@ -66,6 +66,24 @@ def trip(tmp_path: Path) -> Trip:
         tags=[{"tag": "manual", "type": 0}, {"tag": "automatic", "type": 1}],
     )
     source.items["NOTE0001"]["data"]["tags"] = [{"tag": "stand-alone-tag"}]
+    # A file trashed on its own, and a stand-alone note in the trash
+    source.add_item(
+        "TRSHFIL1",
+        "attachment",
+        parent="BOOK0001",
+        linkMode="imported_file",
+        filename="trashed.pdf",
+        contentType="application/pdf",
+        file=b"%PDF-1.7 trashed on its own",
+        deleted=True,
+    )
+    source.add_item(
+        "TRSHNTE2",
+        "note",
+        collections=["COLB0001"],
+        note="<p>stand-alone, trashed</p>",
+        deleted=True,
+    )
     archive = tmp_path / "library.zaf"
     GatewayFactory.get_backup_service(client).backup_system(str(archive), include_trash=True)
     target = FakeTarget()
@@ -198,6 +216,27 @@ def trash_state(lib: FakeLibrary) -> List[str]:
     return sorted(found)
 
 
+def trashed_files(lib: FakeLibrary) -> List[str]:
+    """For every stored file: its hash, and whether the attachment is in the trash."""
+    import hashlib
+
+    return sorted(
+        dump((hashlib.sha256(lib.files[k]).hexdigest(), lib.is_trashed(k)))
+        for k, r in lib.items.items()
+        if r["data"]["itemType"] == "attachment"
+        and k in lib.files
+        and r["data"].get("linkMode") != "embedded_image"
+    )
+
+
+def trashed_standalone_notes(lib: FakeLibrary) -> List[str]:
+    return sorted(
+        dump((r["data"]["note"], lib.is_trashed(k)))
+        for k, r in lib.items.items()
+        if r["data"]["itemType"] == "note" and "parentItem" not in r["data"]
+    )
+
+
 def attachments(lib: FakeLibrary) -> List[str]:
     import hashlib
 
@@ -306,13 +345,13 @@ def test_a_dry_run_counts_the_standalone_note_as_an_item(trip: Trip, tmp_path: P
 
 
 def test_a_second_restore_adds_nothing(trip: Trip) -> None:
-    """Live items, collections and files; the trash has its own check (#683)."""
-    before = (len(visible(trip.target.lib)), len(trip.target.lib.collections))
+    """Everything, the trash included."""
+    before = (len(trip.target.lib.items), len(trip.target.lib.collections))
 
     again = trip.restore_again()
 
     expected = before
-    actual = (len(visible(trip.target.lib)), len(trip.target.lib.collections))
+    actual = (len(trip.target.lib.items), len(trip.target.lib.collections))
     assert actual == expected
     created = (again.collections_created, again.attachments_uploaded)
     nothing = (0, 0)
@@ -362,9 +401,15 @@ def test_note_tags_come_back(trip: Trip) -> None:
     assert any("automatic" in line for line in note_tags(trip.target.lib)), "with their types"
 
 
-@finding(683, "create_note cannot say `deleted`: trashed notes come back live")
 def test_trashed_items_come_back_trashed(trip: Trip) -> None:
     assert_same(trash_state, trip)
+    assert_same(trashed_files, trip)
+    assert_same(trashed_standalone_notes, trip)
+    assert any("true" in line for line in trash_state(trip.target.lib))
+    # the trashed article, a note, a file and a stand-alone note (the note under the trashed
+    # article is not flagged itself: it is in the trash through its parent)
+    trashed_count = trip.report.items_trashed
+    assert trashed_count == 4
 
 
 @finding(
