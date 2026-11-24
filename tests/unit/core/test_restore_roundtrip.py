@@ -227,22 +227,29 @@ def dates(lib: FakeLibrary) -> List[str]:
     )
 
 
+def assert_same(view: Callable[[FakeLibrary], Any], trip: Trip) -> None:
+    """The restored library, seen through `view`, is the library that was backed up."""
+    expected = view(trip.source)
+    actual = view(trip.target.lib)
+    assert actual == expected
+
+
 # =============================================================================================
 # What already comes back
 # =============================================================================================
 
 
 def test_the_collection_tree_comes_back(trip: Trip) -> None:
-    assert collection_tree(trip.target.lib) == collection_tree(trip.source)
+    assert_same(collection_tree, trip)
     assert len(collection_tree(trip.source)) == 4
 
 
 def test_articles_come_back_identical_with_their_collections(trip: Trip) -> None:
-    assert articles(trip.target.lib) == articles(trip.source)
+    assert_same(articles, trip)
 
 
 def test_stored_files_come_back_byte_identical_under_the_same_parent(trip: Trip) -> None:
-    assert stored_files(trip.target.lib) == stored_files(trip.source)
+    assert_same(stored_files, trip)
     assert len(stored_files(trip.source)) >= 4
 
 
@@ -266,39 +273,39 @@ def test_a_second_restore_adds_nothing(trip: Trip) -> None:
 
 @finding(681, "a note or file without a parent is dropped without a message")
 def test_standalone_notes_and_files_come_back_in_their_collections(trip: Trip) -> None:
-    assert standalone_notes(trip.target.lib) == standalone_notes(trip.source)
-    assert standalone_files(trip.target.lib) == standalone_files(trip.source)
+    assert_same(standalone_notes, trip)
+    assert_same(standalone_files, trip)
 
 
 @finding(682, "create_note sends only the text: the note's tags are never sent")
 def test_note_tags_come_back(trip: Trip) -> None:
-    assert note_tags(trip.target.lib) == note_tags(trip.source)
+    assert_same(note_tags, trip)
 
 
 @finding(683, "create_note cannot say `deleted`: trashed notes come back live")
 def test_trashed_items_come_back_trashed(trip: Trip) -> None:
-    assert trash_state(trip.target.lib) == trash_state(trip.source)
+    assert_same(trash_state, trip)
 
 
 @finding(
     684, "the attachment is named after the temp file; title, url, dates and link mode are lost"
 )
 def test_attachments_keep_their_metadata(trip: Trip) -> None:
-    assert attachments(trip.target.lib) == attachments(trip.source)
+    assert_same(attachments, trip)
 
 
 @finding(685, "annotations are created as top-level items with the old parent key (HTTP 409)")
 def test_annotations_come_back_under_their_pdf(trip: Trip) -> None:
-    assert annotations(trip.target.lib) == annotations(trip.source)
+    assert_same(annotations, trip)
     assert trip.report.errors == []
 
 
 @finding(686, "relations are copied with the old item URIs")
 def test_related_items_stay_related(trip: Trip) -> None:
-    assert relations(trip.target.lib) == relations(trip.source)
+    assert_same(relations, trip)
     assert len(relations(trip.source)) == 2
 
 
 @finding(687, "dateAdded and dateModified are removed from the payload")
 def test_dates_are_kept(trip: Trip) -> None:
-    assert dates(trip.target.lib) == dates(trip.source)
+    assert_same(dates, trip)
