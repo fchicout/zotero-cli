@@ -107,6 +107,7 @@ class BackupService:
                     items.append(item)
         # Their children, fetched together (Issue #426)
         children = children_by_parent(self.items, [i.key for i in items if _has_children(i)])
+        self._add_grandchildren(children)
         return self._write_zip(output, manifest, items, children, on_item_processed)
 
     def backup_system(
@@ -135,6 +136,16 @@ class BackupService:
             if item.parent_item:
                 children.setdefault(item.parent_item, []).append(item.raw_data)
         return self._write_zip(output, manifest, items, children, on_item_processed)
+
+    def _add_grandchildren(self, children: Dict[str, List[Dict[str, Any]]]) -> None:
+        """The annotations of the PDFs and the images embedded in notes are children of
+        children (Issue #658): a library listing contains them, a collection's children
+        lookup does not. One batched lookup per kind, whatever the number of PDFs."""
+        kids = [child for group in children.values() for child in group]
+        attachments = [c["key"] for c in kids if _raw_type(c) == "attachment"]
+        notes = [c["key"] for c in kids if _raw_type(c) == "note"]
+        children.update(children_by_parent(self.items, attachments, "annotation"))
+        children.update(children_by_parent(self.items, notes, "attachment"))
 
     def _write_zip(
         self,
@@ -208,6 +219,7 @@ class BackupService:
                         errors,
                         writer,
                         processed_keys,
+                        children,
                     )
 
                     # Notify progress
@@ -306,11 +318,13 @@ class BackupService:
         errors: List[str],
         writer: "_JsonArrayWriter",
         processed_keys: Set[str],
+        children_of: Dict[str, List[Dict[str, Any]]],
     ) -> None:
         """
-        Adds an item's children (attachments/notes) after it. They come in
-        full from the listing, so none is fetched again (Issue #426) unless
-        only its key is known.
+        Adds an item's children (attachments/notes) after it, and theirs in turn
+        (annotations of a PDF, Issue #658). They come in full from the listing, so none
+        is fetched again (Issue #426) unless only its key is known. `children_of` maps
+        every parent key to its children.
         """
         if not _has_children(item):
             return
@@ -335,6 +349,18 @@ class BackupService:
 
             # Download attachment file if the child is an attachment
             self._download_attachment_file(child, zf, manifest, errors, parent_key=item.key)
+
+            # Its own children: annotations of a PDF, images embedded in a note
+            self._process_children(
+                child,
+                children_of.get(child.key, []),
+                zf,
+                manifest,
+                errors,
+                writer,
+                processed_keys,
+                children_of,
+            )
 
 
 # Attachments whose file a backup tries to save (Issue #655). The first three are stored by
@@ -377,8 +403,15 @@ def _collection_and_descendants(collections: List[Dict[str, Any]], root: str) ->
     return found
 
 
+def _raw_type(raw: Dict[str, Any]) -> Optional[str]:
+    item_type = raw.get("data", raw).get("itemType")
+    return item_type if isinstance(item_type, str) else None
+
+
 def _has_children(item: ZoteroItem) -> bool:
-    return item.item_type not in ("attachment", "note", "annotation")
+    # Attachments have annotations, notes have embedded images (Issue #658); only an
+    # annotation is a leaf.
+    return item.item_type != "annotation"
 
 
 # Content types that are already compressed: stored as they are.
