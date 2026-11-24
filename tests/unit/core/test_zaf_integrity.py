@@ -3,10 +3,11 @@ import json
 import os
 import zipfile
 from typing import Any, Dict
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
+from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.services.restore_service import RestoreReport, RestoreService
 from zotero_cli.core.services.verify_service import VerifyService
 
@@ -243,7 +244,7 @@ def test_restore_note_creation(mock_gateway):
     from zotero_cli.core.services.restore_service import RestoreReport
 
     report = RestoreReport(is_dry_run=False)
-    service._restore_note(note_data, item_key, report)
+    service._restore_note({"key": "OLDNOTE", "data": note_data}, item_key, report)
 
     mock_gateway.create_generic_item.assert_called_once_with(
         {"itemType": "note", "note": "New note", "tags": [], "parentItem": item_key}
@@ -478,7 +479,7 @@ def test_restore_notes_ask_for_each_parent_s_children_once(mock_gateway):
     mock_gateway.create_generic_item.return_value = "NEWNOTE"
 
     for text in ("already there", "first", "second", "first"):
-        service._restore_note({"note": text}, "PARENT", report)
+        service._restore_note({"key": "OLDNOTE", "data": {"note": text}}, "PARENT", report)
 
     mock_gateway.get_item_children.assert_called_once_with("PARENT")
     created = [c.args[0]["note"] for c in mock_gateway.create_generic_item.call_args_list]
@@ -498,7 +499,7 @@ def test_restore_notes_on_a_new_parent_make_no_children_request(mock_gateway):
         {},
     )
 
-    service._restore_note({"note": "hello"}, "NEWKEY", report)
+    service._restore_note({"key": "OLDNOTE", "data": {"note": "hello"}}, "NEWKEY", report)
 
     mock_gateway.get_item_children.assert_not_called()
     mock_gateway.create_generic_item.assert_called_with(
@@ -723,7 +724,9 @@ def test_a_trashed_note_already_in_the_trash_is_not_created_again():
     service._build_existing_item_indexes()
     report = RestoreReport()
 
-    service._restore_note({"note": "<p>gone</p>", "deleted": 1}, "EXISTING1", report)
+    service._restore_note(
+        {"key": "OLDNOTE", "data": {"note": "<p>gone</p>", "deleted": 1}}, "EXISTING1", report
+    )
 
     gateway.create_generic_item.assert_not_called()
     assert report.items_trashed == 0
@@ -734,7 +737,9 @@ def test_a_trashed_note_that_is_not_in_the_trash_yet_is_created_there():
     service._build_existing_item_indexes()
     report = RestoreReport()
 
-    service._restore_note({"note": "<p>gone</p>", "deleted": 1}, "EXISTING1", report)
+    service._restore_note(
+        {"key": "OLDNOTE", "data": {"note": "<p>gone</p>", "deleted": 1}}, "EXISTING1", report
+    )
 
     assert gateway.create_generic_item.call_args.args[0]["deleted"] == 1
     assert report.items_trashed == 1
@@ -746,8 +751,14 @@ def test_a_live_note_is_not_mistaken_for_a_trashed_one():
     gateway, service = _service_with(None, [], children=[live])
     service._build_existing_item_indexes()
 
-    service._restore_note({"note": "<p>same</p>", "deleted": 1}, "EXISTING1", RestoreReport())
-    service._restore_note({"note": "<p>same</p>"}, "EXISTING1", RestoreReport())
+    service._restore_note(
+        {"key": "OLDNOTE", "data": {"note": "<p>same</p>", "deleted": 1}},
+        "EXISTING1",
+        RestoreReport(),
+    )
+    service._restore_note(
+        {"key": "OLDNOTE", "data": {"note": "<p>same</p>"}}, "EXISTING1", RestoreReport()
+    )
 
     assert gateway.create_generic_item.call_count == 1  # the live one exists; the trashed does not
 
@@ -1592,3 +1603,108 @@ def test_an_archive_without_a_searches_file_restores_as_before(tmp_path):
 
     assert report.errors == []
     gateway.get_all_searches.assert_not_called()
+
+
+def _image_note(text='<p>x</p><img data-attachment-key="IMG00001"/>', **extra):
+    return {"key": "NOTE0001", "data": {"itemType": "note", "note": text, **extra}}
+
+
+def test_a_note_with_images_remembers_its_new_key_and_is_rewritten_to_theirs():
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_item_children.return_value = []
+    gateway.create_generic_item.return_value = "NEWNOTE1"
+    gateway.update_item.return_value = True
+    service = _restore_service(gateway)
+    report = RestoreReport()
+    raw = _image_note(dateModified="2024-01-02T03:04:05Z")
+
+    service._restore_note(raw, "PARENT01", report)
+    assert "dateModified" not in gateway.create_generic_item.call_args.args[0]
+    assert service.item_map["NOTE0001"] == "NEWNOTE1"
+    service.item_map["IMG00001"] = "NEWIMG01"
+    service._relink_note_images(report)
+
+    gateway.update_item.assert_called_once_with(
+        "NEWNOTE1",
+        0,
+        {
+            "note": '<p>x</p><img data-attachment-key="NEWIMG01"/>',
+            "dateModified": "2024-01-02T03:04:05Z",
+        },
+    )
+    assert report.errors == []
+
+
+def test_a_note_without_images_is_never_rewritten():
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_item_children.return_value = []
+    gateway.create_generic_item.return_value = "NEWNOTE1"
+    service = _restore_service(gateway)
+    report = RestoreReport()
+
+    service._restore_note(_image_note("<p>plain</p>"), "PARENT01", report)
+    service._relink_note_images(report)
+
+    assert "NOTE0001" not in service.item_map
+    gateway.update_item.assert_not_called()
+
+
+def test_an_existing_note_with_images_is_matched_ignoring_the_image_keys():
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_item_children.return_value = [
+        {
+            "key": "HAVENOTE",
+            "data": {
+                "itemType": "note",
+                "note": '<p>x</p><img data-attachment-key="OTHER001"/>',
+            },
+        }
+    ]
+    service = _restore_service(gateway)
+
+    service._restore_note(_image_note(), "PARENT01", RestoreReport())
+
+    assert service.item_map["NOTE0001"] == "HAVENOTE"
+    gateway.create_generic_item.assert_not_called()
+    service._relink_note_images(RestoreReport())
+    gateway.update_item.assert_not_called()  # it was not made by this run
+
+
+def test_a_dry_run_plans_the_images_of_a_note_that_does_not_exist_yet():
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_item_children.return_value = []
+    service = _restore_service(gateway)
+
+    service._restore_note(_image_note(), "PARENT01", RestoreReport(is_dry_run=True))
+
+    assert service.item_map["NOTE0001"].startswith("DRY_RUN_")
+    gateway.create_generic_item.assert_not_called()
+
+
+def test_an_image_whose_note_was_not_restored_is_listed_not_an_error(tmp_path):
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    service = _restore_service(gateway)
+    report = RestoreReport()
+    image = {
+        "key": "IMG00001",
+        "data": {"itemType": "attachment", "linkMode": "embedded_image", "parentItem": "GONE0001"},
+    }
+
+    service._restore_child_item(image, None, {}, report)
+
+    assert any("note GONE0001 was not restored" in w for w in report.warnings)
+    assert report.errors == []
+
+
+def test_images_are_restored_after_the_notes_and_before_the_annotations():
+    service = _restore_service(create_autospec(ZoteroGateway, instance=True))
+    items = [
+        {"key": "A", "data": {"itemType": "annotation"}},
+        {"key": "I", "data": {"itemType": "attachment", "linkMode": "embedded_image"}},
+        {"key": "N", "data": {"itemType": "note"}},
+        {"key": "J", "data": {"itemType": "journalArticle"}},
+    ]
+
+    order = [i["key"] for i in service._sort_items_by_hierarchy(items)]
+
+    assert order == ["J", "N", "I", "A"]

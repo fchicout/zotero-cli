@@ -102,7 +102,10 @@ class RestoreService:
         # taken from the one scan that also builds the DOI/title indexes (Issue #681).
         # The last part of each is "in the trash": the Web API hides trashed children from
         # their parent's listing, so the trash is scanned too (Issue #683).
-        self._known_notes: Set[Tuple[str, Tuple[str, ...], bool]] = set()
+        self._known_notes: Dict[Tuple[str, Tuple[str, ...], bool], str] = {}
+        # New notes this run made whose text names embedded images: new key -> archived data,
+        # rewritten to the images' new keys once those exist (Issue #704)
+        self._notes_with_images: Dict[str, dict] = {}
         self._known_files: Dict[Tuple[Optional[str], Tuple[str, ...], bool], str] = {}
         self._trashed_children: Dict[str, List[ZoteroItem]] = {}
         self._trash_indexes: Tuple[Dict[str, List[ZoteroItem]], Dict[str, List[ZoteroItem]]] = (
@@ -121,7 +124,8 @@ class RestoreService:
         self._note_texts = {}
         self._created = set()
         self._attachments_of = {}
-        self._known_notes = set()
+        self._known_notes = {}
+        self._notes_with_images = {}
         self._known_files = {}
         self._trashed_children = {}
         self._trash_indexes = ({}, {})
@@ -161,7 +165,9 @@ class RestoreService:
                         item_raw, zf, manifest, report, doi_index, title_index
                     )
 
-                # 3. Related items: only now do all the new keys exist (Issue #686)
+                # 3. Notes learn the new keys of their images (Issue #704), and related items
+                # their new neighbours (Issue #686): only now do all the new keys exist
+                self._relink_note_images(report)
                 self._restore_relations(sorted_items, report)
 
                 # 4. Saved searches: their conditions name collections and other searches
@@ -292,16 +298,14 @@ class RestoreService:
         new_parent = self.item_map.get(old_parent)
 
         if not new_parent:
-            why = (
-                "images embedded in notes are not restored yet"
-                if data.get("linkMode") == "embedded_image"
-                else f"its parent {old_parent} was not restored"
+            what = "note" if data.get("linkMode") == "embedded_image" else "parent"
+            report.warnings.append(
+                _not_restored(child_raw, f"its {what} {old_parent} was not restored")
             )
-            report.warnings.append(_not_restored(child_raw, why))
             return
 
         if item_type == "note":
-            self._restore_note(data, new_parent, report)
+            self._restore_note(child_raw, new_parent, report)
         elif item_type == "attachment":
             self._restore_attachment(child_raw, zf, manifest, new_parent, report)
 
@@ -315,13 +319,20 @@ class RestoreService:
         if data.get("itemType") == "attachment":
             self._restore_attachment(child_raw, zf, manifest, None, report, collections)
             return
-        text = data.get("note", "")
+        text = _plain_note(data.get("note", ""))
         trashed = bool(data.get("deleted"))
-        if (text, tuple(sorted(collections)), trashed) in self._known_notes:
+        known = self._known_notes.get((text, tuple(sorted(collections)), trashed))
+        if known:
+            self._note_restored(child_raw, known, created=False)
             report.items_skipped_existing += 1
-        elif report.is_dry_run or self.items.create_generic_item(
-            _note_payload(data, collections=collections)
-        ):
+            return
+        new_key = (
+            f"DRY_RUN_{child_raw['key']}"
+            if report.is_dry_run
+            else self.items.create_generic_item(_note_payload(data, collections=collections))
+        )
+        if new_key:
+            self._note_restored(child_raw, new_key, created=True)
             report.items_created += 1
             report.items_trashed += 1 if trashed else 0
         else:
@@ -329,19 +340,71 @@ class RestoreService:
                 f"Failed to create the stand-alone note: {_not_restored(child_raw, '')}"
             )
 
-    def _restore_note(self, data: dict, new_parent: str, report: RestoreReport) -> None:
-        note_content = data.get("note", "")
-        if report.is_dry_run:
-            return
-
+    def _restore_note(self, raw: dict, new_parent: str, report: RestoreReport) -> None:
+        data = raw.get("data", {})
+        plain = _plain_note(data.get("note", ""))
         trashed = bool(data.get("deleted"))
-        existing = self._existing_note_texts(new_parent, trashed)
-        if note_content in existing:
+        has_images = _IMAGE_KEY.search(data.get("note", "")) is not None
+        if report.is_dry_run:
+            if has_images:  # so the images under it show in the plan
+                self._plan_note_with_images(raw, new_parent, plain, trashed)
             return
 
-        if self.items.create_generic_item(_note_payload(data, parent=new_parent)):
-            existing.add(note_content)
+        existing = self._existing_note_texts(new_parent, trashed)
+        if plain in existing:
+            if has_images:
+                self._adopt_existing_note(raw, new_parent, plain, trashed)
+            return
+
+        new_key = self.items.create_generic_item(_note_payload(data, parent=new_parent))
+        if new_key:
+            existing.add(plain)
+            self._note_restored(raw, new_key, created=True)
             report.items_trashed += 1 if trashed else 0
+
+    def _adopt_existing_note(self, raw: dict, parent: str, plain: str, trashed: bool) -> None:
+        """The note the library already has for this one, so its images are matched against the
+        ones it holds. A parent this run created has no notes yet."""
+        if parent in self._created:
+            return
+        for child in self._existing_children(parent, trashed, "note"):
+            if _plain_note(child.get("note", "")) == plain:
+                self._note_restored(raw, str(child["_key"]), created=False)
+                return
+
+    def _plan_note_with_images(self, raw: dict, parent: str, plain: str, trashed: bool) -> None:
+        """A dry run: the note exists (so its images may too) or will be created."""
+        if parent not in self._created and plain in self._existing_note_texts(parent, trashed):
+            self._adopt_existing_note(raw, parent, plain, trashed)
+        else:
+            self._note_restored(raw, f"DRY_RUN_{raw['key']}", created=True)
+
+    def _note_restored(self, raw: dict, new_key: str, created: bool) -> None:
+        """A note's new key matters only to the images embedded in it (Issue #704): they are
+        restored under it, and a note this run made gets its text rewritten to their new keys."""
+        text = raw.get("data", {}).get("note", "")
+        if _IMAGE_KEY.search(text) is None:
+            return
+        if created:
+            self._remember(raw["key"], new_key)
+            self._notes_with_images[new_key] = raw["data"]
+        else:
+            self.item_map[raw["key"]] = new_key
+
+    def _relink_note_images(self, report: RestoreReport) -> None:
+        """Points the text of the notes this run created at the new keys of their embedded
+        images (Issue #704). The archived dates are sent along so the edit does not move them."""
+        for new_key, data in self._notes_with_images.items():
+            text = _IMAGE_KEY.sub(
+                lambda m: f'data-attachment-key="{self.item_map.get(m.group(1), m.group(1))}"',
+                data.get("note", ""),
+            )
+            if text == data.get("note", "") or report.is_dry_run:
+                continue
+            payload = {"note": text}
+            payload.update({k: data[k] for k in ("dateAdded", "dateModified") if data.get(k)})
+            if not self.items.update_item(new_key, 0, payload):
+                report.errors.append(f"Failed to point the note {new_key} at its restored images")
 
     def _existing_note_texts(self, parent: str, trashed: bool) -> Set[str]:
         """The texts of the notes `parent` has (Issue #440: asked once per parent), live ones
@@ -350,7 +413,7 @@ class RestoreService:
         if trashed:
             if parent not in self._trashed_note_texts:
                 self._trashed_note_texts[parent] = {
-                    str(child.raw_data.get("data", {}).get("note"))
+                    _plain_note(str(child.raw_data.get("data", {}).get("note")))
                     for child in self._trashed_children.get(parent, [])
                     if child.item_type == "note"
                 }
@@ -358,7 +421,7 @@ class RestoreService:
         existing = self._note_texts.get(parent)
         if existing is None:
             existing = {
-                child.get("data", {}).get("note")
+                _plain_note(child.get("data", {}).get("note") or "")
                 for child in self.items.get_item_children(parent)
                 if child.get("data", {}).get("itemType") == "note"
             }
@@ -731,7 +794,7 @@ class RestoreService:
         data = item.raw_data.get("data", {})
         where = tuple(sorted(item.collections))
         if item.item_type == "note":
-            self._known_notes.add((data.get("note", ""), where, trashed))
+            self._known_notes[(_plain_note(data.get("note", "")), where, trashed)] = item.key
         elif item.item_type == "attachment":
             identity = data.get("md5") or data.get("url") or data.get("path")
             self._known_files[(identity, where, trashed)] = item.key
@@ -764,16 +827,18 @@ class RestoreService:
     def _sort_items_by_hierarchy(self, items: List[dict]) -> List[dict]:
         """Parents first, then their notes and attachments, then the annotations of the PDFs
         (grandchildren, Issue #685): each needs the new key of the one before."""
-        parents, children, annotations = [], [], []
+        parents, children, images, annotations = [], [], [], []
         for i in items:
             item_type = i.get("data", {}).get("itemType")
-            if item_type in ["attachment", "note"]:
+            if i.get("data", {}).get("linkMode") == "embedded_image":
+                images.append(i)  # children of a note (Issue #704)
+            elif item_type in ["attachment", "note"]:
                 children.append(i)
             elif item_type == _ANNOTATION:
                 annotations.append(i)
             else:
                 parents.append(i)
-        return parents + children + annotations
+        return parents + children + images + annotations
 
 
 class _Md5Sink:
@@ -791,6 +856,15 @@ def _member_md5(zf: zipfile.ZipFile, name: str) -> str:
     sink = _Md5Sink()
     copy_member(zf, name, cast(IO[bytes], sink), MAX_ATTACHMENT_BYTES)
     return sink.md5.hexdigest()
+
+
+_IMAGE_KEY = re.compile(r'data-attachment-key="([A-Z0-9]{8})"')
+
+
+def _plain_note(text: str) -> str:
+    """A note's text without the keys of its embedded images, which change with every restore:
+    what two copies of one note have in common (Issue #704)."""
+    return _IMAGE_KEY.sub('data-attachment-key=""', text)
 
 
 def _not_restored(raw: dict, why: str) -> str:
@@ -815,6 +889,11 @@ def _note_payload(
     if data.get("deleted"):
         payload["deleted"] = 1  # the Web API honours it on create (checked on a test library)
     payload.update({k: data[k] for k in ("dateAdded", "dateModified") if data.get(k)})
+    if _IMAGE_KEY.search(data.get("note", "")):
+        # Edited right after (to name the new images): the API keeps a modification date that
+        # equals the stored one as "unchanged" and stamps the edit, so it is sent then, when
+        # it differs (Issue #704, checked on a test library).
+        payload.pop("dateModified", None)
     return payload
 
 
