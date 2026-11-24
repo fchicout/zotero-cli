@@ -16,6 +16,7 @@ from zotero_cli.core.utils.archive_safety import (
     read_json_member,
 )
 from zotero_cli.core.utils.format_version import check_format_version
+from zotero_cli.core.utils.link_modes import STORED_LINK_MODES
 from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -246,7 +247,7 @@ class RestoreService:
         old_key = child_raw["key"]
         link_mode = data.get("linkMode")
 
-        if link_mode not in ["imported_file", "linked_file"]:
+        if link_mode not in (*STORED_LINK_MODES, "linked_file"):
             return
 
         file_info = manifest.get("file_map", {}).get(old_key)
@@ -272,7 +273,8 @@ class RestoreService:
                 temp_path = tf.name
                 copy_member(zf, path_in_zip, tf, MAX_ATTACHMENT_BYTES)
 
-            if self.attachments.upload_attachment(new_parent, temp_path):
+            mime_type = str(data.get("contentType") or "application/pdf")
+            if self.attachments.upload_attachment(new_parent, temp_path, mime_type=mime_type):
                 report.attachments_uploaded += 1
             else:
                 report.errors.append(f"Failed to upload attachment: {path_in_zip}")

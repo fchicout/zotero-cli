@@ -702,7 +702,6 @@ def test_a_backup_over_an_existing_file_keeps_its_permissions(world: World, tmp_
 # =============================================================================================
 
 
-@discrepancy("D1", "only imported_file/linked_file are downloaded; the file is silently dropped")
 @pytest.mark.parametrize(
     ("key", "content"), [("SNP00001", SNAPSHOT), ("EMB00001", PNG)], ids=["snapshot", "note-image"]
 )
@@ -713,6 +712,53 @@ def test_every_stored_file_is_saved_snapshots_and_note_images_too(
 
     assert key in archive.manifest["file_map"], f"{key}: file not saved and not reported"
     assert archive.file_of(key) == content
+
+
+def test_a_stored_file_that_cannot_be_downloaded_is_reported_not_skipped(world: World) -> None:
+    world.lib.broken_files.update({"SNP00001", "EMB00001"})
+
+    archive = backup_system(world)
+
+    assert "SNP00001" in archive.errors
+    assert "EMB00001" in archive.errors
+    assert "SNP00001" not in archive.manifest["file_map"]
+
+
+@pytest.mark.parametrize(
+    ("fields", "expected_name"),
+    [
+        ({"contentType": "application/pdf"}, "NONAME01.pdf"),
+        ({"contentType": "text/html"}, "NONAME01.html"),
+        ({}, "NONAME01"),
+        ({"title": "../.."}, "NONAME01"),
+    ],
+    ids=["pdf", "html", "no-content-type", "title-of-dots"],
+)
+def test_a_stored_file_without_a_name_is_still_saved(
+    world: World, fields: Dict[str, Any], expected_name: str
+) -> None:
+    """Such an attachment used to be skipped without a trace."""
+    world.lib.add_item(
+        "NONAME01",
+        "attachment",
+        parent="JRN00001",
+        linkMode="imported_url",
+        file=b"nameless",
+        **fields,
+    )
+
+    archive = backup_system(world)
+
+    assert archive.file_of("NONAME01") == b"nameless"
+    assert archive.manifest["file_map"]["NONAME01"]["path"].endswith("/" + expected_name)
+
+
+def test_a_web_link_is_not_downloaded_and_not_an_error(world: World) -> None:
+    archive = backup_system(world)
+
+    assert "LNK00001" not in archive.manifest["file_map"]
+    assert "LNK00001" not in archive.errors
+    assert "items/LNK00001/file" not in world.lib.requests
 
 
 @discrepancy("D2", "the /items listing excludes the trash and /items/trash is never read")

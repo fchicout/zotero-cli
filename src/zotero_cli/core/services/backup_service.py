@@ -1,5 +1,6 @@
 import json
 import logging
+import mimetypes
 import os
 import secrets
 import stat
@@ -12,6 +13,7 @@ from typing import IO, Any, Callable, Dict, List, Optional, Set
 from zotero_cli.core.interfaces import AttachmentRepository, CollectionRepository, ItemRepository
 from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.utils.checksum import sha256_stream
+from zotero_cli.core.utils.link_modes import STORED_LINK_MODES
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
@@ -218,45 +220,35 @@ class BackupService:
     ) -> None:
         """Downloads the physical attachment file, calculates its checksum, and registers it."""
         data = item.raw_data.get("data", {})
-        if data.get("itemType") == "attachment" and data.get("linkMode") in [
-            "imported_file",
-            "linked_file",
-        ]:
-            if item.key in manifest["file_map"]:
-                return
+        if data.get("itemType") != "attachment" or data.get("linkMode") not in _FILE_LINK_MODES:
+            return
+        if item.key in manifest["file_map"]:
+            return
 
-            filename = data.get("filename") or data.get("title")
-            if filename:
-                safe_filename = os.path.basename(str(filename).replace("\\", "/"))
-                if not safe_filename or safe_filename in (".", ".."):
-                    safe_filename = item.key
-                p_key = parent_key or data.get("parentItem") or "orphan"
-                storage_path = self._free_path(f"attachments/{p_key}", safe_filename, item.key)
-                try:
-                    with tempfile.NamedTemporaryFile(delete=False) as tf:
-                        temp_path = tf.name
+        filename = _stored_filename(data, item.key)
+        p_key = parent_key or data.get("parentItem") or "orphan"
+        storage_path = self._free_path(f"attachments/{p_key}", filename, item.key)
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False) as tf:
+                temp_path = tf.name
 
-                    if self.attachments.download_attachment(item.key, temp_path):
-                        zf.write(temp_path, storage_path, compress_type=_compression_for(data))
+            if self.attachments.download_attachment(item.key, temp_path):
+                zf.write(temp_path, storage_path, compress_type=_compression_for(data))
 
-                        # Calculate SHA-256 checksum [SPEC-ZAF-001]
-                        with open(temp_path, "rb") as f:
-                            checksum = sha256_stream(f)
+                # Calculate SHA-256 checksum [SPEC-ZAF-001]
+                with open(temp_path, "rb") as f:
+                    checksum = sha256_stream(f)
 
-                        self._used_paths.add(storage_path.casefold())
-                        manifest["file_map"][item.key] = {
-                            "path": storage_path,
-                            "checksum": checksum,
-                        }
-                    else:
-                        errors.append(f"Failed to download attachment {item.key} ({filename})")
-
-                    if os.path.exists(temp_path):
-                        os.remove(temp_path)
-                except Exception as e:
-                    errors.append(f"Error processing attachment {item.key}: {str(e)}")
-                    if "temp_path" in locals() and os.path.exists(temp_path):
-                        os.remove(temp_path)
+                self._used_paths.add(storage_path.casefold())
+                manifest["file_map"][item.key] = {"path": storage_path, "checksum": checksum}
+            else:
+                errors.append(f"Failed to download attachment {item.key} ({filename})")
+        except Exception as e:
+            errors.append(f"Error processing attachment {item.key}: {str(e)}")
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.remove(temp_path)
 
     def _process_children(
         self,
@@ -294,6 +286,26 @@ class BackupService:
 
             # Download attachment file if the child is an attachment
             self._download_attachment_file(child, zf, manifest, errors, parent_key=item.key)
+
+
+# Attachments whose file a backup tries to save (Issue #655). The first three are stored by
+# Zotero and served by the Web API at items/<key>/file; a snapshot or a PDF the connector
+# fetched from a URL is `imported_url`, an image pasted into a note is `embedded_image`.
+# `linked_file` lives on the user's own disk, which the Web API cannot serve: it is tried
+# so that the missing file is reported. `linked_url` is a link and has no file.
+_FILE_LINK_MODES = (*STORED_LINK_MODES, "linked_file")
+
+
+def _stored_filename(data: Dict[str, Any], key: str) -> str:
+    """A safe file name for the archive: the attachment's own, else its title, else its key
+    plus the extension its content type suggests. Never empty, so no attachment is skipped
+    for lack of a name."""
+    name = str(data.get("filename") or data.get("title") or "")
+    safe = os.path.basename(name.replace("\\", "/"))
+    if safe and safe not in (".", ".."):
+        return safe
+    content_type = str(data.get("contentType") or "").split(";")[0].strip()
+    return key + (mimetypes.guess_extension(content_type) or "" if content_type else "")
 
 
 def _has_children(item: ZoteroItem) -> bool:

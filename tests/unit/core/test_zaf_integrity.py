@@ -500,3 +500,40 @@ def test_restore_notes_on_a_new_parent_make_no_children_request(mock_gateway):
 
     mock_gateway.get_item_children.assert_not_called()
     mock_gateway.create_note.assert_called_once_with("NEWKEY", "hello")
+
+
+@pytest.mark.parametrize(
+    ("link_mode", "content_type", "expected_mime"),
+    [
+        ("imported_file", None, "application/pdf"),
+        ("imported_url", "text/html", "text/html"),
+        ("imported_url", "application/pdf", "application/pdf"),
+        ("imported_file", "image/png", "image/png"),
+    ],
+)
+def test_restore_uploads_every_stored_attachment_with_its_own_content_type(
+    tmp_path, link_mode, content_type, expected_mime
+):
+    """Issue #655: web snapshots and connector-downloaded PDFs are `imported_url`; the upload
+    used to be refused for them and assumed a PDF for everything else."""
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+    from zotero_cli.core.services import restore_service as rs
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.upload_attachment.return_value = True
+    service = _restore_service(gateway)
+    report = rs.RestoreReport()
+    zf = _zaf_with_attachment(tmp_path, b"stored bytes")
+    manifest = {"file_map": {"ATT1": {"path": "files/ATT1/paper.pdf"}}}
+    data = {"linkMode": link_mode}
+    if content_type:
+        data["contentType"] = content_type
+
+    service._restore_attachment({"key": "ATT1", "data": data}, zf, manifest, "NEWPARENT", report)
+
+    gateway.upload_attachment.assert_called_once()
+    assert gateway.upload_attachment.call_args.args[0] == "NEWPARENT"
+    assert gateway.upload_attachment.call_args.kwargs["mime_type"] == expected_mime
+    assert report.attachments_uploaded == 1
