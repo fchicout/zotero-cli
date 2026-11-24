@@ -103,7 +103,13 @@ class RestoreService:
         self._known_notes: Set[Tuple[str, Tuple[str, ...], bool]] = set()
         self._known_files: Dict[Tuple[Optional[str], Tuple[str, ...], bool], str] = {}
         self._trashed_children: Dict[str, List[ZoteroItem]] = {}
-        self._trash_indexes: Tuple[Dict[str, ZoteroItem], Dict[str, ZoteroItem]] = ({}, {})
+        self._trash_indexes: Tuple[Dict[str, List[ZoteroItem]], Dict[str, List[ZoteroItem]]] = (
+            {},
+            {},
+        )
+        # Existing items already matched to an archived one in this run: a match is one to one
+        # (Issue #699), so two copies of one paper map to two existing copies, not to one.
+        self._claimed: Set[str] = set()
         self._trashed_note_texts: Dict[str, Set[str]] = {}
 
     def restore_archive(self, file_path: str, dry_run: bool = False) -> RestoreReport:
@@ -115,6 +121,7 @@ class RestoreService:
         self._known_files = {}
         self._trashed_children = {}
         self._trash_indexes = ({}, {})
+        self._claimed = set()
         self._trashed_note_texts = {}
 
         try:
@@ -212,8 +219,8 @@ class RestoreService:
         zf: zipfile.ZipFile,
         manifest: dict,
         report: RestoreReport,
-        doi_index: Dict[str, ZoteroItem],
-        title_index: Dict[str, ZoteroItem],
+        doi_index: Dict[str, List[ZoteroItem]],
+        title_index: Dict[str, List[ZoteroItem]],
     ) -> None:
         data = item_raw.get("data", {})
         item_type = data.get("itemType")
@@ -226,10 +233,13 @@ class RestoreService:
             self._restore_annotation(item_raw, report)
             return
 
+        old_colls = data.get("collections", [])
+        new_colls = [self.coll_map[ck] for ck in old_colls if self.coll_map.get(ck)]
+
         # 1. Idempotency: Check by DOI, ArXiv ID, or Title
-        existing_item = self._find_existing_item(data, doi_index, title_index)
+        existing_item = self._find_existing_item(data, doi_index, title_index, new_colls)
         if existing_item is None and data.get("deleted"):
-            existing_item = self._find_existing_item(data, *self._trash_indexes)
+            existing_item = self._find_existing_item(data, *self._trash_indexes, new_colls)
         if existing_item:
             self.item_map[old_key] = existing_item.key
             report.items_skipped_existing += 1
@@ -241,9 +251,6 @@ class RestoreService:
         # The dates stay: the Web API keeps dateAdded and dateModified given on create (#687)
         for k in ["key", "version", "relations"]:
             new_data.pop(k, None)
-
-        old_colls = data.get("collections", [])
-        new_colls = [self.coll_map.get(ck) for ck in old_colls if self.coll_map.get(ck)]
         new_data["collections"] = new_colls
 
         # 3. Create Item
@@ -613,21 +620,22 @@ class RestoreService:
 
     def _build_existing_item_indexes(
         self,
-    ) -> Tuple[Dict[str, ZoteroItem], Dict[str, ZoteroItem]]:
+    ) -> Tuple[Dict[str, List[ZoteroItem]], Dict[str, List[ZoteroItem]]]:
         """
         One get_all_items() pass, indexed by normalized DOI and lowercased
-        title, reused by every _find_existing_item() call instead of each
-        item doing its own get_items_by_doi() scan plus (on a miss) its own
-        get_all_items() scan - two full-library scans per item instead of
-        one for the whole restore (Issue #277, same class as #267).
+        title (each with the list of items that have it: a library can hold the
+        same paper twice, Issue #699), reused by every _find_existing_item() call
+        instead of each item doing its own get_items_by_doi() scan plus (on a
+        miss) its own get_all_items() scan - two full-library scans per item
+        instead of one for the whole restore (Issue #277, same class as #267).
         """
-        doi_index: Dict[str, ZoteroItem] = {}
-        title_index: Dict[str, ZoteroItem] = {}
+        doi_index: Dict[str, List[ZoteroItem]] = {}
+        title_index: Dict[str, List[ZoteroItem]] = {}
         for item in self.items.get_all_items():
             self._note_standalone(item, False)
             _index_item(item, doi_index, title_index)
-        trash_doi: Dict[str, ZoteroItem] = {}
-        trash_title: Dict[str, ZoteroItem] = {}
+        trash_doi: Dict[str, List[ZoteroItem]] = {}
+        trash_title: Dict[str, List[ZoteroItem]] = {}
         for item in self.items.get_trash_items():
             self._note_standalone(item, True)
             if item.parent_item:
@@ -652,21 +660,27 @@ class RestoreService:
     def _find_existing_item(
         self,
         data: dict,
-        doi_index: Dict[str, ZoteroItem],
-        title_index: Dict[str, ZoteroItem],
+        doi_index: Dict[str, List[ZoteroItem]],
+        title_index: Dict[str, List[ZoteroItem]],
+        collections: Optional[List[str]] = None,
     ) -> Optional[ZoteroItem]:
-        doi = data.get("DOI")
-        if doi:
-            normalized = normalize_doi(doi)
-            if normalized and normalized in doi_index:
-                return doi_index[normalized]
-
-        # Fallback to Title + Year matching for robustness [SPEC-ZAF-002-UPDATE]
-        title = data.get("title")
-        if title:
-            # Simple exact title match as a baseline
-            return title_index.get(title.lower())
-        return None
+        """The existing item that is this archived one, claimed so no other archived item can
+        match it (Issue #699). Of several with the same DOI (or title), the one filed in the
+        same collections, then with the same URL, then the first."""
+        doi = normalize_doi(data["DOI"]) if data.get("DOI") else None
+        if doi and doi in doi_index:
+            candidates = doi_index[doi]
+        else:
+            # Fallback to Title + Year matching for robustness [SPEC-ZAF-002-UPDATE]
+            title = data.get("title")
+            candidates = title_index.get(title.lower(), []) if title else []
+        free = [c for c in candidates if c.key not in self._claimed]
+        if not free:
+            return None
+        wanted = set(collections or [])
+        best = max(free, key=lambda c: (set(c.collections) == wanted, c.url == data.get("url")))
+        self._claimed.add(best.key)
+        return best
 
     def _sort_items_by_hierarchy(self, items: List[dict]) -> List[dict]:
         """Parents first, then their notes and attachments, then the annotations of the PDFs
@@ -726,15 +740,17 @@ def _note_payload(
 
 
 def _index_item(
-    item: ZoteroItem, doi_index: Dict[str, ZoteroItem], title_index: Dict[str, ZoteroItem]
+    item: ZoteroItem,
+    doi_index: Dict[str, List[ZoteroItem]],
+    title_index: Dict[str, List[ZoteroItem]],
 ) -> None:
-    """Files `item` by its normalised DOI and its lower-cased title; the first one wins."""
+    """Files `item` by its normalised DOI and its lower-cased title, in listing order."""
     if item.doi:
         normalized = normalize_doi(item.doi)
-        if normalized and normalized not in doi_index:
-            doi_index[normalized] = item
+        if normalized:
+            doi_index.setdefault(normalized, []).append(item)
     if item.title:
-        title_index.setdefault(item.title.lower(), item)
+        title_index.setdefault(item.title.lower(), []).append(item)
 
 
 # What an archived attachment has that a new one must not carry over: its identity and

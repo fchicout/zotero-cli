@@ -364,8 +364,8 @@ def test_build_existing_item_indexes_single_scan(mock_gateway):
     doi_index, title_index = service._build_existing_item_indexes()
 
     mock_gateway.get_all_items.assert_called_once()
-    assert doi_index["10.1/abc"] is item1
-    assert title_index["paper two"] is item2
+    assert doi_index["10.1/abc"] == [item1]
+    assert title_index["paper two"] == [item2]
 
     # DOI match (case/prefix-insensitive via normalize_doi)
     match = service._find_existing_item({"DOI": "https://doi.org/10.1/ABC"}, doi_index, title_index)
@@ -1308,3 +1308,111 @@ def test_an_article_is_created_with_its_original_dates():
     assert sent["dateModified"] == "2026-09-01T10:00:00Z"
     assert "version" not in sent
     assert "key" not in sent
+
+
+def _existing(key, title, doi, collections, url=""):
+    from zotero_cli.core.zotero_item import ZoteroItem
+
+    return ZoteroItem.from_raw_zotero_item(
+        {
+            "key": key,
+            "data": {
+                "itemType": "journalArticle",
+                "title": title,
+                "DOI": doi,
+                "collections": collections,
+                "url": url,
+            },
+        }
+    )
+
+
+def _two_copies():
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    first = _existing("FIRST001", "Same paper", "10.1/x", ["COL1"])
+    second = _existing("SECOND01", "Same paper", "10.1/x", ["COL2"])
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_all_items.return_value = iter([first, second])
+    gateway.get_trash_items.return_value = iter([])
+    service = _restore_service(gateway)
+    doi_index, title_index = service._build_existing_item_indexes()
+    return service, doi_index, title_index
+
+
+def test_two_archived_copies_match_two_existing_copies_not_one():
+    """Issue #699."""
+    service, doi_index, title_index = _two_copies()
+    data = {"DOI": "10.1/x", "title": "Same paper"}
+
+    a = service._find_existing_item(data, doi_index, title_index, ["COL1"])
+    b = service._find_existing_item(data, doi_index, title_index, ["COL2"])
+
+    assert (a.key, b.key) == ("FIRST001", "SECOND01")
+
+
+def test_the_copy_filed_in_the_same_collections_wins_whatever_the_order():
+    service, doi_index, title_index = _two_copies()
+    data = {"DOI": "10.1/x", "title": "Same paper"}
+
+    match = service._find_existing_item(data, doi_index, title_index, ["COL2"])
+
+    assert match.key == "SECOND01"
+
+
+def test_a_match_is_used_once_and_the_next_archived_copy_gets_none():
+    service, doi_index, title_index = _two_copies()
+    data = {"DOI": "10.1/x", "title": "Same paper"}
+
+    for _ in range(2):
+        assert service._find_existing_item(data, doi_index, title_index, []) is not None
+    third = service._find_existing_item(data, doi_index, title_index, [])
+
+    assert third is None  # a third copy is created, not folded into the other two
+
+
+def test_the_url_breaks_a_tie_between_copies_in_the_same_collections():
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    one = _existing("ONE00001", "Same paper", "10.1/x", ["COL1"], "https://a.example/1")
+    two = _existing("TWO00001", "Same paper", "10.1/x", ["COL1"], "https://b.example/2")
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_all_items.return_value = iter([one, two])
+    gateway.get_trash_items.return_value = iter([])
+    service = _restore_service(gateway)
+    doi_index, title_index = service._build_existing_item_indexes()
+
+    match = service._find_existing_item(
+        {"DOI": "10.1/x", "title": "Same paper", "url": "https://b.example/2"},
+        doi_index,
+        title_index,
+        ["COL1"],
+    )
+
+    assert match.key == "TWO00001"
+
+
+def test_an_archived_doi_that_matches_only_claimed_items_does_not_fall_back_to_the_title():
+    """A different paper with the same title must not be taken for the copy that is missing."""
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    only = _existing("ONLY0001", "Same title", "10.1/x", [])
+    other = _existing("OTHER001", "Same title", "10.9/other", [])
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_all_items.return_value = iter([only, other])
+    gateway.get_trash_items.return_value = iter([])
+    service = _restore_service(gateway)
+    doi_index, title_index = service._build_existing_item_indexes()
+    data = {"DOI": "10.1/x", "title": "Same title"}
+
+    first = service._find_existing_item(data, doi_index, title_index, [])
+    second = service._find_existing_item(data, doi_index, title_index, [])
+
+    assert first.key == "ONLY0001"
+    assert second is None
