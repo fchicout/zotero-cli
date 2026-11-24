@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 # Note: We import inside tests to control when the top-level code in main.py executes
 # or we use the function directly if possible.
 
@@ -7,7 +9,7 @@ from unittest.mock import MagicMock, patch
 def test_verify_environment_valid():
     from zotero_cli.cli.main import verify_environment
 
-    with patch("sys.version_info", (3, 11, 0)):
+    with patch("sys.version_info", (3, 11, 5)):
         # Should not raise SystemExit
         verify_environment()
 
@@ -16,6 +18,17 @@ def test_verify_environment_invalid():
     from zotero_cli.cli.main import verify_environment
 
     with patch("sys.version_info", (3, 10, 0)):
+        with patch("sys.exit") as mock_exit:
+            verify_environment()
+            mock_exit.assert_called_once_with(1)
+
+
+@pytest.mark.parametrize("version", [(3, 11, 0), (3, 11, 4)])
+def test_verify_environment_rejects_python_before_3_11_5(version):
+    """Issue #646: the fixed soupsieve releases need 3.11.5."""
+    from zotero_cli.cli.main import verify_environment
+
+    with patch("sys.version_info", version):
         with patch("sys.exit") as mock_exit:
             verify_environment()
             mock_exit.assert_called_once_with(1)

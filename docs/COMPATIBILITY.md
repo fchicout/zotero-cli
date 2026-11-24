@@ -66,7 +66,7 @@ Programs that use zotero-cli as a library (for example a service built on top of
 | `create_note_result`, `update_note_result` | `NoteRepository` and the Web API client (`ZoteroAPIClient`) | Say whether a note was stored. `UNKNOWN` means the request may have landed (a timeout, a dropped connection, a 5xx): check before writing again. `update_note_result` is guarded by the note's own version; a newer note gives `CONFLICT` and nothing is written, unless `retry_on_conflict=True`. |
 
 
-- **Minimum Python version:** raised only in a **minor** release, and announced one minor release ahead. zotero-cli currently supports Python 3.11 to 3.14. **Announced:** 4.2.0 raises the minimum to Python 3.11.5 (a dependency with open advisories has no fix for 3.11.0 to 3.11.4); 4.1.1 warns on stderr on those versions.
+- **Minimum Python version:** raised only in a **minor** release, and announced one minor release ahead. zotero-cli currently supports Python 3.11.5 to 3.14. 4.2.0 raised the minimum from 3.11.0 to 3.11.5 (announced in 4.1.1): a dependency with open advisories has no fix for 3.11.0 to 3.11.4.
 - **Supported platforms:** listed in the [README](../README.md#supported-platforms). Dropping one is announced like a deprecation.
 
 ## Releases before 3.0
