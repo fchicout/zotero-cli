@@ -516,6 +516,8 @@ class SystemCommand(BaseCommand):
             console.print(f"  - Attachments: {report.file_count}")
             if report.manifest and report.manifest.get("scope_type") == "library":
                 console.print(f"  - Collections: {report.collection_count}")
+                if "searches" in (report.manifest.get("counts") or {}):
+                    console.print(f"  - Saved searches: {report.search_count}")
             console.print(
                 f"  - Timestamp: {safe_markup(report.manifest.get('timestamp') if report.manifest else 'N/A')}"
             )

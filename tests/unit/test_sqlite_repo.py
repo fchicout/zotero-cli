@@ -279,6 +279,57 @@ def test_offline_backup_records_the_library_it_was_asked_for(mock_db):
     assert manifest["counts"]["items"] == 4
 
 
+def _with_saved_searches(db_path):
+    conn = sqlite3.connect(db_path)
+    conn.executescript(
+        """
+        CREATE TABLE savedSearches (savedSearchID INTEGER PRIMARY KEY, savedSearchName TEXT, key TEXT, version INTEGER);
+        CREATE TABLE savedSearchConditions (savedSearchID INTEGER, searchConditionID INTEGER, condition TEXT, mode TEXT, operator TEXT, value TEXT, required INTEGER);
+        CREATE TABLE deletedSearches (savedSearchID INTEGER PRIMARY KEY, dateDeleted TEXT);
+        INSERT INTO savedSearches VALUES (1, 'Unread', 'SRCH0001', 7), (2, 'Old', 'SRCH0002', 3);
+        INSERT INTO savedSearchConditions VALUES (1, 1, 'tag', '', 'is', 'to-read', 1);
+        INSERT INTO savedSearchConditions VALUES (1, 2, 'collection', '', 'is', 'COLKEY1', 1);
+        INSERT INTO deletedSearches VALUES (2, '2026-01-01');
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
+def test_offline_gateway_reads_saved_searches_in_the_web_api_shape(mock_db):
+    """Issue #663: conditions with their operator and value; searches in the trash are left out."""
+    _with_saved_searches(mock_db)
+
+    searches = SqliteZoteroGateway(mock_db).get_all_searches()
+
+    assert [s["key"] for s in searches] == ["SRCH0001"]
+    assert searches[0]["data"]["name"] == "Unread"
+    assert searches[0]["data"]["conditions"] == [
+        {"condition": "tag", "operator": "is", "value": "to-read"},
+        {"condition": "collection", "operator": "is", "value": "COLKEY1"},
+    ]
+
+
+def test_offline_gateway_without_search_tables_has_no_saved_searches(mock_db):
+    assert SqliteZoteroGateway(mock_db).get_all_searches() == []
+
+
+def test_offline_library_backup_holds_the_saved_searches(mock_db):
+    from io import BytesIO
+
+    from zotero_cli.core.services.backup_service import BackupService
+
+    _with_saved_searches(mock_db)
+    gateway = SqliteZoteroGateway(mock_db)
+    out = BytesIO()
+
+    BackupService(gateway, gateway, gateway).backup_system(out)
+
+    with zipfile.ZipFile(out) as zf:
+        assert [s["key"] for s in json.loads(zf.read("searches.json"))] == ["SRCH0001"]
+        assert json.loads(zf.read("manifest.json"))["counts"]["searches"] == 1
+
+
 def test_offline_backup_can_include_the_trash(mock_db):
     """Issue #662: the local database's deleted items, marked `deleted` like the Web API's."""
     from io import BytesIO

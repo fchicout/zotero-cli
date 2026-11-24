@@ -168,6 +168,7 @@ class BackupService:
         items: List[ZoteroItem],
         collections: List[Dict[str, Any]],
         item_count: int,
+        searches: List[Dict[str, Any]],
     ) -> None:
         """What the archive says about itself (format 1.2, Issue #659): the library it comes
         from and how much it holds, so a restore can refuse a mismatch and `verify` can
@@ -180,6 +181,8 @@ class BackupService:
             "collections": len(collections),
             "files": len(manifest["file_map"]),
         }
+        if manifest["scope_type"] == _LIBRARY:
+            manifest["counts"]["searches"] = len(searches)
         manifest.setdefault(_INCLUDES_TRASH, False)
 
     def _library_entry(
@@ -226,6 +229,8 @@ class BackupService:
                 held |= found
                 found = _trashed_children(trashed, held)
         chosen = [t for t in trashed if t.key in picked]
+        for item in chosen:  # the Web API marks them; a gateway that does not still gets it
+            item.raw_data.setdefault("data", {}).setdefault("deleted", 1)
         parents = [t.key for t in chosen if not t.parent_item and _has_children(t)]
         fetched = children_by_parent(self.items, parents)
         self._add_grandchildren(fetched)
@@ -293,8 +298,10 @@ class BackupService:
         self._used_paths = set()
         # A collection backup brings its own sub-tree. A library backup lists every
         # collection, before any file is downloaded: a failure here costs nothing yet.
+        searches: List[Dict[str, Any]] = []
         if collections is None:
             collections = self.collections.get_all_collections()
+            searches = list(self.collections.get_all_searches())
 
         # data.json is written entry by entry to a temporary file and added
         # at the end, rather than built as one indented string in memory
@@ -335,7 +342,7 @@ class BackupService:
                 data_file.close()
 
                 # Write Manifest (including updated file_map)
-                self._describe_content(manifest, items, collections, len(processed_keys))
+                self._describe_content(manifest, items, collections, len(processed_keys), searches)
                 zf.writestr("manifest.json", json.dumps(manifest, indent=2))
 
                 # Write Data
@@ -343,6 +350,8 @@ class BackupService:
 
                 # The collections: all of them for a library backup, the backed-up
                 # collection and the ones below it for a collection backup (Issue #660)
+                if manifest["scope_type"] == _LIBRARY:  # saved searches: a library thing (#663)
+                    zf.writestr("searches.json", json.dumps(searches, separators=(",", ":")))
                 if collections or manifest["scope_type"] == _LIBRARY:
                     zf.writestr("collections.json", json.dumps(collections, separators=(",", ":")))
 
