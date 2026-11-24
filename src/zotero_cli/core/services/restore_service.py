@@ -580,9 +580,9 @@ class RestoreService:
             )
             return None
         if self.library is None:
-            return _ITEM_URI.sub(lambda m: f"http://zotero.org/{m[1]}/{m[2]}/items/{new_key}", uri)
+            return _ITEM_URI.sub(lambda m: _item_uri(m[1], m[2], new_key), uri)
         scope = "users" if self.library.type == "user" else "groups"
-        return f"http://zotero.org/{scope}/{self.library.id}/items/{new_key}"
+        return _item_uri(scope, self.library.id, new_key)
 
     def _restore_annotation(self, raw: dict, report: RestoreReport) -> None:
         """A highlight, note, ink or underline of a PDF (Issue #685): a child of the PDF
@@ -773,3 +773,9 @@ def _annotation_payload(data: dict, parent: str) -> Dict[str, Any]:
     if data.get("deleted"):
         payload["deleted"] = 1
     return payload
+
+
+def _item_uri(scope: str, library_id: str, key: str) -> str:
+    # NOSONAR (S5332): Zotero's name for an item inside a relation. The Web API stores and returns
+    # it with `http`; it identifies the item and is never fetched.
+    return f"http://zotero.org/{scope}/{library_id}/items/{key}"  # NOSONAR
