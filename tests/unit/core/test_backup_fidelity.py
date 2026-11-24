@@ -740,7 +740,6 @@ def test_saved_searches_are_backed_up(world: World) -> None:
     assert [s["key"] for s in json.loads(archive.zf.read("searches.json"))] == ["SRCH0001"]
 
 
-@discrepancy("D6", "both files get the same path in the zip; the archive then fails its own verify")
 def test_attachments_with_the_same_file_name_do_not_overwrite_each_other(
     world: World, tmp_path: Path
 ) -> None:
@@ -756,13 +755,79 @@ def test_attachments_with_the_same_file_name_do_not_overwrite_each_other(
         )
     path = tmp_path / "library.zaf"
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+        warnings.simplefilter("error")  # zipfile warns "Duplicate name" on a collision
         world.service.backup_system(str(path))
 
     archive = Archive(path)
     assert archive.file_of("DUP00001") == b"ONE"
     assert archive.file_of("DUP00002") == b"TWO-TWO"
     assert VerifyService().verify_archive(str(path)).is_valid
+
+
+def _add_files(world: World, parent: Optional[str], names: List[str]) -> Dict[str, bytes]:
+    """Attachments called `names` (one stored file each), returned as key -> content."""
+    content: Dict[str, bytes] = {}
+    for index, name in enumerate(names):
+        key = f"FIL{index:05d}"
+        content[key] = f"content {index}".encode()
+        world.lib.add_item(
+            key,
+            "attachment",
+            parent=parent,
+            collections=None if parent else ["COLA0001"],
+            linkMode="imported_file",
+            filename=name,
+            file=content[key],
+        )
+    return content
+
+
+@pytest.mark.parametrize(
+    ("parent", "names"),
+    [
+        ("JRN00001", ["same.pdf", "same.pdf", "same.pdf"]),
+        ("JRN00001", ["Paper.pdf", "paper.PDF"]),
+        (None, ["loose.pdf", "loose.pdf"]),
+    ],
+    ids=["three-with-one-name", "names-differing-only-in-case", "stand-alone-files"],
+)
+def test_every_attachment_keeps_its_own_file(
+    world: World, tmp_path: Path, parent: Optional[str], names: List[str]
+) -> None:
+    expected = _add_files(world, parent, names)
+    path = tmp_path / "library.zaf"
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        world.service.backup_system(str(path))
+
+    archive = Archive(path)
+    paths = [archive.manifest["file_map"][key]["path"] for key in expected]
+    assert len({p.casefold() for p in paths}) == len(paths)
+    for key, content in expected.items():
+        assert archive.file_of(key) == content
+    assert VerifyService().verify_archive(str(path)).is_valid
+
+
+def test_a_collection_backup_also_keeps_same_named_attachments_apart(world: World) -> None:
+    expected = _add_files(world, "JRN00001", ["same.pdf", "same.pdf"])
+
+    archive = backup_collection(world, "COLA0001")
+
+    for key, content in expected.items():
+        assert archive.file_of(key) == content
+
+
+def test_file_names_that_do_not_collide_keep_their_path(world: World) -> None:
+    """Existing archives and users see the same layout as before."""
+    _add_files(world, "JRN00001", ["same.pdf", "same.pdf"])
+
+    file_map = backup_system(world).manifest["file_map"]
+
+    assert file_map["PDF00001"]["path"] == "attachments/JRN00001/study.pdf"
+    assert file_map["BK1PDF01"]["path"] == "attachments/BOOK0001/book.pdf"
+    assert file_map["STND0001"]["path"] == "attachments/orphan/loose.pdf"
+    assert file_map["FIL00000"]["path"] == "attachments/JRN00001/same.pdf"
+    assert file_map["FIL00001"]["path"] == "attachments/JRN00001/same-FIL00001.pdf"
 
 
 # =============================================================================================
