@@ -1,7 +1,9 @@
+import json
 import os
 import sqlite3
 import stat
 import tempfile
+import zipfile
 
 import pytest
 
@@ -233,6 +235,28 @@ def test_sqlite_get_trash_items(mock_db):
     # Everything else must still exclude the trashed item, as before.
     all_items = list(gateway.search_items(ZoteroQuery()))
     assert {i.key for i in all_items} == {"ITEMKEY1", "ITEMKEY3", "ITEMKEY4"}
+
+
+def test_collection_backup_includes_sub_collection_items_offline(mock_db):
+    """Issue #657: the offline gateway lists only the items filed directly in a collection too."""
+    from io import BytesIO
+
+    from zotero_cli.core.services.backup_service import BackupService
+
+    conn = sqlite3.connect(mock_db)
+    conn.execute("INSERT INTO collectionItems VALUES (2, 2)")  # ITEMKEY2 -> 'Child Collection'
+    conn.commit()
+    conn.close()
+    gateway = SqliteZoteroGateway(mock_db)
+    out = BytesIO()
+
+    BackupService(gateway, gateway, gateway).backup_collection("COLKEY1", out)
+
+    with zipfile.ZipFile(out) as zf:
+        keys = {item["key"] for item in json.loads(zf.read("data.json"))}
+        manifest = json.loads(zf.read("manifest.json"))
+    assert {"ITEMKEY1", "ITEMKEY2"} <= keys
+    assert manifest["collection_keys"] == ["COLKEY1", "COLKEY2"]
 
 
 def test_sqlite_trash_and_restore_item(mock_db):

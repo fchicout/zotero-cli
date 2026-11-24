@@ -563,12 +563,70 @@ def test_a_collection_archive_passes_verification(world: World, tmp_path: Path) 
     assert VerifyService().verify_archive(str(path)).is_valid
 
 
-@discrepancy("D7", "items filed only in a sub-collection are not part of the backup")
 def test_a_collection_backup_includes_its_sub_collections_items(world: World) -> None:
     """`collection backup` documents that it traverses the entire collection hierarchy."""
     archive = backup_collection(world, "COLA0001")
 
     assert {"NOTE0001", "BOOK0001", "BK1PDF01"} <= set(archive.keys)
+    assert archive.file_of("BK1PDF01") == PDF + b"book"
+
+
+def test_an_item_filed_in_several_sub_collections_is_backed_up_once(world: World) -> None:
+    world.lib.add_item(
+        "TWICE001", "book", collections=["COLA1001", "COLA1A01", "COLA0001"], title="Twice"
+    )
+
+    archive = backup_collection(world, "COLA0001")
+
+    assert archive.keys.count("TWICE001") == 1
+    assert len(archive.keys) == len(set(archive.keys))
+
+
+def test_a_leaf_collection_backup_holds_only_its_own_items(world: World) -> None:
+    archive = backup_collection(world, "COLA1A01")
+
+    assert "BOOK0001" in archive.keys
+    assert "NOTE0001" not in archive.keys
+    assert "JRN00001" not in archive.keys
+
+
+def test_a_middle_collection_backup_stops_at_its_own_sub_tree(world: World) -> None:
+    archive = backup_collection(world, "COLA1001")
+
+    assert {"NOTE0001", "BOOK0001"} <= set(archive.keys)
+    assert "JRN00001" not in archive.keys, "an item of the parent collection is not included"
+
+
+def test_the_manifest_lists_the_collections_a_backup_covers(world: World) -> None:
+    manifest = backup_collection(world, "COLA0001").manifest
+
+    assert manifest["collection_keys"] == ["COLA0001", "COLA1001", "COLA1A01"]
+    assert manifest["root_collection_key"] == "COLA0001"
+
+
+def test_a_parent_loop_in_the_data_cannot_hang_the_backup(world: World) -> None:
+    """Zotero never produces one; a damaged database or a bad API answer might."""
+    world.lib.collections["COLA0001"]["data"]["parentCollection"] = "COLA1A01"
+
+    archive = backup_collection(world, "COLA0001")
+
+    assert sorted(archive.manifest["collection_keys"]) == ["COLA0001", "COLA1001", "COLA1A01"]
+    assert "BOOK0001" in archive.keys
+
+
+def test_a_collection_backup_lists_each_collection_once(world: World) -> None:
+    """One items listing per collection in the tree, not one per item."""
+    world.lib.requests.clear()
+
+    backup_collection(world, "COLA0001")
+
+    assert world.lib.requests.count("collections") == 1
+    listings = [r for r in world.lib.requests if r.endswith("/items/top")]
+    assert sorted(listings) == [
+        "collections/COLA0001/items/top",
+        "collections/COLA1001/items/top",
+        "collections/COLA1A01/items/top",
+    ]
 
 
 @discrepancy("D4", "a collection archive has no collections.json: names and tree are lost")
