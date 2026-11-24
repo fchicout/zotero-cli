@@ -320,7 +320,7 @@ def test_a_child_whose_parent_was_not_restored_is_reported_not_dropped_silently(
     notes = [w for w in trip.report.warnings if "images embedded in notes" in w]
 
     assert len(notes) == 1, "the note image is not restored yet, and the restore says so"
-    assert trip.report.errors  # the annotations (#685) still fail, as before
+    assert trip.report.errors == [], "a warning is not an error"
 
 
 def test_standalone_notes_and_files_are_not_duplicated_by_a_second_restore(trip: Trip) -> None:
@@ -384,6 +384,9 @@ def test_a_partly_restored_library_gets_only_what_is_missing(trip: Trip) -> None
         for k, r in lib.items.items()
         if r["data"]["itemType"] == "attachment" and r["data"].get("parentItem")
     )
+    annotations_of_it = [k for k, r in lib.items.items() if r["data"].get("parentItem") == pdf]
+    for key in annotations_of_it:
+        del lib.items[key]  # its annotations go with it, as in Zotero
     del lib.items[pdf]
     items_before = len(visible(lib))
 
@@ -391,7 +394,8 @@ def test_a_partly_restored_library_gets_only_what_is_missing(trip: Trip) -> None
 
     assert again.collections_created == 1
     assert again.attachments_uploaded == 1
-    assert len(visible(lib)) == items_before + 1
+    assert len(visible(lib)) == items_before + 1 + len(annotations_of_it)
+    assert annotations_of_it, "the PDF had annotations and they came back with it"
     assert drafts not in lib.collections, "a new key, not the deleted one"
 
 
@@ -432,7 +436,6 @@ def test_attachments_keep_their_metadata(trip: Trip) -> None:
     assert_same(attachments, trip)
 
 
-@finding(685, "annotations are created as top-level items with the old parent key (HTTP 409)")
 def test_annotations_come_back_under_their_pdf(trip: Trip) -> None:
     assert_same(annotations, trip)
     errors = trip.report.errors

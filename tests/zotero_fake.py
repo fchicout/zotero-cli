@@ -531,11 +531,23 @@ class FakeTarget:
         mime_type: str = "application/pdf",
         item_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
+        return (
+            self.upload_attachment_item(parent_item_key, file_path, mime_type, item_data)
+            is not None
+        )
+
+    def upload_attachment_item(
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
         if parent_item_key is not None and parent_item_key not in self.lib.items:
-            return False
+            return None
         collections = (item_data or {}).get("collections") or None
         if any(key not in self.lib.collections for key in collections or []):
-            return False
+            return None
         name = os.path.basename(file_path)  # what the client names the item after, by default
         with open(file_path, "rb") as stored:
             content = stored.read()
@@ -554,7 +566,7 @@ class FakeTarget:
                 if k not in ("collections", "deleted", "parentItem")
             }
         )
-        self.lib.add_item(
+        return self.lib.add_item(
             self._new_key(),
             "attachment",
             parent=parent_item_key,
@@ -563,4 +575,3 @@ class FakeTarget:
             file=content,
             **fields,
         )
-        return True

@@ -195,6 +195,17 @@ class AttachmentRepository(ABC):
         pass
 
     @abstractmethod
+    def upload_attachment_item(
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
+        """`upload_attachment`, returning the key of the new attachment, or None on failure."""
+        pass
+
+    @abstractmethod
     def download_attachment(self, item_key: str, save_path: str) -> bool:
         pass
 

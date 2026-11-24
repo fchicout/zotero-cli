@@ -35,6 +35,8 @@ def _check_manifest(manifest: object, source: str) -> None:
 
 logger = logging.getLogger(__name__)
 
+_ANNOTATION = "annotation"  # itemType of a PDF highlight, note, ink or underline (Issue #685)
+
 
 def archive_library(file_path: str) -> Optional[LibraryRef]:
     """The library a .zaf says it was taken from (format 1.2, Issue #659); None for an older
@@ -86,13 +88,13 @@ class RestoreService:
         # their attachments against. Every other parent is an existing item, whose attachments
         # (md5, file name) are fetched once, so restoring twice does not upload twice (#680).
         self._created: Set[str] = set()
-        self._attachments_of: Dict[Tuple[str, bool], List[dict]] = {}
+        self._attachments_of: Dict[Tuple[str, bool, str], List[dict]] = {}
         # Stand-alone notes and files already in the library, as (text or md5, its collections),
         # taken from the one scan that also builds the DOI/title indexes (Issue #681).
         # The last part of each is "in the trash": the Web API hides trashed children from
         # their parent's listing, so the trash is scanned too (Issue #683).
         self._known_notes: Set[Tuple[str, Tuple[str, ...], bool]] = set()
-        self._known_files: Set[Tuple[Optional[str], Tuple[str, ...], bool]] = set()
+        self._known_files: Dict[Tuple[Optional[str], Tuple[str, ...], bool], str] = {}
         self._trashed_children: Dict[str, List[ZoteroItem]] = {}
         self._trash_indexes: Tuple[Dict[str, ZoteroItem], Dict[str, ZoteroItem]] = ({}, {})
         self._trashed_note_texts: Dict[str, Set[str]] = {}
@@ -103,7 +105,7 @@ class RestoreService:
         self._created = set()
         self._attachments_of = {}
         self._known_notes = set()
-        self._known_files = set()
+        self._known_files = {}
         self._trashed_children = {}
         self._trash_indexes = ({}, {})
         self._trashed_note_texts = {}
@@ -208,6 +210,9 @@ class RestoreService:
 
         if item_type in ["attachment", "note"]:
             self._restore_child_item(item_raw, zf, manifest, report)
+            return
+        if item_type == _ANNOTATION:
+            self._restore_annotation(item_raw, report)
             return
 
         # 1. Idempotency: Check by DOI, ArXiv ID, or Title
@@ -340,6 +345,7 @@ class RestoreService:
         collections: Optional[List[str]] = None,
     ) -> None:
         data = child_raw.get("data", {})
+        old_key = child_raw["key"]
         path_in_zip = self._attachment_member(child_raw, zf, manifest)
         if path_in_zip is None:
             if data.get("linkMode") in ("linked_url", "linked_file"):
@@ -348,11 +354,14 @@ class RestoreService:
                 report.warnings.append(_not_restored(child_raw, "its file is not in the archive"))
             return
 
-        if self._already_attached(new_parent, zf, path_in_zip, data, collections):
+        existing_key = self._attached_key(new_parent, zf, path_in_zip, data, collections)
+        if existing_key:
+            self.item_map[old_key] = existing_key  # its annotations go under it (Issue #685)
             report.attachments_skipped_existing += 1
             return
 
         if report.is_dry_run:
+            self._remember(old_key, f"DRY_RUN_{old_key}")
             report.attachments_uploaded += 1
             return
 
@@ -369,9 +378,11 @@ class RestoreService:
 
             mime_type = str(data.get("contentType") or "application/pdf")
             item_data = _attachment_payload(data, collections if new_parent is None else None)
-            if self.attachments.upload_attachment(
+            new_key = self.attachments.upload_attachment_item(
                 new_parent, temp_path, mime_type=mime_type, item_data=item_data
-            ):
+            )
+            if new_key:
+                self._remember(old_key, new_key)
                 report.attachments_uploaded += 1
                 report.items_trashed += 1 if data.get("deleted") else 0
             else:
@@ -381,6 +392,11 @@ class RestoreService:
         finally:
             if temp_path and os.path.exists(temp_path):
                 os.remove(temp_path)
+
+    def _remember(self, old_key: str, new_key: str) -> None:
+        """An item this run made: its new key, and nothing to match its children against."""
+        self.item_map[old_key] = new_key
+        self._created.add(new_key)
 
     def _restore_link(
         self,
@@ -392,65 +408,71 @@ class RestoreService:
         """An attachment that is only a record, no file: a web link (`linked_url`) or a file on
         the user's own disk (`linked_file`, its path is kept). Created from its archived data."""
         data = child_raw.get("data", {})
-        trashed = bool(data.get("deleted"))
-        target = data.get("url") or data.get("path")
-        if self._link_exists(new_parent, data, target, collections):
+        old_key = child_raw["key"]
+        existing_key = self._link_key(new_parent, data, collections)
+        if existing_key:
+            self.item_map[old_key] = existing_key
             report.attachments_skipped_existing += 1
             return
+        new_key = f"DRY_RUN_{old_key}"
         if not report.is_dry_run:
             payload = _attachment_payload(data, collections if new_parent is None else None)
             if new_parent:
                 payload["parentItem"] = new_parent
-            if not self.items.create_generic_item(payload):
-                if data.get("linkMode") == "linked_file":
-                    # Checked against the Web API: "Linked files can only be added to user
-                    # libraries". Its record stays in the archive.
-                    report.warnings.append(
-                        _not_restored(
-                            child_raw, "Zotero only accepts linked files in personal libraries"
-                        )
-                    )
-                else:
-                    report.errors.append(
-                        f"Failed to create the attachment: {_not_restored(child_raw, '')}"
-                    )
+            created = self.items.create_generic_item(payload)
+            if not created:
+                self._link_failed(child_raw, report)
                 return
+            new_key = created
+        self._remember(old_key, new_key)
         report.items_created += 1
-        report.items_trashed += 1 if trashed else 0
+        report.items_trashed += 1 if data.get("deleted") else 0
 
-    def _link_exists(
-        self,
-        new_parent: Optional[str],
-        data: dict,
-        target: Optional[str],
-        collections: Optional[List[str]],
-    ) -> bool:
+    @staticmethod
+    def _link_failed(child_raw: dict, report: RestoreReport) -> None:
+        if child_raw.get("data", {}).get("linkMode") == "linked_file":
+            # Checked against the Web API: "Linked files can only be added to user libraries".
+            # Its record stays in the archive.
+            why = "Zotero only accepts linked files in personal libraries"
+            report.warnings.append(_not_restored(child_raw, why))
+        else:
+            report.errors.append(f"Failed to create the attachment: {_not_restored(child_raw, '')}")
+
+    def _link_key(
+        self, new_parent: Optional[str], data: dict, collections: Optional[List[str]]
+    ) -> Optional[str]:
+        """The key of the link record the library already has for this one, if any."""
         trashed = bool(data.get("deleted"))
+        target = data.get("url") or data.get("path")
         if new_parent is None:
-            return (target, tuple(sorted(collections or [])), trashed) in self._known_files
+            return self._known_files.get((target, tuple(sorted(collections or [])), trashed))
         if new_parent in self._created:
-            return False
-        return any(
-            existing.get("linkMode") == data.get("linkMode")
-            and (existing.get("url") or existing.get("path")) == target
-            for existing in self._children_attachments(new_parent, trashed)
-        )
+            return None
+        for existing in self._existing_children(new_parent, trashed, "attachment"):
+            if (
+                existing.get("linkMode") == data.get("linkMode")
+                and (existing.get("url") or existing.get("path")) == target
+            ):
+                return str(existing["_key"])
+        return None
 
-    def _children_attachments(self, parent: str, trashed: bool) -> List[dict]:
-        """The `data` of the attachments an existing item has, asked once per parent (Issue #680);
-        the trashed ones come from the trash scan, the API hides them from the parent (#683)."""
-        if (parent, trashed) not in self._attachments_of:
+    def _existing_children(self, parent: str, trashed: bool, item_type: str) -> List[dict]:
+        """The `data` of the attachments (or annotations) an existing item has, each with its
+        `_key`, asked once per parent (Issue #680); the trashed ones come from the trash scan,
+        because the API hides a trashed child from its parent (#683)."""
+        cache_key = (parent, trashed, item_type)
+        if cache_key not in self._attachments_of:
             children = (
                 [child.raw_data for child in self._trashed_children.get(parent, [])]
                 if trashed
                 else self.items.get_item_children(parent)
             )
-            self._attachments_of[(parent, trashed)] = [
-                child.get("data", {})
+            self._attachments_of[cache_key] = [
+                {**child.get("data", {}), "_key": child.get("key")}
                 for child in children
-                if child.get("data", {}).get("itemType") == "attachment"
+                if child.get("data", {}).get("itemType") == item_type
             ]
-        return self._attachments_of[(parent, trashed)]
+        return self._attachments_of[cache_key]
 
     @staticmethod
     def _attachment_member(child_raw: dict, zf: zipfile.ZipFile, manifest: dict) -> Optional[str]:
@@ -463,38 +485,60 @@ class RestoreService:
         path_in_zip = file_info if isinstance(file_info, str) else file_info.get("path")
         return path_in_zip if path_in_zip and path_in_zip in zf.namelist() else None
 
-    def _already_attached(
+    def _attached_key(
         self,
         new_parent: Optional[str],
         zf: zipfile.ZipFile,
         path_in_zip: str,
         data: dict,
         collections: Optional[List[str]] = None,
-    ) -> bool:
-        """Whether the existing item `new_parent` already has this file (Issue #680): the same
-        md5, or, for an attachment that has none, the same file name. An item this run created
-        has nothing to match. A stand-alone file (no parent) is matched by md5 within the
-        collections it is filed in (Issue #681)."""
-        if new_parent is None:
-            try:
-                digest = _member_md5(zf, path_in_zip)
-            except (ArchiveLimitError, OSError, KeyError):
-                return False
-            where = tuple(sorted(collections or []))
-            return (digest, where, bool(data.get("deleted"))) in self._known_files
-        if new_parent in self._created:
-            return False
-        trashed = bool(data.get("deleted"))
-        existing = self._children_attachments(new_parent, trashed)
+    ) -> Optional[str]:
+        """The key of the attachment the library already has for this file, if any (Issue #680):
+        the same md5, or, for an attachment that has none, the same file name. An item this run
+        created has nothing to match. A stand-alone file (no parent) is matched by md5 within
+        the collections it is filed in (Issue #681)."""
+        if new_parent is not None and new_parent in self._created:
+            return None
         try:
             digest = _member_md5(zf, path_in_zip)
         except (ArchiveLimitError, OSError, KeyError):
-            return False  # the upload reports the real problem
+            return None  # the upload reports the real problem
+        trashed = bool(data.get("deleted"))
+        if new_parent is None:
+            where = tuple(sorted(collections or []))
+            return self._known_files.get((digest, where, trashed))
         filename = data.get("filename")
+        for other in self._existing_children(new_parent, trashed, "attachment"):
+            if other.get("md5") == digest or (
+                other.get("md5") is None and filename and other.get("filename") == filename
+            ):
+                return str(other["_key"])
+        return None
+
+    def _restore_annotation(self, raw: dict, report: RestoreReport) -> None:
+        """A highlight, note, ink or underline of a PDF (Issue #685): a child of the PDF
+        attachment, so it goes under that attachment's *new* key."""
+        data = raw.get("data", {})
+        parent = self.item_map.get(data.get("parentItem"))
+        if not parent:
+            report.warnings.append(_not_restored(raw, "its PDF was not restored"))
+            return
+        trashed = bool(data.get("deleted"))
+        if self._annotation_exists(parent, data, trashed):
+            report.items_skipped_existing += 1
+        elif report.is_dry_run or self.items.create_generic_item(_annotation_payload(data, parent)):
+            report.items_created += 1
+            report.items_trashed += 1 if trashed else 0
+        else:
+            report.errors.append(f"Failed to create the annotation: {_not_restored(raw, '')}")
+
+    def _annotation_exists(self, parent: str, data: dict, trashed: bool) -> bool:
+        if parent in self._created:
+            return False
+        fields = ("annotationType", "annotationPosition", "annotationText", "annotationComment")
         return any(
-            other.get("md5") == digest
-            or (other.get("md5") is None and filename and other.get("filename") == filename)
-            for other in existing
+            all(other.get(f) == data.get(f) for f in fields)
+            for other in self._existing_children(parent, trashed, _ANNOTATION)
         )
 
     def _build_existing_item_indexes(
@@ -533,7 +577,7 @@ class RestoreService:
             self._known_notes.add((data.get("note", ""), where, trashed))
         elif item.item_type == "attachment":
             identity = data.get("md5") or data.get("url") or data.get("path")
-            self._known_files.add((identity, where, trashed))
+            self._known_files[(identity, where, trashed)] = item.key
 
     def _find_existing_item(
         self,
@@ -555,14 +599,18 @@ class RestoreService:
         return None
 
     def _sort_items_by_hierarchy(self, items: List[dict]) -> List[dict]:
-        parents = []
-        children = []
+        """Parents first, then their notes and attachments, then the annotations of the PDFs
+        (grandchildren, Issue #685): each needs the new key of the one before."""
+        parents, children, annotations = [], [], []
         for i in items:
-            if i.get("data", {}).get("itemType") in ["attachment", "note"]:
+            item_type = i.get("data", {}).get("itemType")
+            if item_type in ["attachment", "note"]:
                 children.append(i)
+            elif item_type == _ANNOTATION:
+                annotations.append(i)
             else:
                 parents.append(i)
-        return parents + children
+        return parents + children + annotations
 
 
 class _Md5Sink:
@@ -642,6 +690,17 @@ def _attachment_payload(data: dict, collections: Optional[List[str]] = None) -> 
     payload.setdefault("title", "")  # never the upload's default, the temporary file's name
     if collections is not None:
         payload["collections"] = collections
+    if data.get("deleted"):
+        payload["deleted"] = 1
+    return payload
+
+
+def _annotation_payload(data: dict, parent: str) -> Dict[str, Any]:
+    """An annotation created from what the archive holds about it, under the restored PDF
+    (Issue #685): type, text, comment, colour, page label, sort index, position and tags (the
+    real API takes all of these as they were archived, checked on a test library)."""
+    payload = {k: v for k, v in data.items() if k not in _ATTACHMENT_LOCAL}
+    payload["parentItem"] = parent
     if data.get("deleted"):
         payload["deleted"] = 1
     return payload
