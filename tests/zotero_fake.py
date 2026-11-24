@@ -452,8 +452,8 @@ class FakeTarget:
 
     NOW = "2026-11-24T12:00:00Z"
 
-    def __init__(self, library_id: str = "8888") -> None:
-        self.lib = FakeLibrary("group", library_id, "Restore target")
+    def __init__(self, library_id: str = "8888", library_type: str = "user") -> None:
+        self.lib = FakeLibrary(library_type, library_id, "Restore target")
         self._count = 0
 
     def _new_key(self) -> str:
@@ -493,6 +493,8 @@ class FakeTarget:
             return None
         if any(key not in self.lib.collections for key in data.get("collections", [])):
             return None
+        if self.lib.library_type == "group" and data.get("linkMode") == "linked_file":
+            return None  # 400 "Linked files can only be added to user libraries"
         fields = {
             k: v
             for k, v in data.items()
@@ -534,21 +536,31 @@ class FakeTarget:
         collections = (item_data or {}).get("collections") or None
         if any(key not in self.lib.collections for key in collections or []):
             return False
-        name = os.path.basename(file_path)  # what the client names the item after
+        name = os.path.basename(file_path)  # what the client names the item after, by default
         with open(file_path, "rb") as stored:
             content = stored.read()
+        fields: Dict[str, Any] = {
+            "linkMode": "imported_file",
+            "filename": name,
+            "title": name,
+            "contentType": mime_type,
+            "dateAdded": self.NOW,
+            "dateModified": self.NOW,
+        }
+        fields.update(
+            {
+                k: v
+                for k, v in (item_data or {}).items()
+                if k not in ("collections", "deleted", "parentItem")
+            }
+        )
         self.lib.add_item(
             self._new_key(),
             "attachment",
             parent=parent_item_key,
             collections=collections,
             deleted=bool((item_data or {}).get("deleted")),
-            linkMode="imported_file",
-            filename=name,
-            title=name,
-            contentType=mime_type,
             file=content,
-            dateAdded=self.NOW,
-            dateModified=self.NOW,
+            **fields,
         )
         return True

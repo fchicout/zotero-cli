@@ -792,3 +792,156 @@ def _empty_zip() -> bytes:
     with zipfile.ZipFile(buffer, "w"):
         pass
     return buffer.getvalue()
+
+
+def test_an_attachment_is_created_from_what_the_archive_holds_about_it():
+    from zotero_cli.core.services.restore_service import _attachment_payload
+
+    data = {
+        "key": "OLDKEY",
+        "version": 7,
+        "itemType": "attachment",
+        "parentItem": "OLDPARENT",
+        "collections": ["OLDCOL"],
+        "relations": {"dc:relation": ["x"]},
+        "md5": "abc",
+        "mtime": 1,
+        "dateAdded": "2026-01-01T00:00:00Z",
+        "dateModified": "2026-01-02T00:00:00Z",
+        "title": "Full Text PDF",
+        "filename": "paper.pdf",
+        "linkMode": "imported_url",
+        "contentType": "application/pdf",
+        "url": "https://example.org/x",
+        "accessDate": "2026-08-23T18:51:17Z",
+        "tags": [{"tag": "t", "type": 1}],
+    }
+
+    payload = _attachment_payload(data)
+
+    assert payload == {
+        "itemType": "attachment",
+        "title": "Full Text PDF",
+        "filename": "paper.pdf",
+        "linkMode": "imported_url",
+        "contentType": "application/pdf",
+        "url": "https://example.org/x",
+        "accessDate": "2026-08-23T18:51:17Z",
+        "tags": [{"tag": "t", "type": 1}],
+    }
+
+
+def test_an_attachment_without_a_title_is_created_with_an_empty_one_and_the_flags():
+    from zotero_cli.core.services.restore_service import _attachment_payload
+
+    payload = _attachment_payload({"itemType": "attachment", "deleted": 1}, ["NEWCOL"])
+
+    assert payload["title"] == ""
+    assert payload["deleted"] == 1
+    assert payload["collections"] == ["NEWCOL"]
+
+
+def _link_raw(link_mode="linked_url", **fields):
+    return {
+        "key": "LNK1",
+        "data": {"itemType": "attachment", "linkMode": link_mode, "title": "Publisher", **fields},
+    }
+
+
+def test_a_web_link_is_recreated_under_its_parent_from_its_record(tmp_path):
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.create_generic_item.return_value = "NEWLINK"
+    service = _restore_service(gateway)
+    service._created.add("NEWPARENT")  # a parent this run made: nothing to match
+    report = RestoreReport()
+
+    service._restore_attachment(
+        _link_raw(url="https://example.org/p"),
+        _zaf_with_attachment(tmp_path, b"x"),
+        {},
+        "NEWPARENT",
+        report,
+    )
+
+    payload = gateway.create_generic_item.call_args.args[0]
+    assert payload["parentItem"] == "NEWPARENT"
+    assert payload["url"] == "https://example.org/p"
+    assert payload["linkMode"] == "linked_url"
+    assert report.items_created == 1
+
+
+def test_a_linked_file_keeps_its_path_and_a_link_that_exists_is_not_created_again(tmp_path):
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_item_children.return_value = [
+        {
+            "data": {
+                "itemType": "attachment",
+                "linkMode": "linked_url",
+                "url": "https://example.org/p",
+            }
+        }
+    ]
+    gateway.create_generic_item.return_value = "NEWLINK"
+    service = _restore_service(gateway)
+    report = RestoreReport()
+    zf = _zaf_with_attachment(tmp_path, b"x")
+
+    service._restore_attachment(_link_raw(url="https://example.org/p"), zf, {}, "EXISTING1", report)
+    service._restore_attachment(
+        _link_raw("linked_file", path="/home/me/paper.pdf"), zf, {}, "EXISTING1", report
+    )
+
+    assert report.attachments_skipped_existing == 1
+    assert gateway.create_generic_item.call_count == 1
+    assert gateway.create_generic_item.call_args.args[0]["path"] == "/home/me/paper.pdf"
+
+
+def test_a_dry_run_counts_a_link_and_writes_nothing(tmp_path):
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    service = _restore_service(gateway)
+    service._created.add("NEWPARENT")
+    report = RestoreReport(is_dry_run=True)
+
+    service._restore_attachment(
+        _link_raw(url="https://example.org/p"),
+        _zaf_with_attachment(tmp_path, b"x"),
+        {},
+        "NEWPARENT",
+        report,
+    )
+
+    assert report.items_created == 1
+    gateway.create_generic_item.assert_not_called()
+
+
+def test_a_stored_attachment_whose_file_is_not_in_the_archive_is_a_warning(tmp_path):
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    service = _restore_service(gateway)
+    report = RestoreReport()
+    raw = {
+        "key": "ATT9",
+        "data": {"itemType": "attachment", "linkMode": "imported_file", "title": "Lost"},
+    }
+
+    service._restore_attachment(
+        raw, _zaf_with_attachment(tmp_path, b"x"), {"file_map": {}}, "P1", report
+    )
+
+    assert any("its file is not in the archive" in w for w in report.warnings)
+    gateway.upload_attachment.assert_not_called()

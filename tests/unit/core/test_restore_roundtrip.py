@@ -240,13 +240,14 @@ def trashed_standalone_notes(lib: FakeLibrary) -> List[str]:
 def attachments(lib: FakeLibrary) -> List[str]:
     import hashlib
 
-    fields = ("title", "filename", "linkMode", "url", "accessDate", "contentType", "tags")
+    fields = ("title", "filename", "linkMode", "url", "accessDate", "contentType", "tags", "path")
     found = []
     for key, raw in lib.items.items():
         d = raw["data"]
         if d["itemType"] != "attachment" or d.get("linkMode") == "embedded_image":
             continue
         record: Dict[str, Any] = {f: d.get(f) for f in fields}
+        record["title"] = d.get("title") or ""  # the API answers "" for an attachment without one
         record["_parent"] = ident(lib, d.get("parentItem"))
         record["_collections"] = paths(lib, d)
         record["_sha256"] = hashlib.sha256(lib.files[key]).hexdigest() if key in lib.files else None
@@ -344,6 +345,21 @@ def test_a_dry_run_counts_the_standalone_note_as_an_item(trip: Trip, tmp_path: P
     assert not empty.lib.items, "a dry run writes nothing"
 
 
+def test_a_linked_file_cannot_go_into_a_group_library_and_that_is_a_warning(trip: Trip) -> None:
+    """The Web API: "Linked files can only be added to user libraries" (checked live)."""
+    group = FakeTarget("9999", "group")
+    repository: Any = cast(Any, group)
+
+    report = RestoreService(repository, repository, repository, repository).restore_archive(
+        str(trip.archive)
+    )
+
+    assert any("linked files in personal libraries" in w for w in report.warnings)
+    assert not [e for e in report.errors if "attachment" in e]
+    assert not [r for r in group.lib.items.values() if r["data"].get("linkMode") == "linked_file"]
+    assert [r for r in group.lib.items.values() if r["data"].get("linkMode") == "linked_url"]
+
+
 def test_a_second_restore_adds_nothing(trip: Trip) -> None:
     """Everything, the trash included."""
     before = (len(trip.target.lib.items), len(trip.target.lib.collections))
@@ -412,9 +428,6 @@ def test_trashed_items_come_back_trashed(trip: Trip) -> None:
     assert trashed_count == 4
 
 
-@finding(
-    684, "the attachment is named after the temp file; title, url, dates and link mode are lost"
-)
 def test_attachments_keep_their_metadata(trip: Trip) -> None:
     assert_same(attachments, trip)
 
