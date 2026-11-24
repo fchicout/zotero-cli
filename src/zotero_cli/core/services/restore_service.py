@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import re
 import zipfile
 from dataclasses import dataclass, field
 from typing import IO, Any, Dict, List, Optional, Set, Tuple, cast
@@ -35,6 +36,7 @@ def _check_manifest(manifest: object, source: str) -> None:
 
 logger = logging.getLogger(__name__)
 
+_ITEM_URI = re.compile(r"^https?://zotero\.org/(users|groups)/(\d+)/items/([A-Za-z0-9]+)$")
 _ANNOTATION = "annotation"  # itemType of a PDF highlight, note, ink or underline (Issue #685)
 
 
@@ -55,6 +57,7 @@ class RestoreReport:
     attachments_uploaded: int = 0
     attachments_skipped_existing: int = 0
     items_trashed: int = 0  # of the items created, how many went into the trash (Issue #683)
+    relations_restored: int = 0  # related-item links rewritten to the new keys (Issue #686)
     errors: List[str] = field(default_factory=list)
     # Things the archive holds that this restore does not bring back, and why: not failures
     # of the restore itself (those are `errors`), but the user should know.
@@ -74,7 +77,11 @@ class RestoreService:
         collections: CollectionRepository,
         notes: NoteRepository,
         attachments: AttachmentRepository,
+        library: Optional[LibraryRef] = None,
     ):
+        # The library being restored into (Issue #686): related-item links name it in their URI.
+        self.library = library
+        self._source: Optional[LibraryRef] = None  # the library the archive came from
         self.items = items
         self.collections = collections
         self.notes = notes
@@ -117,6 +124,7 @@ class RestoreService:
                 check_entry_count(zf)
                 manifest = read_json_member(zf, "manifest.json")
                 _check_manifest(manifest, file_path)
+                self._source = LibraryRef.from_manifest(manifest.get("library"))
                 items_data = read_json_member(zf, "data.json")
 
                 collections_data = []
@@ -140,6 +148,9 @@ class RestoreService:
                     self._restore_single_item(
                         item_raw, zf, manifest, report, doi_index, title_index
                     )
+
+                # 3. Related items: only now do all the new keys exist (Issue #686)
+                self._restore_relations(sorted_items, report)
 
         except Exception as e:
             report.errors.append(f"Critical error during restore: {str(e)}")
@@ -226,7 +237,8 @@ class RestoreService:
 
         # 2. Prepare new item data
         new_data = data.copy()
-        for k in ["key", "version", "dateAdded", "dateModified"]:
+        # `relations` name the old item keys; they are set again once every item exists (#686)
+        for k in ["key", "version", "dateAdded", "dateModified", "relations"]:
             new_data.pop(k, None)
 
         old_colls = data.get("collections", [])
@@ -514,6 +526,63 @@ class RestoreService:
             ):
                 return str(other["_key"])
         return None
+
+    def _restore_relations(self, items: List[dict], report: RestoreReport) -> None:
+        """Gives the items this run created their related-item links back, pointing at the new
+        items (Issue #686). Both ends are stored on both items, so each side is rewritten."""
+        for raw in items:
+            relations = raw.get("data", {}).get("relations") or {}
+            new_key = self.item_map.get(raw["key"])
+            if not relations or not new_key or new_key not in self._created:
+                continue
+            mapped = self._map_relations(relations, raw, report)
+            count = sum(len(uris) for uris in mapped.values())
+            if not count:
+                continue
+            if report.is_dry_run or self.items.update_item(new_key, 0, {"relations": mapped}):
+                report.relations_restored += count
+            else:
+                report.errors.append(
+                    f"Failed to restore the related items of {_not_restored(raw, '')}"
+                )
+
+    def _map_relations(
+        self, relations: dict, raw: dict, report: RestoreReport
+    ) -> Dict[str, List[str]]:
+        mapped: Dict[str, List[str]] = {}
+        for predicate, targets in relations.items():
+            for uri in [targets] if isinstance(targets, str) else targets:
+                new_uri = self._new_uri(str(uri), raw, report)
+                if new_uri:
+                    mapped.setdefault(predicate, []).append(new_uri)
+        return mapped
+
+    def _new_uri(self, uri: str, raw: dict, report: RestoreReport) -> Optional[str]:
+        """The link to the restored item, the same link when it is not one of ours (another
+        library's item, or no item at all), or None when it names an item of the archive's
+        library that the archive does not hold: it is dropped and said, never pointed at a
+        wrong item."""
+        match = _ITEM_URI.match(uri)
+        if not match:
+            return uri
+        scope, library_id, old_key = match.groups()
+        library_type = "user" if scope == "users" else "group"
+        if self._source is not None and not self._source.same_as(
+            LibraryRef(library_type, library_id)
+        ):
+            return uri  # an item of another library: nothing of ours
+        new_key = self.item_map.get(old_key)
+        if not new_key:
+            if self._source is None:
+                return uri  # an archive that does not say where it is from: cannot tell
+            report.warnings.append(
+                _not_restored(raw, f"related item {old_key} is not in the archive, link dropped")
+            )
+            return None
+        if self.library is None:
+            return _ITEM_URI.sub(lambda m: f"http://zotero.org/{m[1]}/{m[2]}/items/{new_key}", uri)
+        scope = "users" if self.library.type == "user" else "groups"
+        return f"http://zotero.org/{scope}/{self.library.id}/items/{new_key}"
 
     def _restore_annotation(self, raw: dict, report: RestoreReport) -> None:
         """A highlight, note, ink or underline of a PDF (Issue #685): a child of the PDF

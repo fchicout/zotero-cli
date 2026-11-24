@@ -1124,3 +1124,132 @@ def test_an_attachment_that_already_exists_is_mapped_to_the_existing_key(tmp_pat
 
     assert service.item_map["OLDPDF"] == "EXISTINGPDF"
     gateway.upload_attachment_item.assert_not_called()
+
+
+def _relations_service(library=None, source=None):
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+    from zotero_cli.core.models import LibraryRef
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.update_item.return_value = True
+    service = _restore_service(gateway)
+    service.library = LibraryRef(*library) if library else None
+    service._source = LibraryRef(*source) if source else None
+    service.item_map.update({"OLDAAAAA": "NEWAAAAA", "OLDBBBBB": "NEWBBBBB"})
+    return gateway, service
+
+
+def _uri(scope, library_id, key):
+    return f"http://zotero.org/{scope}/{library_id}/items/{key}"
+
+
+def test_a_related_item_link_names_the_target_library_and_the_new_key():
+    """Issue #686: it named the old library and the old key."""
+    _, service = _relations_service(library=("user", "42"), source=("group", "777"))
+
+    new = service._new_uri(_uri("groups", "777", "OLDBBBBB"), {"key": "OLDAAAAA"}, RestoreReport())
+
+    assert new == _uri("users", "42", "NEWBBBBB")
+
+
+def test_a_single_link_stored_as_a_string_is_mapped_to_a_list():
+    """The Web API returns one link as a plain string, several as a list."""
+    _, service = _relations_service(library=("group", "888"), source=("group", "777"))
+    raw = {"key": "OLDAAAAA", "data": {"relations": {}}}
+
+    mapped = service._map_relations(
+        {"dc:relation": _uri("groups", "777", "OLDBBBBB")}, raw, RestoreReport()
+    )
+
+    assert mapped == {"dc:relation": [_uri("groups", "888", "NEWBBBBB")]}
+
+
+def test_a_link_that_is_not_an_item_of_the_archive_s_library_is_kept():
+    _, service = _relations_service(library=("user", "42"), source=("group", "777"))
+    other_library = _uri("groups", "9999", "OLDBBBBB")  # the same key, another library
+
+    kept = service._new_uri(other_library, {"key": "X"}, RestoreReport())
+    not_an_item = service._new_uri("http://example.org/something", {"key": "X"}, RestoreReport())
+
+    assert kept == other_library
+    assert not_an_item == "http://example.org/something"
+
+
+def test_a_link_to_a_missing_item_of_the_library_is_dropped_with_a_warning():
+    _, service = _relations_service(library=("user", "42"), source=("group", "777"))
+    report = RestoreReport()
+    raw = {"key": "OLDAAAAA", "data": {"itemType": "book", "title": "A"}}
+
+    dropped = service._new_uri(_uri("groups", "777", "GHOSTKEY"), raw, report)
+
+    assert dropped is None
+    assert any("GHOSTKEY" in w and "link dropped" in w for w in report.warnings)
+
+
+def test_an_archive_that_does_not_say_where_it_is_from_keeps_what_it_cannot_map():
+    """Before format 1.2 there is no library to compare: only keys the archive holds change."""
+    _, service = _relations_service(library=("user", "42"), source=None)
+    report = RestoreReport()
+
+    unknown = service._new_uri(_uri("groups", "777", "GHOSTKEY"), {"key": "X"}, report)
+    known = service._new_uri(_uri("groups", "777", "OLDBBBBB"), {"key": "X"}, report)
+
+    assert unknown == _uri("groups", "777", "GHOSTKEY")
+    assert known == _uri("users", "42", "NEWBBBBB")
+    assert report.warnings == []
+
+
+def test_without_a_target_library_only_the_key_changes():
+    _, service = _relations_service(library=None, source=("group", "777"))
+
+    new = service._new_uri(_uri("groups", "777", "OLDBBBBB"), {"key": "X"}, RestoreReport())
+
+    assert new == _uri("groups", "777", "NEWBBBBB")
+
+
+def test_only_items_this_run_created_get_their_links_set():
+    gateway, service = _relations_service(library=("user", "42"), source=("group", "777"))
+    service._created.add("NEWAAAAA")  # created now; NEWBBBBB already existed
+    items = [
+        {
+            "key": "OLDAAAAA",
+            "data": {"relations": {"dc:relation": [_uri("groups", "777", "OLDBBBBB")]}},
+        },
+        {
+            "key": "OLDBBBBB",
+            "data": {"relations": {"dc:relation": [_uri("groups", "777", "OLDAAAAA")]}},
+        },
+    ]
+    report = RestoreReport()
+
+    service._restore_relations(items, report)
+
+    gateway.update_item.assert_called_once_with(
+        "NEWAAAAA", 0, {"relations": {"dc:relation": [_uri("users", "42", "NEWBBBBB")]}}
+    )
+    assert report.relations_restored == 1
+
+
+def test_a_failed_update_of_the_links_is_an_error():
+    gateway, service = _relations_service(library=("user", "42"), source=("group", "777"))
+    gateway.update_item.return_value = False
+    service._created.add("NEWAAAAA")
+    report = RestoreReport()
+
+    service._restore_relations(
+        [
+            {
+                "key": "OLDAAAAA",
+                "data": {
+                    "itemType": "book",
+                    "relations": {"dc:relation": [_uri("groups", "777", "OLDBBBBB")]},
+                },
+            }
+        ],
+        report,
+    )
+
+    assert report.relations_restored == 0
+    assert any("related items" in e for e in report.errors)
