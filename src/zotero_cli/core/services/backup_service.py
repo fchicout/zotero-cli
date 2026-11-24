@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import secrets
 import stat
 import tempfile
 import zipfile
@@ -110,14 +111,17 @@ class BackupService:
         # the target only once the archive is complete, so a failed run (a dropped
         # connection, a full disk, Ctrl-C) leaves an earlier backup there untouched.
         target = os.path.abspath(output)
-        fd, part = tempfile.mkstemp(
-            dir=os.path.dirname(target), prefix=f".{os.path.basename(target)}.", suffix=".part"
+        part = os.path.join(
+            os.path.dirname(target), f".{os.path.basename(target)}.{secrets.token_hex(8)}.part"
         )
-        os.close(fd)
+        # Created like any new file (the user's umask decides its permissions)
+        with open(part, "xb"):
+            pass
         committed = False
         try:
             self._write_archive(part, manifest, items, children, on_item_processed)
-            os.chmod(part, _final_mode(target))
+            if os.path.exists(target):  # a replaced file keeps its permissions
+                os.chmod(part, stat.S_IMODE(os.stat(target).st_mode))
             os.replace(part, target)
             committed = True
         finally:
@@ -272,16 +276,6 @@ class BackupService:
 
             # Download attachment file if the child is an attachment
             self._download_attachment_file(child, zf, manifest, errors, parent_key=item.key)
-
-
-def _final_mode(target: str) -> int:
-    """The permissions of the archive: those of the file it replaces, else what a plain
-    `open(target, "w")` would give (mkstemp creates its file 0600)."""
-    if os.path.exists(target):
-        return stat.S_IMODE(os.stat(target).st_mode)
-    umask = os.umask(0)
-    os.umask(umask)
-    return 0o666 & ~umask
 
 
 def _has_children(item: ZoteroItem) -> bool:

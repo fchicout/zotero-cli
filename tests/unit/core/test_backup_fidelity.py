@@ -673,7 +673,7 @@ def test_a_successful_backup_replaces_the_file_in_one_piece(world: World, tmp_pa
 def test_a_new_backup_file_has_the_permissions_of_an_ordinary_file(
     world: World, tmp_path: Path
 ) -> None:
-    """Not the 0600 of the temporary file it was built in."""
+    """Whatever the umask gives a new file, not a private 0600."""
     if os.name == "nt":
         pytest.skip("POSIX permission bits")
     path = tmp_path / "library.zaf"
