@@ -5,7 +5,7 @@ import re
 import sys
 import threading
 import tomllib
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -354,7 +354,8 @@ def set_group_override(group_id: Optional[str]) -> None:
 def _with_group_override(config: ZoteroConfig) -> ZoteroConfig:
     if _group_override is None:
         return config
-    return replace(config, library_id=_group_override, library_type="group", library_type_set=True)
+    fields = {**asdict(config), "library_id": _group_override, "library_type": "group"}
+    return ZoteroConfig(**{**fields, "library_type_set": True})
 
 
 def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
