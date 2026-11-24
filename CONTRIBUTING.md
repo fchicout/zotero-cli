@@ -80,7 +80,7 @@ Every command that deletes, or changes many items at once, follows one policy:
 
 zotero-cli follows [Semantic Versioning](https://semver.org/); [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) says what counts as the public interface and how deprecations work. Work ships in trains: patch releases first, then the next minor, then the next major, and `main` is always the next release. Issues carry a `semver: patch|minor|major` label and a milestone for the version that will carry them; maintainers decide which train a change belongs to, so a feature may wait for the next minor.
 
-Maintainers cut a release with a version-bump pull request (`pyproject.toml`, `src/zotero_cli/__init__.py`, `uv.lock`'s own version line, and `CHANGELOG.md`), then tag `vX.Y.Z` on `main`; the tag triggers the release workflow (binaries, GitHub release, PyPI as `zotero-command-line`).
+Maintainers cut a release with a version-bump pull request (`pyproject.toml`, `src/zotero_cli/__init__.py`, `uv.lock`'s own version line, and `CHANGELOG.md`), then tag `vX.Y.Z` on `main` (a patch release of an older line is tagged on its `release/X.Y.x` branch instead; the release workflow accepts a tag on either); the tag triggers the release workflow (binaries, GitHub release, PyPI as `zotero-command-line`).
 
 ## License
 
