@@ -6,6 +6,7 @@ import stat
 import tempfile
 import zipfile
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Optional, Set
 
 from zotero_cli.core.interfaces import AttachmentRepository, CollectionRepository, ItemRepository
@@ -115,8 +116,7 @@ class BackupService:
             os.path.dirname(target), f".{os.path.basename(target)}.{secrets.token_hex(8)}.part"
         )
         # Created like any new file (the user's umask decides its permissions)
-        with open(part, "xb"):
-            pass
+        Path(part).touch(exist_ok=False)
         committed = False
         try:
             self._write_archive(part, manifest, items, children, on_item_processed)
