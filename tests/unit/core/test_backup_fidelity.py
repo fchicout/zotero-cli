@@ -42,173 +42,24 @@ from typing import Any, Callable, Dict, List, Optional
 
 import pytest
 
-from tests.zotero_fake import FakeLibrary, FakeZoteroServer
+from tests.zotero_fake import (
+    ALL_LIVE,
+    GROUP,
+    LIVE_KEYS,
+    PDF,
+    PNG,
+    SNAPSHOT,
+    USER,
+    FakeLibrary,
+    FakeZoteroServer,
+    populate,
+)
 from zotero_cli.core.exceptions import AuthError, PartialFailure, Unavailable
 from zotero_cli.core.services.backup_service import BackupService
 from zotero_cli.core.services.verify_service import VerifyService
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.http_client import ZoteroHttpClient
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
-
-# --- the library under test ------------------------------------------------------------------
-
-USER = ("user", "42")
-GROUP = ("group", "777")
-PDF = b"%PDF-1.7 " + bytes(range(256)) * 20
-SNAPSHOT = b"<html><body>saved page</body></html>"
-PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
-
-# Everything Zotero shows (not in the trash), by role.
-LIVE_KEYS = {
-    "COLLECTION_TREE": ["COLA0001", "COLA1001", "COLA1A01", "COLB0001"],
-    "TOP": ["JRN00001", "BOOK0001", "NOTE0001", "STND0001", "UNFI0001", "UNIC0001"],
-    "CHILDREN": [
-        "PDF00001",
-        "ANN00001",
-        "ANN00002",
-        "SNP00001",
-        "LNK00001",
-        "LFL00001",
-        "NOT00001",
-        "EMB00001",
-        "BK1PDF01",
-        "UNFN0001",
-        "UNIC0002",
-    ],
-}
-ALL_LIVE = LIVE_KEYS["TOP"] + LIVE_KEYS["CHILDREN"]
-
-
-def populate(lib: FakeLibrary) -> FakeLibrary:
-    """A library with every shape of item Zotero has: nested collections, an item in two
-    collections, related items, PDFs with annotations, snapshots, links, linked files, notes with
-    embedded images, stand-alone notes and files, unfiled items, Unicode, and trash."""
-    lib.add_collection("COLA0001", "Reviews")
-    lib.add_collection("COLA1001", "2025", parent="COLA0001")
-    lib.add_collection("COLA1A01", "Drafts", parent="COLA1001")
-    lib.add_collection("COLB0001", "Reading list")
-
-    lib.add_item(
-        "JRN00001",
-        "journalArticle",
-        collections=["COLA0001", "COLB0001"],
-        title="A study of backups",
-        creators=[
-            {"creatorType": "author", "firstName": "Ada", "lastName": "Lovelace"},
-            {"creatorType": "editor", "name": "The Committee"},
-        ],
-        abstractNote="Everything must be kept.",
-        DOI="10.1000/backup.1",
-        date="2025-06-01",
-        extra="arXiv: 2501.00001",
-        tags=[{"tag": "to-read", "type": 0}, {"tag": "auto", "type": 1}],
-        relations={"dc:relation": [lib.item_uri("BOOK0001")]},
-    )
-    lib.add_item(
-        "PDF00001",
-        "attachment",
-        parent="JRN00001",
-        linkMode="imported_file",
-        filename="study.pdf",
-        title="Full text",
-        contentType="application/pdf",
-        file=PDF,
-    )
-    lib.add_item(
-        "ANN00001", "annotation", parent="PDF00001", annotationType="highlight", annotationText="x"
-    )
-    lib.add_item(
-        "ANN00002", "annotation", parent="PDF00001", annotationType="note", annotationComment="y"
-    )
-    lib.add_item(
-        "SNP00001",
-        "attachment",
-        parent="JRN00001",
-        linkMode="imported_url",
-        filename="snapshot.html",
-        url="https://example.org/paper",
-        contentType="text/html",
-        file=SNAPSHOT,
-    )
-    lib.add_item(
-        "LNK00001",
-        "attachment",
-        parent="JRN00001",
-        linkMode="linked_url",
-        title="Publisher page",
-        url="https://example.org/paper",
-    )
-    lib.add_item(
-        "LFL00001",
-        "attachment",
-        parent="JRN00001",
-        linkMode="linked_file",
-        filename="local.pdf",
-        path="/home/someone/papers/local.pdf",
-    )
-    lib.add_item(
-        "NOT00001",
-        "note",
-        parent="JRN00001",
-        note='<p>Read this</p><img data-attachment-key="EMB00001"/>',
-        tags=[{"tag": "note-tag"}],
-    )
-    lib.add_item(
-        "EMB00001",
-        "attachment",
-        parent="NOT00001",
-        linkMode="embedded_image",
-        contentType="image/png",
-        file=PNG,
-    )
-
-    lib.add_item(
-        "BOOK0001",
-        "book",
-        collections=["COLA1A01"],
-        title="The book",
-        relations={"dc:relation": [lib.item_uri("JRN00001")]},
-    )
-    lib.add_item(
-        "BK1PDF01",
-        "attachment",
-        parent="BOOK0001",
-        linkMode="imported_file",
-        filename="book.pdf",
-        contentType="application/pdf",
-        file=PDF + b"book",
-    )
-    lib.add_item("NOTE0001", "note", collections=["COLA1001"], note="<p>stand-alone note</p>")
-    lib.add_item(
-        "STND0001",
-        "attachment",
-        collections=["COLA0001"],
-        linkMode="imported_file",
-        filename="loose.pdf",
-        contentType="application/pdf",
-        file=PDF + b"loose",
-    )
-    lib.add_item("UNFI0001", "thesis", title="Unfiled thesis")
-    lib.add_item("UNFN0001", "note", parent="UNFI0001", note="<p>child of an unfiled item</p>")
-    lib.add_item("UNIC0001", "book", collections=["COLB0001"], title="Ação & relatório – 研究")
-    lib.add_item(
-        "UNIC0002",
-        "attachment",
-        parent="UNIC0001",
-        linkMode="imported_file",
-        filename="relatório ação.pdf",
-        contentType="application/pdf",
-        file=PDF + b"unicode",
-    )
-
-    lib.add_item("TRSH0001", "book", collections=["COLA0001"], title="Deleted book", deleted=True)
-    lib.add_item("TRSHN001", "note", parent="TRSH0001", note="<p>in the trash</p>")
-    lib.searches["SRCH0001"] = {
-        "key": "SRCH0001",
-        "version": 5,
-        "data": {"key": "SRCH0001", "name": "Unread", "conditions": [{"condition": "tag"}]},
-    }
-    return lib
 
 
 @dataclass

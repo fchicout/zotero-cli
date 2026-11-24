@@ -18,10 +18,13 @@ registered raises, so a backup that targets the wrong library fails loudly.
 import copy
 import hashlib
 import json
+import os
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
+
+from zotero_cli.core.zotero_item import ZoteroItem
 
 FILE_ITEM_LINK_MODES = ("imported_file", "imported_url", "embedded_image")
 
@@ -138,6 +141,9 @@ class FakeLibrary:
             return True
         parent = data.get("parentItem")
         return bool(parent and parent in self.items and self._in_trash(self.items[parent]))
+
+    def is_trashed(self, key: str) -> bool:
+        return self._in_trash(self.items[key])
 
     def live_items(self) -> List[Dict[str, Any]]:
         return [r for r in self.items.values() if not self._in_trash(r)]
@@ -275,3 +281,262 @@ class FakeSession:
 def iter_keys(rows: List[Dict[str, Any]]) -> Iterator[str]:
     for row in rows:
         yield row["key"]
+
+
+# --- the library under test ------------------------------------------------------------------
+
+USER = ("user", "42")
+GROUP = ("group", "777")
+PDF = b"%PDF-1.7 " + bytes(range(256)) * 20
+SNAPSHOT = b"<html><body>saved page</body></html>"
+PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+
+# Everything Zotero shows (not in the trash), by role.
+LIVE_KEYS = {
+    "COLLECTION_TREE": ["COLA0001", "COLA1001", "COLA1A01", "COLB0001"],
+    "TOP": ["JRN00001", "BOOK0001", "NOTE0001", "STND0001", "UNFI0001", "UNIC0001"],
+    "CHILDREN": [
+        "PDF00001",
+        "ANN00001",
+        "ANN00002",
+        "SNP00001",
+        "LNK00001",
+        "LFL00001",
+        "NOT00001",
+        "EMB00001",
+        "BK1PDF01",
+        "UNFN0001",
+        "UNIC0002",
+    ],
+}
+ALL_LIVE = LIVE_KEYS["TOP"] + LIVE_KEYS["CHILDREN"]
+
+
+def populate(lib: FakeLibrary) -> FakeLibrary:
+    """A library with every shape of item Zotero has: nested collections, an item in two
+    collections, related items, PDFs with annotations, snapshots, links, linked files, notes with
+    embedded images, stand-alone notes and files, unfiled items, Unicode, and trash."""
+    lib.add_collection("COLA0001", "Reviews")
+    lib.add_collection("COLA1001", "2025", parent="COLA0001")
+    lib.add_collection("COLA1A01", "Drafts", parent="COLA1001")
+    lib.add_collection("COLB0001", "Reading list")
+
+    lib.add_item(
+        "JRN00001",
+        "journalArticle",
+        collections=["COLA0001", "COLB0001"],
+        title="A study of backups",
+        creators=[
+            {"creatorType": "author", "firstName": "Ada", "lastName": "Lovelace"},
+            {"creatorType": "editor", "name": "The Committee"},
+        ],
+        abstractNote="Everything must be kept.",
+        DOI="10.1000/backup.1",
+        date="2025-06-01",
+        extra="arXiv: 2501.00001",
+        tags=[{"tag": "to-read", "type": 0}, {"tag": "auto", "type": 1}],
+        relations={"dc:relation": [lib.item_uri("BOOK0001")]},
+    )
+    lib.add_item(
+        "PDF00001",
+        "attachment",
+        parent="JRN00001",
+        linkMode="imported_file",
+        filename="study.pdf",
+        title="Full text",
+        contentType="application/pdf",
+        file=PDF,
+    )
+    lib.add_item(
+        "ANN00001", "annotation", parent="PDF00001", annotationType="highlight", annotationText="x"
+    )
+    lib.add_item(
+        "ANN00002", "annotation", parent="PDF00001", annotationType="note", annotationComment="y"
+    )
+    lib.add_item(
+        "SNP00001",
+        "attachment",
+        parent="JRN00001",
+        linkMode="imported_url",
+        filename="snapshot.html",
+        url="https://example.org/paper",
+        contentType="text/html",
+        file=SNAPSHOT,
+    )
+    lib.add_item(
+        "LNK00001",
+        "attachment",
+        parent="JRN00001",
+        linkMode="linked_url",
+        title="Publisher page",
+        url="https://example.org/paper",
+    )
+    lib.add_item(
+        "LFL00001",
+        "attachment",
+        parent="JRN00001",
+        linkMode="linked_file",
+        filename="local.pdf",
+        path="/home/someone/papers/local.pdf",
+    )
+    lib.add_item(
+        "NOT00001",
+        "note",
+        parent="JRN00001",
+        note='<p>Read this</p><img data-attachment-key="EMB00001"/>',
+        tags=[{"tag": "note-tag"}],
+    )
+    lib.add_item(
+        "EMB00001",
+        "attachment",
+        parent="NOT00001",
+        linkMode="embedded_image",
+        contentType="image/png",
+        file=PNG,
+    )
+
+    lib.add_item(
+        "BOOK0001",
+        "book",
+        collections=["COLA1A01"],
+        title="The book",
+        relations={"dc:relation": [lib.item_uri("JRN00001")]},
+    )
+    lib.add_item(
+        "BK1PDF01",
+        "attachment",
+        parent="BOOK0001",
+        linkMode="imported_file",
+        filename="book.pdf",
+        contentType="application/pdf",
+        file=PDF + b"book",
+    )
+    lib.add_item("NOTE0001", "note", collections=["COLA1001"], note="<p>stand-alone note</p>")
+    lib.add_item(
+        "STND0001",
+        "attachment",
+        collections=["COLA0001"],
+        linkMode="imported_file",
+        filename="loose.pdf",
+        contentType="application/pdf",
+        file=PDF + b"loose",
+    )
+    lib.add_item("UNFI0001", "thesis", title="Unfiled thesis")
+    lib.add_item("UNFN0001", "note", parent="UNFI0001", note="<p>child of an unfiled item</p>")
+    lib.add_item("UNIC0001", "book", collections=["COLB0001"], title="Ação & relatório – 研究")
+    lib.add_item(
+        "UNIC0002",
+        "attachment",
+        parent="UNIC0001",
+        linkMode="imported_file",
+        filename="relatório ação.pdf",
+        contentType="application/pdf",
+        file=PDF + b"unicode",
+    )
+
+    lib.add_item("TRSH0001", "book", collections=["COLA0001"], title="Deleted book", deleted=True)
+    lib.add_item("TRSHN001", "note", parent="TRSH0001", note="<p>in the trash</p>")
+    lib.searches["SRCH0001"] = {
+        "key": "SRCH0001",
+        "version": 5,
+        "data": {"key": "SRCH0001", "name": "Unread", "conditions": [{"condition": "tag"}]},
+    }
+    return lib
+
+
+class FakeTarget:
+    """The library a restore writes into: the repository calls `RestoreService` makes,
+    answered the way the Web API answers them (new keys, a parent must exist, an
+    annotation needs an attachment as its parent, `parentCollection` is False for a
+    root). It deliberately keeps what the *current* client sends, so a gap in the
+    restore shows up as a difference, not as a fake that is kinder than the API."""
+
+    NOW = "2026-11-24T12:00:00Z"
+
+    def __init__(self, library_id: str = "8888") -> None:
+        self.lib = FakeLibrary("group", library_id, "Restore target")
+        self._count = 0
+
+    def _new_key(self) -> str:
+        self._count += 1
+        return f"NEW{self._count:05d}"
+
+    # --- reads --------------------------------------------------------------------------
+
+    def get_all_items(self) -> Iterator[ZoteroItem]:
+        for raw in self.lib.live_items():
+            yield ZoteroItem.from_raw_zotero_item(copy.deepcopy(raw))
+
+    def get_all_collections(self) -> List[Dict[str, Any]]:
+        return copy.deepcopy(list(self.lib.collections.values()))
+
+    def get_item_children(self, item_key: str) -> List[Dict[str, Any]]:
+        return copy.deepcopy(self.lib.children_of(item_key))
+
+    # --- writes -------------------------------------------------------------------------
+
+    def create_collection(self, name: str, parent_key: Optional[str] = None) -> Optional[str]:
+        if parent_key is not None and parent_key not in self.lib.collections:
+            return None
+        return self.lib.add_collection(self._new_key(), name, parent=parent_key)
+
+    def create_generic_item(self, data: Dict[str, Any]) -> Optional[str]:
+        parent = data.get("parentItem")
+        if parent is not None and parent not in self.lib.items:
+            return None  # 409 "Parent item ... not found"
+        if data["itemType"] == "annotation" and (
+            parent is None or self.lib.items[parent]["data"]["itemType"] != "attachment"
+        ):
+            return None
+        if any(key not in self.lib.collections for key in data.get("collections", [])):
+            return None
+        fields = {
+            k: v
+            for k, v in data.items()
+            if k not in ("key", "version", "itemType", "parentItem", "collections", "deleted")
+        }
+        fields.setdefault("dateAdded", self.NOW)
+        fields.setdefault("dateModified", self.NOW)
+        return self.lib.add_item(
+            self._new_key(),
+            data["itemType"],
+            parent=parent,
+            collections=data.get("collections"),
+            deleted=bool(data.get("deleted")),
+            **fields,
+        )
+
+    def create_note(self, parent_item_key: str, note_content: str) -> bool:
+        if parent_item_key not in self.lib.items:
+            return False
+        self.lib.add_item(
+            self._new_key(),
+            "note",
+            parent=parent_item_key,
+            note=note_content,
+            dateAdded=self.NOW,
+            dateModified=self.NOW,
+        )
+        return True
+
+    def upload_attachment(
+        self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
+    ) -> bool:
+        if parent_item_key not in self.lib.items:
+            return False
+        name = os.path.basename(file_path)  # what the client names the item after
+        with open(file_path, "rb") as stored:
+            content = stored.read()
+        self.lib.add_item(
+            self._new_key(),
+            "attachment",
+            parent=parent_item_key,
+            linkMode="imported_file",
+            filename=name,
+            title=name,
+            contentType=mime_type,
+            file=content,
+            dateAdded=self.NOW,
+            dateModified=self.NOW,
+        )
+        return True
