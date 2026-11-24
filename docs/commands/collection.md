@@ -100,6 +100,8 @@ Produces a `.zaf` archive containing only the items within the target collection
 **Usage:**
 ```bash
 zotero-cli collection backup --collection "My Review" --output "review_backup.zaf"
+# a collection of a group library, named on the call
+zotero-cli --group 6629576 collection backup --collection "My Review" --output "review_backup.zaf"
 ```
 
 **Parameters:**

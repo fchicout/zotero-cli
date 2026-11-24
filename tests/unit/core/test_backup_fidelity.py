@@ -44,7 +44,7 @@ from typing import Any, Callable, Dict, List, Optional
 import pytest
 
 from tests.zotero_fake import FakeLibrary, FakeZoteroServer
-from zotero_cli.core.exceptions import PartialFailure, Unavailable
+from zotero_cli.core.exceptions import AuthError, PartialFailure, Unavailable
 from zotero_cli.core.services.backup_service import BackupService
 from zotero_cli.core.services.verify_service import VerifyService
 from zotero_cli.infra.factory import GatewayFactory
@@ -1290,29 +1290,115 @@ def test_cli_collection_backup_by_name_in_a_group(cli: Cli, tmp_path: Path) -> N
     assert cli.server.libraries[USER].requests == []
 
 
-def test_cli_exits_1_and_does_not_claim_success_when_the_listing_fails(
+def test_cli_exits_5_and_does_not_claim_success_when_the_listing_fails(
     cli: Cli, tmp_path: Path
 ) -> None:
     cli.server.libraries[GROUP].failing.add("collections")
 
     result = cli.run("system", "backup", "--output", str(tmp_path / "x.zaf"))
 
-    assert result.code == 1
-    assert "Backup failed" in result.err
+    assert result.code == Unavailable.exit_code
+    assert "unavailable" in result.err
     assert "Backup complete" not in result.out
 
 
-@discrepancy("D10", "`system backup` accepts only --output; the group comes from the config file")
 def test_cli_selects_a_group_library_with_a_parameter_on_the_call(cli: Cli, tmp_path: Path) -> None:
-    """The provisional flag is `--group <id>`, the counterpart of `--user`; the requirement is that
-    the group is named on the call, whatever the personal default configured."""
+    """`--group <id>`, the counterpart of `--user`: the group is named on the call, whatever
+    personal library the configuration names by default."""
     out = tmp_path / "group.zaf"
 
-    result = cli.run("system", "backup", "--group", GROUP[1], "--output", str(out), default=USER)
+    result = cli.run("--group", GROUP[1], "system", "backup", "--output", str(out), default=USER)
 
     assert result.code == 0, result.err
     assert Archive(out).by_key["JRN00001"]["library"]["type"] == "group"
+    assert Archive(out).manifest["library"]["id"] == GROUP[1]
     assert cli.server.libraries[USER].requests == []
+
+
+def test_a_group_url_is_accepted_too(cli: Cli, tmp_path: Path) -> None:
+    out = tmp_path / "group.zaf"
+    url = f"https://www.zotero.org/groups/{GROUP[1]}/lab-group"
+
+    result = cli.run("--group", url, "system", "backup", "--output", str(out), default=USER)
+
+    assert result.code == 0, result.err
+    assert Archive(out).manifest["library"]["id"] == GROUP[1]
+
+
+def test_a_collection_backup_can_name_the_group_on_the_call(cli: Cli, tmp_path: Path) -> None:
+    out = tmp_path / "reviews.zaf"
+
+    result = cli.run(
+        "--group",
+        GROUP[1],
+        "collection",
+        "backup",
+        "--collection",
+        "COLA0001",
+        "--output",
+        str(out),
+        default=USER,
+    )
+
+    assert result.code == 0, result.err
+    assert "JRN00001" in _keys_in(out)
+    assert cli.server.libraries[USER].requests == []
+
+
+def test_the_backup_says_which_library_it_is_reading(cli: Cli, tmp_path: Path) -> None:
+    result = cli.run(
+        "--group", GROUP[1], "system", "backup", "--output", str(tmp_path / "g.zaf"), default=USER
+    )
+
+    assert "(group library 777)" in " ".join(result.out.split()), "Rich wraps long lines"
+
+
+def test_the_next_run_without_the_flag_goes_back_to_the_configured_library(
+    cli: Cli, tmp_path: Path
+) -> None:
+    cli.run(
+        "--group", GROUP[1], "system", "backup", "--output", str(tmp_path / "a.zaf"), default=USER
+    )
+    second = tmp_path / "b.zaf"
+
+    cli.run("system", "backup", "--output", str(second), default=USER)
+
+    assert Archive(second).manifest["library"]["type"] == "user"
+
+
+def test_system_info_shows_the_chosen_group(cli: Cli) -> None:
+    result = cli.run("--group", GROUP[1], "system", "info", default=USER)
+
+    assert "Library ID:  777" in result.out
+    assert "Library Type: group" in result.out
+
+
+def test_user_and_group_cannot_be_combined(cli: Cli, tmp_path: Path) -> None:
+    result = cli.run(
+        "--user", "--group", GROUP[1], "system", "backup", "--output", str(tmp_path / "x.zaf")
+    )
+
+    assert result.code == 2
+    assert "not allowed with" in result.err
+
+
+@pytest.mark.parametrize("value", ["abc", "0", "-3", "https://www.zotero.org/users/42"])
+def test_a_group_that_is_not_one_is_a_usage_error(cli: Cli, tmp_path: Path, value: str) -> None:
+    result = cli.run("--group", value, "system", "backup", "--output", str(tmp_path / "x.zaf"))
+
+    assert result.code == 2
+    assert "not a group" in result.err
+
+
+def test_a_group_the_key_cannot_read_is_an_authentication_error(cli: Cli, tmp_path: Path) -> None:
+    secret = FakeLibrary("group", "999", name="Private")
+    secret.forbidden = True
+    cli.server.register(secret)
+
+    result = cli.run("--group", "999", "system", "backup", "--output", str(tmp_path / "x.zaf"))
+
+    assert result.code == AuthError.exit_code
+    assert "Traceback" not in result.err
 
 
 def test_cli_signals_a_backup_that_lacks_files(cli: Cli, tmp_path: Path) -> None:

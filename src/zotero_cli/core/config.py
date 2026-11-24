@@ -5,7 +5,7 @@ import re
 import sys
 import threading
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -321,6 +321,42 @@ def reset_config() -> None:
         _GLOBAL_CONFIG_PATH = None
 
 
+# `--group` (Issue #661): the group library chosen on the command line for this run. It
+# beats the config file and the environment, like every flag does.
+_group_override: Optional[str] = None
+
+
+def parse_group_id(value: str) -> str:
+    """The numeric id of a group given as an id (`6629576`) or as its URL
+    (`https://www.zotero.org/groups/6629576/slug`). ValueError for anything else."""
+    text = value.strip()
+    if text.isdigit() and int(text) > 0:
+        return str(int(text))
+    match = re.search(r"/groups/(\d+)", text)
+    if match:
+        return match.group(1)
+    raise ValueError(
+        f"{value!r} is not a group: give its numeric id or its URL "
+        "(https://www.zotero.org/groups/<id>/...)."
+    )
+
+
+def set_group_override(group_id: Optional[str]) -> None:
+    """Called once by the CLI entry point, before the configuration is loaded (always, so
+    a run without `--group` clears the previous one). The loaded configuration then
+    names that group library, whatever the config file or ZOTERO_LIBRARY_* say."""
+    global _group_override, _GLOBAL_CONFIG
+    with _config_lock:
+        _group_override = group_id
+        _GLOBAL_CONFIG = None
+
+
+def _with_group_override(config: ZoteroConfig) -> ZoteroConfig:
+    if _group_override is None:
+        return config
+    return replace(config, library_id=_group_override, library_type="group", library_type_set=True)
+
+
 def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
     """Helper to get singleton configuration."""
     global _GLOBAL_CONFIG, _GLOBAL_CONFIG_PATH
@@ -331,7 +367,7 @@ def get_config(config_path: Optional[str] = None) -> ZoteroConfig:
                 # A typo in --config used to mean "no config" (Issue #376).
                 raise ConfigurationError(f"Config file not found: {path}. Check the --config path.")
             loader = ConfigLoader(config_path=path)
-            _GLOBAL_CONFIG = loader.load()
+            _GLOBAL_CONFIG = _with_group_override(loader.load())
             _GLOBAL_CONFIG_PATH = loader.config_path
         return _GLOBAL_CONFIG
 

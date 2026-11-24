@@ -1,8 +1,19 @@
 """How `system backup` and `collection backup` tell the user what they wrote (Issue #656)."""
 
 from zotero_cli.core.exceptions import PartialFailure
+from zotero_cli.core.models import LibraryRef
 from zotero_cli.core.services.backup_service import BackupReport
 from zotero_cli.core.utils.terminal_safety import SafeConsole, safe_markup
+
+
+def library_note(service: object) -> str:
+    """` (group library 777)`, to be wrapped in `safe_markup` by the caller: the library a
+    backup is reading (Issue #661), so a run against the wrong one is noticed before it
+    finishes."""
+    library = getattr(service, "library", None)
+    if not isinstance(library, LibraryRef):
+        return ""
+    return f" ({library.type} library {library.id})"
 
 
 def finish_backup(report: BackupReport, output: str, console: SafeConsole) -> None:
