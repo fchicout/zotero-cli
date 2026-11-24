@@ -100,7 +100,8 @@ def test_distro_shared_library_is_noticed_without_the_static_set(tmp_path):
 
 def test_static_libedit_section_is_written_when_no_shared_libraries_are_bundled(tmp_path):
     """The counterpart of the test above: it proves the header that test looks for is real."""
-    build = _write_build(tmp_path, binaries=[], modules=[])
+    stdlib = str(Path(sys.base_prefix) / "lib" / "json" / "__init__.py")
+    build = _write_build(tmp_path, binaries=[], modules=[("json", stdlib)])
     out = tmp_path / "N.txt"
 
     assert gen.main(["--build-dir", str(build), "--output", str(out)]) == 0
