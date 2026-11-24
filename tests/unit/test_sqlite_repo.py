@@ -310,6 +310,15 @@ def test_offline_gateway_reads_saved_searches_in_the_web_api_shape(mock_db):
     ]
 
 
+def test_offline_gateway_refuses_to_create_a_saved_search(mock_db):
+    from zotero_cli.core.exceptions import OfflineReadOnly
+
+    gateway = SqliteZoteroGateway(mock_db)
+
+    with pytest.raises(OfflineReadOnly):
+        gateway.create_search("Name", [])
+
+
 def test_offline_gateway_without_search_tables_has_no_saved_searches(mock_db):
     assert SqliteZoteroGateway(mock_db).get_all_searches() == []
 

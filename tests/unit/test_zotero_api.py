@@ -514,6 +514,27 @@ def test_upload_attachment_item_returns_none_when_the_item_cannot_be_created(cli
     assert client.upload_attachment("PARENT_KEY", str(path)) is False
 
 
+def test_a_saved_search_is_created_with_its_name_and_conditions(client):
+    """Issue #678."""
+    created = Mock(spec=requests.Response, status_code=200, headers={})
+    created.json.return_value = {"successful": {"0": {"key": "SEARCHKY"}}}
+    client.http.session.post.return_value = created
+    conditions = [{"condition": "collection", "operator": "is", "value": "COL12345"}]
+
+    key = client.create_search("Unread in Reviews", conditions)
+
+    assert key == "SEARCHKY"
+    call = client.http.session.post.call_args
+    assert call.args[0].endswith("/searches")
+    assert call.kwargs["json"] == [{"name": "Unread in Reviews", "conditions": conditions}]
+
+
+def test_a_refused_saved_search_gives_none(client):
+    client.http.session.post.side_effect = requests.ConnectionError("down")
+
+    assert client.create_search("Anything", []) is None
+
+
 def test_a_restored_attachment_keeps_its_title_and_is_uploaded_under_its_own_file_name(
     client, tmp_path
 ):

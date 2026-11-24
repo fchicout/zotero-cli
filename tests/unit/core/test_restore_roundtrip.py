@@ -126,6 +126,41 @@ def trip(tmp_path: Path) -> Trip:
             annotationText=f"text {suffix}",
             annotationPosition=f'{{"pageIndex":{ord(suffix)}}}',
         )
+    # Saved searches: one that refers to another (listed first), one filed by collection, one that
+    # names a collection that is gone (Issue #678)
+    source.searches["SRCH0011"] = {
+        "key": "SRCH0011",
+        "version": 3,
+        "data": {
+            "key": "SRCH0011",
+            "name": "Refers to the first",
+            "conditions": [
+                {"condition": "savedSearch", "operator": "is", "value": "SRCH0010"},
+                {"condition": "title", "operator": "contains", "value": "paper"},
+            ],
+        },
+    }
+    source.searches["SRCH0010"] = {
+        "key": "SRCH0010",
+        "version": 2,
+        "data": {
+            "key": "SRCH0010",
+            "name": "In Reviews, to read",
+            "conditions": [
+                {"condition": "collection", "operator": "is", "value": "COLA0001"},
+                {"condition": "tag", "operator": "is", "value": "to-read"},
+            ],
+        },
+    }
+    source.searches["SRCH0012"] = {
+        "key": "SRCH0012",
+        "version": 4,
+        "data": {
+            "key": "SRCH0012",
+            "name": "Names a collection that is gone",
+            "conditions": [{"condition": "collection", "operator": "is", "value": "GHOSTCOL"}],
+        },
+    }
     archive = tmp_path / "library.zaf"
     GatewayFactory.get_backup_service(client).backup_system(str(archive), include_trash=True)
     target = FakeTarget()
@@ -316,6 +351,25 @@ def relations(lib: FakeLibrary) -> List[str]:
     return sorted(found)
 
 
+def searches(lib: FakeLibrary) -> List[str]:
+    """Each saved search by name, its conditions with collections shown by path and referenced
+    searches by name; the one that names a missing collection is not expected back."""
+    names = {k: s["data"]["name"] for k, s in lib.searches.items()}
+    found = []
+    for search in lib.searches.values():
+        conditions = []
+        for c in search["data"].get("conditions", []):
+            value = c.get("value")
+            if c.get("condition") == "collection":
+                value = col_path(lib, value) or f"UNRESOLVED:{value}"
+            elif c.get("condition") == "savedSearch":
+                value = names.get(value, f"UNRESOLVED:{value}")
+            conditions.append((c.get("condition"), c.get("operator"), value))
+        if not any(str(v).startswith("UNRESOLVED") for _, _, v in conditions):
+            found.append(dump((search["data"]["name"], conditions)))
+    return sorted(found)
+
+
 def dates(lib: FakeLibrary) -> List[str]:
     return sorted(
         dump((ident(lib, k), r["data"].get("dateAdded"), r["data"].get("dateModified")))
@@ -403,6 +457,61 @@ def test_a_linked_file_cannot_go_into_a_group_library_and_that_is_a_warning(trip
     assert not [e for e in report.errors if "attachment" in e]
     assert not [r for r in group.lib.items.values() if r["data"].get("linkMode") == "linked_file"]
     assert [r for r in group.lib.items.values() if r["data"].get("linkMode") == "linked_url"]
+
+
+def test_saved_searches_come_back_with_their_collections_and_searches_remapped(trip: Trip) -> None:
+    """Issue #678: a condition names a collection or a search by key, and the keys are new."""
+    assert_same(searches, trip)
+    expected = searches(trip.source)
+    assert len(expected) == 3  # the one that was already in the sample, and the two new ones
+
+
+def test_a_search_listed_before_the_one_it_refers_to_is_created_after_it(trip: Trip) -> None:
+    lib = trip.target.lib
+    by_name = {s["data"]["name"]: s for s in lib.searches.values()}
+    first = by_name["In Reviews, to read"]["key"]
+
+    refers = by_name["Refers to the first"]["data"]["conditions"][0]
+
+    assert refers == {"condition": "savedSearch", "operator": "is", "value": first}
+    assert first in lib.searches
+
+
+def test_a_search_naming_a_missing_collection_is_skipped_and_said(trip: Trip) -> None:
+    names = [s["data"]["name"] for s in trip.target.lib.searches.values()]
+
+    assert "Names a collection that is gone" not in names
+    assert any(
+        "Names a collection that is gone" in w and "GHOSTCOL" in w for w in trip.report.warnings
+    )
+    assert trip.report.errors == []
+
+
+def test_the_report_counts_the_saved_searches(trip: Trip) -> None:
+    assert trip.report.searches_created == 3
+    assert trip.report.searches_skipped_existing == 0
+
+
+def test_a_second_restore_does_not_duplicate_the_saved_searches(trip: Trip) -> None:
+    before = len(trip.target.lib.searches)
+
+    again = trip.restore_again()
+
+    assert len(trip.target.lib.searches) == before
+    assert again.searches_created == 0
+    assert again.searches_skipped_existing == 3
+
+
+def test_a_dry_run_counts_the_saved_searches_and_writes_none(trip: Trip) -> None:
+    empty = FakeTarget("9999")
+    repository: Any = cast(Any, empty)
+
+    plan = RestoreService(
+        repository, repository, repository, repository, library=LibraryRef("user", "9999")
+    ).restore_archive(str(trip.archive), dry_run=True)
+
+    assert plan.searches_created == 3
+    assert not empty.lib.searches
 
 
 def test_a_second_restore_adds_nothing(trip: Trip) -> None:
