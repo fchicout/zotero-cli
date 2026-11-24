@@ -6,6 +6,7 @@ import secrets
 import stat
 import tempfile
 import zipfile
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -80,6 +81,9 @@ class BackupService:
             raise ValueError(f"Collection {collection_key} not found")
 
         col_name = col.get("data", {}).get("name", "Unknown")
+        # The collection and every collection below it (Issue #657): the Web API and the
+        # local database list only the items filed directly in a collection.
+        keys = _collection_and_descendants(self.collections.get_all_collections(), collection_key)
 
         manifest = {
             "format": "zaf",
@@ -88,12 +92,19 @@ class BackupService:
             "scope_type": "collection",
             "root_collection_key": collection_key,
             "root_collection_name": col_name,
+            "collection_keys": keys,
             "generator": "zotero-cli",
             "file_map": {},
         }
 
         # Fetch items. Converting to list to allow length calculation for progress bars if needed.
-        items = list(self.collections.get_items_in_collection(collection_key, top_only=True))
+        items: List[ZoteroItem] = []
+        seen: Set[str] = set()
+        for key in keys:
+            for item in self.collections.get_items_in_collection(key, top_only=True):
+                if item.key not in seen:  # filed in several of these collections: once
+                    seen.add(item.key)
+                    items.append(item)
         # Their children, fetched together (Issue #426)
         children = children_by_parent(self.items, [i.key for i in items if _has_children(i)])
         return self._write_zip(output, manifest, items, children, on_item_processed)
@@ -344,6 +355,26 @@ def _stored_filename(data: Dict[str, Any], key: str) -> str:
         return safe
     content_type = str(data.get("contentType") or "").split(";")[0].strip()
     return key + (mimetypes.guess_extension(content_type) or "" if content_type else "")
+
+
+def _collection_and_descendants(collections: List[Dict[str, Any]], root: str) -> List[str]:
+    """`root` and the keys of every collection below it, parents before children. Each key
+    is visited once, so a malformed parent loop cannot make this run forever."""
+    children: Dict[str, List[str]] = {}
+    for collection in collections:
+        parent = collection.get("data", {}).get("parentCollection")
+        if parent:
+            children.setdefault(parent, []).append(collection["key"])
+    found = [root]
+    seen = {root}
+    queue = deque(found)
+    while queue:
+        for child in children.get(queue.popleft(), []):
+            if child not in seen:
+                seen.add(child)
+                found.append(child)
+                queue.append(child)
+    return found
 
 
 def _has_children(item: ZoteroItem) -> bool:
