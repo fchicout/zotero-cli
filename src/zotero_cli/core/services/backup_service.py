@@ -24,6 +24,9 @@ logger = logging.getLogger(__name__)
 # Prefixes of the lines of errors.log (Issue #656). A line without either, from an older
 # archive, is a problem.
 _SKIPPED = "SKIPPED: "
+_LIBRARY = (
+    "library"  # the scope of a whole-library backup, and the manifest entry naming the library
+)
 _ERROR = "ERROR: "
 
 
@@ -126,7 +129,7 @@ class BackupService:
             "format": "zaf",
             "version": self.version,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "scope_type": "library",
+            "scope_type": _LIBRARY,
             "generator": "zotero-cli",
             "file_map": {},
         }
@@ -153,7 +156,7 @@ class BackupService:
         notice a truncated file."""
         library = self._library_entry(items, collections)
         if library:
-            manifest["library"] = library
+            manifest[_LIBRARY] = library
         manifest["counts"] = {
             "items": item_count,
             "collections": len(collections),
@@ -167,7 +170,7 @@ class BackupService:
         """type and id from the gateway that was asked, the name from the `library` stub the
         Web API puts on every item and collection (the stub supplies the type and id too
         when the caller could not say)."""
-        stubs = [i.raw_data.get("library") for i in items] + [c.get("library") for c in collections]
+        stubs = [i.raw_data.get(_LIBRARY) for i in items] + [c.get(_LIBRARY) for c in collections]
         stub = next((s for s in stubs if isinstance(s, dict) and s.get("id") is not None), {})
         library_type = self.library.type if self.library else stub.get("type")
         library_id = self.library.id if self.library else stub.get("id")
@@ -232,7 +235,7 @@ class BackupService:
         self._used_paths = set()
         # Listed before any file is downloaded: a failure here costs nothing yet.
         collections = (
-            self.collections.get_all_collections() if manifest["scope_type"] == "library" else []
+            self.collections.get_all_collections() if manifest["scope_type"] == _LIBRARY else []
         )
 
         # data.json is written entry by entry to a temporary file and added
@@ -281,7 +284,7 @@ class BackupService:
                 zf.write(data_path, "data.json")
 
                 # Write collections structure for library backups
-                if manifest["scope_type"] == "library":
+                if manifest["scope_type"] == _LIBRARY:
                     zf.writestr("collections.json", json.dumps(collections, separators=(",", ":")))
 
                 # Write Errors if any
