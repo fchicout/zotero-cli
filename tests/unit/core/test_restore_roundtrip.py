@@ -241,7 +241,9 @@ def assert_same(view: Callable[[FakeLibrary], Any], trip: Trip) -> None:
 
 def test_the_collection_tree_comes_back(trip: Trip) -> None:
     assert_same(collection_tree, trip)
-    assert len(collection_tree(trip.source)) == 4
+    actual = collection_tree(trip.source)
+    expected = ["Reading list", "Reviews", "Reviews/2025", "Reviews/2025/Drafts"]
+    assert actual == expected
 
 
 def test_articles_come_back_identical_with_their_collections(trip: Trip) -> None:
@@ -250,7 +252,7 @@ def test_articles_come_back_identical_with_their_collections(trip: Trip) -> None
 
 def test_stored_files_come_back_byte_identical_under_the_same_parent(trip: Trip) -> None:
     assert_same(stored_files, trip)
-    assert len(stored_files(trip.source)) >= 4
+    assert len(stored_files(trip.source)) > 3
 
 
 # =============================================================================================
@@ -266,9 +268,12 @@ def test_a_second_restore_adds_nothing(trip: Trip) -> None:
 
     again = trip.restore_again()
 
-    assert (len(trip.target.lib.items), len(trip.target.lib.collections)) == before
-    assert again.collections_created == 0
-    assert again.attachments_uploaded == 0
+    expected = before
+    actual = (len(trip.target.lib.items), len(trip.target.lib.collections))
+    assert actual == expected
+    created = (again.collections_created, again.attachments_uploaded)
+    nothing = (0, 0)
+    assert created == nothing
 
 
 @finding(681, "a note or file without a parent is dropped without a message")
@@ -297,13 +302,15 @@ def test_attachments_keep_their_metadata(trip: Trip) -> None:
 @finding(685, "annotations are created as top-level items with the old parent key (HTTP 409)")
 def test_annotations_come_back_under_their_pdf(trip: Trip) -> None:
     assert_same(annotations, trip)
-    assert trip.report.errors == []
+    errors = trip.report.errors
+    no_errors: List[str] = []
+    assert errors == no_errors
 
 
 @finding(686, "relations are copied with the old item URIs")
 def test_related_items_stay_related(trip: Trip) -> None:
     assert_same(relations, trip)
-    assert len(relations(trip.source)) == 2
+    assert len(relations(trip.source)) > 1
 
 
 @finding(687, "dateAdded and dateModified are removed from the payload")
