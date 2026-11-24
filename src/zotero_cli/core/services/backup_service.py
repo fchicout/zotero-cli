@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Optional, Set
 
 from zotero_cli.core.interfaces import AttachmentRepository, CollectionRepository, ItemRepository
+from zotero_cli.core.models import LibraryRef
 from zotero_cli.core.services.children_index import children_by_parent
 from zotero_cli.core.utils.checksum import sha256_stream
 from zotero_cli.core.utils.link_modes import STORED_LINK_MODES
@@ -59,11 +60,14 @@ class BackupService:
         items: ItemRepository,
         collections: CollectionRepository,
         attachments: AttachmentRepository,
+        library: Optional[LibraryRef] = None,
     ):
         self.items = items
         self.collections = collections
         self.attachments = attachments
-        self.version = "1.1"
+        # Which library is being backed up (Issue #659); None when the caller cannot say.
+        self.library = library
+        self.version = "1.2"
         # Paths already used in the archive being written, casefolded (Issue #654).
         self._used_paths: Set[str] = set()
 
@@ -137,6 +141,43 @@ class BackupService:
                 children.setdefault(item.parent_item, []).append(item.raw_data)
         return self._write_zip(output, manifest, items, children, on_item_processed)
 
+    def _describe_content(
+        self,
+        manifest: dict,
+        items: List[ZoteroItem],
+        collections: List[Dict[str, Any]],
+        item_count: int,
+    ) -> None:
+        """What the archive says about itself (format 1.2, Issue #659): the library it comes
+        from and how much it holds, so a restore can refuse a mismatch and `verify` can
+        notice a truncated file."""
+        library = self._library_entry(items, collections)
+        if library:
+            manifest["library"] = library
+        manifest["counts"] = {
+            "items": item_count,
+            "collections": len(collections),
+            "files": len(manifest["file_map"]),
+        }
+        manifest["includes_trash"] = False
+
+    def _library_entry(
+        self, items: List[ZoteroItem], collections: List[Dict[str, Any]]
+    ) -> Dict[str, str]:
+        """type and id from the gateway that was asked, the name from the `library` stub the
+        Web API puts on every item and collection (the stub supplies the type and id too
+        when the caller could not say)."""
+        stubs = [i.raw_data.get("library") for i in items] + [c.get("library") for c in collections]
+        stub = next((s for s in stubs if isinstance(s, dict) and s.get("id") is not None), {})
+        library_type = self.library.type if self.library else stub.get("type")
+        library_id = self.library.id if self.library else stub.get("id")
+        if not library_type or library_id in (None, ""):
+            return {}
+        entry = {"type": str(library_type), "id": str(library_id)}
+        if stub.get("name"):
+            entry["name"] = str(stub["name"])
+        return entry
+
     def _add_grandchildren(self, children: Dict[str, List[Dict[str, Any]]]) -> None:
         """The annotations of the PDFs and the images embedded in notes are children of
         children (Issue #658): a library listing contains them, a collection's children
@@ -189,6 +230,10 @@ class BackupService:
         errors: List[str] = []
         processed_keys: Set[str] = set()
         self._used_paths = set()
+        # Listed before any file is downloaded: a failure here costs nothing yet.
+        collections = (
+            self.collections.get_all_collections() if manifest["scope_type"] == "library" else []
+        )
 
         # data.json is written entry by entry to a temporary file and added
         # at the end, rather than built as one indented string in memory
@@ -229,6 +274,7 @@ class BackupService:
                 data_file.close()
 
                 # Write Manifest (including updated file_map)
+                self._describe_content(manifest, items, collections, len(processed_keys))
                 zf.writestr("manifest.json", json.dumps(manifest, indent=2))
 
                 # Write Data
@@ -236,7 +282,6 @@ class BackupService:
 
                 # Write collections structure for library backups
                 if manifest["scope_type"] == "library":
-                    collections = self.collections.get_all_collections()
                     zf.writestr("collections.json", json.dumps(collections, separators=(",", ":")))
 
                 # Write Errors if any

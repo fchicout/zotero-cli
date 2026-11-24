@@ -84,6 +84,8 @@ class VerifyService:
                             report.is_valid = False
                             report.errors.append(f"Invalid collections.json: {str(e)}")
 
+                self._check_counts(report, file_list)
+
                 # 4. Verify Files and Checksums
                 if report.manifest and "file_map" in report.manifest:
                     file_map = report.manifest["file_map"]
@@ -123,6 +125,26 @@ class VerifyService:
             report.errors.append(f"Critical error during verification: {str(e)}")
 
         return report
+
+    @staticmethod
+    def _check_counts(report: VerificationReport, file_list: List[str]) -> None:
+        """Format 1.2 archives say how much they hold (Issue #659): a different number means
+        the file was cut or edited. Older archives have no `counts`."""
+        counts = (report.manifest or {}).get("counts")
+        if not isinstance(counts, dict):
+            return
+        actual = {
+            "items": report.item_count,
+            "files": len((report.manifest or {}).get("file_map") or {}),
+            "collections": report.collection_count if "collections.json" in file_list else None,
+        }
+        for name, expected in counts.items():
+            found = actual.get(name)
+            if found is not None and found != expected:
+                report.is_valid = False
+                report.errors.append(
+                    f"manifest counts {expected} {name}, the archive holds {found}"
+                )
 
     @staticmethod
     def _count_logged_problems(zf: zipfile.ZipFile, report: VerificationReport) -> None:

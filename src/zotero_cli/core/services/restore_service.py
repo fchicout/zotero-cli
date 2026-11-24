@@ -9,6 +9,7 @@ from zotero_cli.core.interfaces import (
     ItemRepository,
     NoteRepository,
 )
+from zotero_cli.core.models import LibraryRef
 from zotero_cli.core.utils.archive_safety import (
     MAX_ATTACHMENT_BYTES,
     check_entry_count,
@@ -31,6 +32,15 @@ def _check_manifest(manifest: object, source: str) -> None:
 
 
 logger = logging.getLogger(__name__)
+
+
+def archive_library(file_path: str) -> Optional[LibraryRef]:
+    """The library a .zaf says it was taken from (format 1.2, Issue #659); None for an older
+    archive, which does not say."""
+    with zipfile.ZipFile(file_path, "r") as zf:
+        manifest = read_json_member(zf, "manifest.json")
+    _check_manifest(manifest, file_path)
+    return LibraryRef.from_manifest(manifest.get("library"))
 
 
 @dataclass

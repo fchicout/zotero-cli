@@ -33,6 +33,21 @@ def confirm_destructive(question: str, assume_yes: bool) -> bool:
     return bool(Confirm.ask(question, default=False))
 
 
+def confirm_other_library(question: str, assume_yes: bool) -> bool:
+    """True if a restore into a library other than the one the archive came from may go
+    ahead (Issue #659). Asks on a terminal; without one it refuses (usage error, exit 2)
+    unless `--yes` was given, like the delete confirmations."""
+    if assume_yes:
+        return True
+    if not sys.stdin.isatty():
+        raise UsageError(
+            "this archive was taken from a different library than the one it would be "
+            "restored into, and there is no terminal to ask on: check the library "
+            "(--user, the configured group), then pass --yes to confirm."
+        )
+    return bool(Confirm.ask(question, default=False))
+
+
 def preview_notice(what: str) -> str:
     """The standard closing line of a preview."""
     return f"[yellow]Preview only - nothing was changed. Re-run with --execute to {what}.[/yellow]"

@@ -887,13 +887,102 @@ def test_items_in_the_trash_are_backed_up_with_their_deleted_flag(world: World) 
     assert archive.by_key["TRSH0001"]["data"]["deleted"] == 1
 
 
-@discrepancy("D3", "manifest.json has no library type/id: a restore cannot tell group from user")
 def test_the_manifest_records_which_library_the_archive_came_from(world: World) -> None:
     manifest = backup_system(world).manifest
 
-    library = manifest.get("library") or {}
-    assert str(library.get("type")) == world.lib.library_type
-    assert str(library.get("id")) == world.lib.library_id
+    assert manifest["library"] == {
+        "type": world.lib.library_type,
+        "id": world.lib.library_id,
+        "name": world.lib.name,
+    }
+
+
+def test_a_collection_archive_records_its_library_too(world: World) -> None:
+    manifest = backup_collection(world, "COLA0001").manifest
+
+    assert manifest["library"]["type"] == world.lib.library_type
+    assert manifest["library"]["id"] == world.lib.library_id
+
+
+def test_the_manifest_is_format_1_2_and_counts_what_it_holds(world: World) -> None:
+    archive = backup_system(world)
+
+    assert archive.manifest["version"] == "1.2"
+    assert archive.manifest["counts"] == {
+        "items": len(archive.data),
+        "collections": len(archive.collections or []),
+        "files": len(archive.manifest["file_map"]),
+    }
+    assert archive.manifest["includes_trash"] is False
+
+
+def test_an_empty_library_still_says_where_it_is_from(tmp_path: Path) -> None:
+    """No item or collection to take the library from: the gateway that was asked says it."""
+    server = FakeZoteroServer()
+    lib = server.register(FakeLibrary(*GROUP))
+    client = ZoteroAPIClient("key", lib.library_id, lib.library_type)
+    client.http.session = server.session()  # type: ignore[assignment]
+    path = tmp_path / "empty.zaf"
+
+    GatewayFactory.get_backup_service(client).backup_system(str(path))
+
+    manifest = Archive(path).manifest
+    assert manifest["library"] == {"type": "group", "id": "777"}
+    assert manifest["counts"] == {"items": 0, "collections": 0, "files": 0}
+
+
+def test_without_a_known_library_the_stub_on_the_items_is_used(world: World) -> None:
+    service = BackupService(
+        world.service.items, world.service.collections, world.service.attachments
+    )
+    out = BytesIO()
+
+    service.backup_system(out)
+
+    assert Archive(out.getvalue()).manifest["library"]["id"] == world.lib.library_id
+
+
+def test_verification_shows_the_library_and_accepts_the_counts(
+    world: World, tmp_path: Path
+) -> None:
+    path = tmp_path / "library.zaf"
+    world.service.backup_system(str(path))
+
+    report = VerifyService().verify_archive(str(path))
+
+    assert report.is_valid, report.errors
+    assert (report.manifest or {})["library"]["id"] == world.lib.library_id
+
+
+def _rewrite_manifest(source: Path, target: Path, change: Callable[[Dict[str, Any]], None]) -> None:
+    with zipfile.ZipFile(source) as src, zipfile.ZipFile(target, "w") as dst:
+        for info in src.infolist():
+            content = src.read(info.filename)
+            if info.filename == "manifest.json":
+                manifest = json.loads(content)
+                change(manifest)
+                content = json.dumps(manifest).encode()
+            dst.writestr(info.filename, content)
+
+
+@pytest.mark.parametrize("field", ["items", "files", "collections"])
+def test_verification_catches_an_archive_that_holds_other_counts_than_it_says(
+    world: World, tmp_path: Path, field: str
+) -> None:
+    path = tmp_path / "library.zaf"
+    world.service.backup_system(str(path))
+    changed = tmp_path / "changed.zaf"
+
+    def lie(manifest: Dict[str, Any]) -> None:
+        manifest["counts"][field] += 1
+
+    _rewrite_manifest(path, changed, lie)
+
+    report = VerifyService().verify_archive(str(changed))
+
+    assert not report.is_valid
+    messages = [e for e in report.errors if "manifest counts" in e]
+    assert [m for m in messages if field in m]
 
 
 @discrepancy("D9", "the /searches endpoint is never read")
@@ -1188,6 +1277,68 @@ def test_verify_stays_quiet_about_a_clean_archive(cli: Cli, tmp_path: Path) -> N
 
     assert "ARCHIVE IS VALID" in result.out
     assert "errors.log" not in result.out
+
+
+def _group_archive(cli: Cli, tmp_path: Path) -> Path:
+    path = tmp_path / "group.zaf"
+    assert cli.run("system", "backup", "--output", str(path)).code == 0
+    return path
+
+
+def test_restore_into_the_library_the_archive_came_from_does_not_warn(
+    cli: Cli, tmp_path: Path
+) -> None:
+    path = _group_archive(cli, tmp_path)
+
+    result = cli.run("system", "restore", "--file", str(path))
+
+    assert result.code == 0
+    assert "different" not in result.out
+    assert "Warning" not in result.out
+
+
+def test_a_restore_preview_into_another_library_warns(cli: Cli, tmp_path: Path) -> None:
+    path = _group_archive(cli, tmp_path)
+
+    result = cli.run("--user", "system", "restore", "--file", str(path))
+
+    assert result.code == 0, "a preview writes nothing: it only warns"
+    assert "group library 777" in result.out
+    assert "user library 42" in result.out
+
+
+def test_applying_a_restore_into_another_library_needs_confirmation(
+    cli: Cli, tmp_path: Path
+) -> None:
+    """No terminal here to ask on, so it refuses (usage error) instead of guessing."""
+    path = _group_archive(cli, tmp_path)
+
+    result = cli.run("--user", "system", "restore", "--file", str(path), "--execute")
+
+    assert result.code == 2
+    assert "--yes" in result.err
+
+
+def test_yes_confirms_a_restore_into_another_library(cli: Cli, tmp_path: Path) -> None:
+    path = _group_archive(cli, tmp_path)
+
+    result = cli.run("--user", "system", "restore", "--file", str(path), "--execute", "--yes")
+
+    assert "no terminal" not in result.err
+    assert "restore cancelled" not in result.err
+    assert "user library 42" in result.out
+
+
+def test_an_archive_without_a_library_restores_without_a_warning(cli: Cli, tmp_path: Path) -> None:
+    """Archives from before format 1.2 do not say where they came from."""
+    path = _group_archive(cli, tmp_path)
+    old = tmp_path / "old.zaf"
+    _rewrite_manifest(path, old, lambda m: m.pop("library"))
+
+    result = cli.run("--user", "system", "restore", "--file", str(old), "--execute")
+
+    assert "Warning" not in result.out
+    assert result.code != 2
 
 
 def test_cli_group_backup_matches_the_service_backup(cli: Cli, tmp_path: Path) -> None:
