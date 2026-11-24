@@ -737,9 +737,7 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
         raise OfflineReadOnly()
 
-    def upload_attachment(
-        self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
-    ) -> bool:
+    def upload_attachment(self, *_args: Any, **_kwargs: Any) -> bool:
         raise OfflineReadOnly()
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:

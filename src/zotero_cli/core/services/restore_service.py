@@ -53,6 +53,9 @@ class RestoreReport:
     attachments_uploaded: int = 0
     attachments_skipped_existing: int = 0
     errors: List[str] = field(default_factory=list)
+    # Things the archive holds that this restore does not bring back, and why: not failures
+    # of the restore itself (those are `errors`), but the user should know.
+    warnings: List[str] = field(default_factory=list)
     is_dry_run: bool = False
 
 
@@ -83,12 +86,18 @@ class RestoreService:
         # (md5, file name) are fetched once, so restoring twice does not upload twice (#680).
         self._created: Set[str] = set()
         self._attachments_of: Dict[str, List[Tuple[Optional[str], Optional[str]]]] = {}
+        # Stand-alone notes and files already in the library, as (text or md5, its collections),
+        # taken from the one scan that also builds the DOI/title indexes (Issue #681).
+        self._known_notes: Set[Tuple[str, Tuple[str, ...]]] = set()
+        self._known_files: Set[Tuple[Optional[str], Tuple[str, ...]]] = set()
 
     def restore_archive(self, file_path: str, dry_run: bool = False) -> RestoreReport:
         report = RestoreReport(is_dry_run=dry_run)
         self._note_texts = {}
         self._created = set()
         self._attachments_of = {}
+        self._known_notes = set()
+        self._known_files = set()
 
         try:
             with zipfile.ZipFile(file_path, "r") as zf:
@@ -229,15 +238,48 @@ class RestoreService:
         data = child_raw.get("data", {})
         item_type = data.get("itemType")
         old_parent = data.get("parentItem")
+        if old_parent is None:  # a note or file filed in a collection on its own (Issue #681)
+            self._restore_standalone(child_raw, zf, manifest, report)
+            return
         new_parent = self.item_map.get(old_parent)
 
         if not new_parent:
+            why = (
+                "images embedded in notes are not restored yet"
+                if data.get("linkMode") == "embedded_image"
+                else f"its parent {old_parent} was not restored"
+            )
+            report.warnings.append(_not_restored(child_raw, why))
             return
 
         if item_type == "note":
             self._restore_note(data, new_parent, report)
         elif item_type == "attachment":
             self._restore_attachment(child_raw, zf, manifest, new_parent, report)
+
+    def _restore_standalone(
+        self, child_raw: dict, zf: zipfile.ZipFile, manifest: dict, report: RestoreReport
+    ) -> None:
+        """A note or an attachment that has no parent: a top-level item, filed in the same
+        collections as before (their keys mapped like an article's)."""
+        data = child_raw.get("data", {})
+        collections = [self.coll_map[k] for k in data.get("collections", []) if k in self.coll_map]
+        if data.get("itemType") == "attachment":
+            self._restore_attachment(child_raw, zf, manifest, None, report, collections)
+            return
+        text = data.get("note", "")
+        if (text, tuple(sorted(collections))) in self._known_notes:
+            report.items_skipped_existing += 1
+        elif report.is_dry_run:
+            report.items_created += 1
+        elif self.items.create_generic_item(
+            {"itemType": "note", "note": text, "collections": collections}
+        ):
+            report.items_created += 1
+        else:
+            report.errors.append(
+                f"Failed to create the stand-alone note: {_not_restored(child_raw, '')}"
+            )
 
     def _restore_note(self, data: dict, new_parent: str, report: RestoreReport) -> None:
         note_content = data.get("note", "")
@@ -263,15 +305,16 @@ class RestoreService:
         child_raw: dict,
         zf: zipfile.ZipFile,
         manifest: dict,
-        new_parent: str,
+        new_parent: Optional[str],
         report: RestoreReport,
+        collections: Optional[List[str]] = None,
     ) -> None:
         data = child_raw.get("data", {})
         path_in_zip = self._attachment_member(child_raw, zf, manifest)
         if path_in_zip is None:
             return
 
-        if self._already_attached(new_parent, zf, path_in_zip, data):
+        if self._already_attached(new_parent, zf, path_in_zip, data, collections):
             report.attachments_skipped_existing += 1
             return
 
@@ -291,7 +334,10 @@ class RestoreService:
                 copy_member(zf, path_in_zip, tf, MAX_ATTACHMENT_BYTES)
 
             mime_type = str(data.get("contentType") or "application/pdf")
-            if self.attachments.upload_attachment(new_parent, temp_path, mime_type=mime_type):
+            item_data = {"collections": collections} if new_parent is None else None
+            if self.attachments.upload_attachment(
+                new_parent, temp_path, mime_type=mime_type, item_data=item_data
+            ):
                 report.attachments_uploaded += 1
             else:
                 report.errors.append(f"Failed to upload attachment: {path_in_zip}")
@@ -313,11 +359,23 @@ class RestoreService:
         return path_in_zip if path_in_zip and path_in_zip in zf.namelist() else None
 
     def _already_attached(
-        self, new_parent: str, zf: zipfile.ZipFile, path_in_zip: str, data: dict
+        self,
+        new_parent: Optional[str],
+        zf: zipfile.ZipFile,
+        path_in_zip: str,
+        data: dict,
+        collections: Optional[List[str]] = None,
     ) -> bool:
         """Whether the existing item `new_parent` already has this file (Issue #680): the same
         md5, or, for an attachment that has none, the same file name. An item this run created
-        has nothing to match."""
+        has nothing to match. A stand-alone file (no parent) is matched by md5 within the
+        collections it is filed in (Issue #681)."""
+        if new_parent is None:
+            try:
+                digest = _member_md5(zf, path_in_zip)
+            except (ArchiveLimitError, OSError, KeyError):
+                return False
+            return (digest, tuple(sorted(collections or []))) in self._known_files
         if new_parent in self._created:
             return False
         if new_parent not in self._attachments_of:
@@ -349,6 +407,7 @@ class RestoreService:
         doi_index: Dict[str, ZoteroItem] = {}
         title_index: Dict[str, ZoteroItem] = {}
         for item in self.items.get_all_items():
+            self._note_standalone(item)
             if item.doi:
                 normalized = normalize_doi(item.doi)
                 if normalized and normalized not in doi_index:
@@ -358,6 +417,17 @@ class RestoreService:
                 if key not in title_index:
                     title_index[key] = item
         return doi_index, title_index
+
+    def _note_standalone(self, item: ZoteroItem) -> None:
+        """Remembers the stand-alone notes and files already in the library (Issue #681)."""
+        if item.parent_item:
+            return
+        data = item.raw_data.get("data", {})
+        where = tuple(sorted(item.collections))
+        if item.item_type == "note":
+            self._known_notes.add((data.get("note", ""), where))
+        elif item.item_type == "attachment":
+            self._known_files.add((data.get("md5"), where))
 
     def _find_existing_item(
         self,
@@ -404,3 +474,11 @@ def _member_md5(zf: zipfile.ZipFile, name: str) -> str:
     sink = _Md5Sink()
     copy_member(zf, name, cast(IO[bytes], sink), MAX_ATTACHMENT_BYTES)
     return sink.md5.hexdigest()
+
+
+def _not_restored(raw: dict, why: str) -> str:
+    """`<type> "<title or start of the note>" (<key>): <why>`, for the restore report."""
+    data = raw.get("data", {})
+    text = data.get("title") or data.get("filename") or str(data.get("note", ""))[:40]
+    label = f'{data.get("itemType", "item")} "{text}" ({raw.get("key", "?")})'
+    return f"{label}: {why}" if why else label

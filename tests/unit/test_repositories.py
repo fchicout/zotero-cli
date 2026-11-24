@@ -88,4 +88,14 @@ def test_note_repository_create_note(mock_gateway):
 def test_attachment_repository_upload(mock_gateway):
     repo = ZoteroAttachmentRepository(mock_gateway)
     repo.upload_attachment("PARENT", "file.pdf")
-    mock_gateway.upload_attachment.assert_called_once_with("PARENT", "file.pdf", "application/pdf")
+    mock_gateway.upload_attachment.assert_called_once_with(
+        "PARENT", "file.pdf", "application/pdf", None
+    )
+
+
+def test_attachment_repository_upload_passes_the_item_data_on(mock_gateway):
+    repo = ZoteroAttachmentRepository(mock_gateway)
+    repo.upload_attachment(None, "file.pdf", "text/html", {"collections": ["COL1"]})
+    mock_gateway.upload_attachment.assert_called_once_with(
+        None, "file.pdf", "text/html", {"collections": ["COL1"]}
+    )
