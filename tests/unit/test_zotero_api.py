@@ -490,6 +490,35 @@ def test_an_attachment_of_an_item_keeps_its_parent_and_has_no_collections(client
     assert "collections" not in item
 
 
+def test_a_restored_attachment_keeps_its_title_and_is_uploaded_under_its_own_file_name(
+    client, tmp_path
+):
+    """Issue #684: both used to be the name of the temporary file."""
+    archived = {
+        "title": "Full Text PDF",
+        "filename": "Ferrag et al. - 2026 - 6G-bench.pdf",
+        "linkMode": "imported_url",
+        "url": "https://example.org/getPDF",
+        "accessDate": "2026-08-23T18:51:17Z",
+        "tags": [{"tag": "read"}],
+    }
+    item = _upload_and_first_payload(client, tmp_path, "PARENT_KEY", archived)
+
+    assert item["title"] == "Full Text PDF"
+    assert item["linkMode"] == "imported_url"
+    assert item["url"] == "https://example.org/getPDF"
+    assert item["accessDate"] == "2026-08-23T18:51:17Z"
+    assert item["tags"] == [{"tag": "read"}]
+    authorisation = client.http.session.post.call_args_list[1].kwargs["data"]
+    assert authorisation["filename"] == "Ferrag et al. - 2026 - 6G-bench.pdf"
+
+
+def test_without_a_filename_in_the_item_data_the_file_name_is_used(client, tmp_path):
+    _upload_and_first_payload(client, tmp_path, "PARENT_KEY")
+
+    assert client.http.session.post.call_args_list[1].kwargs["data"]["filename"] == "paper.pdf"
+
+
 def test_item_data_cannot_replace_the_parent(client, tmp_path):
     item = _upload_and_first_payload(client, tmp_path, "PARENT_KEY", {"parentItem": "OTHER"})
 

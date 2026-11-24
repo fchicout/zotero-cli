@@ -887,7 +887,13 @@ class ZoteroAPIClient(ZoteroGateway):
                 return False
 
             # 2. Get Upload Authorization
-            auth_data = {"md5": md5, "filename": filename, "filesize": filesize, "mtime": mtime}
+            # `filename` of the item (restore passes the archived one), else the file's own name
+            auth_data = {
+                "md5": md5,
+                "filename": item.get("filename") or filename,
+                "filesize": filesize,
+                "mtime": mtime,
+            }
             # If-None-Match: * signals "no existing version of this attachment"
             # - true here since it was just created in step 1. Zotero 428s
             # this request if If-Unmodified-Since-Version is also sent
