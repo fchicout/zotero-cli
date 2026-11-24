@@ -255,8 +255,11 @@ def test_collection_backup_includes_sub_collection_items_offline(mock_db):
     with zipfile.ZipFile(out) as zf:
         keys = {item["key"] for item in json.loads(zf.read("data.json"))}
         manifest = json.loads(zf.read("manifest.json"))
+        collections = json.loads(zf.read("collections.json"))
     assert {"ITEMKEY1", "ITEMKEY2"} <= keys
     assert manifest["collection_keys"] == ["COLKEY1", "COLKEY2"]
+    assert [c["key"] for c in collections] == ["COLKEY1", "COLKEY2"]
+    assert collections[1]["data"]["parentCollection"] == "COLKEY1"
 
 
 def test_offline_backup_records_the_library_it_was_asked_for(mock_db):

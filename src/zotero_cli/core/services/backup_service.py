@@ -90,7 +90,13 @@ class BackupService:
         col_name = col.get("data", {}).get("name", "Unknown")
         # The collection and every collection below it (Issue #657): the Web API and the
         # local database list only the items filed directly in a collection.
-        keys = _collection_and_descendants(self.collections.get_all_collections(), collection_key)
+        all_collections = self.collections.get_all_collections()
+        keys = _collection_and_descendants(all_collections, collection_key)
+        # Their records go into the archive (Issue #660), so a restore can rebuild the
+        # sub-tree with its names and nesting.
+        by_key = {c["key"]: c for c in all_collections}
+        by_key.setdefault(collection_key, col)
+        tree = [by_key[key] for key in keys if key in by_key]
 
         manifest = {
             "format": "zaf",
@@ -115,7 +121,7 @@ class BackupService:
         # Their children, fetched together (Issue #426)
         children = children_by_parent(self.items, [i.key for i in items if _has_children(i)])
         self._add_grandchildren(children)
-        return self._write_zip(output, manifest, items, children, on_item_processed)
+        return self._write_zip(output, manifest, items, children, on_item_processed, tree)
 
     def backup_system(
         self,
@@ -198,9 +204,12 @@ class BackupService:
         items: List[ZoteroItem],
         children: Dict[str, List[Dict[str, Any]]],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
+        collections: Optional[List[Dict[str, Any]]] = None,
     ) -> BackupReport:
         if not isinstance(output, str):
-            return self._write_archive(output, manifest, items, children, on_item_processed)
+            return self._write_archive(
+                output, manifest, items, children, on_item_processed, collections
+            )
         # Issue #653: a path is written to a temporary file next to it and moved over
         # the target only once the archive is complete, so a failed run (a dropped
         # connection, a full disk, Ctrl-C) leaves an earlier backup there untouched.
@@ -212,7 +221,9 @@ class BackupService:
         Path(part).touch(exist_ok=False)
         committed = False
         try:
-            report = self._write_archive(part, manifest, items, children, on_item_processed)
+            report = self._write_archive(
+                part, manifest, items, children, on_item_processed, collections
+            )
             if os.path.exists(target):  # a replaced file keeps its permissions
                 os.chmod(part, stat.S_IMODE(os.stat(target).st_mode))
             os.replace(part, target)
@@ -229,14 +240,15 @@ class BackupService:
         items: List[ZoteroItem],
         children: Dict[str, List[Dict[str, Any]]],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
+        collections: Optional[List[Dict[str, Any]]] = None,
     ) -> BackupReport:
         errors: List[str] = []
         processed_keys: Set[str] = set()
         self._used_paths = set()
-        # Listed before any file is downloaded: a failure here costs nothing yet.
-        collections = (
-            self.collections.get_all_collections() if manifest["scope_type"] == _LIBRARY else []
-        )
+        # A collection backup brings its own sub-tree. A library backup lists every
+        # collection, before any file is downloaded: a failure here costs nothing yet.
+        if collections is None:
+            collections = self.collections.get_all_collections()
 
         # data.json is written entry by entry to a temporary file and added
         # at the end, rather than built as one indented string in memory
@@ -283,8 +295,9 @@ class BackupService:
                 # Write Data
                 zf.write(data_path, "data.json")
 
-                # Write collections structure for library backups
-                if manifest["scope_type"] == _LIBRARY:
+                # The collections: all of them for a library backup, the backed-up
+                # collection and the ones below it for a collection backup (Issue #660)
+                if collections or manifest["scope_type"] == _LIBRARY:
                     zf.writestr("collections.json", json.dumps(collections, separators=(",", ":")))
 
                 # Write Errors if any
