@@ -448,7 +448,7 @@ def test_images_embedded_in_notes_come_back_under_their_note(trip: Trip) -> None
     assert_same(note_images, trip)
     assert len(note_images(trip.source)) == 1
     assert not [w for w in trip.report.warnings if "embedded" in w]
-    assert trip.report.errors == []
+    assert not trip.report.errors
 
 
 def test_a_restored_note_points_at_the_new_key_of_its_image(trip: Trip) -> None:
@@ -468,9 +468,10 @@ def test_a_second_restore_does_not_duplicate_notes_with_images_or_their_images(
 
     again = trip.restore_again()
 
-    assert (note_images(trip.target.lib), note_tags(trip.target.lib)) == before
+    after = (note_images(trip.target.lib), note_tags(trip.target.lib))
+    assert after == before
     assert again.attachments_uploaded == 0
-    assert again.errors == []
+    assert not again.errors
 
 
 def test_standalone_notes_and_files_are_not_duplicated_by_a_second_restore(trip: Trip) -> None:
