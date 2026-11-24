@@ -21,6 +21,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 import pytest
 
 from tests.zotero_fake import GROUP, FakeLibrary, FakeTarget, FakeZoteroServer, populate
+from zotero_cli.core.models import LibraryRef
 from zotero_cli.core.services.restore_service import RestoreReport, RestoreService
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
@@ -66,6 +67,10 @@ def trip(tmp_path: Path) -> Trip:
         tags=[{"tag": "manual", "type": 0}, {"tag": "automatic", "type": 1}],
     )
     source.items["NOTE0001"]["data"]["tags"] = [{"tag": "stand-alone-tag"}]
+    # A link to an item of another library: nothing of this archive's to rewrite
+    source.items["UNIC0001"]["data"]["relations"] = {
+        "owl:sameAs": ["http://zotero.org/groups/9999/items/OTHERLIB"]
+    }
     # A file trashed on its own, and a stand-alone note in the trash
     source.add_item(
         "TRSHFIL1",
@@ -90,7 +95,8 @@ def trip(tmp_path: Path) -> Trip:
 
     def restore() -> RestoreReport:
         repository: Any = cast(Any, target)
-        service = RestoreService(repository, repository, repository, repository)
+        here = LibraryRef(target.lib.library_type, target.lib.library_id)
+        service = RestoreService(repository, repository, repository, repository, library=here)
         return service.restore_archive(str(archive))
 
     return Trip(source, target, archive, restore(), restore)
@@ -443,10 +449,81 @@ def test_annotations_come_back_under_their_pdf(trip: Trip) -> None:
     assert errors == no_errors
 
 
-@finding(686, "relations are copied with the old item URIs")
 def test_related_items_stay_related(trip: Trip) -> None:
     assert_same(relations, trip)
     assert len(relations(trip.source)) > 1
+
+
+def test_relations_point_at_the_target_library_and_its_new_keys(trip: Trip) -> None:
+    target = trip.target.lib
+    ours = [
+        uri
+        for raw in target.items.values()
+        for uris in raw["data"].get("relations", {}).values()
+        for uri in uris
+        if "OTHERLIB" not in uri
+    ]
+
+    assert ours, "the articles are related"
+    for uri in ours:
+        assert uri.startswith("http://zotero.org/users/8888/items/")
+        assert uri.rsplit("/", 1)[-1] in target.items
+    assert trip.report.relations_restored >= 2
+
+
+def test_a_link_to_another_librarys_item_is_kept_as_it_was(trip: Trip) -> None:
+    target = trip.target.lib
+    book = next(r for r in target.items.values() if r["data"].get("title", "").startswith("Ação"))
+
+    assert book["data"]["relations"] == {
+        "owl:sameAs": ["http://zotero.org/groups/9999/items/OTHERLIB"]
+    }
+
+
+def test_a_link_to_an_item_the_archive_does_not_hold_is_dropped_and_said(
+    trip: Trip, tmp_path: Path
+) -> None:
+    """Never rewritten to a wrong item: the link goes, the warning stays."""
+    trip.source.items["JRN00001"]["data"]["relations"]["dc:relation"].append(
+        trip.source.item_uri("NOTINTHEARCHIVE")
+    )
+    server = FakeZoteroServer()
+    server.register(trip.source)
+    client = ZoteroAPIClient("key", trip.source.library_id, trip.source.library_type)
+    client.http.session = server.session()  # type: ignore[assignment]
+    archive = tmp_path / "again.zaf"
+    GatewayFactory.get_backup_service(client).backup_system(str(archive), include_trash=True)
+    target = FakeTarget("7777")
+    repository: Any = cast(Any, target)
+    here = LibraryRef("user", "7777")
+
+    report = RestoreService(
+        repository, repository, repository, repository, library=here
+    ).restore_archive(str(archive))
+
+    article = next(
+        r for r in target.lib.items.values() if r["data"].get("title") == "A study of backups"
+    )
+    assert len(article["data"]["relations"]["dc:relation"]) == 1
+    assert any("NOTINTHEARCHIVE" in w for w in report.warnings)
+
+
+def test_a_second_restore_does_not_touch_the_relations_again(trip: Trip) -> None:
+    again = trip.restore_again()
+
+    assert again.relations_restored == 0
+
+
+def test_a_dry_run_counts_the_relations_and_writes_nothing(trip: Trip) -> None:
+    empty = FakeTarget("9999")
+    repository: Any = cast(Any, empty)
+
+    plan = RestoreService(
+        repository, repository, repository, repository, library=LibraryRef("user", "9999")
+    ).restore_archive(str(trip.archive), dry_run=True)
+
+    assert plan.relations_restored >= 2
+    assert not empty.lib.items
 
 
 @finding(687, "dateAdded and dateModified are removed from the payload")

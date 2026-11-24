@@ -478,6 +478,12 @@ class FakeTarget:
 
     # --- writes -------------------------------------------------------------------------
 
+    def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool:
+        if item_key not in self.lib.items:
+            return False
+        self.lib.items[item_key]["data"].update(copy.deepcopy(item_data))
+        return True
+
     def create_collection(self, name: str, parent_key: Optional[str] = None) -> Optional[str]:
         if parent_key is not None and parent_key not in self.lib.collections:
             return None

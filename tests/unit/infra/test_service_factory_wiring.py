@@ -82,3 +82,27 @@ def test_diagnostics_service_runs_without_ai_providers(repositories):
     assert isinstance(service, DiagnosticsService)
     assert service.gateway is repositories["gateway"]
     assert service.gateway_error is None
+
+
+class _Http:
+    library_type = "group"
+    library_id = "777"
+
+
+class _WebGateway:
+    http = _Http()
+
+
+class _LocalGateway:
+    library_type = "user"
+    library_id = "42"
+
+
+def test_the_library_a_gateway_reads_is_found_for_the_backup_and_the_restore():
+    """Issues #659, #686: the Web API client keeps it on its HTTP client, the offline one on itself."""
+    from zotero_cli.core.models import LibraryRef
+    from zotero_cli.infra.service_factory import _library_of
+
+    assert _library_of(_WebGateway()) == LibraryRef("group", "777")
+    assert _library_of(_LocalGateway()) == LibraryRef("user", "42")
+    assert _library_of(object()) is None

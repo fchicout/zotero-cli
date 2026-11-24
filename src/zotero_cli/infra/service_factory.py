@@ -140,7 +140,7 @@ class ServiceFactory:
         gateway = RepositoryFactory.get_zotero_gateway(config, force_user, offline=offline)
         from zotero_cli.core.services.restore_service import RestoreService
 
-        return RestoreService(gateway, gateway, gateway, gateway)
+        return RestoreService(gateway, gateway, gateway, gateway, library=_library_of(gateway))
 
     @staticmethod
     def get_integrity_service(
