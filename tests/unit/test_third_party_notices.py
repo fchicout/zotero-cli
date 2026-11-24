@@ -94,7 +94,17 @@ def test_distro_shared_library_is_noticed_without_the_static_set(tmp_path):
     assert gen.main(["--build-dir", str(build), "--output", str(out)]) == 0
     text = out.read_text()
     assert "OpenSSL (linked into the Python runtime)" in text
-    assert "libedit" not in text
+    # The notice section, not the word: the host Python's own LICENSE.txt may mention libedit.
+    assert "libedit (linked into the Python runtime)" not in text
+
+
+def test_static_libedit_section_is_written_when_no_shared_libraries_are_bundled(tmp_path):
+    """The counterpart of the test above: it proves the header that test looks for is real."""
+    build = _write_build(tmp_path, binaries=[], modules=[])
+    out = tmp_path / "N.txt"
+
+    assert gen.main(["--build-dir", str(build), "--output", str(out)]) == 0
+    assert "libedit (linked into the Python runtime)" in out.read_text()
 
 
 def test_windows_runtime_dlls_go_to_the_microsoft_runtime_notice(tmp_path):
