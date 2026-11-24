@@ -1,7 +1,8 @@
+import hashlib
 import logging
 import zipfile
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
+from typing import IO, Dict, List, Optional, Set, Tuple, cast
 
 from zotero_cli.core.interfaces import (
     AttachmentRepository,
@@ -12,6 +13,7 @@ from zotero_cli.core.interfaces import (
 from zotero_cli.core.models import LibraryRef
 from zotero_cli.core.utils.archive_safety import (
     MAX_ATTACHMENT_BYTES,
+    ArchiveLimitError,
     check_entry_count,
     copy_member,
     read_json_member,
@@ -49,6 +51,7 @@ class RestoreReport:
     items_created: int = 0
     items_skipped_existing: int = 0
     attachments_uploaded: int = 0
+    attachments_skipped_existing: int = 0
     errors: List[str] = field(default_factory=list)
     is_dry_run: bool = False
 
@@ -75,10 +78,17 @@ class RestoreService:
         # new parent key -> the note texts it has, fetched once per parent
         # (Issue #440: one children request per restored note)
         self._note_texts: Dict[str, Set[str]] = {}
+        # Items this run created (their key; a placeholder in a dry run): nothing to match
+        # their attachments against. Every other parent is an existing item, whose attachments
+        # (md5, file name) are fetched once, so restoring twice does not upload twice (#680).
+        self._created: Set[str] = set()
+        self._attachments_of: Dict[str, List[Tuple[Optional[str], Optional[str]]]] = {}
 
     def restore_archive(self, file_path: str, dry_run: bool = False) -> RestoreReport:
         report = RestoreReport(is_dry_run=dry_run)
         self._note_texts = {}
+        self._created = set()
+        self._attachments_of = {}
 
         try:
             with zipfile.ZipFile(file_path, "r") as zf:
@@ -145,7 +155,8 @@ class RestoreService:
                     ec
                     for ec in existing_cols
                     if ec["data"]["name"] == name
-                    and ec["data"].get("parentCollection") == new_parent
+                    # The Web API says `false` for "no parent": that is no parent, too
+                    and (ec["data"].get("parentCollection") or None) == new_parent
                 ),
                 None,
             )
@@ -200,11 +211,13 @@ class RestoreService:
         # 3. Create Item
         if report.is_dry_run:
             self.item_map[old_key] = f"DRY_RUN_{old_key}"
+            self._created.add(self.item_map[old_key])
             report.items_created += 1
         else:
             new_key = self.items.create_generic_item(new_data)
             if new_key:
                 self.item_map[old_key] = new_key
+                self._created.add(new_key)
                 self._note_texts[new_key] = set()  # just created: no notes yet
                 report.items_created += 1
             else:
@@ -254,18 +267,12 @@ class RestoreService:
         report: RestoreReport,
     ) -> None:
         data = child_raw.get("data", {})
-        old_key = child_raw["key"]
-        link_mode = data.get("linkMode")
-
-        if link_mode not in (*STORED_LINK_MODES, "linked_file"):
+        path_in_zip = self._attachment_member(child_raw, zf, manifest)
+        if path_in_zip is None:
             return
 
-        file_info = manifest.get("file_map", {}).get(old_key)
-        if not file_info:
-            return
-
-        path_in_zip = file_info if isinstance(file_info, str) else file_info.get("path")
-        if not path_in_zip or path_in_zip not in zf.namelist():
+        if self._already_attached(new_parent, zf, path_in_zip, data):
+            report.attachments_skipped_existing += 1
             return
 
         if report.is_dry_run:
@@ -293,6 +300,41 @@ class RestoreService:
         finally:
             if temp_path and os.path.exists(temp_path):
                 os.remove(temp_path)
+
+    @staticmethod
+    def _attachment_member(child_raw: dict, zf: zipfile.ZipFile, manifest: dict) -> Optional[str]:
+        """Where the archive keeps the attachment's file, or None when it has none to restore."""
+        if child_raw.get("data", {}).get("linkMode") not in (*STORED_LINK_MODES, "linked_file"):
+            return None
+        file_info = manifest.get("file_map", {}).get(child_raw["key"])
+        if not file_info:
+            return None
+        path_in_zip = file_info if isinstance(file_info, str) else file_info.get("path")
+        return path_in_zip if path_in_zip and path_in_zip in zf.namelist() else None
+
+    def _already_attached(
+        self, new_parent: str, zf: zipfile.ZipFile, path_in_zip: str, data: dict
+    ) -> bool:
+        """Whether the existing item `new_parent` already has this file (Issue #680): the same
+        md5, or, for an attachment that has none, the same file name. An item this run created
+        has nothing to match."""
+        if new_parent in self._created:
+            return False
+        if new_parent not in self._attachments_of:
+            self._attachments_of[new_parent] = [
+                (child["data"].get("md5"), child["data"].get("filename"))
+                for child in self.items.get_item_children(new_parent)
+                if child.get("data", {}).get("itemType") == "attachment"
+            ]
+        try:
+            digest = _member_md5(zf, path_in_zip)
+        except (ArchiveLimitError, OSError, KeyError):
+            return False  # the upload reports the real problem
+        filename = data.get("filename")
+        return any(
+            md5 == digest or (md5 is None and name is not None and name == filename)
+            for md5, name in self._attachments_of[new_parent]
+        )
 
     def _build_existing_item_indexes(
         self,
@@ -345,3 +387,20 @@ class RestoreService:
             else:
                 parents.append(i)
         return parents + children
+
+
+class _Md5Sink:
+    """A write-only file that only hashes what it is given."""
+
+    def __init__(self) -> None:
+        self.md5 = hashlib.md5(usedforsecurity=False)
+
+    def write(self, chunk: bytes) -> int:
+        self.md5.update(chunk)
+        return len(chunk)
+
+
+def _member_md5(zf: zipfile.ZipFile, name: str) -> str:
+    sink = _Md5Sink()
+    copy_member(zf, name, cast(IO[bytes], sink), MAX_ATTACHMENT_BYTES)
+    return sink.md5.hexdigest()

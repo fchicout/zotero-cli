@@ -537,3 +537,119 @@ def test_restore_uploads_every_stored_attachment_with_its_own_content_type(
     assert gateway.upload_attachment.call_args.args[0] == "NEWPARENT"
     assert gateway.upload_attachment.call_args.kwargs["mime_type"] == expected_mime
     assert report.attachments_uploaded == 1
+
+
+@pytest.mark.parametrize("no_parent", [False, None, ""])
+def test_a_root_collection_matches_however_the_api_says_it_has_no_parent(no_parent):
+    """Issue #680: the Web API answers `false`; the restore compared that with None."""
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_all_collections.return_value = [
+        {"key": "EXIST1", "data": {"name": "Reviews", "parentCollection": no_parent}}
+    ]
+    service = _restore_service(gateway)
+    report = RestoreReport()
+
+    service._restore_collections(
+        [{"key": "C1", "data": {"name": "Reviews", "parentCollection": False}}], report
+    )
+
+    assert service.coll_map["C1"] == "EXIST1"
+    assert report.collections_created == 0
+    gateway.create_collection.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("existing", "uploads"),
+    [
+        ([{"md5": "a2d7ae0f6e9b8a0f5f5b4b4d1b3f4f0a", "filename": "other.pdf"}], 1),  # other file
+        ([{"filename": "paper.pdf"}], 0),  # no md5: the file name decides
+        ([{"filename": "other.pdf"}], 1),
+        ([], 1),
+    ],
+    ids=["different-md5", "same-name-without-md5", "other-name-without-md5", "none"],
+)
+def test_an_attachment_of_an_existing_item_is_uploaded_unless_it_is_there(
+    tmp_path, existing, uploads
+):
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.upload_attachment.return_value = True
+    gateway.get_item_children.return_value = [
+        {"data": {"itemType": "attachment", **fields}} for fields in existing
+    ]
+    service = _restore_service(gateway)
+    report = RestoreReport()
+    zf = _zaf_with_attachment(tmp_path, b"%PDF-1.7 content")
+    manifest = {"file_map": {"ATT1": {"path": "files/ATT1/paper.pdf"}}}
+    raw = {"key": "ATT1", "data": {"linkMode": "imported_file", "filename": "paper.pdf"}}
+
+    service._restore_attachment(raw, zf, manifest, "EXISTING1", report)
+
+    assert gateway.upload_attachment.call_count == uploads
+    assert report.attachments_skipped_existing == 1 - uploads
+
+
+def test_an_attachment_with_the_same_md5_is_not_uploaded_again(tmp_path):
+    import hashlib
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    payload = b"%PDF-1.7 the same bytes"
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_item_children.return_value = [
+        {
+            "data": {
+                "itemType": "attachment",
+                "md5": hashlib.md5(payload, usedforsecurity=False).hexdigest(),
+                "filename": "renamed-by-someone.pdf",
+            }
+        }
+    ]
+    service = _restore_service(gateway)
+    report = RestoreReport()
+    zf = _zaf_with_attachment(tmp_path, payload)
+    manifest = {"file_map": {"ATT1": {"path": "files/ATT1/paper.pdf"}}}
+
+    service._restore_attachment(
+        {"key": "ATT1", "data": {"linkMode": "imported_file", "filename": "paper.pdf"}},
+        zf,
+        manifest,
+        "EXISTING1",
+        report,
+    )
+
+    gateway.upload_attachment.assert_not_called()
+    assert report.attachments_skipped_existing == 1
+    assert report.attachments_uploaded == 0
+
+
+def test_an_item_created_by_this_run_is_not_asked_for_its_attachments(tmp_path):
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.upload_attachment.return_value = True
+    service = _restore_service(gateway)
+    service._created.add("NEWITEM1")
+    zf = _zaf_with_attachment(tmp_path, b"%PDF-1.7 x")
+    manifest = {"file_map": {"ATT1": {"path": "files/ATT1/paper.pdf"}}}
+
+    service._restore_attachment(
+        {"key": "ATT1", "data": {"linkMode": "imported_file"}},
+        zf,
+        manifest,
+        "NEWITEM1",
+        RestoreReport(),
+    )
+
+    gateway.get_item_children.assert_not_called()
+    gateway.upload_attachment.assert_called_once()

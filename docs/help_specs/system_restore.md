@@ -47,5 +47,6 @@ The command carefully parses the `.zaf` archive, identifies all bibliographic re
 **Result:** The archive is restored into the library.
 
 ## 7. Cognitive Safeguards
+- **Restoring twice is safe:** collections are matched by name and parent, items by DOI or title, notes by their text and attachments by their file (md5, or the file name when the existing attachment has no md5), so a second run into the same library creates nothing. The summary shows how many attachments were skipped as already there.
 - **Common Failure Modes:** Attempting to restore a `.zaf` file that is corrupted or from a different account context that lacks matching permissions. A backup of one library is never restored into another by accident: check the `Warning:` line of the preview. 
 - **Safety Tips:** Restore operations can be complex and destructive if the target library already contains data. ALWAYS run with `--dry-run` first to understand the impact of the restore. Without `--execute` nothing is written to your library: you get a preview (`--dry-run` is the explicit spelling).
