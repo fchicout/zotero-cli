@@ -37,6 +37,8 @@ class BackupService:
         self.collections = collections
         self.attachments = attachments
         self.version = "1.1"
+        # Paths already used in the archive being written, casefolded (Issue #654).
+        self._used_paths: Set[str] = set()
 
     def backup_collection(
         self,
@@ -138,6 +140,7 @@ class BackupService:
     ) -> None:
         errors: List[str] = []
         processed_keys: Set[str] = set()
+        self._used_paths = set()
 
         # data.json is written entry by entry to a temporary file and added
         # at the end, rather than built as one indented string in memory
@@ -191,6 +194,20 @@ class BackupService:
                 if errors:
                     zf.writestr("errors.log", "\n".join(errors))
 
+    def _free_path(self, directory: str, filename: str, key: str) -> str:
+        """`directory/filename`, or, when that path is taken, `directory/<name>-<key><ext>`
+        (Issue #654: one item can hold several attachments with the same file name, and
+        stand-alone ones all share a directory). Compared case-insensitively, since the
+        archive may be unpacked on Windows or macOS. Names that do not collide are unchanged."""
+        path = f"{directory}/{filename}"
+        stem, extension = os.path.splitext(filename)
+        counter = 1
+        while path.casefold() in self._used_paths:
+            suffix = key if counter == 1 else f"{key}-{counter}"
+            path = f"{directory}/{stem}-{suffix}{extension}"
+            counter += 1
+        return path
+
     def _download_attachment_file(
         self,
         item: ZoteroItem,
@@ -214,7 +231,7 @@ class BackupService:
                 if not safe_filename or safe_filename in (".", ".."):
                     safe_filename = item.key
                 p_key = parent_key or data.get("parentItem") or "orphan"
-                storage_path = f"attachments/{p_key}/{safe_filename}"
+                storage_path = self._free_path(f"attachments/{p_key}", safe_filename, item.key)
                 try:
                     with tempfile.NamedTemporaryFile(delete=False) as tf:
                         temp_path = tf.name
@@ -226,6 +243,7 @@ class BackupService:
                         with open(temp_path, "rb") as f:
                             checksum = sha256_stream(f)
 
+                        self._used_paths.add(storage_path.casefold())
                         manifest["file_map"][item.key] = {
                             "path": storage_path,
                             "checksum": checksum,
