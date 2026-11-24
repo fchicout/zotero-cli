@@ -35,5 +35,6 @@ The `system verify` command ensures backup preservation quality. Before restorin
 **Result:** The CLI displays an integrity report confirming metadata and checksum validation success.
 
 ## 7. Cognitive Safeguards
+- **Incomplete backups:** an archive can be intact and still lack items or files the backup could not save; `verify` then prints how many problems the archive's `errors.log` lists (and how many linked files were not backed up).
 - **Common Failure Modes:** Providing a file path that does not exist or attempting to read a file that is not in the correct `.zaf` ZIP format.
 - **Safety Tips:** Always run `system verify` first on an archive before using the destructive/mutating `system restore` command.
