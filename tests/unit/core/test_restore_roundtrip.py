@@ -7,9 +7,18 @@ real `RestoreService` into a `FakeTarget`, which answers the repository calls th
 API does. Keys change on a restore, so source and target are compared through views that do not
 use them: collections by path, items by their own fields and their parent's title.
 
-The tests that pass pin what already restores correctly. Each strict `xfail` is a finding of
-the live round trip on the `teststr` group (2026-11-24), named after the issue that fixes it;
-fixing it removes the marker, and a strict xfail that starts to pass fails until it is removed.
+The suite began as the findings of a live round trip on the `teststr` group (2026-11-24), each
+recorded here as a strict `xfail` and fixed one by one (tracking issue #679); none is left. They
+are listed so a regression can be traced:
+
+#680 a second restore duplicated the collections and re-uploaded the attachments
+#681 notes and files without a parent item were dropped
+#682 notes lost their tags
+#683 trashed items came back live
+#684 attachments were named after the temp file and lost title, URL, dates and link mode
+#685 annotations were rejected (HTTP 409)
+#686 related-item links kept the old item keys
+#687 dates added and modified were replaced by the restore date
 """
 
 import json
@@ -25,11 +34,6 @@ from zotero_cli.core.models import LibraryRef
 from zotero_cli.core.services.restore_service import RestoreReport, RestoreService
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
-
-
-def finding(issue: int, why: str) -> pytest.MarkDecorator:
-    return pytest.mark.xfail(strict=True, raises=AssertionError, reason=f"#{issue}: {why}")
-
 
 # --- the round trip -----------------------------------------------------------------------
 
@@ -283,7 +287,9 @@ def dates(lib: FakeLibrary) -> List[str]:
     return sorted(
         dump((ident(lib, k), r["data"].get("dateAdded"), r["data"].get("dateModified")))
         for k, r in lib.items.items()
-        if r["data"]["itemType"] in ("journalArticle", "book", "thesis", "note")
+        if r["data"]["itemType"]
+        in ("journalArticle", "book", "thesis", "note", "attachment", "annotation")
+        and r["data"].get("linkMode") != "embedded_image"  # not restored yet: a warning
     )
 
 
@@ -526,6 +532,5 @@ def test_a_dry_run_counts_the_relations_and_writes_nothing(trip: Trip) -> None:
     assert not empty.lib.items
 
 
-@finding(687, "dateAdded and dateModified are removed from the payload")
 def test_dates_are_kept(trip: Trip) -> None:
     assert_same(dates, trip)

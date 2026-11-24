@@ -237,8 +237,9 @@ class RestoreService:
 
         # 2. Prepare new item data
         new_data = data.copy()
-        # `relations` name the old item keys; they are set again once every item exists (#686)
-        for k in ["key", "version", "dateAdded", "dateModified", "relations"]:
+        # `relations` name the old item keys; they are set again once every item exists (#686).
+        # The dates stay: the Web API keeps dateAdded and dateModified given on create (#687)
+        for k in ["key", "version", "relations"]:
             new_data.pop(k, None)
 
         old_colls = data.get("collections", [])
@@ -720,6 +721,7 @@ def _note_payload(
         payload["collections"] = collections
     if data.get("deleted"):
         payload["deleted"] = 1  # the Web API honours it on create (checked on a test library)
+    payload.update({k: data[k] for k in ("dateAdded", "dateModified") if data.get(k)})
     return payload
 
 
@@ -736,12 +738,10 @@ def _index_item(
 
 
 # What an archived attachment has that a new one must not carry over: its identity and
-# bookkeeping (the dates are #687, the relations #686).
+# bookkeeping (the relations are set later, #686; the dates are kept, #687).
 _ATTACHMENT_LOCAL = {
     "key",
     "version",
-    "dateAdded",
-    "dateModified",
     "parentItem",
     "collections",
     "relations",
