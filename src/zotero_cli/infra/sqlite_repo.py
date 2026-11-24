@@ -14,6 +14,7 @@ from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.utils.notify import NotifyMixin
 from zotero_cli.core.zotero_item import ZoteroItem
 from zotero_cli.infra.sqlite_job_repo import SqliteJobRepository  # noqa: F401  (re-exported)
+from zotero_cli.infra.sqlite_searches import read_saved_searches
 from zotero_cli.infra.sqlite_shadow import (  # noqa: F401  (re-exported: the same objects)
     _all_connections,
     _cleanup_shadows,
@@ -167,6 +168,9 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
             }
             for r in cursor
         ]
+
+    def get_all_searches(self) -> List[Dict[str, Any]]:
+        return read_saved_searches(self._get_connection())
 
     def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
         conn = self._get_connection()
@@ -733,10 +737,10 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
         raise OfflineReadOnly()
 
-    def upload_attachment(
-        self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
-    ) -> bool:
+    def _refuse(self, *_args: Any, **_kwargs: Any) -> Any:
         raise OfflineReadOnly()
+
+    upload_attachment = upload_attachment_item = create_search = _refuse
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:
         """Copy an attachment's file from Zotero's own `storage/<KEY>/` folder (or a

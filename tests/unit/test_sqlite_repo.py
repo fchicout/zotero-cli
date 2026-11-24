@@ -1,7 +1,9 @@
+import json
 import os
 import sqlite3
 import stat
 import tempfile
+import zipfile
 
 import pytest
 
@@ -233,6 +235,158 @@ def test_sqlite_get_trash_items(mock_db):
     # Everything else must still exclude the trashed item, as before.
     all_items = list(gateway.search_items(ZoteroQuery()))
     assert {i.key for i in all_items} == {"ITEMKEY1", "ITEMKEY3", "ITEMKEY4"}
+
+
+def test_collection_backup_includes_sub_collection_items_offline(mock_db):
+    """Issue #657: the offline gateway lists only the items filed directly in a collection too."""
+    from io import BytesIO
+
+    from zotero_cli.core.services.backup_service import BackupService
+
+    conn = sqlite3.connect(mock_db)
+    conn.execute("INSERT INTO collectionItems VALUES (2, 2)")  # ITEMKEY2 -> 'Child Collection'
+    conn.commit()
+    conn.close()
+    gateway = SqliteZoteroGateway(mock_db)
+    out = BytesIO()
+
+    BackupService(gateway, gateway, gateway).backup_collection("COLKEY1", out)
+
+    with zipfile.ZipFile(out) as zf:
+        keys = {item["key"] for item in json.loads(zf.read("data.json"))}
+        manifest = json.loads(zf.read("manifest.json"))
+        collections = json.loads(zf.read("collections.json"))
+    assert {"ITEMKEY1", "ITEMKEY2"} <= keys
+    assert manifest["collection_keys"] == ["COLKEY1", "COLKEY2"]
+    assert [c["key"] for c in collections] == ["COLKEY1", "COLKEY2"]
+    assert collections[1]["data"]["parentCollection"] == "COLKEY1"
+
+
+def test_offline_backup_records_the_library_it_was_asked_for(mock_db):
+    """Issue #659: the local database's items carry no `library` stub; the gateway says it."""
+    from io import BytesIO
+
+    from zotero_cli.infra.factory import GatewayFactory
+
+    gateway = SqliteZoteroGateway(mock_db, library_id="777", library_type="group")
+    out = BytesIO()
+
+    GatewayFactory.get_backup_service(gateway).backup_system(out)
+
+    with zipfile.ZipFile(out) as zf:
+        manifest = json.loads(zf.read("manifest.json"))
+    assert manifest["library"] == {"type": "group", "id": "777"}
+    assert manifest["counts"]["items"] == 4
+
+
+def _with_saved_searches(db_path):
+    conn = sqlite3.connect(db_path)
+    conn.executescript(
+        """
+        CREATE TABLE savedSearches (savedSearchID INTEGER PRIMARY KEY, savedSearchName TEXT, key TEXT, version INTEGER);
+        CREATE TABLE savedSearchConditions (savedSearchID INTEGER, searchConditionID INTEGER, condition TEXT, mode TEXT, operator TEXT, value TEXT, required INTEGER);
+        CREATE TABLE deletedSearches (savedSearchID INTEGER PRIMARY KEY, dateDeleted TEXT);
+        INSERT INTO savedSearches VALUES (1, 'Unread', 'SRCH0001', 7), (2, 'Old', 'SRCH0002', 3);
+        INSERT INTO savedSearchConditions VALUES (1, 1, 'tag', '', 'is', 'to-read', 1);
+        INSERT INTO savedSearchConditions VALUES (1, 2, 'collection', '', 'is', 'COLKEY1', 1);
+        INSERT INTO deletedSearches VALUES (2, '2026-01-01');
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
+def test_offline_gateway_reads_saved_searches_in_the_web_api_shape(mock_db):
+    """Issue #663: conditions with their operator and value; searches in the trash are left out."""
+    _with_saved_searches(mock_db)
+
+    searches = SqliteZoteroGateway(mock_db).get_all_searches()
+
+    assert [s["key"] for s in searches] == ["SRCH0001"]
+    assert searches[0]["data"]["name"] == "Unread"
+    assert searches[0]["data"]["conditions"] == [
+        {"condition": "tag", "operator": "is", "value": "to-read"},
+        {"condition": "collection", "operator": "is", "value": "COLKEY1"},
+    ]
+
+
+def test_offline_gateway_refuses_to_create_a_saved_search(mock_db):
+    from zotero_cli.core.exceptions import OfflineReadOnly
+
+    gateway = SqliteZoteroGateway(mock_db)
+
+    with pytest.raises(OfflineReadOnly):
+        gateway.create_search("Name", [])
+
+
+def test_offline_gateway_without_search_tables_has_no_saved_searches(mock_db):
+    assert SqliteZoteroGateway(mock_db).get_all_searches() == []
+
+
+def test_offline_library_backup_holds_the_saved_searches(mock_db):
+    from io import BytesIO
+
+    from zotero_cli.core.services.backup_service import BackupService
+
+    _with_saved_searches(mock_db)
+    gateway = SqliteZoteroGateway(mock_db)
+    out = BytesIO()
+
+    BackupService(gateway, gateway, gateway).backup_system(out)
+
+    with zipfile.ZipFile(out) as zf:
+        assert [s["key"] for s in json.loads(zf.read("searches.json"))] == ["SRCH0001"]
+        assert json.loads(zf.read("manifest.json"))["counts"]["searches"] == 1
+
+
+def test_offline_backup_without_the_trash_leaves_out_the_children_of_a_trashed_item(mock_db):
+    """Issue #692: only the parent is in `deletedItems`; its children still look live."""
+    from io import BytesIO
+
+    from zotero_cli.core.services.backup_service import BackupService
+
+    conn = sqlite3.connect(mock_db)
+    conn.execute("INSERT INTO deletedItems (itemID) VALUES (2)")  # ITEMKEY2 and its children 3, 4
+    conn.commit()
+    conn.close()
+    gateway = SqliteZoteroGateway(mock_db)
+
+    def keys(**options):
+        out = BytesIO()
+        BackupService(gateway, gateway, gateway).backup_system(out, **options)
+        with zipfile.ZipFile(out) as zf:
+            return {item["key"] for item in json.loads(zf.read("data.json"))}
+
+    assert {"ITEMKEY2", "ITEMKEY3", "ITEMKEY4"}.isdisjoint(keys())
+    assert {"ITEMKEY2", "ITEMKEY3", "ITEMKEY4"} <= keys(include_trash=True)
+    assert "ITEMKEY1" in keys()
+
+
+def test_offline_backup_can_include_the_trash(mock_db):
+    """Issue #662: the local database's deleted items, marked `deleted` like the Web API's."""
+    from io import BytesIO
+
+    from zotero_cli.core.services.backup_service import BackupService
+
+    conn = sqlite3.connect(mock_db)
+    conn.execute("INSERT INTO deletedItems (itemID) VALUES (1)")  # ITEMKEY1
+    conn.commit()
+    conn.close()
+    gateway = SqliteZoteroGateway(mock_db)
+
+    def keys(**options):
+        out = BytesIO()
+        BackupService(gateway, gateway, gateway).backup_system(out, **options)
+        with zipfile.ZipFile(out) as zf:
+            data = json.loads(zf.read("data.json"))
+        return {item["key"]: item for item in data}
+
+    plain = keys()
+    with_trash = keys(include_trash=True)
+
+    assert "ITEMKEY1" not in plain
+    assert with_trash["ITEMKEY1"]["data"]["deleted"] == 1
+    assert set(plain) <= set(with_trash)
 
 
 def test_sqlite_trash_and_restore_item(mock_db):

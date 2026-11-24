@@ -11,7 +11,7 @@ zotero-cli exits with one of these codes, so scripts and agents can tell what ha
 | `4` | Authentication | the API key was rejected or lacks access to the library |
 | `5` | Unavailable | the network or the Zotero service failed after retries |
 | `6` | Conflict | the object changed since the version the command acted on |
-| `7` | Partial failure | part of a batch failed; the rest was applied |
+| `7` | Partial failure | part of a batch failed; the rest was applied (a `system backup` or `collection backup` that could not save every file: the archive is written and its `errors.log` lists what is missing) |
 | `130` | Interrupted | Ctrl-C |
 
 Codes 3–7 are being rolled out command by command in the 3.0.x patch releases (Issue #368). Until that work is done, some failures still exit `1`, and exit codes are not yet part of the compatibility guarantees in [COMPATIBILITY.md](COMPATIBILITY.md).

@@ -7,8 +7,10 @@ from typing import TYPE_CHECKING, Any
 from rich.markup import escape
 from rich.table import Table
 
+from zotero_cli.cli.backup_summary import TRASH_BACKUP_HELP, finish_backup, library_note
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag, user_flag
+from zotero_cli.cli.restore_guard import check_restore_target, print_archive_library
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
@@ -254,6 +256,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 """,
     )
     backup_p.add_argument("--output", required=True, help="Output file path (e.g., backup.zaf)")
+    backup_p.add_argument("--trash", action="store_true", help=TRASH_BACKUP_HELP)
 
 
 def _add_verify_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
@@ -317,6 +320,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         "--execute",
         action="store_true",
         help="Apply the restore (without it, only a preview is shown)",
+    )
+    restore_p.add_argument(
+        "--yes",
+        action="store_true",
+        help="Do not ask before restoring into a different library than the archive came from",
     )
 
 
@@ -508,9 +516,24 @@ class SystemCommand(BaseCommand):
             console.print(f"  - Attachments: {report.file_count}")
             if report.manifest and report.manifest.get("scope_type") == "library":
                 console.print(f"  - Collections: {report.collection_count}")
+                if "searches" in (report.manifest.get("counts") or {}):
+                    console.print(f"  - Saved searches: {report.search_count}")
             console.print(
                 f"  - Timestamp: {safe_markup(report.manifest.get('timestamp') if report.manifest else 'N/A')}"
             )
+            print_archive_library(report.manifest, console)
+            if report.manifest and report.manifest.get("includes_trash"):
+                console.print("  - Includes the items that were in the Zotero trash")
+            if report.logged_errors:
+                console.print(
+                    f"  - [yellow]Incomplete:[/yellow] errors.log lists {report.logged_errors} "
+                    "problem(s); some items or files are missing from this backup"
+                )
+            if report.logged_skipped:
+                console.print(
+                    f"  - {report.logged_skipped} linked file(s) were not backed up "
+                    "(they live on your own computer)"
+                )
         else:
             console.print("\n[bold red]❌ ARCHIVE IS INVALID OR CORRUPT[/bold red]")
             for error in report.errors:
@@ -525,6 +548,7 @@ class SystemCommand(BaseCommand):
         # Previews unless --execute (4.0, Issue #462); --dry-run is the explicit spelling.
         dry_run = not getattr(args, "execute", False)
 
+        check_restore_target(args, dry_run, console)
         restore_service = GatewayFactory.get_restore_service(force_user=user_flag(args))
 
         msg = f"Restoring from archive: [green]{args.file}[/green]"
@@ -540,6 +564,11 @@ class SystemCommand(BaseCommand):
             for err in report.errors:
                 console.print(f"  - [red]Error:[/red] {escape(err)}")
 
+        if report.warnings:
+            console.print(f"\n[yellow]Not restored ({len(report.warnings)}):[/yellow]")
+            for note in report.warnings:
+                console.print(f"  - {escape(note)}")
+
         title = "Restore Plan Summary" if dry_run else "Restore Completion Summary"
         table = Table(title=title)
         table.add_column("Metric", style="cyan")
@@ -549,6 +578,14 @@ class SystemCommand(BaseCommand):
         table.add_row("Items Created", str(report.items_created))
         table.add_row("Items Skipped (Existing)", str(report.items_skipped_existing))
         table.add_row("Attachments Uploaded", str(report.attachments_uploaded))
+        table.add_row("Attachments Skipped (Existing)", str(report.attachments_skipped_existing))
+        if report.items_trashed:
+            table.add_row("Of Those, Restored Into The Trash", str(report.items_trashed))
+        if report.searches_created or report.searches_skipped_existing:
+            table.add_row("Saved Searches Created", str(report.searches_created))
+            table.add_row(
+                "Saved Searches Skipped (Existing)", str(report.searches_skipped_existing)
+            )
 
         console.print(table)
 
@@ -908,7 +945,10 @@ class SystemCommand(BaseCommand):
         gateway = GatewayFactory.get_zotero_gateway(force_user=force_user)
         service = GatewayFactory.get_backup_service(gateway)
 
-        console.print(f"Starting System Backup to [green]{safe_markup(args.output)}[/green]...")
+        console.print(
+            f"Starting System Backup to [green]{safe_markup(args.output)}[/green]"
+            f"{safe_markup(library_note(service))}..."
+        )
 
         try:
             with Progress(
@@ -934,9 +974,14 @@ class SystemCommand(BaseCommand):
                 # Let's check if we can get a quick count.
                 # If not, it stays indeterminate until we find a way.
 
-                service.backup_system(args.output, on_item_processed=on_item)
+                report = service.backup_system(
+                    args.output,
+                    on_item_processed=on_item,
+                    include_trash=bool(getattr(args, "trash", False)),
+                )
                 progress.update(task, description="Finalizing .zaf container...")
-
-            console.print(f"[bold green]Backup complete:[/bold green] {safe_markup(args.output)}")
+        except ZoteroCliError:
+            raise  # typed: an unreadable group is exit 4, an outage exit 5 (Issue #661)
         except Exception as e:
             raise ZoteroCliError(f"Backup failed: {e}") from e
+        finish_backup(report, args.output, console)

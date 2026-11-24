@@ -6,6 +6,7 @@ from rich.markup import escape
 from rich.table import Table
 from rich.tree import Tree
 
+from zotero_cli.cli.backup_summary import TRASH_BACKUP_HELP, finish_backup, library_note
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.flags import (
     add_bibliography_flags,
@@ -245,6 +246,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
     )
     backup_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
     backup_p.add_argument("--output", required=True, help="Output file path")
+    backup_p.add_argument("--trash", action="store_true", help=TRASH_BACKUP_HELP)
 
 
 def _add_export_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
@@ -629,7 +631,7 @@ class CollectionCommand(BaseCommand):
 
         service = GatewayFactory.get_backup_service(gateway)
         console.print(
-            f"Starting Backup for Collection '[cyan]{safe_markup(args.collection)}[/cyan]' ({safe_markup(col_id)}) to [green]{safe_markup(args.output)}[/green]..."
+            f"Starting Backup for Collection '[cyan]{safe_markup(args.collection)}[/cyan]' ({safe_markup(col_id)}) to [green]{safe_markup(args.output)}[/green]{safe_markup(library_note(service))}..."
         )
 
         try:
@@ -645,12 +647,18 @@ class CollectionCommand(BaseCommand):
                 def on_item(item: ZoteroItem) -> None:
                     progress.update(task, advance=1, description=f"Backing up: {item.key}")
 
-                service.backup_collection(col_id, args.output, on_item_processed=on_item)
+                report = service.backup_collection(
+                    col_id,
+                    args.output,
+                    on_item_processed=on_item,
+                    include_trash=bool(getattr(args, "trash", False)),
+                )
                 progress.update(task, description="Finalizing .zaf container...")
-
-            console.print(f"[bold green]Backup complete:[/bold green] {safe_markup(args.output)}")
+        except ZoteroCliError:
+            raise  # typed: an unreadable group is exit 4, an outage exit 5 (Issue #661)
         except Exception as e:
             raise ZoteroCliError(f"Backup failed: {e}") from e
+        finish_backup(report, args.output, console)
 
     def _handle_export(self, args: argparse.Namespace) -> None:
         if args.export_format == "md":

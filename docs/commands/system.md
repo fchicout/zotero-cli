@@ -73,20 +73,24 @@ zotero-cli system switch 1234567
 ---
 
 ### `backup`
-Creates a complete, self-contained backup archive (`.zaf`) of your entire Zotero library or a specific collection, including all metadata and PDF attachments. Every attachment is mathematically verified using SHA-256 checksums.
+Creates a complete, self-contained backup archive (`.zaf`) of your entire Zotero library or a specific collection, including all metadata, your saved searches (a whole-library backup) and every attachment file Zotero stores (PDFs, web snapshots, files downloaded from a URL, images in notes). Every attachment is mathematically verified using SHA-256 checksums.
 
 **Usage:**
 ```bash
 zotero-cli system backup --output "full_backup_2026.zaf"
+# a group library, named on the call (a global option, so it goes before the command)
+zotero-cli --group 6629576 system backup --output "group_backup_2026.zaf"
 ```
 
 **Parameters:**
 *   `--output`: (Required) Path to save the backup file.
+*   `--trash`: Also back up the items that are in Zotero's trash, with their children and their `deleted` flag. Without it (the default) the trash is left out. Collections in the trash are not covered.
+*   `--group GROUP` (global option): back up this group library (id or URL) instead of the configured one; `--user` backs up your personal library. The command says which library it is reading when it starts.
 
 ---
 
 ### `verify`
-Performs a deep integrity check on a `.zaf` archive. Validates all internal JSON structures and re-calculates checksums for every attachment to ensure 100% data fidelity.
+Performs a deep integrity check on a `.zaf` archive. Validates all internal JSON structures and re-calculates checksums for every attachment to ensure 100% data fidelity. It shows the library the archive came from and checks the counts the archive records (items, files, collections) against what it holds, so a cut file is noticed.
 
 **Usage:**
 ```bash
@@ -103,13 +107,14 @@ Reconstructs an entire Zotero library or specific collections from a `.zaf` arch
 
 **Usage:**
 ```bash
-zotero-cli system restore --file "backup.zaf" [--dry-run | --execute]
+zotero-cli system restore --file "backup.zaf" [--dry-run | --execute] [--yes]
 ```
 
 **Parameters:**
 *   `--file`: (Required) Path to the .zaf archive.
 *   `--dry-run`: Simulates the restore without making any changes. Mutually exclusive with `--execute`.
 *   `--execute`: Applies the restore. Mutually exclusive with `--dry-run`. Without it only a preview is shown (Issue #462).
+*   `--yes`: Skips the question asked when the archive was taken from a different library (personal or group) than the one being restored into. Archives record their library from format 1.2 on.
 
 ---
 

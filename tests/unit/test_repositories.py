@@ -85,7 +85,29 @@ def test_note_repository_create_note(mock_gateway):
     mock_gateway.create_note.assert_called_once_with("PARENT", "content")
 
 
+def test_collection_repository_creates_a_search_through_the_gateway(mock_gateway):
+    from zotero_cli.infra.repositories import ZoteroCollectionRepository
+
+    mock_gateway.create_search.return_value = "SEARCHKY"
+    conditions = [{"condition": "tag", "operator": "is", "value": "x"}]
+
+    key = ZoteroCollectionRepository(mock_gateway).create_search("Name", conditions)
+
+    assert key == "SEARCHKY"
+    mock_gateway.create_search.assert_called_once_with("Name", conditions)
+
+
 def test_attachment_repository_upload(mock_gateway):
     repo = ZoteroAttachmentRepository(mock_gateway)
     repo.upload_attachment("PARENT", "file.pdf")
-    mock_gateway.upload_attachment.assert_called_once_with("PARENT", "file.pdf", "application/pdf")
+    mock_gateway.upload_attachment.assert_called_once_with(
+        "PARENT", "file.pdf", "application/pdf", None
+    )
+
+
+def test_attachment_repository_upload_passes_the_item_data_on(mock_gateway):
+    repo = ZoteroAttachmentRepository(mock_gateway)
+    repo.upload_attachment(None, "file.pdf", "text/html", {"collections": ["COL1"]})
+    mock_gateway.upload_attachment.assert_called_once_with(
+        None, "file.pdf", "text/html", {"collections": ["COL1"]}
+    )

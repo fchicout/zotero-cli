@@ -5,6 +5,7 @@ import pytest
 
 from zotero_cli.cli.commands.system_cmd import SystemCommand
 from zotero_cli.core.exceptions import ZoteroCliError
+from zotero_cli.core.services.backup_service import BackupReport
 
 
 @pytest.fixture
@@ -117,6 +118,7 @@ def test_system_backup(system_cmd, capsys):
         patch("zotero_cli.infra.factory.GatewayFactory.get_zotero_gateway"),
         patch("zotero_cli.core.services.backup_service.BackupService.backup_system") as mock_backup,
     ):
+        mock_backup.return_value = BackupReport()
         args = argparse.Namespace(verb="backup", output="test.zaf", user=False)
         system_cmd.execute(args)
 

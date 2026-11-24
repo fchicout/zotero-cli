@@ -78,6 +78,12 @@ class ItemRepository(ABC):
         pass
 
     @abstractmethod
+    def get_trash_items(self) -> Iterator[ZoteroItem]:
+        """Iterates the items in Zotero's trash, with their `deleted` flag set. Exposed here
+        so a service holding only the narrower ItemRepository can back them up (#662)."""
+        pass
+
+    @abstractmethod
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
         pass
 
@@ -105,6 +111,18 @@ class CollectionRepository(ABC):
 
     @abstractmethod
     def get_all_collections(self) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def create_search(self, name: str, conditions: List[Dict[str, Any]]) -> Optional[str]:
+        """Creates a saved search; the key of the new search, or None if it was refused.
+        Each condition is `{"condition", "operator", "value"}` (Issue #678)."""
+        pass
+
+    @abstractmethod
+    def get_all_searches(self) -> List[Dict[str, Any]]:
+        """Every saved search of the library, as the Web API shapes it: `key`, `version`,
+        `data.name` and `data.conditions` (each with `condition`, `operator`, `value`)."""
         pass
 
     @abstractmethod
@@ -171,8 +189,26 @@ class NoteRepository(ABC):
 class AttachmentRepository(ABC):
     @abstractmethod
     def upload_attachment(
-        self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
+        """Uploads `file_path` as a new attachment of `parent_item_key`, or, with no parent, as
+        a stand-alone one. `item_data` adds fields to the attachment item (for example its
+        `collections`); it never replaces the parent."""
+        pass
+
+    @abstractmethod
+    def upload_attachment_item(
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
+        """`upload_attachment`, returning the key of the new attachment, or None on failure."""
         pass
 
     @abstractmethod

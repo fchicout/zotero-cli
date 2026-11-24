@@ -1,7 +1,9 @@
+import hashlib
 import logging
+import re
 import zipfile
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
+from typing import IO, Any, Dict, List, Optional, Set, Tuple, cast
 
 from zotero_cli.core.interfaces import (
     AttachmentRepository,
@@ -9,13 +11,16 @@ from zotero_cli.core.interfaces import (
     ItemRepository,
     NoteRepository,
 )
+from zotero_cli.core.models import LibraryRef
 from zotero_cli.core.utils.archive_safety import (
     MAX_ATTACHMENT_BYTES,
+    ArchiveLimitError,
     check_entry_count,
     copy_member,
     read_json_member,
 )
 from zotero_cli.core.utils.format_version import check_format_version
+from zotero_cli.core.utils.link_modes import STORED_LINK_MODES
 from zotero_cli.core.utils.normalization import normalize_doi
 from zotero_cli.core.zotero_item import ZoteroItem
 
@@ -31,6 +36,18 @@ def _check_manifest(manifest: object, source: str) -> None:
 
 logger = logging.getLogger(__name__)
 
+_ITEM_URI = re.compile(r"^https?://zotero\.org/(users|groups)/(\d+)/items/([A-Za-z0-9]+)$")
+_ANNOTATION = "annotation"  # itemType of a PDF highlight, note, ink or underline (Issue #685)
+
+
+def archive_library(file_path: str) -> Optional[LibraryRef]:
+    """The library a .zaf says it was taken from (format 1.2, Issue #659); None for an older
+    archive, which does not say."""
+    with zipfile.ZipFile(file_path, "r") as zf:
+        manifest = read_json_member(zf, "manifest.json")
+    _check_manifest(manifest, file_path)
+    return LibraryRef.from_manifest(manifest.get("library"))
+
 
 @dataclass
 class RestoreReport:
@@ -38,7 +55,15 @@ class RestoreReport:
     items_created: int = 0
     items_skipped_existing: int = 0
     attachments_uploaded: int = 0
+    attachments_skipped_existing: int = 0
+    items_trashed: int = 0  # of the items created, how many went into the trash (Issue #683)
+    relations_restored: int = 0  # related-item links rewritten to the new keys (Issue #686)
+    searches_created: int = 0  # saved searches (Issue #678)
+    searches_skipped_existing: int = 0
     errors: List[str] = field(default_factory=list)
+    # Things the archive holds that this restore does not bring back, and why: not failures
+    # of the restore itself (those are `errors`), but the user should know.
+    warnings: List[str] = field(default_factory=list)
     is_dry_run: bool = False
 
 
@@ -54,7 +79,11 @@ class RestoreService:
         collections: CollectionRepository,
         notes: NoteRepository,
         attachments: AttachmentRepository,
+        library: Optional[LibraryRef] = None,
     ):
+        # The library being restored into (Issue #686): related-item links name it in their URI.
+        self.library = library
+        self._source: Optional[LibraryRef] = None  # the library the archive came from
         self.items = items
         self.collections = collections
         self.notes = notes
@@ -64,10 +93,45 @@ class RestoreService:
         # new parent key -> the note texts it has, fetched once per parent
         # (Issue #440: one children request per restored note)
         self._note_texts: Dict[str, Set[str]] = {}
+        # Items this run created (their key; a placeholder in a dry run): nothing to match
+        # their attachments against. Every other parent is an existing item, whose attachments
+        # (md5, file name) are fetched once, so restoring twice does not upload twice (#680).
+        self._created: Set[str] = set()
+        self._attachments_of: Dict[Tuple[str, bool, str], List[dict]] = {}
+        # Stand-alone notes and files already in the library, as (text or md5, its collections),
+        # taken from the one scan that also builds the DOI/title indexes (Issue #681).
+        # The last part of each is "in the trash": the Web API hides trashed children from
+        # their parent's listing, so the trash is scanned too (Issue #683).
+        self._known_notes: Dict[Tuple[str, Tuple[str, ...], bool], str] = {}
+        # New notes this run made whose text names embedded images: new key -> archived data,
+        # rewritten to the images' new keys once those exist (Issue #704)
+        self._notes_with_images: Dict[str, dict] = {}
+        self._known_files: Dict[Tuple[Optional[str], Tuple[str, ...], bool], str] = {}
+        self._trashed_children: Dict[str, List[ZoteroItem]] = {}
+        self._trash_indexes: Tuple[Dict[str, List[ZoteroItem]], Dict[str, List[ZoteroItem]]] = (
+            {},
+            {},
+        )
+        # Existing items already matched to an archived one in this run: a match is one to one
+        # (Issue #699), so two copies of one paper map to two existing copies, not to one.
+        self._claimed: Set[str] = set()
+        # Saved searches: archive key -> key in the library (an existing equal search counts)
+        self._search_map: Dict[str, str] = {}
+        self._trashed_note_texts: Dict[str, Set[str]] = {}
 
     def restore_archive(self, file_path: str, dry_run: bool = False) -> RestoreReport:
         report = RestoreReport(is_dry_run=dry_run)
         self._note_texts = {}
+        self._created = set()
+        self._attachments_of = {}
+        self._known_notes = {}
+        self._notes_with_images = {}
+        self._known_files = {}
+        self._trashed_children = {}
+        self._trash_indexes = ({}, {})
+        self._claimed = set()
+        self._search_map = {}
+        self._trashed_note_texts = {}
 
         try:
             with zipfile.ZipFile(file_path, "r") as zf:
@@ -76,6 +140,7 @@ class RestoreService:
                 check_entry_count(zf)
                 manifest = read_json_member(zf, "manifest.json")
                 _check_manifest(manifest, file_path)
+                self._source = LibraryRef.from_manifest(manifest.get("library"))
                 items_data = read_json_member(zf, "data.json")
 
                 collections_data = []
@@ -99,6 +164,15 @@ class RestoreService:
                     self._restore_single_item(
                         item_raw, zf, manifest, report, doi_index, title_index
                     )
+
+                # 3. Notes learn the new keys of their images (Issue #704), and related items
+                # their new neighbours (Issue #686): only now do all the new keys exist
+                self._relink_note_images(report)
+                self._restore_relations(sorted_items, report)
+
+                # 4. Saved searches: their conditions name collections and other searches
+                if "searches.json" in zf.namelist():
+                    self._restore_searches(read_json_member(zf, "searches.json"), report)
 
         except Exception as e:
             report.errors.append(f"Critical error during restore: {str(e)}")
@@ -134,7 +208,8 @@ class RestoreService:
                     ec
                     for ec in existing_cols
                     if ec["data"]["name"] == name
-                    and ec["data"].get("parentCollection") == new_parent
+                    # The Web API says `false` for "no parent": that is no parent, too
+                    and (ec["data"].get("parentCollection") or None) == new_parent
                 ),
                 None,
             )
@@ -159,8 +234,8 @@ class RestoreService:
         zf: zipfile.ZipFile,
         manifest: dict,
         report: RestoreReport,
-        doi_index: Dict[str, ZoteroItem],
-        title_index: Dict[str, ZoteroItem],
+        doi_index: Dict[str, List[ZoteroItem]],
+        title_index: Dict[str, List[ZoteroItem]],
     ) -> None:
         data = item_raw.get("data", {})
         item_type = data.get("itemType")
@@ -169,9 +244,18 @@ class RestoreService:
         if item_type in ["attachment", "note"]:
             self._restore_child_item(item_raw, zf, manifest, report)
             return
+        if item_type == _ANNOTATION:
+            self._restore_annotation(item_raw, report)
+            return
+
+        old_colls = data.get("collections", [])
+        new_colls = [self.coll_map[ck] for ck in old_colls if self.coll_map.get(ck)]
 
         # 1. Idempotency: Check by DOI, ArXiv ID, or Title
-        existing_item = self._find_existing_item(data, doi_index, title_index)
+        existing_item = self._find_existing_item(data, doi_index, title_index, new_colls)
+        if existing_item is None and data.get("deleted"):
+            trash_doi, trash_title = self._trash_indexes
+            existing_item = self._find_existing_item(data, trash_doi, trash_title, new_colls)
         if existing_item:
             self.item_map[old_key] = existing_item.key
             report.items_skipped_existing += 1
@@ -179,23 +263,26 @@ class RestoreService:
 
         # 2. Prepare new item data
         new_data = data.copy()
-        for k in ["key", "version", "dateAdded", "dateModified"]:
+        # `relations` name the old item keys; they are set again once every item exists (#686).
+        # The dates stay: the Web API keeps dateAdded and dateModified given on create (#687)
+        for k in ["key", "version", "relations"]:
             new_data.pop(k, None)
-
-        old_colls = data.get("collections", [])
-        new_colls = [self.coll_map.get(ck) for ck in old_colls if self.coll_map.get(ck)]
         new_data["collections"] = new_colls
 
         # 3. Create Item
         if report.is_dry_run:
             self.item_map[old_key] = f"DRY_RUN_{old_key}"
+            self._created.add(self.item_map[old_key])
             report.items_created += 1
+            report.items_trashed += 1 if data.get("deleted") else 0
         else:
             new_key = self.items.create_generic_item(new_data)
             if new_key:
                 self.item_map[old_key] = new_key
+                self._created.add(new_key)
                 self._note_texts[new_key] = set()  # just created: no notes yet
                 report.items_created += 1
+                report.items_trashed += 1 if data.get("deleted") else 0
             else:
                 report.errors.append(f"Failed to create item: {data.get('title', 'Unknown')}")
 
@@ -205,59 +292,169 @@ class RestoreService:
         data = child_raw.get("data", {})
         item_type = data.get("itemType")
         old_parent = data.get("parentItem")
+        if old_parent is None:  # a note or file filed in a collection on its own (Issue #681)
+            self._restore_standalone(child_raw, zf, manifest, report)
+            return
         new_parent = self.item_map.get(old_parent)
 
         if not new_parent:
+            what = "note" if data.get("linkMode") == "embedded_image" else "parent"
+            report.warnings.append(
+                _not_restored(child_raw, f"its {what} {old_parent} was not restored")
+            )
             return
 
         if item_type == "note":
-            self._restore_note(data, new_parent, report)
+            self._restore_note(child_raw, new_parent, report)
         elif item_type == "attachment":
             self._restore_attachment(child_raw, zf, manifest, new_parent, report)
 
-    def _restore_note(self, data: dict, new_parent: str, report: RestoreReport) -> None:
-        note_content = data.get("note", "")
+    def _restore_standalone(
+        self, child_raw: dict, zf: zipfile.ZipFile, manifest: dict, report: RestoreReport
+    ) -> None:
+        """A note or an attachment that has no parent: a top-level item, filed in the same
+        collections as before (their keys mapped like an article's)."""
+        data = child_raw.get("data", {})
+        collections = [self.coll_map[k] for k in data.get("collections", []) if k in self.coll_map]
+        if data.get("itemType") == "attachment":
+            self._restore_attachment(child_raw, zf, manifest, None, report, collections)
+            return
+        text = _plain_note(data.get("note", ""))
+        trashed = bool(data.get("deleted"))
+        known = self._known_notes.get((text, tuple(sorted(collections)), trashed))
+        if known:
+            self._note_restored(child_raw, known, created=False)
+            report.items_skipped_existing += 1
+            return
+        new_key = (
+            f"DRY_RUN_{child_raw['key']}"
+            if report.is_dry_run
+            else self.items.create_generic_item(_note_payload(data, collections=collections))
+        )
+        if new_key:
+            self._note_restored(child_raw, new_key, created=True)
+            report.items_created += 1
+            report.items_trashed += 1 if trashed else 0
+        else:
+            report.errors.append(
+                f"Failed to create the stand-alone note: {_not_restored(child_raw, '')}"
+            )
+
+    def _restore_note(self, raw: dict, new_parent: str, report: RestoreReport) -> None:
+        data = raw.get("data", {})
+        plain = _plain_note(data.get("note", ""))
+        trashed = bool(data.get("deleted"))
+        has_images = _IMAGE_KEY.search(data.get("note", "")) is not None
         if report.is_dry_run:
+            if has_images:  # so the images under it show in the plan
+                self._plan_note_with_images(raw, new_parent, plain, trashed)
             return
 
-        existing = self._note_texts.get(new_parent)
+        existing = self._existing_note_texts(new_parent, trashed)
+        if plain in existing:
+            if has_images:
+                self._adopt_existing_note(raw, new_parent, plain, trashed)
+            return
+
+        new_key = self.items.create_generic_item(_note_payload(data, parent=new_parent))
+        if new_key:
+            existing.add(plain)
+            self._note_restored(raw, new_key, created=True)
+            report.items_trashed += 1 if trashed else 0
+
+    def _adopt_existing_note(self, raw: dict, parent: str, plain: str, trashed: bool) -> None:
+        """The note the library already has for this one, so its images are matched against the
+        ones it holds. A parent this run created has no notes yet."""
+        if parent in self._created:
+            return
+        for child in self._existing_children(parent, trashed, "note"):
+            if _plain_note(child.get("note", "")) == plain:
+                self._note_restored(raw, str(child["_key"]), created=False)
+                return
+
+    def _plan_note_with_images(self, raw: dict, parent: str, plain: str, trashed: bool) -> None:
+        """A dry run: the note exists (so its images may too) or will be created."""
+        if parent not in self._created and plain in self._existing_note_texts(parent, trashed):
+            self._adopt_existing_note(raw, parent, plain, trashed)
+        else:
+            self._note_restored(raw, f"DRY_RUN_{raw['key']}", created=True)
+
+    def _note_restored(self, raw: dict, new_key: str, created: bool) -> None:
+        """A note's new key matters only to the images embedded in it (Issue #704): they are
+        restored under it, and a note this run made gets its text rewritten to their new keys."""
+        text = raw.get("data", {}).get("note", "")
+        if _IMAGE_KEY.search(text) is None:
+            return
+        if created:
+            self._remember(raw["key"], new_key)
+            self._notes_with_images[new_key] = raw["data"]
+        else:
+            self.item_map[raw["key"]] = new_key
+
+    def _relink_note_images(self, report: RestoreReport) -> None:
+        """Points the text of the notes this run created at the new keys of their embedded
+        images (Issue #704). The archived dates are sent along so the edit does not move them."""
+        for new_key, data in self._notes_with_images.items():
+            text = _IMAGE_KEY.sub(
+                lambda m: f'data-attachment-key="{self.item_map.get(m.group(1), m.group(1))}"',
+                data.get("note", ""),
+            )
+            if text == data.get("note", "") or report.is_dry_run:
+                continue
+            payload = {"note": text}
+            payload.update({k: data[k] for k in ("dateAdded", "dateModified") if data.get(k)})
+            if not self.items.update_item(new_key, 0, payload):
+                report.errors.append(f"Failed to point the note {new_key} at its restored images")
+
+    def _existing_note_texts(self, parent: str, trashed: bool) -> Set[str]:
+        """The texts of the notes `parent` has (Issue #440: asked once per parent), live ones
+        from its children, trashed ones from the trash scan: the Web API hides a trashed
+        child from its parent's listing (Issue #683)."""
+        if trashed:
+            if parent not in self._trashed_note_texts:
+                self._trashed_note_texts[parent] = {
+                    _plain_note(str(child.raw_data.get("data", {}).get("note")))
+                    for child in self._trashed_children.get(parent, [])
+                    if child.item_type == "note"
+                }
+            return self._trashed_note_texts[parent]
+        existing = self._note_texts.get(parent)
         if existing is None:
             existing = {
-                child.get("data", {}).get("note")
-                for child in self.items.get_item_children(new_parent)
+                _plain_note(child.get("data", {}).get("note") or "")
+                for child in self.items.get_item_children(parent)
                 if child.get("data", {}).get("itemType") == "note"
             }
-            self._note_texts[new_parent] = existing
-        if note_content in existing:
-            return
-
-        if self.notes.create_note(new_parent, note_content):
-            existing.add(note_content)
+            self._note_texts[parent] = existing
+        return existing
 
     def _restore_attachment(
         self,
         child_raw: dict,
         zf: zipfile.ZipFile,
         manifest: dict,
-        new_parent: str,
+        new_parent: Optional[str],
         report: RestoreReport,
+        collections: Optional[List[str]] = None,
     ) -> None:
         data = child_raw.get("data", {})
         old_key = child_raw["key"]
-        link_mode = data.get("linkMode")
-
-        if link_mode not in ["imported_file", "linked_file"]:
+        path_in_zip = self._attachment_member(child_raw, zf, manifest)
+        if path_in_zip is None:
+            if data.get("linkMode") in ("linked_url", "linked_file"):
+                self._restore_link(child_raw, new_parent, report, collections)
+            elif data.get("linkMode") in STORED_LINK_MODES:
+                report.warnings.append(_not_restored(child_raw, "its file is not in the archive"))
             return
 
-        file_info = manifest.get("file_map", {}).get(old_key)
-        if not file_info:
-            return
-
-        path_in_zip = file_info if isinstance(file_info, str) else file_info.get("path")
-        if not path_in_zip or path_in_zip not in zf.namelist():
+        existing_key = self._attached_key(new_parent, zf, path_in_zip, data, collections)
+        if existing_key:
+            self.item_map[old_key] = existing_key  # its annotations go under it (Issue #685)
+            report.attachments_skipped_existing += 1
             return
 
         if report.is_dry_run:
+            self._remember(old_key, f"DRY_RUN_{old_key}")
             report.attachments_uploaded += 1
             return
 
@@ -272,8 +469,15 @@ class RestoreService:
                 temp_path = tf.name
                 copy_member(zf, path_in_zip, tf, MAX_ATTACHMENT_BYTES)
 
-            if self.attachments.upload_attachment(new_parent, temp_path):
+            mime_type = str(data.get("contentType") or "application/pdf")
+            item_data = _attachment_payload(data, collections if new_parent is None else None)
+            new_key = self.attachments.upload_attachment_item(
+                new_parent, temp_path, mime_type=mime_type, item_data=item_data
+            )
+            if new_key:
+                self._remember(old_key, new_key)
                 report.attachments_uploaded += 1
+                report.items_trashed += 1 if data.get("deleted") else 0
             else:
                 report.errors.append(f"Failed to upload attachment: {path_in_zip}")
         except Exception as e:
@@ -282,54 +486,487 @@ class RestoreService:
             if temp_path and os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def _remember(self, old_key: str, new_key: str) -> None:
+        """An item this run made: its new key, and nothing to match its children against."""
+        self.item_map[old_key] = new_key
+        self._created.add(new_key)
+
+    def _restore_link(
+        self,
+        child_raw: dict,
+        new_parent: Optional[str],
+        report: RestoreReport,
+        collections: Optional[List[str]],
+    ) -> None:
+        """An attachment that is only a record, no file: a web link (`linked_url`) or a file on
+        the user's own disk (`linked_file`, its path is kept). Created from its archived data."""
+        data = child_raw.get("data", {})
+        old_key = child_raw["key"]
+        existing_key = self._link_key(new_parent, data, collections)
+        if existing_key:
+            self.item_map[old_key] = existing_key
+            report.attachments_skipped_existing += 1
+            return
+        new_key = f"DRY_RUN_{old_key}"
+        if not report.is_dry_run:
+            payload = _attachment_payload(data, collections if new_parent is None else None)
+            if new_parent:
+                payload["parentItem"] = new_parent
+            created = self.items.create_generic_item(payload)
+            if not created:
+                self._link_failed(child_raw, report)
+                return
+            new_key = created
+        self._remember(old_key, new_key)
+        report.items_created += 1
+        report.items_trashed += 1 if data.get("deleted") else 0
+
+    @staticmethod
+    def _link_failed(child_raw: dict, report: RestoreReport) -> None:
+        if child_raw.get("data", {}).get("linkMode") == "linked_file":
+            # Checked against the Web API: "Linked files can only be added to user libraries".
+            # Its record stays in the archive.
+            why = "Zotero only accepts linked files in personal libraries"
+            report.warnings.append(_not_restored(child_raw, why))
+        else:
+            report.errors.append(f"Failed to create the attachment: {_not_restored(child_raw, '')}")
+
+    def _link_key(
+        self, new_parent: Optional[str], data: dict, collections: Optional[List[str]]
+    ) -> Optional[str]:
+        """The key of the link record the library already has for this one, if any."""
+        trashed = bool(data.get("deleted"))
+        target = data.get("url") or data.get("path")
+        if new_parent is None:
+            return self._known_files.get((target, tuple(sorted(collections or [])), trashed))
+        if new_parent in self._created:
+            return None
+        for existing in self._existing_children(new_parent, trashed, "attachment"):
+            if (
+                existing.get("linkMode") == data.get("linkMode")
+                and (existing.get("url") or existing.get("path")) == target
+            ):
+                return str(existing["_key"])
+        return None
+
+    def _existing_children(self, parent: str, trashed: bool, item_type: str) -> List[dict]:
+        """The `data` of the attachments (or annotations) an existing item has, each with its
+        `_key`, asked once per parent (Issue #680); the trashed ones come from the trash scan,
+        because the API hides a trashed child from its parent (#683)."""
+        cache_key = (parent, trashed, item_type)
+        if cache_key not in self._attachments_of:
+            children = (
+                [child.raw_data for child in self._trashed_children.get(parent, [])]
+                if trashed
+                else self.items.get_item_children(parent)
+            )
+            self._attachments_of[cache_key] = [
+                {**child.get("data", {}), "_key": child.get("key")}
+                for child in children
+                if child.get("data", {}).get("itemType") == item_type
+            ]
+        return self._attachments_of[cache_key]
+
+    @staticmethod
+    def _attachment_member(child_raw: dict, zf: zipfile.ZipFile, manifest: dict) -> Optional[str]:
+        """Where the archive keeps the attachment's file, or None when it has none to restore."""
+        if child_raw.get("data", {}).get("linkMode") not in (*STORED_LINK_MODES, "linked_file"):
+            return None
+        file_info = manifest.get("file_map", {}).get(child_raw["key"])
+        if not file_info:
+            return None
+        path_in_zip = file_info if isinstance(file_info, str) else file_info.get("path")
+        return path_in_zip if path_in_zip and path_in_zip in zf.namelist() else None
+
+    def _attached_key(
+        self,
+        new_parent: Optional[str],
+        zf: zipfile.ZipFile,
+        path_in_zip: str,
+        data: dict,
+        collections: Optional[List[str]] = None,
+    ) -> Optional[str]:
+        """The key of the attachment the library already has for this file, if any (Issue #680):
+        the same md5, or, for an attachment that has none, the same file name. An item this run
+        created has nothing to match. A stand-alone file (no parent) is matched by md5 within
+        the collections it is filed in (Issue #681)."""
+        if new_parent is not None and new_parent in self._created:
+            return None
+        try:
+            digest = _member_md5(zf, path_in_zip)
+        except (ArchiveLimitError, OSError, KeyError):
+            return None  # the upload reports the real problem
+        trashed = bool(data.get("deleted"))
+        if new_parent is None:
+            where = tuple(sorted(collections or []))
+            return self._known_files.get((digest, where, trashed))
+        filename = data.get("filename")
+        for other in self._existing_children(new_parent, trashed, "attachment"):
+            if other.get("md5") == digest or (
+                other.get("md5") is None and filename and other.get("filename") == filename
+            ):
+                return str(other["_key"])
+        return None
+
+    def _restore_searches(self, searches: List[dict], report: RestoreReport) -> None:
+        """Recreates the saved searches (Issue #678). A condition names a collection or another
+        search by key, so those keys are mapped to the restored ones; a search that refers to
+        something that was not restored is skipped and said, never created with a dangling
+        condition (the API stores one without complaint). A search that refers to another is
+        created after it. Equal searches already in the library are not created again."""
+        existing = {
+            _search_identity(s["data"]["name"], s["data"].get("conditions", [])): s["key"]
+            for s in self.collections.get_all_searches()
+        }
+        in_archive = {s["key"] for s in searches}
+
+        def can_go(search: dict) -> bool:
+            # every search it refers to is done, or is not in the archive (then it warns)
+            return all(
+                ref in self._search_map or ref not in in_archive for ref in _search_refs(search)
+            )
+
+        waiting = list(searches)
+        while waiting:
+            ready = [s for s in waiting if can_go(s)] or waiting  # `or`: a loop of references
+            waiting = [s for s in waiting if s not in ready]
+            for search in ready:
+                self._restore_search(search, existing, report)
+
+    def _restore_search(
+        self, search: dict, existing: Dict[Any, str], report: RestoreReport
+    ) -> None:
+        data = search["data"]
+        conditions = self._map_conditions(search, report)
+        if conditions is None:
+            return
+        identity = _search_identity(data["name"], conditions)
+        if identity in existing:
+            self._search_map[search["key"]] = existing[identity]
+            report.searches_skipped_existing += 1
+            return
+        new_key = f"DRY_RUN_{search['key']}"
+        if not report.is_dry_run:
+            created = self.collections.create_search(data["name"], conditions)
+            if not created:
+                report.errors.append(f'Failed to create the saved search "{data["name"]}"')
+                return
+            new_key = created
+        self._search_map[search["key"]] = new_key
+        existing[identity] = new_key
+        report.searches_created += 1
+
+    def _map_conditions(self, search: dict, report: RestoreReport) -> Optional[List[dict]]:
+        """The search's conditions with their collection and search keys replaced by the
+        restored ones, or None (with a warning) when one cannot be."""
+        name = search["data"]["name"]
+        mapped = []
+        for original in search["data"].get("conditions", []):
+            condition = dict(original)
+            kind, value = condition.get("condition"), condition.get("value")
+            if kind in ("collection", "savedSearch"):
+                lookup = self.coll_map if kind == "collection" else self._search_map
+                if value not in lookup:
+                    what = "collection" if kind == "collection" else "saved search"
+                    report.warnings.append(
+                        f'saved search "{name}" ({search["key"]}): refers to the {what} {value}, '
+                        "which was not restored"
+                    )
+                    return None
+                condition["value"] = lookup[value]
+            mapped.append(condition)
+        return mapped
+
+    def _restore_relations(self, items: List[dict], report: RestoreReport) -> None:
+        """Gives the items this run created their related-item links back, pointing at the new
+        items (Issue #686). Both ends are stored on both items, so each side is rewritten."""
+        for raw in items:
+            relations = raw.get("data", {}).get("relations") or {}
+            new_key = self.item_map.get(raw["key"])
+            if not relations or not new_key or new_key not in self._created:
+                continue
+            mapped = self._map_relations(relations, raw, report)
+            count = sum(len(uris) for uris in mapped.values())
+            if not count:
+                continue
+            if report.is_dry_run or self.items.update_item(new_key, 0, {"relations": mapped}):
+                report.relations_restored += count
+            else:
+                report.errors.append(
+                    f"Failed to restore the related items of {_not_restored(raw, '')}"
+                )
+
+    def _map_relations(
+        self, relations: dict, raw: dict, report: RestoreReport
+    ) -> Dict[str, List[str]]:
+        mapped: Dict[str, List[str]] = {}
+        for predicate, targets in relations.items():
+            for uri in [targets] if isinstance(targets, str) else targets:
+                new_uri = self._new_uri(str(uri), raw, report)
+                if new_uri:
+                    mapped.setdefault(predicate, []).append(new_uri)
+        return mapped
+
+    def _new_uri(self, uri: str, raw: dict, report: RestoreReport) -> Optional[str]:
+        """The link to the restored item, the same link when it is not one of ours (another
+        library's item, or no item at all), or None when it names an item of the archive's
+        library that the archive does not hold: it is dropped and said, never pointed at a
+        wrong item."""
+        match = _ITEM_URI.match(uri)
+        if not match:
+            return uri
+        scope, library_id, old_key = match.groups()
+        library_type = "user" if scope == "users" else "group"
+        if self._source is not None and not self._source.same_as(
+            LibraryRef(library_type, library_id)
+        ):
+            return uri  # an item of another library: nothing of ours
+        new_key = self.item_map.get(old_key)
+        if not new_key:
+            if self._source is None:
+                return uri  # an archive that does not say where it is from: cannot tell
+            report.warnings.append(
+                _not_restored(raw, f"related item {old_key} is not in the archive, link dropped")
+            )
+            return None
+        if self.library is None:
+            return _ITEM_URI.sub(lambda m: _item_uri(m[1], m[2], new_key), uri)
+        scope = "users" if self.library.type == "user" else "groups"
+        return _item_uri(scope, self.library.id, new_key)
+
+    def _restore_annotation(self, raw: dict, report: RestoreReport) -> None:
+        """A highlight, note, ink or underline of a PDF (Issue #685): a child of the PDF
+        attachment, so it goes under that attachment's *new* key."""
+        data = raw.get("data", {})
+        parent = self.item_map.get(data.get("parentItem"))
+        if not parent:
+            report.warnings.append(_not_restored(raw, "its PDF was not restored"))
+            return
+        trashed = bool(data.get("deleted"))
+        if self._annotation_exists(parent, data, trashed):
+            report.items_skipped_existing += 1
+        elif report.is_dry_run or self.items.create_generic_item(_annotation_payload(data, parent)):
+            report.items_created += 1
+            report.items_trashed += 1 if trashed else 0
+        else:
+            report.errors.append(f"Failed to create the annotation: {_not_restored(raw, '')}")
+
+    def _annotation_exists(self, parent: str, data: dict, trashed: bool) -> bool:
+        if parent in self._created:
+            return False
+        fields = ("annotationType", "annotationPosition", "annotationText", "annotationComment")
+        return any(
+            all(other.get(f) == data.get(f) for f in fields)
+            for other in self._existing_children(parent, trashed, _ANNOTATION)
+        )
+
     def _build_existing_item_indexes(
         self,
-    ) -> Tuple[Dict[str, ZoteroItem], Dict[str, ZoteroItem]]:
+    ) -> Tuple[Dict[str, List[ZoteroItem]], Dict[str, List[ZoteroItem]]]:
         """
         One get_all_items() pass, indexed by normalized DOI and lowercased
-        title, reused by every _find_existing_item() call instead of each
-        item doing its own get_items_by_doi() scan plus (on a miss) its own
-        get_all_items() scan - two full-library scans per item instead of
-        one for the whole restore (Issue #277, same class as #267).
+        title (each with the list of items that have it: a library can hold the
+        same paper twice, Issue #699), reused by every _find_existing_item() call
+        instead of each item doing its own get_items_by_doi() scan plus (on a
+        miss) its own get_all_items() scan - two full-library scans per item
+        instead of one for the whole restore (Issue #277, same class as #267).
         """
-        doi_index: Dict[str, ZoteroItem] = {}
-        title_index: Dict[str, ZoteroItem] = {}
+        doi_index: Dict[str, List[ZoteroItem]] = {}
+        title_index: Dict[str, List[ZoteroItem]] = {}
         for item in self.items.get_all_items():
-            if item.doi:
-                normalized = normalize_doi(item.doi)
-                if normalized and normalized not in doi_index:
-                    doi_index[normalized] = item
-            if item.title:
-                key = item.title.lower()
-                if key not in title_index:
-                    title_index[key] = item
+            self._note_standalone(item, False)
+            _index_item(item, doi_index, title_index)
+        trash_doi: Dict[str, List[ZoteroItem]] = {}
+        trash_title: Dict[str, List[ZoteroItem]] = {}
+        for item in self.items.get_trash_items():
+            self._note_standalone(item, True)
+            if item.parent_item:
+                self._trashed_children.setdefault(item.parent_item, []).append(item)
+            else:
+                _index_item(item, trash_doi, trash_title)
+        self._trash_indexes = (trash_doi, trash_title)
         return doi_index, title_index
+
+    def _note_standalone(self, item: ZoteroItem, trashed: bool) -> None:
+        """Remembers the stand-alone notes and files already in the library (Issue #681)."""
+        if item.parent_item:
+            return
+        data = item.raw_data.get("data", {})
+        where = tuple(sorted(item.collections))
+        if item.item_type == "note":
+            self._known_notes[(_plain_note(data.get("note", "")), where, trashed)] = item.key
+        elif item.item_type == "attachment":
+            identity = data.get("md5") or data.get("url") or data.get("path")
+            self._known_files[(identity, where, trashed)] = item.key
 
     def _find_existing_item(
         self,
         data: dict,
-        doi_index: Dict[str, ZoteroItem],
-        title_index: Dict[str, ZoteroItem],
+        doi_index: Dict[str, List[ZoteroItem]],
+        title_index: Dict[str, List[ZoteroItem]],
+        collections: Optional[List[str]] = None,
     ) -> Optional[ZoteroItem]:
-        doi = data.get("DOI")
-        if doi:
-            normalized = normalize_doi(doi)
-            if normalized and normalized in doi_index:
-                return doi_index[normalized]
-
-        # Fallback to Title + Year matching for robustness [SPEC-ZAF-002-UPDATE]
-        title = data.get("title")
-        if title:
-            # Simple exact title match as a baseline
-            return title_index.get(title.lower())
-        return None
+        """The existing item that is this archived one, claimed so no other archived item can
+        match it (Issue #699). Of several with the same DOI (or title), the one filed in the
+        same collections, then with the same URL, then the first."""
+        doi = normalize_doi(data["DOI"]) if data.get("DOI") else None
+        if doi and doi in doi_index:
+            candidates = doi_index[doi]
+        else:
+            # Fallback to Title + Year matching for robustness [SPEC-ZAF-002-UPDATE]
+            title = data.get("title")
+            candidates = title_index.get(title.lower(), []) if title else []
+        free = [c for c in candidates if c.key not in self._claimed]
+        if not free:
+            return None
+        wanted = set(collections or [])
+        best = max(free, key=lambda c: (set(c.collections) == wanted, c.url == data.get("url")))
+        self._claimed.add(best.key)
+        return best
 
     def _sort_items_by_hierarchy(self, items: List[dict]) -> List[dict]:
-        parents = []
-        children = []
+        """Parents first, then their notes and attachments, then the annotations of the PDFs
+        (grandchildren, Issue #685): each needs the new key of the one before."""
+        parents, children, images, annotations = [], [], [], []
         for i in items:
-            if i.get("data", {}).get("itemType") in ["attachment", "note"]:
+            item_type = i.get("data", {}).get("itemType")
+            if i.get("data", {}).get("linkMode") == "embedded_image":
+                images.append(i)  # children of a note (Issue #704)
+            elif item_type in ["attachment", "note"]:
                 children.append(i)
+            elif item_type == _ANNOTATION:
+                annotations.append(i)
             else:
                 parents.append(i)
-        return parents + children
+        return parents + children + images + annotations
+
+
+class _Md5Sink:
+    """A write-only file that only hashes what it is given."""
+
+    def __init__(self) -> None:
+        self.md5 = hashlib.md5(usedforsecurity=False)
+
+    def write(self, chunk: bytes) -> int:
+        self.md5.update(chunk)
+        return len(chunk)
+
+
+def _member_md5(zf: zipfile.ZipFile, name: str) -> str:
+    sink = _Md5Sink()
+    copy_member(zf, name, cast(IO[bytes], sink), MAX_ATTACHMENT_BYTES)
+    return sink.md5.hexdigest()
+
+
+_IMAGE_KEY = re.compile(r'data-attachment-key="([A-Z0-9]{8})"')
+
+
+def _plain_note(text: str) -> str:
+    """A note's text without the keys of its embedded images, which change with every restore:
+    what two copies of one note have in common (Issue #704)."""
+    return _IMAGE_KEY.sub('data-attachment-key=""', text)
+
+
+def _not_restored(raw: dict, why: str) -> str:
+    """`<type> "<title or start of the note>" (<key>): <why>`, for the restore report."""
+    data = raw.get("data", {})
+    text = data.get("title") or data.get("filename") or str(data.get("note", ""))[:40]
+    label = f'{data.get("itemType", "item")} "{text}" ({raw.get("key", "?")})'
+    return f"{label}: {why}" if why else label
+
+
+def _note_payload(
+    data: dict, parent: Optional[str] = None, collections: Optional[List[str]] = None
+) -> dict:
+    """A note created from what the archive holds about it (Issue #682): its text and its tags,
+    with their types, under the new parent or in the mapped collections. `create_note` only
+    ever sent the text."""
+    payload: dict = {"itemType": "note", "note": data.get("note", ""), "tags": data.get("tags", [])}
+    if parent:
+        payload["parentItem"] = parent
+    if collections is not None:
+        payload["collections"] = collections
+    if data.get("deleted"):
+        payload["deleted"] = 1  # the Web API honours it on create (checked on a test library)
+    payload.update({k: data[k] for k in ("dateAdded", "dateModified") if data.get(k)})
+    if _IMAGE_KEY.search(data.get("note", "")):
+        # Edited right after (to name the new images): the API keeps a modification date that
+        # equals the stored one as "unchanged" and stamps the edit, so it is sent then, when
+        # it differs (Issue #704, checked on a test library).
+        payload.pop("dateModified", None)
+    return payload
+
+
+def _index_item(
+    item: ZoteroItem,
+    doi_index: Dict[str, List[ZoteroItem]],
+    title_index: Dict[str, List[ZoteroItem]],
+) -> None:
+    """Files `item` by its normalised DOI and its lower-cased title, in listing order."""
+    if item.doi:
+        normalized = normalize_doi(item.doi)
+        if normalized:
+            doi_index.setdefault(normalized, []).append(item)
+    if item.title:
+        title_index.setdefault(item.title.lower(), []).append(item)
+
+
+# What an archived attachment has that a new one must not carry over: its identity and
+# bookkeeping (the relations are set later, #686; the dates are kept, #687).
+_ATTACHMENT_LOCAL = {
+    "key",
+    "version",
+    "parentItem",
+    "collections",
+    "relations",
+    "md5",
+    "mtime",
+    "deleted",
+}
+
+
+def _attachment_payload(data: dict, collections: Optional[List[str]] = None) -> Dict[str, Any]:
+    """An attachment created from what the archive holds about it (Issue #684): title, file name,
+    content type, link mode (`imported_file` or `imported_url`), url, access date, tags. The
+    upload used to name everything after its temporary file."""
+    payload = {k: v for k, v in data.items() if k not in _ATTACHMENT_LOCAL}
+    payload.setdefault("title", "")  # never the upload's default, the temporary file's name
+    if collections is not None:
+        payload["collections"] = collections
+    if data.get("deleted"):
+        payload["deleted"] = 1
+    return payload
+
+
+def _annotation_payload(data: dict, parent: str) -> Dict[str, Any]:
+    """An annotation created from what the archive holds about it, under the restored PDF
+    (Issue #685): type, text, comment, colour, page label, sort index, position and tags (the
+    real API takes all of these as they were archived, checked on a test library)."""
+    payload = {k: v for k, v in data.items() if k not in _ATTACHMENT_LOCAL}
+    payload["parentItem"] = parent
+    if data.get("deleted"):
+        payload["deleted"] = 1
+    return payload
+
+
+def _item_uri(scope: str, library_id: str, key: str) -> str:
+    # NOSONAR (S5332): Zotero's name for an item inside a relation. The Web API stores and returns
+    # it with `http`; it identifies the item and is never fetched.
+    return f"http://zotero.org/{scope}/{library_id}/items/{key}"  # NOSONAR
+
+
+def _search_refs(search: dict) -> Set[str]:
+    """The keys of the saved searches this search refers to."""
+    return {
+        c.get("value", "")
+        for c in search["data"].get("conditions", [])
+        if c.get("condition") == "savedSearch"
+    }
+
+
+def _search_identity(name: str, conditions: List[dict]) -> Tuple[str, Tuple[Tuple[Any, ...], ...]]:
+    """What makes two saved searches the same: the name and each condition's (condition,
+    operator, value), in order."""
+    return name, tuple(
+        (c.get("condition"), c.get("operator"), str(c.get("value"))) for c in conditions
+    )

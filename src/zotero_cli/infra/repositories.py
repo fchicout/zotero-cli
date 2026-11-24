@@ -52,6 +52,9 @@ class ZoteroItemRepository(ItemRepository):
     def get_items_by_doi(self, doi: str) -> Iterator[ZoteroItem]:
         return self.gateway.get_items_by_doi(doi)
 
+    def get_trash_items(self) -> Iterator[ZoteroItem]:
+        return self.gateway.get_trash_items()
+
     def get_all_items(self) -> Iterator[ZoteroItem]:
         return self.gateway.get_all_items()
 
@@ -65,6 +68,12 @@ class ZoteroCollectionRepository(CollectionRepository):
 
     def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
         return self.gateway.get_collection(collection_key)
+
+    def get_all_searches(self) -> List[Dict[str, Any]]:
+        return self.gateway.get_all_searches()
+
+    def create_search(self, name: str, conditions: List[Dict[str, Any]]) -> Optional[str]:
+        return self.gateway.create_search(name, conditions)
 
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
         return self.gateway.get_collection_id_by_name(name)
@@ -159,9 +168,22 @@ class ZoteroAttachmentRepository(AttachmentRepository):
         self.gateway = gateway
 
     def upload_attachment(
-        self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
-        return self.gateway.upload_attachment(parent_item_key, file_path, mime_type)
+        return self.gateway.upload_attachment(parent_item_key, file_path, mime_type, item_data)
+
+    def upload_attachment_item(
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
+        return self.gateway.upload_attachment_item(parent_item_key, file_path, mime_type, item_data)
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:
         return self.gateway.download_attachment(item_key, save_path)

@@ -21,13 +21,14 @@ Creates a self-contained, portable backup archive (`.zaf`) of a specific collect
 ## 4. Description (Instructional Architecture)
 The `collection backup` command provides a robust mechanism for archiving snapshots of your research. Unlike standard Zotero exports, the Zotero Archive Format (`.zaf`) is specifically designed to preserve the full internal state of a collection, making it ideal for point-in-time preservation or for sharing a complete dataset with a collaborator. 
 
-It traverses the entire collection hierarchy, fetches the JSON metadata for every item, and collects all associated file attachments (PDFs, notes). These are then compressed and bundled into a single `.zaf` file. 
+It traverses the entire collection hierarchy (the collection and every sub-collection below it, each item once), fetches the JSON metadata for every item, and collects every attachment file Zotero stores for those items: PDFs and other files you added, web snapshots and files Zotero downloaded from a URL (including PDFs saved by the Zotero Connector), and images pasted into notes. Web links have no file, and a linked file (one that lives on your own disk) cannot be fetched through the Web API: its record and path are kept, and the missing file is listed in the archive's `errors.log`. The archive also records the collection and every sub-collection below it (names, nesting, keys), so the tree can be rebuilt on restore; collections outside the backup that an item is also filed in are not added, and a restore ignores them. Everything is then compressed and bundled into a single `.zaf` file. 
 
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
 | `--collection` | String | Collection name or key | Required. |
 | `--output` | String | Output file path | Required. |
+| `--trash` | Flag | Also back up the items of this collection (and its sub-collections) that are in Zotero's trash | Without it the trash is left out (the default). With it, trashed items are saved with their children (notes, attachments with their files, annotations) and their `deleted` flag, and the manifest says `includes_trash`. Collections that are themselves in the trash are not covered. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Archiving a finished project
@@ -36,5 +37,5 @@ It traverses the entire collection hierarchy, fetches the JSON metadata for ever
 **Result:** A single portable file is created that contains everything needed to reconstruct the project state later.
 
 ## 7. Cognitive Safeguards
-- **Common Failure Modes:** Attempting to backup to a directory without write permissions or to an external drive with insufficient space. 
+- **Common Failure Modes:** A backup that could not save every file (a download failed) is still written, but the command prints what is missing, does not say "Backup complete" and exits with status 7; the archive's `errors.log` lists every problem. Linked files are only a note. Attempting to backup to a directory without write permissions or to an external drive with insufficient space. 
 - **Safety Tips:** Always perform a backup *before* using destructive commands like `collection clean` or `collection delete`. The `.zaf` format can be restored using the `system restore` command.

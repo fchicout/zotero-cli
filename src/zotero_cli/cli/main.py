@@ -5,10 +5,10 @@ def verify_environment() -> None:
     """
     Ensure the runtime environment meets minimum requirements before loading dependencies.
     """
-    if sys.version_info < (3, 11):
+    if sys.version_info < (3, 11, 5):
         error_msg = (
             "Incompatible Environment Detected\n\n"
-            "Zotero CLI requires Python 3.11 or higher.\n"
+            "Zotero CLI requires Python 3.11.5 or higher.\n"
             f"Current version: {sys.version}."
         )
         try:
@@ -24,20 +24,6 @@ def verify_environment() -> None:
         sys.exit(1)
 
 
-def warn_if_python_floor_ahead(version: tuple = tuple(sys.version_info[:3])) -> None:
-    """Announced in 4.1.1: from 4.2.0 the minimum is Python 3.11.5, because the
-    fixed releases of soupsieve (a dependency of beautifulsoup4, with open
-    advisories) need it. Warns on stderr only, so stdout and exit codes are
-    unchanged."""
-    if version < (3, 11, 5):
-        print(
-            "Warning: zotero-cli 4.2.0 will require Python 3.11.5 or newer "
-            f"(this is {version[0]}.{version[1]}.{version[2]}); "
-            "update Python to keep receiving fixes.",
-            file=sys.stderr,
-        )
-
-
 # Run pre-flight checks before importing internal modules
 verify_environment()
 
@@ -49,8 +35,9 @@ from typing import Any  # noqa: E402
 from zotero_cli import __version__  # noqa: E402
 from zotero_cli.cli import commands  # noqa: F401, E402 (Trigger registration)
 from zotero_cli.cli.base import CommandRegistry  # noqa: E402
+from zotero_cli.cli.flags import group_id  # noqa: E402
 from zotero_cli.cli.notify import stderr_notify  # noqa: E402
-from zotero_cli.core.config import get_config  # noqa: E402
+from zotero_cli.core.config import get_config, set_group_override  # noqa: E402
 from zotero_cli.core.exceptions import EXIT_CODES, ZoteroCliError  # noqa: E402
 from zotero_cli.core.logging_config import setup_logging  # noqa: E402
 from zotero_cli.core.runtime import set_offline_mode  # noqa: E402
@@ -100,7 +87,17 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("-V", "--version", action="version", version=f"zotero-cli {__version__}")
-    parser.add_argument("--user", action="store_true", help="Force Personal Library mode")
+    library = parser.add_mutually_exclusive_group()
+    library.add_argument("--user", action="store_true", help="Force Personal Library mode")
+    library.add_argument(
+        "--group",
+        type=group_id,
+        metavar="GROUP",
+        help=(
+            "Use this group library (its numeric id or its URL) for this run, instead of "
+            "the one in the configuration. Cannot be combined with --user."
+        ),
+    )
     parser.add_argument(
         "--offline",
         action="store_true",
@@ -136,13 +133,13 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     # First, so even a usage error or --help is safe on a legacy console (#513).
     make_output_streams_tolerant()
-    warn_if_python_floor_ahead()
     # Domain services speak through this sink; without it they only log (Issue #393).
     set_default_notify(stderr_notify)
     parser = build_parser()
     args = parser.parse_args()
 
     set_offline_mode(args.offline)
+    set_group_override(args.group)
 
     # Issue #292: without this, logger.info/.debug calls vanish entirely
     # (default root level is WARNING with no handler) and logger.warning/

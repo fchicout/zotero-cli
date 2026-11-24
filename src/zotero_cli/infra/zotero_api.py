@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, TypeVar, cast
 import requests
 
 from zotero_cli.core import annotations as annotation_records
-from zotero_cli.core.exceptions import AuthError, NotFound
+from zotero_cli.core.exceptions import AuthError, NotFound, ZoteroCliError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.logging_config import redact
 from zotero_cli.core.models import (
@@ -145,6 +145,23 @@ class ZoteroAPIClient(ZoteroGateway):
             "fetching collections",
             [],
             lambda: list(self._paginate("collections")),
+        )
+
+    def create_search(self, name: str, conditions: List[Dict[str, Any]]) -> Optional[str]:
+        try:
+            response = self.http.post(
+                "searches", json_data=[{"name": name, "conditions": conditions}]
+            )
+            return self._parse_write_response(response)
+        except (ZoteroCliError, requests.RequestException, ValueError, KeyError):
+            logger.exception("ZoteroAPIClient: Error creating saved search")
+            return None
+
+    def get_all_searches(self) -> List[Dict[str, Any]]:
+        return self._safe_execute(
+            "fetching saved searches",
+            [],
+            lambda: list(self._paginate("searches")),
         )
 
     def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
@@ -844,8 +861,26 @@ class ZoteroAPIClient(ZoteroGateway):
         return self.update_item(item_key, version, metadata)
 
     def upload_attachment(
-        self, parent_item_key: str, file_path: str, mime_type: str = "application/pdf"
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
+        return (
+            self.upload_attachment_item(parent_item_key, file_path, mime_type, item_data)
+            is not None
+        )
+
+    def upload_attachment_item(
+        self,
+        parent_item_key: Optional[str],
+        file_path: str,
+        mime_type: str = "application/pdf",
+        item_data: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
+        """`upload_attachment`, returning the key of the new attachment (None if it failed):
+        what a restore needs to hang the annotations of a PDF on it (Issue #685)."""
         attachment_key: Optional[str] = None
         try:
             filename = os.path.basename(file_path)
@@ -859,23 +894,30 @@ class ZoteroAPIClient(ZoteroGateway):
             md5 = md5_hash.hexdigest()
 
             # 1. Create Attachment Item placeholder
-            payload = [
-                {
-                    "itemType": "attachment",
-                    "linkMode": "imported_file",
-                    "parentItem": parent_item_key,
-                    "title": filename,
-                    "contentType": mime_type,
-                }
-            ]
+            item: Dict[str, Any] = {
+                "itemType": "attachment",
+                "linkMode": "imported_file",
+                "title": filename,
+                "contentType": mime_type,
+            }
+            item.update(item_data or {})
+            if parent_item_key:
+                item["parentItem"] = parent_item_key
+            payload = [item]
 
             res = self.http.post("items", json_data=payload)
             attachment_key = self._parse_write_response(res)
             if not attachment_key:
-                return False
+                return None
 
             # 2. Get Upload Authorization
-            auth_data = {"md5": md5, "filename": filename, "filesize": filesize, "mtime": mtime}
+            # `filename` of the item (restore passes the archived one), else the file's own name
+            auth_data = {
+                "md5": md5,
+                "filename": item.get("filename") or filename,
+                "filesize": filesize,
+                "mtime": mtime,
+            }
             # If-None-Match: * signals "no existing version of this attachment"
             # - true here since it was just created in step 1. Zotero 428s
             # this request if If-Unmodified-Since-Version is also sent
@@ -893,7 +935,7 @@ class ZoteroAPIClient(ZoteroGateway):
             auth_resp_data = auth_res.json()
 
             if auth_resp_data.get("exists") == 1:
-                return True
+                return attachment_key
 
             upload_url = auth_resp_data["url"]
             upload_params = auth_resp_data.get("params", {})
@@ -913,7 +955,7 @@ class ZoteroAPIClient(ZoteroGateway):
             }
             self.http.post_form(f"items/{attachment_key}/file", data=reg_data, headers=reg_headers)
 
-            return True
+            return attachment_key
 
         except Exception:
             logger.exception("ZoteroAPIClient: Error uploading attachment")
@@ -922,7 +964,7 @@ class ZoteroAPIClient(ZoteroGateway):
                 # attachment placeholder item - clean it up rather than
                 # leaving an empty orphaned item behind (Issue #191).
                 self.delete_item(attachment_key, 0)
-            return False
+            return None
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:
         try:
