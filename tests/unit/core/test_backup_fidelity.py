@@ -637,11 +637,71 @@ def test_a_collection_backup_records_the_collection_tree(world: World) -> None:
     assert {"COLA0001", "COLA1001", "COLA1A01"} <= {c["key"] for c in archive.collections}
 
 
-@discrepancy("D8", "annotations are grandchildren of the items listed: they are not fetched")
 def test_a_collection_backup_includes_pdf_annotations(world: World) -> None:
     archive = backup_collection(world, "COLA0001")
 
     assert {"ANN00001", "ANN00002"} <= set(archive.keys)
+    assert archive.by_key["ANN00001"]["data"]["parentItem"] == "PDF00001"
+
+
+def test_annotations_come_after_their_pdf_in_the_archive(world: World) -> None:
+    archive = backup_collection(world, "COLA0001")
+
+    keys = archive.keys
+    assert keys.index("JRN00001") < keys.index("PDF00001") < keys.index("ANN00001")
+
+
+def test_a_collection_backup_includes_the_images_embedded_in_its_notes(world: World) -> None:
+    archive = backup_collection(world, "COLA0001")
+
+    assert archive.by_key["EMB00001"]["data"]["parentItem"] == "NOT00001"
+    assert archive.file_of("EMB00001") == PNG
+
+
+def test_the_annotations_of_a_stand_alone_pdf_are_included_too(world: World) -> None:
+    world.lib.add_item("ANN0STND", "annotation", parent="STND0001", annotationType="highlight")
+
+    archive = backup_collection(world, "COLA0001")
+
+    assert "ANN0STND" in archive.keys
+
+
+def test_a_pdf_without_annotations_adds_nothing(world: World) -> None:
+    archive = backup_collection(world, "COLA1A01")
+
+    assert sorted(archive.keys) == ["BK1PDF01", "BOOK0001"]
+
+
+def test_collection_and_library_backups_hold_the_same_annotations(world: World) -> None:
+    from_collection = {k for k in backup_collection(world, "COLA0001").keys if k.startswith("ANN")}
+    from_library = {k for k in backup_system(world).keys if k.startswith("ANN")}
+
+    assert from_collection == from_library == {"ANN00001", "ANN00002"}
+
+
+def test_annotations_cost_requests_per_listing_not_per_pdf(world: World) -> None:
+    """Ten more articles with a PDF and an annotation each: the annotations are found with a
+    scan of the annotation type, not one children request per PDF."""
+    pdfs = []
+    for i in range(10):
+        world.lib.add_item(f"ART{i:05d}", "book", collections=["COLA0001"], title=f"b{i}")
+        world.lib.add_item(
+            f"PDF{i:05d}",
+            "attachment",
+            parent=f"ART{i:05d}",
+            linkMode="imported_file",
+            filename=f"p{i}.pdf",
+            file=b"%PDF" + bytes([i]),
+        )
+        world.lib.add_item(f"ANN{i:05d}", "annotation", parent=f"PDF{i:05d}")
+        pdfs.append(f"PDF{i:05d}")
+    world.lib.requests.clear()
+
+    archive = backup_collection(world, "COLA0001")
+
+    assert {f"ANN{i:05d}" for i in range(10)} <= set(archive.keys)
+    per_pdf = [r for r in world.lib.requests if r in {f"items/{k}/children" for k in pdfs}]
+    assert per_pdf == []
 
 
 # =============================================================================================
