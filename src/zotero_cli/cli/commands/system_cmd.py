@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from rich.markup import escape
 from rich.table import Table
 
+from zotero_cli.cli.backup_summary import finish_backup
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag, user_flag
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
@@ -511,6 +512,16 @@ class SystemCommand(BaseCommand):
             console.print(
                 f"  - Timestamp: {safe_markup(report.manifest.get('timestamp') if report.manifest else 'N/A')}"
             )
+            if report.logged_errors:
+                console.print(
+                    f"  - [yellow]Incomplete:[/yellow] errors.log lists {report.logged_errors} "
+                    "problem(s); some items or files are missing from this backup"
+                )
+            if report.logged_skipped:
+                console.print(
+                    f"  - {report.logged_skipped} linked file(s) were not backed up "
+                    "(they live on your own computer)"
+                )
         else:
             console.print("\n[bold red]❌ ARCHIVE IS INVALID OR CORRUPT[/bold red]")
             for error in report.errors:
@@ -934,9 +945,8 @@ class SystemCommand(BaseCommand):
                 # Let's check if we can get a quick count.
                 # If not, it stays indeterminate until we find a way.
 
-                service.backup_system(args.output, on_item_processed=on_item)
+                report = service.backup_system(args.output, on_item_processed=on_item)
                 progress.update(task, description="Finalizing .zaf container...")
-
-            console.print(f"[bold green]Backup complete:[/bold green] {safe_markup(args.output)}")
         except Exception as e:
             raise ZoteroCliError(f"Backup failed: {e}") from e
+        finish_backup(report, args.output, console)

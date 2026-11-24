@@ -17,6 +17,10 @@ class VerificationReport:
     file_count: int = 0
     item_count: int = 0
     collection_count: int = 0
+    # What the archive's own errors.log says (Issue #656): the archive can be intact and
+    # still lack items or files the backup could not save.
+    logged_errors: int = 0
+    logged_skipped: int = 0
 
 
 class VerifyService:
@@ -63,6 +67,9 @@ class VerifyService:
                     except Exception as e:
                         report.is_valid = False
                         report.errors.append(f"Invalid data.json: {str(e)}")
+
+                if "errors.log" in file_list:
+                    self._count_logged_problems(zf, report)
 
                 # 3. Verify Collections (Optional for collection scope, required for library scope)
                 if report.manifest and report.manifest.get("scope_type") == "library":
@@ -116,6 +123,16 @@ class VerifyService:
             report.errors.append(f"Critical error during verification: {str(e)}")
 
         return report
+
+    @staticmethod
+    def _count_logged_problems(zf: zipfile.ZipFile, report: VerificationReport) -> None:
+        with zf.open("errors.log") as log:
+            text = log.read(1_000_000).decode("utf-8", errors="replace")
+        for line in text.splitlines():
+            if line.startswith("SKIPPED: "):
+                report.logged_skipped += 1
+            elif line.strip():
+                report.logged_errors += 1
 
     def _calculate_checksum(self, zf: zipfile.ZipFile, path: str) -> str:
         with zf.open(path) as f:

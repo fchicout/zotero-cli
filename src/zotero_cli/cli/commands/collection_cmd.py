@@ -6,6 +6,7 @@ from rich.markup import escape
 from rich.table import Table
 from rich.tree import Tree
 
+from zotero_cli.cli.backup_summary import finish_backup
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.flags import (
     add_bibliography_flags,
@@ -645,12 +646,11 @@ class CollectionCommand(BaseCommand):
                 def on_item(item: ZoteroItem) -> None:
                     progress.update(task, advance=1, description=f"Backing up: {item.key}")
 
-                service.backup_collection(col_id, args.output, on_item_processed=on_item)
+                report = service.backup_collection(col_id, args.output, on_item_processed=on_item)
                 progress.update(task, description="Finalizing .zaf container...")
-
-            console.print(f"[bold green]Backup complete:[/bold green] {safe_markup(args.output)}")
         except Exception as e:
             raise ZoteroCliError(f"Backup failed: {e}") from e
+        finish_backup(report, args.output, console)
 
     def _handle_export(self, args: argparse.Namespace) -> None:
         if args.export_format == "md":

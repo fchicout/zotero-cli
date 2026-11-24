@@ -991,14 +991,85 @@ def test_cli_selects_a_group_library_with_a_parameter_on_the_call(cli: Cli, tmp_
     assert cli.server.libraries[USER].requests == []
 
 
-@discrepancy("D5", "errors.log is written but the command prints 'Backup complete' and exits 0")
 def test_cli_signals_a_backup_that_lacks_files(cli: Cli, tmp_path: Path) -> None:
     cli.server.libraries[GROUP].broken_files.add("PDF00001")
+    out = tmp_path / "partial.zaf"
 
-    result = cli.run("system", "backup", "--output", str(tmp_path / "partial.zaf"))
+    result = cli.run("system", "backup", "--output", str(out))
 
     assert result.code == PartialFailure.exit_code
     assert "Backup complete" not in result.out
+    assert "incomplete" in result.err
+    assert "errors.log" in result.err
+    assert "PDF00001" in result.err
+    assert "PDF00001" in Archive(out).by_key, "the archive is still written"
+
+
+def test_cli_collection_backup_also_signals_missing_files(cli: Cli, tmp_path: Path) -> None:
+    cli.server.libraries[GROUP].broken_files.add("PDF00001")
+
+    result = cli.run(
+        "collection", "backup", "--collection", "COLA0001", "--output", str(tmp_path / "c.zaf")
+    )
+
+    assert result.code == PartialFailure.exit_code
+    assert "Backup complete" not in result.out
+
+
+def test_cli_linked_files_are_a_note_not_a_failure(cli: Cli, tmp_path: Path) -> None:
+    """A linked file lives on the user's computer: the Web API cannot back it up."""
+    out = tmp_path / "linked.zaf"
+
+    result = cli.run("system", "backup", "--output", str(out))
+
+    assert result.code == 0
+    assert "Backup complete" in result.out
+    assert "1 linked file(s)" in result.out
+    assert "SKIPPED" in Archive(out).errors
+
+
+def test_the_service_reports_what_it_wrote_and_what_it_could_not(world: World) -> None:
+    world.lib.broken_files.add("BK1PDF01")
+
+    report = world.service.backup_system(BytesIO())
+
+    assert report.items == len(ALL_LIVE)
+    assert report.files == 5  # all stored files except the broken book PDF
+    assert not report.complete
+    assert [e for e in report.errors if "BK1PDF01" in e]
+    assert [s for s in report.skipped if "LFL00001" in s]
+
+
+def test_a_complete_backup_has_no_errors_even_with_linked_files(world: World) -> None:
+    report = world.service.backup_system(BytesIO())
+
+    assert report.complete
+    assert report.errors == []
+    assert len(report.skipped) == 1
+
+
+def test_verify_tells_how_many_problems_the_archive_logged(cli: Cli, tmp_path: Path) -> None:
+    cli.server.libraries[GROUP].broken_files.add("PDF00001")
+    out = tmp_path / "partial.zaf"
+    cli.run("system", "backup", "--output", str(out))
+
+    result = cli.run("system", "verify", "--file", str(out))
+
+    assert result.code == 0, "the archive itself is intact"
+    assert "ARCHIVE IS VALID" in result.out
+    assert "errors.log lists 1 problem(s)" in result.out
+    assert "1 linked file(s) were not backed up" in result.out
+
+
+def test_verify_stays_quiet_about_a_clean_archive(cli: Cli, tmp_path: Path) -> None:
+    out = tmp_path / "clean.zaf"
+    cli.server.libraries[GROUP].items.pop("LFL00001")
+    cli.run("system", "backup", "--output", str(out))
+
+    result = cli.run("system", "verify", "--file", str(out))
+
+    assert "ARCHIVE IS VALID" in result.out
+    assert "errors.log" not in result.out
 
 
 def test_cli_group_backup_matches_the_service_backup(cli: Cli, tmp_path: Path) -> None:

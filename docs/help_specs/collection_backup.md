@@ -36,5 +36,5 @@ It traverses the entire collection hierarchy, fetches the JSON metadata for ever
 **Result:** A single portable file is created that contains everything needed to reconstruct the project state later.
 
 ## 7. Cognitive Safeguards
-- **Common Failure Modes:** Attempting to backup to a directory without write permissions or to an external drive with insufficient space. 
+- **Common Failure Modes:** A backup that could not save every file (a download failed) is still written, but the command prints what is missing, does not say "Backup complete" and exits with status 7; the archive's `errors.log` lists every problem. Linked files are only a note. Attempting to backup to a directory without write permissions or to an external drive with insufficient space. 
 - **Safety Tips:** Always perform a backup *before* using destructive commands like `collection clean` or `collection delete`. The `.zaf` format can be restored using the `system restore` command.

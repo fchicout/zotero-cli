@@ -6,6 +6,7 @@ import secrets
 import stat
 import tempfile
 import zipfile
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Optional, Set
@@ -17,6 +18,29 @@ from zotero_cli.core.utils.link_modes import STORED_LINK_MODES
 from zotero_cli.core.zotero_item import ZoteroItem
 
 logger = logging.getLogger(__name__)
+
+# Prefixes of the lines of errors.log (Issue #656). A line without either, from an older
+# archive, is a problem.
+_SKIPPED = "SKIPPED: "
+_ERROR = "ERROR: "
+
+
+@dataclass
+class BackupReport:
+    """What a backup wrote, and what it could not (Issue #656)."""
+
+    items: int = 0
+    files: int = 0
+    # Problems that make the archive incomplete: a file that failed to download, a child
+    # item that could not be fetched.
+    errors: List[str] = field(default_factory=list)
+    # Expected gaps, not failures: a linked file lives on the user's own disk, which the
+    # Web API cannot serve. Its record and path are in the archive.
+    skipped: List[str] = field(default_factory=list)
+
+    @property
+    def complete(self) -> bool:
+        return not self.errors
 
 
 class BackupService:
@@ -47,7 +71,7 @@ class BackupService:
         collection_key: str,
         output: str | IO[bytes],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
-    ) -> None:
+    ) -> BackupReport:
         """
         Backs up a specific collection, its items, and their attachments to a .zaf file.
         """
@@ -72,13 +96,13 @@ class BackupService:
         items = list(self.collections.get_items_in_collection(collection_key, top_only=True))
         # Their children, fetched together (Issue #426)
         children = children_by_parent(self.items, [i.key for i in items if _has_children(i)])
-        self._write_zip(output, manifest, items, children, on_item_processed)
+        return self._write_zip(output, manifest, items, children, on_item_processed)
 
     def backup_system(
         self,
         output: str | IO[bytes],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
-    ) -> None:
+    ) -> BackupReport:
         """
         Backs up the entire library, including all collections and orphan items.
         """
@@ -99,7 +123,7 @@ class BackupService:
         for item in items:
             if item.parent_item:
                 children.setdefault(item.parent_item, []).append(item.raw_data)
-        self._write_zip(output, manifest, items, children, on_item_processed)
+        return self._write_zip(output, manifest, items, children, on_item_processed)
 
     def _write_zip(
         self,
@@ -108,10 +132,9 @@ class BackupService:
         items: List[ZoteroItem],
         children: Dict[str, List[Dict[str, Any]]],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
-    ) -> None:
+    ) -> BackupReport:
         if not isinstance(output, str):
-            self._write_archive(output, manifest, items, children, on_item_processed)
-            return
+            return self._write_archive(output, manifest, items, children, on_item_processed)
         # Issue #653: a path is written to a temporary file next to it and moved over
         # the target only once the archive is complete, so a failed run (a dropped
         # connection, a full disk, Ctrl-C) leaves an earlier backup there untouched.
@@ -123,11 +146,12 @@ class BackupService:
         Path(part).touch(exist_ok=False)
         committed = False
         try:
-            self._write_archive(part, manifest, items, children, on_item_processed)
+            report = self._write_archive(part, manifest, items, children, on_item_processed)
             if os.path.exists(target):  # a replaced file keeps its permissions
                 os.chmod(part, stat.S_IMODE(os.stat(target).st_mode))
             os.replace(part, target)
             committed = True
+            return report
         finally:
             if not committed and os.path.exists(part):
                 os.remove(part)
@@ -139,7 +163,7 @@ class BackupService:
         items: List[ZoteroItem],
         children: Dict[str, List[Dict[str, Any]]],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
-    ) -> None:
+    ) -> BackupReport:
         errors: List[str] = []
         processed_keys: Set[str] = set()
         self._used_paths = set()
@@ -196,6 +220,13 @@ class BackupService:
                 if errors:
                     zf.writestr("errors.log", "\n".join(errors))
 
+        return BackupReport(
+            items=len(processed_keys),
+            files=len(manifest["file_map"]),
+            errors=[e for e in errors if not e.startswith(_SKIPPED)],
+            skipped=[e for e in errors if e.startswith(_SKIPPED)],
+        )
+
     def _free_path(self, directory: str, filename: str, key: str) -> str:
         """`directory/filename`, or, when that path is taken, `directory/<name>-<key><ext>`
         (Issue #654: one item can hold several attachments with the same file name, and
@@ -242,10 +273,15 @@ class BackupService:
 
                 self._used_paths.add(storage_path.casefold())
                 manifest["file_map"][item.key] = {"path": storage_path, "checksum": checksum}
+            elif data.get("linkMode") == "linked_file":
+                errors.append(
+                    f"{_SKIPPED}attachment {item.key} ({filename}) is a linked file on your own "
+                    "computer, which the Web API cannot back up; its record and path are kept"
+                )
             else:
-                errors.append(f"Failed to download attachment {item.key} ({filename})")
+                errors.append(f"{_ERROR}Failed to download attachment {item.key} ({filename})")
         except Exception as e:
-            errors.append(f"Error processing attachment {item.key}: {str(e)}")
+            errors.append(f"{_ERROR}Error processing attachment {item.key}: {str(e)}")
         finally:
             if temp_path and os.path.exists(temp_path):
                 os.remove(temp_path)
@@ -279,7 +315,9 @@ class BackupService:
                 # Only a key came back: fetch the item itself.
                 child = self.items.get_item(child_key)
             if not child:
-                errors.append(f"Could not fetch child item {child_key} for parent {item.key}")
+                errors.append(
+                    f"{_ERROR}Could not fetch child item {child_key} for parent {item.key}"
+                )
                 continue
             writer.add(child.raw_data)
             processed_keys.add(child.key)

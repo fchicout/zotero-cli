@@ -36,5 +36,5 @@ The resulting Zotero Archive Format (`.zaf`) file contains everything needed to 
 **Result:** A single portable file is created that can be used with `system restore` on the new machine.
 
 ## 7. Cognitive Safeguards
-- **Common Failure Modes:** Attempting a full backup on a very large library (>5000 items) without sufficient disk space. The process can also be time-consuming as it must fetch every attachment from the API or local storage. 
+- **Common Failure Modes:** A backup that could not save every file (a download failed) is still written, but the command prints what is missing, does not say "Backup complete" and exits with status 7; the archive's `errors.log` lists every problem. Linked files, which live on your own computer and cannot be fetched through the Web API, are only a note: their records and paths are in the archive. Attempting a full backup on a very large library (>5000 items) without sufficient disk space. The process can also be time-consuming as it must fetch every attachment from the API or local storage. 
 - **Safety Tips:** Run this command regularly (e.g., monthly) and store the resulting `.zaf` file in a secure, off-site location (like an encrypted cloud drive or external hardware).
