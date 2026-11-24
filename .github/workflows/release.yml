@@ -37,13 +37,21 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Check the tag points at a commit on main
+      # A patch release of an older line (4.1.1 while main is already 4.2) is tagged on a
+      # `release/X.Y.x` branch cut from main's history, so those count as well.
+      - name: Check the tag points at a commit on main or a release branch
         if: github.event_name == 'push'
         run: |
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
-            echo "::error::Tag $GITHUB_REF_NAME ($GITHUB_SHA) is not on main; refusing to release it."
-            exit 1
+          if git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            exit 0
           fi
+          for branch in $(git branch -r --list 'origin/release/*' --format='%(refname:short)'); do
+            if git merge-base --is-ancestor "$GITHUB_SHA" "$branch"; then
+              exit 0
+            fi
+          done
+          echo "::error::Tag $GITHUB_REF_NAME ($GITHUB_SHA) is not on main or a release/* branch; refusing to release it."
+          exit 1
 
       # Before anything is built or published (Issue #416): a mistyped tag
       # used to create a public GitHub release, and only the PyPI job
