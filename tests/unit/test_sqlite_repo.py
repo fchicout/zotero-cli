@@ -259,6 +259,23 @@ def test_collection_backup_includes_sub_collection_items_offline(mock_db):
     assert manifest["collection_keys"] == ["COLKEY1", "COLKEY2"]
 
 
+def test_offline_backup_records_the_library_it_was_asked_for(mock_db):
+    """Issue #659: the local database's items carry no `library` stub; the gateway says it."""
+    from io import BytesIO
+
+    from zotero_cli.infra.factory import GatewayFactory
+
+    gateway = SqliteZoteroGateway(mock_db, library_id="777", library_type="group")
+    out = BytesIO()
+
+    GatewayFactory.get_backup_service(gateway).backup_system(out)
+
+    with zipfile.ZipFile(out) as zf:
+        manifest = json.loads(zf.read("manifest.json"))
+    assert manifest["library"] == {"type": "group", "id": "777"}
+    assert manifest["counts"]["items"] == 4
+
+
 def test_sqlite_trash_and_restore_item(mock_db):
     """Regression test for Issue #145: item trash/restore in --offline mode
     must write the same SQL Zotero Desktop itself writes (confirmed against

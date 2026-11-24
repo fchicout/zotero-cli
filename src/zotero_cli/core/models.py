@@ -130,7 +130,25 @@ class Job:
 
 @dataclass
 @dataclass
-@dataclass
+@dataclass(frozen=True)
+class LibraryRef:
+    """Which Zotero library something belongs to: a personal ("user") or a "group" library,
+    and its numeric id (Issue #659). Item and collection keys are only unique inside one."""
+
+    type: str
+    id: str
+
+    def same_as(self, other: "LibraryRef") -> bool:
+        return self.type == other.type and str(self.id) == str(other.id)
+
+    @staticmethod
+    def from_manifest(raw: Any) -> "Optional[LibraryRef]":
+        """The `library` entry of a .zaf manifest, or None (older archives have none)."""
+        if not isinstance(raw, dict) or not raw.get("type") or raw.get("id") in (None, ""):
+            return None
+        return LibraryRef(str(raw["type"]), str(raw["id"]))
+
+
 @dataclass
 class KeyIdentity:
     """

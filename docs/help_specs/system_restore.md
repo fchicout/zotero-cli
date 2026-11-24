@@ -33,6 +33,7 @@ The command carefully parses the `.zaf` archive, identifies all bibliographic re
 | `--dry-run` | Boolean | Simulate restore | Mutually exclusive with `--execute`. |
 | `--execute` | Flag | Apply the restore | Mutually exclusive with `--dry-run`. Without it only a preview is shown (Issue #462). |
 | `--file` | String | Input .zaf file | Required. |
+| `--yes` | Flag | Do not ask before restoring into a different library than the archive came from | Archives made since 4.2 record their library (personal or group, and its id). If it is not the library the command is about to write to, the preview warns, and `--execute` asks first (without a terminal it refuses with exit 2 unless `--yes` is given). |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Recovering from an accidental library deletion
@@ -46,5 +47,5 @@ The command carefully parses the `.zaf` archive, identifies all bibliographic re
 **Result:** The archive is restored into the library.
 
 ## 7. Cognitive Safeguards
-- **Common Failure Modes:** Attempting to restore a `.zaf` file that is corrupted or from a different account context that lacks matching permissions. 
+- **Common Failure Modes:** Attempting to restore a `.zaf` file that is corrupted or from a different account context that lacks matching permissions. A backup of one library is never restored into another by accident: check the `Warning:` line of the preview. 
 - **Safety Tips:** Restore operations can be complex and destructive if the target library already contains data. ALWAYS run with `--dry-run` first to understand the impact of the restore. Without `--execute` nothing is written to your library: you get a preview (`--dry-run` is the explicit spelling).

@@ -8,6 +8,12 @@ from zotero_cli.core.utils.checksum import sha256_stream
 
 logger = logging.getLogger(__name__)
 
+# The members of a .zaf this service reads.
+_MANIFEST_FILE = "manifest.json"
+_DATA_FILE = "data.json"
+_COLLECTIONS_FILE = "collections.json"
+_ERRORS_FILE = "errors.log"
+
 
 @dataclass
 class VerificationReport:
@@ -43,12 +49,12 @@ class VerifyService:
                 file_list = zf.namelist()
 
                 # 1. Verify Manifest
-                if "manifest.json" not in file_list:
+                if _MANIFEST_FILE not in file_list:
                     report.is_valid = False
                     report.errors.append("Missing manifest.json")
                 else:
                     try:
-                        report.manifest = read_json_member(zf, "manifest.json")
+                        report.manifest = read_json_member(zf, _MANIFEST_FILE)
                         from zotero_cli.core.services.restore_service import _check_manifest
 
                         _check_manifest(report.manifest, file_path)
@@ -57,32 +63,34 @@ class VerifyService:
                         report.errors.append(f"Invalid manifest.json: {str(e)}")
 
                 # 2. Verify Data
-                if "data.json" not in file_list:
+                if _DATA_FILE not in file_list:
                     report.is_valid = False
                     report.errors.append("Missing data.json")
                 else:
                     try:
-                        items = read_json_member(zf, "data.json")
+                        items = read_json_member(zf, _DATA_FILE)
                         report.item_count = len(items)
                     except Exception as e:
                         report.is_valid = False
                         report.errors.append(f"Invalid data.json: {str(e)}")
 
-                if "errors.log" in file_list:
+                if _ERRORS_FILE in file_list:
                     self._count_logged_problems(zf, report)
 
                 # 3. Verify Collections (Optional for collection scope, required for library scope)
                 if report.manifest and report.manifest.get("scope_type") == "library":
-                    if "collections.json" not in file_list:
+                    if _COLLECTIONS_FILE not in file_list:
                         report.is_valid = False
                         report.errors.append("Missing collections.json for library-scoped backup")
                     else:
                         try:
-                            colls = read_json_member(zf, "collections.json")
+                            colls = read_json_member(zf, _COLLECTIONS_FILE)
                             report.collection_count = len(colls)
                         except Exception as e:
                             report.is_valid = False
                             report.errors.append(f"Invalid collections.json: {str(e)}")
+
+                self._check_counts(report, file_list)
 
                 # 4. Verify Files and Checksums
                 if report.manifest and "file_map" in report.manifest:
@@ -125,8 +133,28 @@ class VerifyService:
         return report
 
     @staticmethod
+    def _check_counts(report: VerificationReport, file_list: List[str]) -> None:
+        """Format 1.2 archives say how much they hold (Issue #659): a different number means
+        the file was cut or edited. Older archives have no `counts`."""
+        counts = (report.manifest or {}).get("counts")
+        if not isinstance(counts, dict):
+            return
+        actual = {
+            "items": report.item_count,
+            "files": len((report.manifest or {}).get("file_map") or {}),
+            "collections": report.collection_count if _COLLECTIONS_FILE in file_list else None,
+        }
+        for name, expected in counts.items():
+            found = actual.get(name)
+            if found is not None and found != expected:
+                report.is_valid = False
+                report.errors.append(
+                    f"manifest counts {expected} {name}, the archive holds {found}"
+                )
+
+    @staticmethod
     def _count_logged_problems(zf: zipfile.ZipFile, report: VerificationReport) -> None:
-        with zf.open("errors.log") as log:
+        with zf.open(_ERRORS_FILE) as log:
             text = log.read(1_000_000).decode("utf-8", errors="replace")
         for line in text.splitlines():
             if line.startswith("SKIPPED: "):

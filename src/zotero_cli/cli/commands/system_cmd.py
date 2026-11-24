@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import time
+import zipfile
 from typing import TYPE_CHECKING, Any
 
 from rich.markup import escape
@@ -10,7 +11,7 @@ from rich.table import Table
 from zotero_cli.cli.backup_summary import finish_backup
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag, user_flag
-from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
+from zotero_cli.core.exceptions import DataFileError, NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
 from zotero_cli.core.zotero_item import ZoteroItem
@@ -319,6 +320,11 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
         action="store_true",
         help="Apply the restore (without it, only a preview is shown)",
     )
+    restore_p.add_argument(
+        "--yes",
+        action="store_true",
+        help="Do not ask before restoring into a different library than the archive came from",
+    )
 
 
 def _add_norm_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
@@ -512,6 +518,7 @@ class SystemCommand(BaseCommand):
             console.print(
                 f"  - Timestamp: {safe_markup(report.manifest.get('timestamp') if report.manifest else 'N/A')}"
             )
+            self._print_library(report.manifest)
             if report.logged_errors:
                 console.print(
                     f"  - [yellow]Incomplete:[/yellow] errors.log lists {report.logged_errors} "
@@ -536,6 +543,7 @@ class SystemCommand(BaseCommand):
         # Previews unless --execute (4.0, Issue #462); --dry-run is the explicit spelling.
         dry_run = not getattr(args, "execute", False)
 
+        self._check_restore_target(args, dry_run)
         restore_service = GatewayFactory.get_restore_service(force_user=user_flag(args))
 
         msg = f"Restoring from archive: [green]{args.file}[/green]"
@@ -567,6 +575,44 @@ class SystemCommand(BaseCommand):
             sys.exit(1)
         status = "SIMULATED" if dry_run else "COMPLETE"
         console.print(f"\n[bold green]RESTORE {safe_markup(status)}[/bold green]")
+
+    @staticmethod
+    def _print_library(manifest: Any) -> None:
+        library = (manifest or {}).get("library") or {}
+        if library:
+            name = f" ({safe_markup(library['name'])})" if library.get("name") else ""
+            console.print(
+                f"  - Library: {safe_markup(library.get('type'))} "
+                f"{safe_markup(library.get('id'))}{name}"
+            )
+
+    def _check_restore_target(self, args: argparse.Namespace, dry_run: bool) -> None:
+        """An archive from one library is not restored into another by accident (Issue
+        #659): say so in the preview, and ask before applying."""
+        from zotero_cli.cli.safety import confirm_other_library
+        from zotero_cli.core.config import get_config
+        from zotero_cli.core.models import LibraryRef
+        from zotero_cli.core.services.restore_service import archive_library
+
+        try:
+            source = archive_library(args.file)
+        except (OSError, zipfile.BadZipFile, KeyError, DataFileError):
+            return  # unreadable: the restore itself reports why, as it always did
+        if source is None:  # an archive from before 1.2 does not say where it came from
+            return
+        library_id, library_type = get_config(args.config).resolve_library_target(user_flag(args))
+        target = LibraryRef(library_type, str(library_id))
+        if source.same_as(target):
+            return
+        console.print(
+            f"[bold yellow]Warning:[/bold yellow] this archive was taken from "
+            f"{safe_markup(source.type)} library {safe_markup(source.id)}, but it would be "
+            f"restored into {safe_markup(target.type)} library {safe_markup(target.id)}."
+        )
+        if not dry_run and not confirm_other_library(
+            "Restore into this other library?", getattr(args, "yes", False)
+        ):
+            raise UsageError("restore cancelled: nothing was written.")
 
     def _handle_groups(self, args: argparse.Namespace) -> None:
         from zotero_cli.core.config import get_config

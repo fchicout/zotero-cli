@@ -8,6 +8,7 @@ from zotero_cli.infra.resolver_factory import ResolverFactory
 
 if TYPE_CHECKING:
     from zotero_cli.core.interfaces import ZoteroGateway
+    from zotero_cli.core.models import LibraryRef
     from zotero_cli.core.services.agent_tools import AgentTools
     from zotero_cli.core.services.attachment_service import AttachmentService
     from zotero_cli.core.services.backup_service import BackupService
@@ -28,6 +29,20 @@ if TYPE_CHECKING:
     from zotero_cli.core.services.tag_service import TagService
     from zotero_cli.core.services.transfer_service import TransferService
     from zotero_cli.core.services.verify_service import VerifyService
+
+
+def _library_of(gateway: Any) -> "Optional[LibraryRef]":
+    """The library a gateway reads (Issue #659): the Web API client keeps it on its HTTP
+    client, the offline gateway on itself; None when the gateway cannot say."""
+    from zotero_cli.core.models import LibraryRef
+
+    for source in (getattr(gateway, "http", None), gateway):
+        library_type = getattr(source, "library_type", None)
+        library_id = getattr(source, "library_id", None)
+        if isinstance(library_type, str) and isinstance(library_id, str):
+            if library_type and library_id:
+                return LibraryRef(library_type, library_id)
+    return None
 
 
 class ServiceFactory:
@@ -163,7 +178,7 @@ class ServiceFactory:
     def get_backup_service(gateway: "ZoteroGateway") -> "BackupService":
         from zotero_cli.core.services.backup_service import BackupService
 
-        return BackupService(gateway, gateway, gateway)
+        return BackupService(gateway, gateway, gateway, library=_library_of(gateway))
 
     @staticmethod
     def get_storage_service(

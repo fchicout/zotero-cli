@@ -86,7 +86,7 @@ zotero-cli system backup --output "full_backup_2026.zaf"
 ---
 
 ### `verify`
-Performs a deep integrity check on a `.zaf` archive. Validates all internal JSON structures and re-calculates checksums for every attachment to ensure 100% data fidelity.
+Performs a deep integrity check on a `.zaf` archive. Validates all internal JSON structures and re-calculates checksums for every attachment to ensure 100% data fidelity. It shows the library the archive came from and checks the counts the archive records (items, files, collections) against what it holds, so a cut file is noticed.
 
 **Usage:**
 ```bash
@@ -103,13 +103,14 @@ Reconstructs an entire Zotero library or specific collections from a `.zaf` arch
 
 **Usage:**
 ```bash
-zotero-cli system restore --file "backup.zaf" [--dry-run | --execute]
+zotero-cli system restore --file "backup.zaf" [--dry-run | --execute] [--yes]
 ```
 
 **Parameters:**
 *   `--file`: (Required) Path to the .zaf archive.
 *   `--dry-run`: Simulates the restore without making any changes. Mutually exclusive with `--execute`.
 *   `--execute`: Applies the restore. Mutually exclusive with `--dry-run`. Without it only a preview is shown (Issue #462).
+*   `--yes`: Skips the question asked when the archive was taken from a different library (personal or group) than the one being restored into. Archives record their library from format 1.2 on.
 
 ---
 

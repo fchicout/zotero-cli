@@ -14,7 +14,7 @@ A change to any of these is a breaking change and waits for the next major relea
 | Safety defaults | Whether a command writes or only previews by default. A command that previews until `--execute` keeps doing so. |
 | Machine-readable output | Field names and value types in `--format json` and `--format csv` output, and in JSON reports. New fields may appear in a minor release; consumers should ignore fields they don't know. |
 | Configuration | `config.toml` keys, and the `ZOTERO_*` and provider environment variables. |
-| Files written to disk | `.zaf` backup archives (manifest `format: zaf`, `version` 1.1) and the background job database (`jobs.sqlite`). |
+| Files written to disk | `.zaf` backup archives (manifest `format: zaf`, `version` 1.2) and the background job database (`jobs.sqlite`). |
 
 ### Formats that carry a version
 

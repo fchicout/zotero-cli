@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### ✨ Added
+- **A backup records which library it came from (#659):** `manifest.json` (format version 1.2) now has `library` (`type` user or group, `id`, and the library's `name` when the Web API gives it), `counts` (items, collections, files) and `includes_trash`. `system verify` shows the library and fails an archive whose counts do not match what it holds (a truncated or edited file). `system restore` warns, in the preview and before applying, when the archive was taken from a different library than the one it would write into, and asks first (`--yes` skips the question; without a terminal it refuses with exit 2). Archives from 1.1 and earlier stay valid: they have no library to compare.
+
 ### ⚠️ Deprecated
 - **Python 3.11.0 to 3.11.4 stop being supported in 4.2.0 (announced one minor ahead, in 4.1.1, as docs/COMPATIBILITY.md requires):** the minimum becomes Python 3.11.5. Every fixed release of `soupsieve` (a dependency of `beautifulsoup4`, with open security advisories CVE-2026-126190, -126191 and -126193) needs 3.11.5, so those interpreters can only be locked to the vulnerable 2.10. Until then, zotero-cli prints a one-line warning on stderr when it runs on 3.11.0 to 3.11.4. Python 3.11.5 and newer, and every newer minor, are unaffected; nothing else changes.
 
