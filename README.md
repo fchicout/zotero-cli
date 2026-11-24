@@ -2,7 +2,7 @@
 ![Version](https://img.shields.io/github/v/release/fchicout/zotero-cli)
 ![Build Status](https://github.com/fchicout/zotero-cli/actions/workflows/release.yml/badge.svg)
 ![Tests](https://github.com/fchicout/zotero-cli/actions/workflows/tests.yml/badge.svg)
-![License](https://img.shields.io/badge/license-MIT-lightgrey) ![Python](https://img.shields.io/badge/python-3.11+-blue)
+![License](https://img.shields.io/badge/license-MIT-lightgrey) ![Python](https://img.shields.io/badge/python-3.11.5+-blue)
 <!-- BADGES_END -->
 <!-- SonarQube badges: images from the `badges` branch, refreshed by .github/workflows/sonar-badges.yml (Issue #505) -->
 [![Quality Gate](https://raw.githubusercontent.com/fchicout/zotero-cli/badges/quality_gate.svg)](https://sonar.fchicout.dev/dashboard?id=zotero-cli) [![Coverage](https://raw.githubusercontent.com/fchicout/zotero-cli/badges/coverage.svg)](https://sonar.fchicout.dev/dashboard?id=zotero-cli) [![Bugs](https://raw.githubusercontent.com/fchicout/zotero-cli/badges/bugs.svg)](https://sonar.fchicout.dev/dashboard?id=zotero-cli) [![Vulnerabilities](https://raw.githubusercontent.com/fchicout/zotero-cli/badges/vulnerabilities.svg)](https://sonar.fchicout.dev/dashboard?id=zotero-cli) [![Code Smells](https://raw.githubusercontent.com/fchicout/zotero-cli/badges/code_smells.svg)](https://sonar.fchicout.dev/dashboard?id=zotero-cli) [![Duplicated Lines](https://raw.githubusercontent.com/fchicout/zotero-cli/badges/duplicated_lines_density.svg)](https://sonar.fchicout.dev/dashboard?id=zotero-cli) [![Maintainability](https://raw.githubusercontent.com/fchicout/zotero-cli/badges/sqale_rating.svg)](https://sonar.fchicout.dev/dashboard?id=zotero-cli) [![Reliability](https://raw.githubusercontent.com/fchicout/zotero-cli/badges/reliability_rating.svg)](https://sonar.fchicout.dev/dashboard?id=zotero-cli) [![Security](https://raw.githubusercontent.com/fchicout/zotero-cli/badges/security_rating.svg)](https://sonar.fchicout.dev/dashboard?id=zotero-cli) [![Security Hotspots](https://raw.githubusercontent.com/fchicout/zotero-cli/badges/security_hotspots.svg)](https://sonar.fchicout.dev/dashboard?id=zotero-cli) [![Technical Debt](https://raw.githubusercontent.com/fchicout/zotero-cli/badges/sqale_index.svg)](https://sonar.fchicout.dev/dashboard?id=zotero-cli) [![Lines of Code](https://raw.githubusercontent.com/fchicout/zotero-cli/badges/ncloc.svg)](https://sonar.fchicout.dev/dashboard?id=zotero-cli)
@@ -152,7 +152,7 @@ irm https://raw.githubusercontent.com/fchicout/zotero-cli/main/install.ps1 | iex
 
 Offline mode and Markdown/PDF text export work the same in the binary and from PyPI. The read-only MCP server (`mcp serve`) is an optional extra (`pip install 'zotero-command-line[mcp]'`) and is not in the binaries.
 
-### 🐍 Option 2: From PyPI (Python 3.11+) - recommended on macOS
+### 🐍 Option 2: From PyPI (Python 3.11.5+) - recommended on macOS
 The package is called **`zotero-command-line`** on PyPI, because the `zotero-cli` name there belongs to an older, unrelated project. The command it installs is still `zotero-cli`. This is the way to install on macOS, Alpine, ARM Linux and older Linux systems, where there is no binary. [uv](https://docs.astral.sh/uv/) can install a suitable Python for you.
 
 ```bash
@@ -187,7 +187,7 @@ The container runs as an unprivileged user and keeps its config in `/config/zote
 
 A `.devcontainer/` configuration is also included for GitHub Codespaces and VS Code Dev Containers. It sets up the full development environment for contributing, not the lightweight image above.
 
-### Option 4: From source (Python 3.11+)
+### Option 4: From source (Python 3.11.5+)
 Using [uv](https://docs.astral.sh/uv/):
 
 ```bash

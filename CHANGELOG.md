@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### ⚠️ Changed
+- **Python 3.11.0 to 3.11.4 are no longer supported (#646, announced in 4.1.1):** the minimum is now Python 3.11.5 (`requires-python >=3.11.5`; `pip`/`uv` will not install it on older interpreters, and the command refuses to start on them). Every fixed release of `soupsieve` (a dependency of `beautifulsoup4`; CVE-2026-126190, -126191, -126193) needs 3.11.5, so the lockfile no longer carries the vulnerable 2.10 and the three Dependabot alerts are gone. The 4.1.1 warning on those interpreters is removed with the floor. Python 3.11.5 and newer, and every newer minor, are unaffected; CI's minimum-Python job now runs on 3.11.5.
+
 ### ✨ Added
 - **`system restore` recreates saved searches (#678):** the searches of a whole-library archive are created again with their name and conditions. A condition that names a collection (`collection`) or another search (`savedSearch`) is remapped to the restored one, and a search that refers to another is created after it. A search that refers to a collection or search that was not restored is skipped with a warning rather than created broken (the Web API would accept it). Equal searches already in the library (same name and conditions) are not duplicated, so restoring twice creates none; the summary shows `Saved Searches Created` and `Skipped (Existing)`. Verified on a test group library.
 - **A whole-library backup now includes your saved searches (#663):** `system backup` writes `searches.json` (each search with its name and conditions, as the Web API returns them; from the local database with `--offline`, where the conditions' `mode` has no place in that shape and is left out). A collection backup has none. `manifest.json` counts them (`counts.searches`) and `system verify` shows and checks the number. Searches in the trash are not covered. `system restore` brings them back (#678).
