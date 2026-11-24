@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from rich.markup import escape
 from rich.table import Table
 
-from zotero_cli.cli.backup_summary import finish_backup, library_note
+from zotero_cli.cli.backup_summary import TRASH_BACKUP_HELP, finish_backup, library_note
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag, user_flag
 from zotero_cli.cli.restore_guard import check_restore_target, print_archive_library
@@ -256,6 +256,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
 """,
     )
     backup_p.add_argument("--output", required=True, help="Output file path (e.g., backup.zaf)")
+    backup_p.add_argument("--trash", action="store_true", help=TRASH_BACKUP_HELP)
 
 
 def _add_verify_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
@@ -519,6 +520,8 @@ class SystemCommand(BaseCommand):
                 f"  - Timestamp: {safe_markup(report.manifest.get('timestamp') if report.manifest else 'N/A')}"
             )
             print_archive_library(report.manifest, console)
+            if report.manifest and report.manifest.get("includes_trash"):
+                console.print("  - Includes the items that were in the Zotero trash")
             if report.logged_errors:
                 console.print(
                     f"  - [yellow]Incomplete:[/yellow] errors.log lists {report.logged_errors} "
@@ -956,7 +959,11 @@ class SystemCommand(BaseCommand):
                 # Let's check if we can get a quick count.
                 # If not, it stays indeterminate until we find a way.
 
-                report = service.backup_system(args.output, on_item_processed=on_item)
+                report = service.backup_system(
+                    args.output,
+                    on_item_processed=on_item,
+                    include_trash=bool(getattr(args, "trash", False)),
+                )
                 progress.update(task, description="Finalizing .zaf container...")
         except ZoteroCliError:
             raise  # typed: an unreadable group is exit 4, an outage exit 5 (Issue #661)

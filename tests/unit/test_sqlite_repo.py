@@ -279,6 +279,33 @@ def test_offline_backup_records_the_library_it_was_asked_for(mock_db):
     assert manifest["counts"]["items"] == 4
 
 
+def test_offline_backup_can_include_the_trash(mock_db):
+    """Issue #662: the local database's deleted items, marked `deleted` like the Web API's."""
+    from io import BytesIO
+
+    from zotero_cli.core.services.backup_service import BackupService
+
+    conn = sqlite3.connect(mock_db)
+    conn.execute("INSERT INTO deletedItems (itemID) VALUES (1)")  # ITEMKEY1
+    conn.commit()
+    conn.close()
+    gateway = SqliteZoteroGateway(mock_db)
+
+    def keys(**options):
+        out = BytesIO()
+        BackupService(gateway, gateway, gateway).backup_system(out, **options)
+        with zipfile.ZipFile(out) as zf:
+            data = json.loads(zf.read("data.json"))
+        return {item["key"]: item for item in data}
+
+    plain = keys()
+    with_trash = keys(include_trash=True)
+
+    assert "ITEMKEY1" not in plain
+    assert with_trash["ITEMKEY1"]["data"]["deleted"] == 1
+    assert set(plain) <= set(with_trash)
+
+
 def test_sqlite_trash_and_restore_item(mock_db):
     """Regression test for Issue #145: item trash/restore in --offline mode
     must write the same SQL Zotero Desktop itself writes (confirmed against

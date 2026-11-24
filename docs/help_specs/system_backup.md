@@ -27,7 +27,9 @@ The resulting Zotero Archive Format (`.zaf`) file contains everything needed to 
 ## 5. Parameter Matrix
 | Flag / Parameter | Type | Description | Ergonomic Note |
 | :--- | :--- | :--- | :--- |
+| `--trash` | Flag | Also back up the items in Zotero's trash | Without it the trash is left out. With it, trashed items are saved with their children (notes, attachments with their files, annotations) and their `deleted` flag, and the archive's manifest says `includes_trash`. Collections in the trash are not covered. |
 | `--output` | String | Output file path (e.g., backup.zaf) | Required. |
+| `--trash` | Flag | Also back up the items in Zotero's trash | Without it the trash is left out (the default). With it, trashed items are saved with their children (notes, attachments with their files, annotations) and their `deleted` flag, and the manifest says `includes_trash`. Collections that are themselves in the trash are not covered. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Migrating research data to a new workstation

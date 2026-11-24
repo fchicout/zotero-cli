@@ -28,6 +28,7 @@ It traverses the entire collection hierarchy (the collection and every sub-colle
 | :--- | :--- | :--- | :--- |
 | `--collection` | String | Collection name or key | Required. |
 | `--output` | String | Output file path | Required. |
+| `--trash` | Flag | Also back up the items of this collection (and its sub-collections) that are in Zotero's trash | Without it the trash is left out (the default). With it, trashed items are saved with their children (notes, attachments with their files, annotations) and their `deleted` flag, and the manifest says `includes_trash`. Collections that are themselves in the trash are not covered. |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
 ### Scenario: Archiving a finished project

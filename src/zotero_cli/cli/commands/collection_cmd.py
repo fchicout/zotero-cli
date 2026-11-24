@@ -6,7 +6,7 @@ from rich.markup import escape
 from rich.table import Table
 from rich.tree import Tree
 
-from zotero_cli.cli.backup_summary import finish_backup, library_note
+from zotero_cli.cli.backup_summary import TRASH_BACKUP_HELP, finish_backup, library_note
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.flags import (
     add_bibliography_flags,
@@ -246,6 +246,7 @@ Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/
     )
     backup_p.add_argument("--collection", required=True, help=COLLECTION_NAME_OR_KEY_HELP)
     backup_p.add_argument("--output", required=True, help="Output file path")
+    backup_p.add_argument("--trash", action="store_true", help=TRASH_BACKUP_HELP)
 
 
 def _add_export_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
@@ -646,7 +647,12 @@ class CollectionCommand(BaseCommand):
                 def on_item(item: ZoteroItem) -> None:
                     progress.update(task, advance=1, description=f"Backing up: {item.key}")
 
-                report = service.backup_collection(col_id, args.output, on_item_processed=on_item)
+                report = service.backup_collection(
+                    col_id,
+                    args.output,
+                    on_item_processed=on_item,
+                    include_trash=bool(getattr(args, "trash", False)),
+                )
                 progress.update(task, description="Finalizing .zaf container...")
         except ZoteroCliError:
             raise  # typed: an unreadable group is exit 4, an outage exit 5 (Issue #661)

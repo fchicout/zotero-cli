@@ -830,7 +830,10 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
         return self._fetch_items_with_filter(filter_sql)
 
     def get_trash_items(self) -> Iterator[ZoteroItem]:
-        return self._fetch_items_with_filter(trash_only=True)
+        for item in self._fetch_items_with_filter(trash_only=True):
+            # The Web API marks trashed items; so does a backup of them (Issue #662).
+            item.raw_data.setdefault("data", {})["deleted"] = 1
+            yield item
 
     # --- Narrow Write Exception: item trash/restore (Issue #145) ---
     #

@@ -28,6 +28,7 @@ _LIBRARY = (
     "library"  # the scope of a whole-library backup, and the manifest entry naming the library
 )
 _ERROR = "ERROR: "
+_INCLUDES_TRASH = "includes_trash"  # manifest entry: the archive also holds the trash (#662)
 
 
 @dataclass
@@ -79,9 +80,12 @@ class BackupService:
         collection_key: str,
         output: str | IO[bytes],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
+        include_trash: bool = False,
     ) -> BackupReport:
         """
         Backs up a specific collection, its items, and their attachments to a .zaf file.
+        With `include_trash`, the items of the collection (or below it) that are in
+        Zotero's trash come too (Issue #662).
         """
         col = self.collections.get_collection(collection_key)
         if not col:
@@ -106,6 +110,7 @@ class BackupService:
             "root_collection_key": collection_key,
             "root_collection_name": col_name,
             "collection_keys": keys,
+            _INCLUDES_TRASH: include_trash,
             "generator": "zotero-cli",
             "file_map": {},
         }
@@ -121,21 +126,26 @@ class BackupService:
         # Their children, fetched together (Issue #426)
         children = children_by_parent(self.items, [i.key for i in items if _has_children(i)])
         self._add_grandchildren(children)
+        if include_trash:
+            self._add_trash(items, children, set(keys))
         return self._write_zip(output, manifest, items, children, on_item_processed, tree)
 
     def backup_system(
         self,
         output: str | IO[bytes],
         on_item_processed: Optional[Callable[[ZoteroItem], None]] = None,
+        include_trash: bool = False,
     ) -> BackupReport:
         """
-        Backs up the entire library, including all collections and orphan items.
+        Backs up the entire library, including all collections and orphan items. With
+        `include_trash`, the items in Zotero's trash come too (Issue #662).
         """
         manifest = {
             "format": "zaf",
             "version": self.version,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "scope_type": _LIBRARY,
+            _INCLUDES_TRASH: include_trash,
             "generator": "zotero-cli",
             "file_map": {},
         }
@@ -148,6 +158,8 @@ class BackupService:
         for item in items:
             if item.parent_item:
                 children.setdefault(item.parent_item, []).append(item.raw_data)
+        if include_trash:
+            self._add_trash(items, children, None)
         return self._write_zip(output, manifest, items, children, on_item_processed)
 
     def _describe_content(
@@ -168,7 +180,7 @@ class BackupService:
             "collections": len(collections),
             "files": len(manifest["file_map"]),
         }
-        manifest["includes_trash"] = False
+        manifest.setdefault(_INCLUDES_TRASH, False)
 
     def _library_entry(
         self, items: List[ZoteroItem], collections: List[Dict[str, Any]]
@@ -186,6 +198,40 @@ class BackupService:
         if stub.get("name"):
             entry["name"] = str(stub["name"])
         return entry
+
+    def _add_trash(
+        self,
+        items: List[ZoteroItem],
+        children: Dict[str, List[Dict[str, Any]]],
+        collection_keys: Optional[Set[str]],
+    ) -> None:
+        """Adds the trashed items (Issue #662), and the children of the trashed parents, which
+        the trash listing may or may not contain. A collection backup (`collection_keys`) takes
+        only the trashed items filed in those collections, and the trashed children of what it
+        already holds."""
+        trashed = list(self.items.get_trash_items())
+        have = {i.key for i in items}
+        if collection_keys is None:
+            picked = {t.key for t in trashed if t.key not in have}
+        else:
+            picked = {
+                t.key
+                for t in trashed
+                if not t.parent_item and t.key not in have and set(t.collections) & collection_keys
+            }
+            held = have | picked
+            found = _trashed_children(trashed, held)
+            while found:  # a trashed child, then an annotation of it, of something we hold
+                picked |= found
+                held |= found
+                found = _trashed_children(trashed, held)
+        chosen = [t for t in trashed if t.key in picked]
+        parents = [t.key for t in chosen if not t.parent_item and _has_children(t)]
+        fetched = children_by_parent(self.items, parents)
+        self._add_grandchildren(fetched)
+        for parent, kids in fetched.items():
+            children.setdefault(parent, []).extend(kids)
+        items.extend(chosen)
 
     def _add_grandchildren(self, children: Dict[str, List[Dict[str, Any]]]) -> None:
         """The annotations of the PDFs and the images embedded in notes are children of
@@ -462,6 +508,11 @@ def _collection_and_descendants(collections: List[Dict[str, Any]], root: str) ->
                 found.append(child)
                 queue.append(child)
     return found
+
+
+def _trashed_children(trashed: List[ZoteroItem], held: Set[str]) -> Set[str]:
+    """The keys of the trashed items whose parent is in `held` and that are not in it yet."""
+    return {t.key for t in trashed if t.parent_item in held and t.key not in held}
 
 
 def _raw_type(raw: Dict[str, Any]) -> Optional[str]:

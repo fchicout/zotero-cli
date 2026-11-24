@@ -78,6 +78,12 @@ class ItemRepository(ABC):
         pass
 
     @abstractmethod
+    def get_trash_items(self) -> Iterator[ZoteroItem]:
+        """Iterates the items in Zotero's trash, with their `deleted` flag set. Exposed here
+        so a service holding only the narrower ItemRepository can back them up (#662)."""
+        pass
+
+    @abstractmethod
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
         pass
 

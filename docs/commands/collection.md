@@ -107,6 +107,7 @@ zotero-cli --group 6629576 collection backup --collection "My Review" --output "
 **Parameters:**
 *   `--collection`: (Required) Collection name or key.
 *   `--output`: (Required) Output .zaf file path.
+*   `--trash`: Also back up the items of the collection (and its sub-collections) that are in Zotero's trash, with their children and their `deleted` flag. Without it the trash is left out.
 
 ---
 
