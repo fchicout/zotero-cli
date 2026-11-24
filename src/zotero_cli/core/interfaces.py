@@ -114,6 +114,12 @@ class CollectionRepository(ABC):
         pass
 
     @abstractmethod
+    def get_all_searches(self) -> List[Dict[str, Any]]:
+        """Every saved search of the library, as the Web API shapes it: `key`, `version`,
+        `data.name` and `data.conditions` (each with `condition`, `operator`, `value`)."""
+        pass
+
+    @abstractmethod
     def get_items_in_collection(
         self, collection_id: str, top_only: bool = False
     ) -> Iterator[ZoteroItem]:

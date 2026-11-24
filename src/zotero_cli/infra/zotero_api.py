@@ -147,6 +147,13 @@ class ZoteroAPIClient(ZoteroGateway):
             lambda: list(self._paginate("collections")),
         )
 
+    def get_all_searches(self) -> List[Dict[str, Any]]:
+        return self._safe_execute(
+            "fetching saved searches",
+            [],
+            lambda: list(self._paginate("searches")),
+        )
+
     def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
         return self._safe_execute(
             f"fetching collection {collection_key}",

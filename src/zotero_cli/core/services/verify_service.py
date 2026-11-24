@@ -3,6 +3,7 @@ import zipfile
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+from zotero_cli.core.exceptions import DataFileError
 from zotero_cli.core.utils.archive_safety import check_entry_count, read_json_member
 from zotero_cli.core.utils.checksum import sha256_stream
 
@@ -13,6 +14,7 @@ _MANIFEST_FILE = "manifest.json"
 _DATA_FILE = "data.json"
 _COLLECTIONS_FILE = "collections.json"
 _ERRORS_FILE = "errors.log"
+_SEARCHES_FILE = "searches.json"
 
 
 @dataclass
@@ -25,6 +27,7 @@ class VerificationReport:
     collection_count: int = 0
     # What the archive's own errors.log says (Issue #656): the archive can be intact and
     # still lack items or files the backup could not save.
+    search_count: int = 0
     logged_errors: int = 0
     logged_skipped: int = 0
 
@@ -88,6 +91,8 @@ class VerifyService:
                 elif _COLLECTIONS_FILE in file_list:
                     self._read_collections(zf, report)
 
+                if _SEARCHES_FILE in file_list:
+                    self._read_searches(zf, report)
                 self._check_counts(report, file_list)
 
                 # 4. Verify Files and Checksums
@@ -145,6 +150,14 @@ class VerifyService:
             report.errors.append(f"collections.json does not contain the root collection {root}")
 
     @staticmethod
+    def _read_searches(zf: zipfile.ZipFile, report: VerificationReport) -> None:
+        try:
+            report.search_count = len(read_json_member(zf, _SEARCHES_FILE))
+        except (ValueError, KeyError, DataFileError, zipfile.BadZipFile) as e:
+            report.is_valid = False
+            report.errors.append(f"Invalid searches.json: {str(e)}")
+
+    @staticmethod
     def _check_counts(report: VerificationReport, file_list: List[str]) -> None:
         """Format 1.2 archives say how much they hold (Issue #659): a different number means
         the file was cut or edited. Older archives have no `counts`."""
@@ -155,6 +168,7 @@ class VerifyService:
             "items": report.item_count,
             "files": len((report.manifest or {}).get("file_map") or {}),
             "collections": report.collection_count if _COLLECTIONS_FILE in file_list else None,
+            "searches": report.search_count if _SEARCHES_FILE in file_list else None,
         }
         for name, expected in counts.items():
             found = actual.get(name)

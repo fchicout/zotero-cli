@@ -10,22 +10,21 @@ and for a group library. They describe the required behaviour:
 - the archive says which library it came from and passes `system verify`;
 - a backup that cannot be complete says so, and never destroys an earlier backup.
 
-Tests that pass pin what already works. Tests marked `xfail(strict=True)` are DISCREPANCIES
-between that behaviour and the code; each reason starts with an id (D1..D11) listed in the
-report that came with this file. They are not bugs fixed here: when the code is corrected a
-strict xfail turns into a failure, which is the cue to remove its marker.
+The suite began as a review of the backup against that behaviour: eleven findings were first
+recorded here as strict `xfail` tests (ids D1..D11) and fixed one by one, each removing its marker
+(tracking issue #652). They are listed so a regression can be traced:
 
-D1  files of `imported_url` (web snapshots) and `embedded_image` attachments are not saved
-D2  items in the trash are not saved
-D3  the manifest does not record which library (user/group, id) the archive came from
-D4  a collection backup has no collections.json (names, hierarchy are lost)
-D5  a backup missing files still reports "Backup complete" and exits 0
-D6  two attachments of one item with the same file name overwrite each other; archive fails verify
-D7  a collection backup skips the items of its sub-collections
-D8  a collection backup skips the annotations of the PDFs it contains
-D9  saved searches are not saved
-D10 no per-call parameter selects a group library (only the config file or `--user`)
-D11 a failed run overwrites an earlier good backup at the same path with a partial archive
+D1  files of `imported_url` (web snapshots) and `embedded_image` attachments were not saved (#655)
+D2  items in the trash were not saved; now the `--trash` option (#662)
+D3  the manifest did not record which library (user/group, id) the archive came from (#659)
+D4  a collection backup had no collections.json: names and hierarchy were lost (#660)
+D5  a backup missing files reported "Backup complete" and exited 0 (#656)
+D6  two attachments of one item with the same file name overwrote each other (#654)
+D7  a collection backup skipped the items of its sub-collections (#657)
+D8  a collection backup skipped the annotations of the PDFs it contains (#658)
+D9  saved searches were not saved (#663)
+D10 no per-call parameter selected a group library: `--group` (#661)
+D11 a failed run overwrote an earlier good backup at the same path (#653)
 """
 
 import hashlib
@@ -50,11 +49,6 @@ from zotero_cli.core.services.verify_service import VerifyService
 from zotero_cli.infra.factory import GatewayFactory
 from zotero_cli.infra.http_client import ZoteroHttpClient
 from zotero_cli.infra.zotero_api import ZoteroAPIClient
-
-
-def discrepancy(ref: str, why: str) -> pytest.MarkDecorator:
-    return pytest.mark.xfail(strict=True, raises=AssertionError, reason=f"{ref}: {why}")
-
 
 # --- the library under test ------------------------------------------------------------------
 
@@ -1148,6 +1142,7 @@ def test_the_manifest_is_format_1_2_and_counts_what_it_holds(world: World) -> No
         "items": len(archive.data),
         "collections": len(archive.collections or []),
         "files": len(archive.manifest["file_map"]),
+        "searches": 1,
     }
     assert archive.manifest["includes_trash"] is False
 
@@ -1164,7 +1159,7 @@ def test_an_empty_library_still_says_where_it_is_from(tmp_path: Path) -> None:
 
     manifest = Archive(path).manifest
     assert manifest["library"] == {"type": "group", "id": "777"}
-    assert manifest["counts"] == {"items": 0, "collections": 0, "files": 0}
+    assert manifest["counts"] == {"items": 0, "collections": 0, "files": 0, "searches": 0}
 
 
 def test_without_a_known_library_the_stub_on_the_items_is_used(world: World) -> None:
@@ -1221,12 +1216,87 @@ def test_verification_catches_an_archive_that_holds_other_counts_than_it_says(
     assert [m for m in messages if field in m]
 
 
-@discrepancy("D9", "the /searches endpoint is never read")
 def test_saved_searches_are_backed_up(world: World) -> None:
     archive = backup_system(world)
 
-    assert "searches.json" in archive.names
-    assert [s["key"] for s in json.loads(archive.zf.read("searches.json"))] == ["SRCH0001"]
+    searches = json.loads(archive.zf.read("searches.json"))
+    assert [s["key"] for s in searches] == ["SRCH0001"]
+    assert searches[0]["data"]["name"] == "Unread"
+    assert searches[0]["data"]["conditions"] == [{"condition": "tag"}]
+
+
+def test_a_library_without_saved_searches_still_writes_the_file(world: World) -> None:
+    world.lib.searches.clear()
+
+    archive = backup_system(world)
+
+    assert json.loads(archive.zf.read("searches.json")) == []
+    assert archive.manifest["counts"]["searches"] == 0
+
+
+def test_a_collection_backup_has_no_saved_searches(world: World) -> None:
+    archive = backup_collection(world, "COLA0001")
+
+    assert "searches.json" not in archive.names
+    assert "searches" not in archive.manifest["counts"]
+
+
+def test_more_than_one_page_of_saved_searches_is_complete(world: World) -> None:
+    for i in range(130):
+        world.lib.searches[f"SRCHX{i:03d}"] = {
+            "key": f"SRCHX{i:03d}",
+            "version": i,
+            "data": {"key": f"SRCHX{i:03d}", "name": f"s{i}", "conditions": []},
+        }
+
+    archive = backup_system(world)
+
+    assert len(json.loads(archive.zf.read("searches.json"))) == 131
+    assert archive.manifest["counts"]["searches"] == 131
+
+
+def test_verification_counts_the_saved_searches(world: World, tmp_path: Path) -> None:
+    path = tmp_path / "library.zaf"
+    world.service.backup_system(str(path))
+
+    report = VerifyService().verify_archive(str(path))
+
+    assert report.is_valid, report.errors
+    assert report.search_count == 1
+
+
+def test_verification_catches_a_searches_file_that_is_not_json(
+    world: World, tmp_path: Path
+) -> None:
+    path = tmp_path / "library.zaf"
+    world.service.backup_system(str(path))
+    broken = tmp_path / "broken.zaf"
+    with zipfile.ZipFile(path) as src, zipfile.ZipFile(broken, "w") as dst:
+        for info in src.infolist():
+            content = b"{not json" if info.filename == "searches.json" else src.read(info.filename)
+            dst.writestr(info.filename, content)
+
+    report = VerifyService().verify_archive(str(broken))
+
+    assert not report.is_valid
+    assert any("searches.json" in e for e in report.errors)
+
+
+def test_an_archive_from_before_saved_searches_still_verifies(world: World, tmp_path: Path) -> None:
+    path = tmp_path / "library.zaf"
+    world.service.backup_system(str(path))
+    old = tmp_path / "old.zaf"
+    _drop_member(path, old, "searches.json")
+
+    def forget(manifest: Dict[str, Any]) -> None:
+        manifest["counts"].pop("searches")
+
+    older = tmp_path / "older.zaf"
+    _rewrite_manifest(old, older, forget)
+
+    report = VerifyService().verify_archive(str(older))
+
+    assert report.is_valid, report.errors
 
 
 def test_attachments_with_the_same_file_name_do_not_overwrite_each_other(
@@ -1692,6 +1762,15 @@ def test_verify_says_when_an_archive_includes_the_trash(cli: Cli, tmp_path: Path
     result = cli.run("system", "verify", "--file", str(out))
 
     assert "Includes the items that were in the Zotero trash" in result.out
+
+
+def test_verify_shows_the_number_of_saved_searches(cli: Cli, tmp_path: Path) -> None:
+    out = tmp_path / "all.zaf"
+    cli.run("system", "backup", "--output", str(out))
+
+    result = cli.run("system", "verify", "--file", str(out))
+
+    assert "Saved searches: 1" in result.out
 
 
 def test_cli_group_backup_matches_the_service_backup(cli: Cli, tmp_path: Path) -> None:

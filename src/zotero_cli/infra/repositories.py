@@ -69,6 +69,9 @@ class ZoteroCollectionRepository(CollectionRepository):
     def get_collection(self, collection_key: str) -> Optional[Dict[str, Any]]:
         return self.gateway.get_collection(collection_key)
 
+    def get_all_searches(self) -> List[Dict[str, Any]]:
+        return self.gateway.get_all_searches()
+
     def get_collection_id_by_name(self, name: str) -> Optional[str]:
         return self.gateway.get_collection_id_by_name(name)
 
