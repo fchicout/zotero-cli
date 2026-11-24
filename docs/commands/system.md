@@ -84,6 +84,7 @@ zotero-cli --group 6629576 system backup --output "group_backup_2026.zaf"
 
 **Parameters:**
 *   `--output`: (Required) Path to save the backup file.
+*   `--trash`: Also back up the items that are in Zotero's trash, with their children and their `deleted` flag. Without it (the default) the trash is left out. Collections in the trash are not covered.
 *   `--group GROUP` (global option): back up this group library (id or URL) instead of the configured one; `--user` backs up your personal library. The command says which library it is reading when it starts.
 
 ---

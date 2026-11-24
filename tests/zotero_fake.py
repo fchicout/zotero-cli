@@ -57,6 +57,9 @@ class FakeLibrary:
         self.requests: List[str] = []
         # A library the API key has no access to: every request is answered 403.
         self.forbidden = False
+        # Whether /items/trash also lists the children of a trashed parent (the real API may
+        # not): a backup must not depend on it.
+        self.trash_lists_children = True
 
     # --- building ---------------------------------------------------------
 
@@ -140,10 +143,18 @@ class FakeLibrary:
         return [r for r in self.items.values() if not self._in_trash(r)]
 
     def trashed_items(self) -> List[Dict[str, Any]]:
-        return [r for r in self.items.values() if self._in_trash(r)]
+        if self.trash_lists_children:
+            return [r for r in self.items.values() if self._in_trash(r)]
+        return [r for r in self.items.values() if r["data"].get("deleted")]
 
     def children_of(self, key: str) -> List[Dict[str, Any]]:
-        return [r for r in self.live_items() if r["data"].get("parentItem") == key]
+        """A parent's children by key, whether the parent is in the trash or not; only a
+        child that is itself in the trash is left out."""
+        return [
+            r
+            for r in self.items.values()
+            if r["data"].get("parentItem") == key and not r["data"].get("deleted")
+        ]
 
     def items_in_collection(self, key: str) -> List[Dict[str, Any]]:
         direct = [r for r in self.live_items() if key in r["data"].get("collections", [])]

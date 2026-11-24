@@ -52,6 +52,9 @@ class ZoteroItemRepository(ItemRepository):
     def get_items_by_doi(self, doi: str) -> Iterator[ZoteroItem]:
         return self.gateway.get_items_by_doi(doi)
 
+    def get_trash_items(self) -> Iterator[ZoteroItem]:
+        return self.gateway.get_trash_items()
+
     def get_all_items(self) -> Iterator[ZoteroItem]:
         return self.gateway.get_all_items()
 

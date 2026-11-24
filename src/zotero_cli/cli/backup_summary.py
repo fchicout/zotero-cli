@@ -5,6 +5,11 @@ from zotero_cli.core.models import LibraryRef
 from zotero_cli.core.services.backup_service import BackupReport
 from zotero_cli.core.utils.terminal_safety import SafeConsole, safe_markup
 
+TRASH_BACKUP_HELP = (
+    "Also back up the items that are in Zotero's trash, with their children and their "
+    "`deleted` flag (without it the trash is left out)"
+)
+
 
 def library_note(service: object) -> str:
     """` (group library 777)`, to be wrapped in `safe_markup` by the caller: the library a

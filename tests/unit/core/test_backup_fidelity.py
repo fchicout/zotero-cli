@@ -273,15 +273,15 @@ class Archive:
         return self.zf.read(self.manifest["file_map"][key]["path"])
 
 
-def backup_system(world: World) -> Archive:
+def backup_system(world: World, **options: Any) -> Archive:
     out = BytesIO()
-    world.service.backup_system(out)
+    world.service.backup_system(out, **options)
     return Archive(out.getvalue())
 
 
-def backup_collection(world: World, key: str) -> Archive:
+def backup_collection(world: World, key: str, **options: Any) -> Archive:
     out = BytesIO()
-    world.service.backup_collection(key, out)
+    world.service.backup_collection(key, out, **options)
     return Archive(out.getvalue())
 
 
@@ -996,12 +996,131 @@ def test_a_web_link_is_not_downloaded_and_not_an_error(world: World) -> None:
     assert "items/LNK00001/file" not in world.lib.requests
 
 
-@discrepancy("D2", "the /items listing excludes the trash and /items/trash is never read")
-def test_items_in_the_trash_are_backed_up_with_their_deleted_flag(world: World) -> None:
-    archive = backup_system(world)
+def test_the_trash_is_left_out_by_default(world: World) -> None:
+    library = backup_system(world)
+    collection = backup_collection(world, "COLA0001")
+
+    for archive in (library, collection):
+        assert "TRSH0001" not in archive.keys
+        assert "TRSHN001" not in archive.keys
+        assert archive.manifest["includes_trash"] is False
+
+
+def test_the_trash_option_adds_trashed_items_with_their_children_and_flag(world: World) -> None:
+    archive = backup_system(world, include_trash=True)
 
     assert {"TRSH0001", "TRSHN001"} <= set(archive.keys)
     assert archive.by_key["TRSH0001"]["data"]["deleted"] == 1
+    assert archive.by_key["TRSHN001"]["data"]["parentItem"] == "TRSH0001"
+    assert archive.manifest["includes_trash"] is True
+    assert archive.manifest["counts"]["items"] == len(ALL_LIVE) + 2
+    assert set(ALL_LIVE) <= set(archive.keys), "everything else is still there"
+
+
+def test_the_children_of_a_trashed_parent_are_found_even_if_the_trash_does_not_list_them(
+    world: World,
+) -> None:
+    world.lib.trash_lists_children = False
+
+    archive = backup_system(world, include_trash=True)
+
+    assert {"TRSH0001", "TRSHN001"} <= set(archive.keys)
+
+
+def _trash_an_annotated_pdf(world: World) -> None:
+    world.lib.add_item(
+        "TRSHPDF1",
+        "attachment",
+        parent="TRSH0001",
+        linkMode="imported_file",
+        filename="deleted.pdf",
+        contentType="application/pdf",
+        file=PDF + b"deleted",
+    )
+    world.lib.add_item("TRSHANN1", "annotation", parent="TRSHPDF1", annotationType="highlight")
+
+
+@pytest.mark.parametrize("scope", ["library", "collection"])
+def test_a_trashed_item_keeps_its_pdf_and_annotations(world: World, scope: str) -> None:
+    _trash_an_annotated_pdf(world)
+    world.lib.trash_lists_children = False
+
+    archive = (
+        backup_system(world, include_trash=True)
+        if scope == "library"
+        else backup_collection(world, "COLA0001", include_trash=True)
+    )
+
+    assert archive.file_of("TRSHPDF1") == PDF + b"deleted"
+    assert "TRSHANN1" in archive.keys
+
+
+def test_a_collection_backup_takes_only_the_trash_filed_in_the_collection_tree(
+    world: World,
+) -> None:
+    world.lib.add_item(
+        "TRSHSUB1", "book", collections=["COLA1A01"], title="Deleted, deep", deleted=True
+    )
+    world.lib.add_item(
+        "TRSHOTH1", "book", collections=["COLB0001"], title="Deleted, elsewhere", deleted=True
+    )
+    world.lib.add_item("TRSHFREE", "book", title="Deleted, unfiled", deleted=True)
+
+    archive = backup_collection(world, "COLA0001", include_trash=True)
+
+    assert {"TRSH0001", "TRSHN001", "TRSHSUB1"} <= set(archive.keys)
+    assert "TRSHOTH1" not in archive.keys
+    assert "TRSHFREE" not in archive.keys
+    assert archive.manifest["includes_trash"] is True
+
+
+def test_a_note_trashed_on_its_own_comes_with_the_backup_of_its_live_parent(world: World) -> None:
+    world.lib.add_item("TRSHNOTE", "note", parent="JRN00001", note="gone", deleted=True)
+
+    library = backup_system(world, include_trash=True)
+    collection = backup_collection(world, "COLA0001", include_trash=True)
+    plain = backup_system(world)
+
+    assert "TRSHNOTE" in library.keys
+    assert "TRSHNOTE" in collection.keys
+    assert "TRSHNOTE" not in plain.keys
+
+
+def test_an_archive_with_the_trash_verifies(world: World, tmp_path: Path) -> None:
+    path = tmp_path / "library.zaf"
+    world.service.backup_system(str(path), include_trash=True)
+
+    report = VerifyService().verify_archive(str(path))
+
+    assert report.is_valid, report.errors
+    assert (report.manifest or {})["includes_trash"] is True
+
+
+def test_restoring_a_trashed_item_sends_its_deleted_flag(world: World, tmp_path: Path) -> None:
+    """The archive keeps `deleted`, and the restore passes it on when it creates the item."""
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+    from zotero_cli.core.services.restore_service import RestoreService
+
+    path = tmp_path / "library.zaf"
+    world.service.backup_system(str(path), include_trash=True)
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_all_items.return_value = iter([])
+    gateway.get_all_collections.return_value = []
+    gateway.create_collection.return_value = "NEWCOL"
+    created: Dict[str, Dict[str, Any]] = {}
+
+    def create_item(data: Dict[str, Any]) -> str:
+        created[data.get("title", data["itemType"])] = data
+        return f"ITM{len(created)}"
+
+    gateway.create_generic_item.side_effect = create_item
+
+    RestoreService(gateway, gateway, gateway, gateway).restore_archive(str(path))
+
+    assert created["Deleted book"]["deleted"] == 1
+    assert "deleted" not in created["The book"]
 
 
 def test_the_manifest_records_which_library_the_archive_came_from(world: World) -> None:
@@ -1542,6 +1661,37 @@ def test_an_archive_without_a_library_restores_without_a_warning(cli: Cli, tmp_p
 
     assert "Warning" not in result.out
     assert result.code != 2
+
+
+def test_cli_trash_option_on_both_backup_commands(cli: Cli, tmp_path: Path) -> None:
+    system_out = tmp_path / "all.zaf"
+    collection_out = tmp_path / "col.zaf"
+
+    plain = cli.run("system", "backup", "--output", str(tmp_path / "plain.zaf"))
+    system = cli.run("system", "backup", "--trash", "--output", str(system_out))
+    collection = cli.run(
+        "collection",
+        "backup",
+        "--collection",
+        "COLA0001",
+        "--trash",
+        "--output",
+        str(collection_out),
+    )
+
+    assert plain.code == system.code == collection.code == 0
+    assert "TRSH0001" not in _keys_in(tmp_path / "plain.zaf")
+    assert "TRSH0001" in _keys_in(system_out)
+    assert "TRSH0001" in _keys_in(collection_out)
+
+
+def test_verify_says_when_an_archive_includes_the_trash(cli: Cli, tmp_path: Path) -> None:
+    out = tmp_path / "all.zaf"
+    cli.run("system", "backup", "--trash", "--output", str(out))
+
+    result = cli.run("system", "verify", "--file", str(out))
+
+    assert "Includes the items that were in the Zotero trash" in result.out
 
 
 def test_cli_group_backup_matches_the_service_backup(cli: Cli, tmp_path: Path) -> None:
