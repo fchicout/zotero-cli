@@ -260,20 +260,51 @@ def test_stored_files_come_back_byte_identical_under_the_same_parent(trip: Trip)
 # =============================================================================================
 
 
-@finding(
-    680, "root collections never match an existing one (False != None); attachments are re-uploaded"
-)
 def test_a_second_restore_adds_nothing(trip: Trip) -> None:
-    before = (len(trip.target.lib.items), len(trip.target.lib.collections))
+    """Live items, collections and files; the trash has its own check (#683)."""
+    before = (len(trip.target.lib.live_items()), len(trip.target.lib.collections))
 
     again = trip.restore_again()
 
     expected = before
-    actual = (len(trip.target.lib.items), len(trip.target.lib.collections))
+    actual = (len(trip.target.lib.live_items()), len(trip.target.lib.collections))
     assert actual == expected
     created = (again.collections_created, again.attachments_uploaded)
     nothing = (0, 0)
     assert created == nothing
+
+
+def test_a_partly_restored_library_gets_only_what_is_missing(trip: Trip) -> None:
+    """Remove a collection and a file; a second restore puts back those and nothing else."""
+    lib = trip.target.lib
+    drafts = next(k for k in lib.collections if col_path(lib, k) == "Reviews/2025/Drafts")
+    del lib.collections[drafts]
+    pdf = next(
+        k
+        for k, r in lib.items.items()
+        if r["data"]["itemType"] == "attachment" and r["data"].get("parentItem")
+    )
+    del lib.items[pdf]
+    items_before = len(lib.live_items())
+
+    again = trip.restore_again()
+
+    assert again.collections_created == 1
+    assert again.attachments_uploaded == 1
+    assert len(lib.live_items()) == items_before + 1
+    assert drafts not in lib.collections, "a new key, not the deleted one"
+
+
+def test_a_dry_run_of_a_second_restore_reports_the_same_nothing(trip: Trip) -> None:
+    service = RestoreService(
+        *[cast(Any, trip.target)] * 4  # type: ignore[arg-type]
+    )
+
+    plan = service.restore_archive(str(trip.archive), dry_run=True)
+
+    assert plan.collections_created == 0
+    assert plan.attachments_uploaded == 0
+    assert plan.attachments_skipped_existing > 0
 
 
 @finding(681, "a note or file without a parent is dropped without a message")
