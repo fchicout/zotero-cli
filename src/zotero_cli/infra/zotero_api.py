@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, TypeVar, cast
 import requests
 
 from zotero_cli.core import annotations as annotation_records
-from zotero_cli.core.exceptions import AuthError, NotFound
+from zotero_cli.core.exceptions import AuthError, NotFound, ZoteroCliError
 from zotero_cli.core.interfaces import ZoteroGateway
 from zotero_cli.core.logging_config import redact
 from zotero_cli.core.models import (
@@ -146,6 +146,16 @@ class ZoteroAPIClient(ZoteroGateway):
             [],
             lambda: list(self._paginate("collections")),
         )
+
+    def create_search(self, name: str, conditions: List[Dict[str, Any]]) -> Optional[str]:
+        try:
+            response = self.http.post(
+                "searches", json_data=[{"name": name, "conditions": conditions}]
+            )
+            return self._parse_write_response(response)
+        except (ZoteroCliError, requests.RequestException, ValueError, KeyError):
+            logger.exception("ZoteroAPIClient: Error creating saved search")
+            return None
 
     def get_all_searches(self) -> List[Dict[str, Any]]:
         return self._safe_execute(

@@ -1416,3 +1416,179 @@ def test_an_archived_doi_that_matches_only_claimed_items_does_not_fall_back_to_t
 
     assert first.key == "ONLY0001"
     assert second is None
+
+
+def _searches_service(collection_map=None, existing=()):
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_all_searches.return_value = list(existing)
+    gateway.create_search.side_effect = lambda name, conditions: f"NEW-{name[:6]}"
+    service = _restore_service(gateway)
+    service.coll_map.update(collection_map or {})
+    return gateway, service
+
+
+def _search(key, name, conditions):
+    return {"key": key, "data": {"key": key, "name": name, "conditions": conditions}}
+
+
+def _cond(condition, value, operator="is"):
+    return {"condition": condition, "operator": operator, "value": value}
+
+
+def test_a_collection_condition_gets_the_new_key_of_the_collection():
+    gateway, service = _searches_service({"OLDCOL": "NEWCOL"})
+
+    service._restore_searches(
+        [_search("S1", "In a collection", [_cond("collection", "OLDCOL"), _cond("tag", "x")])],
+        RestoreReport(),
+    )
+
+    gateway.create_search.assert_called_once_with(
+        "In a collection", [_cond("collection", "NEWCOL"), _cond("tag", "x")]
+    )
+
+
+def test_conditions_that_name_no_key_are_sent_as_they_are():
+    gateway, service = _searches_service()
+    conditions = [
+        _cond("title", "contains", "contains"),
+        {"condition": "joinMode", "operator": "any"},
+    ]
+
+    service._restore_searches([_search("S1", "Plain", conditions)], RestoreReport())
+
+    assert gateway.create_search.call_args.args[1] == conditions
+
+
+def test_a_search_naming_a_collection_that_was_not_restored_is_skipped_with_a_warning():
+    gateway, service = _searches_service()
+    report = RestoreReport()
+
+    service._restore_searches([_search("S1", "Ghost", [_cond("collection", "GONE")])], report)
+
+    gateway.create_search.assert_not_called()
+    assert report.searches_created == 0
+    assert any("Ghost" in w and "GONE" in w for w in report.warnings)
+    assert report.errors == []
+
+
+def test_a_search_that_refers_to_a_later_search_waits_for_it():
+    gateway, service = _searches_service()
+    first_listed = _search("S2", "Second", [_cond("savedSearch", "S1")])
+    second_listed = _search("S1", "First", [_cond("tag", "x")])
+
+    service._restore_searches([first_listed, second_listed], RestoreReport())
+
+    names = [c.args[0] for c in gateway.create_search.call_args_list]
+    assert names == ["First", "Second"]
+    assert gateway.create_search.call_args_list[1].args[1] == [_cond("savedSearch", "NEW-First")]
+
+
+def test_searches_that_refer_to_each_other_are_skipped_not_looped_on():
+    gateway, service = _searches_service()
+    report = RestoreReport()
+
+    service._restore_searches(
+        [
+            _search("A", "A", [_cond("savedSearch", "B")]),
+            _search("B", "B", [_cond("savedSearch", "A")]),
+        ],
+        report,
+    )
+
+    gateway.create_search.assert_not_called()
+    assert len(report.warnings) == 2
+
+
+def test_a_reference_to_a_search_the_archive_does_not_hold_is_a_warning():
+    gateway, service = _searches_service()
+    report = RestoreReport()
+
+    service._restore_searches(
+        [_search("S1", "Orphan ref", [_cond("savedSearch", "ELSEWHERE")])], report
+    )
+
+    gateway.create_search.assert_not_called()
+    assert any("ELSEWHERE" in w for w in report.warnings)
+
+
+def test_an_equal_search_that_exists_is_not_created_again_and_is_what_others_refer_to():
+    existing = [_search("HAVE1", "First", [_cond("collection", "NEWCOL")])]
+    gateway, service = _searches_service({"OLDCOL": "NEWCOL"}, existing)
+    report = RestoreReport()
+
+    service._restore_searches(
+        [
+            _search("S1", "First", [_cond("collection", "OLDCOL")]),
+            _search("S2", "Second", [_cond("savedSearch", "S1")]),
+        ],
+        report,
+    )
+
+    assert report.searches_skipped_existing == 1
+    assert report.searches_created == 1
+    assert gateway.create_search.call_args.args[1] == [_cond("savedSearch", "HAVE1")]
+
+
+def test_a_search_with_the_same_name_but_other_conditions_is_created():
+    existing = [_search("HAVE1", "Same name", [_cond("tag", "a")])]
+    gateway, service = _searches_service(existing=existing)
+
+    service._restore_searches([_search("S1", "Same name", [_cond("tag", "b")])], RestoreReport())
+
+    gateway.create_search.assert_called_once()
+
+
+def test_a_refused_search_is_an_error_and_the_next_one_is_still_tried():
+    gateway, service = _searches_service()
+    gateway.create_search.side_effect = [None, "NEWKEY"]
+    report = RestoreReport()
+
+    service._restore_searches(
+        [_search("S1", "Refused", [_cond("tag", "a")]), _search("S2", "Fine", [_cond("tag", "b")])],
+        report,
+    )
+
+    assert report.searches_created == 1
+    assert any('"Refused"' in e for e in report.errors)
+
+
+def test_a_dry_run_writes_no_search_but_lets_later_ones_refer_to_it():
+    gateway, service = _searches_service()
+    report = RestoreReport(is_dry_run=True)
+
+    service._restore_searches(
+        [
+            _search("S1", "First", [_cond("tag", "a")]),
+            _search("S2", "Second", [_cond("savedSearch", "S1")]),
+        ],
+        report,
+    )
+
+    gateway.create_search.assert_not_called()
+    assert report.searches_created == 2
+    assert report.warnings == []
+
+
+def test_an_archive_without_a_searches_file_restores_as_before(tmp_path):
+    """Archives from before saved searches were backed up, and collection archives."""
+    import json as _json
+
+    gateway, service = _searches_service()
+    gateway.get_all_items.return_value = iter([])
+    gateway.get_trash_items.return_value = iter([])
+    path = tmp_path / "old.zaf"
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr(
+            "manifest.json", _json.dumps({"format": "zaf", "version": "1.1", "file_map": {}})
+        )
+        zf.writestr("data.json", "[]")
+
+    report = service.restore_archive(str(path))
+
+    assert report.errors == []
+    gateway.get_all_searches.assert_not_called()

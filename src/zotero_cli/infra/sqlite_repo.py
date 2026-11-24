@@ -737,10 +737,10 @@ class SqliteZoteroGateway(ZoteroGateway, NotifyMixin):
     def update_item_metadata(self, item_key: str, version: int, metadata: Dict[str, Any]) -> bool:
         raise OfflineReadOnly()
 
-    def upload_attachment(self, *_args: Any, **_kwargs: Any) -> Any:
+    def _refuse(self, *_args: Any, **_kwargs: Any) -> Any:
         raise OfflineReadOnly()
 
-    upload_attachment_item = upload_attachment
+    upload_attachment = upload_attachment_item = create_search = _refuse
 
     def download_attachment(self, item_key: str, save_path: str) -> bool:
         """Copy an attachment's file from Zotero's own `storage/<KEY>/` folder (or a

@@ -581,6 +581,11 @@ class SystemCommand(BaseCommand):
         table.add_row("Attachments Skipped (Existing)", str(report.attachments_skipped_existing))
         if report.items_trashed:
             table.add_row("Of Those, Restored Into The Trash", str(report.items_trashed))
+        if report.searches_created or report.searches_skipped_existing:
+            table.add_row("Saved Searches Created", str(report.searches_created))
+            table.add_row(
+                "Saved Searches Skipped (Existing)", str(report.searches_skipped_existing)
+            )
 
         console.print(table)
 

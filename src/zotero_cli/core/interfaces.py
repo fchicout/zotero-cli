@@ -114,6 +114,12 @@ class CollectionRepository(ABC):
         pass
 
     @abstractmethod
+    def create_search(self, name: str, conditions: List[Dict[str, Any]]) -> Optional[str]:
+        """Creates a saved search; the key of the new search, or None if it was refused.
+        Each condition is `{"condition", "operator", "value"}` (Issue #678)."""
+        pass
+
+    @abstractmethod
     def get_all_searches(self) -> List[Dict[str, Any]]:
         """Every saved search of the library, as the Web API shapes it: `key`, `version`,
         `data.name` and `data.conditions` (each with `condition`, `operator`, `value`)."""

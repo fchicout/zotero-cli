@@ -58,6 +58,8 @@ class RestoreReport:
     attachments_skipped_existing: int = 0
     items_trashed: int = 0  # of the items created, how many went into the trash (Issue #683)
     relations_restored: int = 0  # related-item links rewritten to the new keys (Issue #686)
+    searches_created: int = 0  # saved searches (Issue #678)
+    searches_skipped_existing: int = 0
     errors: List[str] = field(default_factory=list)
     # Things the archive holds that this restore does not bring back, and why: not failures
     # of the restore itself (those are `errors`), but the user should know.
@@ -110,6 +112,8 @@ class RestoreService:
         # Existing items already matched to an archived one in this run: a match is one to one
         # (Issue #699), so two copies of one paper map to two existing copies, not to one.
         self._claimed: Set[str] = set()
+        # Saved searches: archive key -> key in the library (an existing equal search counts)
+        self._search_map: Dict[str, str] = {}
         self._trashed_note_texts: Dict[str, Set[str]] = {}
 
     def restore_archive(self, file_path: str, dry_run: bool = False) -> RestoreReport:
@@ -122,6 +126,7 @@ class RestoreService:
         self._trashed_children = {}
         self._trash_indexes = ({}, {})
         self._claimed = set()
+        self._search_map = {}
         self._trashed_note_texts = {}
 
         try:
@@ -158,6 +163,10 @@ class RestoreService:
 
                 # 3. Related items: only now do all the new keys exist (Issue #686)
                 self._restore_relations(sorted_items, report)
+
+                # 4. Saved searches: their conditions name collections and other searches
+                if "searches.json" in zf.namelist():
+                    self._restore_searches(read_json_member(zf, "searches.json"), report)
 
         except Exception as e:
             report.errors.append(f"Critical error during restore: {str(e)}")
@@ -536,6 +545,75 @@ class RestoreService:
                 return str(other["_key"])
         return None
 
+    def _restore_searches(self, searches: List[dict], report: RestoreReport) -> None:
+        """Recreates the saved searches (Issue #678). A condition names a collection or another
+        search by key, so those keys are mapped to the restored ones; a search that refers to
+        something that was not restored is skipped and said, never created with a dangling
+        condition (the API stores one without complaint). A search that refers to another is
+        created after it. Equal searches already in the library are not created again."""
+        existing = {
+            _search_identity(s["data"]["name"], s["data"].get("conditions", [])): s["key"]
+            for s in self.collections.get_all_searches()
+        }
+        in_archive = {s["key"] for s in searches}
+
+        def can_go(search: dict) -> bool:
+            # every search it refers to is done, or is not in the archive (then it warns)
+            return all(
+                ref in self._search_map or ref not in in_archive for ref in _search_refs(search)
+            )
+
+        waiting = list(searches)
+        while waiting:
+            ready = [s for s in waiting if can_go(s)] or waiting  # `or`: a loop of references
+            waiting = [s for s in waiting if s not in ready]
+            for search in ready:
+                self._restore_search(search, existing, report)
+
+    def _restore_search(
+        self, search: dict, existing: Dict[Any, str], report: RestoreReport
+    ) -> None:
+        data = search["data"]
+        conditions = self._map_conditions(search, report)
+        if conditions is None:
+            return
+        identity = _search_identity(data["name"], conditions)
+        if identity in existing:
+            self._search_map[search["key"]] = existing[identity]
+            report.searches_skipped_existing += 1
+            return
+        new_key = f"DRY_RUN_{search['key']}"
+        if not report.is_dry_run:
+            created = self.collections.create_search(data["name"], conditions)
+            if not created:
+                report.errors.append(f'Failed to create the saved search "{data["name"]}"')
+                return
+            new_key = created
+        self._search_map[search["key"]] = new_key
+        existing[identity] = new_key
+        report.searches_created += 1
+
+    def _map_conditions(self, search: dict, report: RestoreReport) -> Optional[List[dict]]:
+        """The search's conditions with their collection and search keys replaced by the
+        restored ones, or None (with a warning) when one cannot be."""
+        name = search["data"]["name"]
+        mapped = []
+        for original in search["data"].get("conditions", []):
+            condition = dict(original)
+            kind, value = condition.get("condition"), condition.get("value")
+            if kind in ("collection", "savedSearch"):
+                lookup = self.coll_map if kind == "collection" else self._search_map
+                if value not in lookup:
+                    what = "collection" if kind == "collection" else "saved search"
+                    report.warnings.append(
+                        f'saved search "{name}" ({search["key"]}): refers to the {what} {value}, '
+                        "which was not restored"
+                    )
+                    return None
+                condition["value"] = lookup[value]
+            mapped.append(condition)
+        return mapped
+
     def _restore_relations(self, items: List[dict], report: RestoreReport) -> None:
         """Gives the items this run created their related-item links back, pointing at the new
         items (Issue #686). Both ends are stored on both items, so each side is rewritten."""
@@ -796,3 +874,20 @@ def _item_uri(scope: str, library_id: str, key: str) -> str:
     # NOSONAR (S5332): Zotero's name for an item inside a relation. The Web API stores and returns
     # it with `http`; it identifies the item and is never fetched.
     return f"http://zotero.org/{scope}/{library_id}/items/{key}"  # NOSONAR
+
+
+def _search_refs(search: dict) -> Set[str]:
+    """The keys of the saved searches this search refers to."""
+    return {
+        c.get("value", "")
+        for c in search["data"].get("conditions", [])
+        if c.get("condition") == "savedSearch"
+    }
+
+
+def _search_identity(name: str, conditions: List[dict]) -> Tuple[str, Tuple[Tuple[Any, ...], ...]]:
+    """What makes two saved searches the same: the name and each condition's (condition,
+    operator, value), in order."""
+    return name, tuple(
+        (c.get("condition"), c.get("operator"), str(c.get("value"))) for c in conditions
+    )

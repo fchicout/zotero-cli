@@ -478,6 +478,18 @@ class FakeTarget:
 
     # --- writes -------------------------------------------------------------------------
 
+    def get_all_searches(self) -> List[Dict[str, Any]]:
+        return copy.deepcopy(list(self.lib.searches.values()))
+
+    def create_search(self, name: str, conditions: List[Dict[str, Any]]) -> Optional[str]:
+        key = self._new_key()
+        self.lib.searches[key] = {
+            "key": key,
+            "version": self.lib.version,
+            "data": {"key": key, "name": name, "conditions": copy.deepcopy(conditions)},
+        }
+        return key
+
     def update_item(self, item_key: str, version: int, item_data: Dict[str, Any]) -> bool:
         if item_key not in self.lib.items:
             return False
