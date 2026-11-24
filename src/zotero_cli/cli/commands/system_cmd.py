@@ -579,6 +579,8 @@ class SystemCommand(BaseCommand):
         table.add_row("Items Skipped (Existing)", str(report.items_skipped_existing))
         table.add_row("Attachments Uploaded", str(report.attachments_uploaded))
         table.add_row("Attachments Skipped (Existing)", str(report.attachments_skipped_existing))
+        if report.items_trashed:
+            table.add_row("Of Those, Restored Into The Trash", str(report.items_trashed))
 
         console.print(table)
 

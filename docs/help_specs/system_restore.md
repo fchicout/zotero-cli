@@ -47,6 +47,7 @@ The command carefully parses the `.zaf` archive, identifies all bibliographic re
 **Result:** The archive is restored into the library.
 
 ## 7. Cognitive Safeguards
+- **Trashed items stay trashed:** an archive made with `--trash` restores the items that were in the trash into the trash again (articles, notes, files), and a second restore does not create them twice; the summary says how many went there. Without `--trash` the archive has no trash to restore.
 - **Notes keep their tags** (manual and automatic) as well as their text.
 - **Stand-alone notes and files:** a note or a file that was filed in a collection without a parent item comes back as a top-level item in the same collections (matched by their text or file when restoring again). Anything the archive holds that is not restored (for example an item whose parent could not be restored, or the images embedded in notes) is listed under `Not restored` in the summary instead of being skipped silently; it does not make the command fail.
 - **Restoring twice is safe:** collections are matched by name and parent, items by DOI or title, notes by their text and attachments by their file (md5, or the file name when the existing attachment has no md5), so a second run into the same library creates nothing. The summary shows how many attachments were skipped as already there.

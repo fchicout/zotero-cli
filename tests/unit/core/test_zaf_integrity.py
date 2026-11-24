@@ -680,3 +680,115 @@ def test_a_note_without_tags_is_created_with_an_empty_tag_list():
     payload = _note_payload({"note": "<p>x</p>"}, collections=["COL1"])
 
     assert payload == {"itemType": "note", "note": "<p>x</p>", "tags": [], "collections": ["COL1"]}
+
+
+def test_a_trashed_note_is_created_with_the_deleted_flag():
+    """Issue #683: the real API honours `deleted` on create."""
+    from zotero_cli.core.services.restore_service import _note_payload
+
+    payload = _note_payload({"note": "<p>x</p>", "deleted": 1}, parent="NEWPARENT")
+
+    assert payload["deleted"] == 1
+    assert "deleted" not in _note_payload({"note": "<p>x</p>"}, parent="NEWPARENT")
+
+
+def _service_with(gateway, trash, children=()):
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_all_items.return_value = iter([])
+    gateway.get_trash_items.return_value = iter(trash)
+    gateway.get_item_children.return_value = list(children)
+    gateway.create_generic_item.return_value = "NEWNOTE"
+    return gateway, _restore_service(gateway)
+
+
+def _trashed_note(parent, text):
+    from zotero_cli.core.zotero_item import ZoteroItem
+
+    return ZoteroItem.from_raw_zotero_item(
+        {
+            "key": "OLDTRASH",
+            "data": {"itemType": "note", "parentItem": parent, "note": text, "deleted": 1},
+        }
+    )
+
+
+def test_a_trashed_note_already_in_the_trash_is_not_created_again():
+    """The Web API hides a trashed child from its parent's listing, so the trash is asked."""
+    gateway, service = _service_with(None, [_trashed_note("EXISTING1", "<p>gone</p>")])
+    service._build_existing_item_indexes()
+    report = RestoreReport()
+
+    service._restore_note({"note": "<p>gone</p>", "deleted": 1}, "EXISTING1", report)
+
+    gateway.create_generic_item.assert_not_called()
+    assert report.items_trashed == 0
+
+
+def test_a_trashed_note_that_is_not_in_the_trash_yet_is_created_there():
+    gateway, service = _service_with(None, [_trashed_note("EXISTING1", "<p>other</p>")])
+    service._build_existing_item_indexes()
+    report = RestoreReport()
+
+    service._restore_note({"note": "<p>gone</p>", "deleted": 1}, "EXISTING1", report)
+
+    assert gateway.create_generic_item.call_args.args[0]["deleted"] == 1
+    assert report.items_trashed == 1
+
+
+def test_a_live_note_is_not_mistaken_for_a_trashed_one():
+    """A live note with the same text does not stop the trashed one, nor the other way round."""
+    live = {"key": "L1", "data": {"itemType": "note", "note": "<p>same</p>"}}
+    gateway, service = _service_with(None, [], children=[live])
+    service._build_existing_item_indexes()
+
+    service._restore_note({"note": "<p>same</p>", "deleted": 1}, "EXISTING1", RestoreReport())
+    service._restore_note({"note": "<p>same</p>"}, "EXISTING1", RestoreReport())
+
+    assert gateway.create_generic_item.call_count == 1  # the live one exists; the trashed does not
+
+
+def test_an_archived_trashed_article_matches_one_that_is_already_in_the_trash():
+    from unittest.mock import create_autospec
+
+    from zotero_cli.core.interfaces import ZoteroGateway
+    from zotero_cli.core.zotero_item import ZoteroItem
+
+    gateway = create_autospec(ZoteroGateway, instance=True)
+    gateway.get_all_items.return_value = iter([])
+    gateway.get_trash_items.return_value = iter(
+        [
+            ZoteroItem.from_raw_zotero_item(
+                {
+                    "key": "TRASHED1",
+                    "data": {"itemType": "book", "title": "Gone book", "deleted": 1},
+                }
+            )
+        ]
+    )
+    service = _restore_service(gateway)
+    doi_index, title_index = service._build_existing_item_indexes()
+    report = RestoreReport()
+
+    service._restore_single_item(
+        {"key": "OLD", "data": {"itemType": "book", "title": "Gone book", "deleted": 1}},
+        zipfile.ZipFile(io.BytesIO(_empty_zip())),
+        {},
+        report,
+        doi_index,
+        title_index,
+    )
+
+    assert service.item_map["OLD"] == "TRASHED1"
+    assert report.items_skipped_existing == 1
+    gateway.create_generic_item.assert_not_called()
+
+
+def _empty_zip() -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w"):
+        pass
+    return buffer.getvalue()

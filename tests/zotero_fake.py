@@ -466,6 +466,10 @@ class FakeTarget:
         for raw in self.lib.live_items():
             yield ZoteroItem.from_raw_zotero_item(copy.deepcopy(raw))
 
+    def get_trash_items(self) -> Iterator[ZoteroItem]:
+        for raw in self.lib.trashed_items():
+            yield ZoteroItem.from_raw_zotero_item(copy.deepcopy(raw))
+
     def get_all_collections(self) -> List[Dict[str, Any]]:
         return copy.deepcopy(list(self.lib.collections.values()))
 
@@ -538,6 +542,7 @@ class FakeTarget:
             "attachment",
             parent=parent_item_key,
             collections=collections,
+            deleted=bool((item_data or {}).get("deleted")),
             linkMode="imported_file",
             filename=name,
             title=name,
