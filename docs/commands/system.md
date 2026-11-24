@@ -73,7 +73,7 @@ zotero-cli system switch 1234567
 ---
 
 ### `backup`
-Creates a complete, self-contained backup archive (`.zaf`) of your entire Zotero library or a specific collection, including all metadata and PDF attachments. Every attachment is mathematically verified using SHA-256 checksums.
+Creates a complete, self-contained backup archive (`.zaf`) of your entire Zotero library or a specific collection, including all metadata and every attachment file Zotero stores (PDFs, web snapshots, files downloaded from a URL, images in notes). Every attachment is mathematically verified using SHA-256 checksums.
 
 **Usage:**
 ```bash
