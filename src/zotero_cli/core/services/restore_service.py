@@ -239,7 +239,8 @@ class RestoreService:
         # 1. Idempotency: Check by DOI, ArXiv ID, or Title
         existing_item = self._find_existing_item(data, doi_index, title_index, new_colls)
         if existing_item is None and data.get("deleted"):
-            existing_item = self._find_existing_item(data, *self._trash_indexes, new_colls)
+            trash_doi, trash_title = self._trash_indexes
+            existing_item = self._find_existing_item(data, trash_doi, trash_title, new_colls)
         if existing_item:
             self.item_map[old_key] = existing_item.key
             report.items_skipped_existing += 1
