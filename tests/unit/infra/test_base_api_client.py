@@ -21,39 +21,47 @@ class _DummyClient(BaseAPIClient):
 def test_apply_rate_limit_sleeps_on_back_to_back_calls():
     client = _DummyClient(base_url="https://example.test", min_request_interval=0.34)
 
-    with patch("zotero_cli.infra.base_api_client.time") as mock_time:
-        # Each _apply_rate_limit() call reads time.time() twice: once for
-        # the elapsed check, once to record _last_request_time.
-        mock_time.time.side_effect = [100.0, 100.0, 100.1, 100.1]
+    with patch("zotero_cli.core.utils.host_throttle.time.sleep") as sleep:
         client._apply_rate_limit()  # First call: no prior request, no sleep.
-        client._apply_rate_limit()  # Second call: 0.1s elapsed < 0.34s interval.
+        sleep.assert_not_called()
+        client._apply_rate_limit()  # Second call straight after: waits about the interval.
 
-        mock_time.sleep.assert_called_once()
-        slept_for = mock_time.sleep.call_args[0][0]
-        assert 0.2 < slept_for < 0.25
+    sleep.assert_called_once()
+    assert 0.2 < sleep.call_args[0][0] <= 0.34
 
 
-def test_apply_rate_limit_does_not_sleep_when_interval_already_elapsed():
-    client = _DummyClient(base_url="https://example.test", min_request_interval=0.34)
+def test_two_clients_of_one_host_pace_each_other():
+    """Issue #715: the pacing is per host in the process, not per client object."""
+    first = _DummyClient(base_url="https://example.test/a", min_request_interval=0.34)
+    second = _DummyClient(base_url="https://example.test/b", min_request_interval=0.34)
 
-    with patch("zotero_cli.infra.base_api_client.time") as mock_time:
-        mock_time.time.side_effect = [100.0, 100.0, 101.0, 101.0]
-        client._apply_rate_limit()
-        client._apply_rate_limit()
+    with patch("zotero_cli.core.utils.host_throttle.time.sleep") as sleep:
+        first._apply_rate_limit()
+        second._apply_rate_limit()
 
-        mock_time.sleep.assert_not_called()
+    sleep.assert_called_once()
+
+
+def test_different_hosts_do_not_pace_each_other():
+    first = _DummyClient(base_url="https://one.test", min_request_interval=0.34)
+    second = _DummyClient(base_url="https://two.test", min_request_interval=0.34)
+
+    with patch("zotero_cli.core.utils.host_throttle.time.sleep") as sleep:
+        first._apply_rate_limit()
+        second._apply_rate_limit()
+
+    sleep.assert_not_called()
 
 
 def test_apply_rate_limit_disabled_when_min_interval_is_zero():
-    """Subclasses that already self-throttle more precisely (pubmed_api.py,
-    semantic_scholar_api.py) opt out via min_request_interval=0."""
+    """A subclass can opt out with min_request_interval=0."""
     client = _DummyClient(base_url="https://example.test", min_request_interval=0)
 
-    with patch("zotero_cli.infra.base_api_client.time") as mock_time:
+    with patch("zotero_cli.core.utils.host_throttle.time.sleep") as sleep:
         client._apply_rate_limit()
         client._apply_rate_limit()
 
-        mock_time.sleep.assert_not_called()
+    sleep.assert_not_called()
 
 
 def test_get_applies_rate_limit_before_request():

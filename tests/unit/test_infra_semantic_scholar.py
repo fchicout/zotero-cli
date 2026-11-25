@@ -9,7 +9,7 @@ pytestmark = pytest.mark.usefixtures("no_sleep")
 
 @pytest.fixture
 def no_sleep():
-    with patch("zotero_cli.infra.semantic_scholar_api.time.sleep"):
+    with patch("zotero_cli.core.utils.host_throttle.time.sleep"):
         yield
 
 

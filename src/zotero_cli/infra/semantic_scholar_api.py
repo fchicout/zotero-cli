@@ -1,6 +1,5 @@
 import logging
 import os
-import time
 from typing import Any, Dict, Iterator, Optional
 
 import requests
@@ -27,11 +26,10 @@ class SemanticScholarAPIClient(
     BaseAPIClient, MetadataProvider, SearchableMetadataProvider, CountableMetadataProvider
 ):
     def __init__(self, api_key: Optional[str] = None):
-        # min_request_interval=0: this client already self-throttles via
-        # its own explicit time.sleep(1.1) calls before every request, so
-        # the base class's generic pacing would be redundant.
+        # 1 request per second, kept polite; the base client paces every request (and each
+        # retry after a 429) through the process-wide host throttle (Issue #715).
         super().__init__(
-            base_url="https://api.semanticscholar.org/graph/v1/paper", min_request_interval=0
+            base_url="https://api.semanticscholar.org/graph/v1/paper", min_request_interval=1.1
         )
         self.api_key = api_key or os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
         if self.api_key:
@@ -51,9 +49,6 @@ class SemanticScholarAPIClient(
             pass
 
         fields = _SEARCH_FIELDS
-
-        # Rate limiting: 1 request per second (keeping it polite)
-        time.sleep(1.1)
 
         try:
             response = self._get(endpoint=s2_id, params={"fields": fields})
@@ -92,7 +87,6 @@ class SemanticScholarAPIClient(
 
         while fetched < max_results and (total is None or offset < total):
             page_limit = min(_MAX_PER_PAGE, max_results - fetched)
-            time.sleep(1.1)  # Rate limiting: 1 request per second (keeping it polite)
 
             try:
                 response = self._get(
@@ -129,7 +123,6 @@ class SemanticScholarAPIClient(
         the same `total` field search() already paginates against, instead
         of materializing/discarding results just to count them.
         """
-        time.sleep(1.1)  # Rate limiting: 1 request per second (keeping it polite)
         try:
             response = self._get(
                 endpoint="search",
