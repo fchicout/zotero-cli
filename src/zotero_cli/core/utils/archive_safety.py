@@ -12,13 +12,15 @@ import json
 import zipfile
 from typing import IO, Any
 
+from zotero_cli.core.exceptions import ZoteroCliError
+
 MAX_ARCHIVE_ENTRIES = 200_000
 MAX_JSON_BYTES = 256 * 1024 * 1024
 MAX_ATTACHMENT_BYTES = 1024 * 1024 * 1024
 _CHUNK = 1024 * 1024
 
 
-class ArchiveLimitError(ValueError):
+class ArchiveLimitError(ZoteroCliError, ValueError):
     """Raised when an archive or one of its entries exceeds a size limit."""
 
 

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
+from .exceptions import ZoteroCliError
 from .models import (
     Job,
     ResearchPaper,
@@ -445,7 +446,7 @@ class PDFResolver(ABC):
         pass
 
 
-class ResolutionError(Exception):
+class ResolutionError(ZoteroCliError):
     """
     Exception raised when a PDF resolution fails due to a technical error.
     """
