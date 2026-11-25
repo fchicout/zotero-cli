@@ -19,13 +19,70 @@ def test_apply_rate_limit(client):
     assert client.last_request_time > 0
 
 
-def test_resolve_pmcid_to_pmid_success(client):
-    mock_response = MagicMock()
-    mock_response.json.return_value = {"records": [{"pmcid": "PMC123", "pmid": "456"}]}
+def _json_response(payload, status=200, headers=None):
+    import json
 
-    with patch("requests.get", return_value=mock_response):
+    import requests
+
+    response = requests.Response()
+    response.status_code = status
+    response._content = json.dumps(payload).encode()
+    response.headers.update(headers or {})
+    return response
+
+
+def test_resolve_pmcid_to_pmid_success(client):
+    response = _json_response({"records": [{"pmcid": "PMC123", "pmid": "456"}]})
+
+    with patch.object(client.session, "get", return_value=response) as get:
         pmid = client._resolve_pmcid_to_pmid("PMC123")
-        assert pmid == "456"
+
+    assert pmid == "456"
+    url = get.call_args.args[0]
+    assert url == "https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/"
+    params = get.call_args.kwargs["params"]
+    assert params["ids"] == "PMC123"
+    assert "api_key" not in params  # idconv doesn't take one
+
+
+def test_the_pmcid_lookup_is_paced_like_every_other_ncbi_request(client):
+    """Issue #713: it used to be a bare requests.get."""
+    response = _json_response({"records": [{"pmid": "456"}]})
+
+    with (
+        patch.object(client.session, "get", return_value=response),
+        patch.object(client, "_apply_rate_limit") as pace,
+    ):
+        client._resolve_pmcid_to_pmid("PMC123")
+
+    pace.assert_called_once_with()
+
+
+def test_the_pmcid_lookup_waits_out_a_429_and_retries(client):
+    limited = _json_response({}, status=429, headers={"Retry-After": "1"})
+    answered = _json_response({"records": [{"pmid": "456"}]})
+
+    with (
+        patch.object(client.session, "get", side_effect=[limited, answered]) as get,
+        patch("zotero_cli.infra.base_api_client.time.sleep") as sleep,
+    ):
+        pmid = client._resolve_pmcid_to_pmid("PMC123")
+
+    assert pmid == "456"
+    assert get.call_count == 2
+    sleep.assert_any_call(1.0)
+
+
+def test_get_paper_metadata_paces_a_pmcid_once(client):
+    """The pacing moved into the request, so the caller no longer adds its own."""
+    with (
+        patch.object(client, "_resolve_pmcid_to_pmid", return_value=None) as resolve,
+        patch.object(client, "_apply_rate_limit") as pace,
+    ):
+        assert client.get_paper_metadata("PMC123") is None
+
+    resolve.assert_called_once_with("PMC123")
+    pace.assert_not_called()
 
 
 def test_parse_pubmed_xml(client):
@@ -138,7 +195,7 @@ def test_record_with_a_different_doi_is_rejected(client):
 
 @pytest.mark.parametrize("identifier", ["arXiv:1706.03762", "not an id", "10.1145", ""])
 def test_unrecognised_identifiers_make_no_request(client, identifier):
-    with patch.object(client, "_get") as get, patch("requests.get") as raw_get:
+    with patch.object(client, "_get") as get, patch.object(client.session, "get") as raw_get:
         assert client.get_paper_metadata(identifier) is None
     get.assert_not_called()
     raw_get.assert_not_called()

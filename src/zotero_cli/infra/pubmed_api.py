@@ -54,7 +54,6 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
         if _PMID_RE.match(identifier):
             pmid = identifier
         elif _PMCID_RE.match(identifier):
-            self._apply_rate_limit()
             pmid = self._resolve_pmcid_to_pmid(identifier)
         elif is_valid_doi(normalize_doi(identifier)):
             queried_doi = normalize_doi(identifier)
@@ -111,9 +110,7 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
             url = "https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/"
             params = {"ids": pmcid, "format": "json", **self._ncbi_params()}
             params.pop("api_key", None)  # idconv doesn't take an API key
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            data = response.json()
+            data = self._get_url(url, params).json()
 
             records = data.get("records", [])
             if records and "pmid" in records[0]:

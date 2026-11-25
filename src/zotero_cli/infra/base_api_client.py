@@ -100,18 +100,6 @@ class BaseAPIClient(ABC):
             logger.exception(f"{name}: Error parsing response for {identifier}")
             return None
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type(
-            (
-                requests.exceptions.ConnectionError,
-                requests.exceptions.Timeout,
-                requests.exceptions.ChunkedEncodingError,
-            )
-        ),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-    )
     def _get(
         self,
         endpoint: str = "",
@@ -131,7 +119,23 @@ class BaseAPIClient(ABC):
             requests.exceptions.HTTPError: If the status code is 4xx/5xx (except 404 which might be handled by caller).
         """
         url = f"{self.base_url}/{endpoint.lstrip('/')}" if endpoint else self.base_url
+        return self._get_url(url, params)
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type(
+            (
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+                requests.exceptions.ChunkedEncodingError,
+            )
+        ),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+    )
+    def _get_url(self, url: str, params: Optional[Dict[str, Any]] = None) -> requests.Response:
+        """`_get` for a full URL: a provider's second service on another path or host gets the
+        same pacing, connection retries and 429 handling (Issue #713)."""
         provider = type(self).__name__
         for attempt in range(MAX_RATE_LIMIT_RETRIES + 1):
             self._apply_rate_limit()
