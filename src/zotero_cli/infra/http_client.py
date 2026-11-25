@@ -22,6 +22,7 @@ from zotero_cli.core.exceptions import (
     ZoteroCliError,
 )
 from zotero_cli.core.utils.notify import notify_or_log
+from zotero_cli.core.utils.retry_after import parse_retry_after
 
 
 def is_http_retryable(exception: BaseException) -> bool:
@@ -65,11 +66,7 @@ def is_duplicate_write(response: requests.Response) -> bool:
 
 
 def _seconds(value: Any) -> Optional[float]:
-    try:
-        seconds = float(value)
-    except (TypeError, ValueError):
-        return None
-    return seconds if seconds >= 0 else None
+    return parse_retry_after(value)
 
 
 def _server_delay(exception: Optional[BaseException]) -> Optional[float]:
