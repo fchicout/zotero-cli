@@ -32,6 +32,8 @@ from requests.adapters import HTTPAdapter
 from urllib3.connection import HTTPConnection, HTTPSConnection
 from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 
+from zotero_cli.core.exceptions import ZoteroCliError
+
 MAX_REDIRECTS = 5
 _ALLOWED_SCHEMES = {"http", "https"}
 
@@ -49,12 +51,12 @@ MAX_RESPONSE_BYTES = 50 * 1024 * 1024
 SENSITIVE_HEADERS = frozenset({"authorization", "x-api-key", "zotero-api-key", "cookie"})
 
 
-class UnsafeURLError(ValueError):
+class UnsafeURLError(ZoteroCliError, ValueError):
     """Raised when a URL is disallowed (bad scheme, or resolves to a
     non-public address) rather than fetched."""
 
 
-class ResponseTooLargeError(ValueError):
+class ResponseTooLargeError(ZoteroCliError, ValueError):
     """Raised when a fetched response body exceeds MAX_RESPONSE_BYTES,
     whether announced upfront via Content-Length or discovered while
     streaming (a hostile server can lie about or omit Content-Length)."""
