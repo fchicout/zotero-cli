@@ -10,13 +10,18 @@ def client():
     return PubMedAPIClient(api_key="test_key")
 
 
-def test_apply_rate_limit(client):
-    import time
+def test_pacing_follows_the_api_key_3_requests_a_second_without_10_with():
+    assert PubMedAPIClient().min_request_interval == 0.34
+    assert PubMedAPIClient(api_key="k").min_request_interval == 0.1
 
-    client.last_request_time = time.time()
-    # Should sleep briefly. We just verify it doesn't crash
-    client._apply_rate_limit()
-    assert client.last_request_time > 0
+
+def test_back_to_back_requests_are_paced(client):
+    with patch("zotero_cli.core.utils.host_throttle.time.sleep") as sleep:
+        client._apply_rate_limit()
+        client._apply_rate_limit()
+
+    sleep.assert_called_once()
+    assert 0 < sleep.call_args[0][0] <= 0.1
 
 
 def _json_response(payload, status=200, headers=None):

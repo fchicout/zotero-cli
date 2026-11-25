@@ -1,6 +1,5 @@
 import logging
 import re
-import time
 from typing import Dict, Optional
 
 import requests
@@ -22,11 +21,9 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
         base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
         self.api_key = api_key
         self.contact_email = contact_email
-        # min_request_interval=0: this client already self-throttles more
-        # precisely via _apply_rate_limit() below (API-key-aware: 3 vs 10
-        # req/s), so the base class's generic pacing would be redundant.
-        super().__init__(base_url=base_url, min_request_interval=0)
-        self.last_request_time = 0.0
+        # NCBI allows 3 requests/sec without an API key, 10 with it; the base client paces every
+        # request through the process-wide host throttle (Issue #715).
+        super().__init__(base_url=base_url, min_request_interval=0.1 if api_key else 0.34)
 
     def _ncbi_params(self) -> Dict[str, str]:
         """NCBI asks tools to identify themselves; the contact email is the
@@ -57,7 +54,6 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
             pmid = self._resolve_pmcid_to_pmid(identifier)
         elif is_valid_doi(normalize_doi(identifier)):
             queried_doi = normalize_doi(identifier)
-            self._apply_rate_limit()
             pmid = self._resolve_doi_to_pmid(queried_doi)
         else:
             return None
@@ -65,7 +61,6 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
         if not pmid:
             return None
 
-        self._apply_rate_limit()
         try:
             params = {"db": "pubmed", "id": pmid, "retmode": "xml", **self._ncbi_params()}
             response = self._get(endpoint="efetch.fcgi", params=params)
@@ -119,14 +114,6 @@ class PubMedAPIClient(BaseAPIClient, MetadataProvider):
         except Exception:
             logger.exception(f"PubMedAPIClient: Error converting PMCID {pmcid} to PMID")
             return None
-
-    def _apply_rate_limit(self) -> None:
-        """NCBI allows 3 requests/sec without API key, 10 with it."""
-        delay = 0.34 if not self.api_key else 0.1
-        elapsed = time.time() - self.last_request_time
-        if elapsed < delay:
-            time.sleep(delay - elapsed)
-        self.last_request_time = time.time()
 
     def _parse_pubmed_xml(self, xml_content: str) -> Optional[ResearchPaper]:
         import defusedxml.ElementTree as DET

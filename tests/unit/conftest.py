@@ -33,6 +33,17 @@ def _no_external_network(monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
 
 
 @pytest.fixture(autouse=True)
+def _fresh_host_throttle() -> Iterator[Any]:
+    """The request throttle is process-wide (Issue #715); one test's requests must not pace
+    (and slow) the next one's."""
+    from zotero_cli.core.utils.host_throttle import HOST_THROTTLE
+
+    HOST_THROTTLE.reset()
+    yield
+    HOST_THROTTLE.reset()
+
+
+@pytest.fixture(autouse=True)
 def _no_leaked_notify_sink() -> Iterator[Any]:
     """`cli.main.main()` installs the stderr sink for domain services (Issue #393);
     clear it around every test so one test driving `main()` can't turn the next

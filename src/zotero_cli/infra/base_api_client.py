@@ -13,6 +13,7 @@ from tenacity import (
 )
 
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.utils.host_throttle import HOST_THROTTLE, host_of
 from zotero_cli.core.utils.retry_after import parse_retry_after
 from zotero_cli.core.utils.user_agent import user_agent
 
@@ -72,15 +73,10 @@ class BaseAPIClient(ABC):
         # an API-key-aware rate, like pubmed_api.py/semantic_scholar_api.py)
         # pass min_request_interval=0 to opt out of this redundant layer.
         self.min_request_interval = min_request_interval
-        self._last_request_time = 0.0
 
     def _apply_rate_limit(self) -> None:
-        if self.min_request_interval <= 0:
-            return
-        elapsed = time.time() - self._last_request_time
-        if elapsed < self.min_request_interval:
-            time.sleep(self.min_request_interval - elapsed)
-        self._last_request_time = time.time()
+        """Waits for this host's turn (process-wide, Issue #715)."""
+        HOST_THROTTLE.wait(host_of(self.base_url), self.min_request_interval)
 
     def _lookup(
         self, identifier: str, fetch: Callable[[], Optional[ResearchPaper]]
