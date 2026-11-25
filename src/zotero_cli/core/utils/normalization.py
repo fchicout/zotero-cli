@@ -34,14 +34,15 @@ def normalize_doi(doi: str) -> str:
 
 def normalize_title(title: str) -> str:
     """
-    Standardizes titles for fuzzy matching (lowercase, no punctuation, no extra spaces).
+    Standardizes titles for fuzzy matching: lower case, accents folded, no punctuation, single
+    spaces. Letters of every script are kept (Issue #717): a title in Chinese, Greek or Cyrillic
+    used to come out empty, so any two of them looked equal.
     """
     if not title:
         return ""
-    # Normalize unicode (accents, etc)
-    title = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode("ascii")
-    # Lowercase and remove punctuation
-    title = re.sub(r"[^\w\s]", "", title.lower())
-    # Remove extra whitespace
-    title = " ".join(title.split())
-    return title
+    # Decompose accents and compatibility forms (ligatures, superscripts), drop the marks
+    decomposed = unicodedata.normalize("NFKD", title.lower())
+    title = "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
+    # Remove punctuation, then extra whitespace
+    title = re.sub(r"[^\w\s]", "", title)
+    return " ".join(title.split())
