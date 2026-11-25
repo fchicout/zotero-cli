@@ -1,11 +1,11 @@
 import re
-import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from typing import Dict, List, Optional, Set, Tuple
 
 from zotero_cli.core.interfaces import CollectionRepository, ItemRepository
+from zotero_cli.core.utils.normalization import normalize_doi, normalize_title
 from zotero_cli.core.zotero_item import ZoteroItem
 
 # Item types that are never references, and so never duplicates.
@@ -306,23 +306,10 @@ class DuplicateFinder:
         return SequenceMatcher(None, a, b).ratio()
 
     def _normalize_doi(self, doi: str) -> str:
-        return doi.strip().lower()
+        return normalize_doi(doi)
 
     def _normalize_isbn(self, isbn: str) -> str:
         return re.sub(r"[\s-]", "", isbn).strip().lower()
 
     def _normalize_title(self, title: str) -> str:
-        # Lowercase
-        title = title.lower()
-
-        # Decompose unicode characters and remove non-spacing marks (accents)
-        normalized_title = unicodedata.normalize("NFD", title)
-        title = "".join(c for c in normalized_title if unicodedata.category(c) != "Mn")
-
-        # Remove punctuation
-        title = re.sub(r"[^\w\s]", "", title)
-
-        # Replace multiple spaces with single space and strip
-        title = re.sub(r"\s+", " ", title).strip()
-
-        return title
+        return normalize_title(title)

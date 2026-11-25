@@ -261,6 +261,9 @@ def test_compare_collections_resets_warnings_between_calls(finder, mock_gateway)
     [
         ("10.123/ABC", "10.123/abc"),
         (" 10.123/ABC ", "10.123/abc"),
+        ("https://doi.org/10.123/ABC", "10.123/abc"),
+        ("http://dx.doi.org/10.123/abc", "10.123/abc"),
+        ("doi:10.123/ABC", "10.123/abc"),
     ],
 )
 def test_normalization_doi(finder, input_doi, expected):
@@ -284,7 +287,24 @@ def test_normalization_isbn(finder, input_isbn, expected):
         ("A Title. With Punctuation!", "a title with punctuation"),
         ("  Another  Title  ", "another title"),
         ("Résumé paper", "resume paper"),
+        ("Aprendizado de máquina", "aprendizado de maquina"),
+        ("深度学习：综述", "深度学习综述"),
+        ("Ελληνικά κείμενα", "ελληνικα κειμενα"),
+        ("Глубокое обучение", "глубокое обучение"),
+        ("The ﬁnal ﬁnding", "the final finding"),
     ],
 )
 def test_normalization_title(finder, input_title, expected):
     assert finder._normalize_title(input_title) == expected
+
+
+def test_two_different_non_latin_titles_are_not_normalized_to_the_same_thing(finder):
+    """Issue #717: the shared normalizer used to return "" for both."""
+    assert finder._normalize_title("深度学习") != finder._normalize_title("机器学习")
+    assert finder._normalize_title("深度学习") != ""
+
+
+def test_a_doi_written_as_a_url_is_the_same_doi_as_the_bare_one(finder):
+    assert finder._normalize_doi("https://doi.org/10.1000/Abc") == finder._normalize_doi(
+        "10.1000/abc"
+    )
