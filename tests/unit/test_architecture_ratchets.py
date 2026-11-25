@@ -67,7 +67,6 @@ DIRECT_HTTP_CALL_BASELINE = {
     "core/services/network_gateway.py": 1,
     "core/services/resolvers/openalex.py": 1,
     "infra/http_client.py": 3,
-    "infra/pubmed_api.py": 1,
     "infra/base_api_client.py": 1,
 }
 _HTTP_CALLS = {
