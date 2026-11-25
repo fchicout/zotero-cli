@@ -49,15 +49,16 @@ def test_the_metadata_clients_use_it() -> None:
 def test_zoteros_client_reads_retry_after_and_backoff_the_same_way() -> None:
     from zotero_cli.infra.http_client import _server_delay
 
-    error = Mock()
-    error.response.headers = {"Retry-After": "soon", "Backoff": "4"}
+    response = requests.Response()
+    response.headers.update({"Retry-After": "soon", "Backoff": "4"})
+    error = requests.HTTPError(response=response)
 
     assert _server_delay(error) == 4.0
 
 
 def test_the_network_gateway_reads_an_http_date_instead_of_a_minute() -> None:
     import asyncio
-    from unittest.mock import AsyncMock, patch
+    from unittest.mock import patch
 
     import httpx
 
@@ -70,8 +71,11 @@ def test_the_network_gateway_reads_an_http_date_instead_of_a_minute() -> None:
     response.headers = {"Retry-After": format_datetime(later, usegmt=True)}
     gateway = NetworkGateway()
 
+    async def fetch(*_args: object, **_kwargs: object) -> httpx.Response:
+        return response
+
     async def go() -> RetryableError:
-        with patch.object(gateway, "_fetch_validated", AsyncMock(return_value=response)):
+        with patch.object(gateway, "_fetch_validated", fetch):
             try:
                 await gateway._execute_request("GET", "https://example.org/x", {})
             except RetryableError as error:
