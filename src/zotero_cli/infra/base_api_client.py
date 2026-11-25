@@ -1,8 +1,6 @@
 import logging
 import time
 from abc import ABC
-from datetime import datetime, timezone
-from email.utils import parsedate_to_datetime
 from typing import Any, Callable, Dict, Optional
 
 import requests
@@ -15,6 +13,7 @@ from tenacity import (
 )
 
 from zotero_cli.core.models import ResearchPaper
+from zotero_cli.core.utils.retry_after import parse_retry_after
 from zotero_cli.core.utils.user_agent import user_agent
 
 # Configure logging
@@ -35,20 +34,7 @@ _DEFAULT_RATE_LIMIT_WAIT = 5.0
 def retry_after_seconds(response: requests.Response) -> Optional[float]:
     """Seconds a `Retry-After` header asks for (delta-seconds or HTTP-date),
     or None when it's absent or unreadable."""
-    value = response.headers.get("Retry-After") if response.headers else None
-    if not value:
-        return None
-    try:
-        return max(0.0, float(value))
-    except (TypeError, ValueError):
-        pass
-    try:
-        when = parsedate_to_datetime(value)
-    except (TypeError, ValueError):
-        return None
-    if when.tzinfo is None:
-        when = when.replace(tzinfo=timezone.utc)
-    return max(0.0, (when - datetime.now(timezone.utc)).total_seconds())
+    return parse_retry_after(response.headers.get("Retry-After") if response.headers else None)
 
 
 def is_not_found(error: requests.exceptions.HTTPError) -> bool:

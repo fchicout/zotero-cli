@@ -11,6 +11,7 @@ from tenacity import (
 )
 
 from zotero_cli.core.exceptions import RetryableError
+from zotero_cli.core.utils.retry_after import parse_retry_after
 from zotero_cli.core.utils.url_safety import (
     MAX_REDIRECTS,
     SENSITIVE_HEADERS,
@@ -121,12 +122,8 @@ class NetworkGateway:
 
             # Policy: 429/503 -> Pause -> RetryableError
             if response.status_code in (429, 503):
-                retry_after = 60
-                if "Retry-After" in response.headers:
-                    try:
-                        retry_after = int(response.headers["Retry-After"])
-                    except ValueError:
-                        pass
+                asked = parse_retry_after(response.headers.get("Retry-After"))
+                retry_after = 60 if asked is None else asked
                 raise RetryableError(
                     f"Rate limited ({response.status_code})", retry_after=retry_after
                 )
