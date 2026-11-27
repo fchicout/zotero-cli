@@ -619,8 +619,10 @@ def test_system_restore_writes_the_key_map_also_when_the_restore_had_errors(syst
             ["one item was rejected"]
         )
 
+        args = _restore_args(tmp_path, key_map=str(target))
+
         with pytest.raises(SystemExit) as exit_info:
-            system_cmd.execute(_restore_args(tmp_path, key_map=str(target)))
+            system_cmd.execute(args)
 
     assert exit_info.value.code == 1
     assert json.loads(target.read_text())["complete"] is False
@@ -640,8 +642,10 @@ def test_system_restore_refuses_a_key_map_before_restoring_anything(
     from zotero_cli.core.exceptions import UsageError
 
     with patch("zotero_cli.infra.factory.GatewayFactory.get_restore_service") as service:
+        args = _restore_args(tmp_path, **extra)
+
         with pytest.raises(UsageError, match=said):
-            system_cmd.execute(_restore_args(tmp_path, **extra))
+            system_cmd.execute(args)
 
         service.return_value.restore_archive.assert_not_called()
 
@@ -651,9 +655,13 @@ def test_system_restore_says_so_when_the_key_map_cannot_be_written_afterwards(sy
 
     with patch("zotero_cli.infra.factory.GatewayFactory.get_restore_service") as service:
         service.return_value.restore_archive.return_value = _restore_report_with_keys()
-        with patch("zotero_cli.cli.restore_guard.write_key_map", side_effect=OSError("disk full")):
+        args = _restore_args(tmp_path, key_map=str(tmp_path / "k.json"))
+        failing = patch(
+            "zotero_cli.cli.restore_guard.write_key_map", side_effect=OSError("disk full")
+        )
+        with failing:
             with pytest.raises(ZoteroCliError, match="The restore ran.*could not be written"):
-                system_cmd.execute(_restore_args(tmp_path, key_map=str(tmp_path / "k.json")))
+                system_cmd.execute(args)
 
 
 def test_system_restore_without_the_flag_writes_nothing(system_cmd, tmp_path):
