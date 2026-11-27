@@ -10,7 +10,13 @@ from rich.table import Table
 from zotero_cli.cli.backup_summary import TRASH_BACKUP_HELP, finish_backup, library_note
 from zotero_cli.cli.base import BaseCommand, CommandRegistry
 from zotero_cli.cli.flags import LIST_FORMAT_HELP, LIST_FORMATS, add_format_flag, user_flag
-from zotero_cli.cli.restore_guard import check_restore_target, print_archive_library
+from zotero_cli.cli.restore_guard import (
+    add_restore_verb,
+    check_key_map_request,
+    check_restore_target,
+    print_archive_library,
+    save_key_map,
+)
 from zotero_cli.core.exceptions import NotFound, UsageError, ZoteroCliError
 from zotero_cli.core.utils.terminal_safety import SafeConsole as Console
 from zotero_cli.core.utils.terminal_safety import safe_markup
@@ -283,51 +289,6 @@ Notes
     verify_p.add_argument("--file", required=True, help="Input .zaf file")
 
 
-def _add_restore_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
-
-    # Restore
-    restore_p = sub.add_parser(
-        "restore",
-        help="Restore from a .zaf backup",
-        description="Reconstructs an entire Zotero library or specific collections from a previously created Zotero Archive Format (.zaf) file.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples
---------
-Scenario: Recovering from an accidental library deletion
-Problem: I've accidentally deleted a large set of folders in Zotero and I need to restore them from last week's backup.
-Action:  zotero-cli system restore --file "backup_2024_01_01.zaf" --dry-run
-Result:  The CLI shows exactly which items and folders will be recreated.
-
-Scenario: Applying a restore after reviewing the plan
-Problem: I've checked the dry-run output and I'm ready to actually restore.
-Action:  zotero-cli system restore --file "backup_2024_01_01.zaf" --execute
-Result:  The archive is restored into the library.
-
-Notes
------
-• Common Failure Modes: Attempting to restore a .zaf file that is corrupted or from a different account context.
-• Safety Tips: ALWAYS run with --dry-run first to understand the impact.
-• Previews by default: nothing is written to your library until you pass --execute.
-
-Documentation: https://github.com/fchicout/zotero-cli/tree/main/docs/help_specs/system_restore.md
-""",
-    )
-    restore_p.add_argument("--file", required=True, help="Input .zaf file")
-    restore_mode = restore_p.add_mutually_exclusive_group()
-    restore_mode.add_argument("--dry-run", action="store_true", help="Simulate restore")
-    restore_mode.add_argument(
-        "--execute",
-        action="store_true",
-        help="Apply the restore (without it, only a preview is shown)",
-    )
-    restore_p.add_argument(
-        "--yes",
-        action="store_true",
-        help="Do not ask before restoring into a different library than the archive came from",
-    )
-
-
 def _add_norm_verb(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
 
     # Normalize CSV
@@ -471,7 +432,7 @@ class SystemCommand(BaseCommand):
         _add_sandbox_verb(sub)
         _add_backup_verb(sub)
         _add_verify_verb(sub)
-        _add_restore_verb(sub)
+        add_restore_verb(sub)
         _add_norm_verb(sub)
         _add_switch_verb(sub)
         _add_jobs_verb(sub)
@@ -548,6 +509,7 @@ class SystemCommand(BaseCommand):
         # Previews unless --execute (4.0, Issue #462); --dry-run is the explicit spelling.
         dry_run = not getattr(args, "execute", False)
 
+        check_key_map_request(args, dry_run)
         check_restore_target(args, dry_run, console)
         restore_service = GatewayFactory.get_restore_service(force_user=user_flag(args))
 
@@ -588,6 +550,8 @@ class SystemCommand(BaseCommand):
             )
 
         console.print(table)
+
+        save_key_map(args, report, console)
 
         if report.errors:
             sys.exit(1)

@@ -107,7 +107,7 @@ Reconstructs an entire Zotero library or specific collections from a `.zaf` arch
 
 **Usage:**
 ```bash
-zotero-cli system restore --file "backup.zaf" [--dry-run | --execute] [--yes]
+zotero-cli system restore --file "backup.zaf" [--dry-run | --execute] [--yes] [--key-map keys.json]
 ```
 
 **Parameters:**
@@ -115,6 +115,7 @@ zotero-cli system restore --file "backup.zaf" [--dry-run | --execute] [--yes]
 *   `--dry-run`: Simulates the restore without making any changes. Mutually exclusive with `--execute`.
 *   `--execute`: Applies the restore. Mutually exclusive with `--dry-run`. Without it only a preview is shown (Issue #462).
 *   `--yes`: Skips the question asked when the archive was taken from a different library (personal or group) than the one being restored into. Archives record their library from format 1.2 on.
+*   `--key-map FILE`: Only with `--execute`. Writes a JSON file with, for every item, collection and saved search of the archive, its key in the library now and whether it was `created`, matched to an `existing` one or `not_restored` (format: [system_restore.md](../help_specs/system_restore.md)). Written also when the restore reports errors.
 
 ---
 

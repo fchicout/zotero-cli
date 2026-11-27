@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. From 3.0.0 
 
 ## [Unreleased]
 
+### ✨ Added
+- **`system restore --key-map FILE` says which new key everything got (#721):** a restore gives a new key to whatever it creates, and until now did not say which. With `--execute`, the JSON file lists every item (notes, attachments and annotations included), collection and saved search of the archive with its key in the library now and whether it was `created`, matched to an `existing` one or `not_restored`. It is written also when the restore reports errors (`"complete": false`), never half-written, and a path that cannot be written is refused before anything is restored. The format is described in `docs/help_specs/system_restore.md`.
+
 ## [4.2.0] - 2026-11-24
 
 A minor release: `system backup` and `system restore` now reproduce a library faithfully (a round trip on a test group library returns every item, file, collection, trash state and date), `--trash` and `--group` options, and Python 3.11.5 is the new minimum (announced in 4.1.1).

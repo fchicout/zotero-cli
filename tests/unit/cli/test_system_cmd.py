@@ -1,4 +1,5 @@
 import argparse
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -571,3 +572,94 @@ def test_system_info_prints_the_effective_endpoint(system_cmd, capsys):
         system_cmd.execute(argparse.Namespace(verb="info", config=None))
 
     assert "https://api.zotero.org/users/1234567" in capsys.readouterr().out
+
+
+# --- system restore --key-map (Issue #721) --------------------------------------------
+
+
+def _restore_report_with_keys(errors=None):
+    from zotero_cli.core.models import LibraryRef
+    from zotero_cli.core.services.restore_report import RestoreReport
+
+    return RestoreReport(
+        items_created=1,
+        errors=list(errors or []),
+        item_keys={"OLDKEY01": {"key": "NEWKEY01", "status": "created", "item_type": "book"}},
+        target_library=LibraryRef("group", "42"),
+    )
+
+
+def _restore_args(tmp_path, **extra):
+    archive = tmp_path / "backup.zaf"
+    archive.write_bytes(b"PK")
+    values = {"verb": "restore", "file": str(archive), "execute": True, "user": False}
+    values.update(extra)
+    return argparse.Namespace(**values)
+
+
+def test_system_restore_writes_the_key_map_it_was_asked_for(system_cmd, capsys, tmp_path):
+    target = tmp_path / "keys.json"
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_restore_service") as service:
+        service.return_value.restore_archive.return_value = _restore_report_with_keys()
+
+        system_cmd.execute(_restore_args(tmp_path, key_map=str(target)))
+
+    written = json.loads(target.read_text())
+    assert written["items"]["OLDKEY01"]["key"] == "NEWKEY01"
+    assert written["complete"] is True
+    assert written["target_library"] == {"type": "group", "id": "42"}
+    assert written["generator"].startswith("zotero-cli ")
+    assert "Key map written to" in capsys.readouterr().out
+
+
+def test_system_restore_writes_the_key_map_also_when_the_restore_had_errors(system_cmd, tmp_path):
+    target = tmp_path / "keys.json"
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_restore_service") as service:
+        service.return_value.restore_archive.return_value = _restore_report_with_keys(
+            ["one item was rejected"]
+        )
+
+        with pytest.raises(SystemExit) as exit_info:
+            system_cmd.execute(_restore_args(tmp_path, key_map=str(target)))
+
+    assert exit_info.value.code == 1
+    assert json.loads(target.read_text())["complete"] is False
+
+
+@pytest.mark.parametrize(
+    ("extra", "said"),
+    [
+        ({"execute": False, "key_map": "keys.json"}, "needs --execute"),
+        ({"execute": False, "dry_run": True, "key_map": "keys.json"}, "needs --execute"),
+        ({"key_map": "/no/such/directory/keys.json"}, "does not exist"),
+    ],
+)
+def test_system_restore_refuses_a_key_map_before_restoring_anything(
+    system_cmd, tmp_path, extra, said
+):
+    from zotero_cli.core.exceptions import UsageError
+
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_restore_service") as service:
+        with pytest.raises(UsageError, match=said):
+            system_cmd.execute(_restore_args(tmp_path, **extra))
+
+        service.return_value.restore_archive.assert_not_called()
+
+
+def test_system_restore_says_so_when_the_key_map_cannot_be_written_afterwards(system_cmd, tmp_path):
+    from zotero_cli.core.exceptions import ZoteroCliError
+
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_restore_service") as service:
+        service.return_value.restore_archive.return_value = _restore_report_with_keys()
+        with patch("zotero_cli.cli.restore_guard.write_key_map", side_effect=OSError("disk full")):
+            with pytest.raises(ZoteroCliError, match="The restore ran.*could not be written"):
+                system_cmd.execute(_restore_args(tmp_path, key_map=str(tmp_path / "k.json")))
+
+
+def test_system_restore_without_the_flag_writes_nothing(system_cmd, tmp_path):
+    with patch("zotero_cli.infra.factory.GatewayFactory.get_restore_service") as service:
+        service.return_value.restore_archive.return_value = _restore_report_with_keys()
+
+        system_cmd.execute(_restore_args(tmp_path))
+
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["backup.zaf"]
