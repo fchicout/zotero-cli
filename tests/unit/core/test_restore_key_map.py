@@ -259,11 +259,12 @@ def test_the_map_is_written_whole_and_replaces_an_older_one(tmp_path: Path) -> N
     target = tmp_path / "keys.json"
     target.write_text("old")
     target.chmod(0o640)
+    permissions = target.stat().st_mode  # what this system made of it (Windows keeps less)
 
     write_key_map(str(target), {"title": "ação"})
 
     assert json.loads(target.read_text(encoding="utf-8")) == {"title": "ação"}
-    assert target.stat().st_mode & 0o777 == 0o640
+    assert target.stat().st_mode == permissions
     assert sorted(p.name for p in tmp_path.iterdir()) == ["keys.json"]
 
 
@@ -291,9 +292,14 @@ def test_the_archive_itself_is_never_overwritten(tmp_path: Path) -> None:
     archive = tmp_path / "a.zaf"
     archive.write_bytes(b"PK")
     link = tmp_path / "keys.json"
-    link.symlink_to(archive)
+    paths = [archive]
+    try:
+        link.symlink_to(archive)
+        paths.append(link)
+    except OSError:  # Windows without the right to create links
+        pass
 
-    for path in (archive, link):
+    for path in paths:
         with pytest.raises(UsageError, match="must not be the archive"):
             check_key_map_path(str(path), str(archive))
 
