@@ -33,6 +33,7 @@ The command carefully parses the `.zaf` archive, identifies all bibliographic re
 | `--dry-run` | Boolean | Simulate restore | Mutually exclusive with `--execute`. |
 | `--execute` | Flag | Apply the restore | Mutually exclusive with `--dry-run`. Without it only a preview is shown (Issue #462). |
 | `--file` | String | Input .zaf file | Required. |
+| `--key-map` | Path | Write the new key of every restored item, collection and saved search to this JSON file | Only with `--execute` (a preview creates nothing). The path is checked before anything is restored. |
 | `--yes` | Flag | Do not ask before restoring into a different library than the archive came from | Archives made since 4.2 record their library (personal or group, and its id). If it is not the library the command is about to write to, the preview warns, and `--execute` asks first (without a terminal it refuses with exit 2 unless `--yes` is given). |
 
 ## 6. Scenario-Based Examples (Cognitive Anchors)
@@ -45,6 +46,34 @@ The command carefully parses the `.zaf` archive, identifies all bibliographic re
 **Problem:** I've checked the `--dry-run` output and I'm ready to actually restore.
 **Action:** `zotero-cli system restore --file "backup_2024_01_01.zaf" --execute`
 **Result:** The archive is restored into the library.
+
+### Scenario: Following the items to their new keys
+**Problem:** My notes and scripts refer to items by key, and a restore gives new keys to what it creates.
+**Action:** `zotero-cli system restore --file "backup_2024_01_01.zaf" --execute --key-map keys.json`
+**Result:** `keys.json` says, for every item, collection and saved search of the archive, its key in the library now.
+
+The file:
+```json
+{
+  "format": "zotero-cli-key-map",
+  "version": 1,
+  "generator": "zotero-cli <version>",
+  "complete": true,
+  "source_library": {"type": "group", "id": "111"},
+  "target_library": {"type": "group", "id": "222"},
+  "items": {
+    "OLDKEY01": {"key": "NEWKEY01", "status": "created", "item_type": "journalArticle"},
+    "OLDKEY02": {"key": "KEPTKEY2", "status": "existing", "item_type": "note"},
+    "OLDKEY03": {"key": null, "status": "not_restored", "item_type": "attachment"}
+  },
+  "collections": {"OLDCOLL1": {"key": "NEWCOLL1", "status": "created"}},
+  "searches": {}
+}
+```
+- **Everything is listed.** Every item (notes, attachments and annotations too), collection and saved search of the archive appears once, keyed by its key in the archive. `status` is `created` (a new key), `existing` (the restore matched it to one already in the library, which may be under the same key as before) or `not_restored` (`key` is `null`).
+- **`existing` is a match, not a proof of identity.** It is the item the restore took the archived one for (by DOI or title for items, by text for notes, by file for attachments), one to one for items. Identical notes under one item are matched to one note.
+- **After errors:** the file is still written, with `"complete": false`; what failed is `not_restored`. If the file cannot be written after the restore ran, the command says so and exits 1. A restore that is killed (not one that reports errors) writes no map; running it again creates nothing twice and writes one.
+- **Source library** is `null` for archives made before 4.2, which do not record it.
 
 ## 7. Cognitive Safeguards
 - **Trashed items stay trashed:** an archive made with `--trash` restores the items that were in the trash into the trash again (articles, notes, files), and a second restore does not create them twice; the summary says how many went there. Without `--trash` the archive has no trash to restore.
